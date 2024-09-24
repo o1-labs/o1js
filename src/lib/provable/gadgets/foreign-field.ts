@@ -79,6 +79,7 @@ const ForeignField = {
   assertLessThanOrEqual,
 
   equals,
+  toCanonical,
 };
 
 /**
@@ -432,11 +433,24 @@ function equals(x: Field3, c: bigint, f: bigint) {
   }
 }
 
-const provableLimb = modifiedField({
-  toInput(x) {
-    return { packed: [[x, Number(l)]] };
-  },
-});
+/**
+ * Convert x, which may be unreduced, to a canonical representative < f.
+ *
+ * Note: This method is complete, it works for all unreduced field elements.
+ * It can therefore be used to protect against incompleteness of field operations in other places.
+ */
+function toCanonical(x: Field3, f: bigint) {
+  // multiply by 1 to get reduced representative
+  // note: this is sound because x < 2^3l << 2^3l p
+  let xR = multiply(x, Field3.from(1n), f);
+
+  // assert the result is canonical, and return it
+  assertLessThan(xR, f);
+
+  return xR;
+}
+
+const provableLimb = modifiedField({});
 
 const Field3 = {
   /**

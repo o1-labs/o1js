@@ -12,15 +12,12 @@ import { assert } from '../gadgets/common.js';
 
 let Arithmetic = ZkProgram({
   name: 'arithmetic',
-  publicOutput: provable({
-    remainder: Field,
-    quotient: Field,
-  }),
+  publicOutput: provable({ remainder: Field, quotient: Field }),
   methods: {
     divMod32: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.divMod32(a);
+        return { publicOutput: Gadgets.divMod32(a) };
       },
     },
   },
@@ -54,6 +51,6 @@ await equivalentAsync({ from: [field], to: divMod32Output }, { runs: 3 })(
     return divMod32Helper(x);
   },
   async (x) => {
-    return (await Arithmetic.divMod32(x)).publicOutput;
+    return (await Arithmetic.divMod32(x)).proof.publicOutput;
   }
 );

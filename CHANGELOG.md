@@ -15,7 +15,51 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/1c736add...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
+
+## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
+
+### Added
+
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
+  - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
+  - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
+
+### Fixes
+
+- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()` https://github.com/o1-labs/o1js/pull/1827
+
+## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
+
+### Added
+
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+- New option `proofsEnabled` for `zkProgram` (default value: `true`), to quickly test circuit logic with proofs disabled https://github.com/o1-labs/o1js/pull/1805
+  - Additionally added `MyProgram.proofsEnabled` to get the internal value of `proofsEnabled` and `MyProgram.setProofsEnabled(proofsEnabled)` to set the value dynamically.
+
+### Deprecated
+
+- `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
+
+### Fixes
+
+- Fix behavior of `Int64.modV2()` when the input is negative and the remainder should be 0 https://github.com/o1-labs/o1js/pull/1797
+
+## [1.6.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...d6abf1d97) - 2024-07-23
+
+### Added
+
+- `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+
+### Changed
+
+- Reduced maximum bit length for `xor`, `not`, and `and`, operations from 254 to 240 bits to prevent overflow vulnerabilities. https://github.com/o1-labs/o1js/pull/1745
+- Allow using `Type` instead of `Type.provable` in APIs that expect a provable type https://github.com/o1-labs/o1js/pull/1751
+  - Example: `Provable.witness(Bytes32, () => bytes)`
+- Automatically wrap and unwrap `Unconstrained` in `fromValue` and `toValue`, so that we don't need to deal with "unconstrained" values outside provable code https://github.com/o1-labs/o1js/pull/1751
 
 ## [1.5.0](https://github.com/o1-labs/o1js/compare/ed198f305...1c736add) - 2024-07-09
 
@@ -28,6 +72,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - A warning about the current reducer API limitations, as well as a mention of active work to mitigate them was added to doc comments and examples https://github.com/o1-labs/o1js/pull/1728
 - `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
 - Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
+- `Int64.create()` method for safe instance creation with canonical zero representation https://github.com/o1-labs/o1js/pull/1735
+- New V2 methods for `Int64` operations: `fromObjectV2`, `divV2()` https://github.com/o1-labs/o1js/pull/1735
 - `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
   - Avoids the account update limit
   - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
@@ -50,6 +96,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
 - `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
+- `Int64` constructor, recommending `Int64.create()` instead https://github.com/o1-labs/o1js/pull/1735
+- Original `div()` and `fromObject`, methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
 - Deprecate `AccountUpdate.defaultAccountUpdate()` in favor of `AccountUpdate.default()` https://github.com/o1-labs/o1js/pull/1676
 
 ### Fixed

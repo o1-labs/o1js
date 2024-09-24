@@ -2,11 +2,11 @@
  * This DEX implementation differs from ./dex.ts in two ways:
  * - More minimal & realistic; stuff designed only for testing protocol features was removed
  * - Uses an async pattern with actions that lets users claim funds later and reduces account updates
- * 
- * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
- * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+ *
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()`
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
  * in progress to mitigate this limitation.
- */ 
+ */
 import {
   Account,
   AccountUpdate,
@@ -86,7 +86,7 @@ class Dex extends TokenContract {
   @method async createAccount() {
     this.internal.mint({
       // unconstrained because we don't care which account is created
-      address: this.sender.getUnconstrained(),
+      address: this.sender.getUnconstrainedV2(),
       amount: UInt64.from(0),
     });
   }
@@ -104,7 +104,7 @@ class Dex extends TokenContract {
   @method.returns(UInt64)
   async supplyLiquidityBase(dx: UInt64, dy: UInt64) {
     // unconstrained because `transfer()` requires sender signature anyway
-    let user = this.sender.getUnconstrained();
+    let user = this.sender.getUnconstrainedV2();
     let tokenX = new TrivialCoin(this.tokenX);
     let tokenY = new TrivialCoin(this.tokenY);
 
@@ -175,7 +175,7 @@ class Dex extends TokenContract {
    * contracts pay you tokens when reducing the action.
    */
   @method async redeemInitialize(dl: UInt64) {
-    let sender = this.sender.getUnconstrained(); // unconstrained because `burn()` requires sender signature anyway
+    let sender = this.sender.getUnconstrainedV2(); // unconstrained because `burn()` requires sender signature anyway
     this.reducer.dispatch(new RedeemAction({ address: sender, dl }));
     this.internal.burn({ address: sender, amount: dl });
     // TODO: preconditioning on the state here ruins concurrent interactions,
@@ -209,7 +209,7 @@ class Dex extends TokenContract {
    * the called methods which requires proof authorization.
    */
   async swapX(dx: UInt64) {
-    let user = this.sender.getUnconstrained(); // unconstrained because `swap()` requires sender signature anyway
+    let user = this.sender.getUnconstrainedV2(); // unconstrained because `swap()` requires sender signature anyway
     let tokenY = new TrivialCoin(this.tokenY);
     let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
     let dy = await dexY.swap(user, dx, this.tokenX);
@@ -228,7 +228,7 @@ class Dex extends TokenContract {
    * the called methods which requires proof authorization.
    */
   async swapY(dy: UInt64) {
-    let user = this.sender.getUnconstrained(); // unconstrained because `swap()` requires sender signature anyway
+    let user = this.sender.getUnconstrainedV2(); // unconstrained because `swap()` requires sender signature anyway
     let tokenX = new TrivialCoin(this.tokenX);
     let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
     let dx = await dexX.swap(user, dy, this.tokenY);

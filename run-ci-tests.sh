@@ -14,8 +14,7 @@ case $TEST_TYPE in
 
 "Reducer integration tests")
   echo "Running reducer integration tests"
-  ./run src/examples/zkapps/reducer/actions-as-merkle-list.ts --bundle
-  ./run src/examples/zkapps/reducer/actions-as-merkle-list-iterator.ts --bundle
+  ./run src/examples/zkapps/reducer/run.ts --bundle
   ;;
 
 "Voting integration tests")
@@ -34,20 +33,16 @@ case $TEST_TYPE in
   ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
   ;;
 
-"Unit tests")
-  echo "Running unit tests"
-  cd src/mina-signer
-  npm run build
-  cd ../..
-  npm run test:unit
-  npm run test
+"Verification Key Regression Check 1")
+  echo "Running Regression checks part 1"
+  VK_TEST=1 ./run ./tests/vk-regression/vk-regression.ts --bundle
   ;;
 
-"Verification Key Regression Check")
-  echo "Running Regression checks"
-  ./run ./tests/vk-regression/vk-regression.ts --bundle
+"Verification Key Regression Check 2")
+  echo "Running Regression checks part 2"
+  VK_TEST=2 ./run ./tests/vk-regression/vk-regression.ts --bundle
   ;;
-
+  
 "CommonJS test")
   echo "Testing CommonJS version"
   node src/examples/commonjs.cjs

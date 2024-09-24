@@ -23,12 +23,14 @@ sample(Random.nat(400), 5).forEach((preimageLength) => {
 
 const Sha256Program = ZkProgram({
   name: `sha256`,
-  publicOutput: Bytes(32).provable,
+  publicOutput: Bytes(32),
   methods: {
     sha256: {
-      privateInputs: [Bytes(192).provable],
+      privateInputs: [Bytes(192)],
       async method(preImage: Bytes) {
-        return Gadgets.SHA256.hash(preImage);
+        return {
+          publicOutput: Gadgets.SHA256.hash(preImage),
+        };
       },
     },
   },
@@ -45,7 +47,7 @@ await equivalentAsync(
   },
   { runs: RUNS }
 )(nobleSha256, async (x) => {
-  const proof = await Sha256Program.sha256(x);
+  const { proof } = await Sha256Program.sha256(x);
   await Sha256Program.verify(proof);
   return proof.publicOutput;
 });

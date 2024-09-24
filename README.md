@@ -1,4 +1,4 @@
-# o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
+# o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![npm](https://img.shields.io/npm/dm/o1js)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
 
 ℹ️ **o1js** is an evolution of [SnarkyJS](https://www.npmjs.com/package/snarkyjs) which saw
 49 updated versions over two years of development with 43,141 downloads.
@@ -56,5 +56,6 @@ High-quality community packages from open source developers are available for yo
 
 - **o1js-elgamal** A partially homomorphic encryption library for o1js based on Elgamal encryption: [GitHub](https://github.com/Trivo25/o1js-elgamal) and [npm](https://www.npmjs.com/package/o1js-elgamal)
 - **o1js-pack** A library for o1js that allows a zkApp developer to pack extra data into a single Field. [GitHub](https://github.com/45930/o1js-pack) and [npm](https://www.npmjs.com/package/o1js-pack)
+- **zk-regex-o1js** A CLI tool for compiling ZK Regex circuits in o1js. [Github](https://github.com/Shigoto-dev19/zk-regex-o1js) and [npm](https://www.npmjs.com/package/zk-regex-o1js)
 
 To include your package, see [Creating high-quality community packages](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).

@@ -4,11 +4,11 @@
  *
  * This is mainly intended as an example for using `MerkleList`, but it might also be useful as
  * a blueprint for processing actions in a custom and more explicit way.
- * 
- * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
- * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+ *
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()`
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
  * in progress to mitigate this limitation.
- */ 
+ */
 import {
   Bool,
   Mina,
@@ -18,6 +18,8 @@ import {
   method,
   assert,
 } from 'o1js';
+
+export { MerkleListReducing, testLocal };
 
 // in this example, an action is just a public key
 type Action = PublicKey;
@@ -64,7 +66,6 @@ class MerkleListReducing extends SmartContract {
         hasAddress = hasAddress.or(action.equals(address));
       }
     }
-
     assert(actions.isEmpty()); // we processed all actions
     assert(hasAddress); // we found the address
   }
@@ -74,43 +75,45 @@ class MerkleListReducing extends SmartContract {
 
 // set up a local blockchain
 
-let Local = await Mina.LocalBlockchain({ proofsEnabled: false });
-Mina.setActiveInstance(Local);
+async function testLocal() {
+  let Local = await Mina.LocalBlockchain({ proofsEnabled: true });
+  Mina.setActiveInstance(Local);
 
-let [sender, contractAccount, otherAddress, anotherAddress] =
-  Local.testAccounts;
+  let [sender, contractAccount, otherAddress, anotherAddress] =
+    Local.testAccounts;
 
-let contract = new MerkleListReducing(contractAccount);
+  let contract = new MerkleListReducing(contractAccount);
 
-// deploy the contract
+  // deploy the contract
 
-await MerkleListReducing.compile();
-console.log(
-  `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
-  (await MerkleListReducing.analyzeMethods()).assertContainsAddress.rows
-);
-let deployTx = await Mina.transaction(sender, async () => contract.deploy());
-await deployTx.sign([sender.key, contractAccount.key]).send();
+  await MerkleListReducing.compile();
+  console.log(
+    `rows for ${MAX_UPDATES_WITH_ACTIONS} updates with actions`,
+    (await MerkleListReducing.analyzeMethods()).assertContainsAddress.rows
+  );
+  let deployTx = await Mina.transaction(sender, async () => contract.deploy());
+  await deployTx.sign([sender.key, contractAccount.key]).send();
 
-// push some actions
+  // push some actions
 
-let dispatchTx = await Mina.transaction(sender, async () => {
-  await contract.postAddress(otherAddress);
-  await contract.postAddress(contractAccount);
-  await contract.postTwoAddresses(anotherAddress, sender);
-  await contract.postAddress(anotherAddress);
-  await contract.postTwoAddresses(contractAccount, otherAddress);
-});
-await dispatchTx.prove();
-await dispatchTx.sign([sender.key]).send();
+  let dispatchTx = await Mina.transaction(sender, async () => {
+    await contract.postAddress(otherAddress);
+    await contract.postAddress(contractAccount);
+    await contract.postTwoAddresses(anotherAddress, sender);
+    await contract.postAddress(anotherAddress);
+    await contract.postTwoAddresses(contractAccount, otherAddress);
+  });
+  await dispatchTx.prove();
+  await dispatchTx.sign([sender.key]).send();
 
-assert(contract.reducer.getActions().data.get().length === 5);
+  assert(contract.reducer.getActions().data.get().length === 5);
 
-// check if the actions contain the `sender` address
+  // check if the actions contain the `sender` address
 
-Local.setProofsEnabled(true);
-let containsTx = await Mina.transaction(sender, () =>
-  contract.assertContainsAddress(sender)
-);
-await containsTx.prove();
-await containsTx.sign([sender.key]).send();
+  Local.setProofsEnabled(true);
+  let containsTx = await Mina.transaction(sender, () =>
+    contract.assertContainsAddress(sender)
+  );
+  await containsTx.prove();
+  await containsTx.sign([sender.key]).send();
+}

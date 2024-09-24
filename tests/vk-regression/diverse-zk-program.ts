@@ -1,8 +1,8 @@
 import {
   ZkProgram,
   Crypto,
-  createEcdsaV2,
-  createForeignCurveV2,
+  createEcdsa,
+  createForeignCurve,
   Bytes,
   assert,
   Provable,
@@ -18,9 +18,9 @@ import {
 
 export { diverse, Bytes128 };
 
-class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class Secp256k1Scalar extends Secp256k1.Scalar {}
-class Secp256k1Signature extends createEcdsaV2(Secp256k1) {}
+class Secp256k1Signature extends createEcdsa(Secp256k1) {}
 
 class Bytes128 extends Bytes(128) {}
 
@@ -32,11 +32,7 @@ const diverse = ZkProgram({
   methods: {
     // foreign field / curve ops, multi-range checks
     ecdsa: {
-      privateInputs: [
-        Secp256k1Scalar.provable,
-        Secp256k1Signature.provable,
-        Secp256k1.provable,
-      ],
+      privateInputs: [Secp256k1Scalar, Secp256k1Signature, Secp256k1],
       async method(
         message: Secp256k1Scalar,
         signature: Secp256k1Signature,
@@ -48,7 +44,7 @@ const diverse = ZkProgram({
 
     // bitwise gadgets
     sha3: {
-      privateInputs: [Bytes128.provable],
+      privateInputs: [Bytes128],
       async method(xs: Bytes128) {
         Hash.SHA3_256.hash(xs);
       },

@@ -150,6 +150,18 @@ describe('Circuit String', () => {
     });
   });
 
+  describe('#length', () => {
+    test('length', async () => {
+      const str1 = CircuitString.fromString('abcd');
+      expect(str1.length()).toEqual(Field(4));
+
+      await Provable.runAndCheck(() => {
+        const str1 = CircuitString.fromString('abcd');
+        expect(str1.length()).toEqual(Field(4));
+      });
+    });
+  });
+
   /*   describe('CircuitString8', async () => {
     test('cannot create more than 8 chars', () => {
       expect(() => {

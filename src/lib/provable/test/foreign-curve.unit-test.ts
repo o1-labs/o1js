@@ -1,11 +1,11 @@
-import { createForeignCurveV2 } from '../crypto/foreign-curve.js';
+import { createForeignCurve } from '../crypto/foreign-curve.js';
 import { Fq } from '../../../bindings/crypto/finite-field.js';
 import { Vesta as V } from '../../../bindings/crypto/elliptic-curve.js';
 import { Provable } from '../provable.js';
 import { Field } from '../field.js';
 import { Crypto } from '../crypto/crypto.js';
 
-class Vesta extends createForeignCurveV2(Crypto.CurveParams.Vesta) {}
+class Vesta extends createForeignCurve(Crypto.CurveParams.Vesta) {}
 class Fp extends Vesta.Scalar {}
 
 let g = { x: Fq.negate(1n), y: 2n, infinity: false };
@@ -14,17 +14,17 @@ let scalar = Field.random().toBigInt();
 let p = V.toAffine(V.scale(V.fromAffine(h), scalar));
 
 function main() {
-  let g0 = Provable.witness(Vesta.provable, () => new Vesta(g));
-  let one = Provable.witness(Vesta.provable, () => Vesta.generator);
+  let g0 = Provable.witness(Vesta, () => g);
+  let one = Provable.witness(Vesta, () => Vesta.generator);
   let h0 = g0.add(one).double().negate();
-  Provable.assertEqual(Vesta.provable, h0, new Vesta(h));
+  Provable.assertEqual(Vesta, h0, new Vesta(h));
 
   h0.assertOnCurve();
   h0.assertInSubgroup();
 
-  let scalar0 = Provable.witness(Fp.provable, () => new Fp(scalar));
+  let scalar0 = Provable.witness(Fp, () => scalar);
   let p0 = h0.scale(scalar0);
-  Provable.assertEqual(Vesta.provable, p0, new Vesta(p));
+  Provable.assertEqual(Vesta, p0, new Vesta(p));
 }
 
 console.time('running constant version');

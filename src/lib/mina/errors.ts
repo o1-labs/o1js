@@ -1,8 +1,7 @@
 import { Types } from '../../bindings/mina-transaction/types.js';
 import { TokenId } from './account-update.js';
-import { Int64 } from '../provable/int.js';
 
-export { invalidTransactionError };
+export { humanizeErrors, invalidTransactionError };
 
 const ErrorHandlers = {
   Invalid_fee_excess({
@@ -15,7 +14,7 @@ const ErrorHandlers = {
 
     let balances = accountUpdates.map(({ body }) => {
       if (body.tokenId.equals(TokenId.default).toBoolean()) {
-        return Number(Int64.fromObject(body.balanceChange).toString()) * 1e-9;
+        return Number(body.balanceChange.toString()) * 1e-9;
       }
     });
     let sum = balances.reduce((a = 0, b = 0) => a + b) ?? 0;
@@ -45,12 +44,24 @@ ${(-Number(accountCreationFee) * 1e-9).toFixed(
 )} times the number of newly created accounts.`;
   },
 };
+const defaultErrorReplacementRules: ErrorReplacementRule[] = [
+  {
+    pattern: /\(invalid \(Invalid_proof \\"In progress\\"\)\)/g,
+    replacement:
+      'Stale verification key detected. Please make sure that deployed verification key reflects latest zkApp changes.',
+  },
+];
 
 type ErrorHandlerArgs = {
   transaction: Types.ZkappCommand;
   accountUpdateIndex: number;
   isFeePayer: boolean;
   accountCreationFee: string | number;
+};
+
+type ErrorReplacementRule = {
+  pattern: RegExp;
+  replacement: string;
 };
 
 function invalidTransactionError(
@@ -102,4 +113,17 @@ function invalidTransactionError(
   }
   // fallback if we don't have a good error message yet
   return rawErrors;
+}
+
+function humanizeErrors(
+  errors: string[],
+  replacements: ErrorReplacementRule[] = defaultErrorReplacementRules
+): string[] {
+  return errors.map((error) => {
+    let modifiedError = error;
+    replacements.forEach(({ pattern, replacement }) => {
+      modifiedError = modifiedError.replace(pattern, replacement);
+    });
+    return modifiedError;
+  });
 }

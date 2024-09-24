@@ -554,8 +554,8 @@ const Gadgets = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(9n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(10n));
+     * let x = Provable.witness(Field3, () => 9n);
+     * let y = Provable.witness(Field3, () => 10n);
      *
      * // range check x and y
      * Gadgets.multiRangeCheck(x);
@@ -616,9 +616,9 @@ const Gadgets = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
-     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     * let x = Provable.witness(Field3, () => 4n);
+     * let y = Provable.witness(Field3, () => 5n);
+     * let z = Provable.witness(Field3, () => 10n);
      *
      * // range check x, y, z
      * Gadgets.multiRangeCheck(x);
@@ -656,8 +656,8 @@ const Gadgets = {
      * // example modulus: secp256k1 prime
      * let f = (1n << 256n) - (1n << 32n) - 0b1111010001n;
      *
-     * let x = Provable.witness(Field3.provable, () => Field3.from(f - 1n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(f - 2n));
+     * let x = Provable.witness(Field3, () => f - 1n);
+     * let y = Provable.witness(Field3, () => f - 2n);
      *
      * // range check x, y and prove additional bounds x[2] <= f[2]
      * ForeignField.assertAlmostReduced([x, y], f);
@@ -758,9 +758,9 @@ const Gadgets = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(4n));
-     * let y = Provable.witness(Field3.provable, () => Field3.from(5n));
-     * let z = Provable.witness(Field3.provable, () => Field3.from(10n));
+     * let x = Provable.witness(Field3, () => 4n);
+     * let y = Provable.witness(Field3, () => 5n);
+     * let z = Provable.witness(Field3, () => 10n);
      *
      * ForeignField.assertAlmostReduced([x, y, z], f);
      *
@@ -790,7 +790,7 @@ const Gadgets = {
      *
      * @example
      * ```ts
-     * let x = Provable.witness(Field3.provable, () => Field3.from(0x1235n));
+     * let x = Provable.witness(Field3, () => 0x1235n);
      *
      *  // range check limbs of x
      * Gadgets.multiRangeCheck(x);
@@ -810,6 +810,17 @@ const Gadgets = {
      */
     assertLessThanOrEqual(x: Field3, f: bigint | Field3) {
       ForeignField.assertLessThanOrEqual(x, f);
+    },
+
+    /**
+     * Convert x, which may be unreduced, to a canonical representative xR < f
+     * such that x = xR mod f
+     *
+     * Note: This method is complete, it works for all unreduced field elements.
+     * It can therefore be used to protect against incompleteness of field operations in other places.
+     */
+    toCanonical(x: Field3, f: bigint) {
+      return ForeignField.toCanonical(x, f);
     },
   },
 

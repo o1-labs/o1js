@@ -16,6 +16,7 @@ import {
   AccountUpdateLayout,
   AccountUpdateTree,
 } from './account-update.js';
+import type { EventActionFilterOptions } from './graphql.js';
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
@@ -74,7 +75,7 @@ import {
   smartContractContext,
 } from './smart-contract-context.js';
 import { assertPromise } from '../util/assert.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
 import { getReducer, Reducer } from './actions/reducer.js';
 import { provable } from '../provable/types/provable-derivers.js';
 
@@ -134,6 +135,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     paramTypes,
+    undefined,
     SelfProof
   );
   // add witness arguments for the publicKey (address) and tokenId
@@ -141,6 +143,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     [PublicKey, Field, ...paramTypes],
+    undefined,
     SelfProof
   );
 
@@ -174,7 +177,7 @@ function method<K extends string, T extends SmartContract>(
 method.returns = function <
   K extends string,
   T extends SmartContract,
-  R extends Provable<any>
+  R extends ProvableType
 >(returnType: R) {
   return function decorateMethod(
     target: T & {
@@ -183,7 +186,12 @@ method.returns = function <
     methodName: K & string & keyof T,
     descriptor: PropertyDescriptor
   ) {
-    return method(target as any, methodName, descriptor, returnType);
+    return method(
+      target as any,
+      methodName,
+      descriptor,
+      ProvableType.get(returnType)
+    );
   };
 };
 
@@ -462,7 +470,7 @@ function wrapMethod(
       }>(
         provable({
           result: methodIntf.returnType ?? provable(null),
-          children: AccountUpdateForest.provable,
+          children: AccountUpdateForest,
         }),
         runCalledContract,
         { skipCheck: true }
@@ -870,12 +878,10 @@ super.init();
   sender = {
     self: this as SmartContract,
     /**
-     * The public key of the current transaction's sender account.
-     *
-     * Throws an error if not inside a transaction, or the sender wasn't passed in.
-     *
-     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
-     * A malicious prover could use any other public key without affecting the validity of the proof.
+     * @deprecated
+     * Deprecated in favor of `this.sender.getUnconstrainedV2()`.
+     * This method is vulnerable because it allows the prover to return a dummy (empty) public key,
+     * which would cause an account update with that public key to not be included.
      */
     getUnconstrained(): PublicKey {
       // TODO this logic now has some overlap with this.self, we should combine them somehow
@@ -895,8 +901,43 @@ super.init();
       }
     },
 
+    /**
+     * The public key of the current transaction's sender account.
+     *
+     * Throws an error if not inside a transaction, or the sender wasn't passed in.
+     *
+     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+     * A malicious prover could use any other public key without affecting the validity of the proof.
+     *
+     * Consider using `this.sender.getAndRequireSignatureV2()` if you need to prove that the sender controls this account.
+     */
+    getUnconstrainedV2(): PublicKey {
+      let sender = this.getUnconstrained();
+      // we prove that the returned public key is not the empty key, in which case
+      // `createSigned()` would skip adding the account update, and nothing is proved
+      sender.x.assertNotEquals(0);
+      return sender;
+    },
+
+    /**
+     * @deprecated
+     * Deprecated in favor of `this.sender.getAndRequireSignatureV2()`.
+     * This method is vulnerable because it allows the prover to return a dummy (empty) public key.
+     */
     getAndRequireSignature(): PublicKey {
       let sender = this.getUnconstrained();
+      AccountUpdate.createSigned(sender);
+      return sender;
+    },
+
+    /**
+     * Return a public key that is forced to sign this transaction.
+     *
+     * Note: This doesn't prove that the return value is the transaction sender, but it proves that whoever created
+     * the transaction controls the private key associated with the returned public key.
+     */
+    getAndRequireSignatureV2(): PublicKey {
+      let sender = this.getUnconstrainedV2();
       AccountUpdate.createSigned(sender);
       return sender;
     },
@@ -968,9 +1009,15 @@ super.init();
 
   // TODO: not able to type event such that it is inferred correctly so far
   /**
-   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   * Conditionally emits an event.
+   *
+   * Events will be emitted as a part of the transaction and can be collected by archive nodes.
    */
-  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+  emitEventIf<K extends keyof this['events']>(
+    condition: Bool,
+    type: K,
+    event: any
+  ) {
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
     if (eventTypes.length === 0)
@@ -997,10 +1044,20 @@ super.init();
       // if there is more than one event type, also store its index, like in an enum, to identify the type later
       eventFields = [Field(eventNumber), ...eventType.toFields(event)];
     }
-    accountUpdate.body.events = Events.pushEvent(
-      accountUpdate.body.events,
-      eventFields
+    let newEvents = Events.pushEvent(accountUpdate.body.events, eventFields);
+    accountUpdate.body.events = Provable.if(
+      condition,
+      Events,
+      newEvents,
+      accountUpdate.body.events
     );
+  }
+
+  /**
+   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   */
+  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+    this.emitEventIf(Bool(true), type, event);
   }
 
   /**
@@ -1037,21 +1094,32 @@ super.init();
       chainStatus: string;
     }[]
   > {
+    // used to match field values back to their original type
+    const sortedEventTypes = Object.keys(this.events).sort();
+    if (sortedEventTypes.length === 0) {
+      throw Error(
+        'fetchEvents: You are trying to fetch events without having declared the types of your events.\n' +
+          `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
+          `class ${this.constructor.name} extends SmartContract {\n` +
+          `  events = { 'my-event': Field }\n` +
+          `}\n` +
+          `Or, if you want to access the events from the zkapp account ${this.address.toBase58()} without casting their types\n` +
+          `then try Mina.fetchEvents('${this.address.toBase58()}') instead.`
+      );
+    }
+
+    const queryFilterOptions: EventActionFilterOptions = {};
+    if(start.greaterThan(UInt32.from(0)).toBoolean()) {
+      queryFilterOptions.from = start;
+    }
+    if(end) {
+      queryFilterOptions.to = end;
+    }
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (
-      await Mina.fetchEvents(this.address, this.self.body.tokenId, {
-        from: start,
-        to: end,
-      })
+      await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions)
     )
-      .filter((eventData) => {
-        let height = UInt32.from(eventData.blockHeight);
-        return end === undefined
-          ? start.lessThanOrEqual(height).toBoolean()
-          : start.lessThanOrEqual(height).toBoolean() &&
-              height.lessThanOrEqual(end).toBoolean();
-      })
       .map((event) => {
         return event.events.map((eventData) => {
           let { events, ...rest } = event;
@@ -1062,9 +1130,6 @@ super.init();
         });
       })
       .flat();
-
-    // used to match field values back to their original type
-    let sortedEventTypes = Object.keys(this.events).sort();
 
     return events.map((eventData) => {
       // if there is only one event type, the event structure has no index and can directly be matched to the event type

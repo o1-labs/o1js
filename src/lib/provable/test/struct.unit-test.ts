@@ -20,12 +20,14 @@ import { FieldType } from '../core/fieldvar.js';
 import { From } from '../../../bindings/lib/provable-generic.js';
 import { Group } from '../group.js';
 import { modifiedField } from '../types/fields.js';
+import { createForeignField } from '../foreign-field.js';
+import { Field3 } from '../gadgets/foreign-field.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },
   other: String,
-  pk: PublicKey,
-  bool: Bool,
+  pk: { provable: PublicKey },
+  bool: { provable: Bool },
   uint: [UInt32, UInt32],
 });
 
@@ -127,19 +129,35 @@ await expect(() =>
   })
 ).rejects.toThrow('Constraint unsatisfied');
 
+// toCanonical
+
+const p = Field.ORDER;
+
+class MyField extends createForeignField(p) {}
+class Point extends Struct({ x: MyField.provable, y: MyField.provable }) {}
+
+let x = new MyField(Field3.from(p + 1n));
+let y = new MyField(Field3.from(p + 2n));
+let nonCanonical = new Point({ x, y });
+let canonical = Provable.toCanonical(Point, nonCanonical);
+
+let expected = new Point({ x: new MyField(1n), y: new MyField(2n) });
+expect(nonCanonical).not.toEqual(expected);
+expect(canonical).toEqual(expected);
+
 // class version of `provable`
 class MyStruct extends Struct({
   nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
-  uint: [UInt32, UInt32],
+  uint: [UInt32, { provable: UInt32 }],
 }) {}
 
 class MyStructPure extends Struct({
   nested: { a: Field, b: UInt32 },
   other: Field,
   pk: PublicKey,
-  uint: [UInt32, UInt32],
+  uint: [UInt32, { provable: UInt32 }],
 }) {}
 
 // Struct.fromValue() works on both js and provable inputs
