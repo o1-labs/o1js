@@ -232,6 +232,15 @@ function Struct<
     }
 
     /**
+     * `Provable<T>.toCanonical()`
+     */
+    static toCanonical(value: T): T {
+      let canonical = this.type.toCanonical?.(value) ?? value;
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, canonical);
+    }
+
+    /**
      * `Provable<T>.toValue()`
      */
     static toValue(x: T): V {

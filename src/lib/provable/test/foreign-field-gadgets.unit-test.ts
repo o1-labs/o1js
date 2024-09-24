@@ -92,6 +92,13 @@ for (let F of fields) {
   let big264 = unreducedForeignField(264, F); // this is the max size supported by our range checks / ffadd
   let big258 = unreducedForeignField(258, F); // rough max size supported by ffmul
 
+  // toCanonical always succeeds
+  equivalentProvable({ from: [big264], to: f })(
+    F.mod,
+    (x) => ForeignField.toCanonical(x, F.modulus),
+    'to canonical'
+  );
+
   // addition can fail on two unreduced inputs because we can get x + y - f > 2^264
   equivalentProvable({ from: [big264, f], to: big264 })(
     F.add,

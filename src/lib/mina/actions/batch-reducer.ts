@@ -200,7 +200,11 @@ class BatchReducer<
    */
   dispatch(action: From<ActionType>) {
     let update = this.contract().self;
-    let fields = this.actionType.toFields(this.actionType.fromValue(action));
+    let canonical = Provable.toCanonical(
+      this.actionType,
+      this.actionType.fromValue(action)
+    );
+    let fields = this.actionType.toFields(canonical);
     update.body.actions = Actions.pushEvent(update.body.actions, fields);
   }
 
@@ -209,7 +213,11 @@ class BatchReducer<
    */
   dispatchIf(condition: Bool, action: From<ActionType>) {
     let update = this.contract().self;
-    let fields = this.actionType.toFields(this.actionType.fromValue(action));
+    let canonical = Provable.toCanonical(
+      this.actionType,
+      this.actionType.fromValue(action)
+    );
+    let fields = this.actionType.toFields(canonical);
     let newActions = Actions.pushEvent(update.body.actions, fields);
     update.body.actions = Provable.if(
       condition,

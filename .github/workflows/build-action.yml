@@ -266,7 +266,6 @@ jobs:
         run: |
           npm ci
           npm run prepublishOnly
-
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v3
         with:
