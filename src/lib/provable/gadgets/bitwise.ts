@@ -13,6 +13,7 @@ export {
   rotate64,
   rotate32,
   and,
+  or,
   rightShift64,
   leftShift64,
   leftShift32,
@@ -171,6 +172,10 @@ function and(a: Field, b: Field, length: number) {
 
   // return the result of the and operation
   return outputAnd;
+}
+
+function or(a: Field, b: Field, length: number) {
+  return not(and(not(a, length), not(b, length), length), length);
 }
 
 function rotate64(

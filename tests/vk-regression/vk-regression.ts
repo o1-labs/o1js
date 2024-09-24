@@ -8,6 +8,7 @@ import {
   keccakAndEcdsa,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
 import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
+import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js'
 import {
   GroupCS,
   BitwiseCS,
@@ -61,6 +62,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   ecdsa,
   keccakAndEcdsa,
   SHA256Program,
+  BLAKE2BProgram,
   diverse,
 ];
 
