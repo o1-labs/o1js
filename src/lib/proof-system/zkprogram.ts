@@ -596,7 +596,11 @@ function ZkProgram<
   }
 ): {
   name: string;
-  compile: (options?: { cache?: Cache; forceRecompile?: boolean }) => Promise<{
+  compile: (options?: {
+    cache?: Cache;
+    forceRecompile?: boolean;
+    proofsEnabled?: boolean;
+  }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
   verify: (
@@ -618,6 +622,8 @@ function ZkProgram<
   rawMethods: {
     [I in keyof Config['methods']]: Methods[I]['method'];
   };
+  proofsEnabled: boolean;
+  setProofsEnabled(proofsEnabled: boolean): void;
 } & {
   [I in keyof Config['methods']]: Prover<
     InferProvableOrUndefined<Get<Config, 'publicInput'>>,
@@ -626,6 +632,8 @@ function ZkProgram<
     InferProvableOrUndefined<AuxiliaryOutputs[I]>
   >;
 } {
+  let doProving = true;
+
   let methods = config.methods;
   let publicInputType: ProvablePure<any> = ProvableType.get(
     config.publicInput ?? Undefined
@@ -691,23 +699,34 @@ function ZkProgram<
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
+    proofsEnabled = undefined,
   } = {}) {
-    let methodsMeta = await analyzeMethods();
-    let gates = methodKeys.map((k) => methodsMeta[k].gates);
-    let { provers, verify, verificationKey } = await compileProgram({
-      publicInputType,
-      publicOutputType,
-      methodIntfs,
-      methods: methodFunctions,
-      gates,
-      proofSystemTag: selfTag,
-      cache,
-      forceRecompile,
-      overrideWrapDomain: config.overrideWrapDomain,
-      state: programState,
-    });
-    compileOutput = { provers, verify };
-    return { verificationKey };
+    doProving = proofsEnabled ?? doProving;
+
+    if (doProving) {
+      let methodsMeta = await analyzeMethods();
+      let gates = methodKeys.map((k) => methodsMeta[k].gates);
+
+      let { provers, verify, verificationKey } = await compileProgram({
+        publicInputType,
+        publicOutputType,
+        methodIntfs,
+        methods: methodFunctions,
+        gates,
+        proofSystemTag: selfTag,
+        cache,
+        forceRecompile,
+        overrideWrapDomain: config.overrideWrapDomain,
+        state: programState,
+      });
+
+      compileOutput = { provers, verify };
+      return { verificationKey };
+    } else {
+      return {
+        verificationKey: VerificationKey.empty(),
+      };
+    }
   }
 
   function toProver<K extends keyof Methods & string>(
@@ -729,11 +748,30 @@ function ZkProgram<
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: any;
     }> {
+      class ProgramProof extends Proof<PublicInput, PublicOutput> {
+        static publicInputType = publicInputType;
+        static publicOutputType = publicOutputType;
+        static tag = () => selfTag;
+      }
+
+      if (!doProving) {
+        let previousProofs = MlArray.to(
+          getPreviousProofsForProver(args, methodIntfs[i])
+        );
+
+        let publicOutput = await (methods[key].method as any)(
+          publicInput,
+          previousProofs
+        );
+
+        return ProgramProof.dummy(publicInput, publicOutput, maxProofsVerified);
+      }
+
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
           `Cannot prove execution of program.${key}(), no prover found. ` +
-            `Try calling \`await program.compile()\` first, this will cache provers in the background.`
+            `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
@@ -765,11 +803,7 @@ function ZkProgram<
 
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
-      class ProgramProof extends Proof<PublicInput, PublicOutput> {
-        static publicInputType = publicInputType;
-        static publicOutputType = publicOutputType;
-        static tag = () => selfTag;
-      }
+
       return {
         proof: new ProgramProof({
           publicInput,
@@ -780,6 +814,7 @@ function ZkProgram<
         auxiliaryOutput,
       };
     }
+
     let prove: Prover<
       PublicInput,
       PublicOutput,
@@ -790,13 +825,13 @@ function ZkProgram<
       (publicInputType as any) === Undefined ||
       (publicInputType as any) === Void
     ) {
-      prove = ((...args: TupleToInstances<PrivateInputs[typeof key]>) =>
-        (prove_ as any)(undefined, ...(args as any))) as any;
+      prove = ((...args: any) => prove_(undefined as any, ...args)) as any;
     } else {
       prove = prove_ as any;
     }
     return [key, prove];
   }
+
   let provers = Object.fromEntries(methodKeys.map(toProver)) as {
     [I in keyof Config['methods']]: Prover<
       PublicInput,
@@ -807,6 +842,9 @@ function ZkProgram<
   };
 
   function verify(proof: Proof<PublicInput, PublicOutput>) {
+    if (!doProving) {
+      return Promise.resolve(true);
+    }
     if (compileOutput?.verify === undefined) {
       throw Error(
         `Cannot verify proof, verification key not found. Try calling \`await program.compile()\` first.`
@@ -827,7 +865,7 @@ function ZkProgram<
     return hashConstant(digests).toBigInt().toString(16);
   }
 
-  return Object.assign(
+  const program = Object.assign(
     selfTag,
     {
       compile,
@@ -849,9 +887,19 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+      setProofsEnabled(proofsEnabled: boolean) {
+        doProving = proofsEnabled;
+      },
     },
     provers
   );
+
+  // Object.assign only shallow-copies, hence we cant use this getter and have to define it explicitly
+  Object.defineProperty(program, 'proofsEnabled', {
+    get: () => doProving,
+  });
+
+  return program as ZkProgram<StatementType, Types>;
 }
 
 type ZkProgram<
@@ -1025,7 +1073,7 @@ async function compileProgram({
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
-    throw Error(`The Program you are trying to compile has no methods. 
+    throw Error(`The Program you are trying to compile has no methods.
 Try adding a method to your ZkProgram or SmartContract.
 If you are using a SmartContract, make sure you are using the @method decorator.`);
 
