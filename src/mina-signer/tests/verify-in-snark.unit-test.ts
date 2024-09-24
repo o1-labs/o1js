@@ -44,7 +44,7 @@ const MyProgram = ZkProgram({
 });
 
 await MyProgram.compile();
-let proof = await MyProgram.verifySignature(signature, fieldsSnarky);
+let { proof } = await MyProgram.verifySignature(signature, fieldsSnarky);
 ok = await MyProgram.verify(proof);
 expect(ok).toEqual(true);
 

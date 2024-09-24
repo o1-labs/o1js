@@ -11,7 +11,9 @@ let SHA256Program = ZkProgram({
     sha256: {
       privateInputs: [Bytes12],
       async method(xs: Bytes12) {
-        return Gadgets.SHA256.hash(xs);
+        return {
+          publicOutput: Gadgets.SHA256.hash(xs),
+        };
       },
     },
   },

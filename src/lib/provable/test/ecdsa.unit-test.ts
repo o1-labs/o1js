@@ -151,13 +151,15 @@ let program = ZkProgram({
         let msgHash_ = Provable.witness(Field3, () => msgHash);
         let publicKey_ = Provable.witness(Point, () => publicKey);
 
-        return Ecdsa.verify(
-          Secp256k1,
-          signature_,
-          msgHash_,
-          publicKey_,
-          config
-        );
+        return {
+          publicOutput: Ecdsa.verify(
+            Secp256k1,
+            signature_,
+            msgHash_,
+            publicKey_,
+            config
+          ),
+        };
       },
     },
   },
@@ -182,7 +184,7 @@ await program.compile();
 console.timeEnd('ecdsa verify (compile)');
 
 console.time('ecdsa verify (prove)');
-let proof = await program.ecdsa();
+let { proof } = await program.ecdsa();
 console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');

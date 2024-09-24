@@ -34,9 +34,15 @@ jobs:
             dist
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
-      - name: Build o1js
+      - name: Build examples
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          npm ci
+          npm run build:examples
+      - name: Build o1js clean
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          rm -fr dist
           npm ci
           npm run build
 
@@ -67,7 +73,8 @@ jobs:
             'DEX integration tests',
             'DEX integration test with proofs',
             'Voting integration tests',
-            'Verification Key Regression Check',
+            'Verification Key Regression Check 1',
+            'Verification Key Regression Check 2',
             'CommonJS test',
           ]
     steps:
