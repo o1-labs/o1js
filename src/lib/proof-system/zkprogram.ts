@@ -743,7 +743,7 @@ function ZkProgram<
   ] {
     async function prove_(
       publicInput: PublicInput,
-      ...args: TupleToInstances<PrivateInputs[typeof key]>
+      ...args: TupleToInstances<PrivateInputs[K]>
     ): Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: any;
@@ -759,12 +759,16 @@ function ZkProgram<
           getPreviousProofsForProver(args, methodIntfs[i])
         );
 
-        let publicOutput = await (methods[key].method as any)(
-          publicInput,
-          previousProofs
-        );
+        let { publicOutput, auxiliaryOutput } = await (
+          methods[key].method as any
+        )(publicInput, previousProofs);
 
-        return ProgramProof.dummy(publicInput, publicOutput, maxProofsVerified);
+        let proof = await ProgramProof.dummy(
+          publicInput,
+          publicOutput,
+          maxProofsVerified
+        );
+        return { proof, auxiliaryOutput };
       }
 
       let picklesProver = compileOutput?.provers?.[i];
@@ -899,7 +903,7 @@ function ZkProgram<
     get: () => doProving,
   });
 
-  return program as ZkProgram<StatementType, Types>;
+  return program as any;
 }
 
 type ZkProgram<
