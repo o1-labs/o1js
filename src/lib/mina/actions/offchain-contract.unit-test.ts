@@ -20,10 +20,12 @@ const offchainState = OffchainState(
 
 class StateProof extends offchainState.Proof {}
 
-// example contract that interacts with offchain state
 
+// example contract that interacts with offchain state
 class ExampleContract extends SmartContract {
-  @state(OffchainState.Commitments) offchainState = offchainState.commitments();
+  @state(OffchainState.Commitments) offchainStateCommitments = offchainState.emptyCommitments();
+
+  offchainState = offchainState.instance;
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
@@ -79,12 +81,12 @@ class ExampleContract extends SmartContract {
 
   @method
   async settle(proof: StateProof) {
-    await offchainState.settle(proof);
+    await this.offchainState.settle(proof);
   }
 }
 
 // connect contract to offchain state
-offchainState.setContractClass(ExampleContract);
+// offchainState.setContractClass(ExampleContract);
 
 // test code below
 
@@ -101,10 +103,11 @@ await testLocal(
       await contract.createAccount(sender, UInt64.from(2000));
     }),
 
+    
     // settle
     async () => {
       console.time('settlement proof 1');
-      let proof = await offchainState.createSettlementProof();
+      let proof = await offchainState.instance.createSettlementProof();
       console.timeEnd('settlement proof 1');
 
       return transaction('settle 1', () => contract.settle(proof));
@@ -141,7 +144,7 @@ await testLocal(
     async () => {
       Local.resetProofsEnabled();
       console.time('settlement proof 2');
-      let proof = await offchainState.createSettlementProof();
+      let proof = await offchainState.instance.createSettlementProof();
       console.timeEnd('settlement proof 2');
 
       return transaction('settle 2', () => contract.settle(proof));
