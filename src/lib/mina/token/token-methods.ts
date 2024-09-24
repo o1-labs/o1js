@@ -41,8 +41,6 @@ function tokenMethods(self: AccountUpdate) {
       // Sub the amount to burn from the sender's account
       sender.balance.subInPlace(amount);
 
-      // Require signature from the sender account being deducted
-      sender.body.useFullCommitment = Bool(true);
       Authorization.setLazySignature(sender);
       return sender;
     },
@@ -62,7 +60,7 @@ function tokenMethods(self: AccountUpdate) {
       let id = TokenId.derive(self.publicKey, self.tokenId);
       let sender = getApprovedUpdate(self, id, from, 'token.send() (sender)');
       sender.balance.subInPlace(amount);
-      sender.body.useFullCommitment = Bool(true);
+
       Authorization.setLazySignature(sender);
 
       let receiver = getApprovedUpdate(self, id, to, 'token.send() (receiver)');

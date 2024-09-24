@@ -75,8 +75,7 @@ class UnsafeAirdrop extends SmartContract {
     let address = this.sender.getUnconstrained();
 
     // ensure that the MINA account already exists and that the sender knows its private key
-    let au = AccountUpdate.createSigned(address);
-    au.body.useFullCommitment = Bool(true); // ensures the signature attests to the entire transaction
+    AccountUpdate.createSigned(address);
 
     batchReducer.dispatch(address);
   }
