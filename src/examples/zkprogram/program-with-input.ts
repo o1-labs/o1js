@@ -32,6 +32,8 @@ let MyProgram = ZkProgram({
 // type sanity checks
 MyProgram.publicInputType satisfies typeof Field;
 MyProgram.publicOutputType satisfies Provable<void>;
+MyProgram.privateInputTypes;
+MyProgram.auxiliaryOutputTypes;
 
 let MyProof = ZkProgram.Proof(MyProgram);
 
