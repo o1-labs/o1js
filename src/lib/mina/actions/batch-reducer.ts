@@ -143,7 +143,7 @@ class BatchReducer<
     this.Batch = ActionBatch(this.actionType);
 
     this.maxUpdatesFinalProof = maxUpdatesFinalProof;
-    this.program = actionStackProgram(maxUpdatesPerProof) as any;
+    this.program = actionStackProgram(maxUpdatesPerProof);
     this.BatchProof = ZkProgram.Proof(this.program);
 
     assert(
@@ -689,12 +689,12 @@ async function proveActionStack(
 
   for (let i = nChunks - 1; i >= 0; i--) {
     let isRecursive = Bool(i < nChunks - 1);
-    proof = await program.proveChunk(
+    ({ proof } = await program.proveChunk(
       endActionState,
       proof,
       isRecursive,
       chunks[i]
-    );
+    ));
   }
   // sanity check
   proof.publicOutput.stack.assertEquals(stack.hash, 'Stack hash mismatch');
@@ -729,7 +729,7 @@ type ActionStackProgram = {
     proofSoFar: ActionStackProof,
     isRecursive: Bool,
     actionWitnesses: Unconstrained<ActionWitnesses>
-  ): Promise<ActionStackProof>;
+  ): Promise<{ proof: ActionStackProof }>;
 
   maxUpdatesPerProof: number;
 };
@@ -799,14 +799,12 @@ function actionStackProgram(maxUpdatesPerProof: number) {
             proofSoFar.publicOutput,
             initialState
           );
-
-          return {
-            publicOutput: actionStackChunk(
-              maxUpdatesPerProof,
-              startState,
-              witnesses
-            ),
-          };
+          let publicOutput = actionStackChunk(
+            maxUpdatesPerProof,
+            startState,
+            witnesses
+          );
+          return { publicOutput };
         },
       },
     },

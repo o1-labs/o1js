@@ -52,7 +52,7 @@ await describe('action stack prover', async () => {
     let { isEmpty, proof } = await proveActionStack(
       endActionState,
       witnesses,
-      stackProgram as any
+      stackProgram
     );
     console.timeEnd('prove');
 
@@ -67,7 +67,7 @@ await describe('action stack prover', async () => {
     let { isEmpty, proof } = await proveActionStack(
       endActionState,
       witnesses,
-      stackProgram as any
+      stackProgram
     );
     console.timeEnd('prove');
 

@@ -176,15 +176,13 @@ function OffchainStateRollup({
           actions: ActionIterator,
           tree: IndexedMerkleMapN
         ) {
-          let commitment = merkleUpdateBatch(
+          let commitments = merkleUpdateBatch(
             { maxActionsPerProof, maxActionsPerUpdate },
             stateA,
             actions,
             tree
           );
-          return {
-            publicOutput: commitment,
-          };
+          return { publicOutput: commitments };
         },
       },
       /**

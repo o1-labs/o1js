@@ -923,8 +923,7 @@ type ZkProgram<
       InferProvableOrVoid<Get<Config, 'publicOutput'>>,
       Config['methods'][I]
     >;
-  },
-  _Unused extends any = any // TODO remove, left here to be non-breaking
+  }
 > = ReturnType<typeof ZkProgram<Config, Methods>>;
 
 class SelfProof<PublicInput, PublicOutput> extends Proof<
