@@ -18,6 +18,7 @@ import {
   updateMerkleMap,
 } from './offchain-state-serialization.js';
 import { getProofsEnabled } from '../mina.js';
+import { Cache } from '../../../lib/proof-system/cache.js';
 
 export { OffchainStateRollup, OffchainStateCommitments };
 
@@ -35,6 +36,7 @@ class ActionIterator extends MerkleListIterator.create(
  *
  * Fields:
  * - `root`: The root of the current Merkle tree
+ * - `length`: The number of elements in the current Merkle tree
  * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
  */
 class OffchainStateCommitments extends Struct({
@@ -71,7 +73,7 @@ function merkleUpdateBatch(
   stateA: OffchainStateCommitments,
   actions: ActionIterator,
   tree: IndexedMerkleMapBase
-): OffchainStateCommitments {
+): { commitments: OffchainStateCommitments; tree: IndexedMerkleMapBase } {
   // this would be unnecessary if the iterator could just be the public input
   actions.currentHash.assertEquals(stateA.actionState);
 
@@ -131,9 +133,12 @@ function merkleUpdateBatch(
   });
 
   return {
-    root: tree.root,
-    length: tree.length,
-    actionState: actions.currentHash,
+    commitments: {
+      root: tree.root,
+      length: tree.length,
+      actionState: actions.currentHash,
+    },
+    tree,
   };
 }
 
@@ -170,19 +175,23 @@ function OffchainStateRollup({
       firstBatch: {
         // [actions, tree]
         privateInputs: [ActionIterator, IndexedMerkleMapN],
+        auxiliaryOutput: IndexedMerkleMapN,
 
         async method(
           stateA: OffchainStateCommitments,
           actions: ActionIterator,
           tree: IndexedMerkleMapN
         ) {
-          let commitments = merkleUpdateBatch(
+          let result = merkleUpdateBatch(
             { maxActionsPerProof, maxActionsPerUpdate },
             stateA,
             actions,
             tree
           );
-          return { publicOutput: commitments };
+          return {
+            publicOutput: result.commitments,
+            auxiliaryOutput: result.tree,
+          };
         },
       },
       /**
@@ -191,6 +200,7 @@ function OffchainStateRollup({
       nextBatch: {
         // [actions, tree, proof]
         privateInputs: [ActionIterator, IndexedMerkleMapN, SelfProof],
+        auxiliaryOutput: IndexedMerkleMapN,
 
         async method(
           stateA: OffchainStateCommitments,
@@ -213,13 +223,15 @@ function OffchainStateRollup({
           // the state we start with
           let stateB = recursiveProof.publicOutput;
 
+          let result = merkleUpdateBatch(
+            { maxActionsPerProof, maxActionsPerUpdate },
+            stateB,
+            actions,
+            tree
+          );
           return {
-            publicOutput: merkleUpdateBatch(
-              { maxActionsPerProof, maxActionsPerUpdate },
-              stateB,
-              actions,
-              tree
-            ),
+            publicOutput: result.commitments,
+            auxiliaryOutput: result.tree,
           };
         },
       },
@@ -234,9 +246,13 @@ function OffchainStateRollup({
     Proof: RollupProof,
     program: offchainStateRollup,
 
-    async compile() {
+    async compile(options?: {
+      cache?: Cache;
+      forceRecompile?: boolean;
+      proofsEnabled?: boolean;
+    }) {
       if (isCompiled) return;
-      let result = await offchainStateRollup.compile();
+      let result = await offchainStateRollup.compile(options);
       isCompiled = true;
       return result;
     },
@@ -287,18 +303,14 @@ function OffchainStateRollup({
 
       // base proof
       let slice = sliceActions(iterator, maxActionsPerProof);
-      let result = await offchainStateRollup.firstBatch(
+      let { proof, auxiliaryOutput } = await offchainStateRollup.firstBatch(
         inputState,
         slice,
         tree
       );
 
-      // update tree root/length again, they aren't mutated :(
-      // TODO: this shows why the full tree should be the public output
-
-      let proof = result.proof;
-      tree.root = proof.publicOutput.root;
-      tree.length = proof.publicOutput.length;
+      // overwrite the tree with its updated version
+      tree = auxiliaryOutput;
 
       // recursive proofs
       let nProofs = 1;
@@ -307,13 +319,14 @@ function OffchainStateRollup({
         nProofs++;
 
         let slice = sliceActions(iterator, maxActionsPerProof);
-        proof = (
-          await offchainStateRollup.nextBatch(inputState, slice, tree, proof)
-        ).proof;
 
-        // update tree root/length again, they aren't mutated :(
-        tree.root = proof.publicOutput.root;
-        tree.length = proof.publicOutput.length;
+        // overwrite tree, proof
+        ({ proof, auxiliaryOutput: tree } = await offchainStateRollup.nextBatch(
+          inputState,
+          slice,
+          tree,
+          proof
+        ));
       }
 
       return { proof, tree, nProofs };
