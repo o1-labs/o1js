@@ -161,13 +161,13 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
-  let methodCache: Map<string, Provable<any>> = new Map();
+  let methodCache: Map<string, unknown> = new Map();
 
   return {
-    setAuxiliaryOutput(value: Provable<any>, methodName: string) {
+    setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
     },
-    getAuxiliaryOutput(methodName: string): Provable<any> {
+    getAuxiliaryOutput(methodName: string): unknown {
       let entry = methodCache.get(methodName);
       if (entry === undefined)
         throw Error(`Auxiliary value for method ${methodName} not defined`);
@@ -797,10 +797,9 @@ function ZkProgram<
 
       let auxiliaryOutput;
       if (auxiliaryOutputExists) {
-        let cachedAuxiliaryValue = programState.getAuxiliaryOutput(
+        auxiliaryOutput = programState.getAuxiliaryOutput(
           methodIntfs[i].methodName
         );
-        auxiliaryOutput = auxiliaryType?.fromValue(cachedAuxiliaryValue);
 
         programState.reset(methodIntfs[i].methodName);
       }
@@ -1306,10 +1305,19 @@ function picklesRuleFromFunction(
       ? publicOutputType.toFields(result.publicOutput)
       : [];
 
-    if (auxiliaryType?.sizeInFields() !== 0) {
+    if (
+      state !== undefined &&
+      auxiliaryType !== undefined &&
+      auxiliaryType.sizeInFields() !== 0
+    ) {
       Provable.asProver(() => {
-        state?.setAuxiliaryOutput(
-          Provable.toConstant(auxiliaryType!, result.auxiliaryOutput),
+        let { auxiliaryOutput } = result;
+        assert(
+          auxiliaryOutput !== undefined,
+          `${proofSystemTag.name}.${methodName}(): Auxiliary output is undefined even though the method declares it.`
+        );
+        state.setAuxiliaryOutput(
+          Provable.toConstant(auxiliaryType, auxiliaryOutput),
           methodName
         );
       });
