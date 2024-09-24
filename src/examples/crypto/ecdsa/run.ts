@@ -75,7 +75,11 @@ await ecdsaEthers.compile();
 console.timeEnd('ecdsa / ethers verify (compile)');
 
 console.time('ecdsa / ethers verify (prove)');
-let proofE = await ecdsaEthers.verifyEthers(msgBytes, signatureE, publicKeyE);
+let { proof: proofE } = await ecdsaEthers.verifyEthers(
+  msgBytes,
+  signatureE,
+  publicKeyE
+);
 console.timeEnd('ecdsa / ethers verify (prove)');
 
 proofE.publicOutput.assertTrue('signature verifies');

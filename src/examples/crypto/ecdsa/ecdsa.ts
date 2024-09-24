@@ -57,7 +57,7 @@ const ecdsaEthers = ZkProgram({
     verifyEthers: {
       privateInputs: [Ecdsa, Secp256k1],
       async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
-        return signature.verifyEthers(message, publicKey);
+        return { publicOutput: signature.verifyEthers(message, publicKey) };
       },
     },
   },
