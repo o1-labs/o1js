@@ -759,9 +759,9 @@ function ZkProgram<
           getPreviousProofsForProver(args, methodIntfs[i])
         );
 
-        let { publicOutput, auxiliaryOutput } = await (
-          methods[key].method as any
-        )(publicInput, previousProofs);
+        let { publicOutput, auxiliaryOutput } =
+          (await (methods[key].method as any)(publicInput, previousProofs)) ??
+          {};
 
         let proof = await ProgramProof.dummy(
           publicInput,
