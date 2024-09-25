@@ -84,6 +84,9 @@ let accountUpdateExample: Json.AccountUpdate = {
         provedState: null,
         isNew: true,
       },
+      permissions: {
+        receive: null,
+      },
       validWhile: null,
     },
     useFullCommitment: false,

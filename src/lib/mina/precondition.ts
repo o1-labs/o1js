@@ -126,6 +126,19 @@ const AccountPrecondition = {
   },
 };
 
+type PermissionsPrecondition = Preconditions['permissions'];
+const PermissionsPrecondition = {
+  ignoreAll(): PermissionsPrecondition {
+    let appState: Array<OrIgnore<Field>> = [];
+    for (let i = 0; i < ZkappStateLength; ++i) {
+      appState.push(ignore(Field(0)));
+    }
+    return {
+      receive: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+    };
+  },
+};
+
 type GlobalSlotPrecondition = Preconditions['validWhile'];
 const GlobalSlotPrecondition = {
   ignoreAll(): GlobalSlotPrecondition {
@@ -137,6 +150,7 @@ const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
+      permissions: PermissionsPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
       validWhile: GlobalSlotPrecondition.ignoreAll(),
     };
@@ -147,6 +161,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
   return {
     account: Account(accountUpdate),
+    test: Account(accountUpdate),
     network: Network(accountUpdate),
     currentSlot: CurrentSlot(accountUpdate),
   };
@@ -644,7 +659,7 @@ function ensureConsistentPrecondition(
     let errorMessage = `
 Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
 '${name}' represents the field or value you're trying to set a precondition for.
-Preconditions must be set only once to avoid overwriting previous assertions. 
+Preconditions must be set only once to avoid overwriting previous assertions.
 For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
 
 Recommendation:
