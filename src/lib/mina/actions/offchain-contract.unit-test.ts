@@ -21,12 +21,14 @@ const offchainState = OffchainState(
 
 class StateProof extends offchainState.Proof {}
 
+const offchainStateInstance = offchainState.init();
+
 // example contract that interacts with offchain state
 class ExampleContract extends SmartContract {
   @state(OffchainState.Commitments) offchainStateCommitments =
     offchainState.emptyCommitments();
 
-  offchainState = offchainState.init(ExampleContract);
+  offchainState = offchainStateInstance;
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
@@ -68,6 +70,9 @@ class ExampleContract extends SmartContract {
     let fromOption = await this.offchainState.fields.accounts.get(from);
     let fromBalance = fromOption.assertSome('sender account exists');
 
+    Provable.asProver(() => {
+      console.log('transfer2');
+    });
     let toOption = await this.offchainState.fields.accounts.get(to);
     let toBalance = toOption.orElse(0n);
 
@@ -116,6 +121,8 @@ class ExampleContract extends SmartContract {
     await this.offchainState.settle(proof);
   }
 }
+
+offchainStateInstance.setContractClass(ExampleContract);
 
 // connect contract to offchain state
 // offchainState.setContractClass(ExampleContract);

@@ -55,6 +55,8 @@ type OffchainStateInstance<
 
   setContractInstance(contractInstance: OffchainStateContract<Config>): void;
 
+  setContractClass(contractClass: OffchainStateContractClass<Config>): void;
+
   /**
    * Create a proof that updates the commitments to offchain state: Merkle root and action state.
    */
@@ -104,9 +106,7 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 
   emptyCommitments(): State<OffchainStateCommitments>;
 
-  init(
-    contractClass: OffchainStateContractClass<Config>
-  ): OffchainStateInstance<Config>;
+  init(): OffchainStateInstance<Config>;
 };
 
 type OffchainStateContract<
@@ -189,15 +189,15 @@ function OffchainState<
   const height = logTotalCapacity + 1;
   class IndexedMerkleMapN extends IndexedMerkleMap(height) {}
 
+  const emptyMerkleMapRoot = new IndexedMerkleMapN().root;
+
   let rollup = OffchainStateRollup({
     logTotalCapacity,
     maxActionsPerProof,
     maxActionsPerUpdate,
   });
 
-  function OffchainStateInstance(
-    contractClass: OffchainStateContractClass<Config>
-  ): OffchainStateInstance<Config> {
+  function OffchainStateInstance(): OffchainStateInstance<Config> {
     type InternalState = {
       _contract: OffchainStateContract<Config> | undefined;
       _contractClass: OffchainStateContractClass<Config> | undefined;
@@ -215,9 +215,10 @@ function OffchainState<
     };
 
     function defaultInternalState(): InternalState {
+      console.log('defaultInternalState');
       return {
         _contract: undefined,
-        _contractClass: contractClass,
+        _contractClass: undefined,
         merkleMap: new IndexedMerkleMapN(),
         valueMap: new Map(),
 
@@ -249,10 +250,16 @@ function OffchainState<
     };
 
     const merkleMaps = async () => {
-      if (internal.merkleMap !== undefined && internal.valueMap !== undefined) {
+      if (
+        internal.merkleMap.root.toString() !== emptyMerkleMapRoot.toString() ||
+        internal.valueMap.size > 0
+      ) {
+        console.log('local merkle maps found');
         return { merkleMap: internal.merkleMap, valueMap: internal.valueMap };
       }
+      console.log('local merkle maps not found');
       let actionState = await onchainActionState();
+      console.log('actionState', actionState.toString());
       let { merkleMap, valueMap } = await fetchMerkleMap(
         height,
         internal.contract,
@@ -413,6 +420,13 @@ function OffchainState<
 
           // push action on account update
           let update = getContract().self;
+          Provable.asProver(() => {
+            console.log(
+              'existing actions',
+              JSON.stringify(update.body.actions)
+            );
+            console.log('pushing action', action.toString());
+          });
           update.body.actions = Actions.pushEvent(update.body.actions, action);
         },
 
@@ -426,6 +440,11 @@ function OffchainState<
     return {
       setContractInstance(contractInstance) {
         internal._contract = contractInstance;
+        internal._contractClass =
+          contractInstance.constructor as OffchainStateContractClass<Config>;
+      },
+      setContractClass(contractClass) {
+        internal._contractClass = contractClass;
       },
       async createSettlementProof() {
         let { merkleMap } = await merkleMaps();
@@ -490,8 +509,8 @@ function OffchainState<
   }
 
   return {
-    init(contractClass: OffchainStateContractClass<Config>) {
-      return OffchainStateInstance(contractClass);
+    init() {
+      return OffchainStateInstance();
     },
 
     async compile() {
