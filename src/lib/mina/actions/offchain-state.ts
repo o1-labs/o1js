@@ -78,51 +78,53 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
 
   emptyCommitments(): State<OffchainStateCommitments>;
 
+  /**
+   * Create a proof that updates the commitments to offchain state: Merkle root and action state.
+   */
+  createSettlementProof(): Promise<
+    Proof<OffchainStateCommitments, OffchainStateCommitments>
+  >;
+
+  /**
+   * Settle the offchain state.
+   *
+   * Use this in a contract method as follows:
+   *
+   * @example
+   * ```ts
+   * class StateProof extends offchainState.Proof {}
+   *
+   * // ...
+   *
+   * class MyContract extends SmartContract {
+   *   @state(OffchainStateCommitments) offchainStateCommitments = State(OffchainStateCommitments.empty());
+   *
+   *   offchainState = offchainState(MyContract);
+   *
+   *   \@method
+   *   async settle(proof: StateProof) {
+   *     await offchainState.settle(proof);
+   *   }
+   * }
+   * ```
+   *
+   * The `StateProof` can be created by calling `offchainState.createSettlementProof()`.
+   */
+  settle(
+    proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
+  ): Promise<void>;
+
+  /**
+   * Commitments to the offchain state, to use in your onchain state.
+   */
+  commitments(): State<OffchainStateCommitments>;
+
+  init(contract: OffchainStateContract<Config>): OffchainState<Config>;
+
   instance: {
     /**
-     * Create a proof that updates the commitments to offchain state: Merkle root and action state.
-     */
-    createSettlementProof(): Promise<
-      Proof<OffchainStateCommitments, OffchainStateCommitments>
-    >;
-
-    /**
-     * Settle the offchain state.
-     *
-     * Use this in a contract method as follows:
-     *
-     * @example
-     * ```ts
-     * class StateProof extends offchainState.Proof {}
-     *
-     * // ...
-     *
-     * class MyContract extends SmartContract {
-     *   @state(OffchainStateCommitments) offchainStateCommitments = State(OffchainStateCommitments.empty());
-     *  
-     *   offchainState = offchainState(MyContract);
-     * 
-     *   \@method
-     *   async settle(proof: StateProof) {
-     *     await offchainState.settle(proof);
-     *   }
-     * }
-     * ```
-     *
-     * The `StateProof` can be created by calling `offchainState.createSettlementProof()`.
-     */
-    settle(
-      proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
-    ): Promise<void>;
-
-    /**
-     * Commitments to the offchain state, to use in your onchain state.
-     */
-    commitments(): State<OffchainStateCommitments>;
-
-    /**
      * Reset the offchain state to undefined.
-     * 
+     *
      * TODO: Accept arguments to specify what to reset.
      */
     reset(): void;
@@ -133,18 +135,21 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
     get(): any;
 
     /**
-     * Set the contract instance and state 
+     * Set the contract instance and state
      */
     set(instanceState: any): void;
-  }
+  };
 };
 
-type OffchainStateContract<Config extends { [key: string]: OffchainStateKind }> = SmartContract & {
+type OffchainStateContract<
+  Config extends { [key: string]: OffchainStateKind }
+> = SmartContract & {
   offchainStateCommitments: State<OffchainStateCommitments>;
   offchainState: OffchainState<Config>;
 };
-type OffchainStateContractClass<Config extends { [key: string]: OffchainStateKind }> = typeof SmartContract &
-  Constructor<OffchainStateContract<Config>>;
+type OffchainStateContractClass<
+  Config extends { [key: string]: OffchainStateKind }
+> = typeof SmartContract & Constructor<OffchainStateContract<Config>>;
 
 /**
  * Offchain state for a `SmartContract`.
@@ -219,18 +224,25 @@ function OffchainState<
   type InternalState = {
     _contract: OffchainStateContract<Config> | undefined;
     _contractClass: OffchainStateContractClass<Config> | undefined;
-    _merkleMap: IndexedMerkleMapN | undefined;
-    _valueMap: Map<bigint, Field[]> | undefined;
+    merkleMap: IndexedMerkleMapN | undefined;
+    valueMap: Map<bigint, Field[]> | undefined;
     contract: OffchainStateContract<Config>;
     contractClass: OffchainStateContractClass<Config>;
-  }
+  };
+
+  type InitializedInternalState = {
+    contract: OffchainStateContract<Config>;
+    contractClass: OffchainStateContractClass<Config>;
+    merkleMap: IndexedMerkleMapN | undefined;
+    valueMap: Map<bigint, Field[]> | undefined;
+  };
 
   function defaultInternalState(): InternalState {
     return {
       _contract: undefined,
       _contractClass: undefined,
-      _merkleMap: undefined,
-      _valueMap: undefined,
+      merkleMap: undefined,
+      valueMap: undefined,
 
       get contract() {
         return assertDefined(
@@ -244,13 +256,21 @@ function OffchainState<
           internal._contractClass,
           'Must call `setContractInstance()` or `setContractClass()` first'
         );
-      }
+      },
+
+      set contract(contract: OffchainStateContract<Config>) {
+        internal._contract = contract;
+      },
+
+      set contractClass(contractClass: OffchainStateContractClass<Config>) {
+        internal._contractClass = contractClass;
+      },
     };
   }
 
   // setup internal state of this "class"
   let internal = defaultInternalState();
-  
+
   const onchainActionState = async () => {
     let actionState = (await internal.contract.offchainStateCommitments.fetch())
       ?.actionState;
@@ -259,8 +279,8 @@ function OffchainState<
   };
 
   const merkleMaps = async () => {
-    if (internal._merkleMap !== undefined && internal._valueMap !== undefined) {
-      return { merkleMap: internal._merkleMap, valueMap: internal._valueMap };
+    if (internal.merkleMap !== undefined && internal.valueMap !== undefined) {
+      return { merkleMap: internal.merkleMap, valueMap: internal.valueMap };
     }
     let actionState = await onchainActionState();
     let { merkleMap, valueMap } = await fetchMerkleMap(
@@ -268,8 +288,8 @@ function OffchainState<
       internal.contract,
       actionState
     );
-    internal._merkleMap = merkleMap;
-    internal._valueMap = valueMap;
+    internal.merkleMap = merkleMap;
+    internal.valueMap = valueMap;
     return { merkleMap, valueMap };
   };
 
@@ -433,6 +453,12 @@ function OffchainState<
   }
 
   return {
+    init(contract: OffchainStateContract<Config>) {
+      internal.contract = contract;
+      internal.contractClass = contract.constructor as any;
+      return this;
+    },
+
     async compile() {
       await rollup.compile();
     },
@@ -443,51 +469,53 @@ function OffchainState<
       return State(OffchainStateCommitments.emptyFromHeight(height));
     },
 
+    async createSettlementProof() {
+      let { merkleMap } = await merkleMaps();
+
+      // fetch pending actions
+      let actionState = await onchainActionState();
+      let actions = await fetchMerkleLeaves(internal.contract, {
+        fromActionState: actionState,
+      });
+
+      let result = await rollup.prove(merkleMap, actions);
+
+      // update internal merkle maps as well
+      // TODO make this not insanely recompute everything
+      // - take new tree from `result`
+      // - update value map in `prove()`, or separately based on `actions`
+      let { merkleMap: newMerkleMap, valueMap: newValueMap } =
+        await fetchMerkleMap(height, internal.contract);
+      internal.merkleMap = newMerkleMap;
+      internal.valueMap = newValueMap;
+
+      return result.proof;
+    },
+
+    async settle(
+      proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
+    ) {
+      // verify the proof
+      proof.verify();
+
+      // check that proof moves state forward from the one currently stored
+      let state = getContract().offchainStateCommitments.getAndRequireEquals();
+      Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
+
+      // require that proof uses the correct pending actions
+      getContract().account.actionState.requireEquals(
+        proof.publicOutput.actionState
+      );
+
+      // update the state
+      getContract().offchainStateCommitments.set(proof.publicOutput);
+    },
+
+    commitments() {
+      return getContract().offchainStateCommitments;
+    },
+
     instance: {
-      async createSettlementProof() {
-        let { merkleMap } = await merkleMaps();
-  
-        // fetch pending actions
-        let actionState = await onchainActionState();
-        let actions = await fetchMerkleLeaves(internal.contract, {
-          fromActionState: actionState,
-        });
-  
-        let result = await rollup.prove(merkleMap, actions);
-  
-        // update internal merkle maps as well
-        // TODO make this not insanely recompute everything
-        // - take new tree from `result`
-        // - update value map in `prove()`, or separately based on `actions`
-        let { merkleMap: newMerkleMap, valueMap: newValueMap } =
-          await fetchMerkleMap(height, internal.contract);
-        internal._merkleMap = newMerkleMap;
-        internal._valueMap = newValueMap;
-  
-        return result.proof;
-      },
-  
-      async settle(proof: Proof<OffchainStateCommitments, OffchainStateCommitments>) {
-        // verify the proof
-        proof.verify();
-  
-        // check that proof moves state forward from the one currently stored
-        let state = getContract().offchainStateCommitments.getAndRequireEquals();
-        Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
-  
-        // require that proof uses the correct pending actions
-        getContract().account.actionState.requireEquals(
-          proof.publicOutput.actionState
-        );
-  
-        // update the state
-        getContract().offchainStateCommitments.set(proof.publicOutput);
-      },
-
-      commitments() {
-        return getContract().offchainStateCommitments;
-      },
-
       reset() {
         internal = defaultInternalState();
       },
@@ -496,9 +524,9 @@ function OffchainState<
         return internal;
       },
 
-      set(instanceState: InternalState) {
-        internal = instanceState;
-      }
+      set(instanceState: Partial<InitializedInternalState>) {
+        internal = Object.assign(internal, instanceState);
+      },
     },
 
     fields: Object.fromEntries(

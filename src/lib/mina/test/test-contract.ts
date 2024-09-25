@@ -46,7 +46,7 @@ async function testLocal<S extends SmartContract>(
 ): Promise<LocalBlockchain> {
   // instance-independent setup: compile programs
 
-  offchainState?.setContractClass(Contract as any);
+  offchainState?.instance.set({ contractClass: Contract });
   batchReducer?.setContractClass(Contract as any);
 
   if (proofsEnabled) {
@@ -105,7 +105,7 @@ async function testLocal<S extends SmartContract>(
     );
 
     let contract = new Contract(contractAccount);
-    offchainState?.setContractInstance(contract as any);
+    offchainState?.instance.set({ contractInstance: contract });
     batchReducer?.setContractInstance(contract as any);
 
     // run test setup to return instructions

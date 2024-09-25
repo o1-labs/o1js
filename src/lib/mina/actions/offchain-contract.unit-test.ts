@@ -6,6 +6,7 @@ import {
   UInt64,
   Experimental,
 } from '../../../index.js';
+import { contract } from '../smart-contract-context.js';
 import { expectState, testLocal, transaction } from '../test/test-contract.js';
 
 const { OffchainState } = Experimental;
@@ -20,27 +21,27 @@ const offchainState = OffchainState(
 
 class StateProof extends offchainState.Proof {}
 
-
 // example contract that interacts with offchain state
 class ExampleContract extends SmartContract {
-  @state(OffchainState.Commitments) offchainStateCommitments = offchainState.emptyCommitments();
+  @state(OffchainState.Commitments) offchainStateCommitments =
+    offchainState.emptyCommitments();
 
-  offchainState = offchainState.instance;
+  offchainState = offchainState.init(this);
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
     // setting `from` to `undefined` means that the account must not exist yet
-    offchainState.fields.accounts.update(address, {
+    this.offchainState.fields.accounts.update(address, {
       from: undefined,
       to: amountToMint,
     });
 
     // TODO using `update()` on the total supply means that this method
     // can only be called once every settling cycle
-    let totalSupplyOption = await offchainState.fields.totalSupply.get();
+    let totalSupplyOption = await this.offchainState.fields.totalSupply.get();
     let totalSupply = totalSupplyOption.orElse(0n);
 
-    offchainState.fields.totalSupply.update({
+    this.offchainState.fields.totalSupply.update({
       from: totalSupplyOption,
       to: totalSupply.add(amountToMint),
     });
@@ -48,10 +49,10 @@ class ExampleContract extends SmartContract {
 
   @method
   async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
-    let fromOption = await offchainState.fields.accounts.get(from);
+    let fromOption = await this.offchainState.fields.accounts.get(from);
     let fromBalance = fromOption.assertSome('sender account exists');
 
-    let toOption = await offchainState.fields.accounts.get(to);
+    let toOption = await this.offchainState.fields.accounts.get(to);
     let toBalance = toOption.orElse(0n);
 
     /**
@@ -59,11 +60,11 @@ class ExampleContract extends SmartContract {
      *
      * This is safe, because both updates will only be accepted if both previous balances are still correct.
      */
-    offchainState.fields.accounts.update(from, {
+    this.offchainState.fields.accounts.update(from, {
       from: fromOption,
       to: fromBalance.sub(amount),
     });
-    offchainState.fields.accounts.update(to, {
+    this.offchainState.fields.accounts.update(to, {
       from: toOption,
       to: toBalance.add(amount),
     });
@@ -71,12 +72,12 @@ class ExampleContract extends SmartContract {
 
   @method.returns(UInt64)
   async getSupply() {
-    return (await offchainState.fields.totalSupply.get()).orElse(0n);
+    return (await this.offchainState.fields.totalSupply.get()).orElse(0n);
   }
 
   @method.returns(UInt64)
   async getBalance(address: PublicKey) {
-    return (await offchainState.fields.accounts.get(address)).orElse(0n);
+    return (await this.offchainState.fields.accounts.get(address)).orElse(0n);
   }
 
   @method
@@ -103,11 +104,10 @@ await testLocal(
       await contract.createAccount(sender, UInt64.from(2000));
     }),
 
-    
     // settle
     async () => {
       console.time('settlement proof 1');
-      let proof = await offchainState.instance.createSettlementProof();
+      let proof = await contract.offchainState.createSettlementProof();
       console.timeEnd('settlement proof 1');
 
       return transaction('settle 1', () => contract.settle(proof));
@@ -144,15 +144,15 @@ await testLocal(
     async () => {
       Local.resetProofsEnabled();
       console.time('settlement proof 2');
-      let proof = await offchainState.instance.createSettlementProof();
+      let proof = await contract.offchainState.createSettlementProof();
       console.timeEnd('settlement proof 2');
 
       return transaction('settle 2', () => contract.settle(proof));
     },
 
     // check balance and supply
-    expectState(offchainState.fields.totalSupply, 1555n),
-    expectState(offchainState.fields.accounts, [sender, 900n]),
-    expectState(offchainState.fields.accounts, [receiver, 100n]),
+    expectState(contract.offchainState.fields.totalSupply, 1555n),
+    expectState(contract.offchainState.fields.accounts, [sender, 900n]),
+    expectState(contract.offchainState.fields.accounts, [receiver, 100n]),
   ]
 );
