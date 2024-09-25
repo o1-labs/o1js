@@ -174,7 +174,7 @@ jobs:
 
               if [ $? -eq 1 ]; then
                   success=false
-                  failed_tests+="test failed: ${test_files[$i]}${NEWLINE}"
+                  failed_tests+="test failed: ${test_files[$i]}"
                   failed_tests+=$'\n'
                   failed_count=$((failed_count + 1))
               fi
