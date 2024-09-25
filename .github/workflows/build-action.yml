@@ -162,10 +162,29 @@ jobs:
           shopt -s globstar
           test_files=(./dist/node/**/*.unit-test.js)
 
+          set -o pipefail
+
+          success=true
+          failed_tests=""
+          failed_count=0
+
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
-            echo "Running test: ${test_files[$i]}"
-            node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              echo "Running test: ${test_files[$i]}"
+              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+
+              if [ $? -eq 1 ]; then
+                  success=false
+                  failed_tests+="test failed: ${test_files[$i]}${NEWLINE}"
+                  failed_tests+=$'\n'
+                  failed_count=$((failed_count + 1))
+              fi
           done
+
+          if [ $success == false ]; then
+              echo "${failed_count} tests failed"
+              echo "$failed_tests"
+              exit 1;
+          fi
         continue-on-error: false
 
       - name: Upload test results
