@@ -184,6 +184,8 @@ jobs:
               echo "${failed_count} tests failed"
               echo "$failed_tests"
               exit 1;
+          else
+              echo "all tests succeeded"
           fi
         continue-on-error: false
 
