@@ -364,7 +364,6 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       let address: PublicKey = this._contract.instance.address;
       let account: Account | undefined;
       if (networkConfig.minaEndpoint === '') {
-        console.log('Network Config', networkConfig);
         console.log('Mina.getAccount', address.toBase58());
         account = Mina.getAccount(address, TokenId.default);
       } else {

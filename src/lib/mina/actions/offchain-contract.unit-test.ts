@@ -5,8 +5,8 @@ import {
   PublicKey,
   UInt64,
   Experimental,
+  Provable,
 } from '../../../index.js';
-import { contract } from '../smart-contract-context.js';
 import { expectState, testLocal, transaction } from '../test/test-contract.js';
 
 const { OffchainState } = Experimental;
@@ -26,7 +26,7 @@ class ExampleContract extends SmartContract {
   @state(OffchainState.Commitments) offchainStateCommitments =
     offchainState.emptyCommitments();
 
-  offchainState = offchainState.init(this);
+  offchainState = offchainState.init(ExampleContract);
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
@@ -41,6 +41,14 @@ class ExampleContract extends SmartContract {
     let totalSupplyOption = await this.offchainState.fields.totalSupply.get();
     let totalSupply = totalSupplyOption.orElse(0n);
 
+    Provable.asProver(() => {
+      console.log(
+        'Updating total supply',
+        totalSupply.toString(),
+        '->',
+        totalSupply.add(amountToMint).toString()
+      );
+    });
     this.offchainState.fields.totalSupply.update({
       from: totalSupplyOption,
       to: totalSupply.add(amountToMint),
@@ -49,12 +57,29 @@ class ExampleContract extends SmartContract {
 
   @method
   async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
+    Provable.asProver(() => {
+      console.log(
+        'transfer',
+        from.toBase58(),
+        to.toBase58(),
+        amount.toString()
+      );
+    });
     let fromOption = await this.offchainState.fields.accounts.get(from);
     let fromBalance = fromOption.assertSome('sender account exists');
 
     let toOption = await this.offchainState.fields.accounts.get(to);
     let toBalance = toOption.orElse(0n);
 
+    Provable.asProver(() => {
+      console.log(
+        'from balance',
+        fromBalance.toString(),
+        '->',
+        'to balance',
+        toBalance.toString()
+      );
+    });
     /**
      * Update both accounts atomically.
      *
@@ -64,9 +89,15 @@ class ExampleContract extends SmartContract {
       from: fromOption,
       to: fromBalance.sub(amount),
     });
+    Provable.asProver(() => {
+      console.log('Completed update of from account');
+    });
     this.offchainState.fields.accounts.update(to, {
       from: toOption,
       to: toBalance.add(amount),
+    });
+    Provable.asProver(() => {
+      console.log('Completed update of to account');
     });
   }
 
@@ -97,6 +128,8 @@ await testLocal(
   ({ accounts: { sender, receiver, other }, contract, Local }) => [
     // create first account
     transaction('create account', async () => {
+      contract.offchainState.setContractInstance(contract);
+
       // first call (should succeed)
       await contract.createAccount(sender, UInt64.from(1000));
 
@@ -106,6 +139,7 @@ await testLocal(
 
     // settle
     async () => {
+      console.log('Attempting to settle');
       console.time('settlement proof 1');
       let proof = await contract.offchainState.createSettlementProof();
       console.timeEnd('settlement proof 1');
@@ -114,9 +148,9 @@ await testLocal(
     },
 
     // check balance and supply
-    expectState(offchainState.fields.totalSupply, 1000n),
-    expectState(offchainState.fields.accounts, [sender, 1000n]),
-    expectState(offchainState.fields.accounts, [receiver, undefined]),
+    expectState(contract.offchainState.fields.totalSupply, 1000n),
+    expectState(contract.offchainState.fields.accounts, [sender, 1000n]),
+    expectState(contract.offchainState.fields.accounts, [receiver, undefined]),
 
     // transfer (should succeed)
     transaction('transfer', () =>

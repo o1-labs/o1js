@@ -46,14 +46,13 @@ async function testLocal<S extends SmartContract>(
 ): Promise<LocalBlockchain> {
   // instance-independent setup: compile programs
 
-  offchainState?.instance.set({ contractClass: Contract });
   batchReducer?.setContractClass(Contract as any);
 
   if (proofsEnabled) {
     if (offchainState !== undefined) {
-      console.time('compile program');
+      console.time('compile offchain state program');
       await offchainState.compile();
-      console.timeEnd('compile program');
+      console.timeEnd('compile offchain state program');
     }
     if (batchReducer !== undefined) {
       console.time('compile reducer');
@@ -105,7 +104,9 @@ async function testLocal<S extends SmartContract>(
     );
 
     let contract = new Contract(contractAccount);
-    offchainState?.instance.set({ contractInstance: contract });
+    if (offchainState) {
+      (contract as any).offchainState.setContractInstance(contract);
+    }
     batchReducer?.setContractInstance(contract as any);
 
     // run test setup to return instructions
