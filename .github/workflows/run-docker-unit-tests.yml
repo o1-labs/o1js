@@ -1,0 +1,117 @@
+name: run Perf Test and collect data
+env:
+  default_image: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest"
+  container_name: "unit-tests"
+on:
+  workflow_dispatch:
+    inputs:
+      image_url:
+        description: 'Docker url to execute'
+        default: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest"
+  push:
+    branches:
+      # add your branch here to auto trigger on push 
+      #- "feature/just_test"
+      #- "feature/rebase"
+      - "feature/unit-tests"
+  pull_request:
+    branches: [ "collect-perf" ]
+jobs:
+  build:
+    strategy:
+      matrix:
+        tests:
+          - "/app/dist/node/lib/util/base58.unit-test.js"
+          - "/app/dist/node/lib/ml/consistency.unit-test.js"
+          - "/app/dist/node/lib/mina/account-update.unit-test.js"
+          - "/app/dist/node/lib/mina/hash-input.unit-test.js"
+          - "/app/dist/node/lib/mina/mina.unit-test.js"
+          - "/app/dist/node/lib/mina/actions/offchain-contract.unit-test.js"
+          - "/app/dist/node/lib/mina/actions/batch-reducer.unit-test.js"
+          - "/app/dist/node/lib/mina/actions/batch-reducer-program.unit-test.js"
+          - "/app/dist/node/lib/mina/test/dynamic-call.unit-test.js"
+          - "/app/dist/node/lib/mina/token/forest-iterator.unit-test.js"
+          - "/app/dist/node/lib/mina/token/token-contract.unit-test.js"
+          - "/app/dist/node/lib/mina/fetch.unit-test.js"
+          - "/app/dist/node/lib/mina/account-update-layout.unit-test.js"
+          - "/app/dist/node/lib/proof-system/proof-system.unit-test.js"
+          - "/app/dist/node/lib/proof-system/sideloaded.unit-test.js"
+          - "/app/dist/node/lib/provable/test/bitwise.unit-test.js"
+          - "/app/dist/node/lib/provable/test/base64.unit-test.js"
+          - "/app/dist/node/lib/provable/test/field.unit-test.js"
+          - "/app/dist/node/lib/provable/test/nullifier.unit-test.js"
+          - "/app/dist/node/lib/provable/test/provable.unit-test.js"
+          - "/app/dist/node/lib/provable/test/sha256.unit-test.js"
+          - "/app/dist/node/lib/provable/test/string.unit-test.js"
+          - "/app/dist/node/lib/provable/test/range-check.unit-test.js"
+          - "/app/dist/node/lib/provable/test/foreign-field.unit-test.js"
+          - "/app/dist/node/lib/provable/test/group.unit-test.js"
+          - "/app/dist/node/lib/provable/test/custom-gates-recursion.unit-test.js"
+          - "/app/dist/node/lib/provable/test/foreign-curve.unit-test.js"
+          - "/app/dist/node/lib/provable/test/foreign-field-gadgets.unit-test.js"
+          - "/app/dist/node/lib/provable/test/elliptic-curve.unit-test.js"
+          - "/app/dist/node/lib/provable/test/lookup.unit-test.js"
+          - "/app/dist/node/lib/provable/test/ecdsa.unit-test.js"
+          - "/app/dist/node/lib/provable/test/arithmetic.unit-test.js"
+          - "/app/dist/node/lib/provable/test/primitives.unit-test.js"
+          - "/app/dist/node/lib/provable/test/keccak.unit-test.js"
+          - "/app/dist/node/lib/provable/test/struct.unit-test.js"
+          - "/app/dist/node/lib/provable/test/merkle-tree.unit-test.js"
+          - "/app/dist/node/lib/testing/testing.unit-test.js"
+          - "/app/dist/node/mina-signer/tests/verify-in-snark.unit-test.js"
+          - "/app/dist/node/mina-signer/tests/zkapp.unit-test.js"
+          - "/app/dist/node/mina-signer/src/sign-legacy.unit-test.js"
+          - "/app/dist/node/mina-signer/src/transaction-hash.unit-test.js"
+          - "/app/dist/node/mina-signer/src/signature.unit-test.js"
+          - "/app/dist/node/mina-signer/src/sign-zkapp-command.unit-test.js"
+          - "/app/dist/node/bindings/lib/binable.unit-test.js"
+          - "/app/dist/node/bindings/crypto/bigint.unit-test.js"
+          - "/app/dist/node/bindings/crypto/finite-field.unit-test.js"
+          - "/app/dist/node/bindings/crypto/glv.unit-test.js"
+          - "/app/dist/node/bindings/crypto/poseidon.unit-test.js"
+          - "/app/dist/node/bindings/crypto/bindings/bindings.unit-test.js"
+          - "/app/dist/node/bindings/crypto/elliptic-curve.unit-test.js"
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Sets NAME
+      env:
+        name: "${{matrix.tests}}"
+      run: |
+        TEST_NAME1=`echo $name | sed -e 's!/!-!g' `
+        echo "TEST_NAME=test${TEST_NAME1}" >> $GITHUB_ENV
+
+    - uses: meta-introspector/checkout@v4
+      #with:
+      #  submodules: recursive
+
+    - name: Login to GHCR
+      uses: meta-introspector/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: pull the image
+      run: docker pull ${{ inputs.image_url || env.default_image }}
+
+    - name: run the Docker tests
+      run: TESTS=${{matrix.tests}} docker compose up ${{ env.container_name }}
+      env:
+        DOCKER_IMAGE_URL: ${{ inputs.image_url || env.default_image}}
+
+    - name: docker cp results
+      run: docker compose cp ${{ env.container_name }}:/tmp/perf.data.tar.gz perf.data.tar.gz
+
+    - name: Archive results
+      uses: meta-introspector/upload-artifact@v4
+      with:
+        name: ${{ env.TEST_NAME }}.perf.data.tar.gz
+        path: perf.data.tar.gz
+
+    - name: delete the results
+      run: rm -rf /tmp/perf*
+
+    - name: delete the container
+      run: |
+        docker compose down
