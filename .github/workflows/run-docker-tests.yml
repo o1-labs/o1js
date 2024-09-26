@@ -25,7 +25,6 @@ jobs:
           - "/app/src/examples/crypto/rsa/test.ts"
           - "/app/src/examples/zkapps/voting/test.ts"
           - "/app/src/lib/mina/precondition.test.ts"
-          - "/app/src/lib/mina/precondition.test.ts"
           - "/app/src/lib/mina/test/test-contract.ts"
           - "/app/src/lib/mina/token.test.ts"
           - "/app/src/lib/provable/test/group.test.ts"
