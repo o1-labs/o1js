@@ -10,7 +10,10 @@ on:
         #default: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:5ce0221662cecbca9a3de05601af94a15b154a3bcf8bafcb0cfa1f5b9f407bdc"
         default: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest"
   push:
-    branches: [ "feature/just_test" ]
+    branches:
+      # add your branch here to auto trigger on push 
+      - "feature/just_test"
+      - "feature/rebase"
   pull_request:
     branches: [ "collect-perf" ]
 jobs:
