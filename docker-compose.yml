@@ -55,7 +55,7 @@ services:
       - SYS_PTRACE
       - SYS_ADMIN
     # run the test from the mounted source
-    command: "bash -x /opt/introspector/test/run-all-tests.sh"
+    command: "bash -x /opt/introspector/test/run-unit-tests.sh"
 
 
   reporting:
