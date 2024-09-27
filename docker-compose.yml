@@ -22,7 +22,7 @@ services:
       - PROOF_LEVEL=full
       - LOG_LEVEL=Debug
       - TESTS=${TESTS}
-    working_dir: /app    
+    working_dir: /app
     # mount the source
     volumes:
       - type: bind
@@ -43,12 +43,11 @@ services:
       - PROOF_LEVEL=full
       - LOG_LEVEL=Debug
       - TESTS=${TESTS}
-    working_dir: /app    
+    working_dir: /app
     # mount the source
     volumes:
       - type: bind
-        #source: "."
-	source: "/home/runner/work/o1js/o1js/"
+        source: "/home/runner/work/o1js/o1js/"
         target: "/opt/introspector/test/"
     cap_add:
       - SYS_PTRACE

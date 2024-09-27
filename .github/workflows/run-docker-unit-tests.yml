@@ -10,7 +10,7 @@ on:
         default: "ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest"
   push:
     branches:
-      # add your branch here to auto trigger on push 
+      # add your branch here to auto trigger on push
       #- "feature/just_test"
       #- "feature/rebase"
       - "feature/unit-tests"
