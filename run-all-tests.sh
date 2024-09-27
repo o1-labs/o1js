@@ -11,12 +11,20 @@ export JESTOPTS=--collectCoverage
 export NODEOPT1="--prof  --expose-gc"
 # setup perf permissions
 echo 2 > /proc/sys/kernel/perf_event_paranoid
+ls -latr /opt/introspector/test/package.json /app/package.json
+md5sum /opt/introspector/test/package.json /app/package.json
+cp /opt/introspector/test/package.json /app/
+cp /opt/introspector/test/*.json /app/
+cp /opt/introspector/test/*.yaml /app/
+cp /opt/introspector/test/*.yml /app/
+ls -latr /opt/introspector/test/package.json /app/package.json
+md5sum /opt/introspector/test/package.json /app/package.json
 
 ## now copy in the files from mounted
-mount
-find /opt/introspector
-cp -v "/opt/introspector/test/*.json" /app/
-cp -v "/opt/introspector/test/*.yaml" /app/
+#mount
+#unit-tests-1  | overlay on / type overlay (rw,relatime,lowerdir=/var/lib/docker/overlay2/l/UIKBC2YXV3UYUZFYRCLH4TJ37M:/var/lib/docker/overlay2/l/7LHLJLNVB27OGHXUO7XEJ73IKX:/var/lib/docker/overlay2/l/YNWPTNT4K5HT7DOLEKYTJ6YREI:/var/lib/docker/overlay2/l/3PHXSMMFQSD23LIQ2COAJGPMYT:/var/lib/docker/overlay2/l/5EZVVUZPIKKCBIHINUVQ6GAKPJ:/var/lib/docker/overlay2/l/A7HWVJNLVJM4XFDQCZ3A445PF6:/var/lib/docker/overlay2/l/V6QGRAJZ5C6PZ2DZ75AOMYCIJC:/var/lib/docker/overlay2/l/NLOXRMXOVMKJNGFVJ3N5OMX3XL:/var/lib/docker/overlay2/l/2DYQLDCOXDJ5YKEZPT62YDVWYT:/var/lib/docker/overlay2/l/SYENOBCMM4GYKG47EKMVGTKFMW:/var/lib/docker/overlay2/l/EWQ26C3LXGQYXFA5CHQ3T2SZEM:/var/lib/docker/overlay2/l/MJBPWKMZDIZHZMCU63VOAERPQE:/var/lib/docker/overlay2/l/2MZPMWLNWBFDLRX47REXX7G62M:/var/lib/docker/overlay2/l/N2OU72N5OJFA2IFJZEG3G5L5MT:/var/lib/docker/overlay2/l/3UAOAEALKH4XSVPE5LAVYNTFIZ:/var/lib/docker/overlay2/l/35UE4N4JPSRQ3ZVYEVHWC35HVY:/var/lib/docker/overlay2/l/SEZOZ3BO3MF5XLWZFL3CY4UGJM:/var/lib/docker/overlay2/l/R2TOJKMVGSKG7OU
+#find /opt/introspector
+#cp -v "/opt/introspector/test/*.json" /app/
 
 mkdir "${OUTPUT_DIR}"
 mkdir "${NODE_OUTPUT_DIR}"
