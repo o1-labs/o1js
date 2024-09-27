@@ -12,6 +12,10 @@ export NODEOPT1="--prof  --expose-gc"
 # setup perf permissions
 echo 2 > /proc/sys/kernel/perf_event_paranoid
 
+## now copy in the files from mounted
+cp -v "/opt/introspector/test/*.json" /app/
+cp -v "/opt/introspector/test/*.yaml" /app/
+
 mkdir "${OUTPUT_DIR}"
 mkdir "${NODE_OUTPUT_DIR}"
 mkdir "${CLINIC_OUTPUT_DIR}"
