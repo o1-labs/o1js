@@ -121,7 +121,6 @@
 
     "jest": {
 	"verbose": true,
-	"allowJs": true,
 	"preset": "ts-jest/presets/default-esm",
 	"testRegex": "(/__tests__/.*|(\\.|/)(test|unit-test))\\.(js?|ts?)$",
 	"modulePathIgnorePatterns": [
