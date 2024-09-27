@@ -13,6 +13,8 @@ export NODEOPT1="--prof  --expose-gc"
 echo 2 > /proc/sys/kernel/perf_event_paranoid
 
 ## now copy in the files from mounted
+mount
+find /opt/introspector
 cp -v "/opt/introspector/test/*.json" /app/
 cp -v "/opt/introspector/test/*.yaml" /app/
 

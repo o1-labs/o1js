@@ -47,7 +47,8 @@ services:
     # mount the source
     volumes:
       - type: bind
-        source: "."
+        #source: "."
+	source: "/home/runner/work/o1js/o1js/"
         target: "/opt/introspector/test/"
     cap_add:
       - SYS_PTRACE
