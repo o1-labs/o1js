@@ -34,27 +34,6 @@ services:
     # run the test from the mounted source
     command: "bash -x /opt/introspector/test/run-all-tests.sh"
 
-
-  unit-tests:
-    restart: no
-    image: ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest
-    privileged: true
-    environment:
-      - PROOF_LEVEL=full
-      - LOG_LEVEL=Debug
-      - TESTS=${TESTS}
-    working_dir: /app
-    # mount the source
-    volumes:
-      - type: bind
-        source: "/home/runner/work/o1js/o1js/"
-        target: "/opt/introspector/test/"
-    cap_add:
-      - SYS_PTRACE
-      - SYS_ADMIN
-    # run the test from the mounted source
-    command: "bash -x /opt/introspector/test/run-all-tests.sh"
-
   unit-tests:
     restart: no
     image: ghcr.io/meta-introspector/o1js/o1js-perf-recording:latest
