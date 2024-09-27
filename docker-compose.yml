@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   mina-local-network:
     restart: no
@@ -49,7 +47,7 @@ services:
     # mount the source
     volumes:
       - type: bind
-        source: "/home/runner/work/o1js/o1js/"
+        source: "."
         target: "/opt/introspector/test/"
     cap_add:
       - SYS_PTRACE
@@ -71,7 +69,6 @@ services:
     environment:
       - PROOF_LEVEL=full
       - LOG_LEVEL=Debug
-      - WORKSPACE_DIR=$WORKSPACE_DIR
     working_dir: /app
     command: "bash -x /app/perf-reporting/perf-report.sh"
 
@@ -94,6 +91,5 @@ services:
     environment:
       - PROOF_LEVEL=full
       - LOG_LEVEL=Debug
-      - WORKSPACE_DIR=$WORKSPACE_DIR
     working_dir: /app
     command: "bash -x /app/perf-reporting/perf-report.sh"

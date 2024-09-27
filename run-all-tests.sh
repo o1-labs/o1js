@@ -9,8 +9,6 @@ export NODE_OPTIONS="--experimental-vm-modules --perf-basic-prof --enable-source
 export NO_INSIGHT=true
 export JESTOPTS=--collectCoverage
 export NODEOPT1="--prof  --expose-gc"
-
-
 # setup perf permissions
 echo 2 > /proc/sys/kernel/perf_event_paranoid
 
@@ -21,12 +19,6 @@ pnpm install -g clinic
 
 cd /app/
 export SOURCE_DIR=/app/src
-# limit to only working tests
-#TESTS="${SOURCE_DIR}/lib/provable/test/merkle-list.test.ts ${SOURCE_DIR}/lib/provable/test/merkle-tree.test.ts ${SOURCE_DIR}/lib/provable/test/scalar.test.ts  ${SOURCE_DIR}/lib/provable/test/merkle-map.test.ts  ${SOURCE_DIR}/lib/provable/test/provable.test.ts  ${SOURCE_DIR}/lib/provable/test/primitives.test.ts  ${SOURCE_DIR}/lib/provable/test/group.test.ts  ${SOURCE_DIR}/lib/provable/test/int.test.ts  ${SOURCE_DIR}/lib/mina/precondition.test.ts"
-#${SOURCE_DIR}/lib/mina/token.test.ts"
-# FIXME this all tests is not used because many of them fail.
-ALL_TESTS=`ls -b ${SOURCE_DIR}/lib/provable/test/*.test.ts ${SOURCE_DIR}/lib/mina/*.test.ts `
-
 
 run_test() {
     testname=$1
@@ -40,7 +32,8 @@ run_test() {
     clinic flame -- node $NODEOPT1 ./node_modules/.bin/../jest/bin/jest.js "${JESTOPTS}" "${MULTIPLE}" | tee "${OUTPUT_DIR2}clinic-flame.txt" 2>&1
     clinic doctor -- node $NODEOPT1 ./node_modules/.bin/../jest/bin/jest.js "${JESTOPTS}" "${MULTIPLE}" | tee "${OUTPUT_DIR2}clinic-doctor.txt" 2>&1
     clinic bubbleprof -- node $NODEOPT1 ./node_modules/.bin/../jest/bin/jest.js "${JESTOPTS}" "${MULTIPLE}" | tee "${OUTPUT_DIR2}clinic-bubble.txt" 2>&1
-    clinic heapprofiler -- node $NODEOPT1 ./node_modules/.bin/../jest/bin/jest.js "${JESTOPTS}" "${MULTIPLE}"  | tee "${OUTPUT_DIR2}clinic-heap.txt" 2>&1    
+    clinic heapprofiler -- node $NODEOPT1 ./node_modules/.bin/../jest/bin/jest.js "${JESTOPTS}" "${MULTIPLE}"  | tee "${OUTPUT_DIR2}clinic-heap.txt" 2>&1
+    node  $NODEOPT1 ./node_modules/.bin/../jest/bin/jest.js "${JESTOPTS}" "${MULTIPLE}" > "${testname}.report_plain.txt" 2>&1
     perf record -g -o "${testname}.perf.data" -F 999 --call-graph dwarf node  $NODEOPT1 ./node_modules/.bin/../jest/bin/jest.js "${JESTOPTS}" "${MULTIPLE}" > "${testname}.reportout.txt" 2>&1
     perf archive ${testname}.perf.data
     perf report -i "${perfdata}" --verbose --stdio --header > "${perfdata}.header.txt" 2>&1

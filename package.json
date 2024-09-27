@@ -115,6 +115,37 @@
     "npm": "10.8.3",
     "reflect-metadata": "^0.1.13",
     "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
     "tslib": "^2.3.0"
-  }
+  },
+
+    "jest": {
+	"verbose": true,
+	"preset": "ts-jest/presets/default-esm",
+	"testRegex": "(/__tests__/.*|(\\.|/)(test|unit-test))\\.(js?|ts?)$",
+	"modulePathIgnorePatterns": [
+	    "<rootDir>/dist/",
+	    "<rootDir>/node_modules/"
+	],
+	"extensionsToTreatAsEsm": [
+	    ".ts"
+	],
+	"moduleNameMapper": {
+	    "^(\\.{1,2}/.*)\\.js$": "$1"
+	},
+	"transform": {
+	    "^.+\\.(mt|t|cj|j)s$": [
+		"ts-jest",
+		{
+		    "useESM": true
+		}
+	    ]
+	},
+	"globals": {
+	    "ts-jest": {
+		"useESM": true
+	    }
+	}
+    }
+    
 }

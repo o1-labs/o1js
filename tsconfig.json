@@ -1,26 +1,14 @@
 {
-  "include": ["./src/**/*.ts"],
-  "exclude": ["./src/**/*.bc.js", "./src/build", "./src/examples", "./src/mina"],
-  "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "dist",
-    "baseUrl": ".", // affects where output files end up
-      
-      "target": "es2021", // goal: ship *the most modern syntax* that is supported by *all* browsers that support our Wasm
-    "module": "nodenext", // allow top-level await
-    "moduleResolution": "nodenext", // comply with node + "type": "module"
-    "esModuleInterop": true, // to silence jest
-
-    "experimentalDecorators": true, // needed for decorators
-    "emitDecoratorMetadata": true, // needed for decorators
-    "useDefineForClassFields": false, // ensure correct behaviour of class fields with decorators
-
-    "strict": true, // for the full TypeScript experience
-    "strictPropertyInitialization": false, // to enable generic constructors, e.g. on CircuitValue
-    "importHelpers": true, // reduces size
-    "declaration": true, // declaration files are how library consumers get our types
-    "noEmitOnError": false, // avoid accidentally shipping with type errors
-    "allowJs": true, // to use JSDoc in some places where TS would be too cumbersome
-    "sourceMap": true
-  }
+    "compilerOptions": {
+	"target": "es2022",
+	"module": "esnext",
+	"moduleResolution": "nodenext",
+	"resolveJsonModule": true,
+	"removeComments": false,
+	"sourceMap": true,
+	"types": ["node", "jest"],
+	"strict": true,
+	"esModuleInterop": true,
+	"outDir": "./dist",
+    }
 }
