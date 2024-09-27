@@ -17,6 +17,7 @@ cp /opt/introspector/test/package.json /app/
 cp /opt/introspector/test/*.json /app/
 cp /opt/introspector/test/*.yaml /app/
 cp /opt/introspector/test/*.yml /app/
+rm /app/jest.config.js
 ls -latr /opt/introspector/test/package.json /app/package.json
 md5sum /opt/introspector/test/package.json /app/package.json
 
