@@ -44,7 +44,7 @@ services:
     environment:
       - PROOF_LEVEL=full
       - LOG_LEVEL=Debug
-      - TESTS=${UNIT_TESTS}
+      - TESTS=${TESTS}
     working_dir: /app    
     # mount the source
     volumes:
