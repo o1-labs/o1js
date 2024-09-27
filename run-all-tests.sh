@@ -57,8 +57,8 @@ run_test() {
     ls -latr jit*.dump
     rm -r jit*.dump
     
-    mv ${testname}.perf.data "${OUTPUT_DIR2}/perf_data"
-    mv "${testname}.*.txt" "${OUTPUT_DIR2}/perf_data"
+    mv ${testname}.perf.data "${OUTPUT_DIR2}perf_data"
+    mv "${testname}.*.txt" "${OUTPUT_DIR2}perf_data"
     mv .clinic/* "${OUTPUT_DIR2}clinic/"
     mv coverage/* "${OUTPUT_DIR2}coverage/"
     mv  *.log "${OUTPUT_DIR2}log/"    
