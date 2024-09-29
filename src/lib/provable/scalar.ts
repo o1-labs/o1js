@@ -7,6 +7,7 @@ import {
   ShiftedScalar,
   field3ToShiftedScalar,
   fieldToShiftedScalar,
+  shiftedScalarToField3,
 } from './gadgets/native-curve.js';
 import { isConstant } from './gadgets/common.js';
 import { Provable } from './provable.js';
@@ -48,6 +49,13 @@ class Scalar implements ShiftedScalar {
     let lowBit = new Bool((t & 1n) === 1n);
     let high254 = new Field(t >> 1n);
     return new Scalar(lowBit, high254);
+  }
+
+  /**
+   * Provable method to convert a {@link ShiftedScalar} to a {@link Scalar}.
+   */
+  static fromShiftedScalar(s: ShiftedScalar) {
+    return new Scalar(s.lowBit, s.high254);
   }
 
   /**
@@ -284,6 +292,14 @@ class Scalar implements ShiftedScalar {
     return Bool.check(s.lowBit);
   }
 
+  static toCanonical(s: Scalar): Scalar {
+    // we convert to a field3, which always works
+    // and then back, which proves the result is canonical
+    let sBig = shiftedScalarToField3(s);
+    let sCanonical = field3ToShiftedScalar(sBig);
+    return Scalar.fromShiftedScalar(sCanonical);
+  }
+
   static toValue(x: Scalar) {
     return x.toBigInt();
   }
@@ -316,6 +332,10 @@ class Scalar implements ShiftedScalar {
    */
   static fromJSON(x: string) {
     return Scalar.from(SignableFq.fromJSON(x));
+  }
+
+  static empty() {
+    return Scalar.from(0n);
   }
 }
 

@@ -15,9 +15,193 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/02c5e8d4d...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
 
-> No unreleased changes yet
+## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
+
+### Added
+
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
+  - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
+  - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
+
+### Fixes
+
+- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()` https://github.com/o1-labs/o1js/pull/1827
+
+## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
+
+### Added
+
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+- New option `proofsEnabled` for `zkProgram` (default value: `true`), to quickly test circuit logic with proofs disabled https://github.com/o1-labs/o1js/pull/1805
+  - Additionally added `MyProgram.proofsEnabled` to get the internal value of `proofsEnabled` and `MyProgram.setProofsEnabled(proofsEnabled)` to set the value dynamically.
+
+### Deprecated
+
+- `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
+
+### Fixes
+
+- Fix behavior of `Int64.modV2()` when the input is negative and the remainder should be 0 https://github.com/o1-labs/o1js/pull/1797
+
+## [1.6.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...d6abf1d97) - 2024-07-23
+
+### Added
+
+- `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+
+### Changed
+
+- Reduced maximum bit length for `xor`, `not`, and `and`, operations from 254 to 240 bits to prevent overflow vulnerabilities. https://github.com/o1-labs/o1js/pull/1745
+- Allow using `Type` instead of `Type.provable` in APIs that expect a provable type https://github.com/o1-labs/o1js/pull/1751
+  - Example: `Provable.witness(Bytes32, () => bytes)`
+- Automatically wrap and unwrap `Unconstrained` in `fromValue` and `toValue`, so that we don't need to deal with "unconstrained" values outside provable code https://github.com/o1-labs/o1js/pull/1751
+
+## [1.5.0](https://github.com/o1-labs/o1js/compare/ed198f305...1c736add) - 2024-07-09
+
+### Breaking changes
+
+- Fixed a vulnerability in `OffchainState` where it didn't store the `IndexedMerkleTree` length onchain and left it unconstrained https://github.com/o1-labs/o1js/pull/1676
+
+### Added
+
+- A warning about the current reducer API limitations, as well as a mention of active work to mitigate them was added to doc comments and examples https://github.com/o1-labs/o1js/pull/1728
+- `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
+- Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
+- `Int64.create()` method for safe instance creation with canonical zero representation https://github.com/o1-labs/o1js/pull/1735
+- New V2 methods for `Int64` operations: `fromObjectV2`, `divV2()` https://github.com/o1-labs/o1js/pull/1735
+- `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
+  - Avoids the account update limit
+  - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
+- Add conditional versions of all preconditions: `.requireEqualsIf()` https://github.com/o1-labs/o1js/pull/1676
+- `AccountUpdate.createIf()` to conditionally add an account update to the current transaction https://github.com/o1-labs/o1js/pull/1676
+- `IndexedMerkleMap.setIf()` to set a key-value pair conditionally https://github.com/o1-labs/o1js/pull/1676
+- `Provable.assertEqualIf()` to conditionally assert that two values are equal https://github.com/o1-labs/o1js/pull/1676
+- Add `offchainState.setContractClass()` which enables us to declare the connected contract at the top level, without creating a contract instance https://github.com/o1-labs/o1js/pull/1676
+  - This is enough to call `offchainState.compile()`
+- More low-level methods to interact with `MerkleList` https://github.com/o1-labs/o1js/pull/1676
+  - `popIfUnsafe()`, `toArrayUnconstrained()` and `lengthUnconstrained()`
+
+### Changed
+
+- Improve error message when o1js global state is accessed in an invalid way https://github.com/o1-labs/o1js/pull/1676
+- Start developing an internal framework for local zkapp testing https://github.com/o1-labs/o1js/pull/1676
+- Internally upgrade o1js to TypeScript 5.4 https://github.com/o1-labs/o1js/pull/1676
+
+### Deprecated
+
+- Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
+- `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
+- `Int64` constructor, recommending `Int64.create()` instead https://github.com/o1-labs/o1js/pull/1735
+- Original `div()` and `fromObject`, methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
+- Deprecate `AccountUpdate.defaultAccountUpdate()` in favor of `AccountUpdate.default()` https://github.com/o1-labs/o1js/pull/1676
+
+### Fixed
+
+- Fix reversed order of account updates when using `TokenContract.approveAccountUpdates()` https://github.com/o1-labs/o1js/pull/1722
+- Fixed the static `check()` method in Struct classes to properly handle inheritance, preventing issues with under-constrained circuits. Added error handling to avoid using Struct directly as a field type. https://github.com/o1-labs/o1js/pull/1707
+- Fixed that `Option` could not be used as `@state` or event https://github.com/o1-labs/o1js/pull/1736
+
+## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
+
+### Added
+
+- **SHA256 low-level API** exposed via `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1689 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
+- Added the option to specify custom feature flags for sided loaded proofs in the `DynamicProof` class. https://github.com/o1-labs/o1js/pull/1688
+  - Feature flags are required to tell Pickles what proof structure it should expect when side loading dynamic proofs and verification keys.
+  - `FeatureFlags` is now exported and provides a set of helper functions to compute feature flags correctly.
+
+### Deprecated
+
+- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
+
+## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
+
+### Breaking Changes
+
+- Improve efficiency of `Experimental.OffchainState` implementation https://github.com/o1-labs/o1js/pull/1672
+  - Comes with breaking changes to the internal circuits of `OffchainState`
+  - Also, introduce `offchainState.commitments()` to initialize the state commitments onchain. Using `OffchainStateCommitments.empty()` no longer works.
+
+### Added
+
+- `Experimental.IndexedMerkleMap`, a better primitive for Merkleized storage https://github.com/o1-labs/o1js/pull/1666 https://github.com/o1-labs/o1js/pull/1671
+  - Uses 4-8x fewer constraints than `MerkleMap`
+  - In contrast to `MerkleTree` and `MerkleMap`, `IndexedMerkleMap` has a high-level API that can be used in provable code
+- Added `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2` methods to the `Ecdsa` class. https://github.com/o1-labs/o1js/pull/1669
+
+### Deprecated
+
+- `Int64.isPositive()` and `Int64.mod()` deprecated because they behave incorrectly on `-0` https://github.com/o1-labs/o1js/pull/1660
+  - This can pose an attack surface, since it is easy to maliciously pick either the `+0` or the `-0` representation
+  - Use `Int64.isPositiveV2()` and `Int64.modV2()` instead
+  - Also deprecated `Int64.neg()` in favor of `Int64.negV2()`, for compatibility with v2 version of `Int64` that will use `Int64.checkV2()`
+- `Ecdsa.verify()` and `Ecdsa.verifySignedHash()` deprecated in favor of `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2()` due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1669
+
+### Fixed
+
+- Fix handling of fetch response for non-existing accounts https://github.com/o1-labs/o1js/pull/1679
+
+## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf) - 2024-05-23
+
+### Added
+
+- Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class. https://github.com/o1-labs/o1js/pull/1659
+
+### Fixes
+
+- Fix type inference for `method.returns(Type)`, to require a matching return signature https://github.com/o1-labs/o1js/pull/1653
+- Fix `Struct.empty()` returning a garbage object when one of the base types doesn't support `empty()` https://github.com/o1-labs/o1js/pull/1657
+- Fix `Option.value_exn None` error when using certain custom gates in combination with recursion https://github.com/o1-labs/o1js/issues/1336 https://github.com/MinaProtocol/mina/pull/15588
+
+## [1.2.0](https://github.com/o1-labs/o1js/compare/4a17de857...6a1012162) - 2024-05-14
+
+### Added
+
+- **Offchain state MVP** exported under `Experimental.OffchainState` https://github.com/o1-labs/o1js/pull/1630 https://github.com/o1-labs/o1js/pull/1652
+  - allows you to store any number of fields and key-value maps on your zkApp
+  - implemented using actions which define an offchain Merkle tree
+- `Option` for defining an optional version of any provable type https://github.com/o1-labs/o1js/pull/1630
+- `MerkleTree.clone()` and `MerkleTree.getLeaf()`, new convenience methods for merkle trees https://github.com/o1-labs/o1js/pull/1630
+- `MerkleList.forEach()`, a simple and safe way for iterating over a `MerkleList`
+- `Unconstrained.provableWithEmpty()` to create an unconstrained provable type with a known `empty()` value https://github.com/o1-labs/o1js/pull/1630
+- `Permissions.VerificationKey`, a namespace for verification key permissions https://github.com/o1-labs/o1js/pull/1639
+  - Includes more accurate names for the `impossible` and `proof` permissions for verification keys, which are now called `impossibleDuringCurrentVersion` and `proofDuringCurrentVersion` respectively.
+
+### Changed
+
+- `State()` now optionally accepts an initial value as input parameter https://github.com/o1-labs/o1js/pull/1630
+  - Example: `@state(Field) x = State(Field(1));`
+  - Initial values will be set in the default `init()` method
+  - You no longer need a custom `init()` method to set initial values
+
+### Fixes
+
+- Fix absolute imports which prevented compilation in some TS projects that used o1js https://github.com/o1-labs/o1js/pull/1628
+
+## [1.1.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...4a17de857) - 2024-04-30
+
+### Added
+
+- Exposed **sideloaded verification keys** https://github.com/o1-labs/o1js/pull/1606 [@rpanic](https://github.com/rpanic)
+  - Added Proof type `DynamicProof` that allows verification through specifying a verification key in-circuit
+- `Provable.witnessFields()` to easily witness a tuple of field elements https://github.com/o1-labs/o1js/pull/1229
+- Example for implementing RSA verification in o1js https://github.com/o1-labs/o1js/pull/1229 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
+  - Check out https://github.com/o1-labs/o1js/blob/main/src/examples/crypto/rsa/rsa.ts and tests in the same folder
+
+### Changed
+
+- `Gadgets.rangeCheck64()` now returns individual range-checked limbs for advanced use cases https://github.com/o1-labs/o1js/pull/1229
+
+### Fixed
+
+- Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift. https://github.com/o1-labs/o1js/pull/1617
+- Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length less than 176. https://github.com/o1-labs/o1js/pull/1617
+- Make `dummyBase64Proof()` lazy. Significant speed up when generating many account updates with authorization `Proof` while proofs turned off. https://github.com/o1-labs/o1js/pull/1624
 
 ## [1.0.1](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...02c5e8d4d) - 2024-04-22
 
@@ -54,7 +238,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
   - calling this function is optional
 
-### Changes
+### Changed
 
 - Remove top-level await https://github.com/o1-labs/o1js/pull/1583
   - To simplify integration with bundlers like webpack

@@ -9,6 +9,7 @@ export {
   type GenesisConstantsResponse,
   type FailureReasonResponse,
   type LastBlockQueryFailureCheckResponse,
+  type FetchedAction,
   type FetchedBlock,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
@@ -17,6 +18,7 @@ export {
   type EventActionFilterOptions,
   type SendZkAppResponse,
   type FetchedAccount,
+  type FetchedAccountResponse,
   type CurrentSlotResponse,
   getEventsQuery,
   getActionsQuery,
@@ -39,46 +41,47 @@ function removeJsonQuotes(json: string) {
 type AuthRequired = Types.Json.AuthRequired;
 // TODO auto-generate this type and the query
 type FetchedAccount = {
-  account: {
-    publicKey: string;
-    token: string;
-    nonce: string;
-    balance: { total: string };
-    tokenSymbol: string | null;
-    receiptChainHash: string | null;
-    timing: {
-      initialMinimumBalance: string | null;
-      cliffTime: string | null;
-      cliffAmount: string | null;
-      vestingPeriod: string | null;
-      vestingIncrement: string | null;
-    };
-    permissions: {
-      editState: AuthRequired;
-      access: AuthRequired;
-      send: AuthRequired;
-      receive: AuthRequired;
-      setDelegate: AuthRequired;
-      setPermissions: AuthRequired;
-      setVerificationKey: {
-        auth: AuthRequired;
-        txnVersion: string;
-      };
-      setZkappUri: AuthRequired;
-      editActionState: AuthRequired;
-      setTokenSymbol: AuthRequired;
-      incrementNonce: AuthRequired;
-      setVotingFor: AuthRequired;
-      setTiming: AuthRequired;
-    } | null;
-    delegateAccount: { publicKey: string } | null;
-    votingFor: string | null;
-    zkappState: string[] | null;
-    verificationKey: { verificationKey: string; hash: string } | null;
-    actionState: string[] | null;
-    provedState: boolean | null;
-    zkappUri: string | null;
+  publicKey: string;
+  token: string;
+  nonce: string;
+  balance: { total: string };
+  tokenSymbol: string | null;
+  receiptChainHash: string | null;
+  timing: {
+    initialMinimumBalance: string | null;
+    cliffTime: string | null;
+    cliffAmount: string | null;
+    vestingPeriod: string | null;
+    vestingIncrement: string | null;
   };
+  permissions: {
+    editState: AuthRequired;
+    access: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: {
+      auth: AuthRequired;
+      txnVersion: string;
+    };
+    setZkappUri: AuthRequired;
+    editActionState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
+  } | null;
+  delegateAccount: { publicKey: string } | null;
+  votingFor: string | null;
+  zkappState: string[] | null;
+  verificationKey: { verificationKey: string; hash: string } | null;
+  actionState: string[] | null;
+  provedState: boolean | null;
+  zkappUri: string | null;
+};
+type FetchedAccountResponse = {
+  account: FetchedAccount;
 };
 
 type EpochData = {
@@ -248,20 +251,22 @@ type EventQueryResponse = {
   }[];
 };
 
-type ActionQueryResponse = {
-  actions: {
-    blockInfo: {
-      distanceFromMaxBlockHeight: number;
-    };
-    actionState: {
-      actionStateOne: string;
-      actionStateTwo: string;
-    };
-    actionData: {
-      accountUpdateId: string;
-      data: string[];
-    }[];
+type FetchedAction = {
+  blockInfo: {
+    distanceFromMaxBlockHeight: number;
+  };
+  actionState: {
+    actionStateOne: string;
+    actionStateTwo: string;
+  };
+  actionData: {
+    accountUpdateId: string;
+    data: string[];
   }[];
+};
+
+type ActionQueryResponse = {
+  actions: FetchedAction[];
 };
 
 type EventActionFilterOptions = {

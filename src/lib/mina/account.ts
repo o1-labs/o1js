@@ -35,7 +35,7 @@ type PartialAccount = Omit<Partial<Account>, 'zkapp'> & {
 };
 
 // convert FetchedAccount (from graphql) to Account (internal representation both here and in Mina)
-function parseFetchedAccount({ account }: FetchedAccount): Account {
+function parseFetchedAccount(account: FetchedAccount): Account {
   const {
     publicKey,
     nonce,

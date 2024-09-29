@@ -28,40 +28,18 @@ git submodule update --init --recursive
 
 For most users, building o1js is as simple as running:
 
-# o1js README-dev
-
-o1js is a TypeScript framework designed for zk-SNARKs and zkApps on the Mina blockchain.
-
-- [zkApps Overview](https://docs.minaprotocol.com/zkapps)
-- [Mina README](/src/mina/README.md)
-
-For more information on our development process and how to contribute, see [CONTRIBUTING.md](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md). This document is meant to guide you through building o1js from source and understanding the development workflow.
-
-## Prerequisites
-
-Before starting, ensure you have the following tools installed:
-
-- [Git](https://git-scm.com/)
-- [Node.js and npm](https://nodejs.org/)
-- [Dune](https://github.com/ocaml/dune) (only needed when compiling o1js from source)
-- [Cargo](https://www.rust-lang.org/learn/get-started) (only needed when compiling o1js from source)
-
-After cloning the repository, you need to fetch the submodules:
-
-```sh
-git submodule update --init --recursive
-```
-
-## Building o1js
-
-For most users, building o1js is as simple as running:
-
 ```sh
 npm install
 npm run build
 ```
 
 This command compiles the TypeScript source files, making them ready for use. The compiled OCaml and WebAssembly artifacts are version-controlled to simplify the build process for end users. These artifacts are stored under `src/bindings/compiled` and contain the artifacts needed for both node and web builds. These files only have to be regenerated if there are changes to the OCaml or Rust source files.
+
+## Building with nix
+
+Much like the mina repo, we use the nix registry to conveniently handle git submodules.
+You can enter the devshell with `./pin.sh` and `nix develop o1js#default` or by using
+direnv with the `.envrc` provided. This devshell provides all the dependencies required for npm scripts including `npm run:update-bindings`.
 
 ## Building Bindings
 
@@ -110,29 +88,33 @@ o1js uses these types to ensure that the constants used in the protocol are cons
 
 ## Development
 
-### Branch Compatibility
+### Branching Policy
 
-If you work on o1js, create a feature branch off of one of these base branches. It's encouraged to submit your work-in-progress as a draft PR to raise visibility! When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
+| o1js base branches | Is default? |
+| ------------------ | ----------- |
+| main               | **Yes**     |
+| develop            | No          |
 
-#### How to Use the Branches
+When you start your work on o1js, please create the feature branch off of one of the above base branches.
+It's encouraged to submit your work-in-progress as a draft PR to raise visibility!
+When working with submodules and various interconnected parts of the stack, ensure you are on the correct branches that are compatible with each other.
 
 **Default to `main` as the base branch**.
 
-The other base branches (`berkeley` and `develop`) are used only in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `berkeley` and `develop` afterwards. Only changes in `main` will ever be released, so anything in the other branches has to be backported and reconciled with `main` eventually.
+Other base branches (currently `develop` only) are used in specific scenarios where you want to adapt o1js to changes in the sibling repos on those other branches. Even then, consider whether it is feasible to land your changes to `main` and merge to `develop` afterwards. Only changes in `main` will ever be released, so anything in other branches has to be backported and reconciled with the `main` branch eventually.
 
-| Repository | mina -> o1js -> o1js-bindings    |
-| ---------- | -------------------------------- |
-| Branches   | o1js-main -> main -> main        |
-|            | berkeley -> berkeley -> berkeley |
-|            | develop -> develop -> develop    |
+#### Relationship Between Repositories and Branches
 
-- `o1js-main`: The `o1js-main` branch in the Mina repository corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and ramp-up features are maintained. The `o1js-main` branch runs in parallel to the Mina `berkeley` branch and does not have a subset or superset relationship with it. The branching structure is as follows (<- means direction to merge):
+| Repository | o1js &rarr; | o1js-bindings &rarr; | mina       |
+| ---------- | ----------- | -------------------- | ---------- |
+| Branches   | main        | main                 | compatible |
+|            | develop     | develop              | develop    |
 
-  - `develop` <- `o1js-main` <- `current testnet` - Typically, the current Testnet often corresponds to the rampup branch.
+Where:
 
-- `berkeley`: The `berkeley` branch is maintained across all three repositories. This branch is used for features and updates specific to the Berkeley release of the project.
+- `compatible`: This is the [Mina repository](https://github.com/MinaProtocol/mina) branch. It corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and soft-fork features are maintained.
 
-- `develop`: The `develop` branch is also maintained across all three repositories. It is used for ongoing development, testing new features, and integration work.
+- `develop`: This branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
 
 ### Running Tests
 
@@ -221,13 +203,13 @@ docker run --rm --pull=missing -it \
   -p 8080:8080 \
   -p 8181:8181 \
   -p 8282:8282 \
-  o1labs/mina-local-network:o1js-main-latest-lightnet
+  o1labs/mina-local-network:compatible-latest-lightnet
 ```
 
 See the [Docker Hub repository](https://hub.docker.com/r/o1labs/mina-local-network) for more information.
 
-Next up, get the Mina blockchain accounts information to be used in your zkApp.  
-After the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.  
+Next up, get the Mina blockchain accounts information to be used in your zkApp.
+After the local network is up and running, you can use the [Lightnet](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/lib/fetch.ts#L1012) `o1js API namespace` to get the accounts information.
 See the corresponding example in [src/examples/zkapps/hello-world/run-live.ts](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/examples/zkapps/hello-world/run-live.ts).
 
 ### Profiling o1js

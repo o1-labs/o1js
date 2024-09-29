@@ -1,7 +1,6 @@
 import { Field, Bool, Scalar, Group } from '../wrapped.js';
 import {
   provable,
-  provablePure,
   provableTuple,
   HashInput,
   NonMethods,
@@ -13,19 +12,18 @@ import type {
   IsPure,
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
-import { Proof } from '../../proof-system/zkprogram.js';
-import { ProvablePure } from './provable-intf.js';
+import { DynamicProof, Proof } from '../../proof-system/zkprogram.js';
+import { ProvablePure, ProvableType } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 
 // external API
 export {
   ProvableExtended,
   ProvablePureExtended,
-  provable,
-  provablePure,
   Struct,
   FlexibleProvable,
   FlexibleProvablePure,
+  FlexibleProvableType,
 };
 
 // internal API
@@ -62,6 +60,7 @@ type StructPure<T> = ProvablePureExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };
 type FlexibleProvable<T> = Provable<T> | Struct<T>;
 type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
+type FlexibleProvableType<T> = ProvableType<T> | Struct<T>;
 
 type Constructor<T> = new (...args: any) => T;
 type AnyConstructor = Constructor<any>;
@@ -131,6 +130,8 @@ type AnyConstructor = Constructor<any>;
  *
  * Again, it's important to note that this doesn't enable you to prove anything about the `fullName` string.
  * From the circuit point of view, it simply doesn't exist!
+ *
+ * @note Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
  *
  * @param type Object specifying the layout of the `Struct`
  * @param options Advanced option which allows you to force a certain order of object keys
@@ -231,6 +232,15 @@ function Struct<
     }
 
     /**
+     * `Provable<T>.toCanonical()`
+     */
+    static toCanonical(value: T): T {
+      let canonical = this.type.toCanonical?.(value) ?? value;
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, canonical);
+    }
+
+    /**
      * `Provable<T>.toValue()`
      */
     static toValue(x: T): V {
@@ -295,6 +305,9 @@ function cloneCircuitValue<T>(obj: T): T {
   if (obj.constructor !== undefined && 'clone' in obj.constructor) {
     return (obj as any).constructor.clone(obj);
   }
+  if ('clone' in obj && typeof obj.clone === 'function') {
+    return (obj as any).clone(obj);
+  }
 
   // built-in JS datatypes with custom cloning strategies
   if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
@@ -310,7 +323,7 @@ function cloneCircuitValue<T>(obj: T): T {
   if (isPrimitive(obj)) {
     return obj;
   }
-  if (obj instanceof Proof) {
+  if (obj instanceof Proof || obj instanceof DynamicProof) {
     return obj;
   }
 

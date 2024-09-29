@@ -7,7 +7,6 @@ import {
   Body,
   Events,
   Permissions,
-  Actions,
   TokenId,
   ZkappCommand,
   zkAppProver,
@@ -17,11 +16,11 @@ import {
   AccountUpdateLayout,
   AccountUpdateTree,
 } from './account-update.js';
+import type { EventActionFilterOptions } from './graphql.js';
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
   InferProvable,
-  provable,
 } from '../provable/types/struct.js';
 import {
   Provable,
@@ -32,7 +31,6 @@ import * as Encoding from '../../bindings/lib/encoding.js';
 import {
   HashInput,
   Poseidon,
-  ProvableHashable,
   hashConstant,
   isHashable,
   packToFields,
@@ -47,7 +45,6 @@ import {
   analyzeMethod,
   compileProgram,
   Empty,
-  emptyValue,
   getPreviousProofsForProver,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
@@ -56,7 +53,12 @@ import {
   sortMethodArguments,
 } from '../proof-system/zkprogram.js';
 import { PublicKey } from '../provable/crypto/signature.js';
-import { assertStatePrecondition, cleanStatePrecondition } from './state.js';
+import {
+  InternalStateType,
+  assertStatePrecondition,
+  cleanStatePrecondition,
+  getLayout,
+} from './state.js';
 import {
   inAnalyze,
   inCheckedComputation,
@@ -73,11 +75,12 @@ import {
   smartContractContext,
 } from './smart-contract-context.js';
 import { assertPromise } from '../util/assert.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
-import { MerkleList } from '../provable/merkle-list.js';
+import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
+import { getReducer, Reducer } from './actions/reducer.js';
+import { provable } from '../provable/types/provable-derivers.js';
 
 // external API
-export { SmartContract, method, DeployArgs, declareMethods, Reducer };
+export { SmartContract, method, DeployArgs, declareMethods };
 
 const reservedPropNames = new Set(['_methods', '_']);
 type AsyncFunction = (...args: any) => Promise<any>;
@@ -132,6 +135,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     paramTypes,
+    undefined,
     SelfProof
   );
   // add witness arguments for the publicKey (address) and tokenId
@@ -139,6 +143,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     [PublicKey, Field, ...paramTypes],
+    undefined,
     SelfProof
   );
 
@@ -169,17 +174,24 @@ function method<K extends string, T extends SmartContract>(
  * }
  * ```
  */
-method.returns = function <K extends string, T extends SmartContract, R>(
-  returnType: Provable<R>
-) {
+method.returns = function <
+  K extends string,
+  T extends SmartContract,
+  R extends ProvableType
+>(returnType: R) {
   return function decorateMethod(
     target: T & {
-      [k in K]: (...args: any) => Promise<R>;
+      [k in K]: (...args: any) => Promise<InferProvable<R>>;
     },
     methodName: K & string & keyof T,
     descriptor: PropertyDescriptor
   ) {
-    return method(target as any, methodName, descriptor, returnType);
+    return method(
+      target as any,
+      methodName,
+      descriptor,
+      ProvableType.get(returnType)
+    );
   };
 };
 
@@ -458,7 +470,7 @@ function wrapMethod(
       }>(
         provable({
           result: methodIntf.returnType ?? provable(null),
-          children: AccountUpdateForest.provable,
+          children: AccountUpdateForest,
         }),
         runCalledContract,
         { skipCheck: true }
@@ -770,9 +782,21 @@ super.init();
     // let accountUpdate = this.newSelf(); // this would emulate the behaviour of init() being a @method
     this.account.provedState.requireEquals(Bool(false));
     let accountUpdate = this.self;
+
+    // set all state fields to 0
     for (let i = 0; i < ZkappStateLength; i++) {
       AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
     }
+
+    // for all explicitly declared states, set them to their default value
+    let stateKeys = getLayout(this.constructor as typeof SmartContract).keys();
+    for (let key of stateKeys) {
+      let state = this[key as keyof this] as InternalStateType<any> | undefined;
+      if (state !== undefined && state.defaultValue !== undefined) {
+        state.set(state.defaultValue);
+      }
+    }
+
     AccountUpdate.attachToTransaction(accountUpdate);
   }
 
@@ -854,12 +878,10 @@ super.init();
   sender = {
     self: this as SmartContract,
     /**
-     * The public key of the current transaction's sender account.
-     *
-     * Throws an error if not inside a transaction, or the sender wasn't passed in.
-     *
-     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
-     * A malicious prover could use any other public key without affecting the validity of the proof.
+     * @deprecated
+     * Deprecated in favor of `this.sender.getUnconstrainedV2()`.
+     * This method is vulnerable because it allows the prover to return a dummy (empty) public key,
+     * which would cause an account update with that public key to not be included.
      */
     getUnconstrained(): PublicKey {
       // TODO this logic now has some overlap with this.self, we should combine them somehow
@@ -879,8 +901,43 @@ super.init();
       }
     },
 
+    /**
+     * The public key of the current transaction's sender account.
+     *
+     * Throws an error if not inside a transaction, or the sender wasn't passed in.
+     *
+     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+     * A malicious prover could use any other public key without affecting the validity of the proof.
+     *
+     * Consider using `this.sender.getAndRequireSignatureV2()` if you need to prove that the sender controls this account.
+     */
+    getUnconstrainedV2(): PublicKey {
+      let sender = this.getUnconstrained();
+      // we prove that the returned public key is not the empty key, in which case
+      // `createSigned()` would skip adding the account update, and nothing is proved
+      sender.x.assertNotEquals(0);
+      return sender;
+    },
+
+    /**
+     * @deprecated
+     * Deprecated in favor of `this.sender.getAndRequireSignatureV2()`.
+     * This method is vulnerable because it allows the prover to return a dummy (empty) public key.
+     */
     getAndRequireSignature(): PublicKey {
       let sender = this.getUnconstrained();
+      AccountUpdate.createSigned(sender);
+      return sender;
+    },
+
+    /**
+     * Return a public key that is forced to sign this transaction.
+     *
+     * Note: This doesn't prove that the return value is the transaction sender, but it proves that whoever created
+     * the transaction controls the private key associated with the returned public key.
+     */
+    getAndRequireSignatureV2(): PublicKey {
+      let sender = this.getUnconstrainedV2();
       AccountUpdate.createSigned(sender);
       return sender;
     },
@@ -952,9 +1009,15 @@ super.init();
 
   // TODO: not able to type event such that it is inferred correctly so far
   /**
-   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   * Conditionally emits an event.
+   *
+   * Events will be emitted as a part of the transaction and can be collected by archive nodes.
    */
-  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+  emitEventIf<K extends keyof this['events']>(
+    condition: Bool,
+    type: K,
+    event: any
+  ) {
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
     if (eventTypes.length === 0)
@@ -981,10 +1044,20 @@ super.init();
       // if there is more than one event type, also store its index, like in an enum, to identify the type later
       eventFields = [Field(eventNumber), ...eventType.toFields(event)];
     }
-    accountUpdate.body.events = Events.pushEvent(
-      accountUpdate.body.events,
-      eventFields
+    let newEvents = Events.pushEvent(accountUpdate.body.events, eventFields);
+    accountUpdate.body.events = Provable.if(
+      condition,
+      Events,
+      newEvents,
+      accountUpdate.body.events
     );
+  }
+
+  /**
+   * Emits an event. Events will be emitted as a part of the transaction and can be collected by archive nodes.
+   */
+  emitEvent<K extends keyof this['events']>(type: K, event: any) {
+    this.emitEventIf(Bool(true), type, event);
   }
 
   /**
@@ -1021,21 +1094,32 @@ super.init();
       chainStatus: string;
     }[]
   > {
+    // used to match field values back to their original type
+    const sortedEventTypes = Object.keys(this.events).sort();
+    if (sortedEventTypes.length === 0) {
+      throw Error(
+        'fetchEvents: You are trying to fetch events without having declared the types of your events.\n' +
+          `Make sure to add a property \`events\` on ${this.constructor.name}, for example: \n` +
+          `class ${this.constructor.name} extends SmartContract {\n` +
+          `  events = { 'my-event': Field }\n` +
+          `}\n` +
+          `Or, if you want to access the events from the zkapp account ${this.address.toBase58()} without casting their types\n` +
+          `then try Mina.fetchEvents('${this.address.toBase58()}') instead.`
+      );
+    }
+
+    const queryFilterOptions: EventActionFilterOptions = {};
+    if(start.greaterThan(UInt32.from(0)).toBoolean()) {
+      queryFilterOptions.from = start;
+    }
+    if(end) {
+      queryFilterOptions.to = end;
+    }
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (
-      await Mina.fetchEvents(this.address, this.self.body.tokenId, {
-        from: start,
-        to: end,
-      })
+      await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions)
     )
-      .filter((eventData) => {
-        let height = UInt32.from(eventData.blockHeight);
-        return end === undefined
-          ? start.lessThanOrEqual(height).toBoolean()
-          : start.lessThanOrEqual(height).toBoolean() &&
-              height.lessThanOrEqual(end).toBoolean();
-      })
       .map((event) => {
         return event.events.map((eventData) => {
           let { events, ...rest } = event;
@@ -1046,9 +1130,6 @@ super.init();
         });
       })
       .flat();
-
-    // used to match field values back to their original type
-    let sortedEventTypes = Object.keys(this.events).sort();
 
     return events.map((eventData) => {
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
@@ -1162,291 +1243,6 @@ super.init();
   }
 }
 
-type Reducer<Action> = {
-  actionType: FlexibleProvablePure<Action>;
-};
-
-type ReducerReturn<Action> = {
-  /**
-   * Dispatches an {@link Action}. Similar to normal {@link Event}s,
-   * {@link Action}s can be stored by archive nodes and later reduced within a {@link SmartContract} method
-   * to change the state of the contract accordingly
-   *
-   * ```ts
-   * this.reducer.dispatch(Field(1)); // emits one action
-   * ```
-   *
-   * */
-  dispatch(action: Action): void;
-  /**
-   * Reduces a list of {@link Action}s, similar to `Array.reduce()`.
-   *
-   * ```ts
-   *  let pendingActions = this.reducer.getActions({
-   *    fromActionState: actionState,
-   *  });
-   *
-   *  let newState = this.reducer.reduce(
-   *    pendingActions,
-   *    Field, // the state type
-   *    (state: Field, _action: Field) => {
-   *      return state.add(1);
-   *    },
-   *    initialState // initial state
-   * );
-   * ```
-   *
-   */
-  reduce<State>(
-    actions: MerkleList<MerkleList<Action>>,
-    stateType: Provable<State>,
-    reduce: (state: State, action: Action) => State,
-    initial: State,
-    options?: {
-      maxUpdatesWithActions?: number;
-      maxActionsPerUpdate?: number;
-      skipActionStatePrecondition?: boolean;
-    }
-  ): State;
-  /**
-   * Perform circuit logic for every {@link Action} in the list.
-   *
-   * This is a wrapper around {@link reduce} for when you don't need `state`.
-   */
-  forEach(
-    actions: MerkleList<MerkleList<Action>>,
-    reduce: (action: Action) => void,
-    options?: {
-      maxUpdatesWithActions?: number;
-      maxActionsPerUpdate?: number;
-      skipActionStatePrecondition?: boolean;
-    }
-  ): void;
-  /**
-   * Fetches the list of previously emitted {@link Action}s by this {@link SmartContract}.
-   * ```ts
-   * let pendingActions = this.reducer.getActions({
-   *    fromActionState: actionState,
-   * });
-   * ```
-   *
-   * The final action state can be accessed on `pendingActions.hash`.
-   * ```ts
-   * let endActionState = pendingActions.hash;
-   * ```
-   *
-   * If the optional `endActionState` is provided, the list of actions will be fetched up to that state.
-   * In that case, `pendingActions.hash` is guaranteed to equal `endActionState`.
-   */
-  getActions({
-    fromActionState,
-    endActionState,
-  }?: {
-    fromActionState?: Field;
-    endActionState?: Field;
-  }): MerkleList<MerkleList<Action>>;
-  /**
-   * Fetches the list of previously emitted {@link Action}s by zkapp {@link SmartContract}.
-   * ```ts
-   * let pendingActions = await zkapp.reducer.fetchActions({
-   *    fromActionState: actionState,
-   * });
-   * ```
-   */
-  fetchActions({
-    fromActionState,
-    endActionState,
-  }?: {
-    fromActionState?: Field;
-    endActionState?: Field;
-  }): Promise<Action[][]>;
-};
-
-function getReducer<A>(contract: SmartContract): ReducerReturn<A> {
-  let reducer: Reducer<A> = ((contract as any)._ ??= {}).reducer;
-  if (reducer === undefined)
-    throw Error(
-      'You are trying to use a reducer without having declared its type.\n' +
-        `Make sure to add a property \`reducer\` on ${contract.constructor.name}, for example:
-class ${contract.constructor.name} extends SmartContract {
-  reducer = { actionType: Field };
-}`
-    );
-  return {
-    dispatch(action: A) {
-      let accountUpdate = contract.self;
-      let eventFields = reducer.actionType.toFields(action);
-      accountUpdate.body.actions = Actions.pushEvent(
-        accountUpdate.body.actions,
-        eventFields
-      );
-    },
-
-    reduce<S>(
-      actionLists: MerkleList<MerkleList<A>>,
-      stateType: Provable<S>,
-      reduce: (state: S, action: A) => S,
-      state: S,
-      {
-        maxUpdatesWithActions = 32,
-        maxActionsPerUpdate = 1,
-        skipActionStatePrecondition = false,
-      } = {}
-    ): S {
-      Provable.asProver(() => {
-        if (actionLists.data.get().length > maxUpdatesWithActions) {
-          throw Error(
-            `reducer.reduce: Exceeded the maximum number of lists of actions, ${maxUpdatesWithActions}.
-  Use the optional \`maxUpdatesWithActions\` argument to increase this number.`
-          );
-        }
-      });
-
-      if (!skipActionStatePrecondition) {
-        // the actionList.hash is the hash of all actions in that list, appended to the previous hash (the previous list of historical actions)
-        // this must equal one of the action states as preconditions to build a chain to that we only use actions that were dispatched between the current on chain action state and the initialActionState
-        contract.account.actionState.requireEquals(actionLists.hash);
-      }
-
-      const listIter = actionLists.startIterating();
-
-      for (let i = 0; i < maxUpdatesWithActions; i++) {
-        let { element: merkleActions, isDummy } = listIter.Unsafe.next();
-        let actionIter = merkleActions.startIterating();
-        let newState = state;
-
-        if (maxActionsPerUpdate === 1) {
-          // special case with less work, because the only action is a dummy iff merkleActions is a dummy
-          let action = Provable.witness(
-            reducer.actionType,
-            () =>
-              actionIter.data.get()[0]?.element ??
-              actionIter.innerProvable.empty()
-          );
-          let emptyHash = actionIter.Constructor.emptyHash;
-          let finalHash = actionIter.nextHash(emptyHash, action);
-          finalHash = Provable.if(isDummy, emptyHash, finalHash);
-
-          // note: this asserts nothing in the isDummy case, because `actionIter.hash` is not well-defined
-          // but it doesn't matter because we're also skipping all state and action state updates in that case
-          actionIter.hash.assertEquals(finalHash);
-
-          newState = reduce(newState, action);
-        } else {
-          for (let j = 0; j < maxActionsPerUpdate; j++) {
-            let { element: action, isDummy } = actionIter.Unsafe.next();
-            newState = Provable.if(
-              isDummy,
-              stateType,
-              newState,
-              reduce(newState, action)
-            );
-          }
-          // note: this asserts nothing about the iterated actions if `MerkleActions` is a dummy
-          // which doesn't matter because we're also skipping all state and action state updates in that case
-          actionIter.assertAtEnd();
-        }
-
-        state = Provable.if(isDummy, stateType, state, newState);
-      }
-
-      // important: we check that by iterating, we actually reached the claimed final action state
-      listIter.assertAtEnd();
-
-      return state;
-    },
-
-    forEach(
-      actionLists: MerkleList<MerkleList<A>>,
-      callback: (action: A) => void,
-      config
-    ) {
-      const stateType = provable(null);
-      this.reduce(
-        actionLists,
-        stateType,
-        (_, action) => {
-          callback(action);
-          return null;
-        },
-        null,
-        config
-      );
-    },
-
-    getActions(config?: {
-      fromActionState?: Field;
-      endActionState?: Field;
-    }): MerkleList<MerkleList<A>> {
-      const Action = reducer.actionType;
-      const emptyHash = Actions.empty().hash;
-      const nextHash = (hash: Field, action: A) =>
-        Actions.pushEvent({ hash, data: [] }, Action.toFields(action)).hash;
-
-      class ActionList extends MerkleList.create(
-        Action as unknown as ProvableHashable<A>,
-        nextHash,
-        emptyHash
-      ) {}
-
-      class MerkleActions extends MerkleList.create(
-        ActionList.provable,
-        (hash: Field, actions: ActionList) =>
-          Actions.updateSequenceState(hash, actions.hash),
-        // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
-        // otherwise we are only fetching a part of the history, which starts at `fromActionState`
-        // TODO does this show that `emptyHash` should be part of the instance, not the class? that would make the provable representation bigger though
-        config?.fromActionState ?? Actions.emptyActionState()
-      ) {}
-
-      let actions = Provable.witness(MerkleActions.provable, () => {
-        let actionFields = Mina.getActions(
-          contract.address,
-          config,
-          contract.tokenId
-        );
-        // convert string-Fields back into the original action type
-        let actions = actionFields.map((event) =>
-          event.actions.map((action) =>
-            (reducer.actionType as ProvablePure<A>).fromFields(
-              action.map(Field)
-            )
-          )
-        );
-        return MerkleActions.from(
-          actions.map((a) => ActionList.fromReverse(a))
-        );
-      });
-      // note that we don't have to assert anything about the initial action state here,
-      // because it is taken directly and not witnessed
-      if (config?.endActionState !== undefined) {
-        actions.hash.assertEquals(config.endActionState);
-      }
-      return actions;
-    },
-
-    async fetchActions(config?: {
-      fromActionState?: Field;
-      endActionState?: Field;
-    }): Promise<A[][]> {
-      let result = await Mina.fetchActions(
-        contract.address,
-        config,
-        contract.tokenId
-      );
-      if ('error' in result) {
-        throw Error(JSON.stringify(result));
-      }
-      return result.map((event) =>
-        // putting our string-Fields back into the original action type
-        event.actions.map((action) =>
-          (reducer.actionType as ProvablePure<A>).fromFields(action.map(Field))
-        )
-      );
-    },
-  };
-}
-
 function selfAccountUpdate(zkapp: SmartContract, methodName?: string) {
   let body = Body.keepAll(zkapp.address, zkapp.tokenId);
   let update = new (AccountUpdate as any)(body, {}, true) as AccountUpdate;
@@ -1509,23 +1305,6 @@ function declareMethods<T extends typeof SmartContract>(
     Object.defineProperty(target, key, descriptor);
   }
 }
-
-const Reducer: (<
-  T extends FlexibleProvablePure<any>,
-  A extends InferProvable<T> = InferProvable<T>
->(reducer: {
-  actionType: T;
-}) => ReducerReturn<A>) & {
-  initialActionState: Field;
-} = Object.defineProperty(
-  function (reducer: any) {
-    // we lie about the return value here, and instead overwrite this.reducer with
-    // a getter, so we can get access to `this` inside functions on this.reducer (see constructor)
-    return reducer;
-  },
-  'initialActionState',
-  { get: Actions.emptyActionState }
-) as any;
 
 const ProofAuthorization = {
   setKind(
@@ -1612,13 +1391,23 @@ function diffRecursive(
   let { transaction, index, accountUpdate: input } = inputData;
   diff(transaction, index, prover.toPretty(), input.toPretty());
   // TODO
-  let inputChildren = accountUpdateLayout()!.get(input)!.children.mutable!;
-  let proverChildren = accountUpdateLayout()!.get(prover)!.children.mutable!;
+  let proverChildren = accountUpdateLayout()?.get(prover)?.children.mutable;
+  if (proverChildren === undefined) return;
+
+  // collect input children
+  let inputChildren: AccountUpdate[] = [];
+  let callDepth = input.body.callDepth;
+  for (let i = index; i < transaction.accountUpdates.length; i++) {
+    let update = transaction.accountUpdates[i];
+    if (update.body.callDepth <= callDepth) break;
+    if (update.body.callDepth === callDepth + 1) inputChildren.push(update);
+  }
+
   let nChildren = inputChildren.length;
   for (let i = 0; i < nChildren; i++) {
-    let inputChild = inputChildren[i].mutable;
+    let inputChild = inputChildren[i];
     let child = proverChildren[i].mutable;
-    if (!inputChild || !child) return;
+    if (!child) return;
     diffRecursive(child, { transaction, index, accountUpdate: inputChild });
   }
 }

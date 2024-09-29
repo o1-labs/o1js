@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - berkeley
       - develop
   pull_request:
   workflow_dispatch: {}
@@ -34,7 +33,7 @@ jobs:
           METRICS_SOURCE_ENVIRONMENT: 'o1js GitHub Actions'
           METRICS_BASE_BRANCH_FOR_COMPARISON: 'main'
         run: |
-          git submodule update --init --recursive
+          GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
           npm ci
           npm run build
           echo 'Running o1js benchmarks.'

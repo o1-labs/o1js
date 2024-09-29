@@ -86,18 +86,16 @@ and Provable.asProver() blocks, which execute outside the proof.
    * let xWrapped = Unconstrained.witness(() => Provable.toConstant(type, x));
    * ```
    */
-  static from<T>(value: T) {
+  static from<T>(value: T | Unconstrained<T>) {
+    if (value instanceof Unconstrained) return value;
     return new Unconstrained(true, value);
   }
 
   /**
    * Create an `Unconstrained` from a witness computation.
    */
-  static witness<T>(compute: () => T) {
-    return witness(
-      Unconstrained.provable,
-      () => new Unconstrained(true, compute())
-    );
+  static witness<T>(compute: () => T): Unconstrained<T> {
+    return witness(Unconstrained, compute);
   }
 
   /**
@@ -110,19 +108,45 @@ and Provable.asProver() blocks, which execute outside the proof.
     });
   }
 
-  static provable: Provable<Unconstrained<any>> & {
+  static provable: UnconstrainedProvable<any> & {
     toInput: (x: Unconstrained<any>) => {
       fields?: Field[];
       packed?: [Field, number][];
     };
+    empty: () => Unconstrained<any>;
   } = {
     sizeInFields: () => 0,
     toFields: () => [],
     toAuxiliary: (t?: any) => [t ?? new Unconstrained(false)],
     fromFields: (_, [t]) => t,
     check: () => {},
-    toValue: (t) => t,
-    fromValue: (t) => t,
+    toValue: (t) => t.get(),
+    fromValue: (t) => Unconstrained.from(t),
     toInput: () => ({}),
+    empty: (): any => {
+      throw Error('There is no default empty value for Unconstrained.');
+    },
   };
+
+  static withEmpty<T>(empty: T): Provable<Unconstrained<T>, T> & {
+    toInput: (x: Unconstrained<T>) => {
+      fields?: Field[];
+      packed?: [Field, number][];
+    };
+    empty: () => Unconstrained<T>;
+  } {
+    return {
+      ...Unconstrained.provable,
+      empty: () => Unconstrained.from(empty),
+    };
+  }
+
+  /**
+   * @deprecated
+   */
+  static provableWithEmpty<T>(empty: T) {
+    return Unconstrained.withEmpty(empty);
+  }
 }
+
+type UnconstrainedProvable<T> = Provable<Unconstrained<T>, T>;

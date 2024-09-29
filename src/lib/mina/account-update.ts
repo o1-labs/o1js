@@ -1,24 +1,27 @@
 import {
   cloneCircuitValue,
   FlexibleProvable,
-  provable,
-  provablePure,
   StructNoJson,
 } from '../provable/types/struct.js';
+import {
+  provable,
+  provableExtends,
+  provablePure,
+} from '../provable/types/provable-derivers.js';
 import {
   memoizationContext,
   memoizeWitness,
   Provable,
 } from '../provable/provable.js';
 import { Field, Bool } from '../provable/wrapped.js';
-import { Pickles, Test } from '../../snarky.js';
+import { Pickles } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import {
   Types,
   toJSONEssential,
 } from '../../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
-import { UInt64, UInt32, Int64, Sign } from '../provable/int.js';
+import { UInt64, UInt32, Int64 } from '../provable/int.js';
 import type { SmartContract } from './zkapp.js';
 import {
   Preconditions,
@@ -38,8 +41,9 @@ import {
 } from '../proof-system/zkprogram.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import {
-  Events,
-  Actions,
+  Events as BaseEvents,
+  Actions as BaseActions,
+  MayUseToken as BaseMayUseToken,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import {
@@ -132,7 +136,55 @@ type AuthRequired = Types.Json.AuthRequired;
 type AccountUpdateBody = Types.AccountUpdate['body'];
 type Update = AccountUpdateBody['update'];
 
-type MayUseToken = AccountUpdateBody['mayUseToken'];
+type MayUseToken = BaseMayUseToken;
+const MayUseToken = {
+  type: BaseMayUseToken,
+  No: {
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(false),
+  },
+  ParentsOwnToken: {
+    parentsOwnToken: Bool(true),
+    inheritFromParent: Bool(false),
+  },
+  InheritFromParent: {
+    parentsOwnToken: Bool(false),
+    inheritFromParent: Bool(true),
+  },
+  isNo: ({
+    body: {
+      mayUseToken: { parentsOwnToken, inheritFromParent },
+    },
+  }: AccountUpdate) => parentsOwnToken.or(inheritFromParent).not(),
+  isParentsOwnToken: (a: AccountUpdate) => a.body.mayUseToken.parentsOwnToken,
+  isInheritFromParent: (a: AccountUpdate) =>
+    a.body.mayUseToken.inheritFromParent,
+};
+
+type Events = BaseEvents;
+const Events = {
+  ...BaseEvents,
+  pushEvent(events: Events, event: Field[]): Events {
+    events = BaseEvents.pushEvent(events, event);
+    Provable.asProver(() => {
+      // make sure unconstrained data is stored as constants
+      events.data[0] = events.data[0].map((e) => Field(Field.toBigint(e)));
+    });
+    return events;
+  },
+};
+type Actions = BaseActions;
+const Actions = {
+  ...BaseActions,
+  pushEvent(actions: Actions, action: Field[]): Actions {
+    actions = BaseActions.pushEvent(actions, action);
+    Provable.asProver(() => {
+      // make sure unconstrained data is stored as constants
+      actions.data[0] = actions.data[0].map((e) => Field(Field.toBigint(e)));
+    });
+    return actions;
+  },
+};
 
 /**
  * Either set a value or keep it the same.
@@ -152,6 +204,18 @@ const False = () => Bool(false);
  * documentation on those methods to learn more.
  */
 type Permission = Types.AuthRequired;
+
+class VerificationKeyPermission {
+  constructor(public auth: Permission, public txnVersion: UInt32) {}
+
+  // TODO this class could be made incompatible with a plain object (breaking change)
+  // private _ = undefined;
+
+  static withCurrentVersion(perm: Permission) {
+    return new VerificationKeyPermission(perm, TransactionVersion.current());
+  }
+}
+
 let Permission = {
   /**
    * Modification is impossible.
@@ -197,6 +261,64 @@ let Permission = {
     signatureNecessary: False(),
     signatureSufficient: True(),
   }),
+
+  /**
+   * Special Verification key permissions.
+   *
+   * The difference to normal permissions is that `Permission.proof` and `Permission.impossible` are replaced by less restrictive permissions:
+   * - `impossible` is replaced by `impossibleDuringCurrentVersion`
+   * - `proof` is replaced by `proofDuringCurrentVersion`
+   *
+   * The issue is that a future hardfork which changes the proof system could mean that old verification keys can no longer
+   * be used to verify proofs in the new proof system, and the zkApp would have to be redeployed to adapt the verification key.
+   *
+   * Having either `impossible` or `proof` would mean that these zkApps can't be upgraded after this hypothetical hardfork, and would become unusable.
+   *
+   * Such a future hardfork would manifest as an increment in the "transaction version" of zkApps, which you can check with {@link TransactionVersion.current()}.
+   *
+   * The `impossibleDuringCurrentVersion` and `proofDuringCurrentVersion` have an additional `txnVersion` field.
+   * These permissions follow the same semantics of not upgradable, or only upgradable with proofs,
+   * _as long as_ the current transaction version is the same as the one on the permission.
+   *
+   * Once the current transaction version is higher than the one on the permission, the permission is treated as `signature`,
+   * and the zkApp can be redeployed with a signature of the original account owner.
+   */
+  VerificationKey: {
+    /**
+     * Modification is impossible, as long as the network accepts the current {@link TransactionVersion}.
+     *
+     * After a hardfork that increments the transaction version, the permission is treated as `signature`.
+     */
+    impossibleDuringCurrentVersion: () =>
+      VerificationKeyPermission.withCurrentVersion(Permission.impossible()),
+
+    /**
+     * Modification is always permitted
+     */
+    none: () => VerificationKeyPermission.withCurrentVersion(Permission.none()),
+
+    /**
+     * Modification is permitted by zkapp proofs only; as long as the network accepts the current {@link TransactionVersion}.
+     *
+     * After a hardfork that increments the transaction version, the permission is treated as `signature`.
+     */
+    proofDuringCurrentVersion: () =>
+      VerificationKeyPermission.withCurrentVersion(Permission.proof()),
+
+    /**
+     * Modification is permitted by signatures only, using the private key of the zkapp account
+     */
+    signature: () =>
+      VerificationKeyPermission.withCurrentVersion(Permission.signature()),
+
+    /**
+     * Modification is permitted by zkapp proofs or signatures
+     */
+    proofOrSignature: () =>
+      VerificationKeyPermission.withCurrentVersion(
+        Permission.proofOrSignature()
+      ),
+  },
 };
 
 // TODO: we could replace the interface below if we could bridge annotations from OCaml
@@ -242,10 +364,7 @@ interface Permissions extends Permissions_ {
    * key associated with the circuit tied to this account. Effectively
    * "upgradeability" of the smart contract.
    */
-  setVerificationKey: {
-    auth: Permission;
-    txnVersion: UInt32;
-  };
+  setVerificationKey: VerificationKeyPermission;
 
   /**
    * The {@link Permission} corresponding to the ability to set the zkapp uri
@@ -283,6 +402,7 @@ interface Permissions extends Permissions_ {
 }
 let Permissions = {
   ...Permission,
+
   /**
    * Default permissions are:
    *
@@ -311,10 +431,7 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey: Permission.VerificationKey.signature(),
     setZkappUri: Permission.signature(),
     editActionState: Permission.proof(),
     setTokenSymbol: Permission.signature(),
@@ -330,10 +447,7 @@ let Permissions = {
     receive: Permission.none(),
     setDelegate: Permission.signature(),
     setPermissions: Permission.signature(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey: Permission.VerificationKey.signature(),
     setZkappUri: Permission.signature(),
     editActionState: Permission.signature(),
     setTokenSymbol: Permission.signature(),
@@ -350,10 +464,7 @@ let Permissions = {
     access: Permission.none(),
     setDelegate: Permission.none(),
     setPermissions: Permission.none(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey: Permission.VerificationKey.none(),
     setZkappUri: Permission.none(),
     editActionState: Permission.none(),
     setTokenSymbol: Permission.none(),
@@ -369,10 +480,8 @@ let Permissions = {
     access: Permission.impossible(),
     setDelegate: Permission.impossible(),
     setPermissions: Permission.impossible(),
-    setVerificationKey: {
-      auth: Permission.signature(),
-      txnVersion: TransactionVersion.current(),
-    },
+    setVerificationKey:
+      Permission.VerificationKey.impossibleDuringCurrentVersion(),
     setZkappUri: Permission.impossible(),
     editActionState: Permission.impossible(),
     setTokenSymbol: Permission.impossible(),
@@ -440,7 +549,7 @@ interface Body extends AccountUpdateBody {
    * By what {@link Int64} should the balance of this account change. All
    * balanceChanges must balance by the end of smart contract execution.
    */
-  balanceChange: { magnitude: UInt64; sgn: Sign };
+  balanceChange: Int64;
 
   /**
    * Recent events that have been emitted from this account.
@@ -649,13 +758,9 @@ class AccountUpdate implements Types.AccountUpdate {
     }
 
     // Sub the amount from the sender's account
-    this.body.balanceChange = Int64.fromObject(this.body.balanceChange).sub(
-      amount
-    );
+    this.body.balanceChange = this.body.balanceChange.sub(amount);
     // Add the amount to the receiver's account
-    receiver.body.balanceChange = Int64.fromObject(
-      receiver.body.balanceChange
-    ).add(amount);
+    receiver.body.balanceChange = receiver.body.balanceChange.add(amount);
     return receiver;
   }
 
@@ -686,18 +791,18 @@ class AccountUpdate implements Types.AccountUpdate {
 
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).add(x);
+        accountUpdate.body.balanceChange =
+          accountUpdate.body.balanceChange.add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        let { magnitude, sgn } = accountUpdate.body.balanceChange;
-        accountUpdate.body.balanceChange = new Int64(magnitude, sgn).sub(x);
+        accountUpdate.body.balanceChange =
+          accountUpdate.body.balanceChange.sub(x);
       },
     };
   }
 
   get balanceChange() {
-    return Int64.fromObject(this.body.balanceChange);
+    return this.body.balanceChange;
   }
   set balanceChange(x: Int64) {
     this.body.balanceChange = x;
@@ -927,9 +1032,24 @@ class AccountUpdate implements Types.AccountUpdate {
     return new AccountUpdateTree({ accountUpdate, id, children });
   }
 
+  /**
+   * @deprecated Use {@link AccountUpdate.default} instead.
+   */
   static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
+    return AccountUpdate.default(address, tokenId);
+  }
+
+  /**
+   * Create an account update from a public key and an optional token id.
+   *
+   * **Important**: This method is different from `AccountUpdate.create()`, in that it really just creates the account update object.
+   * It does not attach the update to the current transaction or smart contract.
+   * Use this method for lower-level operations with account updates.
+   */
+  static default(address: PublicKey, tokenId?: Field) {
     return new AccountUpdate(Body.keepAll(address, tokenId));
   }
+
   static dummy() {
     let dummy = new AccountUpdate(Body.dummy());
     dummy.label = 'Dummy';
@@ -975,6 +1095,22 @@ class AccountUpdate implements Types.AccountUpdate {
     }
     return accountUpdate;
   }
+
+  /**
+   * Create an account update that is added to the transaction only if a condition is met.
+   *
+   * See {@link AccountUpdate.create} for more information. In this method, you can pass in
+   * a condition that determines whether the account update should be added to the transaction.
+   */
+  static createIf(condition: Bool, publicKey: PublicKey, tokenId?: Field) {
+    return AccountUpdate.create(
+      // if the condition is false, we use an empty public key, which causes the account update to be ignored
+      // as a dummy when building the transaction
+      Provable.if(condition, publicKey, PublicKey.empty()),
+      tokenId
+    );
+  }
+
   /**
    * Attach account update to the current transaction
    * -- if in a smart contract, to its children
@@ -1076,49 +1212,38 @@ class AccountUpdate implements Types.AccountUpdate {
     return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
   }
 
+  /**
+   * This function acts as the `check()` method on an `AccountUpdate` that is sent to the Mina node as part of a transaction.
+   *
+   * Background: the Mina node performs most necessary validity checks on account updates, both in- and outside of circuits.
+   * To save constraints, we don't repeat these checks in zkApps in places where we can be sure the checked account udpates
+   * will be part of a transaction.
+   *
+   * However, there are a few checks skipped by the Mina node, that could cause vulnerabilities in zkApps if
+   * not checked in the zkApp proof itself. Adding these extra checks is the purpose of this function.
+   */
+  private static clientSideOnlyChecks(au: AccountUpdate) {
+    // canonical int64 representation of the balance change
+    Int64.check(au.body.balanceChange);
+  }
+
   static witness<T>(
-    type: FlexibleProvable<T>,
+    resultType: FlexibleProvable<T>,
     compute: () => Promise<{ accountUpdate: AccountUpdate; result: T }>,
     { skipCheck = false } = {}
   ) {
     // construct the circuit type for a accountUpdate + other result
-    let accountUpdateType = skipCheck
-      ? { ...provable(AccountUpdate), check() {} }
+    let accountUpdate = skipCheck
+      ? {
+          ...provable(AccountUpdate),
+          check: AccountUpdate.clientSideOnlyChecks,
+        }
       : AccountUpdate;
-    let combinedType = provable({
-      accountUpdate: accountUpdateType,
-      result: type as any,
-    });
+    let combinedType = provable({ accountUpdate, result: resultType });
     return Provable.witnessAsync(combinedType, compute);
   }
 
-  static get MayUseToken() {
-    return {
-      type: provablePure({ parentsOwnToken: Bool, inheritFromParent: Bool }),
-      No: { parentsOwnToken: Bool(false), inheritFromParent: Bool(false) },
-      ParentsOwnToken: {
-        parentsOwnToken: Bool(true),
-        inheritFromParent: Bool(false),
-      },
-      InheritFromParent: {
-        parentsOwnToken: Bool(false),
-        inheritFromParent: Bool(true),
-      },
-      isNo({
-        body: {
-          mayUseToken: { parentsOwnToken, inheritFromParent },
-        },
-      }: AccountUpdate) {
-        return parentsOwnToken.or(inheritFromParent).not();
-      },
-      isParentsOwnToken(a: AccountUpdate) {
-        return a.body.mayUseToken.parentsOwnToken;
-      },
-      isInheritFromParent(a: AccountUpdate) {
-        return a.body.mayUseToken.inheritFromParent;
-      },
-    };
-  }
+  static MayUseToken = MayUseToken;
 
   /**
    * Returns a JSON representation of only the fields that differ from the
@@ -1241,7 +1366,7 @@ type AccountUpdateForestBase = MerkleListBase<AccountUpdateTreeBase>;
 
 const AccountUpdateTreeBase = StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
+  accountUpdate: HashedAccountUpdate,
   children: MerkleListBase<AccountUpdateTreeBase>(),
 });
 
@@ -1262,10 +1387,29 @@ class AccountUpdateForest extends MerkleList.create(
   AccountUpdateTreeBase,
   merkleListHash
 ) {
+  static provable = provableExtends(AccountUpdateForest, super.provable);
+
+  push(update: AccountUpdate | AccountUpdateTreeBase) {
+    return super.push(
+      update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update
+    );
+  }
+  pushIf(condition: Bool, update: AccountUpdate | AccountUpdateTreeBase) {
+    return super.pushIf(
+      condition,
+      update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update
+    );
+  }
+
   static fromFlatArray(updates: AccountUpdate[]): AccountUpdateForest {
     let simpleForest = accountUpdatesToCallForest(updates);
     return this.fromSimpleForest(simpleForest);
   }
+
+  toFlatArray(mutate = true, depth = 0) {
+    return AccountUpdateForest.toFlatArray(this, mutate, depth);
+  }
+
   static toFlatArray(
     forest: AccountUpdateForestBase,
     mutate = true,
@@ -1304,6 +1448,17 @@ class AccountUpdateForest extends MerkleList.create(
       });
     });
   }
+
+  // fix static methods
+  static empty() {
+    return AccountUpdateForest.provable.empty();
+  }
+  static from(array: AccountUpdateTreeBase[]) {
+    return new AccountUpdateForest(super.from(array));
+  }
+  static fromReverse(array: AccountUpdateTreeBase[]) {
+    return new AccountUpdateForest(super.fromReverse(array));
+  }
 }
 
 /**
@@ -1321,8 +1476,8 @@ class AccountUpdateForest extends MerkleList.create(
  */
 class AccountUpdateTree extends StructNoJson({
   id: RandomId,
-  accountUpdate: HashedAccountUpdate.provable,
-  children: AccountUpdateForest.provable,
+  accountUpdate: HashedAccountUpdate,
+  children: AccountUpdateForest,
 }) {
   /**
    * Create a tree of account updates which only consists of a root.
@@ -1464,9 +1619,7 @@ class UnfinishedForest {
   }
 
   witnessHash(): UnfinishedForestFinal {
-    let final = Provable.witness(AccountUpdateForest.provable, () =>
-      this.finalize()
-    );
+    let final = Provable.witness(AccountUpdateForest, () => this.finalize());
     return this.setFinal(final);
   }
 
@@ -1509,8 +1662,7 @@ class UnfinishedForest {
   }
 
   toFlatArray(mutate = true, depth = 0): AccountUpdate[] {
-    if (this.isFinal())
-      return AccountUpdateForest.toFlatArray(this.final, mutate, depth);
+    if (this.isFinal()) return this.final.toFlatArray(mutate, depth);
     assert(this.isMutable(), 'final or mutable');
     let flatUpdates: AccountUpdate[] = [];
     for (let node of this.mutable) {

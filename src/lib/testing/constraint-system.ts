@@ -15,6 +15,7 @@ import { test } from './property.js';
 import { Undefined, ZkProgram } from '../proof-system/zkprogram.js';
 import {
   printGates,
+  summarizeGates,
   synchronousRunners,
 } from '../provable/core/provable-context.js';
 
@@ -350,6 +351,11 @@ constraintSystem.size = map((gates) => gates.length);
  * Print constraint system.
  */
 constraintSystem.print = map(printGates);
+
+/**
+ * Get constraint system summary.
+ */
+constraintSystem.summary = map(summarizeGates);
 
 function repeat(
   n: number,

@@ -6,6 +6,7 @@ import { Gates } from '../gates.js';
 import { assert, bitSlice, toVar, toVars } from './common.js';
 import { exists } from '../core/exists.js';
 import { createBool, createField } from '../core/field-constructor.js';
+import { TupleN } from '../../util/types.js';
 
 export {
   rangeCheck64,
@@ -16,6 +17,8 @@ export {
   isDefinitelyInRangeN,
   rangeCheck8,
   rangeCheck16,
+  rangeCheckLessThan16,
+  rangeCheckLessThan64,
 };
 export { l, l2, l3, lMask, l2Mask };
 
@@ -35,14 +38,23 @@ function rangeCheck32(x: Field) {
 }
 
 /**
- * Asserts that x is in the range [0, 2^64)
+ * Asserts that x is in the range [0, 2^64).
+ *
+ * Returns the 4 highest 12-bit limbs of x in reverse order: [x52, x40, x28, x16].
  */
-function rangeCheck64(x: Field) {
+function rangeCheck64(x: Field): TupleN<Field, 4> {
   if (x.isConstant()) {
-    if (x.toBigInt() >= 1n << 64n) {
+    let xx = x.toBigInt();
+    if (xx >= 1n << 64n) {
       throw Error(`rangeCheck64: expected field to fit in 64 bits, got ${x}`);
     }
-    return;
+    // returned for consistency with the provable case
+    return [
+      createField(bitSlice(xx, 52, 12)),
+      createField(bitSlice(xx, 40, 12)),
+      createField(bitSlice(xx, 28, 12)),
+      createField(bitSlice(xx, 16, 12)),
+    ];
   }
 
   // crumbs (2-bit limbs)
@@ -77,6 +89,8 @@ function rangeCheck64(x: Field) {
     [x14, x12, x10, x8, x6, x4, x2, x0],
     false // not using compact mode
   );
+
+  return [x52, x40, x28, x16];
 }
 
 // default bigint limb size
@@ -340,4 +354,40 @@ function rangeCheck8(x: Field) {
   // check that 2^8 x fits in 16 bits
   let x256 = x.mul(1 << 8).seal();
   rangeCheckHelper(16, x256).assertEquals(x256);
+}
+
+function rangeCheckLessThan16(bits: number, x: Field) {
+  assert(bits < 16, `bits must be less than 16, got ${bits}`);
+
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << BigInt(bits),
+      `rangeCheckLessThan16: expected field to fit in ${bits} bits, got ${x}`
+    );
+    return;
+  }
+
+  // check that x fits in 16 bits
+  rangeCheckHelper(16, x).assertEquals(x);
+  // check that 2^(16 - bits)*x < 2^16, i.e. x < 2^bits
+  let xM = x.mul(1 << (16 - bits)).seal();
+  rangeCheckHelper(16, xM).assertEquals(xM);
+}
+
+function rangeCheckLessThan64(bits: number, x: Field) {
+  assert(bits < 64, `bits must be less than 64, got ${bits}`);
+
+  if (x.isConstant()) {
+    assert(
+      x.toBigInt() < 1n << BigInt(bits),
+      `rangeCheckLessThan16: expected field to fit in ${bits} bits, got ${x}`
+    );
+    return;
+  }
+
+  // check that x fits in 64 bits
+  rangeCheck64(x);
+  // check that 2^(64 - bits)*x < 2^64, i.e. x < 2^bits
+  let xM = x.mul(1 << (64 - bits)).seal();
+  rangeCheck64(xM);
 }

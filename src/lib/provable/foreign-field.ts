@@ -8,9 +8,8 @@ import { Field, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { Tuple, TupleMap, TupleN } from '../util/types.js';
-import { Field3 } from './gadgets/foreign-field.js';
 import { Gadgets } from './gadgets/gadgets.js';
-import { ForeignField as FF } from './gadgets/foreign-field.js';
+import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
@@ -92,10 +91,21 @@ class ForeignField {
    * ```ts
    * let x = new ForeignField(5);
    * ```
+   * 
+   * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
+   * 
+   * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
+   * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
+   * - Ensure constants are correctly reduced to the modulus of the field.
    */
   constructor(x: ForeignField | Field3 | bigint | number | string) {
     const p = this.modulus;
     if (x instanceof ForeignField) {
+      if (x.modulus !== p) {
+        throw new Error(
+          `ForeignField constructor: modulus mismatch. Expected ${p}, got ${x.modulus}. Please provide a value with the correct modulus. You can use 'Gadgets.ForeignField.assertLessThan()' to check it.`
+        );
+      }
       this.value = x.value;
       return;
     }
@@ -303,11 +313,7 @@ class ForeignField {
         }
         return new this.Constructor.Canonical(this.value);
       }
-      Provable.assertEqual(
-        this.Constructor.provable,
-        this,
-        new this.Constructor(y)
-      );
+      Provable.assertEqual(this.Constructor, this, new this.Constructor(y));
       if (isConstant(y) || y instanceof this.Constructor.Canonical) {
         return new this.Constructor.Canonical(this.value);
       } else if (y instanceof this.Constructor.AlmostReduced) {
@@ -357,10 +363,19 @@ class ForeignField {
     let limbSize = Number(l);
     let xBits = l0.toBits(Math.min(length, limbSize));
     length -= limbSize;
-    if (length <= 0) return xBits;
+    if (length <= 0) {
+      // constrain the remaining two high-limbs to be zero, return the first limb
+      l1.assertEquals(0);
+      l2.assertEquals(0);
+      return xBits;
+    }
     let yBits = l1.toBits(Math.min(length, limbSize));
     length -= limbSize;
-    if (length <= 0) return [...xBits, ...yBits];
+    if (length <= 0) {
+      // constrain the highest limb to be zero, return the first two limbs
+      l2.assertEquals(0);
+      return [...xBits, ...yBits];
+    }
     let zBits = l2.toBits(Math.min(length, limbSize));
     return [...xBits, ...yBits, ...zBits];
   }
@@ -603,9 +618,9 @@ function isConstant(x: bigint | number | string | ForeignField) {
  *
  * This function returns the `Unreduced` class, which will cause the minimum amount of range checks to be created by default.
  * If you want to do multiplication, you have two options:
- * - create your field elements using the {@link ForeignField.AlmostReduced} constructor, or using the `.provable` type on that class.
+ * - create your field elements using the {@link ForeignField.AlmostReduced} constructor.
  * ```ts
- * let x = Provable.witness(ForeignField.AlmostReduced.provable, () => ForeignField.from(5));
+ * let x = Provable.witness(ForeignField.AlmostReduced, () => 5n);
  * ```
  * - create your field elements normally and convert them using `x.assertAlmostReduced()`.
  * ```ts
@@ -613,7 +628,7 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * ```
  *
  * Similarly, there is a separate class {@link CanonicalForeignField} which represents fully reduced, "canonical" field elements.
- * To convert to a canonical field element, use {@link ForeignField.assertCanonical}:
+ * To convert to a canonical field element, use `ForeignField.assertCanonical()`:
  *
  * ```ts
  * x.assertCanonical(); // asserts x < p; returns `CanonicalForeignField`
@@ -694,7 +709,11 @@ const foreignFieldMax = 1n << foreignFieldMaxBits;
 
 type Constructor<T> = new (...args: any[]) => T;
 
-function provable<F extends ForeignField>(
+function provable<
+  F extends ForeignField & {
+    type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced';
+  }
+>(
   Class: Constructor<F> & { check(x: ForeignField): void }
 ): ProvablePureExtended<F, bigint, string> {
   return {
@@ -713,6 +732,10 @@ function provable<F extends ForeignField>(
     },
     check(x: ForeignField) {
       Class.check(x);
+    },
+    toCanonical(x) {
+      if (x.type === 'FullyReduced') return x;
+      return new Class(FF.toCanonical(x.value, x.modulus));
     },
     toValue(x) {
       return x.toBigInt();

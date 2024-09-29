@@ -1,3 +1,8 @@
+/*
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+ * in progress to mitigate this limitation.
+ */ 
 import {
   Field,
   SmartContract,
@@ -11,7 +16,6 @@ import {
   provablePure,
   AccountUpdate,
   Provable,
-  TransactionVersion,
 } from 'o1js';
 
 import { Member } from './member.js';
@@ -103,10 +107,7 @@ export class Voting_ extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
-      setVerificationKey: {
-        auth: Permissions.none(),
-        txnVersion: TransactionVersion.current(),
-      },
+      setVerificationKey: Permissions.VerificationKey.none(),
       setPermissions: Permissions.proofOrSignature(),
     });
     this.accumulatedVotes.set(Reducer.initialActionState);

@@ -1,4 +1,5 @@
-import { provable, Struct } from '../types/struct.js';
+import { Struct } from '../types/struct.js';
+import { provable } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
 import { UInt32 } from '../int.js';
 import { PrivateKey, PublicKey } from '../crypto/signature.js';
@@ -17,12 +18,16 @@ import { Bool } from '../bool.js';
 import assert from 'assert/strict';
 import { FieldType } from '../core/fieldvar.js';
 import { From } from '../../../bindings/lib/provable-generic.js';
+import { Group } from '../group.js';
+import { modifiedField } from '../types/fields.js';
+import { createForeignField } from '../foreign-field.js';
+import { Field3 } from '../gadgets/foreign-field.js';
 
 let type = provable({
   nested: { a: Number, b: Boolean },
   other: String,
-  pk: PublicKey,
-  bool: Bool,
+  pk: { provable: PublicKey },
+  bool: { provable: Bool },
   uint: [UInt32, UInt32],
 });
 
@@ -84,6 +89,26 @@ expect(jsValue).toEqual({
 
 expect(type.fromValue(jsValue)).toEqual(value);
 
+// empty
+let empty = type.empty();
+expect(empty).toEqual({
+  nested: { a: 0, b: false },
+  other: '',
+  pk: PublicKey.empty(),
+  bool: new Bool(false),
+  uint: [UInt32.zero, UInt32.zero],
+});
+
+// empty with Group
+expect(provable({ value: Group }).empty()).toEqual({ value: Group.zero });
+
+// fails with a clear error on input without an empty method
+const FieldWithoutEmpty = modifiedField({});
+delete (FieldWithoutEmpty as any).empty;
+expect(() => provable({ value: FieldWithoutEmpty }).empty()).toThrow(
+  'Expected `empty()` method on anonymous type object'
+);
+
 // check
 await Provable.runAndCheck(() => {
   type.check(value);
@@ -104,22 +129,38 @@ await expect(() =>
   })
 ).rejects.toThrow('Constraint unsatisfied');
 
+// toCanonical
+
+const p = Field.ORDER;
+
+class MyField extends createForeignField(p) {}
+class Point extends Struct({ x: MyField.provable, y: MyField.provable }) {}
+
+let x = new MyField(Field3.from(p + 1n));
+let y = new MyField(Field3.from(p + 2n));
+let nonCanonical = new Point({ x, y });
+let canonical = Provable.toCanonical(Point, nonCanonical);
+
+let expected = new Point({ x: new MyField(1n), y: new MyField(2n) });
+expect(nonCanonical).not.toEqual(expected);
+expect(canonical).toEqual(expected);
+
 // class version of `provable`
 class MyStruct extends Struct({
   nested: { a: Number, b: Boolean },
   other: String,
   pk: PublicKey,
-  uint: [UInt32, UInt32],
+  uint: [UInt32, { provable: UInt32 }],
 }) {}
 
 class MyStructPure extends Struct({
   nested: { a: Field, b: UInt32 },
   other: Field,
   pk: PublicKey,
-  uint: [UInt32, UInt32],
+  uint: [UInt32, { provable: UInt32 }],
 }) {}
 
-// Struct.from() works on both js and provable inputs
+// Struct.fromValue() works on both js and provable inputs
 
 let myStructInput = {
   nested: { a: Field(1), b: 2n },
@@ -241,5 +282,17 @@ await tx.prove();
 
 // assert that prover got the target string
 expect(gotTargetString).toEqual(true);
+
+// Having `Struct` as a property is not allowed
+class InvalidStruct extends Struct({
+  inner: Struct,
+}) {}
+
+expect(() => {
+  let invalidStruct = new InvalidStruct({
+    inner: MyStruct.empty(),
+  });
+  InvalidStruct.check(invalidStruct);
+}).toThrow();
 
 console.log('provable types work as expected! 🎉');

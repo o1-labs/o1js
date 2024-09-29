@@ -7,12 +7,23 @@ import { SmartContract } from './zkapp.js';
 import { Account } from './account.js';
 import { Provable } from '../provable/provable.js';
 import { Field } from '../provable/wrapped.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import {
+  ProvablePure,
+  ProvableType,
+  ProvableTypePure,
+} from '../provable/types/provable-intf.js';
+import { ensureConsistentPrecondition } from './precondition.js';
+import { Bool } from '../provable/wrapped.js';
 
 // external API
 export { State, state, declareState };
 // internal API
-export { assertStatePrecondition, cleanStatePrecondition };
+export {
+  assertStatePrecondition,
+  cleanStatePrecondition,
+  getLayout,
+  InternalStateType,
+};
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -55,6 +66,13 @@ type State<A> = {
    */
   requireEquals(a: A): void;
   /**
+   * Require that the on-chain state has to equal the given state if the provided condition is true.
+   *
+   * If the condition is false, this is a no-op.
+   * If the condition is true, this adds a precondition that the verifying Mina node will check before accepting this transaction.
+   */
+  requireEqualsIf(condition: Bool, a: A): void;
+  /**
    * **DANGER ZONE**: Override the error message that warns you when you use `.get()` without adding a precondition.
    */
   requireNothing(): void;
@@ -70,8 +88,8 @@ type State<A> = {
    */
   fromAppState(appState: Field[]): A;
 };
-function State<A>(): State<A> {
-  return createState<A>();
+function State<A>(defaultValue?: A): State<A> {
+  return createState<A>(defaultValue);
 }
 
 /**
@@ -84,7 +102,9 @@ function State<A>(): State<A> {
  * ```
  *
  */
-function state<A>(stateType: FlexibleProvablePure<A>) {
+function state<A>(type: ProvableTypePure<A> | FlexibleProvablePure<A>) {
+  let stateType = ProvableType.get(type);
+
   return function (
     target: SmartContract & { constructor: any },
     key: string,
@@ -162,7 +182,7 @@ function state<A>(stateType: FlexibleProvablePure<A>) {
  */
 function declareState<T extends typeof SmartContract>(
   SmartContract: T,
-  states: Record<string, FlexibleProvablePure<unknown>>
+  states: Record<string, FlexibleProvablePure<any>>
 ) {
   for (let key in states) {
     let CircuitValue = states[key];
@@ -181,11 +201,15 @@ type StateAttachedContract<A> = {
   cachedVariable?: A;
 };
 
-type InternalStateType<A> = State<A> & { _contract?: StateAttachedContract<A> };
+type InternalStateType<A> = State<A> & {
+  _contract?: StateAttachedContract<A>;
+  defaultValue?: A;
+};
 
-function createState<T>(): InternalStateType<T> {
+function createState<T>(defaultValue?: T): InternalStateType<T> {
   return {
     _contract: undefined as StateAttachedContract<T> | undefined,
+    defaultValue,
 
     set(state: T) {
       if (this._contract === undefined)
@@ -198,10 +222,6 @@ function createState<T>(): InternalStateType<T> {
       stateAsFields.forEach((x, i) => {
         let appStateSlot =
           accountUpdate.body.update.appState[layout.offset + i];
-        if (!appStateSlot)
-          throw Error(
-            `Attempted to set on-chain state variable \`${this._contract?.key}\`. Currently, only a total of 8 fields elements of on-chain state are supported.`
-          );
         AccountUpdate.setValue(appStateSlot, x);
       });
     },
@@ -215,10 +235,39 @@ function createState<T>(): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        AccountUpdate.assertEquals(
-          accountUpdate.body.preconditions.account.state[layout.offset + i],
-          x
+        let precondition =
+          accountUpdate.body.preconditions.account.state[layout.offset + i];
+        ensureConsistentPrecondition(
+          precondition,
+          Bool(true),
+          x,
+          this._contract?.key
         );
+        AccountUpdate.assertEquals(precondition, x);
+      });
+      this._contract.wasConstrained = true;
+    },
+
+    requireEqualsIf(condition: Bool, state: T) {
+      if (this._contract === undefined)
+        throw Error(
+          'requireEqualsIf can only be called when the State is assigned to a SmartContract @state.'
+        );
+      let layout = getLayoutPosition(this._contract);
+      let stateAsFields = this._contract.stateType.toFields(state);
+      let accountUpdate = this._contract.instance.self;
+      stateAsFields.forEach((stateField, i) => {
+        let value = Provable.if(condition, stateField, Field(0));
+        ensureConsistentPrecondition(
+          accountUpdate.body.preconditions.account.state[layout.offset + i],
+          condition,
+          value,
+          this._contract?.key
+        );
+        let state =
+          accountUpdate.body.preconditions.account.state[layout.offset + i];
+        state.isSome = condition;
+        state.value = value;
       });
       this._contract.wasConstrained = true;
     },
@@ -228,6 +277,8 @@ function createState<T>(): InternalStateType<T> {
         throw Error(
           'requireNothing can only be called when the State is assigned to a SmartContract @state.'
         );
+      // TODO: this should ideally reset any previous precondition,
+      // by setting each relevant state field to { isSome: false, value: Field(0) }
       this._contract.wasConstrained = true;
     },
 
@@ -363,7 +414,7 @@ function getLayoutPosition<A>({
 
 function getLayout(scClass: typeof SmartContract) {
   let sc = smartContracts.get(scClass);
-  if (sc === undefined) throw Error('bug');
+  if (sc === undefined) return new Map();
   if (sc.layout === undefined) {
     let layout = new Map();
     sc.layout = layout;
@@ -373,6 +424,11 @@ function getLayout(scClass: typeof SmartContract) {
       layout.set(key, { offset, length });
       offset += length;
     });
+    if (offset > 8) {
+      throw Error(
+        `Found ${offset} on-chain state field elements on ${scClass.name}. Currently, only a total of 8 field elements of state are supported.`
+      );
+    }
   }
   return sc.layout;
 }

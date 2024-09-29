@@ -147,20 +147,19 @@ let program = ZkProgram({
     ecdsa: {
       privateInputs: [],
       async method() {
-        let signature_ = Provable.witness(
-          Ecdsa.Signature.provable,
-          () => signature
-        );
-        let msgHash_ = Provable.witness(Field3.provable, () => msgHash);
-        let publicKey_ = Provable.witness(Point.provable, () => publicKey);
+        let signature_ = Provable.witness(Ecdsa.Signature, () => signature);
+        let msgHash_ = Provable.witness(Field3, () => msgHash);
+        let publicKey_ = Provable.witness(Point, () => publicKey);
 
-        return Ecdsa.verify(
-          Secp256k1,
-          signature_,
-          msgHash_,
-          publicKey_,
-          config
-        );
+        return {
+          publicOutput: Ecdsa.verify(
+            Secp256k1,
+            signature_,
+            msgHash_,
+            publicKey_,
+            config
+          ),
+        };
       },
     },
   },
@@ -185,7 +184,7 @@ await program.compile();
 console.timeEnd('ecdsa verify (compile)');
 
 console.time('ecdsa verify (prove)');
-let proof = await program.ecdsa();
+let { proof } = await program.ecdsa();
 console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');

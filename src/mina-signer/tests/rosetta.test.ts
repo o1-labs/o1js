@@ -8,7 +8,7 @@ describe('Rosetta', () => {
 
   const rosettaUnsignedTxn: UnsignedTransaction = { "randomOracleInput": "0000000333E1F14C6155B706D4EA12CF70685B8DCD3342A8B36A27CC3EB61B5871F9219E33E1F14C6155B706D4EA12CF70685B8DCD3342A8B36A27CC3EB61B5871F9219E33E1F14C6155B706D4EA12CF70685B8DCD3342A8B36A27CC3EB61B5871F9219E000002570242F000000000008000000000000000C00000007FFFFFFFC00000000000000000000000000000000000000000000000000000000000000000000E0000000000000000014D677000000000", "signerInput": { "prefix": ["33E1F14C6155B706D4EA12CF70685B8DCD3342A8B36A27CC3EB61B5871F9219E", "33E1F14C6155B706D4EA12CF70685B8DCD3342A8B36A27CC3EB61B5871F9219E", "33E1F14C6155B706D4EA12CF70685B8DCD3342A8B36A27CC3EB61B5871F9219E"], "suffix": ["0000000000000007FFFFFFFC00000006000000000000000200000000001E8480", "0000000003800000000000000000000000000000000000000000000000000000", "00000000000000000000000000000000000000000000000001DCD65000000000"] }, "payment": { "to": "B62qqQomCgjaKhayN79wWqDNsSJKFaZjrkuCp8Kcrt36ubXb14XHU2X", "from": "B62qqQomCgjaKhayN79wWqDNsSJKFaZjrkuCp8Kcrt36ubXb14XHU2X", "fee": "1000000", "token": "wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf", "nonce": "1", "memo": null, "amount": "1000000000", "valid_until": null }, "stakeDelegation": null };
   const rosettaUnsignedPayload = {
-    unsigned_transaction: rosettaUnsignedTxn,
+    unsigned_transaction: JSON.stringify(rosettaUnsignedTxn),
     payloads: [
       {
         account_identifier: {
@@ -101,10 +101,10 @@ describe('Rosetta', () => {
   });
 
   it('generates valid combine payload', () => {
-    const combinePayload = client.rosettaCombinePayload(JSON.stringify(rosettaUnsignedPayload), privateKey);
+    const combinePayload = client.rosettaCombinePayload(rosettaUnsignedPayload, privateKey);
     const expectedCombinePayload = {
       network_identifier: { blockchain: 'mina', network: 'mainnet' },
-      unsigned_transaction: rosettaUnsignedTxn,
+      unsigned_transaction: JSON.stringify(rosettaUnsignedTxn),
       signatures: [
         {
           hex_bytes: mainnetSignatureHex,
@@ -118,6 +118,6 @@ describe('Rosetta', () => {
         }
       ]
     };
-    expect(combinePayload).toBe(JSON.stringify(expectedCombinePayload));
+    expect(JSON.stringify(combinePayload)).toBe(JSON.stringify(expectedCombinePayload));
   });
 });

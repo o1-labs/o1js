@@ -17,6 +17,7 @@ import {
   type LastBlockQueryResponse,
   type GenesisConstantsResponse,
   type LastBlockQueryFailureCheckResponse,
+  type FetchedAction,
   type FetchedBlock,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
@@ -24,7 +25,7 @@ import {
   type ActionQueryResponse,
   type EventActionFilterOptions,
   type SendZkAppResponse,
-  type FetchedAccount,
+  type FetchedAccountResponse,
   type CurrentSlotResponse,
   sendZkappQuery,
   lastBlockQuery,
@@ -64,6 +65,7 @@ export {
   sendZkapp,
   fetchEvents,
   fetchActions,
+  makeGraphqlRequest,
   Lightnet,
   type GenesisConstants,
   type ActionStatesStringified,
@@ -75,6 +77,12 @@ type NetworkConfig = {
   archiveEndpoint: string;
   archiveFallbackEndpoints: string[];
   lightnetAccountManagerEndpoint: string;
+};
+
+type ActionsQueryInputs = {
+  publicKey: string;
+  actionStates: ActionStatesStringified;
+  tokenId?: string;
 };
 
 let networkConfig = {
@@ -202,14 +210,14 @@ async function fetchAccountInternal(
   config?: FetchConfig
 ) {
   const { publicKey, tokenId } = accountInfo;
-  let [response, error] = await makeGraphqlRequest<FetchedAccount>(
+  let [response, error] = await makeGraphqlRequest<FetchedAccountResponse>(
     accountQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default)),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
     config
   );
   if (error !== undefined) return { account: undefined, error };
-  let fetchedAccount = response?.data;
+  let fetchedAccount = response?.data?.account;
   if (!fetchedAccount) {
     return {
       account: undefined,
@@ -289,12 +297,15 @@ type GenesisConstants = {
 };
 let genesisConstantsCache = {} as Record<string, GenesisConstants>;
 
+const emptyKey = PublicKey.empty().toBase58();
+
 function markAccountToBeFetched(
   publicKey: PublicKey,
   tokenId: Field,
   graphqlEndpoint: string
 ) {
   let publicKeyBase58 = publicKey.toBase58();
+  if (publicKeyBase58 === emptyKey) return;
   let tokenBase58 = TokenId.toBase58(tokenId);
   accountsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
@@ -681,11 +692,7 @@ async function fetchEvents(
 }
 
 async function fetchActions(
-  accountInfo: {
-    publicKey: string;
-    actionStates: ActionStatesStringified;
-    tokenId?: string;
-  },
+  accountInfo: ActionsQueryInputs,
   graphqlEndpoint = networkConfig.archiveEndpoint
 ) {
   if (!graphqlEndpoint)
@@ -697,6 +704,7 @@ async function fetchActions(
     actionStates,
     tokenId = TokenId.toBase58(TokenId.default),
   } = accountInfo;
+
   let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
     getActionsQuery(publicKey, actionStates, tokenId),
     graphqlEndpoint,
@@ -712,6 +720,22 @@ async function fetchActions(
       },
     };
   }
+
+  const actionsList = createActionsList(accountInfo, fetchedActions);
+  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
+
+  return actionsList;
+}
+
+/**
+ * Given a graphQL response from #getActionsQuery, process the actions into a canonical actions list
+ */
+export function createActionsList(
+  accountInfo: ActionsQueryInputs,
+  fetchedActions: FetchedAction[]
+) {
+  const _fetchedActions = fetchedActions;
+  const { publicKey, actionStates } = accountInfo;
 
   let actionsList: { actions: string[][]; hash: string }[] = [];
   // correct for archive node sending one block too many
@@ -732,6 +756,10 @@ async function fetchActions(
       throw Error(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
+
+    actionData = actionData.sort((a1, a2) => {
+      return Number(a1.accountUpdateId) < Number(a2.accountUpdateId) ? -1 : 1;
+    });
 
     // split actions by account update
     let actionsByAccountUpdate: string[][][] = [];
@@ -766,7 +794,6 @@ async function fetchActions(
       );
     }
   });
-  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
   return actionsList;
 }
 

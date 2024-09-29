@@ -5,6 +5,7 @@ import { assert } from './gadgets/common.js';
 import { provableFromClass } from './types/provable-derivers.js';
 import { Poseidon, packToFields, ProvableHashable } from './crypto/poseidon.js';
 import { Unconstrained } from './types/unconstrained.js';
+import { ProvableType, WithProvable } from './types/provable-intf.js';
 
 export {
   MerkleListBase,
@@ -43,7 +44,7 @@ type MerkleListBase<T> = {
 };
 
 function MerkleListBase<T>(): ProvableHashable<MerkleListBase<T>> {
-  return class extends Struct({ hash: Field, data: Unconstrained.provable }) {
+  return class extends Struct({ hash: Field, data: Unconstrained }) {
     static empty(): MerkleListBase<T> {
       return { hash: emptyHash, data: Unconstrained.from([]) };
     }
@@ -186,9 +187,65 @@ class MerkleList<T> implements MerkleListBase<T> {
     return element;
   }
 
+  /**
+   * Low-level, minimal version of `pop()` which lets the _caller_ decide whether there is an element to pop.
+   *
+   * I.e. this proves:
+   * - If the input condition is true, this returns the last element and removes it from the list.
+   * - If the input condition is false, the list is unchanged and the return value is garbage.
+   *
+   * Note that if the caller passes `true` but the list is empty, this will fail.
+   * If the caller passes `false` but the list is non-empty, this succeeds and just doesn't pop off an element.
+   */
+  popIfUnsafe(shouldPop: Bool) {
+    let { previousHash, element } = Provable.witness(
+      WithHash(this.innerProvable),
+      () => {
+        let dummy = {
+          previousHash: this.hash,
+          element: this.innerProvable.empty(),
+        };
+        if (!shouldPop.toBoolean()) return dummy;
+        let [value, ...data] = this.data.get();
+        this.data.set(data);
+        return value ?? dummy;
+      }
+    );
+
+    let nextHash = this.nextHash(previousHash, element);
+    let currentHash = Provable.if(shouldPop, nextHash, this.hash);
+    this.hash.assertEquals(currentHash);
+    this.hash = Provable.if(shouldPop, previousHash, this.hash);
+
+    return element;
+  }
+
   clone(): MerkleList<T> {
     let data = Unconstrained.witness(() => [...this.data.get()]);
     return new this.Constructor({ hash: this.hash, data });
+  }
+
+  /**
+   * Iterate through the list in a fixed number of steps any apply a given callback on each element.
+   *
+   * Proves that the iteration traverses the entire list.
+   * Once past the last element, dummy elements will be passed to the callback.
+   *
+   * Note: There are no guarantees about the contents of dummy elements, so the callback is expected
+   * to handle the `isDummy` flag separately.
+   */
+  forEach(
+    length: number,
+    callback: (element: T, isDummy: Bool, i: number) => void
+  ) {
+    let iter = this.startIterating();
+    for (let i = 0; i < length; i++) {
+      let { element, isDummy } = iter.Unsafe.next();
+      callback(element, isDummy, i);
+    }
+    iter.assertAtEnd(
+      `Expected MerkleList to have at most ${length} elements, but it has more.`
+    );
   }
 
   startIterating(): MerkleListIterator<T> {
@@ -199,6 +256,16 @@ class MerkleList<T> implements MerkleListBase<T> {
   startIteratingFromLast(): MerkleListIterator<T> {
     let merkleArray = MerkleListIterator.createFromList<T>(this.Constructor);
     return merkleArray.startIteratingFromLast(this);
+  }
+
+  toArrayUnconstrained(): Unconstrained<T[]> {
+    return Unconstrained.witness(() =>
+      [...this.data.get()].reverse().map((x) => x.element)
+    );
+  }
+
+  lengthUnconstrained(): Unconstrained<number> {
+    return Unconstrained.witness(() => this.data.get().length);
   }
 
   /**
@@ -214,8 +281,10 @@ class MerkleList<T> implements MerkleListBase<T> {
    * ```
    */
   static create<T>(
-    type: ProvableHashable<T>,
-    nextHash: (hash: Field, value: T) => Field = merkleListHash(type),
+    type: WithProvable<ProvableHashable<T>>,
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(
+      ProvableType.get(type)
+    ),
     emptyHash_ = emptyHash
   ): typeof MerkleList<T> & {
     // override static methods with strict types
@@ -224,13 +293,17 @@ class MerkleList<T> implements MerkleListBase<T> {
     fromReverse: (array: T[]) => MerkleList<T>;
     provable: ProvableHashable<MerkleList<T>>;
   } {
+    let provable = ProvableType.get(type);
+
     class MerkleListTBase extends MerkleList<T> {
-      static _innerProvable = type;
+      static _innerProvable = provable;
 
       static _provable = provableFromClass(MerkleListTBase, {
         hash: Field,
-        data: Unconstrained.provable,
-      }) as ProvableHashable<MerkleList<T>>;
+        data: Unconstrained,
+      }) satisfies ProvableHashable<MerkleList<T>> as ProvableHashable<
+        MerkleList<T>
+      >;
 
       static _nextHash = nextHash;
       static _emptyHash = emptyHash_;
@@ -243,7 +316,7 @@ class MerkleList<T> implements MerkleListBase<T> {
         array = [...array].reverse();
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return new this({ data: unconstrained, hash });
       }
@@ -251,7 +324,7 @@ class MerkleList<T> implements MerkleListBase<T> {
       static fromReverse(array: T[]): MerkleList<T> {
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return new this({ data: unconstrained, hash });
       }
@@ -259,6 +332,9 @@ class MerkleList<T> implements MerkleListBase<T> {
       static get provable(): ProvableHashable<MerkleList<T>> {
         assert(this._provable !== undefined, 'MerkleList not initialized');
         return this._provable;
+      }
+      static set provable(_provable: ProvableHashable<MerkleList<T>>) {
+        this._provable = _provable;
       }
     }
     // override `instanceof` for subclasses
@@ -373,8 +449,11 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     this.currentHash = Provable.if(condition, this.hash, this.currentHash);
   }
 
-  assertAtEnd() {
-    return this.currentHash.assertEquals(this.hash);
+  assertAtEnd(message?: string) {
+    return this.currentHash.assertEquals(
+      this.hash,
+      message ?? 'Merkle list iterator is not at the end'
+    );
   }
 
   isAtStart() {
@@ -546,8 +625,10 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
    * Create a Merkle array type
    */
   static create<T>(
-    type: ProvableHashable<T>,
-    nextHash: (hash: Field, value: T) => Field = merkleListHash(type),
+    type: WithProvable<ProvableHashable<T>>,
+    nextHash: (hash: Field, value: T) => Field = merkleListHash(
+      ProvableType.get(type)
+    ),
     emptyHash_ = emptyHash
   ): typeof MerkleListIterator<T> & {
     from: (array: T[]) => MerkleListIterator<T>;
@@ -556,14 +637,15 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
     empty: () => MerkleListIterator<T>;
     provable: ProvableHashable<MerkleListIterator<T>>;
   } {
+    let provable = ProvableType.get(type);
     return class Iterator extends MerkleListIterator<T> {
-      static _innerProvable = type;
+      static _innerProvable = ProvableType.get(provable);
 
       static _provable = provableFromClass(Iterator, {
         hash: Field,
-        data: Unconstrained.provable,
+        data: Unconstrained,
         currentHash: Field,
-        currentIndex: Unconstrained.provable,
+        currentIndex: Unconstrained,
       }) satisfies ProvableHashable<MerkleListIterator<T>> as ProvableHashable<
         MerkleListIterator<T>
       >;
@@ -574,7 +656,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
       static from(array: T[]): MerkleListIterator<T> {
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return this.startIterating({ data: unconstrained, hash });
       }
@@ -583,7 +665,7 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
         array = [...array].reverse();
         let { hash, data } = withHashes(array, nextHash, emptyHash_);
         let unconstrained = Unconstrained.witness(() =>
-          data.map((x) => toConstant(type, x))
+          data.map((x) => toConstant(provable, x))
         );
         return this.startIteratingFromLast({ data: unconstrained, hash });
       }

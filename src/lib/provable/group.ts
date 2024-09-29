@@ -352,16 +352,16 @@ class Group {
       fields: [x.x, x.y],
     };
   }
+
+  static empty() {
+    return Group.zero;
+  }
 }
 
 // internal helpers
 
 function isConstant(g: Group) {
   return g.x.isConstant() && g.y.isConstant();
-}
-
-function toTuple(g: Group): [0, FieldVar, FieldVar] {
-  return [0, g.x.value, g.y.value];
 }
 
 function toProjective(g: Group) {

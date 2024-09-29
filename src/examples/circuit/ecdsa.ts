@@ -3,10 +3,10 @@ import {
   circuitMain,
   public_,
   Crypto,
-  createEcdsa,
   createForeignCurve,
   Bytes,
   assert,
+  createEcdsa,
 } from 'o1js';
 
 export { Secp256k1, Ecdsa, Bytes32, Reserves };

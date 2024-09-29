@@ -26,6 +26,7 @@ export {
   inCompileMode,
   gatesFromJson,
   printGates,
+  summarizeGates,
   MlConstraintSystem,
 };
 
@@ -167,13 +168,7 @@ function constraintSystemToJS(cs: MlConstraintSystem) {
       printGates(gates);
     },
     summary() {
-      let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
-      gateTypes['Total rows'] = rows;
-      for (let gate of gates) {
-        gateTypes[gate.type] ??= 0;
-        gateTypes[gate.type]!++;
-      }
-      return gateTypes;
+      return summarizeGates(gates);
     },
   };
 }
@@ -186,6 +181,18 @@ function gatesFromJson(cs: { gates: JsonGate[]; public_input_size: number }) {
     return { type: typ, wires, coeffs };
   });
   return { publicInputSize: cs.public_input_size, gates };
+}
+
+// collect a summary of the constraint system
+
+function summarizeGates(gates: Gate[]) {
+  let gateTypes: Partial<Record<GateType | 'Total rows', number>> = {};
+  gateTypes['Total rows'] = gates.length;
+  for (let gate of gates) {
+    gateTypes[gate.type] ??= 0;
+    gateTypes[gate.type]!++;
+  }
+  return gateTypes;
 }
 
 // print a constraint system

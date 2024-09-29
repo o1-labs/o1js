@@ -3,7 +3,7 @@ import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
-import { l, l2, multiRangeCheck } from './range-check.js';
+import { l, l2, l2Mask, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBytes,
@@ -11,16 +11,18 @@ import {
 } from '../../../bindings/crypto/bigint-helpers.js';
 import {
   CurveAffine,
+  GroupAffine,
   affineAdd,
   affineDouble,
 } from '../../../bindings/crypto/elliptic-curve.js';
 import { Bool } from '../bool.js';
-import { provable } from '../types/struct.js';
+import { provable } from '../types/provable-derivers.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { arrayGet, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { Hashed } from '../packed.js';
 import { exists } from '../core/exists.js';
+import { ProvableType } from '../types/provable-intf.js';
 
 // external API
 export { EllipticCurve, Point, Ecdsa };
@@ -64,6 +66,11 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
     let p3 = affineAdd(Point.toBigint(p1), Point.toBigint(p2), f);
     return Point.from(p3);
   }
+
+  assert(
+    Curve.modulus > l2Mask + 1n,
+    'Base field moduli smaller than 2^176 are not supported'
+  );
 
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
@@ -166,6 +173,12 @@ function assertOnCurve(
 ) {
   let { x, y } = p;
   let x2 = ForeignField.mul(x, x, f);
+
+  // Ensure x2, x, and y are almost reduced to prevent potential exploitation
+  // by a malicious prover adding large multiples of f, which could violate
+  // the precondition of ForeignField.assertMul
+  ForeignField.assertAlmostReduced([x2, x, y], f);
+
   let y2 = ForeignField.mul(y, y, f);
   let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
 
@@ -212,33 +225,32 @@ function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
   return xEquals.and(yEquals);
 }
 
-/**
- * Verify an ECDSA signature.
- *
- * Details about the `config` parameter:
- * - For both the generator point `G` and public key `P`, `config` allows you to specify:
- *   - the `windowSize` which is used in scalar multiplication for this point.
- *     this flexibility is good because the optimal window size is different for constant and non-constant points.
- *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
- *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
- *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
- *     if these are not provided, they are computed on the fly.
- *     for the constant G, computing multiples costs no constraints, so passing them in makes no real difference.
- *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
- *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
- * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
- */
-function verifyEcdsa(
+function verifyEcdsaGeneric(
   Curve: CurveAffine,
   signature: Ecdsa.Signature,
   msgHash: Field3,
   publicKey: Point,
+  multiScalarMul: (
+    scalars: Field3[],
+    points: Point[],
+    Curve: CurveAffine,
+    tableConfigs?: (
+      | {
+          windowSize?: number;
+          multiples?: Point[];
+        }
+      | undefined
+    )[],
+    mode?: 'assert-nonzero' | 'assert-zero',
+    ia?: point,
+    hashed?: boolean
+  ) => Point,
   config: {
     G?: { windowSize: number; multiples?: Point[] };
     P?: { windowSize: number; multiples?: Point[] };
     ia?: point;
   } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
-) {
+): Bool {
   // constant case
   if (
     EcdsaSignature.isConstant(signature) &&
@@ -282,7 +294,52 @@ function verifyEcdsa(
   // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
   ForeignField.assertLessThan(Rx, Curve.order);
 
-  return Provable.equal(Field3.provable, Rx, r);
+  // assert s to be canonical
+  ForeignField.assertLessThan(s, Curve.order);
+
+  return Provable.equal(Field3, Rx, r);
+}
+
+/**
+ * Verify an ECDSA signature.
+ *
+ * Details about the `config` parameter:
+ * - For both the generator point `G` and public key `P`, `config` allows you to specify:
+ *   - the `windowSize` which is used in scalar multiplication for this point.
+ *     this flexibility is good because the optimal window size is different for constant and non-constant points.
+ *     empirically, `windowSize=4` for constants and 3 for variables leads to the fewest constraints.
+ *     our defaults reflect that the generator is always constant and the public key is variable in typical applications.
+ *   - a table of multiples of those points, of length `2^windowSize`, which is used in the scalar multiplication gadget to speed up the computation.
+ *     if these are not provided, they are computed on the fly.
+ *     for the constant G, computing multiples costs no constraints, so passing them in makes no real difference.
+ *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
+ *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
+ * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
+ *
+ *
+ * _Note_: If `signature.s` is a non-canonical element, an error will be thrown.
+ * If `signature.r` is non-canonical, however, `false` will be returned.
+ */
+function verifyEcdsa(
+  Curve: CurveAffine,
+  signature: Ecdsa.Signature,
+  msgHash: Field3,
+  publicKey: Point,
+  config: {
+    G?: { windowSize: number; multiples?: Point[] };
+    P?: { windowSize: number; multiples?: Point[] };
+    ia?: point;
+  } = { G: { windowSize: 4 }, P: { windowSize: 3 } }
+) {
+  return verifyEcdsaGeneric(
+    Curve,
+    signature,
+    msgHash,
+    publicKey,
+    (scalars, points, Curve, configs, mode, ia) =>
+      multiScalarMul(scalars, points, Curve, configs, mode, ia),
+    config
+  );
 }
 
 /**
@@ -309,6 +366,36 @@ function verifyEcdsaConstant(
   if (Curve.equal(R, Curve.zero)) return false;
 
   return Curve.Scalar.equal(R.x, r);
+}
+
+function multiScalarMulConstant(
+  scalars: Field3[],
+  points: Point[],
+  Curve: CurveAffine,
+  mode: 'assert-nonzero' | 'assert-zero' = 'assert-nonzero'
+): Point {
+  let n = points.length;
+  assert(scalars.length === n, 'Points and scalars lengths must match');
+  assertPositiveInteger(n, 'Expected at least 1 point and scalar');
+  let useGlv = Curve.hasEndomorphism;
+
+  // TODO dedicated MSM
+  let s = scalars.map(Field3.toBigint);
+  let P = points.map(Point.toBigint);
+  let sum: GroupAffine = Curve.zero;
+  for (let i = 0; i < n; i++) {
+    if (useGlv) {
+      sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
+    } else {
+      sum = Curve.add(sum, Curve.scale(P[i], s[i]));
+    }
+  }
+  if (mode === 'assert-zero') {
+    assert(sum.infinity, 'scalar multiplication: expected zero result');
+    return Point.from(Curve.zero);
+  }
+  assert(!sum.infinity, 'scalar multiplication: expected non-zero result');
+  return Point.from(sum);
 }
 
 /**
@@ -348,23 +435,7 @@ function multiScalarMul(
 
   // constant case
   if (scalars.every(Field3.isConstant) && points.every(Point.isConstant)) {
-    // TODO dedicated MSM
-    let s = scalars.map(Field3.toBigint);
-    let P = points.map(Point.toBigint);
-    let sum = Curve.zero;
-    for (let i = 0; i < n; i++) {
-      if (useGlv) {
-        sum = Curve.add(sum, Curve.Endo.scale(P[i], s[i]));
-      } else {
-        sum = Curve.add(sum, Curve.scale(P[i], s[i]));
-      }
-    }
-    if (mode === 'assert-zero') {
-      assert(sum.infinity, 'scalar multiplication: expected zero result');
-      return Point.from(Curve.zero);
-    }
-    assert(!sum.infinity, 'scalar multiplication: expected non-zero result');
-    return Point.from(sum);
+    return multiScalarMulConstant(scalars, points, Curve, mode);
   }
 
   // parse or build point tables
@@ -423,14 +494,6 @@ function multiScalarMul(
     sliceField3(s, { maxBits, chunkSize: windowSizes[i] })
   );
 
-  // hash points to make array access more efficient
-  // a Point is 6 field elements, the hash is just 1 field element
-  const HashedPoint = Hashed.create(Point.provable);
-
-  let hashedTables = tables.map((table) =>
-    table.map((point) => HashedPoint.hash(point))
-  );
-
   // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
   // note: this is a trick to ensure _completeness_ of the gadget
   // soundness follows because add() and double() are sound, on all inputs that are valid non-zero curve points
@@ -447,17 +510,13 @@ function multiScalarMul(
         let sjP =
           windowSize === 1
             ? points[j]
-            : arrayGetGeneric(
-                HashedPoint.provable,
-                hashedTables[j],
-                sj
-              ).unhash();
+            : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
         let added = add(sum, sjP, Curve);
 
         // handle degenerate case (if sj = 0, Gj is all zeros and the add result is garbage)
-        sum = Provable.if(sj.equals(0), Point.provable, sum, added);
+        sum = Provable.if(sj.equals(0), Point, sum, added);
       }
     }
 
@@ -488,7 +547,7 @@ function multiScalarMul(
 function negateIf(condition: Field, P: Point, f: bigint) {
   let y = Provable.if(
     Bool.Unsafe.fromField(condition),
-    Field3.provable,
+    Field3,
     ForeignField.negate(P.y, f),
     P.y
   );
@@ -533,13 +592,13 @@ function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
   // prove that s1*lambda = s - s0
   let lambda = Provable.if(
     Bool.Unsafe.fromField(s1Negative),
-    Field3.provable,
+    Field3,
     Field3.from(Curve.Scalar.negate(Curve.Endo.scalar)),
     Field3.from(Curve.Endo.scalar)
   );
   let rhs = Provable.if(
     Bool.Unsafe.fromField(s0Negative),
-    Field3.provable,
+    Field3,
     ForeignField.Sum(s).add(s0).finish(Curve.order),
     ForeignField.Sum(s).sub(s0).finish(Curve.order)
   );
@@ -655,7 +714,8 @@ function simpleMapToCurve(x: bigint, Curve: CurveAffine) {
  *
  * Assumes that index is in [0, n), returns an unconstrained result otherwise.
  */
-function arrayGetGeneric<T>(type: Provable<T>, array: T[], index: Field) {
+function arrayGetGeneric<T>(type: ProvableType<T>, array: T[], index: Field) {
+  type = ProvableType.get(type);
   // witness result
   let a = Provable.witness(type, () => array[Number(index)]);
   let aFields = type.toFields(a);
@@ -680,7 +740,7 @@ const Point = {
   toBigint({ x, y }: Point) {
     return { x: Field3.toBigint(x), y: Field3.toBigint(y), infinity: false };
   },
-  isConstant: (P: Point) => Provable.isConstant(Point.provable, P),
+  isConstant: (P: Point) => Provable.isConstant(Point, P),
 
   /**
    * Random point on the curve.
@@ -689,7 +749,7 @@ const Point = {
     return Point.from(random(Curve));
   },
 
-  provable: provable({ x: Field3.provable, y: Field3.provable }),
+  provable: provable({ x: Field3, y: Field3 }),
 };
 
 const EcdsaSignature = {
@@ -699,8 +759,7 @@ const EcdsaSignature = {
   toBigint({ r, s }: Ecdsa.Signature): Ecdsa.signature {
     return { r: Field3.toBigint(r), s: Field3.toBigint(s) };
   },
-  isConstant: (S: Ecdsa.Signature) =>
-    Provable.isConstant(EcdsaSignature.provable, S),
+  isConstant: (S: Ecdsa.Signature) => Provable.isConstant(EcdsaSignature, S),
 
   /**
    * Create an {@link EcdsaSignature} from a raw 130-char hex string as used in
@@ -719,7 +778,7 @@ const EcdsaSignature = {
     return EcdsaSignature.from({ r, s });
   },
 
-  provable: provable({ r: Field3.provable, s: Field3.provable }),
+  provable: provable({ r: Field3, s: Field3 }),
 };
 
 const Ecdsa = {

@@ -11,7 +11,7 @@ import { Provable } from './provable.js';
 export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };
 
 // internal API
-export { maybeSwap };
+export { conditionalSwap };
 
 type Witness = { isLeft: boolean; sibling: Field }[];
 
@@ -43,6 +43,17 @@ class MerkleTree {
   }
 
   /**
+   * Return a new MerkleTree with the same contents as this one.
+   */
+  clone() {
+    let newTree = new MerkleTree(this.height);
+    for (let [level, nodes] of Object.entries(this.nodes)) {
+      newTree.nodes[level as any as number] = { ...nodes };
+    }
+    return newTree;
+  }
+
+  /**
    * Returns a node which lives at a given index and level.
    * @param level Level of the node.
    * @param index Index of the node.
@@ -50,6 +61,15 @@ class MerkleTree {
    */
   getNode(level: number, index: bigint): Field {
     return this.nodes[level]?.[index.toString()] ?? this.zeroes[level];
+  }
+
+  /**
+   * Returns a leaf at a given index.
+   * @param index Index of the leaf.
+   * @returns The data of the leaf.
+   */
+  getLeaf(key: bigint) {
+    return this.getNode(0, key);
   }
 
   /**
@@ -149,7 +169,7 @@ class MerkleTree {
 }
 
 /**
- * The {@link BaseMerkleWitness} class defines a circuit-compatible base class for [Merkle Witness'](https://computersciencewiki.org/index.php/Merkle_proof).
+ * The {@link BaseMerkleWitness} class defines a circuit-compatible base class for [Merkle Witness](https://computersciencewiki.org/index.php/Merkle_proof).
  */
 class BaseMerkleWitness extends CircuitValue {
   static height: number;
@@ -187,7 +207,7 @@ class BaseMerkleWitness extends CircuitValue {
 
     for (let i = 1; i < n; ++i) {
       let isLeft = this.isLeft[i - 1];
-      const [left, right] = maybeSwap(isLeft, hash, this.path[i - 1]);
+      const [left, right] = conditionalSwap(isLeft, hash, this.path[i - 1]);
       hash = Poseidon.hash([left, right]);
     }
 
@@ -226,8 +246,9 @@ function MerkleWitness(height: number): typeof BaseMerkleWitness {
   return MerkleWitness_;
 }
 
+// swap two values if the boolean is false, otherwise keep them as they are
 // more efficient than 2x `Provable.if()` by reusing an intermediate variable
-function maybeSwap(b: Bool, x: Field, y: Field): [Field, Field] {
+function conditionalSwap(b: Bool, x: Field, y: Field): [Field, Field] {
   let m = b.toField().mul(x.sub(y)); // b*(x - y)
   const x_ = y.add(m); // y + b*(x - y)
   const y_ = x.sub(m); // x - b*(x - y) = x + b*(y - x)

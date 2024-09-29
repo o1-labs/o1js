@@ -28,10 +28,10 @@ class PayoutOnlyOnce extends SmartContract {
     );
 
     // we compute the current root and make sure the entry is set to 0 (= unused)
-    nullifier.assertUnused(nullifierWitness, nullifierRoot);
+    nullifier.assertUnusedV2(nullifierWitness, nullifierRoot);
 
     // we set the nullifier to 1 (= used) and calculate the new root
-    let newRoot = nullifier.setUsed(nullifierWitness);
+    let newRoot = nullifier.setUsedV2(nullifierWitness);
 
     // we update the on-chain root
     this.nullifierRoot.set(newRoot);

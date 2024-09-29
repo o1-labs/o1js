@@ -460,9 +460,8 @@ class Client {
    * @param privateKey The private key used to sign the transaction
    * @returns A string with the resulting payload for /construction/combine.
    */
-  rosettaCombinePayload(signingPayload: string, privateKey: Json.PrivateKey) {
-    let parsedPayload = JSON.parse(signingPayload);
-    return JSON.stringify(Rosetta.rosettaCombinePayload(parsedPayload, privateKey, this.network));
+  rosettaCombinePayload(signingPayload: Rosetta.UnsignedPayload, privateKey: Json.PrivateKey) {
+    return Rosetta.rosettaCombinePayload(signingPayload, privateKey, this.network);
   }
 
   /**

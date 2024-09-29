@@ -13,19 +13,21 @@ import { DeployArgs, SmartContract } from '../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import { tokenMethods } from './token-methods.js';
 
-export { TokenContract };
-
-// it's fine to have this restriction, because the protocol also has a limit of ~20
-// TODO find out precise protocol limit
-const MAX_ACCOUNT_UPDATES = 20;
+export { TokenContract, TokenContractV2 };
 
 /**
+ * @deprecated Use {@link TokenContractV2} instead, which has the right max account update limit.
+ *
  * Base token contract which
  * - implements the `Approvable` API, with the `approveBase()` method left to be defined by subclasses
  * - implements the `Transferable` API as a wrapper around the `Approvable` API
  */
 abstract class TokenContract extends SmartContract {
   // change default permissions - important that token contracts use an access permission
+
+  /** The maximum number of account updates using the token in a single
+   * transaction that this contract supports. */
+  static MAX_ACCOUNT_UPDATES = 20;
 
   /**
    * Deploys a {@link TokenContract}.
@@ -96,8 +98,12 @@ abstract class TokenContract extends SmartContract {
       this.deriveTokenId()
     );
 
-    // iterate through the forest and apply user-defined logc
-    for (let i = 0; i < MAX_ACCOUNT_UPDATES; i++) {
+    // iterate through the forest and apply user-defined logic
+    for (
+      let i = 0;
+      i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES;
+      i++
+    ) {
       let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
@@ -105,7 +111,9 @@ abstract class TokenContract extends SmartContract {
     // prove that we checked all updates
     iterator.assertFinished(
       `Number of account updates to approve exceed ` +
-        `the supported limit of ${MAX_ACCOUNT_UPDATES}.\n`
+        `the supported limit of ${
+          (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES
+        }.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
@@ -162,12 +170,12 @@ abstract class TokenContract extends SmartContract {
     // coerce the inputs to AccountUpdate and pass to `approveBase()`
     let tokenId = this.deriveTokenId();
     if (from instanceof PublicKey) {
-      from = AccountUpdate.defaultAccountUpdate(from, tokenId);
+      from = AccountUpdate.default(from, tokenId);
       from.requireSignature();
       from.label = `${this.constructor.name}.transfer() (from)`;
     }
     if (to instanceof PublicKey) {
-      to = AccountUpdate.defaultAccountUpdate(to, tokenId);
+      to = AccountUpdate.default(to, tokenId);
       to.label = `${this.constructor.name}.transfer() (to)`;
     }
 
@@ -179,11 +187,20 @@ abstract class TokenContract extends SmartContract {
   }
 }
 
+/** Version of `TokenContract` with the precise number of `MAX_ACCOUNT_UPDATES`
+ *
+ * The value of 20 in `TokenContract` was a rough upper limit, the precise upper
+ * bound is 9.
+ */
+abstract class TokenContractV2 extends TokenContract {
+  static MAX_ACCOUNT_UPDATES = 9;
+}
+
 function toForest(
   updates: (AccountUpdate | AccountUpdateTree)[]
 ): AccountUpdateForest {
   let trees = updates.map((a) =>
     a instanceof AccountUpdate ? a.extractTree() : a
   );
-  return AccountUpdateForest.from(trees);
+  return AccountUpdateForest.fromReverse(trees);
 }

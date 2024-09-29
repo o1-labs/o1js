@@ -386,7 +386,7 @@ class Field {
    * ```ts
    * const someField = Field(42);
    * const inverse = someField.inv();
-   * inverse.assertEquals(Field(1).div(example)); // This statement is always true regardless of the value of `someField`
+   * inverse.assertEquals(Field(1).div(someField)); // This statement is always true regardless of the value of `someField`
    * ```
    *
    * **Warning**: This is a modular inverse. See {@link div} method for more details.
@@ -654,7 +654,7 @@ class Field {
    * Assert that this {@link Field} is less than another "field-like" value.
    *
    * Note: This uses fewer constraints than `x.lessThan(y).assertTrue()`.
-   * See {@link Field.lessThan} for more details.
+   * See {@link lessThan} for more details.
    *
    * **Important**: If an assertion fails, the code throws an error.
    *

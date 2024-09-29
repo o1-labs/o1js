@@ -6,7 +6,6 @@ import {
   method,
   DeployArgs,
   Permissions,
-  TransactionVersion,
 } from 'o1js';
 
 export class DummyContract extends SmartContract {
@@ -19,10 +18,6 @@ export class DummyContract extends SmartContract {
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       setPermissions: Permissions.proofOrSignature(),
-      setVerificationKey: {
-        auth: Permissions.signature(),
-        txnVersion: TransactionVersion.current(),
-      },
       incrementNonce: Permissions.proofOrSignature(),
     });
     this.sum.set(Field(0));
