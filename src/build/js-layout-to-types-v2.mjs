@@ -8,12 +8,15 @@ import prettierRc from '../../.prettierrc.cjs';
 const leafTypes = new Set([
   'number',
   'string',
+  'Actions',
   'AuthRequired',
   'Bool',
+  'Events',
   'Field',
   'Int64',
   'PublicKey',
   'Sign',
+  'StateHash',
   'TokenId',
   'TokenSymbol',
   'UInt32',
@@ -35,7 +38,7 @@ function capitalize(str) {
 }
 
 function layoutNodeIsLeaf(node) {
-  return leafTypes.has(node.type) || (node.type === 'object' && leafTypes.has(node.name));
+  return leafTypes.has(node.type) || ('name' in node && leafTypes.has(node.name));
 }
 
 // we have special cases for handling ranges
@@ -84,7 +87,7 @@ function catalogTypes(layout) {
     } else if('checkedType' in node) {
       // hack
       let checkedType = node.checkedType;
-      if(checkedType.type === 'object') checkedType = {...checkedType, name: node.checkedTypeName};
+      if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
       forEachLayoutNode(checkedType, catalog);
     }
   }
@@ -102,7 +105,7 @@ function analyzeTypeDependencies(layout) {
     if('checkedType' in node) {
       // hack
       let checkedType = node.checkedType;
-      if(checkedType.type === 'object') checkedType = {...checkedType, name: node.checkedTypeName};
+      if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
       return castDep(checkedType);
     } else {
       switch(node.type) {
@@ -137,7 +140,7 @@ function analyzeTypeDependencies(layout) {
     } else if('checkedType' in node) {
       // hack
       let checkedType = node.checkedType;
-      if(checkedType.type === 'object') checkedType = {...checkedType, name: node.checkedTypeName};
+      if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
       castDep(checkedType);
       forEachLayoutNode(checkedType, addDeps);
     }
@@ -180,9 +183,12 @@ function renderObjectLiteral(entries) {
 
 function renderJsType(node) {
   if('checkedType' in node) {
-    return renderJsType(node.checkedType);
+    // hack
+    let checkedType = node.checkedType;
+    if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
+    return renderJsType(checkedType);
   } else if(layoutNodeIsLeaf(node)) {
-    return node.type === 'object' ? node.name : node.type;
+    return 'name' in node && leafTypes.has(node.name) ? node.name : node.type;
   } else {
     switch(node.type) {
       case 'object':
@@ -213,13 +219,12 @@ function renderJsType(node) {
 
 function renderLayoutType(node) {
   if('checkedType' in node) {
-    if(node.checkedType.type === 'object') {
-      return renderLayoutType({...node.checkedType, name: node.checkedTypeName});
-    } else {
-      return renderLayoutType(node.checkedType)
-    }
+    // hack
+    let checkedType = node.checkedType;
+    if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
+    return renderLayoutType(checkedType)
   } else if(layoutNodeIsLeaf(node)) {
-    const name = node.type === 'object' ? node.name : node.type;
+    const name = 'name' in node && leafTypes.has(node.name) ? node.name : node.type;
     return `new BindingsType.Leaf.${capitalize(name)}`;
   } else {
     switch(node.type) {
@@ -288,13 +293,16 @@ let out = '';
 out += "import { BindingsType } from '../v2/type.js';\n";
 out += `\
   \ import {
+  \   Actions,
   \   AuthRequired,
   \   Bool,
+  \   Events,
   \   Field,
   \   Option,
   \   PublicKey,
   \   Range,
   \   Sign,
+  \   StateHash,
   \   TokenId,
   \   TokenSymbol,
   \   UInt32,

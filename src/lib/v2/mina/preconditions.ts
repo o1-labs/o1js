@@ -1,26 +1,28 @@
-import { MAX_ZKAPP_STATE_FIELDS, Constraint, Empty, GenericStateConstraints, MinaAmount, State } from './core.js';
-import { Bool } from '../../provable/bool.js'
-import { Field } from '../../provable/field.js'
-import { UInt32, UInt64 } from '../../provable/int.js'
-import { PublicKey } from '../../provable/crypto/signature.js'
+import { MAX_ZKAPP_STATE_FIELDS, Constraint, MinaAmount } from './core.js';
+import { GenericStateConstraints, StateConstraints, StateDefinition, StateLayout } from './state.js';
+import { Bool } from '../../provable/bool.js';
+import { Field } from '../../provable/field.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { HashInput } from '../../provable/types/provable-derivers.js';
 // TODO: pull last remanants of old transaction leavs into v2 bindings
 import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/js-layout-v2.js';
 
-export type PreconditionsDescription<SC extends State.Constraints> = {
-	network?: Preconditions.Network | Preconditions.NetworkDescription,
-	account?: Preconditions.Account<SC> | Preconditions.AccountDescription<SC>,
+export type PreconditionsDescription<State extends StateLayout> = {
+	network?: Preconditions.NetworkDescription | Preconditions.Network,
+	account?: Preconditions.Account<State> | Preconditions.AccountDescription<State>,
 	validWhile?: UInt32 | Constraint.InRange<UInt32>
 }
 
-export class Preconditions<SC extends State.Constraints> {
+export class Preconditions<State extends StateLayout = 'GenericState'> {
 	readonly network: Preconditions.Network;
-	readonly account: Preconditions.Account<SC>;
+	readonly account: Preconditions.Account<State>;
 	readonly validWhile: Constraint.InRange<UInt32>;
 
-  constructor(StateConstraint: Empty<SC>, descr?: PreconditionsDescription<SC>) {
+  constructor(State: StateDefinition<State>, descr?: PreconditionsDescription<State>) {
     this.network = Preconditions.Network.from(descr?.network);
-    this.account = Preconditions.Account.from(StateConstraint, descr?.account);
+    this.account = Preconditions.Account.from(State, descr?.account);
     this.validWhile = Constraint.InRange.from(descr?.validWhile, {
       lower: UInt32.empty(),
       upper: UInt32.MAXINT()
@@ -35,8 +37,8 @@ export class Preconditions<SC extends State.Constraints> {
     }
   }
 
-  static fromInternalRepr(x: BindingsLayout.Preconditions): Preconditions<GenericStateConstraints> {
-    return new Preconditions(GenericStateConstraints, {
+  static fromInternalRepr(x: BindingsLayout.Preconditions): Preconditions {
+    return new Preconditions('GenericState', {
       network: Preconditions.Network.fromInternalRepr(x.network),
       account: Preconditions.Account.fromInternalRepr(x.account),
       validWhile: Constraint.InRange.fromOption(x.validWhile),
@@ -47,6 +49,10 @@ export class Preconditions<SC extends State.Constraints> {
     return Preconditions.toJSON(this);
   }
 
+  toInput(): HashInput {
+    return Preconditions.toInput(this);
+  }
+
   toFields(): Field[] {
     return Preconditions.toFields(this);
   }
@@ -55,49 +61,53 @@ export class Preconditions<SC extends State.Constraints> {
     return BindingsLayout.Preconditions.sizeInFields();
   }
 
-  static emptyPoly<SC extends State.Constraints>(StateConstraints: Empty<SC>): Preconditions<SC> {
-    return new Preconditions(StateConstraints);
+  static emptyPoly<State extends StateLayout>(State: StateDefinition<State>): Preconditions<State> {
+    return new Preconditions(State);
   }
 
-  static empty(): Preconditions<GenericStateConstraints> {
-    return new Preconditions(GenericStateConstraints);
+  static empty(): Preconditions {
+    return new Preconditions('GenericState');
   }
 
-  static check<SC extends State.Constraints>(_x: Preconditions<SC>) {
+  static check<State extends StateLayout>(_x: Preconditions<State>) {
     throw new Error('TODO');
   }
 
-  static toJSON<SC extends State.Constraints>(x: Preconditions<SC>): any {
+  static toJSON<State extends StateLayout>(x: Preconditions<State>): any {
     return BindingsLayout.Preconditions.toJSON(x.toInternalRepr());
   }
 
-  static toFields<SC extends State.Constraints>(x: Preconditions<SC>): Field[] {
+  static toInput<State extends StateLayout>(x: Preconditions<State>): HashInput {
+    return BindingsLayout.Preconditions.toInput(x.toInternalRepr());
+  }
+
+  static toFields<State extends StateLayout>(x: Preconditions<State>): Field[] {
     return BindingsLayout.Preconditions.toFields(x.toInternalRepr());
   }
 
-  static fromFields(fields: Field[], aux: any[]): Preconditions<GenericStateConstraints> {
+  static fromFields(fields: Field[], aux: any[]): Preconditions {
     return Preconditions.fromInternalRepr(BindingsLayout.Preconditions.fromFields(fields, aux));
   }
 
-  static toAuxiliary<SC extends State.Constraints>(x?: Preconditions<SC>): any[] {
+  static toAuxiliary<State extends StateLayout>(x?: Preconditions<State>): any[] {
     return BindingsLayout.Preconditions.toAuxiliary(x?.toInternalRepr());
   }
 
-  static toValue<SC extends State.Constraints>(x: Preconditions<SC>): Preconditions<SC> {
+  static toValue<State extends StateLayout>(x: Preconditions<State>): Preconditions<State> {
     return x;
   }
 
-  static fromValue<SC extends State.Constraints>(x: Preconditions<SC>): Preconditions<SC> {
+  static fromValue<State extends StateLayout>(x: Preconditions<State>): Preconditions<State> {
     return x;
   }
 
-  static from<SC extends State.Constraints>(StateConstraint: Empty<SC>, value: Preconditions<SC> | PreconditionsDescription<SC> | undefined): Preconditions<SC> {
+  static from<State extends StateLayout>(State: StateDefinition<State>, value: Preconditions<State> | PreconditionsDescription<State> | undefined): Preconditions<State> {
     if(value instanceof Preconditions) {
       return value;
     } else if(value === undefined) {
-      return Preconditions.emptyPoly(StateConstraint);
+      return Preconditions.emptyPoly(State);
     } else {
-      return new Preconditions(StateConstraint, value);
+      return new Preconditions(State, value);
     }
   }
 }
@@ -138,6 +148,10 @@ export namespace Preconditions {
       return EpochLedger.toJSON(this);
     }
 
+    toInput(): HashInput {
+      return EpochLedger.toInput(this);
+    }
+
     toFields(): Field[] {
       return EpochLedger.toFields(this);
     }
@@ -156,6 +170,10 @@ export namespace Preconditions {
 
     static toJSON(x: EpochLedger): any {
       return BindingsLayout.EpochLedgerPrecondition.toJSON(x.toInternalRepr());
+    }
+
+    static toInput(x: EpochLedger): HashInput {
+      return BindingsLayout.EpochLedgerPrecondition.toInput(x.toInternalRepr());
     }
 
     static toFields(x: EpochLedger): Field[] {
@@ -239,6 +257,10 @@ export namespace Preconditions {
       return EpochData.toJSON(this);
     }
 
+    toInput(): HashInput {
+      return EpochData.toInput(this);
+    }
+
     toFields(): Field[] {
       return EpochData.toFields(this);
     }
@@ -257,6 +279,10 @@ export namespace Preconditions {
 
     static toJSON(x: EpochData): any {
       return BindingsLayout.EpochDataPrecondition.toJSON(x.toInternalRepr());
+    }
+
+    static toInput(x: EpochData): HashInput {
+      return BindingsLayout.EpochDataPrecondition.toInput(x.toInternalRepr());
     }
 
     static toFields(x: EpochData): Field[] {
@@ -299,6 +325,81 @@ export namespace Preconditions {
     stakingEpochData?: EpochData | EpochDataDescription,
     nextEpochData?: EpochData | EpochDataDescription,
   };
+
+  /*
+  export class Network extends deriveProvableUnderConversion(
+    BindingsLayout.NetworkPrecondition,
+    class NetworkBase {
+      readonly snarkedLedgerHash: Constraint.Equals<Field>;
+      readonly blockchainLength: Constraint.InRange<UInt32>;
+      readonly minWindowDensity: Constraint.InRange<UInt32>;
+      readonly totalCurrency: Constraint.InRange<MinaAmount>;
+      readonly globalSlotSinceGenesis: Constraint.InRange<UInt32>;
+      readonly stakingEpochData: EpochData;
+      readonly nextEpochData: EpochData;
+
+      constructor(descr?: NetworkDescription) {
+        this.snarkedLedgerHash = Constraint.Equals.from(descr?.snarkedLedgerHash, Field.empty());
+        this.blockchainLength = Constraint.InRange.from(descr?.blockchainLength, {
+          lower: UInt32.empty(),
+          upper: UInt32.MAXINT()
+        });
+        this.minWindowDensity = Constraint.InRange.from(descr?.minWindowDensity, {
+          lower: UInt32.empty(),
+          upper: UInt32.MAXINT()
+        });
+        this.totalCurrency = Constraint.InRange.from(descr?.totalCurrency, {
+          lower: UInt64.empty(),
+          upper: UInt64.MAXINT()
+        });
+        this.globalSlotSinceGenesis = Constraint.InRange.from(descr?.globalSlotSinceGenesis, {
+          lower: UInt32.empty(),
+          upper: UInt32.MAXINT(),
+        });
+        this.stakingEpochData = EpochData.from(descr?.stakingEpochData);
+        this.nextEpochData = EpochData.from(descr?.nextEpochData);
+      }
+
+      static toProvableRepr(x: NetworkBase): BindingsLayout.NetworkPrecondition {
+        return {
+          snarkedLedgerHash: x.snarkedLedgerHash.toOption(),
+          blockchainLength: x.blockchainLength.toOption(),
+          minWindowDensity: x.minWindowDensity.toOption(),
+          totalCurrency: x.totalCurrency.toOption(),
+          globalSlotSinceGenesis: x.globalSlotSinceGenesis.toOption(),
+          stakingEpochData: x.stakingEpochData.toInternalRepr(),
+          nextEpochData: x.nextEpochData.toInternalRepr(),
+        }
+      }
+
+      static fromProvableRepr(x: BindingsLayout.NetworkPrecondition): NetworkBase {
+        return new NetworkBase({
+          snarkedLedgerHash: Constraint.Equals.fromOption(x.snarkedLedgerHash),
+          blockchainLength: Constraint.InRange.fromOption(x.blockchainLength),
+          minWindowDensity: Constraint.InRange.fromOption(x.minWindowDensity),
+          totalCurrency: Constraint.InRange.fromOption(x.totalCurrency),
+          globalSlotSinceGenesis: Constraint.InRange.fromOption(x.globalSlotSinceGenesis),
+          stakingEpochData: EpochData.fromInternalRepr(x.stakingEpochData),
+          nextEpochData: EpochData.fromInternalRepr(x.nextEpochData),
+        });
+      }
+    }
+  ) {
+    static empty(): Network {
+      return new Network();
+    }
+
+    static from(value: Network | NetworkDescription | undefined): Network {
+      if(value instanceof Network) {
+        return value;
+      } else if(value === undefined) {
+        return Network.empty();
+      } else {
+        return new Network(value);
+      }
+    }
+  }
+  */
 
   export class Network {
     readonly snarkedLedgerHash: Constraint.Equals<Field>;
@@ -355,9 +456,18 @@ export namespace Preconditions {
       });
     }
 
+    static empty(): Network {
+      return new Network();
+    }
+
     toJSON(): any {
       return Network.toJSON(this);
     }
+
+    toInput(): HashInput {
+      return Network.toInput(this);
+    }
+
 
     toFields(): Field[] {
       return Network.toFields(this);
@@ -367,16 +477,16 @@ export namespace Preconditions {
       return BindingsLayout.NetworkPrecondition.sizeInFields();
     }
 
-    static empty(): Network {
-      return new Network();
-    }
-
     static check(_x: Network) {
       throw new Error('TODO');
     }
 
     static toJSON(x: Network): any {
       return BindingsLayout.NetworkPrecondition.toJSON(x.toInternalRepr());
+    }
+
+    static toInput(x: Network): HashInput {
+      return BindingsLayout.NetworkPrecondition.toInput(x.toInternalRepr());
     }
 
     static toFields(x: Network): Field[] {
@@ -410,29 +520,32 @@ export namespace Preconditions {
     }
   }
 
-  export type AccountDescription<SC extends State.Constraints> = {
+  export type AccountDescription<State extends StateLayout> = {
 		balance?: MinaAmount | Constraint.InRange<MinaAmount>,
 		nonce?: UInt32 | Constraint.InRange<UInt32>,
 		receiptChainHash?: Field | Constraint.Equals<Field>,
 		delegate?: PublicKey | Constraint.Equals<PublicKey>,
-		state?: SC,
+		state?: StateConstraints<State>,
 		actionState?: Field | Constraint.Equals<Field>,
     // NB: renamed from the protocol's type name of `provenState`
 		isProven?: Bool | Constraint.Equals<Bool>,
 		isNew?: Bool | Constraint.Equals<Bool>
   };
 
-  export class Account<SC extends State.Constraints> {
+  export class Account<State extends StateLayout = 'GenericState'> {
+    // TODO: should these really be read-only?
+    readonly State: StateDefinition<State>;
 		readonly balance: Constraint.InRange<MinaAmount>;
 		readonly nonce: Constraint.InRange<UInt32>;
 		readonly receiptChainHash: Constraint.Equals<Field>;
 		readonly delegate: Constraint.Equals<PublicKey>;
-		readonly state: SC;
+		readonly state: StateConstraints<State>;
 		readonly actionState: Constraint.Equals<Field>;
 		readonly isProven: Constraint.Equals<Bool>;
 		readonly isNew: Constraint.Equals<Bool>;
 
-    constructor(StateConstraint: Empty<SC>, descr?: AccountDescription<SC>) {
+    constructor(State: StateDefinition<State>, descr?: AccountDescription<State>) {
+      this.State = State;
       this.balance = Constraint.InRange.from(descr?.balance, {
         lower: UInt64.empty(),
         upper: UInt64.MAXINT()
@@ -443,15 +556,18 @@ export namespace Preconditions {
       });
       this.receiptChainHash = Constraint.Equals.from(descr?.receiptChainHash, Field.empty());
       this.delegate = Constraint.Equals.from(descr?.delegate, PublicKey.empty());
-      this.state = descr?.state ?? StateConstraint.empty();
+      this.state = descr?.state ?? StateConstraints.empty(State);
       this.actionState = Constraint.Equals.from(descr?.actionState, Actions.emptyActionState());
       this.isProven = Constraint.Equals.from(descr?.isProven, Bool.empty());
       this.isNew = Constraint.Equals.from(descr?.isNew, Bool.empty());
     }
 
     toInternalRepr(): BindingsLayout.AccountPrecondition {
-      const stateConstraints = this.state.toFieldConstraints();
+      // const stateConstraints = this.state instanceof GenericStateConstraints ? this.state.constraints : ;
+      const stateConstraints = StateConstraints.toFieldConstraints(this.State, this.state);
+
       if(stateConstraints.length !== MAX_ZKAPP_STATE_FIELDS) {
+        console.log(`length = ${stateConstraints.length}, stateConstraints = ${JSON.stringify(stateConstraints)}`);
         throw new Error('invalid number of zkapp state field constraints');
       }
 
@@ -467,8 +583,8 @@ export namespace Preconditions {
       };
     }
 
-    static fromInternalRepr(x: BindingsLayout.AccountPrecondition): Account<GenericStateConstraints> {
-      return new Account(GenericStateConstraints, {
+    static fromInternalRepr(x: BindingsLayout.AccountPrecondition): Account {
+      return new Account<'GenericState'>('GenericState', {
         balance: Constraint.InRange.fromOption(x.balance),
         nonce: Constraint.InRange.fromOption(x.nonce),
         receiptChainHash: Constraint.Equals.fromOption(x.receiptChainHash),
@@ -484,6 +600,10 @@ export namespace Preconditions {
       return Account.toJSON(this);
     }
 
+    toInput(): HashInput {
+      return Account.toInput(this);
+    }
+
     toFields(): Field[] {
       return Account.toFields(this);
     }
@@ -492,52 +612,56 @@ export namespace Preconditions {
       return BindingsLayout.AccountPrecondition.sizeInFields();
     }
 
-    static emptyPoly<SC extends State.Constraints>(StateConstraint: Empty<SC>): Account<SC> {
-      return new Account(StateConstraint);
+    static emptyPoly<State extends StateLayout>(State: StateDefinition<State>): Account<State> {
+      return new Account(State);
     }
 
-    static empty(): Account<GenericStateConstraints> {
-      return this.emptyPoly(GenericStateConstraints);
+    static empty(): Account {
+      return this.emptyPoly('GenericState');
     }
 
-    static check<SC extends State.Constraints>(_x: Account<SC>) {
+    static check<State extends StateLayout>(_x: Account<State>) {
       throw new Error('TODO');
     }
 
-    static toJSON<SC extends State.Constraints>(x: Account<SC>): any {
+    static toJSON<State extends StateLayout>(x: Account<State>): any {
       return BindingsLayout.AccountPrecondition.toJSON(x.toInternalRepr());
     }
 
-    static toFields<SC extends State.Constraints>(x: Account<SC>): Field[] {
+    static toInput<State extends StateLayout>(x: Account<State>): HashInput {
+      return BindingsLayout.AccountPrecondition.toInput(x.toInternalRepr());
+    }
+
+    static toFields<State extends StateLayout>(x: Account<State>): Field[] {
       return BindingsLayout.AccountPrecondition.toFields(x.toInternalRepr());
     }
 
-    static fromFields(fields: Field[], aux: any[]): Account<GenericStateConstraints> {
+    static fromFields(fields: Field[], aux: any[]): Account {
       return Account.fromInternalRepr(BindingsLayout.AccountPrecondition.fromFields(fields, aux));
     }
 
-    static toAuxiliary<SC extends State.Constraints>(x?: Account<SC>): any[] {
+    static toAuxiliary<State extends StateLayout>(x?: Account<State>): any[] {
       return BindingsLayout.AccountPrecondition.toAuxiliary(x?.toInternalRepr())
     }
 
-    static toValue<SC extends State.Constraints>(x: Account<SC>): Account<SC> {
+    static toValue<State extends StateLayout>(x: Account<State>): Account<State> {
       return x;
     }
 
-    static fromValue<SC extends State.Constraints>(x: Account<SC>): Account<SC> {
+    static fromValue<State extends StateLayout>(x: Account<State>): Account<State> {
       return x;
     }
 
-    static from<SC extends State.Constraints>(
-      StateConstraint: Empty<SC>,
-      value: Account<SC> | AccountDescription<SC> | undefined
-    ): Account<SC> {
+    static from<State extends StateLayout>(
+      State: StateDefinition<State>,
+      value: Account<State> | AccountDescription<State> | undefined
+    ): Account<State> {
       if(value instanceof Account) {
         return value;
       } else if(value === undefined) {
-        return Account.emptyPoly(StateConstraint);
+        return Account.emptyPoly(State);
       } else {
-        return new Account(StateConstraint, value);
+        return new Account(State, value);
       }
     }
   }

@@ -73,6 +73,7 @@
     "@playwright/test": "^1.25.2",
     "@types/isomorphic-fetch": "^0.0.36",
     "@types/jest": "^27.0.0",
+    "@types/libsodium-wrappers-sumo": "^0.7.8",
     "@types/node": "^18.14.2",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "esbuild": "^0.19.2",
@@ -98,6 +99,7 @@
     "cachedir": "^2.4.0",
     "isomorphic-fetch": "^3.0.0",
     "js-sha256": "^0.9.0",
+    "libsodium-wrappers-sumo": "^0.7.15",
     "reflect-metadata": "^0.1.13",
     "tslib": "^2.3.0"
   }

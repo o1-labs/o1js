@@ -10,9 +10,9 @@ import { PrivateInput, Tuple, TupleToInstances, VerificationKey, ZkProgram } fro
 
 // TODO: ZkContract
 
-// TODO: Expirmental.{ZkPromise, HistoricalPreconditions}
+// TODO: Experimental.{ZkPromise, HistoricalPreconditions}
 
-// temprorary rename
+// temporary rename
 export const ZkCircuit = ZkProgram;
 
 export type ProvableInstance<P> = P extends Provable<infer T> ? T : never;

@@ -1,19 +1,18 @@
-import { Bool } from '../../provable/bool.js'
-import { Field } from '../../provable/field.js'
-import { UInt32, UInt64 } from '../../provable/int.js'
+import { Bool } from '../../provable/bool.js';
+import { Field } from '../../provable/field.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
 import { Field as WrappedField } from '../../provable/wrapped.js';
 import { emptyHashWithPrefix, hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
-import { PublicKey } from '../../provable/crypto/signature.js'
-import { Provable } from '../../provable/types/provable-intf.js'
-import { toBase58Check } from '../../util/base58.js'
-import { prefixes, protocolVersions, versionBytes } from '../../../bindings/crypto/constants.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { Provable } from '../../provable/types/provable-intf.js';
+import { prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { Types } from '../../../bindings/mina-transaction/types.js';
 import { bytesToBits, prefixToField, stringLengthInBytes, stringToBytes } from '../../../bindings/lib/binable.js';
 import { GenericHashInput } from '../../../bindings/lib/generic.js';
 
-export type Option<T> = Bindings.Leaves.Option<T>;
-export type Range<T> = Bindings.Leaves.Range<T>;
+export import Option = Bindings.Leaves.Option;
+export import Range = Bindings.Leaves.Range;
 
 export const MAX_ZKAPP_STATE_FIELDS = 8;
 
@@ -32,7 +31,13 @@ export interface ToFields {
   toFields(): Field[];
 }
 
+export type Tuple<T> = [T, ...T[]] | [];
+
+export type ProvableTuple = Tuple<Provable<any>>;
+
 export type ProvableInstance<P> = P extends Provable<infer T> ? T : never;
+
+export type ProvableTupleInstances<T extends ProvableTuple> = {[I in keyof T]: ProvableInstance<T[I]>};
 
 export type Constructor<T> = new (...args: any[]) => T;
 
@@ -41,34 +46,49 @@ export interface Empty<T> {
   empty: () => T;
 }
 
-// TODO NOW: create an abstraction layer like this to improve type definitions
-// export function ProvableViaConversion<T, Repr>(Repr: Provable<Repr>) {
-//   abstract class ProvableViaConversion implements Provable<T> {
-//     abstract static provableRepr: Provable<Repr>;
-//     abstract toProvableRepr(): Repr;
-//     abstract static fromProvableRepr(repr: Repr): T;
-//   }
-// 
-//   return ProvableViaConversion;
-// }
+// TODO: Using this pattern, we can remove a lot of the boilerplate from type definitions which
+//       wrap `BindingsType`s. However, this comes at the cost of making the code less direct,
+//       and thus harder to document. I'm leaving this here for now in case we decide it's more
+//       important for the code to be ergonomic for core developers.
+/*
+export function deriveProvableUnderConversion<T extends Object, Repr>(
+  Repr: Provable<Repr>,
+  BaseClass: (new (...args: any[]) => T) & {
+    toProvableRepr(x: T): Repr;
+    fromProvableRepr(x: Repr): T;
+  }
+) {
+  return class extends BaseClass {
+    static sizeInFields(): number {
+      return Repr.sizeInFields();
+    }
 
-// TODO: maybe this definition should just live at the bindings leaves level?
-export const Option = {
-  map<A, B>(option: Option<A>, f: (value: A) => B): Option<B> {
-    return {
-      isSome: option.isSome,
-      value: f(option.value)
-    };
-  },
+    static toFields(x: T): Field[] {
+      return Repr.toFields(BaseClass.toProvableRepr(x))
+    }
 
-  none<T>(defaultValue: T): Option<T> {
-    return {isSome: new Bool(false), value: defaultValue};
-  },
+    static toAuxiliary(x?: T): any[] {
+      return Repr.toAuxiliary(x !== undefined ? BaseClass.toProvableRepr(x) : undefined);
+    }
 
-  some<T>(value: T): Option<T> {
-    return {isSome: new Bool(true), value};
+    static fromFields(fields: Field[], aux: any[]): T {
+      return BaseClass.fromProvableRepr(Repr.fromFields(fields, aux));
+    }
+
+    static toValue(x: T): T {
+      return x;
+    }
+
+    static fromValue(x: T): T {
+      return x;
+    }
+
+    static check(_x: T) {
+      throw new Error('TODO');
+    }
   }
 }
+*/
 
 // TODO
 export class TokenId {
@@ -76,19 +96,6 @@ export class TokenId {
   constructor(
     public value: Field
   ) {}
-
-  toField(): Field {
-    return this.value;
-  }
-
-  toJSON(): string {
-    return this.toBase58();
-  }
-
-  // TODO: we may not need this, we can just rely on the bindings layer to do this for us
-  toBase58(): string {
-    return toBase58Check(Field.toBytes(this.value), versionBytes.tokenIdKey);
-  }
 
   static MINA: TokenId = new TokenId(new Field(1));
 }
@@ -104,6 +111,37 @@ export class AccountId {
       PublicKey.empty(),
       TokenId.MINA
     );
+  }
+
+  static sizeInFields(): number {
+    return PublicKey.sizeInFields() + Field.sizeInFields();
+  }
+
+  static toFields(x: AccountId): Field[] {
+    return [...PublicKey.toFields(x.publicKey), x.tokenId.value];
+  }
+
+  static toAuxiliary(_x?: AccountId): any[] {
+    return [];
+  }
+
+  static fromFields(fields: Field[], _aux: any[]): AccountId {
+    return new AccountId(
+      PublicKey.fromFields(fields.slice(0, PublicKey.sizeInFields())),
+      new TokenId(fields[PublicKey.sizeInFields()])
+    );
+  }
+
+  static toValue(x: AccountId): AccountId {
+    return x;
+  }
+
+  static fromValue(x: AccountId): AccountId {
+    return x;
+  }
+
+  static check(_x: AccountId) {
+    // TODO NOW
   }
 }
 
@@ -185,6 +223,7 @@ export class ZkappUri {
   }
 }
 
+// TODO NOW -- figure out a better way to combine this and the bindings leaves version
 export class TokenSymbol {
   readonly symbol: string;
   readonly field: Field;
@@ -217,6 +256,7 @@ export class TokenSymbol {
   }
 }
 
+/*
 // TODO: should we change this in the protocol to be range constraints?
 export class GenericStateConstraints implements State.Constraints {
   constructor(
@@ -274,10 +314,13 @@ export class GenericStateUpdates implements State.Updates {
   }
 }
 
-export const GenericState: State.Definition<GenericStateConstraints, GenericStateUpdates> = {
+export const GenericState = {
   Constraints: GenericStateConstraints,
   Updates: GenericStateUpdates,
 };
+
+GenericState satisfies State.Definition<GenericStateConstraints, GenericStateUpdates>;
+*/
 
 /*
 export class GenericEvent implements ToFields {
@@ -486,6 +529,7 @@ export namespace Constraint {
   }
 }
 
+/*
 export namespace State {
   export interface Constraints {
     toFieldConstraints(): Constraint.Equals<Field>[];
@@ -501,3 +545,4 @@ export namespace State {
     Updates: Constructor<Updates> & Empty<Updates>;
   }
 }
+*/

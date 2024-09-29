@@ -4,6 +4,7 @@ import { Provable } from '../../provable/provable.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/js-layout-v2.js';
 
 // TODO: rename some of these to make them clearer (eg editActionState, timing)
+// TODO: consider only allowing the identifiers to be specified to some special Permissions.constant function (to avoid people breaking the DSL pattern accidentally)
 export type PermissionsDescription = {
   editState: AuthorizationLevelIdentifier | AuthorizationLevel;
   access: AuthorizationLevelIdentifier | AuthorizationLevel;
@@ -11,6 +12,7 @@ export type PermissionsDescription = {
   receive: AuthorizationLevelIdentifier | AuthorizationLevel;
   setDelegate: AuthorizationLevelIdentifier | AuthorizationLevel;
   setPermissions: AuthorizationLevelIdentifier | AuthorizationLevel;
+  // IMPORTANT TODO: we should be using special auth level identifiers here
   setVerificationKey: AuthorizationLevelIdentifier | AuthorizationLevel | VerificationKeyAuthorizationLevel;
   setZkappUri: AuthorizationLevelIdentifier | AuthorizationLevel;
   editActionState: AuthorizationLevelIdentifier | AuthorizationLevel;
@@ -201,6 +203,10 @@ export class Permissions {
       setTiming: new AuthorizationLevel(x.setTiming),
       access: new AuthorizationLevel(x.access)
     });
+  }
+
+  static from(x: PermissionsDescription | Permissions): Permissions {
+    return x instanceof Permissions ? x : new Permissions(x);
   }
 }
 

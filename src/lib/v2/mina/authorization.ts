@@ -1,10 +1,14 @@
 import { CURRENT_TRANSACTION_VERSION } from './core.js';
+import { Pickles } from '../../../snarky.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt32 } from '../../provable/int.js';
-import * as BindingsLeaves from '../../../bindings/mina-transaction/v2/leaves.js';
+import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
+import { HashInput } from '../../provable/types/provable-derivers.js';
+import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
+import { NetworkId } from '../../../mina-signer/src/types.js';
 
-export type AuthorizationLevelIdentifier = BindingsLeaves.AuthRequiredIdentifier;
+export type AuthorizationLevelIdentifier = Bindings.Leaves.AuthRequiredIdentifier;
 
 export class AuthorizationLevel {
   // TODO: it would be nice if these could be private, but then the subtyping doesn't work... maybe we can do a trick here with object splats?
@@ -22,11 +26,11 @@ export class AuthorizationLevel {
     this.signatureSufficient = signatureSufficient;
   }
 
-  toInternalRepr(): BindingsLeaves.AuthRequired {
+  toInternalRepr(): Bindings.Leaves.AuthRequired {
     return this;
   }
 
-  static fromInternalRepr(x: BindingsLeaves.AuthRequired): AuthorizationLevel {
+  static fromInternalRepr(x: Bindings.Leaves.AuthRequired): AuthorizationLevel {
     return new AuthorizationLevel(x);
   }
 
@@ -34,28 +38,32 @@ export class AuthorizationLevel {
     return AuthorizationLevel.toJSON(this)
   }
 
+  toInput(): HashInput {
+    return AuthorizationLevel.toInput(this);
+  }
+
   toFields(): Field[] {
     return AuthorizationLevel.toFields(this);
   }
 
   isImpossible(): Bool {
-    return BindingsLeaves.AuthRequired.isImpossible(this);
+    return Bindings.Leaves.AuthRequired.isImpossible(this);
   }
 
   isNone(): Bool {
-    return BindingsLeaves.AuthRequired.isNone(this);
+    return Bindings.Leaves.AuthRequired.isNone(this);
   }
 
   isProof(): Bool {
-    return BindingsLeaves.AuthRequired.isProof(this);
+    return Bindings.Leaves.AuthRequired.isProof(this);
   }
 
   isSignature(): Bool {
-    return BindingsLeaves.AuthRequired.isSignature(this);
+    return Bindings.Leaves.AuthRequired.isSignature(this);
   }
 
   isProofOrSignature(): Bool {
-    return BindingsLeaves.AuthRequired.isEither(this);
+    return Bindings.Leaves.AuthRequired.isEither(this);
   }
 
   static Impossible(): AuthorizationLevel {
@@ -101,31 +109,35 @@ export class AuthorizationLevel {
   // TODO: ProofAndSignature
 
   static sizeInFields(): number {
-    return BindingsLeaves.AuthRequired.sizeInFields();
+    return Bindings.Leaves.AuthRequired.sizeInFields();
   }
 
   static empty(): AuthorizationLevel {
-    return new AuthorizationLevel(BindingsLeaves.AuthRequired.empty());
+    return new AuthorizationLevel(Bindings.Leaves.AuthRequired.empty());
   }
 
   static toJSON(x: AuthorizationLevel): any {
-    BindingsLeaves.AuthRequired.toJSON(x);
+    return Bindings.Leaves.AuthRequired.toJSON(x);
+  }
+
+  static toInput(x: AuthorizationLevel): HashInput {
+    return Bindings.Leaves.AuthRequired.toInput(x);
   }
 
   static toFields(x: AuthorizationLevel): Field[] {
-    return BindingsLeaves.AuthRequired.toFields(x);
+    return Bindings.Leaves.AuthRequired.toFields(x);
   }
 
   static toAuxiliary(x?: AuthorizationLevel): any[] {
-    return BindingsLeaves.AuthRequired.toAuxiliary(x);
+    return Bindings.Leaves.AuthRequired.toAuxiliary(x);
   }
 
   static fromFields(fields: Field[], aux: any[]): AuthorizationLevel {
-    return new AuthorizationLevel(BindingsLeaves.AuthRequired.fromFields(fields, aux));
+    return new AuthorizationLevel(Bindings.Leaves.AuthRequired.fromFields(fields, aux));
   }
 
   static check(x: AuthorizationLevel) {
-    BindingsLeaves.AuthRequired.check(x);
+    Bindings.Leaves.AuthRequired.check(x);
   }
 
   static toValue(x: AuthorizationLevel): AuthorizationLevel {
@@ -181,7 +193,7 @@ export class VerificationKeyAuthorizationLevel {
   // }
 
   static sizeInFields(): number {
-    return BindingsLeaves.AuthRequired.sizeInFields();
+    return Bindings.Leaves.AuthRequired.sizeInFields();
   }
 
   static empty(): VerificationKeyAuthorizationLevel {
@@ -234,3 +246,85 @@ export class VerificationKeyAuthorizationLevel {
   }
 }
 
+export interface AccountUpdateAuthorization {
+  proof: string | null,
+  signature: string | null,
+}
+
+export class AccountUpdateAuthorizationKind {
+  isSigned: Bool;
+  isProved: Bool;
+
+  constructor({isSigned, isProved}: {
+    isSigned: Bool,
+    isProved: Bool
+  }) {
+    this.isSigned = isSigned;
+    this.isProved = isProved;
+  }
+
+  identifier(): string {
+    if(this.isSigned) {
+      if(this.isProved) {
+        return 'SignatureAndProof';
+      } else {
+        return 'Signature';
+      }
+    } else {
+      if(this.isProved) {
+        return 'Proof';
+      } else {
+        return 'None';
+      }
+    }
+  }
+
+  static None(): AccountUpdateAuthorizationKind {
+    return new AccountUpdateAuthorizationKind({isSigned: new Bool(false), isProved: new Bool(false)});
+  }
+
+  static Signature(): AccountUpdateAuthorizationKind {
+    return new AccountUpdateAuthorizationKind({isSigned: new Bool(true), isProved: new Bool(false)});
+  }
+
+  static Proof(): AccountUpdateAuthorizationKind {
+    return new AccountUpdateAuthorizationKind({isSigned: new Bool(false), isProved: new Bool(true)});
+  }
+
+  static ProofAndSignature(): AccountUpdateAuthorizationKind {
+    return new AccountUpdateAuthorizationKind({isSigned: new Bool(true), isProved: new Bool(true)});
+  }
+}
+
+export class AccountUpdateAuthorizationKindWithZkappContext {
+  isSigned: Bool;
+  isProved: Bool;
+  verificationKeyHash: Field;
+
+  constructor(kind: AccountUpdateAuthorizationKind, verificationKeyHash: Field) {
+    this.isSigned = kind.isSigned;
+    this.isProved = kind.isProved;
+    this.verificationKeyHash = verificationKeyHash
+  }
+
+  toJSON(): any {
+    Bindings.Layout.AuthorizationKindStructured.toJSON(this);
+  }
+}
+
+export type AccountUpdateAuthorizationEnvironment = ZkappCommandAuthorizationEnvironment & {
+  proof?: Pickles.Proof;
+  accountUpdateForestCommitment: bigint; // TODO: Field;
+  fullTransactionCommitment?: bigint; // TODO: Field;
+}
+
+export interface ZkappFeePaymentAuthorizationEnvironment {
+  networkId: NetworkId;
+  privateKey: PrivateKey;
+  fullTransactionCommitment: bigint; // TODO: Field
+}
+
+export interface ZkappCommandAuthorizationEnvironment {
+  networkId: NetworkId;
+  getPrivateKey(publicKey: PublicKey): Promise<PrivateKey>;
+}
