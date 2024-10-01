@@ -33,7 +33,7 @@ import { ProvableType } from '../../provable/types/provable-intf.js';
 export { OffchainState, OffchainStateCommitments };
 
 // internal API
-export { OffchainField, OffchainMap, OffchainStateContract };
+export { OffchainField, OffchainMap };
 
 type OffchainStateInstance<
   Config extends { [key: string]: OffchainStateKind }
@@ -53,8 +53,19 @@ type OffchainStateInstance<
     [K in keyof Config]: OffchainStateIntf<Config[K]>;
   };
 
+  /**
+   * Set the contract that this offchain state instance is connected with.
+   *
+   * This tells the offchain state about the account to fetch data from and modify, and lets it handle actions and onchain state.
+   */
   setContractInstance(contractInstance: OffchainStateContract<Config>): void;
 
+  /**
+   * Set the smart contract class that this offchain state instance is connected with.
+   *
+   * This is an alternative for `setContractInstance()` which lets you compile offchain state without having a contract instance.
+   * However, you must call `setContractInstance()` before calling `createSettlementProof()`.
+   */
   setContractClass(contractClass: OffchainStateContractClass<Config>): void;
 
   /**
@@ -73,12 +84,14 @@ type OffchainStateInstance<
    * ```ts
    * class StateProof extends offchainState.Proof {}
    *
-   * // ...
+   * const offchainState = OffchainState(...);
+   *
+   * const offchainStateInstance = offchainState.init();
    *
    * class MyContract extends SmartContract {
    *   @state(OffchainStateCommitments) offchainStateCommitments = State(OffchainStateCommitments.empty());
    *
-   *   offchainState = offchainState(MyContract);
+   *   offchainState = offchainStateInstance;
    *
    *   \@method
    *   async settle(proof: StateProof) {
@@ -91,8 +104,6 @@ type OffchainStateInstance<
    * Commitments to the offchain state, to use in your onchain state.
    */
   commitments(): State<OffchainStateCommitments>;
-
-  internal: any;
 };
 
 type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
@@ -106,8 +117,14 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
    */
   Proof: typeof Proof<OffchainStateCommitments, OffchainStateCommitments>;
 
+  /**
+   * Create an empty set of offchain state commitments to use as a default value
+   */
   emptyCommitments(): State<OffchainStateCommitments>;
 
+  /**
+   * Initialize an offchain state instance.
+   */
   init(): OffchainStateInstance<Config>;
 };
 
@@ -484,8 +501,6 @@ function OffchainState<
       commitments() {
         return getContract().offchainStateCommitments;
       },
-
-      internal,
 
       fields: Object.fromEntries(
         Object.entries(config).map(([key, kind], i) => [

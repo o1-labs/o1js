@@ -173,15 +173,9 @@ await testLocal(
 
 // Test with multiple instances of the conract and offchain state deployed on the same network
 
-const {
-  offchainStateInstance: offchainStateInstanceA,
-  ExampleContract: ExampleContractA,
-} = ExampleContractWithState();
+const { ExampleContract: ExampleContractA } = ExampleContractWithState();
 
-const {
-  offchainStateInstance: offchainStateInstanceB,
-  ExampleContract: ExampleContractB,
-} = ExampleContractWithState();
+const { ExampleContract: ExampleContractB } = ExampleContractWithState();
 
 const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
@@ -211,11 +205,8 @@ await deployTx.prove();
 await deployTx.send().wait();
 console.timeEnd('deploy contract');
 
-contractA.offchainState = offchainStateInstanceA;
-contractB.offchainState = offchainStateInstanceB;
-offchainStateInstanceA.setContractInstance(contractA);
-offchainStateInstanceB.setContractInstance(contractB);
-
+contractA.offchainState.setContractInstance(contractA);
+contractB.offchainState.setContractInstance(contractB);
 console.time('create accounts');
 const accountCreationTx = Mina.transaction(sender, async () => {
   await contractA.createAccount(sender, UInt64.from(1000));
