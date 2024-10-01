@@ -22,90 +22,79 @@ const offchainState = OffchainState(
 
 class StateProof extends offchainState.Proof {}
 
-function ExampleContractWithState() {
-  const offchainStateInstance = offchainState.init();
+// example contract that interacts with offchain state
+class ExampleContract extends SmartContract {
+  @state(OffchainState.Commitments) offchainStateCommitments =
+    offchainState.emptyCommitments();
 
-  // example contract that interacts with offchain state
-  class ExampleContract extends SmartContract {
-    @state(OffchainState.Commitments) offchainStateCommitments =
-      offchainState.emptyCommitments();
+  // o1js memoizes the offchain state by contract address so that this pattern works
+  offchainState = offchainState.init(this);
 
-    // Since this line is executed over and over, every time a proof is generated, we can't rely on setting this value elsewhere
-    // We also can't rely on different instances of the contract having different offchain state instances, because this specific instance of
-    // offchain state is referenced by the class definition of the smart contract.
-    // By using a closure and exporting the offchain state and the contract together, we can always refer to the correct instance of the offchain state
-    offchainState = offchainStateInstance;
-
-    @method
-    async createAccount(address: PublicKey, amountToMint: UInt64) {
-      // setting `from` to `undefined` means that the account must not exist yet
-      this.offchainState.fields.accounts.update(address, {
-        from: undefined,
-        to: amountToMint,
-      });
-
-      // TODO using `update()` on the total supply means that this method
-      // can only be called once every settling cycle
-      let totalSupplyOption = await this.offchainState.fields.totalSupply.get();
-      let totalSupply = totalSupplyOption.orElse(0n);
-
-      this.offchainState.fields.totalSupply.update({
-        from: totalSupplyOption,
-        to: totalSupply.add(amountToMint),
-      });
-    }
-
-    @method
-    async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
-      let fromOption = await this.offchainState.fields.accounts.get(from);
-      let fromBalance = fromOption.assertSome('sender account exists');
-
-      let toOption = await this.offchainState.fields.accounts.get(to);
-      let toBalance = toOption.orElse(0n);
-
-      /**
-       * Update both accounts atomically.
-       *
-       * This is safe, because both updates will only be accepted if both previous balances are still correct.
-       */
-      this.offchainState.fields.accounts.update(from, {
-        from: fromOption,
-        to: fromBalance.sub(amount),
-      });
-
-      this.offchainState.fields.accounts.update(to, {
-        from: toOption,
-        to: toBalance.add(amount),
-      });
-    }
-
-    @method.returns(UInt64)
-    async getSupply() {
-      return (await this.offchainState.fields.totalSupply.get()).orElse(0n);
-    }
-
-    @method.returns(UInt64)
-    async getBalance(address: PublicKey) {
-      return (await this.offchainState.fields.accounts.get(address)).orElse(0n);
-    }
-
-    @method
-    async settle(proof: StateProof) {
-      await this.offchainState.settle(proof);
-    }
+  init(): void {
+    super.init();
+    this.offchainState.setContractInstance(this);
   }
 
-  offchainStateInstance.setContractClass(ExampleContract);
+  @method
+  async createAccount(address: PublicKey, amountToMint: UInt64) {
+    // setting `from` to `undefined` means that the account must not exist yet
+    this.offchainState.fields.accounts.update(address, {
+      from: undefined,
+      to: amountToMint,
+    });
 
-  return {
-    offchainStateInstance,
-    ExampleContract,
-  };
+    // TODO using `update()` on the total supply means that this method
+    // can only be called once every settling cycle
+    let totalSupplyOption = await this.offchainState.fields.totalSupply.get();
+    let totalSupply = totalSupplyOption.orElse(0n);
+
+    this.offchainState.fields.totalSupply.update({
+      from: totalSupplyOption,
+      to: totalSupply.add(amountToMint),
+    });
+  }
+
+  @method
+  async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
+    let fromOption = await this.offchainState.fields.accounts.get(from);
+    let fromBalance = fromOption.assertSome('sender account exists');
+
+    let toOption = await this.offchainState.fields.accounts.get(to);
+    let toBalance = toOption.orElse(0n);
+
+    /**
+     * Update both accounts atomically.
+     *
+     * This is safe, because both updates will only be accepted if both previous balances are still correct.
+     */
+    this.offchainState.fields.accounts.update(from, {
+      from: fromOption,
+      to: fromBalance.sub(amount),
+    });
+
+    this.offchainState.fields.accounts.update(to, {
+      from: toOption,
+      to: toBalance.add(amount),
+    });
+  }
+
+  @method.returns(UInt64)
+  async getSupply() {
+    return (await this.offchainState.fields.totalSupply.get()).orElse(0n);
+  }
+
+  @method.returns(UInt64)
+  async getBalance(address: PublicKey) {
+    return (await this.offchainState.fields.accounts.get(address)).orElse(0n);
+  }
+
+  @method
+  async settle(proof: StateProof) {
+    await this.offchainState.settle(proof);
+  }
 }
 
 // test code below
-
-const { ExampleContract } = ExampleContractWithState();
 
 await testLocal(
   ExampleContract,
@@ -113,8 +102,6 @@ await testLocal(
   ({ accounts: { sender, receiver, other }, contract, Local }) => [
     // create first account
     transaction('create account', async () => {
-      contract.offchainState.setContractInstance(contract);
-
       // first call (should succeed)
       await contract.createAccount(sender, UInt64.from(1000));
 
@@ -173,26 +160,21 @@ await testLocal(
 
 // Test with multiple instances of the conract and offchain state deployed on the same network
 
-const { ExampleContract: ExampleContractA } = ExampleContractWithState();
-
-const { ExampleContract: ExampleContractB } = ExampleContractWithState();
-
 const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
 const [sender, receiver, contractAccountA, contractAccountB] =
   Local.testAccounts;
 
-const contractA = new ExampleContractA(contractAccountA);
-const contractB = new ExampleContractB(contractAccountB);
+const contractA = new ExampleContract(contractAccountA);
+const contractB = new ExampleContract(contractAccountB);
 
 console.time('compile offchain state program');
 await offchainState.compile();
 console.timeEnd('compile offchain state program');
 
 console.time('compile contract');
-await ExampleContractA.compile();
-await ExampleContractB.compile();
+await ExampleContract.compile();
 console.timeEnd('compile contract');
 
 console.time('deploy contract');
@@ -205,8 +187,6 @@ await deployTx.prove();
 await deployTx.send().wait();
 console.timeEnd('deploy contract');
 
-contractA.offchainState.setContractInstance(contractA);
-contractB.offchainState.setContractInstance(contractB);
 console.time('create accounts');
 const accountCreationTx = Mina.transaction(sender, async () => {
   await contractA.createAccount(sender, UInt64.from(1000));

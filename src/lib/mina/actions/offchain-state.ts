@@ -123,9 +123,12 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
   emptyCommitments(): State<OffchainStateCommitments>;
 
   /**
-   * Initialize an offchain state instance.
+   * Initialize an offchain state instance for a specific contract, or
+   * return a memoized instance if one already exists for the contract.
    */
-  init(): OffchainStateInstance<Config>;
+  init(
+    contractInstance: OffchainStateContract<Config>
+  ): OffchainStateInstance<Config>;
 };
 
 type OffchainStateContract<
@@ -513,9 +516,28 @@ function OffchainState<
     };
   }
 
+  const memoizedInstances = new Map<String, OffchainStateInstance<Config>>();
+
   return {
-    init() {
-      return OffchainStateInstance();
+    init(contractInstance: OffchainStateContract<Config>) {
+      let key = 'COMPILE_TIME';
+      let contractAddress = contractInstance.address;
+      if (contractAddress.isConstant()) {
+        key = contractAddress.toBase58();
+      } else {
+        Provable.asProver(() => {
+          key = contractAddress.toBase58();
+        });
+      }
+      let instance = memoizedInstances.get(key);
+      if (instance === undefined) {
+        instance = OffchainStateInstance();
+        instance.setContractClass(
+          contractInstance.constructor as OffchainStateContractClass<Config>
+        );
+        memoizedInstances.set(key, instance);
+      }
+      return instance;
     },
 
     async compile() {
