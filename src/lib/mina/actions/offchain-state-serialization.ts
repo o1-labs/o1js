@@ -274,6 +274,12 @@ async function fetchMerkleMap(
   merkleMap: IndexedMerkleMapBase;
   valueMap: Map<bigint, Field[]>;
 }> {
+  console.log(
+    'fetching merkle map',
+    height,
+    contract.address.toBase58(),
+    endActionState
+  );
   let result = await Mina.fetchActions(
     contract.address,
     { endActionState },

@@ -91,6 +91,8 @@ type OffchainStateInstance<
    * Commitments to the offchain state, to use in your onchain state.
    */
   commitments(): State<OffchainStateCommitments>;
+
+  internal: any;
 };
 
 type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
@@ -215,7 +217,6 @@ function OffchainState<
     };
 
     function defaultInternalState(): InternalState {
-      console.log('defaultInternalState');
       return {
         _contract: undefined,
         _contractClass: undefined,
@@ -254,12 +255,9 @@ function OffchainState<
         internal.merkleMap.root.toString() !== emptyMerkleMapRoot.toString() ||
         internal.valueMap.size > 0
       ) {
-        console.log('local merkle maps found');
         return { merkleMap: internal.merkleMap, valueMap: internal.valueMap };
       }
-      console.log('local merkle maps not found');
       let actionState = await onchainActionState();
-      console.log('actionState', actionState.toString());
       let { merkleMap, valueMap } = await fetchMerkleMap(
         height,
         internal.contract,
@@ -298,9 +296,6 @@ function OffchainState<
         IndexedMerkleMapN,
         async () => (await merkleMaps()).merkleMap
       );
-      Provable.asProver(() => {
-        console.log('map', map.root.toString(), 'state', state.root.toString());
-      });
       map.root.assertEquals(state.root, 'root mismatch');
       map.length.assertEquals(state.length, 'length mismatch');
 
@@ -420,13 +415,6 @@ function OffchainState<
 
           // push action on account update
           let update = getContract().self;
-          Provable.asProver(() => {
-            console.log(
-              'existing actions',
-              JSON.stringify(update.body.actions)
-            );
-            console.log('pushing action', action.toString());
-          });
           update.body.actions = Actions.pushEvent(update.body.actions, action);
         },
 
@@ -496,6 +484,8 @@ function OffchainState<
       commitments() {
         return getContract().offchainStateCommitments;
       },
+
+      internal,
 
       fields: Object.fromEntries(
         Object.entries(config).map(([key, kind], i) => [
