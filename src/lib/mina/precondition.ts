@@ -16,6 +16,7 @@ import {
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   ActionState,
+  AuthRequired,
   Actions,
   ZkappUri,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
@@ -29,10 +30,14 @@ export {
   Account,
   Network,
   CurrentSlot,
+  Permissions,
+  PermissionsPrecondition,
+  PreconditionPermission,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   ensureConsistentPrecondition,
   AccountValue,
+  PermissionsValue,
   NetworkValue,
   getAccountPreconditions,
   Preconditions,
@@ -164,6 +169,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
     test: Account(accountUpdate),
     network: Network(accountUpdate),
     currentSlot: CurrentSlot(accountUpdate),
+    permissions: PreconditionPermission(accountUpdate),
   };
 }
 
@@ -219,6 +225,15 @@ function Network(accountUpdate: AccountUpdate): Network {
     },
   };
   return { ...network, timestamp };
+}
+
+function PreconditionPermission(accountUpdate: AccountUpdate): PreconditionPermission {
+  let layout =
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.permissions;
+  let context = getPreconditionContextExn(accountUpdate);
+  let bt = getProvableType(layout.entries.receive.inner);
+  let permissions: PreconditionPermission = preconditionClass(layout as Layout,'permissions',accountUpdate,context);
+  return {...permissions};
 }
 
 function Account(accountUpdate: AccountUpdate): Account {
@@ -288,7 +303,7 @@ let unimplementedPreconditions: LongKey[] = [
   'network.nextEpochData.seed',
 ];
 
-let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState };
+let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState , AuthRequired };
 
 function getProvableType(layout: { type: string; checkedTypeName?: string }) {
   let typeName = layout.checkedTypeName ?? layout.type;
@@ -493,6 +508,11 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
     if (accountOrNetwork === 'account') {
       let account = getAccountPreconditions(accountUpdate.body);
       value = account[key as keyof AccountValue] as U;
+    } else if (accountOrNetwork === 'permissions') {
+      let perms =
+        Mina.getAccount(accountUpdate.body.publicKey,accountUpdate.body?.tokenId)
+            .permissions;
+      value = perms[key as keyof typeof perms] as U;
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
       value = getPath(networkState, key);
@@ -700,6 +720,10 @@ type AccountPreconditionNoState = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPreconditionNoState>;
 type Account = PreconditionClassType<AccountPreconditionNoState> & Update;
 
+type PreconditionPermission = PreconditionClassType<PermissionsPrecondition> & Update;
+type PermissionsValue = PreconditionBaseTypes<AuthRequired>;
+
+
 type CurrentSlotPrecondition = Preconditions['validWhile'];
 type CurrentSlot = {
   requireBetween(lower: UInt32, upper: UInt32): void;
@@ -768,6 +792,8 @@ type PreconditionFlatEntry<T> = T extends RangeCondition<infer V>
   : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
 
 type FlatPreconditionValue = {
+  [S in PreconditionFlatEntry<PermissionsPrecondition> as `permissions.${S[0]}`]: S[2];
+} & {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPreconditionNoState> as `account.${S[0]}`]: S[2];

@@ -95,6 +95,39 @@ describe('preconditions', () => {
     expect(contract.account.nonce.get()).toEqual(nonce.add(1));
   });
 
+  it('get + require recieve default permissions should not throw', async () => {
+    let nonce = contract.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, async () => {
+      contract.permissions.receive.requireEquals(
+        { constant : Bool(true),
+          signatureNecessary : Bool(false),
+          signatureSufficient : Bool(true)
+        }
+      );
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    });
+    await tx.sign([feePayer.key, contractAccount.key]).send();
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('get + require recieve signatureNecessary should throw', async () => {
+    let tx = await Mina.transaction(feePayer, async () => {
+      contract.permissions.receive.requireEquals(
+        { constant : Bool(true),
+          signatureNecessary : Bool(true),
+          signatureSufficient : Bool(false)
+        }
+      );
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    });
+    await expect(tx.sign([feePayer.key, contractAccount.key]).send()).rejects.toThrow(
+      /unsatisfied/
+    );
+  });
+
+
   it('satisfied currentSlot.requireBetween should not throw', async () => {
     let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
