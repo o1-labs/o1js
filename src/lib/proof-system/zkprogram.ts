@@ -78,7 +78,6 @@ export {
   synthesizeMethodArguments,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
-  isAsFields,
   Prover,
   dummyBase64Proof,
 };
