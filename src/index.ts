@@ -37,6 +37,8 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
+export { From } from './bindings/lib/provable-generic.js';
+export { ProvableType } from './lib/provable/types/provable-intf.js';
 export {
   provable,
   provablePure,
