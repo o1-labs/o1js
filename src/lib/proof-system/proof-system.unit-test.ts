@@ -4,11 +4,11 @@ import { UInt64 } from '../provable/int.js';
 import {
   CompiledTag,
   Empty,
-  Proof,
   ZkProgram,
   picklesRuleFromFunction,
   sortMethodArguments,
 } from './zkprogram.js';
+import { Proof } from './proof.js';
 import { expect } from 'expect';
 import { Pickles, Snarky } from '../../snarky.js';
 import { AnyFunction } from '../util/types.js';

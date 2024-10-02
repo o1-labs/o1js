@@ -1,4 +1,5 @@
-import { Proof, SelfProof } from '../../proof-system/zkprogram.js';
+import { SelfProof } from '../../proof-system/zkprogram.js';
+import { Proof } from '../../proof-system/proof.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
 import { assert, assertDefined } from '../../util/assert.js';
