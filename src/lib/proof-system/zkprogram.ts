@@ -40,13 +40,7 @@ import {
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { Subclass, Tuple } from '../util/types.js';
-import {
-  dummyProof,
-  DynamicProof,
-  getStatementType,
-  Proof,
-  ProofBase,
-} from './proof.js';
+import { dummyProof, DynamicProof, Proof, ProofBase } from './proof.js';
 import {
   featureFlagsFromGates,
   featureFlagsToMlOption,
@@ -113,9 +107,9 @@ async function verify(
   } else {
     // proof class
     picklesProof = proof.proof;
-    let type = getStatementType(proof.constructor as any);
-    let input = toFieldConsts(type.input, proof.publicInput);
-    let output = toFieldConsts(type.output, proof.publicOutput);
+    let fields = (proof as ProofBase).publicFields();
+    let input = MlFieldConstArray.to(fields.input);
+    let output = MlFieldConstArray.to(fields.output);
     statement = MlPair(input, output);
   }
   let vk =
@@ -743,33 +737,25 @@ function picklesRuleFromFunction(
     let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < allArgs.length; i++) {
       let arg = allArgs[i];
-      if (arg.type === 'witness') {
-        let type = witnessArgs[arg.index];
-        try {
-          finalArgs[i] = Provable.witness(type, () => {
-            return argsWithoutPublicInput?.[i] ?? emptyValue(type);
-          });
-        } catch (e: any) {
-          e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
-          throw e;
+      let type =
+        arg.type === 'witness' ? witnessArgs[arg.index] : proofArgs[arg.index];
+      try {
+        let value = Provable.witness(type, () => {
+          return argsWithoutPublicInput?.[i] ?? emptyValue(type as any);
+        });
+        finalArgs[i] = value;
+        if (arg.type === 'proof') {
+          let Proof = proofArgs[arg.index];
+          let proof = value as ProofBase<any, any>;
+          proofs.push({ proofInstance: proof, classReference: Proof });
+          let fields = proof.publicFields();
+          let input = MlFieldArray.to(fields.input);
+          let output = MlFieldArray.to(fields.output);
+          previousStatements.push(MlPair(input, output));
         }
-      } else if (arg.type === 'proof') {
-        let Proof = proofArgs[arg.index];
-        let type = getStatementType(Proof);
-        let proof_ = (argsWithoutPublicInput?.[i] as Proof<any, any>) ?? {
-          proof: undefined,
-          publicInput: emptyValue(type.input),
-          publicOutput: emptyValue(type.output),
-        };
-        let { proof, publicInput, publicOutput } = proof_;
-        publicInput = Provable.witness(type.input, () => publicInput);
-        publicOutput = Provable.witness(type.output, () => publicOutput);
-        let proofInstance = new Proof({ publicInput, publicOutput, proof });
-        finalArgs[i] = proofInstance;
-        proofs.push({ proofInstance, classReference: Proof });
-        let input = toFieldVars(type.input, publicInput);
-        let output = toFieldVars(type.output, publicOutput);
-        previousStatements.push(MlPair(input, output));
+      } catch (e: any) {
+        e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
+        throw e;
       }
     }
     let result: any;
@@ -878,11 +864,7 @@ function synthesizeMethodArguments(
     if (arg.type === 'witness') {
       args.push(empty(witnessArgs[arg.index]));
     } else if (arg.type === 'proof') {
-      let Proof = proofArgs[arg.index];
-      let type = getStatementType(Proof);
-      let publicInput = empty(type.input);
-      let publicOutput = empty(type.output);
-      args.push(new Proof({ publicInput, publicOutput, proof: undefined }));
+      args.push(empty(proofArgs[arg.index]));
     }
   }
   return args;
@@ -899,13 +881,7 @@ function methodArgumentsToConstant(
     if (type === 'witness') {
       constArgs.push(Provable.toConstant(witnessArgs[index], arg));
     } else if (type === 'proof') {
-      let Proof = proofArgs[index];
-      let type = getStatementType(Proof);
-      let publicInput = Provable.toConstant(type.input, arg.publicInput);
-      let publicOutput = Provable.toConstant(type.output, arg.publicOutput);
-      constArgs.push(
-        new Proof({ publicInput, publicOutput, proof: arg.proof })
-      );
+      constArgs.push(Provable.toConstant(proofArgs[index], arg));
     }
   }
   return constArgs;
@@ -924,28 +900,21 @@ function methodArgumentTypesAndValues(
     if (type === 'witness') {
       typesAndValues.push({ type: witnessArgs[index], value: arg });
     } else if (type === 'proof') {
-      let Proof = proofArgs[index];
-      let proof = arg as ProofBase<any, any>;
-      let types = getStatementType(Proof);
-      // TODO this is cumbersome, would be nicer to have a single Provable for the statement stored on Proof
-      let type = provablePure({ input: types.input, output: types.output });
-      let value = { input: proof.publicInput, output: proof.publicOutput };
-      typesAndValues.push({ type, value });
+      typesAndValues.push({ type: proofArgs[index].provable, value: arg });
     }
   }
   return typesAndValues;
 }
 
-function emptyValue<T>(type: FlexibleProvable<T>): T;
-function emptyValue<T>(type: Provable<T>) {
-  return type.fromFields(
-    Array(type.sizeInFields()).fill(Field(0)),
-    type.toAuxiliary()
+function emptyValue<T>(type: ProvableType<T>) {
+  let provable = ProvableType.get(type);
+  return provable.fromFields(
+    Array(provable.sizeInFields()).fill(Field(0)),
+    provable.toAuxiliary()
   );
 }
 
-function emptyWitness<T>(type: FlexibleProvable<T>): T;
-function emptyWitness<T>(type: Provable<T>) {
+function emptyWitness<T>(type: ProvableType<T>) {
   return Provable.witness(type, () => emptyValue(type));
 }
 
@@ -958,9 +927,6 @@ function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
 
 function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {
   return type.fromFields(MlFieldArray.from(fields));
-}
-function toFieldVars<T>(type: ProvablePure<T>, value: T) {
-  return MlFieldArray.to(type.toFields(value));
 }
 
 function fromFieldConsts<T>(type: ProvablePure<T>, fields: MlFieldConstArray) {
