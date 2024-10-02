@@ -12,9 +12,9 @@ import type {
   IsPure,
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
-import { DynamicProof, Proof } from '../../proof-system/zkprogram.js';
 import { ProvablePure, ProvableType } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
+import { DynamicProof, Proof } from '../../proof-system/proof.js';
 
 // external API
 export {

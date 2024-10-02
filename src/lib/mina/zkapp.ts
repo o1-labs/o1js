@@ -49,9 +49,9 @@ import {
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   MethodInterface,
-  Proof,
   sortMethodArguments,
 } from '../proof-system/zkprogram.js';
+import { Proof } from '../proof-system/proof.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   InternalStateType,
@@ -1107,16 +1107,20 @@ super.init();
     }
 
     const queryFilterOptions: EventActionFilterOptions = {};
-    if(start.greaterThan(UInt32.from(0)).toBoolean()) {
+    if (start.greaterThan(UInt32.from(0)).toBoolean()) {
       queryFilterOptions.from = start;
     }
-    if(end) {
+    if (end) {
       queryFilterOptions.to = end;
     }
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (
-      await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions)
+      await Mina.fetchEvents(
+        this.address,
+        this.self.body.tokenId,
+        queryFilterOptions
+      )
     )
       .map((event) => {
         return event.events.map((eventData) => {
