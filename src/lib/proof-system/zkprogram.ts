@@ -468,63 +468,58 @@ function sortMethodArguments(
   privateInputs: unknown[],
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
-  let witnessArgs: Provable<unknown>[] = [];
-  let proofArgs: Subclass<typeof ProofBase>[] = [];
-  let allArgs: { type: 'proof' | 'witness'; index: number }[] = [];
-  for (let i = 0; i < privateInputs.length; i++) {
-    let privateInput = privateInputs[i];
-    if (isProof(privateInput)) {
-      if (
-        privateInput === ProofBase ||
-        privateInput === Proof ||
-        privateInput === DynamicProof
-      ) {
-        const proofClassName = privateInput.name;
+  // replace SelfProof with the actual selfProof
+  privateInputs = privateInputs.map((input) =>
+    input === SelfProof ? selfProof : input
+  );
+
+  // check if all arguments are provable, and record which are proofs
+  let args: { type: ProvableType<unknown>; isProof: boolean }[] =
+    privateInputs.map((input) => {
+      if (!isProvable(input)) {
         throw Error(
-          `You cannot use the \`${proofClassName}\` class directly. Instead, define a subclass:\n` +
-            `class MyProof extends ${proofClassName}<PublicInput, PublicOutput> { ... }`
+          `Argument ${
+            i + 1
+          } of method ${methodName} is not a provable type: ${input}`
         );
       }
-      allArgs.push({ type: 'proof', index: proofArgs.length });
-      if (privateInput === SelfProof) {
-        proofArgs.push(selfProof);
-      } else {
-        proofArgs.push(privateInput);
-      }
-    } else if (isAsFields(privateInput)) {
-      allArgs.push({ type: 'witness', index: witnessArgs.length });
-      witnessArgs.push(privateInput);
-    } else if (isAsFields((privateInput as any)?.provable)) {
-      allArgs.push({ type: 'witness', index: witnessArgs.length });
-      witnessArgs.push((privateInput as any).provable);
-    } else {
+      return { type: input, isProof: isProof(input) };
+    });
+
+  // store proofs separately as well
+  let proofs: Subclass<typeof ProofBase>[] = privateInputs.filter(isProof);
+
+  // don't allow base classes for proofs
+  proofs.forEach((proof) => {
+    if (proof === ProofBase || proof === Proof || proof === DynamicProof) {
       throw Error(
-        `Argument ${
-          i + 1
-        } of method ${methodName} is not a provable type: ${privateInput}`
+        `You cannot use the \`${proof.name}\` class directly. Instead, define a subclass:\n` +
+          `class MyProof extends ${proof.name}<PublicInput, PublicOutput> { ... }`
       );
     }
-  }
-  if (proofArgs.length > 2) {
+  });
+
+  // don't allow more than 2 proofs
+  if (proofs.length > 2) {
     throw Error(
       `${programName}.${methodName}() has more than two proof arguments, which is not supported.\n` +
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, witnessArgs, proofArgs, allArgs };
+  return { methodName, args, proofs };
 }
 
-function isAsFields(
-  type: unknown
-): type is Provable<unknown> & ObjectConstructor {
+function isProvable(type: unknown): type is ProvableType<unknown> {
+  let type_ = ProvableType.get(type);
   return (
-    (typeof type === 'function' || typeof type === 'object') &&
-    type !== null &&
+    (typeof type_ === 'function' || typeof type_ === 'object') &&
+    type_ !== null &&
     ['toFields', 'fromFields', 'sizeInFields', 'toAuxiliary'].every(
-      (s) => s in type
+      (s) => s in type_
     )
   );
 }
+
 function isProof(type: unknown): type is typeof ProofBase {
   // the third case covers subclasses
   return (
@@ -542,25 +537,17 @@ function isDynamicProof(
 
 function getPreviousProofsForProver(
   methodArgs: any[],
-  { allArgs }: MethodInterface
+  { args }: MethodInterface
 ) {
-  let previousProofs: Pickles.Proof[] = [];
-  for (let i = 0; i < allArgs.length; i++) {
-    let arg = allArgs[i];
-    if (arg.type === 'proof') {
-      previousProofs[arg.index] = (methodArgs[i] as Proof<any, any>).proof;
-    }
-  }
-  return previousProofs;
+  return args
+    .filter((arg) => arg.isProof)
+    .map((_, i) => (methodArgs[i] as Proof<any, any>).proof);
 }
 
 type MethodInterface = {
   methodName: string;
-  // TODO: unify types of arguments
-  // proofs should just be `Provable<T>` as well
-  witnessArgs: Provable<unknown>[];
-  proofArgs: Subclass<typeof ProofBase>[];
-  allArgs: { type: 'witness' | 'proof'; index: number }[];
+  args: { type: ProvableType<unknown>; isProof: boolean }[];
+  proofs: Subclass<typeof ProofBase>[];
   returnType?: Provable<any>;
 };
 
@@ -721,7 +708,7 @@ function picklesRuleFromFunction(
   publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
-  { methodName, witnessArgs, proofArgs, allArgs }: MethodInterface,
+  { methodName, args, proofs: proofArgs }: MethodInterface,
   gates: Gate[]
 ): Pickles.Rule {
   async function main(
@@ -735,17 +722,15 @@ function picklesRuleFromFunction(
       classReference: Subclass<typeof ProofBase<any, any>>;
     }[] = [];
     let previousStatements: Pickles.Statement<FieldVar>[] = [];
-    for (let i = 0; i < allArgs.length; i++) {
-      let arg = allArgs[i];
-      let type =
-        arg.type === 'witness' ? witnessArgs[arg.index] : proofArgs[arg.index];
+    for (let i = 0; i < args.length; i++) {
+      let { type, isProof } = args[i];
       try {
         let value = Provable.witness(type, () => {
-          return argsWithoutPublicInput?.[i] ?? emptyValue(type as any);
+          return argsWithoutPublicInput?.[i] ?? emptyValue(type);
         });
         finalArgs[i] = value;
-        if (arg.type === 'proof') {
-          let Proof = proofArgs[arg.index];
+        if (isProof) {
+          let Proof = type as Subclass<typeof ProofBase<any, any>>;
           let proof = value as ProofBase<any, any>;
           proofs.push({ proofInstance: proof, classReference: Proof });
           let fields = proof.publicFields();
@@ -767,9 +752,8 @@ function picklesRuleFromFunction(
     }
 
     proofs.forEach(({ proofInstance, classReference }) => {
-      if (!(proofInstance instanceof DynamicProof)) {
-        return;
-      }
+      if (!(proofInstance instanceof DynamicProof)) return;
+
       // Initialize side-loaded verification key
       const tag = classReference.tag();
       const computedTag = SideloadedTag.get(tag.name);
@@ -854,56 +838,21 @@ function picklesRuleFromFunction(
   };
 }
 
-function synthesizeMethodArguments(
-  { allArgs, proofArgs, witnessArgs }: MethodInterface,
-  asVariables = false
-) {
-  let args = [];
+function synthesizeMethodArguments(intf: MethodInterface, asVariables = false) {
   let empty = asVariables ? emptyWitness : emptyValue;
-  for (let arg of allArgs) {
-    if (arg.type === 'witness') {
-      args.push(empty(witnessArgs[arg.index]));
-    } else if (arg.type === 'proof') {
-      args.push(empty(proofArgs[arg.index]));
-    }
-  }
-  return args;
+  return intf.args.map(({ type }) => empty(type));
 }
 
-function methodArgumentsToConstant(
-  { allArgs, proofArgs, witnessArgs }: MethodInterface,
-  args: any[]
-) {
-  let constArgs = [];
-  for (let i = 0; i < allArgs.length; i++) {
-    let arg = args[i];
-    let { type, index } = allArgs[i];
-    if (type === 'witness') {
-      constArgs.push(Provable.toConstant(witnessArgs[index], arg));
-    } else if (type === 'proof') {
-      constArgs.push(Provable.toConstant(proofArgs[index], arg));
-    }
-  }
-  return constArgs;
+function methodArgumentsToConstant(intf: MethodInterface, args: any[]) {
+  return intf.args.map(({ type }, i) => Provable.toConstant(type, args[i]));
 }
 
 type TypeAndValue<T> = { type: Provable<T>; value: T };
 
-function methodArgumentTypesAndValues(
-  { allArgs, proofArgs, witnessArgs }: MethodInterface,
-  args: unknown[]
-) {
-  let typesAndValues: TypeAndValue<any>[] = [];
-  for (let i = 0; i < allArgs.length; i++) {
-    let arg = args[i];
-    let { type, index } = allArgs[i];
-    if (type === 'witness') {
-      typesAndValues.push({ type: witnessArgs[index], value: arg });
-    } else if (type === 'proof') {
-      typesAndValues.push({ type: proofArgs[index].provable, value: arg });
-    }
-  }
-  return typesAndValues;
+function methodArgumentTypesAndValues(intf: MethodInterface, args: unknown[]) {
+  return intf.args.map(({ type }, i): TypeAndValue<any> => {
+    return { type: ProvableType.get(type), value: args[i] };
+  });
 }
 
 function emptyValue<T>(type: ProvableType<T>) {
@@ -920,7 +869,7 @@ function emptyWitness<T>(type: ProvableType<T>) {
 
 function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
   return methodIntfs.reduce(
-    (acc, { proofArgs }) => Math.max(acc, proofArgs.length),
+    (acc, { proofs }) => Math.max(acc, proofs.length),
     0
   ) as any as 0 | 1 | 2;
 }

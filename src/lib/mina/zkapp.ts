@@ -156,7 +156,7 @@ function method<K extends string, T extends SmartContract>(
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
     ZkappClass._maxProofsVerified,
-    methodEntry.proofArgs.length
+    methodEntry.proofs.length
   ) as 0 | 1 | 2;
   let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
@@ -313,12 +313,7 @@ function wrapMethod(
               method.apply(
                 this,
                 actualArgs.map((a, i) => {
-                  let arg = methodIntf.allArgs[i];
-                  if (arg.type === 'witness') {
-                    let type = methodIntf.witnessArgs[arg.index];
-                    return Provable.witness(type, () => a);
-                  }
-                  return a;
+                  return Provable.witness(methodIntf.args[i].type, () => a);
                 })
               ),
               noPromiseError
