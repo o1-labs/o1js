@@ -156,7 +156,7 @@ function method<K extends string, T extends SmartContract>(
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
     ZkappClass._maxProofsVerified,
-    methodEntry.proofs.length
+    methodEntry.numberOfProofs
   ) as 0 | 1 | 2;
   let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);

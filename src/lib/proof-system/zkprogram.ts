@@ -486,7 +486,7 @@ function sortMethodArguments(
       return { type: input, isProof: isProof(input) };
     });
 
-  // store proofs separately as well
+  // extract proofs for sanity checks
   let proofs: Subclass<typeof ProofBase>[] = privateInputs.filter(isProof);
 
   // don't allow base classes for proofs
@@ -506,7 +506,7 @@ function sortMethodArguments(
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, args, proofs };
+  return { methodName, args, numberOfProofs: proofs.length };
 }
 
 function isProvable(type: unknown): type is ProvableType<unknown> {
@@ -549,7 +549,7 @@ function getPreviousProofsForProver(
 type MethodInterface = {
   methodName: string;
   args: { type: ProvableType<unknown>; isProof: boolean }[];
-  proofs: Subclass<typeof ProofBase>[];
+  numberOfProofs: number;
   returnType?: Provable<any>;
 };
 
@@ -710,7 +710,7 @@ function picklesRuleFromFunction(
   publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
-  { methodName, args, proofs: proofArgs }: MethodInterface,
+  { methodName, args }: MethodInterface,
   gates: Gate[]
 ): Pickles.Rule {
   async function main(
@@ -793,13 +793,14 @@ function picklesRuleFromFunction(
     };
   }
 
-  if (proofArgs.length > 2) {
+  let proofs: Subclass<typeof ProofBase>[] = extractProofs(args);
+  if (proofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  let proofsToVerify = proofArgs.map((Proof) => {
+  let proofsToVerify = proofs.map((Proof) => {
     let tag = Proof.tag();
     if (tag === proofSystemTag) return { isSelf: true as const };
     else if (isDynamicProof(Proof)) {
@@ -840,6 +841,13 @@ function picklesRuleFromFunction(
   };
 }
 
+function extractProofs(
+  args: MethodInterface['args']
+): Subclass<typeof ProofBase>[] {
+  let types: unknown[] = args.map((a) => a.type);
+  return types.filter(isProof);
+}
+
 function synthesizeMethodArguments(intf: MethodInterface, asVariables = false) {
   let empty = asVariables ? emptyWitness : emptyValue;
   return intf.args.map(({ type }) => empty(type));
@@ -871,7 +879,7 @@ function emptyWitness<T>(type: ProvableType<T>) {
 
 function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
   return methodIntfs.reduce(
-    (acc, { proofs }) => Math.max(acc, proofs.length),
+    (acc, { numberOfProofs }) => Math.max(acc, numberOfProofs),
     0
   ) as any as 0 | 1 | 2;
 }
