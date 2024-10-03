@@ -17,7 +17,7 @@ export { TokenContract, TokenContractV2 };
 
 /**
  * @deprecated Use {@link TokenContractV2} instead, which has the right max account update limit.
- * 
+ *
  * Base token contract which
  * - implements the `Approvable` API, with the `approveBase()` method left to be defined by subclasses
  * - implements the `Transferable` API as a wrapper around the `Approvable` API
@@ -99,7 +99,11 @@ abstract class TokenContract extends SmartContract {
     );
 
     // iterate through the forest and apply user-defined logic
-    for (let i = 0; i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES; i++) {
+    for (
+      let i = 0;
+      i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES;
+      i++
+    ) {
       let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
@@ -107,7 +111,9 @@ abstract class TokenContract extends SmartContract {
     // prove that we checked all updates
     iterator.assertFinished(
       `Number of account updates to approve exceed ` +
-        `the supported limit of ${(this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES}.\n`
+        `the supported limit of ${
+          (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES
+        }.\n`
     );
 
     // skip hashing our child account updates in the method wrapper
@@ -182,7 +188,7 @@ abstract class TokenContract extends SmartContract {
 }
 
 /** Version of `TokenContract` with the precise number of `MAX_ACCOUNT_UPDATES`
- * 
+ *
  * The value of 20 in `TokenContract` was a rough upper limit, the precise upper
  * bound is 9.
  */

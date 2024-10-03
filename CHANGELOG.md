@@ -15,13 +15,44 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/d6abf1d97...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
+
+## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
+
+### Added
+
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
+  - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
+  - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
+
+### Fixes
+
+- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()` https://github.com/o1-labs/o1js/pull/1827
+
+## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
+
+### Added
+
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+- New option `proofsEnabled` for `zkProgram` (default value: `true`), to quickly test circuit logic with proofs disabled https://github.com/o1-labs/o1js/pull/1805
+  - Additionally added `MyProgram.proofsEnabled` to get the internal value of `proofsEnabled` and `MyProgram.setProofsEnabled(proofsEnabled)` to set the value dynamically.
+
+### Deprecated
+
+- `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
+
+### Fixes
+
+- Fix behavior of `Int64.modV2()` when the input is negative and the remainder should be 0 https://github.com/o1-labs/o1js/pull/1797
 
 ## [1.6.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...d6abf1d97) - 2024-07-23
 
 ### Added
 
 - `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
 
 ### Changed
 

@@ -1,6 +1,6 @@
 import { Bool, Field } from './wrapped.js';
 import { Provable } from './provable.js';
-import { Poseidon } from './crypto/poseidon.js';
+import { Poseidon, HashInput } from './crypto/poseidon.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { Struct } from './types/struct.js';
 import { provable } from './types/provable-derivers.js';
@@ -35,6 +35,10 @@ class Character extends Struct({ value: Field }) {
   // right now it's 16 bits because 8 not supported :/
   static check(c: { value: Field }) {
     Gadgets.rangeCheckN(16, c.value);
+  }
+
+  static toInput(c: { value: Field }): HashInput {
+    return { packed: [[c.value, 16]] };
   }
 }
 
@@ -88,7 +92,7 @@ class CircuitString extends Struct(RawCircuitString) {
       let isNull = this.values[i].isNull();
       mask[i] = isNull.and(wasntNullAlready);
       wasntNullAlready = isNull.not().and(wasntNullAlready);
-      length.add(wasntNullAlready.toField());
+      length = length.add(wasntNullAlready.toField());
     }
     // mask has length n+1, the last element is true when `this` has no null char
     mask[n] = wasntNullAlready;

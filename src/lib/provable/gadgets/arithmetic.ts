@@ -6,11 +6,16 @@ import { rangeCheck32, rangeCheckN } from './range-check.js';
 
 export { divMod32, addMod32 };
 
-function divMod32(n: Field, quotientBits = 32) {
+function divMod32(n: Field, nBits = 64) {
+  assert(
+    nBits >= 0 && nBits < 255,
+    `nBits must be in the range [0, 255), got ${nBits}`
+  );
+  const quotientBits = Math.max(0, nBits - 32);
   if (n.isConstant()) {
     assert(
-      n.toBigInt() < 1n << 64n,
-      `n needs to fit into 64 bit, but got ${n.toBigInt()}`
+      n.toBigInt() < 1n << BigInt(nBits),
+      `n needs to fit into ${nBits} bits, but got ${n.toBigInt()}`
     );
 
     let nBigInt = n.toBigInt();
@@ -49,5 +54,5 @@ function divMod32(n: Field, quotientBits = 32) {
 }
 
 function addMod32(x: Field, y: Field) {
-  return divMod32(x.add(y), 1).remainder;
+  return divMod32(x.add(y), 33).remainder;
 }
