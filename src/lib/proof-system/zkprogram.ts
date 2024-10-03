@@ -40,11 +40,19 @@ import {
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { Subclass, Tuple } from '../util/types.js';
-import { dummyProof, DynamicProof, Proof, ProofBase } from './proof.js';
+import {
+  dummyProof,
+  DynamicProof,
+  extractProofsFromArray,
+  extractProofTypesFromArray,
+  Proof,
+  ProofBase,
+} from './proof.js';
 import {
   featureFlagsFromGates,
   featureFlagsToMlOption,
 } from './feature-flags.js';
+import { emptyValue, emptyWitness } from '../provable/types/util.js';
 
 // public API
 export {
@@ -67,8 +75,6 @@ export {
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
-  emptyValue,
-  emptyWitness,
   synthesizeMethodArguments,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
@@ -479,7 +485,7 @@ function sortMethodArguments(
   });
 
   // extract proofs to count them and for sanity checks
-  let proofs = extractProofTypes(args);
+  let proofs = extractProofTypesFromArray(args);
   let numberOfProofs = proofs.length;
 
   // don't allow base classes for proofs
@@ -522,10 +528,6 @@ function isProofType(type: unknown): type is typeof ProofBase {
   );
 }
 
-function isProof(value: unknown): value is ProofBase {
-  return value instanceof ProofBase;
-}
-
 function isDynamicProof(
   type: Subclass<typeof ProofBase>
 ): type is Subclass<typeof DynamicProof> {
@@ -533,11 +535,7 @@ function isDynamicProof(
 }
 
 function getPreviousProofsForProver(methodArgs: any[]) {
-  let proofs: unknown[] = [];
-  for (let arg of methodArgs) {
-    if (isProof(arg)) proofs.push(arg.proof);
-  }
-  return proofs;
+  return extractProofsFromArray(methodArgs).map((proof) => proof.proof);
 }
 
 type MethodInterface = {
@@ -787,7 +785,7 @@ function picklesRuleFromFunction(
     };
   }
 
-  let proofs: Subclass<typeof ProofBase>[] = extractProofTypes(args);
+  let proofs: Subclass<typeof ProofBase>[] = extractProofTypesFromArray(args);
   if (proofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
@@ -835,10 +833,6 @@ function picklesRuleFromFunction(
   };
 }
 
-function extractProofTypes(args: unknown[]): Subclass<typeof ProofBase>[] {
-  return args.filter(isProofType);
-}
-
 function synthesizeMethodArguments(intf: MethodInterface, asVariables = false) {
   let empty = asVariables ? emptyWitness : emptyValue;
   return intf.args.map((type) => empty(type));
@@ -854,18 +848,6 @@ function methodArgumentTypesAndValues(intf: MethodInterface, args: unknown[]) {
   return intf.args.map((type, i): TypeAndValue<any> => {
     return { type: ProvableType.get(type), value: args[i] };
   });
-}
-
-function emptyValue<T>(type: ProvableType<T>) {
-  let provable = ProvableType.get(type);
-  return provable.fromFields(
-    Array(provable.sizeInFields()).fill(Field(0)),
-    provable.toAuxiliary()
-  );
-}
-
-function emptyWitness<T>(type: ProvableType<T>) {
-  return Provable.witness(type, () => emptyValue(type));
 }
 
 function getMaxProofsVerified(methodIntfs: MethodInterface[]) {

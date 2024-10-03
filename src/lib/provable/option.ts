@@ -1,5 +1,5 @@
 import { InferValue } from '../../bindings/lib/provable-generic.js';
-import { emptyValue } from '../proof-system/zkprogram.js';
+import { emptyValue } from './types/util.js';
 import { Provable } from './provable.js';
 import { InferProvable, Struct } from './types/struct.js';
 import { provable, ProvableInferPureFrom } from './types/provable-derivers.js';

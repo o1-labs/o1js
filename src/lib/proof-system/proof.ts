@@ -10,12 +10,21 @@ import type { VerificationKey, JsonProof } from './zkprogram.js';
 import { Subclass } from '../util/types.js';
 import type { Provable } from '../provable/provable.js';
 import { assert } from '../util/assert.js';
+import { Unconstrained } from '../provable/types/unconstrained.js';
+import { ProvableType } from '../provable/types/provable-intf.js';
+import { emptyValue } from '../provable/types/util.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof };
 
 // internal API
-export { dummyProof };
+export {
+  dummyProof,
+  extractProofs,
+  extractProofsFromArray,
+  extractProofTypes,
+  extractProofTypesFromArray,
+};
 
 type MaxProofs = 0 | 1 | 2;
 
@@ -385,4 +394,39 @@ function provableProof<
       });
     },
   };
+}
+
+function extractProofs(value: unknown): ProofBase[] {
+  if (value instanceof ProofBase) {
+    return [value];
+  }
+  if (value instanceof Unconstrained) return [];
+  if (value instanceof Field) return [];
+  if (value instanceof Bool) return [];
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractProofs(item));
+  }
+
+  if (value === null) return [];
+  if (typeof value === 'object') {
+    return extractProofs(Object.values(value));
+  }
+
+  // functions, primitives
+  return [];
+}
+
+function extractProofsFromArray(value: unknown[]) {
+  return value.flatMap(extractProofs);
+}
+
+function extractProofTypes(type: ProvableType) {
+  let value = emptyValue(type);
+  let proofValues = extractProofs(value);
+  return proofValues.map((proof) => proof.constructor as typeof ProofBase);
+}
+
+function extractProofTypesFromArray(type: ProvableType[]) {
+  return type.flatMap(extractProofTypes);
 }
