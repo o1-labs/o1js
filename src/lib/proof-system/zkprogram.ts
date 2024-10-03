@@ -448,8 +448,6 @@ type ZkProgram<
   }
 > = ReturnType<typeof ZkProgram<S, T>>;
 
-let i = 0;
-
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput
@@ -473,21 +471,20 @@ function sortMethodArguments(
     input === SelfProof ? selfProof : input
   );
 
-  // check if all arguments are provable, and record which are proofs
-  let args: { type: ProvableType<unknown>; isProof: boolean }[] =
-    privateInputs.map((input) => {
-      if (!isProvable(input)) {
-        throw Error(
-          `Argument ${
-            i + 1
-          } of method ${methodName} is not a provable type: ${input}`
-        );
-      }
-      return { type: input, isProof: isProof(input) };
-    });
+  // check if all arguments are provable
+  let args: ProvableType<unknown>[] = privateInputs.map((input, i) => {
+    if (isProvable(input)) return input;
 
-  // extract proofs for sanity checks
-  let proofs: Subclass<typeof ProofBase>[] = privateInputs.filter(isProof);
+    throw Error(
+      `Argument ${
+        i + 1
+      } of method ${methodName} is not a provable type: ${input}`
+    );
+  });
+
+  // extract proofs to count them and for sanity checks
+  let proofs = extractProofs(args);
+  let numberOfProofs = proofs.length;
 
   // don't allow base classes for proofs
   proofs.forEach((proof) => {
@@ -500,13 +497,13 @@ function sortMethodArguments(
   });
 
   // don't allow more than 2 proofs
-  if (proofs.length > 2) {
+  if (numberOfProofs > 2) {
     throw Error(
       `${programName}.${methodName}() has more than two proof arguments, which is not supported.\n` +
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, args, numberOfProofs: proofs.length };
+  return { methodName, args, numberOfProofs };
 }
 
 function isProvable(type: unknown): type is ProvableType<unknown> {
@@ -541,14 +538,14 @@ function getPreviousProofsForProver(
 ) {
   let proofs: ProofBase[] = [];
   for (let i = 0; i < args.length; i++) {
-    if (args[i].isProof) proofs.push(methodArgs[i].proof);
+    if (isProof(args[i])) proofs.push(methodArgs[i].proof);
   }
   return proofs;
 }
 
 type MethodInterface = {
   methodName: string;
-  args: { type: ProvableType<unknown>; isProof: boolean }[];
+  args: ProvableType<unknown>[];
   numberOfProofs: number;
   returnType?: Provable<any>;
 };
@@ -725,14 +722,14 @@ function picklesRuleFromFunction(
     }[] = [];
     let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < args.length; i++) {
-      let { type, isProof } = args[i];
+      let type = args[i];
       try {
         let value = Provable.witness(type, () => {
           return argsWithoutPublicInput?.[i] ?? emptyValue(type);
         });
         finalArgs[i] = value;
-        if (isProof) {
-          let Proof = type as Subclass<typeof ProofBase<any, any>>;
+        if (isProof(type)) {
+          let Proof = type satisfies Subclass<typeof ProofBase<any, any>>;
           let proof = value as ProofBase<any, any>;
           proofs.push({ proofInstance: proof, classReference: Proof });
           let fields = proof.publicFields();
@@ -841,26 +838,23 @@ function picklesRuleFromFunction(
   };
 }
 
-function extractProofs(
-  args: MethodInterface['args']
-): Subclass<typeof ProofBase>[] {
-  let types: unknown[] = args.map((a) => a.type);
-  return types.filter(isProof);
+function extractProofs(args: unknown[]): Subclass<typeof ProofBase>[] {
+  return args.filter(isProof);
 }
 
 function synthesizeMethodArguments(intf: MethodInterface, asVariables = false) {
   let empty = asVariables ? emptyWitness : emptyValue;
-  return intf.args.map(({ type }) => empty(type));
+  return intf.args.map((type) => empty(type));
 }
 
 function methodArgumentsToConstant(intf: MethodInterface, args: any[]) {
-  return intf.args.map(({ type }, i) => Provable.toConstant(type, args[i]));
+  return intf.args.map((type, i) => Provable.toConstant(type, args[i]));
 }
 
 type TypeAndValue<T> = { type: Provable<T>; value: T };
 
 function methodArgumentTypesAndValues(intf: MethodInterface, args: unknown[]) {
-  return intf.args.map(({ type }, i): TypeAndValue<any> => {
+  return intf.args.map((type, i): TypeAndValue<any> => {
     return { type: ProvableType.get(type), value: args[i] };
   });
 }

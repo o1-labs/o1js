@@ -313,7 +313,7 @@ function wrapMethod(
               method.apply(
                 this,
                 actualArgs.map((a, i) => {
-                  return Provable.witness(methodIntf.args[i].type, () => a);
+                  return Provable.witness(methodIntf.args[i], () => a);
                 })
               ),
               noPromiseError
