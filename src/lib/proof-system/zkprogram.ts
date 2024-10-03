@@ -539,9 +539,11 @@ function getPreviousProofsForProver(
   methodArgs: any[],
   { args }: MethodInterface
 ) {
-  return args
-    .filter((arg) => arg.isProof)
-    .map((_, i) => (methodArgs[i] as Proof<any, any>).proof);
+  let proofs: ProofBase[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i].isProof) proofs.push(methodArgs[i].proof);
+  }
+  return proofs;
 }
 
 type MethodInterface = {
