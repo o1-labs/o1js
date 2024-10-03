@@ -460,7 +460,14 @@ class VerificationKey extends Struct({
   toJSON({ data }: { data: string }) {
     return data;
   },
-}) {}
+}) {
+  static dummy(): VerificationKey {
+    const [, data, hash] = Pickles.dummyVerificationKey();
+    return new VerificationKey({
+      data, hash: Field(hash)
+    })
+  }
+}
 
 function sortMethodArguments(
   programName: string,
