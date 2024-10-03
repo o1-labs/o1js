@@ -1,22 +1,25 @@
 import { initializeBindings, withThreadPool } from '../../snarky.js';
 import { Pickles } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
-import {
+import type {
   FlexibleProvablePure,
   InferProvable,
 } from '../provable/types/struct.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
 import { FeatureFlags } from './feature-flags.js';
 import type { VerificationKey, JsonProof } from './zkprogram.js';
 import { Subclass } from '../util/types.js';
+import type { Provable } from '../provable/provable.js';
+import { assert } from '../util/assert.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof };
 
 // internal API
-export { dummyProof, getStatementType };
+export { dummyProof };
 
-class ProofBase<Input, Output> {
+type MaxProofs = 0 | 1 | 2;
+
+class ProofBase<Input = any, Output = any> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;
   static publicOutputType: FlexibleProvablePure<any> = undefined as any;
   static tag: () => { name: string } = () => {
@@ -32,10 +35,10 @@ class ProofBase<Input, Output> {
   shouldVerify = Bool(false);
 
   toJSON(): JsonProof {
-    let type = getStatementType(this.constructor as any);
+    let fields = this.publicFields();
     return {
-      publicInput: type.input.toFields(this.publicInput).map(String),
-      publicOutput: type.output.toFields(this.publicOutput).map(String),
+      publicInput: fields.input.map(String),
+      publicOutput: fields.output.map(String),
       maxProofsVerified: this.maxProofsVerified,
       proof: Pickles.proofToBase64([this.maxProofsVerified, this.proof]),
     };
@@ -56,6 +59,36 @@ class ProofBase<Input, Output> {
     this.publicOutput = publicOutput;
     this.proof = proof; // TODO optionally convert from string?
     this.maxProofsVerified = maxProofsVerified;
+  }
+
+  static get provable() {
+    if (
+      this.publicInputType === undefined ||
+      this.publicOutputType === undefined
+    ) {
+      throw Error(
+        `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
+          `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
+      );
+    }
+    return provableProof<any, any, any>(
+      this,
+      this.publicInputType,
+      this.publicOutputType,
+      (this as any).maxProofsVerified
+    );
+  }
+
+  static publicFields(value: ProofBase) {
+    let fields = this.provable.toFields(value);
+    let inputSize = this.publicInputType.sizeInFields();
+    return {
+      input: fields.slice(0, inputSize),
+      output: fields.slice(inputSize),
+    };
+  }
+  publicFields() {
+    return (this.constructor as typeof ProofBase).publicFields(this);
   }
 }
 
@@ -83,15 +116,12 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
   > {
     await initializeBindings();
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
-    let type = getStatementType(this);
-    let publicInput = type.input.fromFields(publicInputJson.map(Field));
-    let publicOutput = type.output.fromFields(publicOutputJson.map(Field));
-    return new this({
-      publicInput,
-      publicOutput,
-      proof,
-      maxProofsVerified,
-    }) as any;
+    let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
+    return this.provable.fromFields(fields, [
+      [],
+      [],
+      [proof, maxProofsVerified],
+    ]) as any;
   }
 
   /**
@@ -131,7 +161,7 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
   }
 }
 
-var sideloadedKeysCounter = 0;
+let sideloadedKeysCounter = 0;
 
 /**
  * The `DynamicProof` class enables circuits to verify proofs using in-ciruit verfication keys.
@@ -181,7 +211,7 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
    * If you want to verify _any_ proof, no matter what custom gates it uses, you can use {@link FeatureFlags.allMaybe}. Please note that this might incur a significant overhead.
    *
    * You can also toggle specific feature flags manually by specifying them here.
-   * Alternatively, you can use {@FeatureFlags.fromZkProgram} to compute the set of feature flags that are compatible with a given program.
+   * Alternatively, you can use {@link FeatureFlags.fromZkProgram} to compute the set of feature flags that are compatible with a given program.
    */
   static featureFlags: FeatureFlags = FeatureFlags.allNone;
 
@@ -227,15 +257,12 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
   > {
     await initializeBindings();
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
-    let type = getStatementType(this);
-    let publicInput = type.input.fromFields(publicInputJson.map(Field));
-    let publicOutput = type.output.fromFields(publicOutputJson.map(Field));
-    return new this({
-      publicInput,
-      publicOutput,
-      proof,
-      maxProofsVerified,
-    }) as any;
+    let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
+    return this.provable.fromFields(fields, [
+      [],
+      [],
+      [proof, maxProofsVerified],
+    ]) as any;
   }
 
   static async dummy<S extends Subclass<typeof DynamicProof>>(
@@ -281,24 +308,81 @@ async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   );
 }
 
-// helper
-
-function getStatementType<
-  T,
-  O,
-  P extends Subclass<typeof ProofBase> = typeof ProofBase
->(Proof: P): { input: ProvablePure<T>; output: ProvablePure<O> } {
-  if (
-    Proof.publicInputType === undefined ||
-    Proof.publicOutputType === undefined
-  ) {
-    throw Error(
-      `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
-        `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
-    );
+function provableProof<
+  Class extends Subclass<typeof ProofBase<Input, Output>>,
+  Input,
+  Output,
+  InputV = any,
+  OutputV = any
+>(
+  Class: Class,
+  input: Provable<Input>,
+  output: Provable<Output>,
+  defaultMaxProofsVerified?: MaxProofs
+): Provable<
+  ProofBase<Input, Output>,
+  {
+    publicInput: InputV;
+    publicOutput: OutputV;
+    proof: unknown;
+    maxProofsVerified: MaxProofs;
   }
+> {
   return {
-    input: Proof.publicInputType as any,
-    output: Proof.publicOutputType as any,
+    sizeInFields() {
+      return input.sizeInFields() + output.sizeInFields();
+    },
+    toFields(value) {
+      return input
+        .toFields(value.publicInput)
+        .concat(output.toFields(value.publicOutput));
+    },
+    toAuxiliary(value) {
+      let inputAux = input.toAuxiliary(value?.publicInput);
+      let outputAux = output.toAuxiliary(value?.publicOutput);
+      let proofAux = [
+        value?.proof ?? undefined,
+        value?.maxProofsVerified ?? defaultMaxProofsVerified ?? 0,
+      ];
+      return [inputAux, outputAux, proofAux];
+    },
+    fromFields(fields, aux) {
+      let inputFields = fields.slice(0, input.sizeInFields());
+      let outputFields = fields.slice(input.sizeInFields());
+      assert(outputFields.length === output.sizeInFields());
+      let [inputAux, outputAux, [proof, maxProofsVerified]] = aux;
+      let publicInput = input.fromFields(inputFields, inputAux);
+      let publicOutput = output.fromFields(outputFields, outputAux);
+      return new Class({
+        publicInput,
+        publicOutput,
+        proof,
+        maxProofsVerified,
+      });
+    },
+    check(value) {
+      input.check(value.publicInput);
+      output.check(value.publicOutput);
+    },
+    toValue(value) {
+      let inputV = input.toValue(value.publicInput);
+      let outputV = output.toValue(value.publicOutput);
+      return {
+        publicInput: inputV,
+        publicOutput: outputV,
+        proof: value.proof,
+        maxProofsVerified: value.maxProofsVerified,
+      };
+    },
+    fromValue(value) {
+      let inputT = input.fromValue(value.publicInput);
+      let outputT = output.fromValue(value.publicOutput);
+      return new Class({
+        publicInput: inputT,
+        publicOutput: outputT,
+        proof: value.proof,
+        maxProofsVerified: value.maxProofsVerified,
+      });
+    },
   };
 }

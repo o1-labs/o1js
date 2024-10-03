@@ -44,12 +44,11 @@ it('pickles rule creation', async () => {
 
   expect(methodIntf).toEqual({
     methodName: 'main',
-    witnessArgs: [Bool],
-    proofArgs: [EmptyProof],
-    allArgs: [
-      { type: 'proof', index: 0 },
-      { type: 'witness', index: 0 },
+    args: [
+      { type: EmptyProof, isProof: true },
+      { type: Bool, isProof: false },
     ],
+    proofs: [EmptyProof],
   });
 
   // store compiled tag
