@@ -341,10 +341,7 @@ function wrapMethod(
                 methodName: methodIntf.methodName,
                 args: clonedArgs,
                 // proofs actually don't have to be cloned
-                previousProofs: getPreviousProofsForProver(
-                  actualArgs,
-                  methodIntf
-                ),
+                previousProofs: getPreviousProofsForProver(actualArgs),
                 ZkappClass,
                 memoized,
                 blindingValue,
@@ -433,10 +430,7 @@ function wrapMethod(
             {
               methodName: methodIntf.methodName,
               args: constantArgs,
-              previousProofs: getPreviousProofsForProver(
-                constantArgs,
-                methodIntf
-              ),
+              previousProofs: getPreviousProofsForProver(constantArgs),
               ZkappClass,
               memoized,
               blindingValue: constantBlindingValue,

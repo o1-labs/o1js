@@ -322,9 +322,7 @@ function ZkProgram<
       }
 
       if (!doProving) {
-        let previousProofs = MlArray.to(
-          getPreviousProofsForProver(args, methodIntfs[i])
-        );
+        let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
         let publicOutput = await (methods[key].method as any)(
           publicInput,
@@ -342,9 +340,7 @@ function ZkProgram<
         );
       }
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
-      let previousProofs = MlArray.to(
-        getPreviousProofsForProver(args, methodIntfs[i])
-      );
+      let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
@@ -483,7 +479,7 @@ function sortMethodArguments(
   });
 
   // extract proofs to count them and for sanity checks
-  let proofs = extractProofs(args);
+  let proofs = extractProofTypes(args);
   let numberOfProofs = proofs.length;
 
   // don't allow base classes for proofs
@@ -517,7 +513,7 @@ function isProvable(type: unknown): type is ProvableType<unknown> {
   );
 }
 
-function isProof(type: unknown): type is typeof ProofBase {
+function isProofType(type: unknown): type is typeof ProofBase {
   // the third case covers subclasses
   return (
     type === Proof ||
@@ -526,19 +522,20 @@ function isProof(type: unknown): type is typeof ProofBase {
   );
 }
 
+function isProof(value: unknown): value is ProofBase {
+  return value instanceof ProofBase;
+}
+
 function isDynamicProof(
   type: Subclass<typeof ProofBase>
 ): type is Subclass<typeof DynamicProof> {
   return typeof type === 'function' && type.prototype instanceof DynamicProof;
 }
 
-function getPreviousProofsForProver(
-  methodArgs: any[],
-  { args }: MethodInterface
-) {
-  let proofs: ProofBase[] = [];
-  for (let i = 0; i < args.length; i++) {
-    if (isProof(args[i])) proofs.push(methodArgs[i].proof);
+function getPreviousProofsForProver(methodArgs: any[]) {
+  let proofs: unknown[] = [];
+  for (let arg of methodArgs) {
+    if (isProof(arg)) proofs.push(arg.proof);
   }
   return proofs;
 }
@@ -728,7 +725,7 @@ function picklesRuleFromFunction(
           return argsWithoutPublicInput?.[i] ?? emptyValue(type);
         });
         finalArgs[i] = value;
-        if (isProof(type)) {
+        if (isProofType(type)) {
           let Proof = type satisfies Subclass<typeof ProofBase<any, any>>;
           let proof = value as ProofBase<any, any>;
           proofs.push({ proofInstance: proof, classReference: Proof });
@@ -790,7 +787,7 @@ function picklesRuleFromFunction(
     };
   }
 
-  let proofs: Subclass<typeof ProofBase>[] = extractProofs(args);
+  let proofs: Subclass<typeof ProofBase>[] = extractProofTypes(args);
   if (proofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
@@ -838,8 +835,8 @@ function picklesRuleFromFunction(
   };
 }
 
-function extractProofs(args: unknown[]): Subclass<typeof ProofBase>[] {
-  return args.filter(isProof);
+function extractProofTypes(args: unknown[]): Subclass<typeof ProofBase>[] {
+  return args.filter(isProofType);
 }
 
 function synthesizeMethodArguments(intf: MethodInterface, asVariables = false) {
