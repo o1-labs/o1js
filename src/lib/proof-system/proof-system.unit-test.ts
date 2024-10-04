@@ -161,6 +161,12 @@ it('pickles rule creation: nested proof', async () => {
   });
 });
 
+it('fails with more than two (nested) proofs', async () => {
+  expect(() => {
+    sortMethodArguments('mock', 'main', [NestedProof2, NestedProof], Proof);
+  }).toThrowError('mock.main() has more than two proof arguments');
+});
+
 // compile works with large inputs
 
 const N = 100_000;
