@@ -17,7 +17,8 @@ import { it } from 'node:test';
 import { Provable } from '../provable/provable.js';
 import { bool, equivalentAsync, field, record } from '../testing/equivalent.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
+import { sample } from '../testing/random.js';
 
 const EmptyProgram = ZkProgram({
   name: 'empty',
@@ -26,6 +27,12 @@ const EmptyProgram = ZkProgram({
 });
 
 class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
+
+class NestedProof extends Struct({
+  proof: EmptyProof as any as ProvableType<Proof<Field, void>>,
+  field: Field,
+}) {}
+const NestedProof2 = Provable.Array(NestedProof, 2);
 
 // unit-test zkprogram creation helpers:
 // -) sortMethodArguments
@@ -94,6 +101,60 @@ it('pickles rule creation', async () => {
       return { field: Field(field_), bool: Bool(FieldVar.constant(bool_)) };
     }
   );
+});
+
+it('pickles rule creation: nested proof', async () => {
+  function main(nested: [NestedProof, NestedProof]) {
+    // first proof should verify, second should not
+    nested[0].proof.verify();
+  }
+
+  // collect method interface
+  let methodIntf = sortMethodArguments('mock', 'main', [NestedProof2], Proof);
+
+  expect(methodIntf).toEqual({
+    methodName: 'main',
+    args: [NestedProof2],
+    numberOfProofs: 2,
+  });
+
+  // store compiled tag
+  CompiledTag.store(EmptyProgram, 'mock tag');
+
+  // create pickles rule
+  let rule: Pickles.Rule = picklesRuleFromFunction(
+    Empty as ProvablePure<any>,
+    Field as ProvablePure<any>,
+    main as AnyFunction,
+    { name: 'mock' },
+    methodIntf,
+    []
+  );
+
+  let dummy = await EmptyProof.dummy(Field(0), undefined, 0);
+  let nested1 = new NestedProof({ proof: dummy, field: Field(0) });
+  let nested2 = new NestedProof({ proof: dummy, field: Field(0) });
+  let nested = [nested1, nested2];
+
+  await Provable.runAndCheck(async () => {
+    // put witnesses in snark context
+    snarkContext.get().witnesses = [nested];
+
+    // call pickles rule
+    let {
+      shouldVerify: [, shouldVerify1, shouldVerify2],
+      previousStatements: [, ...previousStatements],
+    } = await rule.main([0]);
+
+    expect(previousStatements.length).toBe(2);
+
+    // `shouldVerify` are as expected
+    expect(Bool(shouldVerify1).isConstant()).toBe(true);
+    expect(Bool(shouldVerify2).isConstant()).toBe(true);
+    // first proof should verify, second should not
+    Bool(shouldVerify1).assertTrue();
+    Bool(shouldVerify2).assertFalse();
+  });
 });
 
 // compile works with large inputs
