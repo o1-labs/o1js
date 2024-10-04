@@ -6,6 +6,8 @@ import {
   method,
   ZkProgram,
   verify,
+  Struct,
+  Field,
 } from 'o1js';
 import assert from 'assert';
 
@@ -32,12 +34,18 @@ const FakeProgram = ZkProgram({
 class RealProof extends ZkProgram.Proof(RealProgram) {}
 
 const RecursiveProgram = ZkProgram({
-  name: 'broken',
+  name: 'recursive',
   methods: {
     verifyReal: {
       privateInputs: [RealProof],
       async method(proof: RealProof) {
         proof.verify();
+      },
+    },
+    verifyNested: {
+      privateInputs: [Field, Struct({ inner: RealProof })],
+      async method(_unrelated, { inner }: { inner: RealProof }) {
+        inner.verify();
       },
     },
   },
@@ -79,9 +87,9 @@ for (let proof of [fakeProof, dummyProof]) {
 const realProof = await RealProgram.make(UInt64.from(34));
 
 // zkprogram accepts proof
-const brokenProof = await RecursiveProgram.verifyReal(realProof);
+const recursiveProof = await RecursiveProgram.verifyReal(realProof);
 assert(
-  await verify(brokenProof, programVk.data),
+  await verify(recursiveProof, programVk),
   'recursive program accepts real proof'
 );
 
@@ -89,8 +97,27 @@ assert(
 let tx = await Mina.transaction(() => zkApp.verifyReal(realProof));
 let [contractProof] = (await tx.prove()).proofs;
 assert(
-  await verify(contractProof!, contractVk.data),
+  await verify(contractProof!, contractVk),
   'recursive contract accepts real proof'
 );
 
 console.log('fake proof test passed 🎉');
+
+// same test for nested proofs
+
+for (let proof of [fakeProof, dummyProof]) {
+  // zkprogram rejects proof (nested)
+  await assert.rejects(async () => {
+    await RecursiveProgram.verifyNested(Field(0), { inner: proof });
+  }, 'recursive program rejects fake proof (nested)');
+}
+
+const recursiveProofNested = await RecursiveProgram.verifyNested(Field(0), {
+  inner: realProof,
+});
+assert(
+  await verify(recursiveProofNested, programVk),
+  'recursive program accepts real proof (nested)'
+);
+
+console.log('fake proof test passed for nested proofs 🎉');

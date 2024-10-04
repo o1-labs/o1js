@@ -4,6 +4,7 @@ import { UInt64 } from '../provable/int.js';
 import {
   CompiledTag,
   Empty,
+  Void,
   ZkProgram,
   picklesRuleFromFunction,
   sortMethodArguments,
@@ -18,7 +19,6 @@ import { Provable } from '../provable/provable.js';
 import { bool, equivalentAsync, field, record } from '../testing/equivalent.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
 import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
-import { sample } from '../testing/random.js';
 
 const EmptyProgram = ZkProgram({
   name: 'empty',
@@ -29,6 +29,7 @@ const EmptyProgram = ZkProgram({
 class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
 
 class NestedProof extends Struct({
+  // TODO this coercion should not be necessary
   proof: EmptyProof as any as ProvableType<Proof<Field, void>>,
   field: Field,
 }) {}
@@ -124,7 +125,7 @@ it('pickles rule creation: nested proof', async () => {
   // create pickles rule
   let rule: Pickles.Rule = picklesRuleFromFunction(
     Empty as ProvablePure<any>,
-    Field as ProvablePure<any>,
+    Void as ProvablePure<any>,
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
