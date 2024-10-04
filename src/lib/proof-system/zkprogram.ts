@@ -48,12 +48,14 @@ import {
   extractProofTypesFromArray,
   Proof,
   ProofBase,
+  ProofValue,
 } from './proof.js';
 import {
   featureFlagsFromGates,
   featureFlagsToMlOption,
 } from './feature-flags.js';
 import { emptyValue, emptyWitness } from '../provable/types/util.js';
+import { InferValue } from '../../bindings/lib/provable-generic.js';
 
 // public API
 export {
@@ -877,10 +879,16 @@ ZkProgram.Proof = function <
   name: string;
   publicInputType: PublicInputType;
   publicOutputType: PublicOutputType;
-}) {
-  type PublicInput = InferProvable<PublicInputType>;
-  type PublicOutput = InferProvable<PublicOutputType>;
-  return class ZkProgramProof extends Proof<PublicInput, PublicOutput> {
+}): typeof Proof<
+  InferProvable<PublicInputType>,
+  InferProvable<PublicOutputType>
+> & {
+  provable: Provable<
+    Proof<InferProvable<PublicInputType>, InferProvable<PublicOutputType>>,
+    ProofValue<InferValue<PublicInputType>, InferValue<PublicOutputType>>
+  >;
+} {
+  return class ZkProgramProof extends Proof<any, any> {
     static publicInputType = program.publicInputType;
     static publicOutputType = program.publicOutputType;
     static tag = () => program;

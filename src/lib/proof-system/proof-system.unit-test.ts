@@ -18,7 +18,7 @@ import { it } from 'node:test';
 import { Provable } from '../provable/provable.js';
 import { bool, equivalentAsync, field, record } from '../testing/equivalent.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
-import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
+import { ProvablePure } from '../provable/types/provable-intf.js';
 
 const EmptyProgram = ZkProgram({
   name: 'empty',
@@ -27,13 +27,6 @@ const EmptyProgram = ZkProgram({
 });
 
 class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
-
-class NestedProof extends Struct({
-  // TODO this coercion should not be necessary
-  proof: EmptyProof as any as ProvableType<Proof<Field, void>>,
-  field: Field,
-}) {}
-const NestedProof2 = Provable.Array(NestedProof, 2);
 
 // unit-test zkprogram creation helpers:
 // -) sortMethodArguments
@@ -104,10 +97,20 @@ it('pickles rule creation', async () => {
   );
 });
 
+class NestedProof extends Struct({ proof: EmptyProof, field: Field }) {}
+const NestedProof2 = Provable.Array(NestedProof, 2);
+
+// type inference
+NestedProof satisfies Provable<{ proof: Proof<Field, void>; field: Field }>;
+
 it('pickles rule creation: nested proof', async () => {
-  function main(nested: [NestedProof, NestedProof]) {
+  function main([first, _second]: [NestedProof, NestedProof]) {
     // first proof should verify, second should not
-    nested[0].proof.verify();
+    first.proof.verify();
+
+    // deep type inference
+    first.proof.publicInput satisfies Field;
+    first.proof.publicOutput satisfies void;
   }
 
   // collect method interface

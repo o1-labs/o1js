@@ -8,6 +8,7 @@ import {
   verify,
   Struct,
   Field,
+  Proof,
 } from 'o1js';
 import assert from 'assert';
 
@@ -32,6 +33,7 @@ const FakeProgram = ZkProgram({
 });
 
 class RealProof extends ZkProgram.Proof(RealProgram) {}
+const Nested = Struct({ inner: RealProof });
 
 const RecursiveProgram = ZkProgram({
   name: 'recursive',
@@ -43,8 +45,9 @@ const RecursiveProgram = ZkProgram({
       },
     },
     verifyNested: {
-      privateInputs: [Field, Struct({ inner: RealProof })],
-      async method(_unrelated, { inner }: { inner: RealProof }) {
+      privateInputs: [Field, Nested],
+      async method(_unrelated, { inner }) {
+        inner satisfies Proof<undefined, void>;
         inner.verify();
       },
     },
