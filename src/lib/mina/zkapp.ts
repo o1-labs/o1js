@@ -46,8 +46,6 @@ import {
   compileProgram,
   Empty,
   getPreviousProofsForProver,
-  methodArgumentsToConstant,
-  methodArgumentTypesAndValues,
   MethodInterface,
   sortMethodArguments,
 } from '../proof-system/zkprogram.js';
@@ -383,7 +381,9 @@ function wrapMethod(
       let blindingValue = getBlindingValue();
 
       let runCalledContract = async () => {
-        let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+        let constantArgs = methodIntf.args.map((type, i) =>
+          Provable.toConstant(type, actualArgs[i])
+        );
         let constantBlindingValue = blindingValue.toConstant();
         let accountUpdate = this.self;
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
@@ -520,7 +520,9 @@ function computeCallData(
   blindingValue: Field
 ) {
   let { returnType, methodName } = methodIntf;
-  let args = methodArgumentTypesAndValues(methodIntf, argumentValues);
+  let args = methodIntf.args.map((type, i) => {
+    return { type: ProvableType.get(type), value: argumentValues[i] };
+  });
 
   let input: HashInput = { fields: [], packed: [] };
   for (let { type, value } of args) {

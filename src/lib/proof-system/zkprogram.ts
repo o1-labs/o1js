@@ -44,8 +44,7 @@ import {
   dummyProof,
   DynamicProof,
   extractProofs,
-  extractProofsFromArray,
-  extractProofTypesFromArray,
+  extractProofTypes,
   Proof,
   ProofBase,
   ProofValue,
@@ -78,8 +77,6 @@ export {
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
-  methodArgumentsToConstant,
-  methodArgumentTypesAndValues,
   Prover,
   dummyBase64Proof,
 };
@@ -488,7 +485,7 @@ function sortMethodArguments(
   });
 
   // extract proofs to count them and for sanity checks
-  let proofs = extractProofTypesFromArray(args);
+  let proofs = args.flatMap(extractProofTypes);
   let numberOfProofs = proofs.length;
 
   // don't allow base classes for proofs
@@ -538,7 +535,7 @@ function isDynamicProof(
 }
 
 function getPreviousProofsForProver(methodArgs: any[]) {
-  return extractProofsFromArray(methodArgs).map((proof) => proof.proof);
+  return methodArgs.flatMap(extractProofs).map((proof) => proof.proof);
 }
 
 type MethodInterface = {
@@ -788,7 +785,7 @@ function picklesRuleFromFunction(
     };
   }
 
-  let proofs: Subclass<typeof ProofBase>[] = extractProofTypesFromArray(args);
+  let proofs: Subclass<typeof ProofBase>[] = args.flatMap(extractProofTypes);
   if (proofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
@@ -834,18 +831,6 @@ function picklesRuleFromFunction(
     featureFlags,
     proofsToVerify: MlArray.to(proofsToVerify),
   };
-}
-
-function methodArgumentsToConstant(intf: MethodInterface, args: any[]) {
-  return intf.args.map((type, i) => Provable.toConstant(type, args[i]));
-}
-
-type TypeAndValue<T> = { type: Provable<T>; value: T };
-
-function methodArgumentTypesAndValues(intf: MethodInterface, args: unknown[]) {
-  return intf.args.map((type, i): TypeAndValue<any> => {
-    return { type: ProvableType.get(type), value: args[i] };
-  });
 }
 
 function getMaxProofsVerified(methodIntfs: MethodInterface[]) {

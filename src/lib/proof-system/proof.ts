@@ -17,14 +17,7 @@ import { ProvableType } from '../provable/types/provable-intf.js';
 export { ProofBase, Proof, DynamicProof };
 
 // internal API
-export {
-  dummyProof,
-  extractProofs,
-  extractProofsFromArray,
-  extractProofTypes,
-  extractProofTypesFromArray,
-  type ProofValue,
-};
+export { dummyProof, extractProofs, extractProofTypes, type ProofValue };
 
 type MaxProofs = 0 | 1 | 2;
 
@@ -430,16 +423,8 @@ function extractProofs(value: unknown): ProofBase[] {
   return [];
 }
 
-function extractProofsFromArray(value: unknown[]) {
-  return value.flatMap(extractProofs);
-}
-
 function extractProofTypes(type: ProvableType) {
   let value = ProvableType.synthesize(type);
   let proofValues = extractProofs(value);
   return proofValues.map((proof) => proof.constructor as typeof ProofBase);
-}
-
-function extractProofTypesFromArray(type: ProvableType[]) {
-  return type.flatMap(extractProofTypes);
 }
