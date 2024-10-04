@@ -461,11 +461,13 @@ class VerificationKey extends Struct({
     return data;
   },
 }) {
-  static dummy(): VerificationKey {
+  static async dummy(): Promise<VerificationKey> {
+    await initializeBindings();
     const [, data, hash] = Pickles.dummyVerificationKey();
     return new VerificationKey({
-      data, hash: Field(hash)
-    })
+      data,
+      hash: Field(hash),
+    });
   }
 }
 
