@@ -43,6 +43,7 @@ import { Subclass, Tuple } from '../util/types.js';
 import {
   dummyProof,
   DynamicProof,
+  extractProofs,
   extractProofsFromArray,
   extractProofTypesFromArray,
   Proof,
@@ -469,6 +470,7 @@ function sortMethodArguments(
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
   // replace SelfProof with the actual selfProof
+  // TODO this does not handle SelfProof nested in inputs
   privateInputs = privateInputs.map((input) =>
     input === SelfProof ? selfProof : input
   );
@@ -712,8 +714,8 @@ function picklesRuleFromFunction(
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
     let proofs: {
-      proofInstance: ProofBase<any, any>;
-      classReference: Subclass<typeof ProofBase<any, any>>;
+      Proof: Subclass<typeof ProofBase<any, any>>;
+      proof: ProofBase<any, any>;
     }[] = [];
     let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < args.length; i++) {
@@ -723,10 +725,10 @@ function picklesRuleFromFunction(
           return argsWithoutPublicInput?.[i] ?? emptyValue(type);
         });
         finalArgs[i] = value;
-        if (isProofType(type)) {
-          let Proof = type satisfies Subclass<typeof ProofBase<any, any>>;
-          let proof = value as ProofBase<any, any>;
-          proofs.push({ proofInstance: proof, classReference: Proof });
+
+        for (let proof of extractProofs(value)) {
+          let Proof = proof.constructor as Subclass<typeof ProofBase<any, any>>;
+          proofs.push({ Proof, proof });
           let fields = proof.publicFields();
           let input = MlFieldArray.to(fields.input);
           let output = MlFieldArray.to(fields.output);
@@ -745,13 +747,13 @@ function picklesRuleFromFunction(
       result = await func(input, ...finalArgs);
     }
 
-    proofs.forEach(({ proofInstance, classReference }) => {
-      if (!(proofInstance instanceof DynamicProof)) return;
+    proofs.forEach(({ Proof, proof }) => {
+      if (!(proof instanceof DynamicProof)) return;
 
       // Initialize side-loaded verification key
-      const tag = classReference.tag();
+      const tag = Proof.tag();
       const computedTag = SideloadedTag.get(tag.name);
-      const vk = proofInstance.usedVerificationKey;
+      const vk = proof.usedVerificationKey;
 
       if (vk === undefined) {
         throw new Error(
@@ -780,7 +782,7 @@ function picklesRuleFromFunction(
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
       shouldVerify: MlArray.to(
-        proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
+        proofs.map((proof) => proof.proof.shouldVerify.toField().value)
       ),
     };
   }
