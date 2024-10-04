@@ -459,7 +459,16 @@ class VerificationKey extends Struct({
   toJSON({ data }: { data: string }) {
     return data;
   },
-}) {}
+}) {
+  static async dummy(): Promise<VerificationKey> {
+    await initializeBindings();
+    const [, data, hash] = Pickles.dummyVerificationKey();
+    return new VerificationKey({
+      data,
+      hash: Field(hash),
+    });
+  }
+}
 
 function sortMethodArguments(
   programName: string,

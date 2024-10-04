@@ -48,6 +48,7 @@ import {
   getPreviousProofsForProver,
   MethodInterface,
   sortMethodArguments,
+  VerificationKey,
 } from '../proof-system/zkprogram.js';
 import { Proof } from '../proof-system/proof.js';
 import { PublicKey } from '../provable/crypto/signature.js';
@@ -707,9 +708,7 @@ class SmartContract extends SmartContractBase {
       ._verificationKey;
     if (verificationKey === undefined) {
       if (!Mina.getProofsEnabled()) {
-        await initializeBindings();
-        let [, data, hash] = Pickles.dummyVerificationKey();
-        verificationKey = { data, hash: Field(hash) };
+        verificationKey = await VerificationKey.dummy();
       } else {
         throw Error(
           `\`${this.constructor.name}.deploy()\` was called but no verification key was found.\n` +
