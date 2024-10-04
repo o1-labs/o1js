@@ -17,7 +17,7 @@ export {
   foreignFieldAdd,
   foreignFieldMul,
   KimchiGateType,
-  addRuntimeTableConfig,
+  //addRuntimeTableConfig,
 };
 
 export { fieldVar };
@@ -33,7 +33,7 @@ const Gates = {
   foreignFieldAdd,
   foreignFieldMul,
   raw,
-  addRuntimeTableConfig,
+  //addRuntimeTableConfig,
 };
 
 function rangeCheck0(
@@ -281,12 +281,14 @@ function foreignFieldMul(inputs: {
   );
 }
 
+/*
 function addRuntimeTableConfig(id: number, first_column: Field[]) {
   Snarky.gates.addRuntimeTableConfig(
     id,
     MlArray.to(first_column.map(FieldConst.fromFields))
   );
 }
+*/
 
 function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
   let n = values.length;

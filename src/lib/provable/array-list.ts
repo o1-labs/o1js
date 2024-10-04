@@ -1,23 +1,34 @@
-import { Provable, ToFieldable } from './provable.js';
+import { Provable } from './provable.js';
 import { Field } from './field.js';
 import { Bool } from './bool.js';
 import { Gates } from './gates.js';
 import { assert } from './gadgets/common.js';
 import { not } from './gadgets/bitwise.js';
+import { newRuntimeTableId } from './gadgets/lookup.js';
 import {
   RuntimeTable,
   RuntimeTableCfg,
 } from 'dist/node/bindings/crypto/bindings/kimchi-types.js';
 
 // external API
-export { DynamicArray };
+export { ArrayList };
+
+let tableIdsMap: Record<string, boolean> = {};
+let TableIds = {
+  get(tag: string): boolean | undefined {
+    return tableIdsMap[tag];
+  },
+  store(tag: string, compiledTag: boolean) {
+    tableIdsMap[tag] = compiledTag;
+  },
+};
 
 /**
- * Function defining a dynamic array of a given provable type `T` with a given
+ * Function defining an array list of a given provable type `T` with a given
  * capacity.
  */
-function DynamicArray<T extends ToFieldable>(
-  type: Field, // Field | Bool
+function ArrayList<T>(
+  type: Provable<T, Field>, // Field | Bool
   capacity: number
 ) {
   /**
@@ -26,10 +37,20 @@ function DynamicArray<T extends ToFieldable>(
    * @returns
    */
   function Null() {
-    return Field.fromFields(
-      Array(Field.sizeInFields()).fill(new Field(0))
-      //Field.toAuxiliary()
+    return type.fromFields(
+      Array(type.sizeInFields()).fill(new Field(0)),
+      type.toAuxiliary()
     );
+  }
+
+  /**
+   * Shorthand for creating a value of the given provable type `T`.
+   *
+   * @param value
+   * @returns
+   */
+  function Value(value: Field): T {
+    return type.fromFields(Array(value), type.toAuxiliary());
   }
 
   /**
@@ -40,7 +61,7 @@ function DynamicArray<T extends ToFieldable>(
    * @param length
    * @returns
    */
-  function fillWithNull([...values]: Field[], length: number): Field[] {
+  function fillWithNull([...values]: T[], length: number): T[] {
     for (let i = values.length; i < length; i++) {
       values[i] = Null();
     }
@@ -48,56 +69,53 @@ function DynamicArray<T extends ToFieldable>(
   }
 
   /**
-   * A provable type representing a dynamic array of field elements.
+   * A provable type representing an array list of field elements.
    */
-  return class _DynamicArray {
+  return class _ArrayList {
     // TODO: higher level management of runtime tables IDs
     _id: number | undefined = undefined; // table identifier
-    _data: Field[] | undefined = undefined; // contents of the array
+    _data: T[] | undefined = undefined; // contents of the array
     _length: Field | undefined = undefined; // length of the array as Field
 
     get id(): number {
-      assert(this._id !== undefined, 'DynamicArray class not initialized.');
+      assert(this._id !== undefined, 'ArrayList class not initialized.');
       return this.id as number;
     }
 
-    get data(): Field[] {
-      assert(this._data !== undefined, 'DynamicArray class not initialized.');
-      return this._data as Field[];
+    get data(): T[] {
+      assert(this._data !== undefined, 'ArrayList class not initialized.');
+      return this._data as T[];
     }
 
     get length(): Field {
-      assert(this._length !== undefined, 'DynamicArray class not initialized.');
+      assert(this._length !== undefined, 'ArrayList class not initialized.');
       return this._length as Field;
     }
 
     get Constructor() {
-      return this.constructor as typeof _DynamicArray;
+      return this.constructor as typeof _ArrayList;
     }
 
     /**
-     * Create a new {@link DynamicArray} instance from an optional list of
+     * Create a new {@link ArrayList} instance from an optional list of
      * {@link Field} elements.
      *
      * @example
      * ```ts
-     * let arr = new DynamicArray([new Field(1), new Field(2), new Field(3)]);
-     * let empty = new DynamicArray();
+     * let arr = new ArrayList([new Field(1), new Field(2), new Field(3)]);
+     * let empty = new ArrayList();
      * ```
      *
      * Note: this is different from a `Field[]` because it is a provable type.
      */
-    public constructor(array?: Field[]) {
+    public constructor(array?: T[]) {
       this._data = fillWithNull(array ?? [], capacity);
       this._length = new Field(array?.length ?? 0);
 
-      // generate a random positive integer id that fits in int32 for ocaml and
-      // is not any of the reserved ids for fixed lookup tables
-      // TODO: register all the IDs used to avoid repetition
-      this._id = Math.floor(Math.random() * Math.pow(2, 15) + 10);
+      this._id = await newRuntimeTableId();
       let idxs = this.data.map((_, i) => new Field(i));
 
-      Gates.addRuntimeTableConfig(this.id, idxs);
+      //Gates.addRuntimeTableConfig(this.id, idxs);
       // TODO: add the data to the runtime table
     }
 
@@ -111,7 +129,7 @@ function DynamicArray<T extends ToFieldable>(
 
     /**
      * In-circuit assertion that the given index is within the bounds of the
-     * dynamic array.
+     * array list.
      *
      * @param index
      */
@@ -146,7 +164,7 @@ function DynamicArray<T extends ToFieldable>(
      *
      * NOTE: if the index is out of bounds, the circuit will fail.
      */
-    public get(index: Field): Field {
+    public get(index: Field): T {
       let mask = this.mask(index);
 
       // implemented as quin selector for now
@@ -154,7 +172,12 @@ function DynamicArray<T extends ToFieldable>(
 
       let acc = Null();
       for (let i = 0; i < this.capacity(); i++) {
-        acc = acc.add(mask[i].toField().mul(this.data[i]));
+        acc = Value(
+          type
+            .toValue(acc)
+            .add(mask[i].toField().mul(type.toValue(this.data[i])))
+        );
+        // acc = acc.add(mask[i].toField().mul(this.data[i]));
       }
 
       return acc;
@@ -169,7 +192,7 @@ function DynamicArray<T extends ToFieldable>(
      *
      * NOTE: if the index is out of bounds, the circuit will fail.
      */
-    public set(index: Field, value: Field): void {
+    public set(index: Field, value: T): void {
       let mask = this.mask(index);
 
       // copy the array in a new runtime table updating the value at the index
@@ -178,7 +201,15 @@ function DynamicArray<T extends ToFieldable>(
       // use value if index matches, otherwise use the existing value
       let array = [];
       for (let i = 0; i < this.capacity(); i++) {
-        array.push(Provable.if(mask[i], value, this.data[i]));
+        array.push(
+          Value(
+            Provable.if(
+              mask[i],
+              type.toValue(value),
+              type.toValue(this.data[i])
+            )
+          )
+        );
       }
       this._data = array;
 
@@ -186,7 +217,7 @@ function DynamicArray<T extends ToFieldable>(
     }
 
     /**
-     * Whether the dynamic array includes the given value, in-circuit.
+     * Whether the array list includes the given value, in-circuit.
      * Complexity: O(n)
      *
      * @param value
@@ -196,43 +227,47 @@ function DynamicArray<T extends ToFieldable>(
       let result = Null();
       // TODO: halt earlier if the value is found
       for (let i = 0; i < this.capacity(); i++) {
-        result = result.add(value.equals(this.data[i]).toField());
+        result = Value(
+          type
+            .toValue(result)
+            .add(value.equals(type.toValue(this.data[i])).toField())
+        );
       }
-      return result.equals(new Field(0)).not();
+      return type.toValue(result).equals(new Field(0)).not();
     }
 
     /**
-     * Copies the content of the current dynamic array into a new one, asserting
+     * Copies the content of the current array list into a new one, asserting
      * that the two arrays are equal.
      *
      */
-    public copy(): _DynamicArray {
-      let array = new _DynamicArray(this.data);
+    /*public copy(): _ArrayList {
+      let array = new _ArrayList(this.data);
       for (let i = 0; i < this.capacity(); i++) {
         this.data[i].assertEquals(array.data[i]);
       }
       return array;
-    }
+    }*/
 
     /**
-     * Increments the length of the dynamic array by the given amount.
+     * Increments the length of the array list by the given amount.
      * The resulting length must be less than or equal to the capacity.
      *
      * @param n
      */
-    public incrementLength(n: Field): void {
+    /* public incrementLength(n: Field): void {
       const newLength = this.length.add(n);
       newLength.assertLessThanOrEqual(new Field(this.capacity()));
       this._length = newLength;
-    }
+    }*/
 
     /**
-     * Decrements the length of the dynamic array by the given amount.
+     * Decrements the length of the array list by the given amount.
      * The resulting length must be greater than or equal to zero.
      *
      * @param n
      */
-    public decrementLength(n: Field): void {
+    /*public decrementLength(n: Field): void {
       let newLength = this.length.sub(n);
       // Not using boolean values here for efficiency of the circuit
       let underflow = new Field(1);
@@ -242,15 +277,15 @@ function DynamicArray<T extends ToFieldable>(
       // if newLength is in the range [0, capacity] then it did not underflow
       underflow.equals(new Field(0));
       this._length = newLength;
-    }
+    }*/
 
     /**
-     * Pops the last `n` elements from the dynamic array, decreasing the length.
+     * Pops the last `n` elements from the array list, decreasing the length.
      * The popped positions are set to null.
      *
      * @param n
      */
-    public pop(n: Field): void {
+    /*public pop(n: Field): void {
       let newLength = this.length.sub(n);
 
       for (let i = 0; i <= this.capacity(); i++) {
@@ -262,15 +297,15 @@ function DynamicArray<T extends ToFieldable>(
       }
 
       this.decrementLength(n);
-    }
+    }*/
 
     /**
-     * Pushes a value to the end of the dynamic array, increasing the length by
+     * Pushes a value to the end of the array list, increasing the length by
      * one.
      *
      * @param value
      */
-    public push(value: Field): void {
+    /*public push(value: Field): void {
       this.incrementLength(new Field(1));
 
       let mask = this.mask(this.length);
@@ -278,11 +313,11 @@ function DynamicArray<T extends ToFieldable>(
       for (let i = 0; i <= this.capacity(); i++) {
         this.data[i] = Provable.if(mask[i], value, this.data[i]);
       }
-    }
+    }*/
 
     /**
      *
-     * @returns true or false depending on whether the dynamic array is empty
+     * @returns true or false depending on whether the array list is empty
      */
     public empty(): Bool {
       return this.length.equals(new Field(0));

@@ -38,7 +38,6 @@ export {
   MemoizationContext,
   memoizeWitness,
   getBlindingValue,
-  ToFieldable,
 };
 
 /**
