@@ -1,3 +1,4 @@
+import { createField } from '../core/field-constructor.js';
 import type { Field } from '../field.js';
 
 export {
@@ -128,5 +129,15 @@ const ProvableType = {
         ? type.provable
         : type
     ) as ToProvable<A>;
+  },
+  /**
+   * Create some value of type `T` from its provable type description.
+   */
+  synthesize<T>(type: ProvableType<T>): T {
+    let provable = ProvableType.get(type);
+    return provable.fromFields(
+      Array(provable.sizeInFields()).fill(createField(0)),
+      provable.toAuxiliary()
+    );
   },
 };

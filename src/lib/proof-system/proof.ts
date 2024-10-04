@@ -12,7 +12,6 @@ import type { Provable } from '../provable/provable.js';
 import { assert } from '../util/assert.js';
 import { Unconstrained } from '../provable/types/unconstrained.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
-import { emptyValue } from '../provable/types/util.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof };
@@ -436,7 +435,7 @@ function extractProofsFromArray(value: unknown[]) {
 }
 
 function extractProofTypes(type: ProvableType) {
-  let value = emptyValue(type);
+  let value = ProvableType.synthesize(type);
   let proofValues = extractProofs(value);
   return proofValues.map((proof) => proof.constructor as typeof ProofBase);
 }

@@ -54,7 +54,7 @@ import {
   featureFlagsFromGates,
   featureFlagsToMlOption,
 } from './feature-flags.js';
-import { emptyValue, emptyWitness } from '../provable/types/util.js';
+import { emptyWitness } from '../provable/types/util.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 
 // public API
@@ -78,7 +78,6 @@ export {
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
-  synthesizeMethodArguments,
   methodArgumentsToConstant,
   methodArgumentTypesAndValues,
   Prover,
@@ -679,7 +678,7 @@ function analyzeMethod(
   method: (...args: any) => unknown
 ) {
   return Provable.constraintSystem(() => {
-    let args = synthesizeMethodArguments(methodIntf, true);
+    let args = methodIntf.args.map(emptyWitness);
     let publicInput = emptyWitness(publicInputType);
     // note: returning the method result here makes this handle async methods
     if (publicInputType === Undefined || publicInputType === Void)
@@ -724,7 +723,7 @@ function picklesRuleFromFunction(
       let type = args[i];
       try {
         let value = Provable.witness(type, () => {
-          return argsWithoutPublicInput?.[i] ?? emptyValue(type);
+          return argsWithoutPublicInput?.[i] ?? ProvableType.synthesize(type);
         });
         finalArgs[i] = value;
 
@@ -835,11 +834,6 @@ function picklesRuleFromFunction(
     featureFlags,
     proofsToVerify: MlArray.to(proofsToVerify),
   };
-}
-
-function synthesizeMethodArguments(intf: MethodInterface, asVariables = false) {
-  let empty = asVariables ? emptyWitness : emptyValue;
-  return intf.args.map((type) => empty(type));
 }
 
 function methodArgumentsToConstant(intf: MethodInterface, args: any[]) {
