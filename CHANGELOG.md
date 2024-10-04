@@ -17,6 +17,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
 
+### Changed
+
+- Make `Proof` a normal provable type, that can be witnessed and composed into Structs https://github.com/o1-labs/o1js/pull/1847, https://github.com/o1-labs/o1js/pull/1851
+  - ZkProgram and SmartContract now also support private inputs that are not proofs themselves, but contain proofs nested within a Struct or array
+  - Only `SelfProof` can still not be nested because it needs special treatment
+
 ## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
 
 ### Added
