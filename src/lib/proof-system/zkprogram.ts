@@ -1,9 +1,8 @@
 import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
 import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
-import { Field, Bool } from '../provable/wrapped.js';
+import { Field } from '../provable/wrapped.js';
 import {
-  FlexibleProvable,
   FlexibleProvablePure,
   InferProvable,
   ProvablePureExtended,
@@ -12,7 +11,6 @@ import {
 import {
   InferProvableType,
   provable,
-  provablePure,
 } from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
@@ -525,15 +523,6 @@ function isProvable(type: unknown): type is ProvableType<unknown> {
     ['toFields', 'fromFields', 'sizeInFields', 'toAuxiliary'].every(
       (s) => s in type_
     )
-  );
-}
-
-function isProofType(type: unknown): type is typeof ProofBase {
-  // the third case covers subclasses
-  return (
-    type === Proof ||
-    type === DynamicProof ||
-    (typeof type === 'function' && type.prototype instanceof ProofBase)
   );
 }
 
