@@ -159,7 +159,7 @@ function Struct<
   } {
   class Struct_ {
     static type = provable<A>(type);
-    static _isStruct: true;
+    static _isStruct: true = true;
 
     constructor(value: T) {
       Object.assign(this, value);

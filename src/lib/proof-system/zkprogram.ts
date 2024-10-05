@@ -40,11 +40,21 @@ import {
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { Subclass, Tuple } from '../util/types.js';
-import { dummyProof, DynamicProof, Proof, ProofBase } from './proof.js';
+import {
+  dummyProof,
+  DynamicProof,
+  extractProofs,
+  extractProofTypes,
+  Proof,
+  ProofBase,
+  ProofValue,
+} from './proof.js';
 import {
   featureFlagsFromGates,
   featureFlagsToMlOption,
 } from './feature-flags.js';
+import { emptyWitness } from '../provable/types/util.js';
+import { InferValue } from '../../bindings/lib/provable-generic.js';
 
 // public API
 export {
@@ -67,11 +77,6 @@ export {
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
-  emptyValue,
-  emptyWitness,
-  synthesizeMethodArguments,
-  methodArgumentsToConstant,
-  methodArgumentTypesAndValues,
   Prover,
   dummyBase64Proof,
 };
@@ -322,9 +327,7 @@ function ZkProgram<
       }
 
       if (!doProving) {
-        let previousProofs = MlArray.to(
-          getPreviousProofsForProver(args, methodIntfs[i])
-        );
+        let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
         let publicOutput = await (methods[key].method as any)(
           publicInput,
@@ -342,9 +345,7 @@ function ZkProgram<
         );
       }
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
-      let previousProofs = MlArray.to(
-        getPreviousProofsForProver(args, methodIntfs[i])
-      );
+      let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
@@ -448,8 +449,6 @@ type ZkProgram<
   }
 > = ReturnType<typeof ZkProgram<S, T>>;
 
-let i = 0;
-
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput
@@ -478,25 +477,25 @@ function sortMethodArguments(
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
   // replace SelfProof with the actual selfProof
+  // TODO this does not handle SelfProof nested in inputs
   privateInputs = privateInputs.map((input) =>
     input === SelfProof ? selfProof : input
   );
 
-  // check if all arguments are provable, and record which are proofs
-  let args: { type: ProvableType<unknown>; isProof: boolean }[] =
-    privateInputs.map((input) => {
-      if (!isProvable(input)) {
-        throw Error(
-          `Argument ${
-            i + 1
-          } of method ${methodName} is not a provable type: ${input}`
-        );
-      }
-      return { type: input, isProof: isProof(input) };
-    });
+  // check if all arguments are provable
+  let args: ProvableType<unknown>[] = privateInputs.map((input, i) => {
+    if (isProvable(input)) return input;
 
-  // store proofs separately as well
-  let proofs: Subclass<typeof ProofBase>[] = privateInputs.filter(isProof);
+    throw Error(
+      `Argument ${
+        i + 1
+      } of method ${methodName} is not a provable type: ${input}`
+    );
+  });
+
+  // extract proofs to count them and for sanity checks
+  let proofs = args.flatMap(extractProofTypes);
+  let numberOfProofs = proofs.length;
 
   // don't allow base classes for proofs
   proofs.forEach((proof) => {
@@ -509,13 +508,13 @@ function sortMethodArguments(
   });
 
   // don't allow more than 2 proofs
-  if (proofs.length > 2) {
+  if (numberOfProofs > 2) {
     throw Error(
       `${programName}.${methodName}() has more than two proof arguments, which is not supported.\n` +
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, args, proofs };
+  return { methodName, args, numberOfProofs };
 }
 
 function isProvable(type: unknown): type is ProvableType<unknown> {
@@ -529,7 +528,7 @@ function isProvable(type: unknown): type is ProvableType<unknown> {
   );
 }
 
-function isProof(type: unknown): type is typeof ProofBase {
+function isProofType(type: unknown): type is typeof ProofBase {
   // the third case covers subclasses
   return (
     type === Proof ||
@@ -544,21 +543,14 @@ function isDynamicProof(
   return typeof type === 'function' && type.prototype instanceof DynamicProof;
 }
 
-function getPreviousProofsForProver(
-  methodArgs: any[],
-  { args }: MethodInterface
-) {
-  let proofs: ProofBase[] = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i].isProof) proofs.push(methodArgs[i].proof);
-  }
-  return proofs;
+function getPreviousProofsForProver(methodArgs: any[]) {
+  return methodArgs.flatMap(extractProofs).map((proof) => proof.proof);
 }
 
 type MethodInterface = {
   methodName: string;
-  args: { type: ProvableType<unknown>; isProof: boolean }[];
-  proofs: Subclass<typeof ProofBase>[];
+  args: ProvableType<unknown>[];
+  numberOfProofs: number;
   returnType?: Provable<any>;
 };
 
@@ -692,7 +684,7 @@ function analyzeMethod(
   method: (...args: any) => unknown
 ) {
   return Provable.constraintSystem(() => {
-    let args = synthesizeMethodArguments(methodIntf, true);
+    let args = methodIntf.args.map(emptyWitness);
     let publicInput = emptyWitness(publicInputType);
     // note: returning the method result here makes this handle async methods
     if (publicInputType === Undefined || publicInputType === Void)
@@ -719,7 +711,7 @@ function picklesRuleFromFunction(
   publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
-  { methodName, args, proofs: proofArgs }: MethodInterface,
+  { methodName, args }: MethodInterface,
   gates: Gate[]
 ): Pickles.Rule {
   async function main(
@@ -729,21 +721,21 @@ function picklesRuleFromFunction(
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
     let proofs: {
-      proofInstance: ProofBase<any, any>;
-      classReference: Subclass<typeof ProofBase<any, any>>;
+      Proof: Subclass<typeof ProofBase<any, any>>;
+      proof: ProofBase<any, any>;
     }[] = [];
     let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < args.length; i++) {
-      let { type, isProof } = args[i];
+      let type = args[i];
       try {
         let value = Provable.witness(type, () => {
-          return argsWithoutPublicInput?.[i] ?? emptyValue(type);
+          return argsWithoutPublicInput?.[i] ?? ProvableType.synthesize(type);
         });
         finalArgs[i] = value;
-        if (isProof) {
-          let Proof = type as Subclass<typeof ProofBase<any, any>>;
-          let proof = value as ProofBase<any, any>;
-          proofs.push({ proofInstance: proof, classReference: Proof });
+
+        for (let proof of extractProofs(value)) {
+          let Proof = proof.constructor as Subclass<typeof ProofBase<any, any>>;
+          proofs.push({ Proof, proof });
           let fields = proof.publicFields();
           let input = MlFieldArray.to(fields.input);
           let output = MlFieldArray.to(fields.output);
@@ -762,13 +754,13 @@ function picklesRuleFromFunction(
       result = await func(input, ...finalArgs);
     }
 
-    proofs.forEach(({ proofInstance, classReference }) => {
-      if (!(proofInstance instanceof DynamicProof)) return;
+    proofs.forEach(({ Proof, proof }) => {
+      if (!(proof instanceof DynamicProof)) return;
 
       // Initialize side-loaded verification key
-      const tag = classReference.tag();
+      const tag = Proof.tag();
       const computedTag = SideloadedTag.get(tag.name);
-      const vk = proofInstance.usedVerificationKey;
+      const vk = proof.usedVerificationKey;
 
       if (vk === undefined) {
         throw new Error(
@@ -797,18 +789,19 @@ function picklesRuleFromFunction(
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
       shouldVerify: MlArray.to(
-        proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
+        proofs.map((proof) => proof.proof.shouldVerify.toField().value)
       ),
     };
   }
 
-  if (proofArgs.length > 2) {
+  let proofs: Subclass<typeof ProofBase>[] = args.flatMap(extractProofTypes);
+  if (proofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  let proofsToVerify = proofArgs.map((Proof) => {
+  let proofsToVerify = proofs.map((Proof) => {
     let tag = Proof.tag();
     if (tag === proofSystemTag) return { isSelf: true as const };
     else if (isDynamicProof(Proof)) {
@@ -849,38 +842,9 @@ function picklesRuleFromFunction(
   };
 }
 
-function synthesizeMethodArguments(intf: MethodInterface, asVariables = false) {
-  let empty = asVariables ? emptyWitness : emptyValue;
-  return intf.args.map(({ type }) => empty(type));
-}
-
-function methodArgumentsToConstant(intf: MethodInterface, args: any[]) {
-  return intf.args.map(({ type }, i) => Provable.toConstant(type, args[i]));
-}
-
-type TypeAndValue<T> = { type: Provable<T>; value: T };
-
-function methodArgumentTypesAndValues(intf: MethodInterface, args: unknown[]) {
-  return intf.args.map(({ type }, i): TypeAndValue<any> => {
-    return { type: ProvableType.get(type), value: args[i] };
-  });
-}
-
-function emptyValue<T>(type: ProvableType<T>) {
-  let provable = ProvableType.get(type);
-  return provable.fromFields(
-    Array(provable.sizeInFields()).fill(Field(0)),
-    provable.toAuxiliary()
-  );
-}
-
-function emptyWitness<T>(type: ProvableType<T>) {
-  return Provable.witness(type, () => emptyValue(type));
-}
-
 function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
   return methodIntfs.reduce(
-    (acc, { proofs }) => Math.max(acc, proofs.length),
+    (acc, { numberOfProofs }) => Math.max(acc, numberOfProofs),
     0
   ) as any as 0 | 1 | 2;
 }
@@ -903,10 +867,16 @@ ZkProgram.Proof = function <
   name: string;
   publicInputType: PublicInputType;
   publicOutputType: PublicOutputType;
-}) {
-  type PublicInput = InferProvable<PublicInputType>;
-  type PublicOutput = InferProvable<PublicOutputType>;
-  return class ZkProgramProof extends Proof<PublicInput, PublicOutput> {
+}): typeof Proof<
+  InferProvable<PublicInputType>,
+  InferProvable<PublicOutputType>
+> & {
+  provable: Provable<
+    Proof<InferProvable<PublicInputType>, InferProvable<PublicOutputType>>,
+    ProofValue<InferValue<PublicInputType>, InferValue<PublicOutputType>>
+  >;
+} {
+  return class ZkProgramProof extends Proof<any, any> {
     static publicInputType = program.publicInputType;
     static publicOutputType = program.publicOutputType;
     static tag = () => program;

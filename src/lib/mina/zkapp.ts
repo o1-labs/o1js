@@ -46,8 +46,6 @@ import {
   compileProgram,
   Empty,
   getPreviousProofsForProver,
-  methodArgumentsToConstant,
-  methodArgumentTypesAndValues,
   MethodInterface,
   sortMethodArguments,
   VerificationKey,
@@ -157,7 +155,7 @@ function method<K extends string, T extends SmartContract>(
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
     ZkappClass._maxProofsVerified,
-    methodEntry.proofs.length
+    methodEntry.numberOfProofs
   ) as 0 | 1 | 2;
   let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
@@ -314,7 +312,7 @@ function wrapMethod(
               method.apply(
                 this,
                 actualArgs.map((a, i) => {
-                  return Provable.witness(methodIntf.args[i].type, () => a);
+                  return Provable.witness(methodIntf.args[i], () => a);
                 })
               ),
               noPromiseError
@@ -342,10 +340,7 @@ function wrapMethod(
                 methodName: methodIntf.methodName,
                 args: clonedArgs,
                 // proofs actually don't have to be cloned
-                previousProofs: getPreviousProofsForProver(
-                  actualArgs,
-                  methodIntf
-                ),
+                previousProofs: getPreviousProofsForProver(actualArgs),
                 ZkappClass,
                 memoized,
                 blindingValue,
@@ -387,7 +382,9 @@ function wrapMethod(
       let blindingValue = getBlindingValue();
 
       let runCalledContract = async () => {
-        let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+        let constantArgs = methodIntf.args.map((type, i) =>
+          Provable.toConstant(type, actualArgs[i])
+        );
         let constantBlindingValue = blindingValue.toConstant();
         let accountUpdate = this.self;
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
@@ -434,10 +431,7 @@ function wrapMethod(
             {
               methodName: methodIntf.methodName,
               args: constantArgs,
-              previousProofs: getPreviousProofsForProver(
-                constantArgs,
-                methodIntf
-              ),
+              previousProofs: getPreviousProofsForProver(constantArgs),
               ZkappClass,
               memoized,
               blindingValue: constantBlindingValue,
@@ -527,7 +521,9 @@ function computeCallData(
   blindingValue: Field
 ) {
   let { returnType, methodName } = methodIntf;
-  let args = methodArgumentTypesAndValues(methodIntf, argumentValues);
+  let args = methodIntf.args.map((type, i) => {
+    return { type: ProvableType.get(type), value: argumentValues[i] };
+  });
 
   let input: HashInput = { fields: [], packed: [] };
   for (let { type, value } of args) {

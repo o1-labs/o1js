@@ -10,12 +10,14 @@ import type { VerificationKey, JsonProof } from './zkprogram.js';
 import { Subclass } from '../util/types.js';
 import type { Provable } from '../provable/provable.js';
 import { assert } from '../util/assert.js';
+import { Unconstrained } from '../provable/types/unconstrained.js';
+import { ProvableType } from '../provable/types/provable-intf.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof };
 
 // internal API
-export { dummyProof };
+export { dummyProof, extractProofs, extractProofTypes, type ProofValue };
 
 type MaxProofs = 0 | 1 | 2;
 
@@ -61,7 +63,7 @@ class ProofBase<Input = any, Output = any> {
     this.maxProofsVerified = maxProofsVerified;
   }
 
-  static get provable() {
+  static get provable(): Provable<any> {
     if (
       this.publicInputType === undefined ||
       this.publicOutputType === undefined
@@ -71,7 +73,7 @@ class ProofBase<Input = any, Output = any> {
           `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
       );
     }
-    return provableProof<any, any, any>(
+    return provableProof(
       this,
       this.publicInputType,
       this.publicOutputType,
@@ -158,6 +160,10 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
       proof: dummyRaw,
       maxProofsVerified,
     });
+  }
+
+  static get provable(): ProvableProof<Proof<any, any>> {
+    return super.provable as any;
   }
 }
 
@@ -299,6 +305,10 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
       proof: proof.proof,
     }) as InstanceType<S>;
   }
+
+  static get provable(): ProvableProof<DynamicProof<any, any>> {
+    return super.provable as any;
+  }
 }
 
 async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
@@ -308,10 +318,23 @@ async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   );
 }
 
+type ProofValue<Input, Output> = {
+  publicInput: Input;
+  publicOutput: Output;
+  proof: Pickles.Proof;
+  maxProofsVerified: 0 | 1 | 2;
+};
+
+type ProvableProof<
+  Proof extends ProofBase,
+  InputV = any,
+  OutputV = any
+> = Provable<Proof, ProofValue<InputV, OutputV>>;
+
 function provableProof<
   Class extends Subclass<typeof ProofBase<Input, Output>>,
-  Input,
-  Output,
+  Input = any,
+  Output = any,
   InputV = any,
   OutputV = any
 >(
@@ -319,15 +342,7 @@ function provableProof<
   input: Provable<Input>,
   output: Provable<Output>,
   defaultMaxProofsVerified?: MaxProofs
-): Provable<
-  ProofBase<Input, Output>,
-  {
-    publicInput: InputV;
-    publicOutput: OutputV;
-    proof: unknown;
-    maxProofsVerified: MaxProofs;
-  }
-> {
+): Provable<ProofBase<Input, Output>, ProofValue<InputV, OutputV>> {
   return {
     sizeInFields() {
       return input.sizeInFields() + output.sizeInFields();
@@ -385,4 +400,31 @@ function provableProof<
       });
     },
   };
+}
+
+function extractProofs(value: unknown): ProofBase[] {
+  if (value instanceof ProofBase) {
+    return [value];
+  }
+  if (value instanceof Unconstrained) return [];
+  if (value instanceof Field) return [];
+  if (value instanceof Bool) return [];
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractProofs(item));
+  }
+
+  if (value === null) return [];
+  if (typeof value === 'object') {
+    return extractProofs(Object.values(value));
+  }
+
+  // functions, primitives
+  return [];
+}
+
+function extractProofTypes(type: ProvableType) {
+  let value = ProvableType.synthesize(type);
+  let proofValues = extractProofs(value);
+  return proofValues.map((proof) => proof.constructor as typeof ProofBase);
 }
