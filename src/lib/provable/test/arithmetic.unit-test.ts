@@ -3,12 +3,16 @@ import {
   equivalentProvable as equivalent,
   equivalentAsync,
   field,
+  fieldWithRng,
   record,
 } from '../../testing/equivalent.js';
 import { Field } from '../wrapped.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { provable } from '../types/provable-derivers.js';
 import { assert } from '../gadgets/common.js';
+import { Random } from '../../testing/random.js';
+
+let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
 let Arithmetic = ZkProgram({
   name: 'arithmetic',
@@ -61,7 +65,7 @@ equivalent({
 );
 
 equivalent({
-  from: [field],
+  from: [uint(64)],
   to: divModOutput,
 })(
   (x) => {
