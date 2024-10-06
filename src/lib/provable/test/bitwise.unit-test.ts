@@ -1,6 +1,7 @@
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import {
   equivalentProvable as equivalent,
+  equivalentAsync,
   field,
   fieldWithRng,
 } from '../../testing/equivalent.js';
@@ -18,6 +19,13 @@ import {
   withoutGenerics,
 } from '../../testing/constraint-system.js';
 import { GateType } from '../../../snarky.js';
+
+const maybeField = {
+  ...field,
+  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
+    mod(x, Field.ORDER)
+  ),
+};
 
 let uint = (length: number) => fieldWithRng(Random.biguint(length));
 
@@ -140,6 +148,28 @@ await Bitwise.compile();
     (x) => Gadgets.leftShift32(x, 12)
   );
 });
+
+const runs = 2;
+
+await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs })(
+  (x, y) => {
+    return x ^ y;
+  },
+  async (x, y) => {
+    let proof = await Bitwise.xor(x, y);
+    return proof.publicOutput;
+  }
+);
+
+await equivalentAsync({ from: [maybeField], to: field }, { runs })(
+  (x) => {
+    return Fp.not(x, 240);
+  },
+  async (x) => {
+    let proof = await Bitwise.notUnchecked(x);
+    return proof.publicOutput;
+  }
+);
 
 // check that gate chains stay intact
 
