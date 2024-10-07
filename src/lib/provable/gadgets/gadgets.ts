@@ -879,7 +879,7 @@ const Gadgets = {
   divMod32,
 
   /**
-   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^33) and returns the result modulo 2^32.
+   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^32) and returns the result modulo 2^32.
    *
    * Asserts that the result is in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
    *
@@ -916,7 +916,7 @@ const Gadgets = {
   divMod64,
 
   /**
-   * Addition modulo 2^64. The operation adds two {@link Field} elements in the range [0, 2^65) and returns the result modulo 2^64.
+   * Addition modulo 2^64. The operation adds two {@link Field} elements in the range [0, 2^64) and returns the result modulo 2^64.
    *
    * Asserts that the result is in the range [0, 2^64) using {@link Gadgets.rangeCheck64}.
    *
