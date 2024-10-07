@@ -5,6 +5,7 @@ import { Bytes } from '../wrapped-classes.js';
 import { Gadgets } from './gadgets.js';
 import { assert } from '../../util/errors.js';
 import { Provable } from '../provable.js';
+import { wordToBytes } from './bit-slices.js';
 
 export { BLAKE2B };
 
@@ -26,7 +27,7 @@ export { BLAKE2B };
 
 type State = {
   h: UInt64[];
-  t: UInt64[];
+  t: [bigint, bigint];
   buf: UInt8[];
   buflen: number;
   outlen: number;
@@ -127,7 +128,7 @@ function G(
 function compress(
   state: {
     h: UInt64[];
-    t: UInt64[];
+    t: [bigint, bigint];
     buf: UInt8[];
     buflen: number;
     outlen: number;
@@ -137,8 +138,8 @@ function compress(
   const { h, t, buf } = state;
   const v = h.concat(BLAKE2B.IV); // initalize local work vector. First half from state and second half from IV.
 
-  v[12] = v[12].xor(t[0]); // low word of the offset
-  v[13] = v[13].xor(t[1]); // high word of the offset
+  v[12] = v[12].xor(UInt64.from(t[0])); // low word of the offset
+  v[13] = v[13].xor(UInt64.from(t[1])); // high word of the offset
 
   if (last) {
     // last block flag set ?
@@ -157,7 +158,8 @@ function compress(
           .add(buf[i * 8 + 4].value.mul(1n << 32n))
           .add(buf[i * 8 + 5].value.mul(1n << 40n))
           .add(buf[i * 8 + 6].value.mul(1n << 48n))
-          .add(buf[i * 8 + 7].value.mul(1n << 56n)).seal()
+          .add(buf[i * 8 + 7].value.mul(1n << 56n))
+          .seal()
       )
     );
   }
@@ -191,7 +193,7 @@ function compress(
  */
 function initialize(outlen: number): {
   h: UInt64[];
-  t: UInt64[];
+  t: [bigint, bigint];
   buf: UInt8[];
   buflen: number;
   outlen: number;
@@ -201,7 +203,7 @@ function initialize(outlen: number): {
 
   return {
     h,
-    t: [UInt64.zero, UInt64.zero],
+    t: [0n, 0n],
     buf: [],
     buflen: 0,
     outlen,
@@ -217,7 +219,7 @@ function initialize(outlen: number): {
 function update(
   state: {
     h: UInt64[];
-    t: UInt64[];
+    t: [bigint, bigint];
     buf: UInt8[];
     buflen: number;
     outlen: number;
@@ -227,10 +229,12 @@ function update(
   for (let i = 0; i < input.length; i++) {
     if (state.buflen === 128) {
       // buffer full ?
-      state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen)); // add counters
-      if (state.t[0].toBigInt() < state.buflen) {
+      state.t[0] = UInt64.from(state.t[0])
+        .addMod64(UInt64.from(state.buflen))
+        .toBigInt(); // add counters
+      if (state.t[0] < state.buflen) {
         // carry overflow ?
-        state.t[1] = state.t[1].addMod64(UInt64.one); // high word
+        state.t[1] = UInt64.from(state.t[1]).addMod64(UInt64.one).toBigInt(); // high word
       }
       state = compress(state, false); // compress (not last)
       state.buflen = 0; // counter to zero
@@ -247,36 +251,27 @@ function update(
  */
 function final(state: {
   h: UInt64[];
-  t: UInt64[];
+  t: [bigint, bigint];
   buf: UInt8[];
   buflen: number;
   outlen: number;
 }): UInt8[] {
-  state.t[0] = state.t[0].addMod64(UInt64.from(state.buflen)); // mark last block offset
-  if (state.t[0].toBigInt() < state.buflen) {
+  state.t[0] = UInt64.from(state.t[0])
+    .addMod64(UInt64.from(state.buflen))
+    .toBigInt(); // add counters
+  if (state.t[0] < state.buflen) {
     // carry overflow ?
-    state.t[1] = state.t[1].addMod64(UInt64.one); // high word
+    state.t[1] = UInt64.from(state.t[1]).addMod64(UInt64.one).toBigInt(); // high word
   }
-  /*
-  state.t[1] = state.t[1].add(
-    Provable.if(
-      state.t[0].lessThan(UInt64.from(state.buflen)),
-      UInt64.one,
-      UInt64.zero
-    )
-  );
-*/
+
   while (state.buflen < 128) {
     state.buf[state.buflen++] = UInt8.from(0); // fill up with zeroes
   }
   compress(state, true);
 
   // little endian convert and store
-  const out: UInt8[] = [];
-  for (let i = 0; i < state.outlen; i++) {
-    out[i] = UInt8.from(
-      state.h[i >> 3].rightShift(8 * (i & 7)).and(UInt64.from(0xff))
-    );
-  }
+  const out: UInt8[] = state.h
+    .slice(0, state.outlen / 8)
+    .flatMap((x) => wordToBytes(x.value));
   return out;
 }
