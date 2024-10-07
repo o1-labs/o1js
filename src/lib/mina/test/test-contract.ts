@@ -196,7 +196,7 @@ async function runInstruction(
     if ('_type' in state) {
       let type = state._type;
       await assertionWithTrace(trace, async () => {
-        let actual = Option(type).toValue(await state.get());
+        let actual = Option(type).toValue(await state.get(/* TMP */null));
         assert.deepStrictEqual(actual, expected, label);
       });
     } else if ('_valueType' in state) {
