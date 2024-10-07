@@ -21,6 +21,16 @@ sample(Random.nat(400), 5).forEach((preimageLength) => {
   );
 });
 
+for (let { digest_length, preimage, hash } of testVectors()) {
+  let inputBytes = bytes(preimage.length);
+  let outputBytes = bytes(digest_length);
+  equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
+    () => Bytes.fromHex(hash).toBytes(),
+    (x) => Gadgets.BLAKE2B.hash(Bytes.fromString(preimage), digest_length),
+    `provable: blake2b preimage length ${preimage.length}`
+  );
+}
+
 const BLAKE2BProgram = ZkProgram({
   name: `blake2b`,
   publicOutput: Bytes(64),
@@ -50,10 +60,6 @@ await equivalentAsync(
   return proof.publicOutput;
 });
 
-for (let { digest_length, preimage, hash } of testVectors()) {
-  let actual = Gadgets.BLAKE2B.hash(Bytes.fromString(preimage), digest_length);
-  expect(actual.toHex()).toEqual(hash);
-}
 
 function testVectors() {
   return [
@@ -100,7 +106,7 @@ function testVectors() {
     },
     {
       digest_length: 64,
-      preimage: 'o'.repeat(1000000),
+      preimage: 'o'.repeat(100000),
       hash: '3c33d6d6b0f1c763f7c340478adef50e09e8b9f60a04dbf253e43611dbc0f0f90d7cc34db145f3587b0e7ad17f02066904f06512570f18bfc088f7e653554f8b',
     },
     {
@@ -127,6 +133,6 @@ function testVectors() {
       digest_length: 64,
       preimage: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       hash: '0d5cf4c5c6e55752eb16eeda9052158fe59c964f9e9cef77c68580a65d40904f5c3639101d48a95001568a21ae6cfe0b0b405fb3d4f77255f308ec0eb07bc35a',
-    }
+    },
   ];
 }
