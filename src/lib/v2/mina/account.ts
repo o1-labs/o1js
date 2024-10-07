@@ -8,4 +8,8 @@ export class Account<State extends StateLayout> {
     public accountId: AccountId,
     public verificationKeyHash: Field
   ) {}
+
+  // checkAndApplyUpdate(update: AccountUpdate) {
+
+  // }
 }

@@ -53,8 +53,8 @@ export class Permissions {
     this.setTiming = AuthorizationLevel.from(descr.setTiming);
   }
 
-  toJSON(p: Permissions): any {
-    return Permissions.toJSON(p);
+  toJSON(): any {
+    return Permissions.toJSON(this);
   }
 
   static defaults(): Permissions {

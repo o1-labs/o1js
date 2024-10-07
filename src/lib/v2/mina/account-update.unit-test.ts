@@ -87,10 +87,7 @@ const v1AccountUpdate: TypesV1.AccountUpdate = {
     tokenId: TokenId.MINA.value,
     callData: new Field(1000),
     callDepth: 2,
-    balanceChange: {
-      magnitude: new UInt64(100),
-      sgn: V1Sign.minusOne
-    },
+    balanceChange: Int64.create(new UInt64(100), V1Sign.minusOne),
     incrementNonce: new Bool(false),
     useFullCommitment: new Bool(true),
     implicitAccountCreationFee: new Bool(true),
@@ -323,7 +320,7 @@ const v2AccountUpdate: AccountUpdate.Authorized = new AccountUpdate.Authorized(
       accountId: new AccountId(publicKey, TokenId.MINA),
       verificationKeyHash: verificationKey.hash,
       callData: new Field(1000),
-      balanceChange: new Int64(new UInt64(100), Sign.minusOne),
+      balanceChange: Int64.create(new UInt64(100), Sign.minusOne),
       incrementNonce: new Bool(false),
       useFullCommitment: new Bool(true),
       implicitAccountCreationFee: new Bool(true),

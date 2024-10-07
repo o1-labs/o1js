@@ -2,6 +2,7 @@ import {
   AccountUpdateAuthorization,
   AccountUpdateAuthorizationEnvironment,
   AccountUpdateAuthorizationKind,
+  AccountUpdateAuthorizationKindIdentifier,
   AccountUpdateAuthorizationKindWithZkappContext
 } from './authorization.js';
 import {
@@ -21,16 +22,19 @@ import { Pickles } from '../../../snarky.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, UInt64 } from '../../provable/int.js';
-import { VerificationKey } from '../../proof-system/zkprogram.js';
+import { Proof, VerificationKey } from '../../proof-system/zkprogram.js';
 import { Poseidon, emptyHashWithPrefix, hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { HashInput } from '../../provable/types/provable-derivers.js';
 import { Provable } from '../../provable/types/provable-intf.js'
 import { mocks, prefixes } from '../../../bindings/crypto/constants.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
+import * as PoseidonBigint from '../../../mina-signer/src/poseidon-bigint.js';
 import { Signature, signFieldElement, zkAppBodyPrefix } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { Struct } from '../../provable/types/struct.js';
+
+import util from 'util';
 
 // TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
 // TODO: replay checks
@@ -172,13 +176,126 @@ export interface MayUseToken {
   inheritFromParent: Bool
 };
 
+export type AccountUpdateTreeDescription<RootDescription, Child> =
+  RootDescription & {
+    children?: AccountUpdateTree<Child>[]
+  };
+
+// TODO: CONSIDER -- merge this logic into AccountUpdate
+// export class AccountUpdateTree<AccountUpdateType> {
+export class AccountUpdateTree<Root, Child = Root> {
+  constructor(
+    public rootAccountUpdate: Root,
+    public children: AccountUpdateTree<Child, Child>[]
+  ) {}
+
+  static forEachNode<T>(
+    tree: AccountUpdateTree<T>,
+    depth: number,
+    f: (accountUpdate: T, depth: number) => void
+  ): void {
+    f(tree.rootAccountUpdate, depth);
+    tree.children.forEach((child) => AccountUpdateTree.forEachNode(child, depth+1, f));
+  }
+
+  static async map<A, B>(
+    tree: AccountUpdateTree<A>,
+    f: (accountUpdate: A) => Promise<B>
+  ): Promise<AccountUpdateTree<B>> {
+    const newAccountUpdate = await f(tree.rootAccountUpdate);
+    const newChildren = await AccountUpdateTree.mapForest(tree.children, f);
+    return new AccountUpdateTree(newAccountUpdate, newChildren);
+  }
+
+  static mapForest<A, B>(forest: AccountUpdateTree<A>[], f: (a: A) => Promise<B>): Promise<AccountUpdateTree<B>[]> {
+    return Promise.all(forest.map((tree) => AccountUpdateTree.map(tree, f)));
+  }
+
+  // TODO: I think this can be safely made polymorphic over the account update state, actions, and events representations
+  // TODO: Field, not bigint
+  static hash(tree: AccountUpdateTree<AccountUpdate>, networkId: NetworkId): bigint {
+    // TODO: is it ok to do this and ignore the toValue encodings entirely?
+    const accountUpdateFieldInput = tree.rootAccountUpdate.toInput();
+    const accountUpdateBigintInput = {
+      fields: accountUpdateFieldInput.fields?.map((f: Field) => f.toBigInt()),
+      packed: accountUpdateFieldInput.packed?.map(([f, n]: [Field, number]): [bigint, number] => [f.toBigInt(), n]),
+    }
+
+    // TODO: negotiate between this implementation and AccountUpdate#hash to figure out what is correct
+    const accountUpdateCommitment =
+      PoseidonBigint.hashWithPrefix(
+        zkAppBodyPrefix(networkId),
+        PoseidonBigint.packToFields(accountUpdateBigintInput)
+      );
+    const childrenCommitment = AccountUpdateTree.hashForest(networkId, tree.children);
+    return PoseidonBigint.hashWithPrefix(prefixes.accountUpdateNode, [
+      accountUpdateCommitment,
+      childrenCommitment
+    ]);
+  }
+
+  // TODO: Field, not bigint
+  static hashForest(networkId: NetworkId, forest: AccountUpdateTree<AccountUpdate>[]): bigint {
+    const consHash = (acc: bigint, tree: AccountUpdateTree<AccountUpdate>) =>
+      PoseidonBigint.hashWithPrefix(prefixes.accountUpdateCons, [AccountUpdateTree.hash(tree, networkId), acc]);
+    return [...forest].reverse().reduce(consHash, 0n);
+  }
+
+  static unrollForest<AccountUpdateType, Return>(forest: AccountUpdateTree<AccountUpdateType>[], f: (accountUpdate: AccountUpdateType, depth: number) => Return): Return[] {
+    const seq: Return[] = [];
+    forest.forEach((tree) => AccountUpdateTree.forEachNode(tree, 0, (accountUpdate, depth) => seq.push(f(accountUpdate, depth))));
+    return seq;
+  }
+
+  static sizeInFields(): number {
+    return AccountUpdate.sizeInFields();
+  }
+
+  static toFields(x: AccountUpdateTree<AccountUpdate>): Field[] {
+    return AccountUpdate.toFields(x.rootAccountUpdate);
+  }
+
+  static toAuxiliary(x?: AccountUpdateTree<AccountUpdate>): any[] {
+    return [
+      AccountUpdate.toAuxiliary(x?.rootAccountUpdate),
+      x?.children ?? []
+    ];
+  }
+
+  static fromFields(fields: Field[], aux: any[]): AccountUpdateTree<AccountUpdate> {
+    return new AccountUpdateTree(
+      AccountUpdate.fromFields(fields, aux[0]),
+      aux[1]
+    )
+  }
+
+  static toValue(x: AccountUpdateTree<AccountUpdate>): AccountUpdateTree<AccountUpdate> {
+    return x;
+  }
+
+  static fromValue(x: AccountUpdateTree<AccountUpdate>): AccountUpdateTree<AccountUpdate> {
+    return x;
+  }
+
+  static check(_x: AccountUpdateTree<AccountUpdate>): void {
+    // TODO
+  }
+
+  static from<RootDescription, Root, Child>(
+    descr: AccountUpdateTreeDescription<RootDescription, Child>,
+    createAccountUpdate: (descr: RootDescription) => Root
+  ): AccountUpdateTree<Root, Child> {
+    return new AccountUpdateTree(createAccountUpdate(descr), descr.children ?? [])
+  }
+}
+
 export interface ContextFreeAccountUpdateDescription<
   State extends StateLayout = 'GenericState',
   Event = Field[],
   Action = Field[]
 > {
   // TODO: accept identifiers for authorization kind
-  authorizationKind: AccountUpdateAuthorizationKind;
+  authorizationKind: AccountUpdateAuthorizationKindIdentifier | AccountUpdateAuthorizationKind;
   preconditions?: PreconditionsDescription<State> | Preconditions<State>;
   balanceChange?: Int64;
 	incrementNonce?: Bool;
@@ -239,9 +356,9 @@ export class ContextFreeAccountUpdate<
     }
 
     this.State = State;
-    this.authorizationKind = descr.authorizationKind;
+    this.authorizationKind = AccountUpdateAuthorizationKind.from(descr.authorizationKind);
     this.preconditions = mapUndefined(descr.preconditions, (x) => Preconditions.from(State, x)) ?? Preconditions.emptyPoly(State);
-    this.balanceChange = descr.balanceChange ?? new Int64(UInt64.zero);
+    this.balanceChange = descr.balanceChange ?? Int64.create(UInt64.zero);
     this.incrementNonce = descr.incrementNonce ?? new Bool(false);
     this.useFullCommitment = descr.useFullCommitment ?? new Bool(false);
     this.implicitAccountCreationFee = descr.implicitAccountCreationFee ?? new Bool(false);
@@ -301,10 +418,15 @@ export type AccountUpdateDescription<
   State extends StateLayout,
   Event = Field[],
   Action = Field[]
-> = ({update: ContextFreeAccountUpdate<State, Event, Action>} | ContextFreeAccountUpdateDescription<State, Event, Action>) & {
+> = (
+  {
+    update: ContextFreeAccountUpdate<State, Event, Action>,
+    proof?: Proof<undefined, AccountUpdateCommitment>,
+  } | ContextFreeAccountUpdateDescription<State, Event, Action>
+) & {
   accountId: AccountId;
-  verificationKeyHash: Field;
-	callData: Field;
+  verificationKeyHash?: Field;
+	callData?: Field;
 }
 
 export class AccountUpdate<
@@ -316,18 +438,32 @@ export class AccountUpdate<
   verificationKeyHash: Field;
 	callData: Field;
 
+  // TODO: this probable shouldn't live here, but somewhere else
+  proof: 'NoProofRequired' | 'ProofPending' | Proof<undefined, AccountUpdateCommitment>;
+  // TODO: circuit friendly representation (we really don't want to toBoolean() in the constructor here...)
+  // proof: {pending: true, isRequired: Bool} | Proof<undefined, AccountUpdateCommitment>;
+
   constructor(
     State: StateDefinition<State>,
     Event: DynamicProvable<Event>,
     Action: DynamicProvable<Action>,
     descr: AccountUpdateDescription<State, Event, Action>
   ) {
-    const updateDescr = 'update' in descr ? descr.update : descr;
-    super(State, Event, Action, updateDescr);
+    const superInput = 'update' in descr ? descr.update : descr;
+    super(State, Event, Action, superInput);
+
+    if(this.authorizationKind.isProved.toBoolean()) {
+      this.proof = 'proof' in descr && descr.proof !== undefined ? descr.proof : 'ProofPending';
+    } else {
+      if('proof' in descr && descr.proof !== undefined) {
+        throw new Error('proof was provided when constructing an AccountUpdate that does not require a proof');
+      }
+      this.proof = 'NoProofRequired';
+    }
 
     this.accountId = descr.accountId;
-    this.verificationKeyHash = descr.verificationKeyHash;
-    this.callData = descr.callData;
+    this.verificationKeyHash = descr.verificationKeyHash ?? new Field(mocks.dummyVerificationKeyHash);
+    this.callData = descr.callData ?? new Field(0);
   }
 
   get authorizationKindWithZkappContext(): AccountUpdateAuthorizationKindWithZkappContext {
@@ -366,26 +502,40 @@ export class AccountUpdate<
     return Bindings.Layout.AccountUpdateBody.toInput(this.toInternalRepr(0));
   }
 
-  commit(): AccountUpdateCommitment {
-    const commitment = Poseidon.hash(packToFields(this.toInput()));
-    // TODO NOW: should this go here or only in the tree?
-    // hashWithPrefix(zkAppBodyPrefix(networkId), fields)
+  commit(networkId: NetworkId): AccountUpdateCommitment {
+    const commitment = hashWithPrefix(
+      zkAppBodyPrefix(networkId),
+      packToFields(this.toInput())
+    );
+    // const commitment = Poseidon.hash(packToFields(this.toInput()));
     return new AccountUpdateCommitment(commitment);
   }
 
   async authorize(authEnv: AccountUpdateAuthorizationEnvironment): Promise<AccountUpdate.Authorized<State, Event, Action>> {
-    if(this.authorizationKind.isProved.toBoolean() && authEnv.proof === undefined) {
-      throw new Error(`a proof is required for authorization kind ${this.authorizationKind.identifier()}, but was not provided in the authorization environment`);
-    }
+    let proof = null;
+    let signature = null;
 
-    if(!this.authorizationKind.isProved.toBoolean() && authEnv.proof !== undefined) {
-      console.warn(`a proof was provided for authorization, but will not be used since the authorization kind is ${this.authorizationKind.identifier()}`);
+    switch(this.proof) {
+      case 'NoProofRequired':
+        if(this.authorizationKind.isProved.toBoolean()) {
+          throw new Error(`account update proof was marked as not required, but authorization kind was ${this.authorizationKind.identifier()}`);
+        } else {
+          break;
+        }
+      case 'ProofPending':
+        if(this.authorizationKind.isProved.toBoolean()) {
+          throw new Error(`account update proof is still pending; a proof must be generated and assigned to an account update before calling authorize`);
+        } else {
+          console.warn(`account update is marked to required a proof, but the authorization kind is ${this.authorizationKind.identifier()} (and the proof is still pending)`);
+          break;
+        }
+      default:
+        if(this.authorizationKind.isProved.toBoolean()) {
+          proof = Pickles.proofToBase64Transaction(this.proof.proof);
+        } else {
+          console.warn(`account update has a proof, but no proof is required by authorization kind ${this.authorizationKind.identifier()}, so it will not be included`);
+        }
     }
-
-    let auth: AccountUpdateAuthorization = {
-      proof: null,
-      signature: null
-    };
 
     if(this.authorizationKind.isSigned.toBoolean()) {
       let txnCommitment;
@@ -396,29 +546,81 @@ export class AccountUpdate<
         txnCommitment = authEnv.fullTransactionCommitment;
       } else {
         txnCommitment = authEnv.accountUpdateForestCommitment;
-      }
+     }
 
       const privateKey = await authEnv.getPrivateKey(this.accountId.publicKey);
 
-      const signature = signFieldElement(
+      const sig = signFieldElement(
         txnCommitment,
         privateKey.toBigInt(),
         authEnv.networkId
       );
-      auth.signature = Signature.toBase58(signature);
+      signature = Signature.toBase58(sig);
     }
 
-    if(this.authorizationKind.isProved.toBoolean()) {
-      auth.proof = Pickles.proofToBase64Transaction(authEnv.proof);
-    }
+    return new AccountUpdate.Authorized({ proof, signature }, this);
+  }
 
-    return new AccountUpdate.Authorized(auth, this);
+  static create(x: AccountUpdateDescription<'GenericState', Field[], Field[]>): AccountUpdate {
+    return new AccountUpdate('GenericState', GenericData, GenericData, x);
+  }
+
+  static fromInternalRepr(x: Bindings.Layout.AccountUpdateBody): AccountUpdate {
+    return new AccountUpdate('GenericState', GenericData, GenericData, {
+      accountId: new AccountId(x.publicKey, new TokenId(x.tokenId)),
+      verificationKeyHash: x.authorizationKind.verificationKeyHash,
+      authorizationKind: new AccountUpdateAuthorizationKind(x.authorizationKind),
+      callData: x.callData,
+      balanceChange: Int64.create(x.balanceChange.magnitude, x.balanceChange.sgn),
+      incrementNonce: x.incrementNonce,
+      useFullCommitment: x.useFullCommitment,
+      implicitAccountCreationFee: x.implicitAccountCreationFee,
+      mayUseToken: x.mayUseToken,
+      pushEvents: CommittedList.from(GenericData, EventsHashConfig(GenericData), x.events),
+      pushActions: CommittedList.from(GenericData, ActionsHashConfig(GenericData), x.actions),
+      preconditions: Preconditions.fromInternalRepr(x.preconditions),
+      setState: new GenericStateUpdates(x.update.appState.map(Update.fromOption)),
+      setDelegate: Update.fromOption(x.update.delegate),
+      setVerificationKey: Update.fromOption(x.update.verificationKey),
+      setPermissions: Update.fromOption(Option.map(x.update.permissions, Permissions.fromInternalRepr)),
+      setZkappUri: Update.fromOption(Option.map(x.update.zkappUri, (uri) => new ZkappUri(uri))),
+      setTokenSymbol: Update.fromOption(Option.map(x.update.tokenSymbol, (symbol) => new TokenSymbol(symbol))),
+      setTiming: Update.fromOption(Option.map(x.update.timing, (timing) => new AccountTiming(timing))),
+      setVotingFor: Update.fromOption(x.update.votingFor)
+    })
+  }
+
+  static sizeInFields(): number {
+    return Bindings.Layout.AccountUpdateBody.sizeInFields();
+  }
+
+  static toFields(x: AccountUpdate): Field[] {
+    return Bindings.Layout.AccountUpdateBody.toFields(x.toInternalRepr(0));
+  }
+
+  static toAuxiliary(x?: AccountUpdate): any[] {
+    return Bindings.Layout.AccountUpdateBody.toAuxiliary(x?.toInternalRepr(0));
+  }
+
+  static fromFields(fields: Field[], aux: any[]): AccountUpdate {
+    return AccountUpdate.fromInternalRepr(Bindings.Layout.AccountUpdateBody.fromFields(fields, aux));
+  }
+
+  static toValue(x: AccountUpdate): AccountUpdate {
+    return x;
+  }
+
+  static fromValue(x: AccountUpdate): AccountUpdate {
+    return x;
+  }
+
+  static check(_x: AccountUpdate): void {
+    // TODO
   }
 
   static empty(): AccountUpdate {
     return new AccountUpdate('GenericState', GenericData, GenericData, {
       accountId: AccountId.empty(),
-      verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
       callData: Field.empty(),
       update: ContextFreeAccountUpdate.empty()
     });
@@ -506,28 +708,7 @@ export namespace AccountUpdate {
           proof: x.authorization.proof as any !== false ? x.authorization.proof ?? null : null,
           signature: x.authorization.proof as any !== false ? x.authorization.signature ?? null : null
         },
-        new AccountUpdate('GenericState', GenericData, GenericData, {
-          accountId: new AccountId(x.body.publicKey, new TokenId(x.body.tokenId)),
-          verificationKeyHash: x.body.authorizationKind.verificationKeyHash,
-          authorizationKind: new AccountUpdateAuthorizationKind(x.body.authorizationKind),
-          callData: x.body.callData,
-          balanceChange: new Int64(x.body.balanceChange.magnitude, x.body.balanceChange.sgn),
-          incrementNonce: x.body.incrementNonce,
-          useFullCommitment: x.body.useFullCommitment,
-          implicitAccountCreationFee: x.body.implicitAccountCreationFee,
-          mayUseToken: x.body.mayUseToken,
-          pushEvents: CommittedList.from(GenericData, EventsHashConfig(GenericData), x.body.events),
-          pushActions: CommittedList.from(GenericData, ActionsHashConfig(GenericData), x.body.actions),
-          preconditions: Preconditions.fromInternalRepr(x.body.preconditions),
-          setState: new GenericStateUpdates(x.body.update.appState.map(Update.fromOption)),
-          setDelegate: Update.fromOption(x.body.update.delegate),
-          setVerificationKey: Update.fromOption(x.body.update.verificationKey),
-          setPermissions: Update.fromOption(Option.map(x.body.update.permissions, Permissions.fromInternalRepr)),
-          setZkappUri: Update.fromOption(Option.map(x.body.update.zkappUri, (uri) => new ZkappUri(uri))),
-          setTokenSymbol: Update.fromOption(Option.map(x.body.update.tokenSymbol, (symbol) => new TokenSymbol(symbol))),
-          setTiming: Update.fromOption(Option.map(x.body.update.timing, (timing) => new AccountTiming(timing))),
-          setVotingFor: Update.fromOption(x.body.update.votingFor)
-        })
+        AccountUpdate.fromInternalRepr(x.body)
       );
     }
 

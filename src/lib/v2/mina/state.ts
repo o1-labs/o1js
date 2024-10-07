@@ -10,9 +10,12 @@
  */
 
 import { Constraint, Empty, ProvableInstance, Update, MAX_ZKAPP_STATE_FIELDS } from './core.js';
+import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Provable } from '../../provable/types/provable-intf.js';
 import { Struct } from '../../provable/types/struct.js';
+
+import util from 'util';
 
 export type StateLayout = 'GenericState' | {[name: string]: Provable<any> & Empty<any>};
 
@@ -79,7 +82,7 @@ export const StateConstraints = {
 export type StateUpdates<State extends StateLayout> =
   State extends 'GenericState'
     ? GenericStateUpdates
-    : {[name in keyof State]: ProvableInstance<State[name]> | Update<ProvableInstance<State[name]>>}
+    : {[name in keyof State]?: ProvableInstance<State[name]> | Update<ProvableInstance<State[name]>>}
 
 export const StateUpdates = {
   empty<State extends StateLayout>(State: StateDefinition<State>): StateUpdates<State> {
@@ -103,12 +106,20 @@ export const StateUpdates = {
     } else {
       // TODO: there should be a more type-safe way to write this...
       // typescript is unable to infer this type correctly
-      const updates2 = updates as {[name in keyof State]: Update<ProvableInstance<State[name]>>};
+      const updates2 = updates as {[name in keyof State]: ProvableInstance<State[name]> | Update<ProvableInstance<State[name]>>};
       const entries = Object.entries(State.Layout) as [keyof State, Provable<any> & Empty<any>][];
       const fieldUpdates = entries.flatMap(([key, T]) => {
         const update = updates2[key];
-        const fields = T.toFields(update.value);
-        return fields.map((field) => new Update(update.set, field));
+        const update2 =
+          update === undefined
+            ? new Update(new Bool(false), T.empty())
+            : update instanceof Update
+              ? update
+              : new Update(new Bool(true), update);
+        // console.log(`key: ${key.toString()}, update type: ${typeof update}, value: ${JSON.stringify(Object.keys(update))}`);
+        // console.log(util.inspect(update, undefined, null, true));
+        const fields = T.toFields(update2.value);
+        return fields.map((field) => new Update(update2.set, field));
       });
 
       if(fieldUpdates.length > MAX_ZKAPP_STATE_FIELDS) {

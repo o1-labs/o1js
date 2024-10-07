@@ -66,6 +66,14 @@ export class AuthorizationLevel {
     return Bindings.Leaves.AuthRequired.isEither(this);
   }
 
+  requiresProof(): Bool {
+    return this.isProof().or(this.isProofOrSignature());
+  }
+
+  requiresSignature(): Bool {
+    return this.isSignature().or(this.isProofOrSignature());
+  }
+
   static Impossible(): AuthorizationLevel {
     return new AuthorizationLevel({
       constant: new Bool(true),
@@ -251,6 +259,12 @@ export interface AccountUpdateAuthorization {
   signature: string | null,
 }
 
+export type AccountUpdateAuthorizationKindIdentifier =
+  | 'None'
+  | 'Signature'
+  | 'Proof'
+  | 'SignatureAndProof';
+
 export class AccountUpdateAuthorizationKind {
   isSigned: Bool;
   isProved: Bool;
@@ -263,19 +277,36 @@ export class AccountUpdateAuthorizationKind {
     this.isProved = isProved;
   }
 
-  identifier(): string {
-    if(this.isSigned) {
-      if(this.isProved) {
+  // NB: only safe to call in prover contexts
+  // TODO: we should replace this with a circuit-safe representation using ZkEnum
+  identifier(): AccountUpdateAuthorizationKindIdentifier {
+    if(this.isSigned.toBoolean()) {
+      if(this.isProved.toBoolean()) {
         return 'SignatureAndProof';
       } else {
         return 'Signature';
       }
     } else {
-      if(this.isProved) {
+      if(this.isProved.toBoolean()) {
         return 'Proof';
       } else {
         return 'None';
       }
+    }
+  }
+
+  static from(x: AccountUpdateAuthorizationKindIdentifier | AccountUpdateAuthorizationKind): AccountUpdateAuthorizationKind {
+    if(x instanceof AccountUpdateAuthorizationKind) return x;
+
+    switch(x) {
+      case 'None':
+        return AccountUpdateAuthorizationKind.None();
+      case 'Signature':
+        return AccountUpdateAuthorizationKind.Signature();
+      case 'Proof':
+        return AccountUpdateAuthorizationKind.Proof();
+      case 'SignatureAndProof':
+        return AccountUpdateAuthorizationKind.SignatureAndProof();
     }
   }
 
@@ -291,7 +322,7 @@ export class AccountUpdateAuthorizationKind {
     return new AccountUpdateAuthorizationKind({isSigned: new Bool(false), isProved: new Bool(true)});
   }
 
-  static ProofAndSignature(): AccountUpdateAuthorizationKind {
+  static SignatureAndProof(): AccountUpdateAuthorizationKind {
     return new AccountUpdateAuthorizationKind({isSigned: new Bool(true), isProved: new Bool(true)});
   }
 }
@@ -313,7 +344,6 @@ export class AccountUpdateAuthorizationKindWithZkappContext {
 }
 
 export type AccountUpdateAuthorizationEnvironment = ZkappCommandAuthorizationEnvironment & {
-  proof?: Pickles.Proof;
   accountUpdateForestCommitment: bigint; // TODO: Field;
   fullTransactionCommitment?: bigint; // TODO: Field;
 }

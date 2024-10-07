@@ -3,7 +3,7 @@ import {
   ZkappCommandAuthorizationEnvironment,
   ZkappFeePaymentAuthorizationEnvironment
 } from './authorization.js';
-import { AccountUpdate, GenericData } from './account-update.js';
+import { AccountUpdate, AccountUpdateTree, GenericData } from './account-update.js';
 import { AccountId, Constraint, TokenId } from './core.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
@@ -12,68 +12,9 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { mocks } from '../../../bindings/crypto/constants.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/js-layout-v2.js';
 import { Memo } from '../../../mina-signer/src/memo.js';
-import { hashWithPrefix, packToFields, prefixes } from '../../../mina-signer/src/poseidon-bigint.js';
-import { Signature, signFieldElement, zkAppBodyPrefix } from '../../../mina-signer/src/signature.js';
+import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigint.js';
+import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
-
-// TODO: CONSIDER -- merge this logic into AccountUpdate
-export class AccountUpdateTree<AccountUpdateType> {
-  constructor(
-    public accountUpdate: AccountUpdateType,
-    public children: AccountUpdateTree<AccountUpdateType>[]
-  ) {}
-
-  forEachNode(depth: number, f: (accountUpdate: AccountUpdateType, depth: number) => void): void {
-    f(this.accountUpdate, depth);
-    this.children.forEach((child) => child.forEachNode(depth+1, f));
-  }
-
-  async map<T>(f: (accountUpdate: AccountUpdateType) => Promise<T>): Promise<AccountUpdateTree<T>> {
-    const newAccountUpdate = await f(this.accountUpdate);
-    const newChildren = await AccountUpdateTree.mapForest(this.children, f);
-
-    return new AccountUpdateTree(newAccountUpdate, newChildren);
-  }
-
-  // TODO: Field, not bigint
-  static hash(tree: AccountUpdateTree<AccountUpdate>, networkId: NetworkId): bigint {
-    // TODO: is it ok to do this and ignore the toValue encodings entirely?
-    const accountUpdateFieldInput = tree.accountUpdate.toInput();
-    const accountUpdateBigintInput = {
-      fields: accountUpdateFieldInput.fields?.map((f: Field) => f.toBigInt()),
-      packed: accountUpdateFieldInput.packed?.map(([f, n]: [Field, number]): [bigint, number] => [f.toBigInt(), n]),
-    }
-
-    // TODO: negotiate between this implementation and AccountUpdate#hash to figure out what is correct
-    const accountUpdateCommitment =
-      hashWithPrefix(
-        zkAppBodyPrefix(networkId),
-        packToFields(accountUpdateBigintInput)
-      );
-    const childrenCommitment = AccountUpdateTree.hashForest(networkId, tree.children);
-    return hashWithPrefix(prefixes.accountUpdateNode, [
-      accountUpdateCommitment,
-      childrenCommitment
-    ]);
-  }
-
-  // TODO: Field, not bigint
-  static hashForest(networkId: NetworkId, forest: AccountUpdateTree<AccountUpdate>[]): bigint {
-    const consHash = (acc: bigint, tree: AccountUpdateTree<AccountUpdate>) =>
-      hashWithPrefix(prefixes.accountUpdateCons, [AccountUpdateTree.hash(tree, networkId), acc]);
-    return [...forest].reverse().reduce(consHash, 0n);
-  }
-
-  static mapForest<A, B>(forest: AccountUpdateTree<A>[], f: (a: A) => Promise<B>): Promise<AccountUpdateTree<B>[]> {
-    return Promise.all(forest.map((tree) => tree.map(f)));
-  }
-
-  static unrollForest<AccountUpdateType, Return>(forest: AccountUpdateTree<AccountUpdateType>[], f: (accountUpdate: AccountUpdateType, depth: number) => Return): Return[] {
-    const seq: Return[] = [];
-    forest.forEach((tree) => tree.forEachNode(0, (accountUpdate, depth) => seq.push(f(accountUpdate, depth))));
-    return seq;
-  }
-}
 
 export interface ZkappFeePaymentDescription {
   publicKey: PublicKey;
@@ -121,7 +62,7 @@ export class ZkappFeePayment {
           verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
           callData: new Field(0),
           accountId: new AccountId(this.publicKey, TokenId.MINA),
-          balanceChange: new Int64(this.fee, Sign.minusOne),
+          balanceChange: Int64.create(this.fee, Sign.minusOne),
           incrementNonce: new Bool(true),
           useFullCommitment: new Bool(true),
           implicitAccountCreationFee: new Bool(true),
@@ -174,7 +115,7 @@ export class AuthorizedZkappFeePayment {
 export interface ZkappCommandDescription {
   feePayment: ZkappFeePayment;
   // TODO: merge AccountUpdateTree and AccountUpdate
-  accountUpdates: AccountUpdateTree<AccountUpdate>[];
+  accountUpdates: (AccountUpdate | AccountUpdateTree<AccountUpdate>)[];
   memo?: string;
 }
 
@@ -188,7 +129,9 @@ export class ZkappCommand {
 
   constructor(descr: ZkappCommandDescription) {
     this.feePayment = descr.feePayment;
-    this.accountUpdateForest = descr.accountUpdates;
+    this.accountUpdateForest = descr.accountUpdates.map(
+      (update) => update instanceof AccountUpdateTree ? update : new AccountUpdateTree(update, [])
+    );
     // TODO: we probably want an explicit memo type instead to help enforce these rules early and not surprise the user when their memo changes slightly later
     this.memo = Memo.fromString(descr.memo ?? '');
   }
