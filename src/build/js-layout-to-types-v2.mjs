@@ -5,23 +5,30 @@ import fs from 'node:fs/promises';
 import prettier from 'prettier';
 import prettierRc from '../../.prettierrc.cjs';
 
-const leafTypes = new Set([
-  'number',
-  'string',
-  'Actions',
-  'AuthRequired',
-  'Bool',
-  'Events',
-  'Field',
-  'Int64',
-  'PublicKey',
-  'Sign',
-  'StateHash',
-  'TokenId',
-  'TokenSymbol',
-  'UInt32',
-  'UInt64',
-  'ZkappUri'
+const leafTypes = {
+  number: 'number',
+  string: 'string',
+  Actions: 'Actions',
+  AuthRequired: 'AuthRequired',
+  Bool: 'Bool',
+  BalanceChange: 'Int64',
+  Events: 'Events',
+  Field: 'Field',
+  Int64: 'Int64',
+  PublicKey: 'PublicKey',
+  Sign: 'Sign',
+  StateHash: 'StateHash',
+  TokenId: 'TokenId',
+  TokenSymbol: 'TokenSymbol',
+  UInt32: 'UInt32',
+  UInt64: 'UInt64',
+  ZkappUri: 'ZkappUri'
+};
+
+// TMP HACK
+const ignoredCheckedTypes = new Set([
+  'BalanceChange',
+  'MayUseToken'
 ]);
 
 // strict shallow array equality
@@ -38,7 +45,12 @@ function capitalize(str) {
 }
 
 function layoutNodeIsLeaf(node) {
-  return leafTypes.has(node.type) || ('name' in node && leafTypes.has(node.name));
+  return node.type in leafTypes || ('name' in node && node.name in leafTypes);
+}
+
+function leafName(node) {
+  const key = 'name' in node && node.name in leafTypes ? node.name : node.type;
+  return leafTypes[key];
 }
 
 // we have special cases for handling ranges
@@ -80,7 +92,11 @@ function catalogTypes(layout) {
   function catalog(node) {
     if(node.type === 'object') {
       if(layoutNodeIsLeaf(node)) return;
-      if('checkedType' in node) throw new Error('unexpected checkedType on object layout node');
+      // TODO: fix this new special case we hit after merging the updating bindings layout
+      if('checkedType' in node && !ignoredCheckedTypes.has(node.name)) {
+        console.log(JSON.stringify(node));
+        throw new Error('unexpected checkedType on object layout node');
+      }
       // special case: ignore custom range types
       if(layoutNodeIsRange(node)) return;
       add(node.name, node);
@@ -102,7 +118,7 @@ function analyzeTypeDependencies(layout) {
 
   // returns undefined if this node shouldn't be tracked as a type definition dependency
   function castDep(node) {
-    if('checkedType' in node) {
+    if('checkedType' in node && !ignoredCheckedTypes.has(node.name)) {
       // hack
       let checkedType = node.checkedType;
       if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
@@ -182,13 +198,13 @@ function renderObjectLiteral(entries) {
 }
 
 function renderJsType(node) {
-  if('checkedType' in node) {
+  if('checkedType' in node && !ignoredCheckedTypes.has(node.name)) {
     // hack
     let checkedType = node.checkedType;
     if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
     return renderJsType(checkedType);
   } else if(layoutNodeIsLeaf(node)) {
-    return 'name' in node && leafTypes.has(node.name) ? node.name : node.type;
+    return leafName(node);
   } else {
     switch(node.type) {
       case 'object':
@@ -218,13 +234,13 @@ function renderJsType(node) {
 }
 
 function renderLayoutType(node) {
-  if('checkedType' in node) {
+  if('checkedType' in node && !ignoredCheckedTypes.has(node.name)) {
     // hack
     let checkedType = node.checkedType;
     if('checkedTypeName' in node) checkedType = {...checkedType, name: node.checkedTypeName};
     return renderLayoutType(checkedType)
   } else if(layoutNodeIsLeaf(node)) {
-    const name = 'name' in node && leafTypes.has(node.name) ? node.name : node.type;
+    const name = leafName(node);
     return `new BindingsType.Leaf.${capitalize(name)}`;
   } else {
     switch(node.type) {
@@ -298,6 +314,7 @@ out += `\
   \   Bool,
   \   Events,
   \   Field,
+  \   Int64,
   \   Option,
   \   PublicKey,
   \   Range,
