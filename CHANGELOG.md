@@ -19,6 +19,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `IndexedMerkleMapBase` type is now exported to make serialization of `IndexedMerkleMap` easier.
+
+### Added
+
 - Added `VerificationKey.dummy()` method to get the dummy value of a verification key https://github.com/o1-labs/o1js/pull/1852 [@rpanic](https://github.com/rpanic)
 
 ### Changed

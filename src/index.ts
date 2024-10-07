@@ -156,6 +156,8 @@ const Experimental_ = {
   IndexedMerkleMap,
 };
 
+type ExperimentalIndexedMerkleMapBase = IndexedMerkleMapBase;
+
 /**
  * This module exposes APIs that are unstable, in the sense that the API surface is expected to change.
  * (Not unstable in the sense that they are less functional or tested than other parts.)
@@ -166,6 +168,7 @@ namespace Experimental {
   // indexed merkle map
   export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;
   export type IndexedMerkleMap = IndexedMerkleMapBase;
+  export type IndexedMerkleMapBase = ExperimentalIndexedMerkleMapBase;
 
   // offchain state
   export let OffchainState = OffchainState_.OffchainState;
