@@ -200,7 +200,11 @@ class BatchReducer<
    */
   dispatch(action: From<ActionType>) {
     let update = this.contract().self;
-    let fields = this.actionType.toFields(this.actionType.fromValue(action));
+    let canonical = Provable.toCanonical(
+      this.actionType,
+      this.actionType.fromValue(action)
+    );
+    let fields = this.actionType.toFields(canonical);
     update.body.actions = Actions.pushEvent(update.body.actions, fields);
   }
 
@@ -209,7 +213,11 @@ class BatchReducer<
    */
   dispatchIf(condition: Bool, action: From<ActionType>) {
     let update = this.contract().self;
-    let fields = this.actionType.toFields(this.actionType.fromValue(action));
+    let canonical = Provable.toCanonical(
+      this.actionType,
+      this.actionType.fromValue(action)
+    );
+    let fields = this.actionType.toFields(canonical);
     let newActions = Actions.pushEvent(update.body.actions, fields);
     update.body.actions = Provable.if(
       condition,
@@ -689,12 +697,12 @@ async function proveActionStack(
 
   for (let i = nChunks - 1; i >= 0; i--) {
     let isRecursive = Bool(i < nChunks - 1);
-    proof = await program.proveChunk(
+    ({ proof } = await program.proveChunk(
       endActionState,
       proof,
       isRecursive,
       chunks[i]
-    );
+    ));
   }
   // sanity check
   proof.publicOutput.stack.assertEquals(stack.hash, 'Stack hash mismatch');
@@ -729,7 +737,7 @@ type ActionStackProgram = {
     proofSoFar: ActionStackProof,
     isRecursive: Bool,
     actionWitnesses: Unconstrained<ActionWitnesses>
-  ): Promise<ActionStackProof>;
+  ): Promise<{ proof: ActionStackProof }>;
 
   maxUpdatesPerProof: number;
 };
@@ -783,7 +791,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
           proofSoFar: ActionStackProof,
           isRecursive: Bool,
           witnesses: Unconstrained<ActionWitnesses>
-        ): Promise<ActionStackState> {
+        ) {
           // make this proof extend proofSoFar
           proofSoFar.verifyIf(isRecursive);
           Provable.assertEqualIf(
@@ -799,8 +807,12 @@ function actionStackProgram(maxUpdatesPerProof: number) {
             proofSoFar.publicOutput,
             initialState
           );
-
-          return actionStackChunk(maxUpdatesPerProof, startState, witnesses);
+          let publicOutput = actionStackChunk(
+            maxUpdatesPerProof,
+            startState,
+            witnesses
+          );
+          return { publicOutput };
         },
       },
     },

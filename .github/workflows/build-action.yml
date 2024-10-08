@@ -34,9 +34,15 @@ jobs:
             dist
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
-      - name: Build o1js
+      - name: Build examples
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          npm ci
+          npm run build:examples
+      - name: Build o1js clean
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          rm -fr dist
           npm ci
           npm run build
 
@@ -67,7 +73,8 @@ jobs:
             'DEX integration tests',
             'DEX integration test with proofs',
             'Voting integration tests',
-            'Verification Key Regression Check',
+            'Verification Key Regression Check 1',
+            'Verification Key Regression Check 2',
             'CommonJS test',
           ]
     steps:
@@ -161,9 +168,11 @@ jobs:
           shopt -s globstar
           test_files=(./dist/node/**/*.unit-test.js)
 
+          set -o pipefail
+
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
-            echo "Running test: ${test_files[$i]}"
-            node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              echo "Running test: ${test_files[$i]}"
+              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
           done
         continue-on-error: false
 
@@ -259,7 +268,6 @@ jobs:
         run: |
           npm ci
           npm run prepublishOnly
-
       - name: Publish to NPM if version has changed
         uses: JS-DevTools/npm-publish@v3
         with:

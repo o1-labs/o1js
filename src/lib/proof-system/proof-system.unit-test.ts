@@ -35,12 +35,20 @@ it('pickles rule creation', async () => {
   // a rule that verifies a proof conditionally, and returns the proof's input as output
   function main(proof: EmptyProof, shouldVerify: Bool) {
     proof.verifyIf(shouldVerify);
-    return proof.publicInput;
+    return {
+      publicOutput: proof.publicInput,
+    };
   }
   let privateInputs = [EmptyProof, Bool];
 
   // collect method interface
-  let methodIntf = sortMethodArguments('mock', 'main', privateInputs, Proof);
+  let methodIntf = sortMethodArguments(
+    'mock',
+    'main',
+    privateInputs,
+    undefined,
+    Proof
+  );
 
   expect(methodIntf).toEqual({
     methodName: 'main',

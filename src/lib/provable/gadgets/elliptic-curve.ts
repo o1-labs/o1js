@@ -173,6 +173,12 @@ function assertOnCurve(
 ) {
   let { x, y } = p;
   let x2 = ForeignField.mul(x, x, f);
+
+  // Ensure x2, x, and y are almost reduced to prevent potential exploitation
+  // by a malicious prover adding large multiples of f, which could violate
+  // the precondition of ForeignField.assertMul
+  ForeignField.assertAlmostReduced([x2, x, y], f);
+
   let y2 = ForeignField.mul(y, y, f);
   let y2MinusB = ForeignField.Sum(y2).sub(Field3.from(b));
 
@@ -288,32 +294,10 @@ function verifyEcdsaGeneric(
   // if we allowed non-canonical Rx, the prover could make verify() return false on a valid signature, by adding a multiple of `Curve.order` to Rx.
   ForeignField.assertLessThan(Rx, Curve.order);
 
-  return Provable.equal(Field3, Rx, r);
-}
+  // assert s to be canonical
+  ForeignField.assertLessThan(s, Curve.order);
 
-/**
- * @deprecated There is a security vulnerability with this function, allowing a prover to modify witness values than what is expected. Use {@link verifyEcdsaV2} instead.
- */
-function verifyEcdsa(
-  Curve: CurveAffine,
-  signature: Ecdsa.Signature,
-  msgHash: Field3,
-  publicKey: Point,
-  config: {
-    G?: { windowSize: number; multiples?: Point[] };
-    P?: { windowSize: number; multiples?: Point[] };
-    ia?: point;
-  } = { G: { windowSize: 4 }, P: { windowSize: 4 } }
-) {
-  return verifyEcdsaGeneric(
-    Curve,
-    signature,
-    msgHash,
-    publicKey,
-    (scalars, points, Curve, configs, mode, ia) =>
-      multiScalarMul(scalars, points, Curve, configs, mode, ia, true),
-    config
-  );
+  return Provable.equal(Field3, Rx, r);
 }
 
 /**
@@ -331,8 +315,12 @@ function verifyEcdsa(
  *     for variable public key, there is a possible use case: if the public key is a public input, then its multiples could also be.
  *     in that case, passing them in would avoid computing them in-circuit and save a few constraints.
  * - The initial aggregator `ia`, see {@link initialAggregator}. By default, `ia` is computed deterministically on the fly.
+ *
+ *
+ * _Note_: If `signature.s` is a non-canonical element, an error will be thrown.
+ * If `signature.r` is non-canonical, however, `false` will be returned.
  */
-function verifyEcdsaV2(
+function verifyEcdsa(
   Curve: CurveAffine,
   signature: Ecdsa.Signature,
   msgHash: Field3,
@@ -349,7 +337,7 @@ function verifyEcdsaV2(
     msgHash,
     publicKey,
     (scalars, points, Curve, configs, mode, ia) =>
-      multiScalarMul(scalars, points, Curve, configs, mode, ia, false),
+      multiScalarMul(scalars, points, Curve, configs, mode, ia),
     config
   );
 }
@@ -438,8 +426,7 @@ function multiScalarMul(
     | undefined
   )[] = [],
   mode: 'assert-nonzero' | 'assert-zero' = 'assert-nonzero',
-  ia?: point,
-  hashed: boolean = true
+  ia?: point
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
@@ -507,22 +494,11 @@ function multiScalarMul(
     sliceField3(s, { maxBits, chunkSize: windowSizes[i] })
   );
 
-  // hash points to make array access more efficient
-  // a Point is 6 field elements, the hash is just 1 field element
-  const HashedPoint = Hashed.create(Point);
-
   // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
   // note: this is a trick to ensure _completeness_ of the gadget
   // soundness follows because add() and double() are sound, on all inputs that are valid non-zero curve points
   ia ??= initialAggregator(Curve);
   let sum = Point.from(ia);
-
-  let hashedTables: Hashed<Point>[][] = [];
-  if (hashed) {
-    hashedTables = tables.map((table) =>
-      table.map((point) => HashedPoint.hash(point))
-    );
-  }
 
   for (let i = maxBits - 1; i >= 0; i--) {
     // add in multiple of each point
@@ -531,18 +507,10 @@ function multiScalarMul(
       if (i % windowSize === 0) {
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
-        let sjP;
-        if (hashed) {
-          sjP =
-            windowSize === 1
-              ? points[j]
-              : arrayGetGeneric(HashedPoint, hashedTables[j], sj).unhash();
-        } else {
-          sjP =
-            windowSize === 1
-              ? points[j]
-              : arrayGetGeneric(Point, tables[j], sj);
-        }
+        let sjP =
+          windowSize === 1
+            ? points[j]
+            : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
         let added = add(sum, sjP, Curve);
@@ -816,7 +784,6 @@ const EcdsaSignature = {
 const Ecdsa = {
   sign: signEcdsa,
   verify: verifyEcdsa,
-  verifyV2: verifyEcdsaV2,
   Signature: EcdsaSignature,
 };
 
