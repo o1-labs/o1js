@@ -523,7 +523,7 @@ function isProvable(type: unknown): type is ProvableType<unknown> {
     (typeof type_ === 'function' || typeof type_ === 'object') &&
     type_ !== null &&
     ['toFields', 'fromFields', 'sizeInFields', 'toAuxiliary'].every(
-      (s) => s in type_
+      (s) => s in (type_ as {'toFields': unknown, 'fromFields': unknown, 'sizeInFields': unknown, 'toAuxiliary': unknown})
     )
   );
 }
