@@ -162,6 +162,7 @@ const FeatureFlags = {
 
 function createProgramState() {
   let auxInputCache: Map<string, Provable<any>> = new Map();
+  let methodCache: Map<string, unknown> = new Map();
   return {
     setAuxilaryInput(value: Provable<any>) {
       auxInputCache.set('auxinput', value);
@@ -170,16 +171,7 @@ function createProgramState() {
       let entry = auxInputCache.get('auxinput');
       return entry;
     },
-    resetAuxCache() {
-      auxInputCache.delete('auxinput');
-    },
-  };
-}
 
-function createProgramState() {
-  let methodCache: Map<string, unknown> = new Map();
-
-  return {
     setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
     },
@@ -191,6 +183,9 @@ function createProgramState() {
     },
     reset(methodName: string) {
       methodCache.delete(methodName);
+    },
+    resetAuxCache() {
+      auxInputCache.delete('auxinput');
     },
   };
 }
