@@ -1091,7 +1091,7 @@ Try adding a method to your ZkProgram or SmartContract.
 If you are using a SmartContract, make sure you are using the @method decorator.`);
 
   // decompose auxiliary data type
-  let purePublicInput = publicInputType.toFields(publicInputType);
+  let purePublicInput = publicInputType.toFields(publicInput);
 
   let auxilaryPublicInput = publicInputType.toAuxiliary();
 
