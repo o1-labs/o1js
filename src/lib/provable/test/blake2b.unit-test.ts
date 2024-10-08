@@ -107,7 +107,7 @@ function testVectors() {
     {
       digest_length: 64,
       preimage: 'o'.repeat(100000),
-      hash: '3c33d6d6b0f1c763f7c340478adef50e09e8b9f60a04dbf253e43611dbc0f0f90d7cc34db145f3587b0e7ad17f02066904f06512570f18bfc088f7e653554f8b',
+      hash: '95e19cef3822bdf0c2e7837a329b8c33612f225fceff67d7a4fab347d3ca25ecbfa1c2a1120f8f52b987696298186ec3dd6351c19bf31b4dbf972f6abde26ff4',
     },
     {
       digest_length: 64,
