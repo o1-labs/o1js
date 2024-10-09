@@ -646,7 +646,7 @@ function ZkProgram<
   let doProving = true;
 
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = ProvableType.get(
+  let publicInputType: Provable<any> = ProvableType.get(
     config.publicInput ?? Undefined
   );
   let publicOutputType: ProvablePure<any> = ProvableType.get(
