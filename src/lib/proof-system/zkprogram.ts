@@ -666,9 +666,9 @@ function ZkProgram<
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
-    proofsEnabled = true,
+    proofsEnabled = undefined,
   } = {}) {
-    doProving = proofsEnabled;
+    doProving = proofsEnabled ?? doProving;
 
     if (doProving) {
       let methodsMeta = await analyzeMethods();
