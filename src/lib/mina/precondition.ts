@@ -145,6 +145,7 @@ const PermissionsPrecondition = {
       receive: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
       setDelegate: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
       setPermissions: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setVerificationKey : ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
       setZkappUri: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
       editActionState: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
       setTokenSymbol: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),

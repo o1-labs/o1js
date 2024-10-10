@@ -91,6 +91,7 @@ let accountUpdateExample: Json.AccountUpdate = {
         receive: null,
         setDelegate: null,
         setPermissions: null,
+        setVerificationKey: null,
         setZkappUri: null,
         editActionState: null,
         setTokenSymbol: null,
