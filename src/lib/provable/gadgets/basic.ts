@@ -74,9 +74,14 @@ function assertMul(
  *
  * Assumes that index is in [0, n), returns an unconstrained result otherwise.
  *
- * Note: This saves 0.5*n constraints compared to equals() + switch()
+ * Note: This saves 0.5*n constraints compared to equals() + switch() even if equals() were implemented optimally.
  */
 function arrayGet(array: Field[], index: Field) {
+  // if index is constant, we can return the value directly
+  if (index.isConstant()) {
+    return array[Number(index.toBigInt())];
+  }
+
   let i = toVar(index);
 
   // witness result
