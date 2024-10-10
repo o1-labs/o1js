@@ -51,9 +51,14 @@ class Packed<T> {
    * Create a packed representation of `type`. You can then use `PackedType.pack(x)` to pack a value.
    */
   static create<T>(
-    type: WithProvable<ProvableExtended<T>>
+    type: WithProvable<ProvableHashable<T>>
   ): typeof Packed<T> & {
     provable: ProvableHashable<Packed<T>>;
+
+    /**
+     * Pack a value.
+     */
+    pack(x: T): Packed<T>;
   } {
     let provable = ProvableType.get(type);
     // compute size of packed representation
@@ -66,6 +71,15 @@ class Packed<T> {
         packed: fields(packedSize),
         value: Unconstrained,
       }) satisfies ProvableHashable<Packed<T>> as ProvableHashable<Packed<T>>;
+
+      static pack(x: T): Packed<T> {
+        let input = provable.toInput(x);
+        let packed = packToFields(input);
+        let unconstrained = Unconstrained.witness(() =>
+          Provable.toConstant(provable, x)
+        );
+        return new Packed_(packed, unconstrained);
+      }
 
       static empty(): Packed<T> {
         return Packed_.pack(provable.empty());
@@ -81,19 +95,6 @@ class Packed<T> {
   constructor(packed: Field[], value: Unconstrained<T>) {
     this.packed = packed;
     this.value = value;
-  }
-
-  /**
-   * Pack a value.
-   */
-  static pack<T>(x: T): Packed<T> {
-    let type = this.innerProvable;
-    let input = type.toInput(x);
-    let packed = packToFields(input);
-    let unconstrained = Unconstrained.witness(() =>
-      Provable.toConstant(type, x)
-    );
-    return new this(packed, unconstrained);
   }
 
   /**
@@ -120,13 +121,13 @@ class Packed<T> {
 
   // dynamic subclassing infra
   static _provable: ProvableHashable<Packed<any>> | undefined;
-  static _innerProvable: ProvableExtended<any> | undefined;
+  static _innerProvable: ProvableHashable<any> | undefined;
 
   get Constructor(): typeof Packed {
     return this.constructor as typeof Packed;
   }
 
-  static get innerProvable(): ProvableExtended<any> {
+  static get innerProvable(): ProvableHashable<any> {
     assert(this._innerProvable !== undefined, 'Packed not initialized');
     return this._innerProvable;
   }
