@@ -6,7 +6,9 @@ import {
   UInt64,
   Experimental,
 } from '../../../index.js';
+import * as Mina from '../mina.js';
 import { expectState, testLocal, transaction } from '../test/test-contract.js';
+import assert from 'assert';
 
 const { OffchainState } = Experimental;
 
@@ -21,24 +23,32 @@ const offchainState = OffchainState(
 class StateProof extends offchainState.Proof {}
 
 // example contract that interacts with offchain state
-
 class ExampleContract extends SmartContract {
-  @state(OffchainState.Commitments) offchainState = offchainState.commitments();
+  @state(OffchainState.Commitments) offchainStateCommitments =
+    offchainState.emptyCommitments();
+
+  // o1js memoizes the offchain state by contract address so that this pattern works
+  offchainState = offchainState.init(this);
+
+  init(): void {
+    super.init();
+    this.offchainState.setContractInstance(this);
+  }
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
     // setting `from` to `undefined` means that the account must not exist yet
-    offchainState.fields.accounts.update(address, {
+    this.offchainState.fields.accounts.update(address, {
       from: undefined,
       to: amountToMint,
     });
 
     // TODO using `update()` on the total supply means that this method
     // can only be called once every settling cycle
-    let totalSupplyOption = await offchainState.fields.totalSupply.get();
+    let totalSupplyOption = await this.offchainState.fields.totalSupply.get();
     let totalSupply = totalSupplyOption.orElse(0n);
 
-    offchainState.fields.totalSupply.update({
+    this.offchainState.fields.totalSupply.update({
       from: totalSupplyOption,
       to: totalSupply.add(amountToMint),
     });
@@ -46,10 +56,10 @@ class ExampleContract extends SmartContract {
 
   @method
   async transfer(from: PublicKey, to: PublicKey, amount: UInt64) {
-    let fromOption = await offchainState.fields.accounts.get(from);
+    let fromOption = await this.offchainState.fields.accounts.get(from);
     let fromBalance = fromOption.assertSome('sender account exists');
 
-    let toOption = await offchainState.fields.accounts.get(to);
+    let toOption = await this.offchainState.fields.accounts.get(to);
     let toBalance = toOption.orElse(0n);
 
     /**
@@ -57,11 +67,12 @@ class ExampleContract extends SmartContract {
      *
      * This is safe, because both updates will only be accepted if both previous balances are still correct.
      */
-    offchainState.fields.accounts.update(from, {
+    this.offchainState.fields.accounts.update(from, {
       from: fromOption,
       to: fromBalance.sub(amount),
     });
-    offchainState.fields.accounts.update(to, {
+
+    this.offchainState.fields.accounts.update(to, {
       from: toOption,
       to: toBalance.add(amount),
     });
@@ -69,22 +80,19 @@ class ExampleContract extends SmartContract {
 
   @method.returns(UInt64)
   async getSupply() {
-    return (await offchainState.fields.totalSupply.get()).orElse(0n);
+    return (await this.offchainState.fields.totalSupply.get()).orElse(0n);
   }
 
   @method.returns(UInt64)
   async getBalance(address: PublicKey) {
-    return (await offchainState.fields.accounts.get(address)).orElse(0n);
+    return (await this.offchainState.fields.accounts.get(address)).orElse(0n);
   }
 
   @method
   async settle(proof: StateProof) {
-    await offchainState.settle(proof);
+    await this.offchainState.settle(proof);
   }
 }
-
-// connect contract to offchain state
-offchainState.setContractClass(ExampleContract);
 
 // test code below
 
@@ -103,17 +111,15 @@ await testLocal(
 
     // settle
     async () => {
-      console.time('settlement proof 1');
-      let proof = await offchainState.createSettlementProof();
-      console.timeEnd('settlement proof 1');
+      let proof = await contract.offchainState.createSettlementProof();
 
       return transaction('settle 1', () => contract.settle(proof));
     },
 
     // check balance and supply
-    expectState(offchainState.fields.totalSupply, 1000n),
-    expectState(offchainState.fields.accounts, [sender, 1000n]),
-    expectState(offchainState.fields.accounts, [receiver, undefined]),
+    expectState(contract.offchainState.fields.totalSupply, 1000n),
+    expectState(contract.offchainState.fields.accounts, [sender, 1000n]),
+    expectState(contract.offchainState.fields.accounts, [receiver, undefined]),
 
     // transfer (should succeed)
     transaction('transfer', () =>
@@ -140,16 +146,145 @@ await testLocal(
     // settle
     async () => {
       Local.resetProofsEnabled();
-      console.time('settlement proof 2');
-      let proof = await offchainState.createSettlementProof();
-      console.timeEnd('settlement proof 2');
+      let proof = await contract.offchainState.createSettlementProof();
 
       return transaction('settle 2', () => contract.settle(proof));
     },
 
     // check balance and supply
-    expectState(offchainState.fields.totalSupply, 1555n),
-    expectState(offchainState.fields.accounts, [sender, 900n]),
-    expectState(offchainState.fields.accounts, [receiver, 100n]),
+    expectState(contract.offchainState.fields.totalSupply, 1555n),
+    expectState(contract.offchainState.fields.accounts, [sender, 900n]),
+    expectState(contract.offchainState.fields.accounts, [receiver, 100n]),
   ]
 );
+
+// Test with multiple instances of the conract and offchain state deployed on the same network
+
+const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
+Mina.setActiveInstance(Local);
+
+const [sender, receiver, contractAccountA, contractAccountB] =
+  Local.testAccounts;
+
+const contractA = new ExampleContract(contractAccountA);
+const contractB = new ExampleContract(contractAccountB);
+
+console.time('compile offchain state program');
+await offchainState.compile();
+console.timeEnd('compile offchain state program');
+
+console.time('compile contract');
+await ExampleContract.compile();
+console.timeEnd('compile contract');
+
+console.time('deploy contract');
+const deployTx = Mina.transaction(sender, async () => {
+  await contractA.deploy();
+  await contractB.deploy();
+});
+await deployTx.sign([sender.key, contractAccountA.key, contractAccountB.key]);
+await deployTx.prove();
+await deployTx.send().wait();
+console.timeEnd('deploy contract');
+
+console.time('create accounts');
+const accountCreationTx = Mina.transaction(sender, async () => {
+  await contractA.createAccount(sender, UInt64.from(1000));
+  await contractB.createAccount(sender, UInt64.from(1500));
+});
+await accountCreationTx.sign([sender.key]);
+await accountCreationTx.prove();
+await accountCreationTx.send().wait();
+console.timeEnd('create accounts');
+
+console.time('settle');
+const proofA = await contractA.offchainState.createSettlementProof();
+const proofB = await contractB.offchainState.createSettlementProof();
+const settleTx = Mina.transaction(sender, async () => {
+  await contractA.settle(proofA);
+  await contractB.settle(proofB);
+});
+await settleTx.sign([sender.key]);
+await settleTx.prove();
+await settleTx.send().wait();
+console.timeEnd('settle');
+
+console.log('Initial supply:');
+console.log(
+  'Contract A total Supply: ',
+  (await contractA.getSupply()).toBigInt()
+);
+console.log(
+  'Contract B total Supply: ',
+  (await contractB.getSupply()).toBigInt()
+);
+assert((await contractA.getSupply()).toBigInt() == 1000n);
+assert((await contractB.getSupply()).toBigInt() == 1500n);
+
+console.log('Initial balances:');
+console.log(
+  'Contract A, Sender: ',
+  (await contractA.offchainState.fields.accounts.get(sender)).value.toBigInt()
+);
+console.log(
+  'Contract B, Sender: ',
+  (await contractB.offchainState.fields.accounts.get(sender)).value.toBigInt()
+);
+assert((await contractA.getBalance(sender)).toBigInt() == 1000n);
+assert((await contractB.getBalance(sender)).toBigInt() == 1500n);
+
+console.time('transfer');
+const transferTx = Mina.transaction(sender, async () => {
+  await contractA.transfer(sender, receiver, UInt64.from(100));
+  await contractB.transfer(sender, receiver, UInt64.from(200));
+});
+await transferTx.sign([sender.key]);
+await transferTx.prove();
+await transferTx.send().wait();
+console.timeEnd('transfer');
+
+console.time('settle');
+const proofA2 = await contractA.offchainState.createSettlementProof();
+const proofB2 = await contractB.offchainState.createSettlementProof();
+const settleTx2 = Mina.transaction(sender, async () => {
+  await contractA.settle(proofA2);
+  await contractB.settle(proofB2);
+});
+await settleTx2.sign([sender.key]);
+await settleTx2.prove();
+await settleTx2.send().wait();
+console.timeEnd('settle');
+
+console.log('Final supply:');
+console.log(
+  'Contract A total Supply: ',
+  (await contractA.getSupply()).toBigInt()
+);
+console.log(
+  'Contract B total Supply: ',
+  (await contractB.getSupply()).toBigInt()
+);
+assert((await contractA.getSupply()).toBigInt() == 1000n);
+assert((await contractB.getSupply()).toBigInt() == 1500n);
+
+console.log('Final balances:');
+console.log(
+  'Contract A, Sender: ',
+  (await contractA.offchainState.fields.accounts.get(sender)).value.toBigInt()
+);
+console.log(
+  'Contract B, Sender: ',
+  (await contractB.offchainState.fields.accounts.get(sender)).value.toBigInt()
+);
+console.log(
+  'Contract A, Receiver: ',
+  (await contractA.offchainState.fields.accounts.get(receiver)).value.toBigInt()
+);
+console.log(
+  'Contract B, Receiver: ',
+  (await contractB.offchainState.fields.accounts.get(receiver)).value.toBigInt()
+);
+assert((await contractA.getBalance(sender)).toBigInt() == 900n);
+assert((await contractB.getBalance(sender)).toBigInt() == 1300n);
+assert((await contractA.getBalance(receiver)).toBigInt() == 100n);
+assert((await contractB.getBalance(receiver)).toBigInt() == 200n);
