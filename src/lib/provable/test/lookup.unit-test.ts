@@ -23,39 +23,46 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
   );
 };
 
-let Lookup = ZkProgram({
-  name: 'lookup',
-  methods: {
-    three12Bit: {
-      privateInputs: [Field, Field, Field],
-      async method(v0: Field, v1: Field, v2: Field) {
-        // Dummy range check to make sure the lookup table is initialized
-        // It should never fail because 64 > 12
-        Gadgets.rangeCheck64(v0);
-        Gadgets.rangeCheck3x12(v0, v1, v2);
+// Range-check tests
+{
+  let RangeCheck = ZkProgram({
+    name: 'range-check',
+    methods: {
+      three12Bit: {
+        privateInputs: [Field, Field, Field],
+        async method(v0: Field, v1: Field, v2: Field) {
+          // Dummy range check to make sure the lookup table is initialized
+          // It should never fail because 64 > 12
+          Gadgets.rangeCheck64(v0);
+          Gadgets.rangeCheck3x12(v0, v1, v2);
+        },
       },
     },
-  },
-});
+  });
 
-// constraint system sanity check
+  // constraint system sanity check
 
-constraintSystem.fromZkProgram(Lookup, 'three12Bit', contains(['Lookup']));
+  constraintSystem.fromZkProgram(
+    RangeCheck,
+    'three12Bit',
+    contains(['Lookup'])
+  );
 
-await Lookup.compile();
+  await RangeCheck.compile();
 
-await equivalentAsync(
-  { from: [uint(12), uint(12), maybeUint(12)], to: boolean },
-  { runs: 3 }
-)(
-  (x, y, z) => {
-    assert(x < 1n << 12n);
-    assert(y < 1n << 12n);
-    assert(z < 1n << 12n);
-    return true;
-  },
-  async (x, y, z) => {
-    let proof = await Lookup.three12Bit(x, y, z);
-    return await Lookup.verify(proof);
-  }
-);
+  await equivalentAsync(
+    { from: [uint(12), uint(12), maybeUint(12)], to: boolean },
+    { runs: 3 }
+  )(
+    (x, y, z) => {
+      assert(x < 1n << 12n);
+      assert(y < 1n << 12n);
+      assert(z < 1n << 12n);
+      return true;
+    },
+    async (x, y, z) => {
+      let proof = await RangeCheck.three12Bit(x, y, z);
+      return await RangeCheck.verify(proof);
+    }
+  );
+}
