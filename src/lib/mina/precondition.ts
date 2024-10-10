@@ -16,6 +16,7 @@ import {
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   ActionState,
+  AuthRequired,
   Actions,
   ZkappUri,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
@@ -29,10 +30,14 @@ export {
   Account,
   Network,
   CurrentSlot,
+  Permissions,
+  PermissionsPrecondition,
+  PreconditionPermission,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   ensureConsistentPrecondition,
   AccountValue,
+  PermissionsValue,
   NetworkValue,
   getAccountPreconditions,
   Preconditions,
@@ -126,6 +131,31 @@ const AccountPrecondition = {
   },
 };
 
+type PermissionsPrecondition = Preconditions['permissions'];
+const PermissionsPrecondition = {
+  ignoreAll(): PermissionsPrecondition {
+    let appState: Array<OrIgnore<Field>> = [];
+    for (let i = 0; i < ZkappStateLength; ++i) {
+      appState.push(ignore(Field(0)));
+    }
+    return {
+      editState: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      access: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      send: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      receive: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setDelegate: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setPermissions: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setVerificationKey : ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setZkappUri: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      editActionState: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setTokenSymbol: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      incrementNonce: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setVotingFor: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setTiming: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+    };
+  },
+};
+
 type GlobalSlotPrecondition = Preconditions['validWhile'];
 const GlobalSlotPrecondition = {
   ignoreAll(): GlobalSlotPrecondition {
@@ -137,6 +167,7 @@ const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
+      permissions: PermissionsPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
       validWhile: GlobalSlotPrecondition.ignoreAll(),
     };
@@ -147,8 +178,10 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
   return {
     account: Account(accountUpdate),
+    test: Account(accountUpdate),
     network: Network(accountUpdate),
     currentSlot: CurrentSlot(accountUpdate),
+    permissions: PreconditionPermission(accountUpdate),
   };
 }
 
@@ -204,6 +237,14 @@ function Network(accountUpdate: AccountUpdate): Network {
     },
   };
   return { ...network, timestamp };
+}
+
+function PreconditionPermission(accountUpdate: AccountUpdate): PreconditionPermission {
+  let layout =
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.permissions;
+  let context = getPreconditionContextExn(accountUpdate);
+  let permissions: PreconditionPermission = preconditionClass(layout as Layout,'permissions',accountUpdate,context);
+  return {...permissions};
 }
 
 function Account(accountUpdate: AccountUpdate): Account {
@@ -273,7 +314,7 @@ let unimplementedPreconditions: LongKey[] = [
   'network.nextEpochData.seed',
 ];
 
-let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState };
+let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState , AuthRequired };
 
 function getProvableType(layout: { type: string; checkedTypeName?: string }) {
   let typeName = layout.checkedTypeName ?? layout.type;
@@ -478,6 +519,15 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
     if (accountOrNetwork === 'account') {
       let account = getAccountPreconditions(accountUpdate.body);
       value = account[key as keyof AccountValue] as U;
+    } else if (accountOrNetwork === 'permissions') {
+      let perms =
+        Mina.getAccount(accountUpdate.body.publicKey,accountUpdate.body?.tokenId)
+            .permissions;
+      if( key == 'setVerificationKey' ) {
+        value = perms['setVerificationKey']['auth'] as U;
+      }else{
+        value = perms[key as keyof typeof perms] as U;
+      }
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
       value = getPath(networkState, key);
@@ -644,7 +694,7 @@ function ensureConsistentPrecondition(
     let errorMessage = `
 Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
 '${name}' represents the field or value you're trying to set a precondition for.
-Preconditions must be set only once to avoid overwriting previous assertions. 
+Preconditions must be set only once to avoid overwriting previous assertions.
 For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
 
 Recommendation:
@@ -684,6 +734,10 @@ type Network = RawNetwork & {
 type AccountPreconditionNoState = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPreconditionNoState>;
 type Account = PreconditionClassType<AccountPreconditionNoState> & Update;
+
+type PreconditionPermission = PreconditionClassType<PermissionsPrecondition> & Update;
+type PermissionsValue = PreconditionBaseTypes<AuthRequired>;
+
 
 type CurrentSlotPrecondition = Preconditions['validWhile'];
 type CurrentSlot = {
@@ -753,6 +807,8 @@ type PreconditionFlatEntry<T> = T extends RangeCondition<infer V>
   : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
 
 type FlatPreconditionValue = {
+  [S in PreconditionFlatEntry<PermissionsPrecondition> as `permissions.${S[0]}`]: S[2];
+} & {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPreconditionNoState> as `account.${S[0]}`]: S[2];

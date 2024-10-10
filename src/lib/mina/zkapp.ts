@@ -948,6 +948,12 @@ super.init();
     return this.self.account;
   }
   /**
+   * Current permissions of the {@link SmartContract}.
+   */
+  get permissions() {
+    return this.self.permissions;
+  }
+  /**
    * Current network state of the {@link SmartContract}.
    */
   get network() {
