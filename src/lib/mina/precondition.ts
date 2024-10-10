@@ -243,7 +243,6 @@ function PreconditionPermission(accountUpdate: AccountUpdate): PreconditionPermi
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.permissions;
   let context = getPreconditionContextExn(accountUpdate);
-  let bt = getProvableType(layout.entries.receive.inner);
   let permissions: PreconditionPermission = preconditionClass(layout as Layout,'permissions',accountUpdate,context);
   return {...permissions};
 }
@@ -524,7 +523,11 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
       let perms =
         Mina.getAccount(accountUpdate.body.publicKey,accountUpdate.body?.tokenId)
             .permissions;
-      value = perms[key as keyof typeof perms] as U;
+      if( key == 'setVerificationKey' ) {
+        value = perms['setVerificationKey']['auth'] as U;
+      }else{
+        value = perms[key as keyof typeof perms] as U;
+      }
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
       value = getPath(networkState, key);
