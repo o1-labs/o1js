@@ -1,4 +1,4 @@
-import { provableFromClass } from './types/provable-derivers.js';
+import { mapValue, provableFromClass } from './types/provable-derivers.js';
 import { HashInput, ProvableExtended } from './types/struct.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { Field } from './field.js';
@@ -50,10 +50,10 @@ class Packed<T> {
   /**
    * Create a packed representation of `type`. You can then use `PackedType.pack(x)` to pack a value.
    */
-  static create<T>(
-    type: WithProvable<ProvableHashable<T>>
+  static create<T, V>(
+    type: WithProvable<ProvableHashable<T, V>>
   ): typeof Packed<T> & {
-    provable: ProvableHashable<Packed<T>>;
+    provable: ProvableHashable<Packed<T>, V>;
 
     /**
      * Pack a value.
@@ -64,13 +64,28 @@ class Packed<T> {
     // compute size of packed representation
     let input = provable.toInput(provable.empty());
     let packedSize = countFields(input);
+    let packedFields = fields(packedSize);
 
     return class Packed_ extends Packed<T> {
       static _innerProvable = provable;
-      static _provable = provableFromClass(Packed_, {
-        packed: fields(packedSize),
-        value: Unconstrained,
-      }) satisfies ProvableHashable<Packed<T>> as ProvableHashable<Packed<T>>;
+      static _provable = mapValue(
+        provableFromClass(Packed_, {
+          packed: packedFields,
+          value: Unconstrained,
+        }),
+        ({ value }: { value: Unconstrained<T> }) =>
+          provable.toValue(value.get()),
+        (x: V) => {
+          let { packed, value } = Packed_.pack(provable.fromValue(x));
+          return {
+            packed: packedFields.toValue(packed),
+            value: Unconstrained.from(value),
+          };
+        }
+      ) satisfies ProvableHashable<Packed<T>, V> as ProvableHashable<
+        Packed<T>,
+        V
+      >;
 
       static pack(x: T): Packed<T> {
         let input = provable.toInput(x);
