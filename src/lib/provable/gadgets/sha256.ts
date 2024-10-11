@@ -102,6 +102,7 @@ const SHA256 = {
   },
   compression: sha256Compression,
   createMessageSchedule,
+  padding,
   get initialState() {
     return SHA256Constants.H.map((x) => UInt32.from(x));
   },
@@ -239,7 +240,7 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
  *
  * @returns The updated intermediate hash values after compression.
  */
-function sha256Compression(H: UInt32[], W: UInt32[]) {
+function sha256Compression([...H]: UInt32[], W: UInt32[]) {
   // initialize working variables
   let a = H[0];
   let b = H[1];
