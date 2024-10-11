@@ -171,11 +171,16 @@ function provableExtends<
   } satisfies ProvableHashable<S, InferValue<A>>;
 }
 
-function mapValue<A extends ProvableHashable<any>, V extends InferValue<A>, W>(
+function mapValue<
+  A extends ProvableHashable<any>,
+  V extends InferValue<A>,
+  W,
+  T extends InferProvable<A>
+>(
   provable: A,
   there: (x: V) => W,
-  back: (x: W) => V
-): ProvableHashable<InferProvable<A>, W> {
+  back: (x: W | T) => V | T
+): ProvableHashable<T, W> {
   return {
     sizeInFields() {
       return provable.sizeInFields();

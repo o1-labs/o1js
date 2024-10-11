@@ -75,7 +75,8 @@ class Packed<T> {
         }),
         ({ value }: { value: Unconstrained<T> }) =>
           provable.toValue(value.get()),
-        (x: V) => {
+        (x) => {
+          if (x instanceof Packed) return x;
           let { packed, value } = Packed_.pack(provable.fromValue(x));
           return {
             packed: packedFields.toValue(packed),
