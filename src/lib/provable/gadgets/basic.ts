@@ -79,13 +79,13 @@ function assertMul(
 function arrayGet(array: Field[], index: Field) {
   // if index is constant, we can return the value directly
   if (index.isConstant()) {
-    return array[Number(index.toBigInt())];
+    return array[Number(index.toBigInt())] ?? createField(0n);
   }
 
   let i = toVar(index);
 
   // witness result
-  let a = existsOne(() => array[Number(i.toBigInt())].toBigInt());
+  let a = existsOne(() => array[Number(i.toBigInt())].toBigInt() ?? 0n);
 
   // we prove a === array[j] + z[j]*(i - j) for some z[j], for all j.
   // setting j = i, this implies a === array[i]
