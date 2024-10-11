@@ -19,6 +19,7 @@ import {
 } from './gadgets/comparison.js';
 import { assert } from '../util/assert.js';
 import { TupleN } from '../util/types.js';
+import { bytesToWord, wordToBytes } from './gadgets/bit-slices.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -961,22 +962,15 @@ class UInt32 extends CircuitValue {
   /**
    * Split a UInt32 into 4 UInt8s, in little-endian order.
    */
-  toBytes(): TupleN<UInt8, 4> {
-    // witness the bytes
-    let bytes = Provable.witness(Provable.Array(UInt8, 4), () => {
-      let x = this.value.toBigInt();
-      return [0, 1, 2, 3].map((i) => UInt8.from((x >> BigInt(8 * i)) & 0xffn));
-    });
-    // prove that bytes are correct
-    UInt32.fromBytes(bytes).assertEquals(this);
-    return TupleN.fromArray(4, bytes);
+  toBytes() {
+    return TupleN.fromArray(4, wordToBytes(this.value, 4));
   }
 
   /**
    * Split a UInt32 into 4 UInt8s, in big-endian order.
    */
-  toBytesBE(): TupleN<UInt8, 4> {
-    return TupleN.fromArray(4, this.toBytes().reverse());
+  toBytesBE() {
+    return TupleN.fromArray(4, wordToBytes(this.value, 4).reverse());
   }
 
   /**
@@ -984,12 +978,7 @@ class UInt32 extends CircuitValue {
    */
   static fromBytes(bytes: UInt8[]): UInt32 {
     assert(bytes.length === 4, '4 bytes needed to create a uint32');
-
-    let word = Field(0);
-    bytes.forEach(({ value }, i) => {
-      word = word.add(value.mul(1n << BigInt(8 * i)));
-    });
-    return UInt32.Unsafe.fromField(word);
+    return UInt32.Unsafe.fromField(bytesToWord(bytes));
   }
 
   /**
