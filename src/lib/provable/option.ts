@@ -1,5 +1,4 @@
 import { InferValue } from '../../bindings/lib/provable-generic.js';
-import { emptyValue } from '../proof-system/zkprogram.js';
 import { Provable } from './provable.js';
 import { InferProvable, Struct } from './types/struct.js';
 import { provable, ProvableInferPureFrom } from './types/provable-derivers.js';
@@ -77,7 +76,10 @@ function Option<A extends ProvableType>(
 
     fromValue(value: OptionOrValue<T, V>) {
       if (value === undefined)
-        return { isSome: Bool(false), value: emptyValue(strictType) };
+        return {
+          isSome: Bool(false),
+          value: ProvableType.synthesize(strictType),
+        };
       // TODO: this isn't 100% robust. We would need recursive type validation on any nested objects to make it work
       if (typeof value === 'object' && 'isSome' in value)
         return PlainOption.fromValue(value as any); // type-cast here is ok, matches implementation
@@ -103,7 +105,10 @@ function Option<A extends ProvableType>(
 
     static from(value?: V | T) {
       return value === undefined
-        ? new Option_({ isSome: Bool(false), value: emptyValue(strictType) })
+        ? new Option_({
+            isSome: Bool(false),
+            value: ProvableType.synthesize(strictType),
+          })
         : new Option_({
             isSome: Bool(true),
             value: strictType.fromValue(value),

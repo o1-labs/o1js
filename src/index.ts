@@ -37,6 +37,8 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
+export { From } from './bindings/lib/provable-generic.js';
+export { ProvableType } from './lib/provable/types/provable-intf.js';
 export {
   provable,
   provablePure,
@@ -79,17 +81,19 @@ export { state, State, declareState } from './lib/mina/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
-  type ProofBase,
-  Proof,
-  DynamicProof,
   SelfProof,
   verify,
   Empty,
   Undefined,
   Void,
   VerificationKey,
-  FeatureFlags,
 } from './lib/proof-system/zkprogram.js';
+export {
+  type ProofBase,
+  Proof,
+  DynamicProof,
+} from './lib/proof-system/proof.js';
+export { FeatureFlags } from './lib/proof-system/feature-flags.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export { Account } from './lib/mina/account.js';
@@ -104,7 +108,10 @@ export {
 } from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
-export { TokenContract, TokenContractV2 } from './lib/mina/token/token-contract.js';
+export {
+  TokenContract,
+  TokenContractV2,
+} from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/mina/graphql.js';
 export {
