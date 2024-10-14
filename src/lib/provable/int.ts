@@ -939,8 +939,8 @@ class UInt32 extends CircuitValue {
     if (this.value.isConstant() && y.value.isConstant()) {
       return Bool(this.value.toBigInt() < y.value.toBigInt());
     }
-    return lessThanGeneric(this.value, y.value, 1n << 64n, (v) =>
-      RangeCheck.rangeCheckN(UInt64.NUM_BITS, v)
+    return lessThanGeneric(this.value, y.value, 1n << 32n, (v) =>
+      RangeCheck.rangeCheckN(UInt32.NUM_BITS, v)
     );
   }
 
@@ -1186,13 +1186,21 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
+   * Turns the {@link Int64} into a {@link BigInt}.
+   */
+  toBigint() {
+    let abs = this.magnitude.toBigInt();
+    let sgn = this.sgn.isPositive().toBoolean() ? 1n : -1n;
+    return sgn * abs;
+  }
+
+  /**
    * Turns the {@link Int64} into a string.
    */
   toString() {
-    let abs = this.magnitude.toString();
-    let sgn = this.isPositive().toBoolean() || abs === '0' ? '' : '-';
-    return sgn + abs;
+    return this.toBigint().toString();
   }
+
   isConstant() {
     return this.magnitude.value.isConstant() && this.sgn.isConstant();
   }
@@ -1331,7 +1339,11 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
     let isNonNegative = this.isNonNegative();
-    rest = Provable.if(isNonNegative, rest, y_.value.sub(rest));
+    rest = Provable.if(
+      isNonNegative.or(rest.equals(0)),
+      rest,
+      y_.value.sub(rest)
+    );
     return new Int64(new UInt64(rest.value));
   }
 

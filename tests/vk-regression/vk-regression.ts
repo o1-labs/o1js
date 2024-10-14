@@ -6,6 +6,7 @@ import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
 import {
   ecdsa,
   keccakAndEcdsa,
+  ecdsaEthers,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
 import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
 import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js'
@@ -27,6 +28,7 @@ const forceRecompile = false;
 // usage ./run ./tests/vk-regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
+let vkTest = process.env.VK_TEST;
 
 type MinimumConstraintSystem = {
   analyzeMethods(): Promise<
@@ -49,6 +51,8 @@ type MinimumConstraintSystem = {
 };
 
 const ConstraintSystems: MinimumConstraintSystem[] = [
+  ecdsa,
+  keccakAndEcdsa,
   Voting_,
   Membership_,
   HelloWorld,
@@ -59,12 +63,23 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   HashCS,
   BasicCS,
   CryptoCS,
-  ecdsa,
-  keccakAndEcdsa,
+  ecdsaEthers,
   SHA256Program,
   BLAKE2BProgram,
   diverse,
 ];
+
+let selectedConstraintSystems: MinimumConstraintSystem[] = [];
+
+if (vkTest === '1') {
+  selectedConstraintSystems = ConstraintSystems.slice(0, 10);
+  console.log('Running regression checks - Part 1');
+} else if (vkTest === '2') {
+  selectedConstraintSystems = ConstraintSystems.slice(10);
+  console.log('Running regression checks - Part 2');
+} else if (!dump) {
+  throw new Error('Invalid VK_TEST value. Please set VK_TEST to 1 or 2!');
+}
 
 let filePath = jsonPath ? jsonPath : './tests/vk-regression/vk-regression.json';
 let RegressionJson: {
@@ -173,4 +188,4 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
 }
 
 if (dump) await dumpVk(ConstraintSystems);
-else await checkVk(ConstraintSystems);
+else await checkVk(selectedConstraintSystems);

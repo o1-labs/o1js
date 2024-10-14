@@ -35,7 +35,9 @@ const program2 = ZkProgram({
     foo: {
       privateInputs: [Field],
       async method(publicInput: Program2Struct, field: Field) {
-        return publicInput.field1.add(publicInput.field2).add(field);
+        return {
+          publicOutput: publicInput.field1.add(publicInput.field2).add(field),
+        };
       },
     },
   },
@@ -140,8 +142,8 @@ describe('sideloaded', async () => {
   let program2Vk = (await program2.compile()).verificationKey;
 
   // Generate sample proofs
-  const program1Proof = await program1.foo(Field(1), Field(1));
-  const program2Proof = await program2.foo(
+  const { proof: program1Proof } = await program1.foo(Field(1), Field(1));
+  const { proof: program2Proof } = await program2.foo(
     { field1: Field(1), field2: Field(2) },
     Field(3)
   );
@@ -159,7 +161,7 @@ describe('sideloaded', async () => {
   it('recurse one proof with zkprogram', async () => {
     const proof = SampleSideloadedProof.fromProof(program1Proof);
 
-    const finalProof = await sideloadedProgram.recurseOneSideloaded(
+    const { proof: finalProof } = await sideloadedProgram.recurseOneSideloaded(
       Field(1),
       proof,
       program1Vk

@@ -29,7 +29,7 @@ class TokenEscrow extends SmartContract {
    */
   @method async withdraw(amount: UInt64) {
     // only the admin can withdraw
-    this.sender.getAndRequireSignature().assertEquals(admin);
+    this.sender.getAndRequireSignatureV2().assertEquals(admin);
 
     // withdraw the amount
     let receiverAU = this.send({ to: admin, amount });

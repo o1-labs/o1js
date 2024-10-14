@@ -185,39 +185,41 @@ let ffProgram = ZkProgram({
     sumchain: {
       privateInputs: [Provable.Array(Field3, chainLength)],
       async method(xs) {
-        return ForeignField.sum(xs, signs, F.modulus);
+        return {
+          publicOutput: ForeignField.sum(xs, signs, F.modulus),
+        };
       },
     },
     mulWithBoundsCheck: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertAlmostReduced([x, y], F.modulus);
-        return ForeignField.mul(x, y, F.modulus);
+        return { publicOutput: ForeignField.mul(x, y, F.modulus) };
       },
     },
     mul: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
-        return ForeignField.mul(x, y, F.modulus);
+        return { publicOutput: ForeignField.mul(x, y, F.modulus) };
       },
     },
     inv: {
       privateInputs: [Field3],
       async method(x) {
-        return ForeignField.inv(x, F.modulus);
+        return { publicOutput: ForeignField.inv(x, F.modulus) };
       },
     },
     div: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
-        return ForeignField.div(x, y, F.modulus);
+        return { publicOutput: ForeignField.div(x, y, F.modulus) };
       },
     },
     assertLessThan: {
       privateInputs: [Field3, Field3],
       async method(x, y) {
         ForeignField.assertLessThan(x, y);
-        return x;
+        return { publicOutput: x };
       },
     },
   },
@@ -268,7 +270,7 @@ await ffProgram.compile();
 await equivalentAsync({ from: [array(f, chainLength)], to: f }, { runs })(
   (xs) => sum(xs, signs, F),
   async (xs) => {
-    let proof = await ffProgram.sumchain(xs);
+    let { proof } = await ffProgram.sumchain(xs);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -282,7 +284,7 @@ await equivalentAsync({ from: [big264, big264], to: f }, { runs })(
     return F.mul(x, y);
   },
   async (x, y) => {
-    let proof = await ffProgram.mulWithBoundsCheck(x, y);
+    let { proof } = await ffProgram.mulWithBoundsCheck(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -292,7 +294,7 @@ await equivalentAsync({ from: [big264, big264], to: f }, { runs })(
 await equivalentAsync({ from: [f, f], to: f }, { runs })(
   (x, y) => F.div(x, y) ?? throwError('no inverse'),
   async (x, y) => {
-    let proof = await ffProgram.div(x, y);
+    let { proof } = await ffProgram.div(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
     return proof.publicOutput;
   },
@@ -302,7 +304,7 @@ await equivalentAsync({ from: [f, f], to: f }, { runs })(
 await equivalentAsync({ from: [f, f], to: unit }, { runs })(
   (x, y) => assert(x < y, 'not less than'),
   async (x, y) => {
-    let proof = await ffProgram.assertLessThan(x, y);
+    let { proof } = await ffProgram.assertLessThan(x, y);
     assert(await ffProgram.verify(proof), 'verifies');
   },
   'prove less than'
