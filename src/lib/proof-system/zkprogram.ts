@@ -817,6 +817,14 @@ function ZkProgram<
 
       let auxilaryPublicInput = programState.getAuxilaryInput();
 
+      let nonPurePublicInput;
+      if (auxilaryPublicInput) {
+        nonPurePublicInput = publicInputType.fromFields(
+          publicInput,
+          auxilaryPublicInput
+        );
+      }
+
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
