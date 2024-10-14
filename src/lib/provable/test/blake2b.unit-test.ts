@@ -38,7 +38,7 @@ const BLAKE2BProgram = ZkProgram({
     blake2b: {
       privateInputs: [Bytes(192)],
       async method(preImage: Bytes) {
-        return Gadgets.BLAKE2B.hash(preImage);
+        return { publicOutput: Gadgets.BLAKE2B.hash(preImage) };
       },
     },
   },
@@ -55,7 +55,7 @@ await equivalentAsync(
   },
   { runs: RUNS }
 )(nobleBlake2b, async (x) => {
-  const proof = await BLAKE2BProgram.blake2b(x);
+  const { proof } = await BLAKE2BProgram.blake2b(x);
   await BLAKE2BProgram.verify(proof);
   return proof.publicOutput;
 });

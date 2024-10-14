@@ -27,7 +27,7 @@ let Arithmetic = ZkProgram({
     divMod64: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.divMod64(a);
+        return { publicOutput: Gadgets.divMod64(a) };
       },
     },
   },
@@ -93,6 +93,6 @@ await equivalentAsync({ from: [field], to: divModOutput }, { runs: 3 })(
     return divMod64Helper(x);
   },
   async (x) => {
-    return (await Arithmetic.divMod64(x)).publicOutput;
+    return (await Arithmetic.divMod64(x)).proof.publicOutput;
   }
 );

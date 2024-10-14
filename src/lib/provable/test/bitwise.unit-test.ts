@@ -60,7 +60,7 @@ let Bitwise = ZkProgram({
     or: {
       privateInputs: [Field, Field],
       async method(a: Field, b: Field) {
-        return Gadgets.or(a, b, 64);
+        return { publicOutput: Gadgets.or(a, b, 64) };
       },
     },
     rot32: {
