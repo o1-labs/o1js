@@ -815,6 +815,8 @@ function ZkProgram<
         programState.reset(methodIntfs[i].methodName);
       }
 
+      let auxilaryPublicInput = programState.getAuxilaryInput();
+
       let [publicOutputFields, proof] = MlPair.from(result);
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
