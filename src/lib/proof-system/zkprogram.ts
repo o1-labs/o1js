@@ -1222,8 +1222,8 @@ function inCircuitVkHash(inCircuitVk: unknown): Field {
 }
 
 function picklesRuleFromFunction(
-  publicInputType: Provable<unknown>,
-  publicOutputType: Provable<unknown>,
+  publicInputType: ProvablePure<unknown>,
+  publicOutputType: ProvablePure<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
   {
