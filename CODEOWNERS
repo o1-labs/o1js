@@ -2,8 +2,5 @@
 * @o1-labs/o1js-admins
 
 # Changes to source code should be reviewed by exploration team and future zkapps team 
-/src/examples @o1-labs/exploration-team @o1-labs/future-zkapps
-/src/lib @o1-labs/exploration-team @o1-labs/future-zkapps
-
-# Provable code should be reviewed by the crypto team
-/src/lib/provable @o1-labs/crypto-eng-reviewers
+/src/examples @o1-labs/o1js-admins @o1-labs/exploration-team @o1-labs/future-zkapps
+/src/lib @o1-labs/o1js-admins @o1-labs/exploration-team @o1-labs/future-zkapps
