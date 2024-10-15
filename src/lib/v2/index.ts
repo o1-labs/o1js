@@ -1,1 +1,1 @@
-export * as Mina from './mina/index.js'
+export * as Mina from './mina/index.js';

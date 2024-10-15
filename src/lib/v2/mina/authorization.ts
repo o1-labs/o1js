@@ -8,7 +8,8 @@ import { HashInput } from '../../provable/types/provable-derivers.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 
-export type AuthorizationLevelIdentifier = Bindings.Leaves.AuthRequiredIdentifier;
+export type AuthorizationLevelIdentifier =
+  Bindings.Leaves.AuthRequiredIdentifier;
 
 export class AuthorizationLevel {
   // TODO: it would be nice if these could be private, but then the subtyping doesn't work... maybe we can do a trick here with object splats?
@@ -16,10 +17,14 @@ export class AuthorizationLevel {
   signatureNecessary: Bool;
   signatureSufficient: Bool;
 
-  constructor({constant, signatureNecessary, signatureSufficient}: {
-    constant: Bool,
-    signatureNecessary: Bool,
-    signatureSufficient: Bool
+  constructor({
+    constant,
+    signatureNecessary,
+    signatureSufficient,
+  }: {
+    constant: Bool;
+    signatureNecessary: Bool;
+    signatureSufficient: Bool;
   }) {
     this.constant = constant;
     this.signatureNecessary = signatureNecessary;
@@ -35,7 +40,7 @@ export class AuthorizationLevel {
   }
 
   toJSON(): any {
-    return AuthorizationLevel.toJSON(this)
+    return AuthorizationLevel.toJSON(this);
   }
 
   toInput(): HashInput {
@@ -141,7 +146,9 @@ export class AuthorizationLevel {
   }
 
   static fromFields(fields: Field[], aux: any[]): AuthorizationLevel {
-    return new AuthorizationLevel(Bindings.Leaves.AuthRequired.fromFields(fields, aux));
+    return new AuthorizationLevel(
+      Bindings.Leaves.AuthRequired.fromFields(fields, aux)
+    );
   }
 
   static check(x: AuthorizationLevel) {
@@ -156,8 +163,10 @@ export class AuthorizationLevel {
     return x;
   }
 
-  static from(x: AuthorizationLevelIdentifier | AuthorizationLevel): AuthorizationLevel {
-    switch(x) {
+  static from(
+    x: AuthorizationLevelIdentifier | AuthorizationLevel
+  ): AuthorizationLevel {
+    switch (x) {
       case 'Signature':
         return AuthorizationLevel.Signature();
       case 'Proof':
@@ -179,16 +188,19 @@ export class VerificationKeyAuthorizationLevel {
   auth: AuthorizationLevel;
   txnVersion: UInt32;
 
-  constructor(auth: AuthorizationLevel, txnVersion: UInt32 = CURRENT_TRANSACTION_VERSION) {
+  constructor(
+    auth: AuthorizationLevel,
+    txnVersion: UInt32 = CURRENT_TRANSACTION_VERSION
+  ) {
     this.auth = auth;
     this.txnVersion = txnVersion;
   }
 
-  toJSON(): {auth: AuthorizationLevelIdentifier, txnVersion: string} {
+  toJSON(): { auth: AuthorizationLevelIdentifier; txnVersion: string } {
     return {
       auth: this.auth.toJSON(),
-      txnVersion: this.txnVersion.toString()
-    }
+      txnVersion: this.txnVersion.toString(),
+    };
   }
 
   // private static get layout(): BindingsLayout {
@@ -205,7 +217,10 @@ export class VerificationKeyAuthorizationLevel {
   }
 
   static empty(): VerificationKeyAuthorizationLevel {
-    return new VerificationKeyAuthorizationLevel(AuthorizationLevel.empty(), UInt32.zero);
+    return new VerificationKeyAuthorizationLevel(
+      AuthorizationLevel.empty(),
+      UInt32.zero
+    );
   }
 
   static toFields(_x: VerificationKeyAuthorizationLevel): Field[] {
@@ -218,7 +233,10 @@ export class VerificationKeyAuthorizationLevel {
     // return Bindings.AuthRequired.toAuxiliary(x);
   }
 
-  static fromFields(_fields: Field[], _aux: any[]): VerificationKeyAuthorizationLevel {
+  static fromFields(
+    _fields: Field[],
+    _aux: any[]
+  ): VerificationKeyAuthorizationLevel {
     throw new Error('TODO');
     /*
     BindingsLayout.Object.fromFields(fields, aux)
@@ -237,16 +255,25 @@ export class VerificationKeyAuthorizationLevel {
     // Bindings.AuthRequired.check(x);
   }
 
-  static toValue(x: VerificationKeyAuthorizationLevel): VerificationKeyAuthorizationLevel {
+  static toValue(
+    x: VerificationKeyAuthorizationLevel
+  ): VerificationKeyAuthorizationLevel {
     return x;
   }
 
-  static fromValue(x: VerificationKeyAuthorizationLevel): VerificationKeyAuthorizationLevel {
+  static fromValue(
+    x: VerificationKeyAuthorizationLevel
+  ): VerificationKeyAuthorizationLevel {
     return x;
   }
 
-  static from(x: AuthorizationLevelIdentifier | AuthorizationLevel | VerificationKeyAuthorizationLevel): VerificationKeyAuthorizationLevel {
-    if(x instanceof VerificationKeyAuthorizationLevel) {
+  static from(
+    x:
+      | AuthorizationLevelIdentifier
+      | AuthorizationLevel
+      | VerificationKeyAuthorizationLevel
+  ): VerificationKeyAuthorizationLevel {
+    if (x instanceof VerificationKeyAuthorizationLevel) {
       return x;
     } else {
       return new VerificationKeyAuthorizationLevel(AuthorizationLevel.from(x));
@@ -255,8 +282,8 @@ export class VerificationKeyAuthorizationLevel {
 }
 
 export interface AccountUpdateAuthorization {
-  proof: string | null,
-  signature: string | null,
+  proof: string | null;
+  signature: string | null;
 }
 
 export type AccountUpdateAuthorizationKindIdentifier =
@@ -269,10 +296,7 @@ export class AccountUpdateAuthorizationKind {
   isSigned: Bool;
   isProved: Bool;
 
-  constructor({isSigned, isProved}: {
-    isSigned: Bool,
-    isProved: Bool
-  }) {
+  constructor({ isSigned, isProved }: { isSigned: Bool; isProved: Bool }) {
     this.isSigned = isSigned;
     this.isProved = isProved;
   }
@@ -280,14 +304,14 @@ export class AccountUpdateAuthorizationKind {
   // NB: only safe to call in prover contexts
   // TODO: we should replace this with a circuit-safe representation using ZkEnum
   identifier(): AccountUpdateAuthorizationKindIdentifier {
-    if(this.isSigned.toBoolean()) {
-      if(this.isProved.toBoolean()) {
+    if (this.isSigned.toBoolean()) {
+      if (this.isProved.toBoolean()) {
         return 'SignatureAndProof';
       } else {
         return 'Signature';
       }
     } else {
-      if(this.isProved.toBoolean()) {
+      if (this.isProved.toBoolean()) {
         return 'Proof';
       } else {
         return 'None';
@@ -295,10 +319,12 @@ export class AccountUpdateAuthorizationKind {
     }
   }
 
-  static from(x: AccountUpdateAuthorizationKindIdentifier | AccountUpdateAuthorizationKind): AccountUpdateAuthorizationKind {
-    if(x instanceof AccountUpdateAuthorizationKind) return x;
+  static from(
+    x: AccountUpdateAuthorizationKindIdentifier | AccountUpdateAuthorizationKind
+  ): AccountUpdateAuthorizationKind {
+    if (x instanceof AccountUpdateAuthorizationKind) return x;
 
-    switch(x) {
+    switch (x) {
       case 'None':
         return AccountUpdateAuthorizationKind.None();
       case 'Signature':
@@ -311,19 +337,31 @@ export class AccountUpdateAuthorizationKind {
   }
 
   static None(): AccountUpdateAuthorizationKind {
-    return new AccountUpdateAuthorizationKind({isSigned: new Bool(false), isProved: new Bool(false)});
+    return new AccountUpdateAuthorizationKind({
+      isSigned: new Bool(false),
+      isProved: new Bool(false),
+    });
   }
 
   static Signature(): AccountUpdateAuthorizationKind {
-    return new AccountUpdateAuthorizationKind({isSigned: new Bool(true), isProved: new Bool(false)});
+    return new AccountUpdateAuthorizationKind({
+      isSigned: new Bool(true),
+      isProved: new Bool(false),
+    });
   }
 
   static Proof(): AccountUpdateAuthorizationKind {
-    return new AccountUpdateAuthorizationKind({isSigned: new Bool(false), isProved: new Bool(true)});
+    return new AccountUpdateAuthorizationKind({
+      isSigned: new Bool(false),
+      isProved: new Bool(true),
+    });
   }
 
   static SignatureAndProof(): AccountUpdateAuthorizationKind {
-    return new AccountUpdateAuthorizationKind({isSigned: new Bool(true), isProved: new Bool(true)});
+    return new AccountUpdateAuthorizationKind({
+      isSigned: new Bool(true),
+      isProved: new Bool(true),
+    });
   }
 }
 
@@ -332,10 +370,13 @@ export class AccountUpdateAuthorizationKindWithZkappContext {
   isProved: Bool;
   verificationKeyHash: Field;
 
-  constructor(kind: AccountUpdateAuthorizationKind, verificationKeyHash: Field) {
+  constructor(
+    kind: AccountUpdateAuthorizationKind,
+    verificationKeyHash: Field
+  ) {
     this.isSigned = kind.isSigned;
     this.isProved = kind.isProved;
-    this.verificationKeyHash = verificationKeyHash
+    this.verificationKeyHash = verificationKeyHash;
   }
 
   toJSON(): any {
@@ -343,10 +384,11 @@ export class AccountUpdateAuthorizationKindWithZkappContext {
   }
 }
 
-export type AccountUpdateAuthorizationEnvironment = ZkappCommandAuthorizationEnvironment & {
-  accountUpdateForestCommitment: bigint; // TODO: Field;
-  fullTransactionCommitment?: bigint; // TODO: Field;
-}
+export type AccountUpdateAuthorizationEnvironment =
+  ZkappCommandAuthorizationEnvironment & {
+    accountUpdateForestCommitment: bigint; // TODO: Field;
+    fullTransactionCommitment?: bigint; // TODO: Field;
+  };
 
 export interface ZkappFeePaymentAuthorizationEnvironment {
   networkId: NetworkId;

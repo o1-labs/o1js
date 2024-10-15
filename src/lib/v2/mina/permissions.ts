@@ -1,4 +1,8 @@
-import { AuthorizationLevel, AuthorizationLevelIdentifier, VerificationKeyAuthorizationLevel } from './authorization.js';
+import {
+  AuthorizationLevel,
+  AuthorizationLevelIdentifier,
+  VerificationKeyAuthorizationLevel,
+} from './authorization.js';
 import { Field } from '../../provable/field.js';
 import { Provable } from '../../provable/provable.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/js-layout-v2.js';
@@ -13,7 +17,10 @@ export type PermissionsDescription = {
   setDelegate: AuthorizationLevelIdentifier | AuthorizationLevel;
   setPermissions: AuthorizationLevelIdentifier | AuthorizationLevel;
   // IMPORTANT TODO: we should be using special auth level identifiers here
-  setVerificationKey: AuthorizationLevelIdentifier | AuthorizationLevel | VerificationKeyAuthorizationLevel;
+  setVerificationKey:
+    | AuthorizationLevelIdentifier
+    | AuthorizationLevel
+    | VerificationKeyAuthorizationLevel;
   setZkappUri: AuthorizationLevelIdentifier | AuthorizationLevel;
   editActionState: AuthorizationLevelIdentifier | AuthorizationLevel;
   setTokenSymbol: AuthorizationLevelIdentifier | AuthorizationLevel;
@@ -44,7 +51,9 @@ export class Permissions {
     this.receive = AuthorizationLevel.from(descr.receive);
     this.setDelegate = AuthorizationLevel.from(descr.setDelegate);
     this.setPermissions = AuthorizationLevel.from(descr.setPermissions);
-    this.setVerificationKey = VerificationKeyAuthorizationLevel.from(descr.setVerificationKey);
+    this.setVerificationKey = VerificationKeyAuthorizationLevel.from(
+      descr.setVerificationKey
+    );
     this.setZkappUri = AuthorizationLevel.from(descr.setZkappUri);
     this.editActionState = AuthorizationLevel.from(descr.editActionState);
     this.setTokenSymbol = AuthorizationLevel.from(descr.setTokenSymbol);
@@ -71,8 +80,8 @@ export class Permissions {
       incrementNonce: 'Signature',
       setVotingFor: 'Signature',
       setTiming: 'Signature',
-      access: 'None'
-    })
+      access: 'None',
+    });
   }
 
   static empty(): Permissions {
@@ -89,7 +98,7 @@ export class Permissions {
       incrementNonce: 'None',
       setVotingFor: 'None',
       setTiming: 'None',
-      access: 'None'
+      access: 'None',
     });
   }
 
@@ -165,7 +174,9 @@ export class Permissions {
   }
 
   static fromFields(fields: Field[], aux: any[]): Permissions {
-    return Permissions.fromInternalRepr(BindingsLayout.Permissions.fromFields(fields, aux));
+    return Permissions.fromInternalRepr(
+      BindingsLayout.Permissions.fromFields(fields, aux)
+    );
   }
 
   static toAuxiliary(x?: Permissions): any[] {
@@ -201,7 +212,7 @@ export class Permissions {
       incrementNonce: new AuthorizationLevel(x.incrementNonce),
       setVotingFor: new AuthorizationLevel(x.setVotingFor),
       setTiming: new AuthorizationLevel(x.setTiming),
-      access: new AuthorizationLevel(x.access)
+      access: new AuthorizationLevel(x.access),
     });
   }
 
@@ -212,4 +223,4 @@ export class Permissions {
 
 AuthorizationLevel satisfies Provable<AuthorizationLevel>;
 VerificationKeyAuthorizationLevel satisfies Provable<VerificationKeyAuthorizationLevel>;
-Permissions satisfies Provable<Permissions>
+Permissions satisfies Provable<Permissions>;

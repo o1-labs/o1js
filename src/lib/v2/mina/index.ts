@@ -1,13 +1,13 @@
 export {
   AccountUpdate,
   // AuthorizedAccountUpdate,
-  ContextFreeAccountUpdate
+  ContextFreeAccountUpdate,
 } from './account-update.js';
 export { Account } from './account.js';
 export {
   AuthorizationLevel,
   AuthorizationLevelIdentifier,
-  VerificationKeyAuthorizationLevel
+  VerificationKeyAuthorizationLevel,
 } from './authorization.js';
 export { Update } from './core.js';
 export { Permissions } from './permissions.js';
@@ -28,11 +28,11 @@ export {
   StateLayout,
   StatePreconditions,
   StateUpdates,
-  StateValues
+  StateValues,
 } from './state.js';
 export {
   AuthorizedZkappCommand,
   ZkappFeePayment,
   ZkappCommand,
-  createZkappCommand
+  createZkappCommand,
 } from './transaction.js';

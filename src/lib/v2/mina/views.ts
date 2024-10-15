@@ -15,7 +15,7 @@ export class LocalLedger implements LedgerView {
   constructor(accounts: Account[]) {
     this.accounts = new AccountIdMap();
 
-    for(const account of accounts) {
+    for (const account of accounts) {
       this.setAccount(account);
     }
   }

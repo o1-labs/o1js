@@ -2,7 +2,10 @@ import { promises as fs } from 'fs';
 import sodium from 'libsodium-wrappers-sumo';
 import { fromBase58Check, toBase58Check } from '../../lib/util/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
-import { PrivateKey as PrivateKeyBigInt, PublicKey as PublicKeyBigInt } from '../../mina-signer/src/curve-bigint.js';
+import {
+  PrivateKey as PrivateKeyBigInt,
+  PublicKey as PublicKeyBigInt,
+} from '../../mina-signer/src/curve-bigint.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 
 const VERSION_BYTE = 2;
@@ -54,5 +57,8 @@ export async function readKeypair(filepath: string, password: string) {
   const content = await fs.readFile(filepath);
   const json = JSON.parse(content.toString());
   const { privateKey, publicKey } = await secureBoxToBase58(json, password);
-  return { privateKey: PrivateKey.fromBase58(privateKey), publicKey: PublicKey.fromBase58(publicKey) };
+  return {
+    privateKey: PrivateKey.fromBase58(privateKey),
+    publicKey: PublicKey.fromBase58(publicKey),
+  };
 }

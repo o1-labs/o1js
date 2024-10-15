@@ -11,7 +11,10 @@ export import StackFrame = StackTrace.StackFrame;
 
 export function getCallerFrame(): StackFrame {
   const frames = StackTrace.getSync();
-  if(frames.length < 3) throw new Error('cannot call getCallerFrame when the stack has less than 2 frames');
+  if (frames.length < 3)
+    throw new Error(
+      'cannot call getCallerFrame when the stack has less than 2 frames'
+    );
   return frames[2];
 }
 
@@ -22,33 +25,43 @@ export class ZkappCommandErrorTrace {
   ) {}
 
   hasErrors(): boolean {
-    function accountUpdateForestHasErrors(forestTrace: AccountUpdateErrorTrace[]): boolean {
-      for(const trace of forestTrace)
-        if(trace.errors.length > 0 || accountUpdateForestHasErrors(trace.childTraces))
+    function accountUpdateForestHasErrors(
+      forestTrace: AccountUpdateErrorTrace[]
+    ): boolean {
+      for (const trace of forestTrace)
+        if (
+          trace.errors.length > 0 ||
+          accountUpdateForestHasErrors(trace.childTraces)
+        )
           return true;
       return false;
     }
 
-    return this.feePaymentErrors.length > 0 || accountUpdateForestHasErrors(this.accountUpdateForestTrace);
+    return (
+      this.feePaymentErrors.length > 0 ||
+      accountUpdateForestHasErrors(this.accountUpdateForestTrace)
+    );
   }
 
   generateReport(): string {
-    const makeIndent = (depth: number) => ' '.repeat(2*depth);
+    const makeIndent = (depth: number) => ' '.repeat(2 * depth);
     const renderAccountId = (accountId: AccountId) => {
       const isMinaAccount = accountId.tokenId.equals(TokenId.MINA).toBoolean();
       const pubkeyString = accountId.publicKey.toBase58();
-      return isMinaAccount ? pubkeyString : `${pubkeyString}[token ${accountId.tokenId}]`
-    }
+      return isMinaAccount
+        ? pubkeyString
+        : `${pubkeyString}[token ${accountId.tokenId}]`;
+    };
     const renderCallSite = (callSite: StackFrame) =>
       `${callSite.getFileName()}:${callSite.getLineNumber()}`;
 
     let out = '';
 
     function writeErrors(depth: number, errors: Error[]): void {
-      if(errors.length === 0) {
+      if (errors.length === 0) {
         out += 'ok\n';
       } else {
-        const indent = makeIndent(depth+1);
+        const indent = makeIndent(depth + 1);
 
         // out += 'error';
         // if(callSite !== null) out += ` (${callSite})`;
@@ -61,19 +74,28 @@ export class ZkappCommandErrorTrace {
       }
     }
 
-    function writeAccountUpdateTrace(depth: number, trace: AccountUpdateErrorTrace): void {
+    function writeAccountUpdateTrace(
+      depth: number,
+      trace: AccountUpdateErrorTrace
+    ): void {
       const indent = makeIndent(depth);
-      out += `${indent}${renderAccountId(trace.accountId)} (${renderCallSite(trace.callSite)}): `;
+      out += `${indent}${renderAccountId(trace.accountId)} (${renderCallSite(
+        trace.callSite
+      )}): `;
       writeErrors(depth, trace.errors);
-      trace.childTraces.forEach((accountUpdateTrace) => writeAccountUpdateTrace(depth+1, accountUpdateTrace));
+      trace.childTraces.forEach((accountUpdateTrace) =>
+        writeAccountUpdateTrace(depth + 1, accountUpdateTrace)
+      );
     }
 
     out += 'ZKAPP COMMAND ERROR TRACE\n';
     out += '=========================\n';
     out += '  feePayment: ';
-    writeErrors(1, this.feePaymentErrors)
+    writeErrors(1, this.feePaymentErrors);
     out += '  accountUpdates:\n';
-    this.accountUpdateForestTrace.forEach((accountUpdateTrace) => writeAccountUpdateTrace(2, accountUpdateTrace))
+    this.accountUpdateForestTrace.forEach((accountUpdateTrace) =>
+      writeAccountUpdateTrace(2, accountUpdateTrace)
+    );
     out += '=========================\n';
 
     return out;

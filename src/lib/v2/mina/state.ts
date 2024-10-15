@@ -18,21 +18,29 @@ import { Field } from '../../provable/field.js';
 import { Provable } from '../../provable/types/provable-intf.js';
 
 export type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
-export type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
+export type StateElementInstance<E> = E extends StateElement<infer T>
+  ? T
+  : never;
 // TODO: custom state layouts need to specify the order of their keys
-export type CustomStateLayout = {[name: string]: StateElement<any>};
+export type CustomStateLayout = { [name: string]: StateElement<any> };
 export type StateLayout = 'GenericState' | CustomStateLayout;
 
 export const CustomStateLayout = {
   project<
     StateIn extends CustomStateLayout,
-    StateOut extends {[name in keyof StateIn]: unknown}
+    StateOut extends { [name in keyof StateIn]: unknown }
   >(
     Layout: StateIn,
     f: (key: keyof StateIn, value: StateIn[typeof key]) => StateOut[typeof key]
   ): StateOut {
-    const entriesIn = Object.entries(Layout) as [keyof StateIn, StateElement<any>][];
-    const entriesOut = entriesIn.map(([key, T]) => [key, f(key, T as StateIn[typeof key])]);
+    const entriesIn = Object.entries(Layout) as [
+      keyof StateIn,
+      StateElement<any>
+    ][];
+    const entriesOut = entriesIn.map(([key, T]) => [
+      key,
+      f(key, T as StateIn[typeof key]),
+    ]);
     return Object.fromEntries(entriesOut);
   },
 
@@ -50,45 +58,40 @@ export const CustomStateLayout = {
 export type StateDefinition<State extends StateLayout> =
   State extends 'GenericState'
     ? 'GenericState'
-    : {Layout: State} & Provable<{[name in keyof State]: StateElementInstance<State[name]>}>;
+    : { Layout: State } & Provable<{
+        [name in keyof State]: StateElementInstance<State[name]>;
+      }>;
 
 export const StateDefinition = {
-  split2<
-    State extends StateLayout,
-    Generic1,
-    Custom1,
-    Generic2,
-    Custom2
-  >(
+  split2<State extends StateLayout, Generic1, Custom1, Generic2, Custom2>(
     definition: StateDefinition<State>,
     value1: State extends 'GenericState' ? Generic1 : Custom1,
     value2: State extends 'GenericState' ? Generic2 : Custom2,
     generic: (x1: Generic1, x2: Generic2) => void,
     custom: (layout: CustomStateLayout, x1: Custom1, x2: Custom2) => void
   ) {
-    if(definition === 'GenericState') {
+    if (definition === 'GenericState') {
       return generic(value1 as Generic1, value2 as Generic2);
     } else {
       return custom(definition.Layout, value1 as Custom1, value2 as Custom2);
     }
   },
 
-  map<
-    State extends StateLayout,
-    GenericIn,
-    CustomIn,
-    GenericOut,
-    CustomOut
-  >(
+  map<State extends StateLayout, GenericIn, CustomIn, GenericOut, CustomOut>(
     definition: StateDefinition<State>,
     value: State extends 'GenericState' ? GenericIn : CustomIn,
     generic: (x: GenericIn) => GenericOut,
     custom: (layout: CustomStateLayout, x: CustomIn) => CustomOut
   ): State extends 'GenericState' ? GenericOut : CustomOut {
-    if(definition === 'GenericState') {
-      return generic(value as GenericIn) as State extends 'GenericState' ? GenericOut : CustomOut;
+    if (definition === 'GenericState') {
+      return generic(value as GenericIn) as State extends 'GenericState'
+        ? GenericOut
+        : CustomOut;
     } else {
-      return custom(definition.Layout, value as CustomIn) as State extends 'GenericState' ? GenericOut : CustomOut;
+      return custom(
+        definition.Layout,
+        value as CustomIn
+      ) as State extends 'GenericState' ? GenericOut : CustomOut;
     }
   },
 
@@ -105,20 +108,27 @@ export const StateDefinition = {
     value1: State extends 'GenericState' ? GenericIn1 : CustomIn1,
     value2: State extends 'GenericState' ? GenericIn2 : CustomIn2,
     generic: (x1: GenericIn1, x2: GenericIn2) => GenericOut,
-    custom: (layout: CustomStateLayout, x1: CustomIn1, x2: CustomIn2) => CustomOut
+    custom: (
+      layout: CustomStateLayout,
+      x1: CustomIn1,
+      x2: CustomIn2
+    ) => CustomOut
   ): State extends 'GenericState' ? GenericOut : CustomOut {
-    if(definition === 'GenericState') {
-      return generic(value1 as GenericIn1, value2 as GenericIn2) as State extends 'GenericState' ? GenericOut : CustomOut;
+    if (definition === 'GenericState') {
+      return generic(
+        value1 as GenericIn1,
+        value2 as GenericIn2
+      ) as State extends 'GenericState' ? GenericOut : CustomOut;
     } else {
-      return custom(definition.Layout, value1 as CustomIn1, value2 as CustomIn2) as State extends 'GenericState' ? GenericOut : CustomOut;
+      return custom(
+        definition.Layout,
+        value1 as CustomIn1,
+        value2 as CustomIn2
+      ) as State extends 'GenericState' ? GenericOut : CustomOut;
     }
   },
 
-  project<
-    State extends StateLayout,
-    Generic,
-    Custom
-  >(
+  project<State extends StateLayout, Generic, Custom>(
     definition: StateDefinition<State>,
     generic: () => Generic,
     custom: (layout: CustomStateLayout) => Custom
@@ -126,60 +136,72 @@ export const StateDefinition = {
     return StateDefinition.map(definition, undefined, generic, custom);
   },
 
-  convert<
-    State extends StateLayout,
-    Generic,
-    Custom,
-    Out
-  >(
+  convert<State extends StateLayout, Generic, Custom, Out>(
     definition: StateDefinition<State>,
     value: State extends 'GenericState' ? Generic : Custom,
     generic: (x: Generic) => Out,
     custom: (layout: CustomStateLayout, x: Custom) => Out
   ): Out {
     return StateDefinition.map(definition, value, generic, custom);
-  }
-}
+  },
+};
 
 // TODO: allow for explicit ordering/mapping of state field indices
-export function State<State extends CustomStateLayout>(Layout: State): StateDefinition<State> {
+export function State<State extends CustomStateLayout>(
+  Layout: State
+): StateDefinition<State> {
   // TODO: proxy provable definition out of Struct with helper
   // class StateDef extends Struct(Layout) {}
 
   // TODO: check sizeInFields
-  const sizeInFields = Object.values(Layout).map((T) => T.sizeInFields()).reduce((a, b) => a+b, 0);
+  const sizeInFields = Object.values(Layout)
+    .map((T) => T.sizeInFields())
+    .reduce((a, b) => a + b, 0);
 
   return {
     Layout,
     sizeInFields(): number {
       return sizeInFields;
     },
-    toFields(x: {[name in keyof State]: StateElementInstance<State[name]>}): Field[] {
+    toFields(x: {
+      [name in keyof State]: StateElementInstance<State[name]>;
+    }): Field[] {
       const fields = [];
-      for(const key in Layout) {
+      for (const key in Layout) {
         fields.push(...Layout[key].toFields(x[key]));
       }
       return fields;
     },
-    toAuxiliary(x?: {[name in keyof State]: StateElementInstance<State[name]>}): any[] {
+    toAuxiliary(x?: {
+      [name in keyof State]: StateElementInstance<State[name]>;
+    }): any[] {
       const aux = [];
-      for(const key in Layout) {
+      for (const key in Layout) {
         aux.push(Layout[key].toAuxiliary(x !== undefined ? x[key] : undefined));
       }
       return aux;
     },
-    fromFields(_fields: Field[], _aux: any[]): {[name in keyof State]: StateElementInstance<State[name]>} {
+    fromFields(
+      _fields: Field[],
+      _aux: any[]
+    ): { [name in keyof State]: StateElementInstance<State[name]> } {
       throw new Error('TODO');
     },
-    toValue(x: {[name in keyof State]: StateElementInstance<State[name]>}): {[name in keyof State]: StateElementInstance<State[name]>} {
+    toValue(x: { [name in keyof State]: StateElementInstance<State[name]> }): {
+      [name in keyof State]: StateElementInstance<State[name]>;
+    } {
       return x;
     },
-    fromValue(x: {[name in keyof State]: StateElementInstance<State[name]>}): {[name in keyof State]: StateElementInstance<State[name]>} {
+    fromValue(x: {
+      [name in keyof State]: StateElementInstance<State[name]>;
+    }): { [name in keyof State]: StateElementInstance<State[name]> } {
       return x;
     },
-    check(_x: {[name in keyof State]: StateElementInstance<State[name]>}): void {
+    check(_x: {
+      [name in keyof State]: StateElementInstance<State[name]>;
+    }): void {
       throw new Error('TODO');
-    }
+    },
   } as StateDefinition<State>;
   // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
 }
@@ -187,23 +209,42 @@ export function State<State extends CustomStateLayout>(Layout: State): StateDefi
 export type StatePreconditions<State extends StateLayout> =
   State extends 'GenericState'
     ? GenericStatePreconditions
-    : {[name in keyof State]: Precondition.Equals<StateElementInstance<State[name]>>};
+    : {
+        [name in keyof State]: Precondition.Equals<
+          StateElementInstance<State[name]>
+        >;
+      };
 
 export const StatePreconditions = {
-  empty<State extends StateLayout>(State: StateDefinition<State>): StatePreconditions<State> {
+  empty<State extends StateLayout>(
+    State: StateDefinition<State>
+  ): StatePreconditions<State> {
     return StateDefinition.project(
       State,
       GenericStatePreconditions.empty,
-      (Layout: CustomStateLayout) => CustomStateLayout.project(Layout, (_key, T) => Precondition.Equals.disabled(T.empty()))
+      (Layout: CustomStateLayout) =>
+        CustomStateLayout.project(Layout, (_key, T) =>
+          Precondition.Equals.disabled(T.empty())
+        )
     );
   },
 
-  toGeneric<State extends StateLayout>(State: StateDefinition<State>, statePreconditions: StatePreconditions<State>): StatePreconditions<'GenericState'> {
+  toGeneric<State extends StateLayout>(
+    State: StateDefinition<State>,
+    statePreconditions: StatePreconditions<State>
+  ): StatePreconditions<'GenericState'> {
     return StateDefinition.convert(
       State,
       statePreconditions,
       (x: GenericStatePreconditions) => x as StatePreconditions<'GenericState'>,
-      (Layout: CustomStateLayout, preconditions: {[name in keyof State]: Precondition.Equals<StateElementInstance<State[name]>>}) => {
+      (
+        Layout: CustomStateLayout,
+        preconditions: {
+          [name in keyof State]: Precondition.Equals<
+            StateElementInstance<State[name]>
+          >;
+        }
+      ) => {
         // const fieldPreconditions = CustomStateLayout.mapToArray<typeof Layout, Precondition.Equals<Field>>(
         //   Layout,
         //   (key: keyof State, T) => {
@@ -213,11 +254,16 @@ export const StatePreconditions = {
         //   }
         // ).flat();
 
-        const entries = Object.entries(Layout) as [keyof State, StateElement<any>][];
+        const entries = Object.entries(Layout) as [
+          keyof State,
+          StateElement<any>
+        ][];
         const fieldPreconditions = entries.flatMap(([key, T]) => {
           const precondition = preconditions[key];
           const fields = T.toFields(precondition.value);
-          return fields.map((field) => new Precondition.Equals(precondition.isEnabled, field));
+          return fields.map(
+            (field) => new Precondition.Equals(precondition.isEnabled, field)
+          );
         });
 
         return new GenericStatePreconditions(fieldPreconditions);
@@ -225,7 +271,10 @@ export const StatePreconditions = {
     );
   },
 
-  fromGeneric<State extends StateLayout>(statePreconditions: StatePreconditions<'GenericState'>, State: StateDefinition<State>): StatePreconditions<State> {
+  fromGeneric<State extends StateLayout>(
+    statePreconditions: StatePreconditions<'GenericState'>,
+    State: StateDefinition<State>
+  ): StatePreconditions<State> {
     return StateDefinition.project(
       State,
       () => statePreconditions,
@@ -233,66 +282,98 @@ export const StatePreconditions = {
         // NB: this relies on the order of map being deterministic
         // TODO: make the order of map deterministic (lol)
         let i = 0;
-        return CustomStateLayout.project(
-          Layout,
-          (_key, T) => {
-            const fieldPreconditions = statePreconditions.preconditions.slice(i, i+T.sizeInFields());
-            i += T.sizeInFields();
-            if(fieldPreconditions.length === 0)
-              throw new Error('invalid state element field length');
+        return CustomStateLayout.project(Layout, (_key, T) => {
+          const fieldPreconditions = statePreconditions.preconditions.slice(
+            i,
+            i + T.sizeInFields()
+          );
+          i += T.sizeInFields();
+          if (fieldPreconditions.length === 0)
+            throw new Error('invalid state element field length');
 
-            const isEnabled = fieldPreconditions[0].isEnabled;
-            const allPreconditionsShareEnablement = Bool.allTrue(fieldPreconditions.map((precondition) => precondition.isEnabled.equals(isEnabled)));
-            if(allPreconditionsShareEnablement.not().toBoolean())
-              throw new Error('state field preconditions mapping to the same state field element were not all enabled/disabled equally');
-
-            const fields = fieldPreconditions.map((precondition) => precondition.value);
-            const value = T.fromFields(fields, /* TODO */ []);
-
-            return new Precondition.Equals(
-              isEnabled,
-              value
+          const isEnabled = fieldPreconditions[0].isEnabled;
+          const allPreconditionsShareEnablement = Bool.allTrue(
+            fieldPreconditions.map((precondition) =>
+              precondition.isEnabled.equals(isEnabled)
             )
-          }
-        );
+          );
+          if (allPreconditionsShareEnablement.not().toBoolean())
+            throw new Error(
+              'state field preconditions mapping to the same state field element were not all enabled/disabled equally'
+            );
+
+          const fields = fieldPreconditions.map(
+            (precondition) => precondition.value
+          );
+          const value = T.fromFields(fields, /* TODO */ []);
+
+          return new Precondition.Equals(isEnabled, value);
+        });
       }
-    )
+    );
   },
 
-  toFieldPreconditions<State extends StateLayout>(State: StateDefinition<State>, preconditions: StatePreconditions<State>): Precondition.Equals<Field>[] {
-    return [...StatePreconditions.toGeneric(State, preconditions).preconditions];
-  }
+  toFieldPreconditions<State extends StateLayout>(
+    State: StateDefinition<State>,
+    preconditions: StatePreconditions<State>
+  ): Precondition.Equals<Field>[] {
+    return [
+      ...StatePreconditions.toGeneric(State, preconditions).preconditions,
+    ];
+  },
 };
 
 export type StateUpdates<State extends StateLayout> =
   State extends 'GenericState'
     ? GenericStateUpdates
-    : {[name in keyof State]?: StateElementInstance<State[name]> | Update<StateElementInstance<State[name]>>}
+    : {
+        [name in keyof State]?:
+          | StateElementInstance<State[name]>
+          | Update<StateElementInstance<State[name]>>;
+      };
 
 export const StateUpdates = {
-  empty<State extends StateLayout>(State: StateDefinition<State>): StateUpdates<State> {
+  empty<State extends StateLayout>(
+    State: StateDefinition<State>
+  ): StateUpdates<State> {
     return StateDefinition.project(
       State,
       GenericStateUpdates.empty,
-      (Layout: CustomStateLayout) => CustomStateLayout.project(Layout, (_key, T) => Update.disabled(T.empty()))
+      (Layout: CustomStateLayout) =>
+        CustomStateLayout.project(Layout, (_key, T) =>
+          Update.disabled(T.empty())
+        )
     );
   },
 
-  toGeneric<State extends StateLayout>(State: StateDefinition<State>, stateUpdates: StateUpdates<State>): StateUpdates<'GenericState'> {
+  toGeneric<State extends StateLayout>(
+    State: StateDefinition<State>,
+    stateUpdates: StateUpdates<State>
+  ): StateUpdates<'GenericState'> {
     return StateDefinition.convert(
       State,
       stateUpdates,
       (x: GenericStateUpdates) => x as StateUpdates<'GenericState'>,
-      (Layout: CustomStateLayout, updates: {[name in keyof State]?: StateElementInstance<State[name]> | Update<StateElementInstance<State[name]>>}) => {
-        const entries = Object.entries(Layout) as [keyof State, StateElement<any>][];
+      (
+        Layout: CustomStateLayout,
+        updates: {
+          [name in keyof State]?:
+            | StateElementInstance<State[name]>
+            | Update<StateElementInstance<State[name]>>;
+        }
+      ) => {
+        const entries = Object.entries(Layout) as [
+          keyof State,
+          StateElement<any>
+        ][];
         const fieldUpdates = entries.flatMap(([key, T]) => {
           const update = updates[key];
           const update2 =
             update === undefined
               ? new Update(new Bool(false), T.empty())
               : update instanceof Update
-                ? update
-                : new Update(new Bool(true), update);
+              ? update
+              : new Update(new Bool(true), update);
           const fields = T.toFields(update2.value);
           return fields.map((field) => new Update(update2.set, field));
         });
@@ -302,7 +383,10 @@ export const StateUpdates = {
     );
   },
 
-  fromGeneric<State extends StateLayout>(stateUpdates: StateUpdates<'GenericState'>, State: StateDefinition<State>): StateUpdates<State> {
+  fromGeneric<State extends StateLayout>(
+    stateUpdates: StateUpdates<'GenericState'>,
+    State: StateDefinition<State>
+  ): StateUpdates<State> {
     return StateDefinition.project(
       State,
       () => stateUpdates,
@@ -310,58 +394,74 @@ export const StateUpdates = {
         // NB: this relies on the order of map being deterministic
         // TODO: make the order of map deterministic (lol)
         let i = 0;
-        return CustomStateLayout.project(
-          Layout,
-          (_key, T) => {
-            const fieldUpdates = stateUpdates.updates.slice(i, i+T.sizeInFields());
-            i += T.sizeInFields();
-            if(fieldUpdates.length === 0)
-              throw new Error('invalid state element field length');
+        return CustomStateLayout.project(Layout, (_key, T) => {
+          const fieldUpdates = stateUpdates.updates.slice(
+            i,
+            i + T.sizeInFields()
+          );
+          i += T.sizeInFields();
+          if (fieldUpdates.length === 0)
+            throw new Error('invalid state element field length');
 
-            const set = fieldUpdates[0].set;
-            const allUpdatesShareEnablement = Bool.allTrue(fieldUpdates.map((precondition) => precondition.set.equals(set)));
-            if(allUpdatesShareEnablement.not().toBoolean())
-              throw new Error('state field preconditions mapping to the same state field element were not all enabled/disabled equally');
+          const set = fieldUpdates[0].set;
+          const allUpdatesShareEnablement = Bool.allTrue(
+            fieldUpdates.map((precondition) => precondition.set.equals(set))
+          );
+          if (allUpdatesShareEnablement.not().toBoolean())
+            throw new Error(
+              'state field preconditions mapping to the same state field element were not all enabled/disabled equally'
+            );
 
-            const fields = fieldUpdates.map((precondition) => precondition.value);
-            const value = T.fromFields(fields, /* TODO */ []);
+          const fields = fieldUpdates.map((precondition) => precondition.value);
+          const value = T.fromFields(fields, /* TODO */ []);
 
-            return new Update(
-              set,
-              value
-            )
-          }
-        );
+          return new Update(set, value);
+        });
       }
-    )
+    );
   },
 
-  toFieldUpdates<State extends StateLayout>(State: StateDefinition<State>, updates: StateUpdates<State>): Update<Field>[] {
+  toFieldUpdates<State extends StateLayout>(
+    State: StateDefinition<State>,
+    updates: StateUpdates<State>
+  ): Update<Field>[] {
     return [...StateUpdates.toGeneric(State, updates).updates];
-  }
+  },
 };
 
 export type StateValues<State extends StateLayout> =
   State extends 'GenericState'
     ? GenericStateValues
-    : {[name in keyof State]: StateElementInstance<State[name]>};
+    : { [name in keyof State]: StateElementInstance<State[name]> };
 
 export const StateValues = {
-  empty<State extends StateLayout>(State: StateDefinition<State>): StateValues<State> {
+  empty<State extends StateLayout>(
+    State: StateDefinition<State>
+  ): StateValues<State> {
     return StateDefinition.project(
       State,
       GenericStateValues.empty,
-      (Layout: CustomStateLayout) => CustomStateLayout.project(Layout, (_key, T) => T.empty())
+      (Layout: CustomStateLayout) =>
+        CustomStateLayout.project(Layout, (_key, T) => T.empty())
     );
   },
 
-  toGeneric<State extends StateLayout>(State: StateDefinition<State>, stateValues: StateValues<State>): StateValues<'GenericState'> {
+  toGeneric<State extends StateLayout>(
+    State: StateDefinition<State>,
+    stateValues: StateValues<State>
+  ): StateValues<'GenericState'> {
     return StateDefinition.convert(
       State,
       stateValues,
       (x: GenericStateValues) => x as StateValues<'GenericState'>,
-      (Layout: CustomStateLayout, updates: {[name in keyof State]?: StateElementInstance<State[name]>}) => {
-        const entries = Object.entries(Layout) as [keyof State, StateElement<any>][];
+      (
+        Layout: CustomStateLayout,
+        updates: { [name in keyof State]?: StateElementInstance<State[name]> }
+      ) => {
+        const entries = Object.entries(Layout) as [
+          keyof State,
+          StateElement<any>
+        ][];
         const fieldValues = entries.flatMap(([key, T]) => {
           const value = updates[key];
           return T.toFields(value);
@@ -372,7 +472,10 @@ export const StateValues = {
     );
   },
 
-  fromGeneric<State extends StateLayout>(stateValues: StateValues<'GenericState'>, State: StateDefinition<State>): StateValues<State> {
+  fromGeneric<State extends StateLayout>(
+    stateValues: StateValues<'GenericState'>,
+    State: StateDefinition<State>
+  ): StateValues<State> {
     return StateDefinition.project(
       State,
       () => stateValues,
@@ -380,16 +483,13 @@ export const StateValues = {
         // NB: this relies on the order of map being deterministic
         // TODO: make the order of map deterministic (lol)
         let i = 0;
-        return CustomStateLayout.project(
-          Layout,
-          (_key, T) => {
-            const fields = stateValues.values.slice(i, i+T.sizeInFields());
-            i += T.sizeInFields();
-            return T.fromFields(fields, /* TODO */ []);
-          }
-        );
+        return CustomStateLayout.project(Layout, (_key, T) => {
+          const fields = stateValues.values.slice(i, i + T.sizeInFields());
+          i += T.sizeInFields();
+          return T.fromFields(fields, /* TODO */ []);
+        });
       }
-    )
+    );
   },
 
   checkPreconditions<State extends StateLayout>(
@@ -402,8 +502,13 @@ export const StateValues = {
       stateValues,
       statePreconditions,
       (values, preconditions) => {
-        for(const i in values.values) {
-          if(preconditions.preconditions[i].isSatisfied(values.values[i]).not().toBoolean())
+        for (const i in values.values) {
+          if (
+            preconditions.preconditions[i]
+              .isSatisfied(values.values[i])
+              .not()
+              .toBoolean()
+          )
             throw new Error(`precondition for state field ${i} not satisified`);
         }
       },
@@ -415,7 +520,7 @@ export const StateValues = {
           StatePreconditions.toGeneric(State, statePreconditions)
         );
       }
-    )
+    );
 
     // if(State === 'GenericState') {
     //   // unsafely narrow types manually since typescript can't
@@ -455,29 +560,30 @@ export const StateValues = {
           const update = updates.updates[i];
           return update.set.toBoolean() ? update.value : value;
         }),
-      (Layout, values, state): {[name in keyof State]: StateElementInstance<State[name]>} => {
+      (
+        Layout,
+        values,
+        state
+      ): { [name in keyof State]: StateElementInstance<State[name]> } => {
         throw new Error('no');
       }
     );
-  }
+  },
 };
 
 export class StateFieldsArray<T> {
-  constructor(
-    private fieldElements: T[],
-    empty: () => T
-  ) {
-    if(this.fieldElements.length > MAX_ZKAPP_STATE_FIELDS) {
+  constructor(private fieldElements: T[], empty: () => T) {
+    if (this.fieldElements.length > MAX_ZKAPP_STATE_FIELDS) {
       throw new Error('exceeded maximum number of state elements');
     }
 
-    if(this.fieldElements.length < MAX_ZKAPP_STATE_FIELDS) {
-      for(let i = this.fieldElements.length; i < MAX_ZKAPP_STATE_FIELDS; i++) {
-        this.fieldElements.push(empty())
+    if (this.fieldElements.length < MAX_ZKAPP_STATE_FIELDS) {
+      for (let i = this.fieldElements.length; i < MAX_ZKAPP_STATE_FIELDS; i++) {
+        this.fieldElements.push(empty());
       }
     }
 
-    if(this.fieldElements.length !== MAX_ZKAPP_STATE_FIELDS) {
+    if (this.fieldElements.length !== MAX_ZKAPP_STATE_FIELDS) {
       throw new Error('internal error: invariant broken');
     }
   }
@@ -488,9 +594,7 @@ export class StateFieldsArray<T> {
 }
 
 export class GenericStateValues extends StateFieldsArray<Field> {
-  constructor(
-    values: Field[]
-  ) {
+  constructor(values: Field[]) {
     super(values, Field.empty);
   }
 
@@ -507,10 +611,10 @@ export class GenericStateValues extends StateFieldsArray<Field> {
   }
 }
 
-export class GenericStatePreconditions extends StateFieldsArray<Precondition.Equals<Field>> {
-  constructor(
-    preconditions: Precondition.Equals<Field>[]
-  ) {
+export class GenericStatePreconditions extends StateFieldsArray<
+  Precondition.Equals<Field>
+> {
+  constructor(preconditions: Precondition.Equals<Field>[]) {
     super(preconditions, () => Precondition.Equals.disabled(Field.empty()));
   }
 
@@ -524,9 +628,7 @@ export class GenericStatePreconditions extends StateFieldsArray<Precondition.Equ
 }
 
 export class GenericStateUpdates extends StateFieldsArray<Update<Field>> {
-  constructor(
-    updates: Update<Field>[]
-  ) {
+  constructor(updates: Update<Field>[]) {
     super(updates, () => Update.disabled(Field.empty()));
   }
 

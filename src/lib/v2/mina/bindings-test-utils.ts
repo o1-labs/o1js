@@ -4,12 +4,12 @@ import { HashInput } from '../../provable/types/provable-derivers.js';
 import { expect } from 'expect';
 
 export function stripPrototypes(x: any): any {
-  if(typeof x === 'object') {
-    if(x instanceof Array) {
+  if (typeof x === 'object') {
+    if (x instanceof Array) {
       return [...x].map(stripPrototypes);
     } else {
-      const obj: {[key: string]: any} = {};
-      for(const key in Object.keys(obj)) {
+      const obj: { [key: string]: any } = {};
+      for (const key in Object.keys(obj)) {
         obj[key] = x[key];
       }
       return obj;
@@ -22,19 +22,27 @@ export function stripPrototypes(x: any): any {
 export function v1FetchLayout(root: any, path: string[]): any {
   let here = root;
 
-  for(const key of path) {
-    switch(here.type) {
+  for (const key of path) {
+    switch (here.type) {
       case 'object':
-        if(!(key in here.entries)) throw new Error(`invalid layout path: object type ${here.name} does not have key ${key}`);
+        if (!(key in here.entries))
+          throw new Error(
+            `invalid layout path: object type ${here.name} does not have key ${key}`
+          );
         here = here.entries[key];
         break;
       case 'array':
       case 'option':
-        if(key !== 'inner') throw new Error(`invalid layout path: found ${here.type}, and expected the key to be inner, but path had a key of ${key}`);
+        if (key !== 'inner')
+          throw new Error(
+            `invalid layout path: found ${here.type}, and expected the key to be inner, but path had a key of ${key}`
+          );
         here = here.inner;
         break;
       default:
-        throw new Error(`invalid layout path: reached ${here.type} before end of path`);
+        throw new Error(
+          `invalid layout path: reached ${here.type} before end of path`
+        );
     }
   }
 
@@ -48,9 +56,13 @@ export type ProvableTypeDef<T> = Provable<T> & {
 
 export type V1Type<T> = ProvableTypeDef<T> & {
   toJSON(x: T): any;
-}
+};
 
-export type V2Type<InternalReprArg, V1, V2 extends V2Value<any, V1>> = ProvableTypeDef<V2> & {
+export type V2Type<
+  InternalReprArg,
+  V1,
+  V2 extends V2Value<any, V1>
+> = ProvableTypeDef<V2> & {
   fromInternalRepr(x: V1): V2;
   toJSON(x: V2, arg: InternalReprArg): any;
 };
@@ -70,16 +82,30 @@ export function testV2Encoding<V2 extends V2Value<any, any>>(
   expect(Type.fromFields(fields, Type.toAuxiliary(value))).toEqual(value);
 }
 
-export function testV1V2ClassEquivalence<InternalReprArg, V1, V2 extends V2Value<InternalReprArg, V1>>(
+export function testV1V2ClassEquivalence<
+  InternalReprArg,
+  V1,
+  V2 extends V2Value<InternalReprArg, V1>
+>(
   V1Type: V1Type<V1>,
   V2Type: V2Type<InternalReprArg, V1, V2>,
   v2InternalReprArg: InternalReprArg
 ) {
   expect(V2Type.sizeInFields()).toBe(V1Type.sizeInFields());
-  testV1V2ValueEquivalence(V1Type, V2Type, V1Type.empty(), V2Type.empty(), v2InternalReprArg);
+  testV1V2ValueEquivalence(
+    V1Type,
+    V2Type,
+    V1Type.empty(),
+    V2Type.empty(),
+    v2InternalReprArg
+  );
 }
 
-export function testV1V2ValueEquivalence<InternalReprArg, V1, V2 extends V2Value<InternalReprArg, V1>>(
+export function testV1V2ValueEquivalence<
+  InternalReprArg,
+  V1,
+  V2 extends V2Value<InternalReprArg, V1>
+>(
   V1Type: V1Type<V1>,
   V2Type: V2Type<InternalReprArg, V1, V2>,
   v1Value: V1,
@@ -87,38 +113,36 @@ export function testV1V2ValueEquivalence<InternalReprArg, V1, V2 extends V2Value
   v2InternalReprArg: InternalReprArg
 ) {
   // v2 instance and class methods match
-  expect(v2Value.toJSON(v2InternalReprArg))
-    .toEqual(V2Type.toJSON(v2Value, v2InternalReprArg));
-  expect(v2Value.toFields())
-    .toEqual(V2Type.toFields(v2Value));
+  expect(v2Value.toJSON(v2InternalReprArg)).toEqual(
+    V2Type.toJSON(v2Value, v2InternalReprArg)
+  );
+  expect(v2Value.toFields()).toEqual(V2Type.toFields(v2Value));
 
   // conversion
-  expect(stripPrototypes(v2Value.toInternalRepr(v2InternalReprArg)))
-    .toEqual(stripPrototypes(v1Value));
-  expect(V2Type.fromInternalRepr(v1Value))
-    .toEqual(v2Value);
+  expect(stripPrototypes(v2Value.toInternalRepr(v2InternalReprArg))).toEqual(
+    stripPrototypes(v1Value)
+  );
+  expect(V2Type.fromInternalRepr(v1Value)).toEqual(v2Value);
 
   // json equality
-  expect(v2Value.toJSON(v2InternalReprArg))
-    .toEqual(V1Type.toJSON(v1Value));
+  expect(v2Value.toJSON(v2InternalReprArg)).toEqual(V1Type.toJSON(v1Value));
 
   // fields equality
-  expect(v2Value.toFields())
-    .toEqual(V1Type.toFields(v1Value));
+  expect(v2Value.toFields()).toEqual(V1Type.toFields(v1Value));
 
   // auxiliary equality
-  expect(V2Type.toAuxiliary(v2Value))
-    .toEqual(V1Type.toAuxiliary(v1Value));
+  expect(V2Type.toAuxiliary(v2Value)).toEqual(V1Type.toAuxiliary(v1Value));
 
   // v1 -> v2 via fields
-  expect(V2Type.fromFields(V1Type.toFields(v1Value), V1Type.toAuxiliary(v1Value)))
-    .toEqual(v2Value);
+  expect(
+    V2Type.fromFields(V1Type.toFields(v1Value), V1Type.toAuxiliary(v1Value))
+  ).toEqual(v2Value);
 
   // v1 -> v2 via fields
-  expect(V1Type.fromFields(V2Type.toFields(v2Value), V2Type.toAuxiliary(v2Value)))
-    .toEqual(v1Value);
+  expect(
+    V1Type.fromFields(V2Type.toFields(v2Value), V2Type.toAuxiliary(v2Value))
+  ).toEqual(v1Value);
 
   // input equality
-  expect(V1Type.toInput(v1Value))
-    .toEqual(V2Type.toInput(v2Value));
+  expect(V1Type.toInput(v1Value)).toEqual(V2Type.toInput(v2Value));
 }

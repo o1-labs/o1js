@@ -2,12 +2,23 @@ import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
 import { Field as WrappedField } from '../../provable/wrapped.js';
-import { hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
+import {
+  hashWithPrefix,
+  packToFields,
+} from '../../provable/crypto/poseidon.js';
 import { Provable } from '../../provable/types/provable-intf.js';
-import { prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
+import {
+  prefixes,
+  protocolVersions,
+} from '../../../bindings/crypto/constants.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { Types } from '../../../bindings/mina-transaction/types.js';
-import { bytesToBits, prefixToField, stringLengthInBytes, stringToBytes } from '../../../bindings/lib/binable.js';
+import {
+  bytesToBits,
+  prefixToField,
+  stringLengthInBytes,
+  stringToBytes,
+} from '../../../bindings/lib/binable.js';
 import { GenericHashInput } from '../../../bindings/lib/generic.js';
 
 export import Option = Bindings.Leaves.Option;
@@ -15,14 +26,19 @@ export import Range = Bindings.Leaves.Range;
 
 export const MAX_ZKAPP_STATE_FIELDS = 8;
 
-export const CURRENT_TRANSACTION_VERSION = UInt32.from(protocolVersions.txnVersion);
+export const CURRENT_TRANSACTION_VERSION = UInt32.from(
+  protocolVersions.txnVersion
+);
 
 export const MAX_TOKEN_SYMBOL_LENGTH = 6;
 
 // TODO: constructors from Mina and NanoMina
 export type MinaAmount = UInt64;
 
-export function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | undefined {
+export function mapUndefined<A, B>(
+  value: A | undefined,
+  f: (a: A) => B
+): B | undefined {
   return value === undefined ? undefined : f(value);
 }
 
@@ -51,16 +67,16 @@ export type ProvableTuple = Tuple<Provable<any>>;
 
 export type ProvableInstance<P> = P extends Provable<infer T> ? T : never;
 
-export type ProvableTupleInstances<T extends ProvableTuple> = {[I in keyof T]: ProvableInstance<T[I]>};
+export type ProvableTupleInstances<T extends ProvableTuple> = {
+  [I in keyof T]: ProvableInstance<T[I]>;
+};
 
 export type Constructor<T> = new (...args: any[]) => T;
 
 // TODO
 export class TokenId {
   // TODO: construct this from it's parts, don't pass in the raw Field directly
-  constructor(
-    public value: Field
-  ) {}
+  constructor(public value: Field) {}
 
   equals(x: TokenId): Bool {
     return this.value.equals(x.value);
@@ -77,15 +93,15 @@ export class ZkappUri {
   readonly data: string;
   readonly hash: Field;
 
-  constructor(uri: string | { data: string, hash: Field }) {
-    if(typeof uri === 'object') {
+  constructor(uri: string | { data: string; hash: Field }) {
+    if (typeof uri === 'object') {
       this.data = uri.data;
       this.hash = uri.hash;
     } else {
       this.data = uri;
 
       let packed: Field[];
-      if(uri.length === 0) {
+      if (uri.length === 0) {
         packed = [new Field(0), new Field(0)];
       } else {
         const bits = bytesToBits(stringToBytes(uri));
@@ -105,7 +121,7 @@ export class ZkappUri {
   }
 
   static empty(): ZkappUri {
-    return new ZkappUri("");
+    return new ZkappUri('');
   }
 
   static from(uri: ZkappUri | string): ZkappUri {
@@ -118,18 +134,20 @@ export class TokenSymbol {
   readonly symbol: string;
   readonly field: Field;
 
-  constructor(symbol: string | { symbol: string, field: Field }) {
-    if(typeof symbol === 'object') {
+  constructor(symbol: string | { symbol: string; field: Field }) {
+    if (typeof symbol === 'object') {
       this.symbol = symbol.symbol;
       this.field = symbol.field;
     } else {
       let bytesLength = stringLengthInBytes(symbol);
       if (bytesLength > MAX_TOKEN_SYMBOL_LENGTH) {
-        throw Error(`Token symbol ${symbol} should be a maximum of ${MAX_TOKEN_SYMBOL_LENGTH} bytes, but is ${bytesLength}`);
+        throw Error(
+          `Token symbol ${symbol} should be a maximum of ${MAX_TOKEN_SYMBOL_LENGTH} bytes, but is ${bytesLength}`
+        );
       }
 
       this.symbol = symbol;
-      this.field = prefixToField(WrappedField, symbol)
+      this.field = prefixToField(WrappedField, symbol);
     }
   }
 
@@ -138,7 +156,7 @@ export class TokenSymbol {
   }
 
   static empty(): TokenSymbol {
-    return new TokenSymbol("");
+    return new TokenSymbol('');
   }
 
   static from(symbol: TokenSymbol | string): TokenSymbol {
@@ -147,13 +165,10 @@ export class TokenSymbol {
 }
 
 export class Update<T> {
-  constructor(
-    public set: Bool,
-    public value: T
-  ) {}
+  constructor(public set: Bool, public value: T) {}
 
   toOption(): Option<T> {
-    return {isSome: this.set, value: this.value};
+    return { isSome: this.set, value: this.value };
   }
 
   static fromOption<T>(option: Option<T>): Update<T> {
@@ -169,9 +184,9 @@ export class Update<T> {
   }
 
   static from<T>(value: Update<T> | T | undefined, defaultValue: T): Update<T> {
-    if(value instanceof Update) {
+    if (value instanceof Update) {
       return value;
-    } else if(value !== undefined) {
+    } else if (value !== undefined) {
       return Update.set(value);
     } else {
       return Update.disabled(defaultValue);

@@ -1,12 +1,20 @@
 import {
   AccountUpdateAuthorizationKind,
   ZkappCommandAuthorizationEnvironment,
-  ZkappFeePaymentAuthorizationEnvironment
+  ZkappFeePaymentAuthorizationEnvironment,
 } from './authorization.js';
-import { AccountUpdate, AccountUpdateTree, GenericData } from './account-update.js';
+import {
+  AccountUpdate,
+  AccountUpdateTree,
+  GenericData,
+} from './account-update.js';
 import { Account, AccountId, AccountIdSet } from './account.js';
 import { TokenId } from './core.js';
-import { AccountUpdateErrorTrace, ZkappCommandErrorTrace, getCallerFrame } from './errors.js';
+import {
+  AccountUpdateErrorTrace,
+  ZkappCommandErrorTrace,
+  getCallerFrame,
+} from './errors.js';
 import { Precondition } from './preconditions.js';
 import { StateLayout } from './state.js';
 import { LedgerView } from './views.js';
@@ -17,8 +25,14 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { mocks } from '../../../bindings/crypto/constants.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/js-layout-v2.js';
 import { Memo } from '../../../mina-signer/src/memo.js';
-import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigint.js';
-import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
+import {
+  hashWithPrefix,
+  prefixes,
+} from '../../../mina-signer/src/poseidon-bigint.js';
+import {
+  Signature,
+  signFieldElement,
+} from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 
 export interface ZkappFeePaymentDescription {
@@ -43,44 +57,43 @@ export class ZkappFeePayment {
     this.nonce = descr.nonce;
   }
 
-  authorize({networkId, privateKey, fullTransactionCommitment}: ZkappFeePaymentAuthorizationEnvironment): AuthorizedZkappFeePayment {
+  authorize({
+    networkId,
+    privateKey,
+    fullTransactionCommitment,
+  }: ZkappFeePaymentAuthorizationEnvironment): AuthorizedZkappFeePayment {
     let signature = signFieldElement(
       fullTransactionCommitment,
       privateKey.toBigInt(),
       networkId
     );
-    return new AuthorizedZkappFeePayment(
-      this,
-      Signature.toBase58(signature)
-    );
+    return new AuthorizedZkappFeePayment(this, Signature.toBase58(signature));
   }
 
   toAccountUpdate(): AccountUpdate.Authorized {
     return new AccountUpdate.Authorized(
       { signature: '', proof: null },
-      new AccountUpdate(
-        'GenericState',
-        GenericData,
-        GenericData,
-        {
-          authorizationKind: AccountUpdateAuthorizationKind.Signature(),
-          verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
-          callData: new Field(0),
-          accountId: new AccountId(this.publicKey, TokenId.MINA),
-          balanceChange: Int64.create(this.fee, Sign.minusOne),
-          incrementNonce: new Bool(true),
-          useFullCommitment: new Bool(true),
-          implicitAccountCreationFee: new Bool(true),
-          preconditions: {
-            account: {
-              nonce: this.nonce
-            },
-            network: {
-              globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(UInt32.zero, this.validUntil ?? UInt32.MAXINT())
-            }
-          }
-        }
-      )
+      new AccountUpdate('GenericState', GenericData, GenericData, {
+        authorizationKind: AccountUpdateAuthorizationKind.Signature(),
+        verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
+        callData: new Field(0),
+        accountId: new AccountId(this.publicKey, TokenId.MINA),
+        balanceChange: Int64.create(this.fee, Sign.minusOne),
+        incrementNonce: new Bool(true),
+        useFullCommitment: new Bool(true),
+        implicitAccountCreationFee: new Bool(true),
+        preconditions: {
+          account: {
+            nonce: this.nonce,
+          },
+          network: {
+            globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(
+              UInt32.zero,
+              this.validUntil ?? UInt32.MAXINT()
+            ),
+          },
+        },
+      })
     );
   }
 
@@ -89,8 +102,8 @@ export class ZkappFeePayment {
       publicKey: this.publicKey,
       fee: this.fee,
       validUntil: this.validUntil,
-      nonce: this.nonce
-    }
+      nonce: this.nonce,
+    };
   }
 
   toJSON(): any {
@@ -103,7 +116,6 @@ export class ZkappFeePayment {
 }
 
 export class AuthorizedZkappFeePayment {
-
   constructor(
     public readonly body: ZkappFeePayment,
     public readonly signature: string
@@ -112,8 +124,8 @@ export class AuthorizedZkappFeePayment {
   toInternalRepr(): BindingsLayout.ZkappFeePayer {
     return {
       body: this.body.toInternalRepr(),
-      authorization: this.signature
-    }
+      authorization: this.signature,
+    };
   }
 }
 
@@ -134,46 +146,66 @@ export class ZkappCommand {
 
   constructor(descr: ZkappCommandDescription) {
     this.feePayment = descr.feePayment;
-    this.accountUpdateForest = descr.accountUpdates.map(
-      (update) => update instanceof AccountUpdateTree ? update : new AccountUpdateTree(update, [])
+    this.accountUpdateForest = descr.accountUpdates.map((update) =>
+      update instanceof AccountUpdateTree
+        ? update
+        : new AccountUpdateTree(update, [])
     );
     // TODO: we probably want an explicit memo type instead to help enforce these rules early and not surprise the user when their memo changes slightly later
     this.memo = Memo.fromString(descr.memo ?? '');
   }
 
-  commitments(networkId: NetworkId): {accountUpdateForestCommitment: bigint, fullTransactionCommitment: bigint} {
-    const feePayerCommitment = this.feePayment.toAccountUpdate().hash(networkId);
-    const accountUpdateForestCommitment = AccountUpdateTree.hashForest(networkId, this.accountUpdateForest);
+  commitments(networkId: NetworkId): {
+    accountUpdateForestCommitment: bigint;
+    fullTransactionCommitment: bigint;
+  } {
+    const feePayerCommitment = this.feePayment
+      .toAccountUpdate()
+      .hash(networkId);
+    const accountUpdateForestCommitment = AccountUpdateTree.hashForest(
+      networkId,
+      this.accountUpdateForest
+    );
     const memoCommitment = Memo.hash(this.memo);
-    const fullTransactionCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
-      memoCommitment,
-      feePayerCommitment.toBigInt(),
-      accountUpdateForestCommitment
-    ]);
-    return {accountUpdateForestCommitment, fullTransactionCommitment};
+    const fullTransactionCommitment = hashWithPrefix(
+      prefixes.accountUpdateCons,
+      [
+        memoCommitment,
+        feePayerCommitment.toBigInt(),
+        accountUpdateForestCommitment,
+      ]
+    );
+    return { accountUpdateForestCommitment, fullTransactionCommitment };
   }
 
-  async authorize(authEnv: ZkappCommandAuthorizationEnvironment): Promise<AuthorizedZkappCommand> {
-    const feePayerPrivateKey = await authEnv.getPrivateKey(this.feePayment.publicKey);
+  async authorize(
+    authEnv: ZkappCommandAuthorizationEnvironment
+  ): Promise<AuthorizedZkappCommand> {
+    const feePayerPrivateKey = await authEnv.getPrivateKey(
+      this.feePayment.publicKey
+    );
 
     const commitments = this.commitments(authEnv.networkId);
 
     const authorizedFeePayment = this.feePayment.authorize({
       networkId: authEnv.networkId,
       privateKey: feePayerPrivateKey,
-      fullTransactionCommitment: commitments.fullTransactionCommitment
+      fullTransactionCommitment: commitments.fullTransactionCommitment,
     });
 
     const accountUpdateAuthEnv = {
       ...authEnv,
-      ...commitments
+      ...commitments,
     };
-    const authorizedAccountUpdateForest = await AccountUpdateTree.mapForest(this.accountUpdateForest, (accountUpdate) => accountUpdate.authorize(accountUpdateAuthEnv));
+    const authorizedAccountUpdateForest = await AccountUpdateTree.mapForest(
+      this.accountUpdateForest,
+      (accountUpdate) => accountUpdate.authorize(accountUpdateAuthEnv)
+    );
 
     return new AuthorizedZkappCommand({
       feePayment: authorizedFeePayment,
       accountUpdateForest: authorizedAccountUpdateForest,
-      memo: this.memo
+      memo: this.memo,
     });
   }
 }
@@ -185,7 +217,11 @@ export class AuthorizedZkappCommand {
   readonly accountUpdateForest: AccountUpdateTree<AccountUpdate.Authorized>[];
   readonly memo: string;
 
-  constructor({feePayment, accountUpdateForest, memo}: {
+  constructor({
+    feePayment,
+    accountUpdateForest,
+    memo,
+  }: {
     feePayment: AuthorizedZkappFeePayment;
     accountUpdateForest: AccountUpdateTree<AccountUpdate.Authorized>[];
     memo: string;
@@ -203,8 +239,8 @@ export class AuthorizedZkappCommand {
         this.accountUpdateForest,
         (update, depth) => update.toInternalRepr(depth)
       ),
-      memo: Memo.toBase58(this.memo)
-    }
+      memo: Memo.toBase58(this.memo),
+    };
   }
 
   toJSON(): any {
@@ -232,22 +268,33 @@ export class ZkappCommandContext {
   }
 
   add<State extends StateLayout>(
-    x: AccountUpdate<State, any, any> | AccountUpdateTree<AccountUpdate<State, any, any>, AccountUpdate>
+    x:
+      | AccountUpdate<State, any, any>
+      | AccountUpdateTree<AccountUpdate<State, any, any>, AccountUpdate>
   ) {
     const callSite = getCallerFrame();
 
-    const accountUpdateTree = x instanceof AccountUpdateTree ? x : new AccountUpdateTree(x, []);
-    const genericAccountUpdateTree = AccountUpdateTree.mapRoot(accountUpdateTree, (accountUpdate) => accountUpdate.toGeneric());
+    const accountUpdateTree =
+      x instanceof AccountUpdateTree ? x : new AccountUpdateTree(x, []);
+    const genericAccountUpdateTree = AccountUpdateTree.mapRoot(
+      accountUpdateTree,
+      (accountUpdate) => accountUpdate.toGeneric()
+    );
 
     const trace = AccountUpdateTree.reduce(
       genericAccountUpdateTree,
-      (accountUpdate: AccountUpdate, childTraces: AccountUpdateErrorTrace[]): AccountUpdateErrorTrace => {
+      (
+        accountUpdate: AccountUpdate,
+        childTraces: AccountUpdateErrorTrace[]
+      ): AccountUpdateErrorTrace => {
         let errors: Error[];
-        if(!this.failedAccounts.has(accountUpdate.accountId)) {
-          const account = this.ledger.getAccount(accountUpdate.accountId) ?? Account.empty(accountUpdate.accountId);
+        if (!this.failedAccounts.has(accountUpdate.accountId)) {
+          const account =
+            this.ledger.getAccount(accountUpdate.accountId) ??
+            Account.empty(accountUpdate.accountId);
           const applied = account.checkAndApplyUpdate(accountUpdate);
 
-          switch(applied.status) {
+          switch (applied.status) {
             case 'Applied':
               errors = [];
               this.ledger.setAccount(applied.updatedAccount);
@@ -259,17 +306,18 @@ export class ZkappCommandContext {
         } else {
           errors = [
             // TODO: this should be a warning
-            new Error('skipping account update because a previous account update failed when accessing the same account')
+            new Error(
+              'skipping account update because a previous account update failed when accessing the same account'
+            ),
           ];
         }
-
 
         return {
           accountId: accountUpdate.accountId,
           callSite,
           errors,
-          childTraces
-        }
+          childTraces,
+        };
       }
     );
 
@@ -279,24 +327,30 @@ export class ZkappCommandContext {
 
   // only to be used when an account update tree has already been applied to the ledger view
   unsafeAddWithoutApplying<State extends StateLayout>(
-    x: AccountUpdate<State, any, any> | AccountUpdateTree<AccountUpdate<State, any, any>, AccountUpdate>,
+    x:
+      | AccountUpdate<State, any, any>
+      | AccountUpdateTree<AccountUpdate<State, any, any>, AccountUpdate>,
     trace: AccountUpdateErrorTrace
   ) {
-    const accountUpdateTree = x instanceof AccountUpdateTree ? x : new AccountUpdateTree(x, []);
-    const genericAccountUpdateTree = AccountUpdateTree.mapRoot(accountUpdateTree, (accountUpdate) => accountUpdate.toGeneric());
+    const accountUpdateTree =
+      x instanceof AccountUpdateTree ? x : new AccountUpdateTree(x, []);
+    const genericAccountUpdateTree = AccountUpdateTree.mapRoot(
+      accountUpdateTree,
+      (accountUpdate) => accountUpdate.toGeneric()
+    );
     this.accountUpdateForest.push(genericAccountUpdateTree);
     // TODO: check that the trace shape matches the account update shape
     this.accountUpdateForestTrace.push(trace);
   }
 
   get output(): {
-    accountUpdateForest: AccountUpdateTree<AccountUpdate>[],
-    accountUpdateForestTrace: AccountUpdateErrorTrace[]
+    accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
+    accountUpdateForestTrace: AccountUpdateErrorTrace[];
   } {
     return {
       accountUpdateForest: [...this.accountUpdateForest],
       accountUpdateForestTrace: [...this.accountUpdateForestTrace],
-    }
+    };
   }
 }
 
@@ -306,10 +360,14 @@ export class ZkappCommandContext {
 //                 create a new zkapp command, to help avoid unexpected behavior externally.
 export async function createUnsignedZkappCommand(
   ledger: LedgerView,
-  {feePayer, fee, validUntil}: {
-    feePayer: PublicKey,
-    fee: UInt64,
-    validUntil?: UInt32
+  {
+    feePayer,
+    fee,
+    validUntil,
+  }: {
+    feePayer: PublicKey;
+    fee: UInt64;
+    validUntil?: UInt32;
   },
   f: (ctx: ZkappCommandContext) => Promise<void>
 ): Promise<ZkappCommand> {
@@ -320,16 +378,16 @@ export async function createUnsignedZkappCommand(
   const feePayerId = new AccountId(feePayer, TokenId.MINA);
   const feePayerAccount = ledger.getAccount(feePayerId);
 
-  if(feePayerAccount !== null) {
+  if (feePayerAccount !== null) {
     feePayment = new ZkappFeePayment({
       publicKey: feePayer,
       nonce: feePayerAccount.nonce,
       fee,
-      validUntil
+      validUntil,
     });
 
     const applied = feePayerAccount.checkAndApplyFeePayment(feePayment);
-    switch(applied.status) {
+    switch (applied.status) {
       case 'Applied':
         ledger.setAccount(applied.updatedAccount);
         break;
@@ -339,32 +397,32 @@ export async function createUnsignedZkappCommand(
         break;
     }
   } else {
-    feePaymentErrors = [
-      new Error('zkapp fee payer account not found')
-    ];
+    feePaymentErrors = [new Error('zkapp fee payer account not found')];
     failedAccounts.add(feePayerId);
   }
 
   const ctx = new ZkappCommandContext(ledger, failedAccounts);
   await f(ctx);
-  const {accountUpdateForest, accountUpdateForestTrace} = ctx.output;
+  const { accountUpdateForest, accountUpdateForestTrace } = ctx.output;
 
   const errorTrace = new ZkappCommandErrorTrace(
     feePaymentErrors,
     accountUpdateForestTrace
   );
 
-  if(!errorTrace.hasErrors()) {
+  if (!errorTrace.hasErrors()) {
     // should never be true if we hit this branch
-    if(feePayment === null) throw new Error('internal error');
+    if (feePayment === null) throw new Error('internal error');
 
     return new ZkappCommand({
       feePayment,
-      accountUpdates: accountUpdateForest
+      accountUpdates: accountUpdateForest,
     });
   } else {
     console.log(errorTrace.generateReport());
-    throw new Error('errors were encountered while creating a ZkappCommand (an error report is available in the logs)');
+    throw new Error(
+      'errors were encountered while creating a ZkappCommand (an error report is available in the logs)'
+    );
   }
 }
 
@@ -372,9 +430,9 @@ export async function createZkappCommand(
   ledger: LedgerView,
   authEnv: ZkappCommandAuthorizationEnvironment,
   feePayment: {
-    feePayer: PublicKey,
-    fee: UInt64,
-    validUntil?: UInt32
+    feePayer: PublicKey;
+    fee: UInt64;
+    validUntil?: UInt32;
   },
   f: (ctx: ZkappCommandContext) => Promise<void>
 ): Promise<AuthorizedZkappCommand> {
