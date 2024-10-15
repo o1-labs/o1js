@@ -29,6 +29,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - ZkProgram and SmartContract now also support private inputs that are not proofs themselves, but contain proofs nested within a Struct or array
   - Only `SelfProof` can still not be nested because it needs special treatment
 
+### Fixes
+
+- Fix verification of serialized proofs done before compiling any circuits https://github.com/o1-labs/o1js/pull/1857
+
 ## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
 
 ### Added
