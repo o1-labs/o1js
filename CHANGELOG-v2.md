@@ -35,3 +35,7 @@ Showing all changes since the last release (v.1.5.0)
 ### Added
 
 - New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
+- `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
+- `addMod64()` addition modulo 2^64
+- Bitwise OR via `{UInt32, UInt64}.or()`
+- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
