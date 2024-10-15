@@ -306,7 +306,7 @@ function OffchainState<
           keyType: undefined,
           valueType: type,
           key: undefined,
-          value: ('provable' in type ? type.provable : type).fromValue(value),
+          value: type.fromValue(value),
         });
 
         // push action on account update
@@ -321,7 +321,7 @@ function OffchainState<
           keyType: undefined,
           valueType: type,
           key: undefined,
-          value: ('provable' in type ? type.provable : type).fromValue(to),
+          value: type.fromValue(to),
           previousValue: optionType.fromValue(from),
         });
 
@@ -358,7 +358,7 @@ function OffchainState<
           keyType,
           valueType,
           key,
-          value: ('provable' in valueType ? valueType.provable : valueType).fromValue(value),
+          value: valueType.fromValue(value),
         });
 
         // push action on account update
@@ -373,7 +373,7 @@ function OffchainState<
           keyType,
           valueType,
           key,
-          value: ('provable' in valueType ? valueType.provable : valueType).fromValue(to),
+          value: valueType.fromValue(to),
           previousValue: optionType.fromValue(from),
         });
 

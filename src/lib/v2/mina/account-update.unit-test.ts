@@ -1,8 +1,10 @@
 import { AccountUpdate, GenericData } from './account-update.js';
+import { AccountId, AccountTiming } from './account.js';
 import { AccountUpdateAuthorizationKind } from './authorization.js';
 import { testV1V2ClassEquivalence, testV1V2ValueEquivalence, testV2Encoding } from './bindings-test-utils.js';
-import { AccountId, AccountTiming, Constraint, TokenId, Update, MAX_ZKAPP_STATE_FIELDS } from './core.js';
-import { GenericStateConstraints, GenericStateUpdates } from './state.js';
+import { TokenId, Update, MAX_ZKAPP_STATE_FIELDS } from './core.js';
+import { Precondition } from './preconditions.js';
+import { GenericStatePreconditions, GenericStateUpdates } from './state.js';
 import { AccountUpdate as V1AccountUpdateImpl } from '../../mina/account-update.js';
 import { VerificationKey } from '../../proof-system/zkprogram.js';
 import { Bool } from '../../provable/bool.js';
@@ -332,42 +334,42 @@ const v2AccountUpdate: AccountUpdate.Authorized = new AccountUpdate.Authorized(
       preconditions: {
         network: {
           snarkedLedgerHash: new Field(111),
-          blockchainLength: Constraint.InRange.betweenInclusive(new UInt32(222), new UInt32(333)),
-          minWindowDensity: Constraint.InRange.betweenInclusive(new UInt32(444), new UInt32(555)),
-          totalCurrency: Constraint.InRange.betweenInclusive(new UInt64(666), new UInt64(777)),
-          globalSlotSinceGenesis: Constraint.InRange.betweenInclusive(new UInt32(888), new UInt32(999)),
+          blockchainLength: Precondition.InRange.betweenInclusive(new UInt32(222), new UInt32(333)),
+          minWindowDensity: Precondition.InRange.betweenInclusive(new UInt32(444), new UInt32(555)),
+          totalCurrency: Precondition.InRange.betweenInclusive(new UInt64(666), new UInt64(777)),
+          globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(new UInt32(888), new UInt32(999)),
           stakingEpochData: {
             ledger: {
               hash: new Field(1111),
-              totalCurrency: Constraint.InRange.betweenInclusive(new UInt64(2222), new UInt64(3333)),
+              totalCurrency: Precondition.InRange.betweenInclusive(new UInt64(2222), new UInt64(3333)),
             },
             seed: new Field(4444),
             startCheckpoint: new Field(5555),
             lockCheckpoint: new Field(6666),
-            epochLength: Constraint.InRange.betweenInclusive(new UInt32(7777), new UInt32(8888)),
+            epochLength: Precondition.InRange.betweenInclusive(new UInt32(7777), new UInt32(8888)),
           },
           nextEpochData: {
             ledger: {
               hash: new Field(9999),
-              totalCurrency: Constraint.InRange.betweenInclusive(new UInt64(11111), new UInt64(22222)),
+              totalCurrency: Precondition.InRange.betweenInclusive(new UInt64(11111), new UInt64(22222)),
             },
             seed: new Field(33333),
             startCheckpoint: new Field(44444),
             lockCheckpoint: new Field(55555),
-            epochLength: Constraint.InRange.betweenInclusive(new UInt32(66666), new UInt32(77777)),
+            epochLength: Precondition.InRange.betweenInclusive(new UInt32(66666), new UInt32(77777)),
           }
         },
         account: {
-          balance: Constraint.InRange.betweenInclusive(new UInt64(88888), new UInt64(99999)),
-          nonce: Constraint.InRange.betweenInclusive(new UInt32(111111), new UInt32(222222)),
+          balance: Precondition.InRange.betweenInclusive(new UInt64(88888), new UInt64(99999)),
+          nonce: Precondition.InRange.betweenInclusive(new UInt32(111111), new UInt32(222222)),
           receiptChainHash: new Field(333333),
           delegate: publicKey,
-          state: new GenericStateConstraints(new Array(MAX_ZKAPP_STATE_FIELDS).fill(Constraint.Equals.equals(new Field(444444)))),
+          state: new GenericStatePreconditions(new Array(MAX_ZKAPP_STATE_FIELDS).fill(Precondition.Equals.equals(new Field(444444)))),
           actionState: new Field(555555),
           isProven: new Bool(true),
           isNew: new Bool(true)
         },
-        validWhile: Constraint.InRange.betweenInclusive(new UInt32(666666), new UInt32(777777))
+        validWhile: Precondition.InRange.betweenInclusive(new UInt32(666666), new UInt32(777777))
       },
       pushEvents: events,
       pushActions: actions,

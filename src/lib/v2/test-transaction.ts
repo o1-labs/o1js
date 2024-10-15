@@ -1,6 +1,7 @@
 import { AccountUpdate, AccountUpdateTree, GenericData } from './mina/account-update.js';
+import { AccountId } from './mina/account.js';
 import { AccountUpdateAuthorizationKind } from './mina/authorization.js';
-import { AccountId, TokenId } from './mina/core.js';
+import { TokenId } from './mina/core.js';
 import { ZkappCommand, ZkappFeePayment } from './mina/transaction.js';
 import { Field } from '../provable/field.js';
 import { UInt32, UInt64 } from '../provable/int.js';

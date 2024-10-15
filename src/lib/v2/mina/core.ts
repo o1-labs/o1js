@@ -2,8 +2,7 @@ import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
 import { Field as WrappedField } from '../../provable/wrapped.js';
-import { emptyHashWithPrefix, hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
+import { hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
 import { Provable } from '../../provable/types/provable-intf.js';
 import { prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
@@ -27,6 +26,21 @@ export function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | un
   return value === undefined ? undefined : f(value);
 }
 
+export interface Empty<T> {
+  empty: () => T;
+}
+
+export interface Eq<T extends Eq<T>> {
+  equals(x: T): Bool;
+}
+
+export type Compare<T extends Compare<T>> = Eq<T> & {
+  lessThan(x: T): Bool;
+  lessThanOrEqual(x: T): Bool;
+  greaterThan(x: T): Bool;
+  greaterThanOrEqual(x: T): Bool;
+};
+
 export interface ToFields {
   toFields(): Field[];
 }
@@ -41,55 +55,6 @@ export type ProvableTupleInstances<T extends ProvableTuple> = {[I in keyof T]: P
 
 export type Constructor<T> = new (...args: any[]) => T;
 
-// TODO: delete and replace with state register layout interface
-export interface Empty<T> {
-  empty: () => T;
-}
-
-// TODO: Using this pattern, we can remove a lot of the boilerplate from type definitions which
-//       wrap `BindingsType`s. However, this comes at the cost of making the code less direct,
-//       and thus harder to document. I'm leaving this here for now in case we decide it's more
-//       important for the code to be ergonomic for core developers.
-/*
-export function deriveProvableUnderConversion<T extends Object, Repr>(
-  Repr: Provable<Repr>,
-  BaseClass: (new (...args: any[]) => T) & {
-    toProvableRepr(x: T): Repr;
-    fromProvableRepr(x: Repr): T;
-  }
-) {
-  return class extends BaseClass {
-    static sizeInFields(): number {
-      return Repr.sizeInFields();
-    }
-
-    static toFields(x: T): Field[] {
-      return Repr.toFields(BaseClass.toProvableRepr(x))
-    }
-
-    static toAuxiliary(x?: T): any[] {
-      return Repr.toAuxiliary(x !== undefined ? BaseClass.toProvableRepr(x) : undefined);
-    }
-
-    static fromFields(fields: Field[], aux: any[]): T {
-      return BaseClass.fromProvableRepr(Repr.fromFields(fields, aux));
-    }
-
-    static toValue(x: T): T {
-      return x;
-    }
-
-    static fromValue(x: T): T {
-      return x;
-    }
-
-    static check(_x: T) {
-      throw new Error('TODO');
-    }
-  }
-}
-*/
-
 // TODO
 export class TokenId {
   // TODO: construct this from it's parts, don't pass in the raw Field directly
@@ -97,90 +62,15 @@ export class TokenId {
     public value: Field
   ) {}
 
+  equals(x: TokenId): Bool {
+    return this.value.equals(x.value);
+  }
+
+  toString(): string {
+    return this.value.toString();
+  }
+
   static MINA: TokenId = new TokenId(new Field(1));
-}
-
-export class AccountId {
-  constructor(
-    public publicKey: PublicKey,
-    public tokenId: TokenId
-  ) {}
-
-  static empty(): AccountId {
-    return new AccountId(
-      PublicKey.empty(),
-      TokenId.MINA
-    );
-  }
-
-  static sizeInFields(): number {
-    return PublicKey.sizeInFields() + Field.sizeInFields();
-  }
-
-  static toFields(x: AccountId): Field[] {
-    return [...PublicKey.toFields(x.publicKey), x.tokenId.value];
-  }
-
-  static toAuxiliary(_x?: AccountId): any[] {
-    return [];
-  }
-
-  static fromFields(fields: Field[], _aux: any[]): AccountId {
-    return new AccountId(
-      PublicKey.fromFields(fields.slice(0, PublicKey.sizeInFields())),
-      new TokenId(fields[PublicKey.sizeInFields()])
-    );
-  }
-
-  static toValue(x: AccountId): AccountId {
-    return x;
-  }
-
-  static fromValue(x: AccountId): AccountId {
-    return x;
-  }
-
-  static check(_x: AccountId) {
-    // TODO NOW
-  }
-}
-
-export class AccountTiming {
-  initialMinimumBalance: UInt64;
-  cliffTime: UInt32;
-  cliffAmount: UInt64;
-  vestingPeriod: UInt32;
-  vestingIncrement: UInt64;
-
-  constructor({
-    initialMinimumBalance,
-    cliffTime,
-    cliffAmount,
-    vestingPeriod,
-    vestingIncrement,
-  }: {
-    initialMinimumBalance: UInt64,
-    cliffTime: UInt32,
-    cliffAmount: UInt64,
-    vestingPeriod: UInt32,
-    vestingIncrement: UInt64,
-  }) {
-    this.initialMinimumBalance = initialMinimumBalance;
-    this.cliffTime = cliffTime;
-    this.cliffAmount = cliffAmount;
-    this.vestingPeriod = vestingPeriod;
-    this.vestingIncrement = vestingIncrement;
-  }
-
-  static empty(): AccountTiming {
-    return new AccountTiming({
-      initialMinimumBalance: UInt64.empty(),
-      cliffTime: UInt32.empty(),
-      cliffAmount: UInt64.empty(),
-      vestingPeriod: UInt32.empty(),
-      vestingIncrement: UInt64.empty(),
-    });
-  }
 }
 
 export class ZkappUri {
@@ -256,135 +146,11 @@ export class TokenSymbol {
   }
 }
 
-/*
-// TODO: should we change this in the protocol to be range constraints?
-export class GenericStateConstraints implements State.Constraints {
-  constructor(
-    public constraints: Constraint.Equals<Field>[]
-  ) {
-    if(this.constraints.length > MAX_ZKAPP_STATE_FIELDS) {
-      throw new Error('exceeded maximum number of state constraints');
-    }
-
-    if(this.constraints.length < MAX_ZKAPP_STATE_FIELDS) {
-      for(let i = this.constraints.length; i < MAX_ZKAPP_STATE_FIELDS; i++) {
-        this.constraints.push(Constraint.Equals.disabled(Field.empty()))
-      }
-    }
-
-    if(this.constraints.length !== MAX_ZKAPP_STATE_FIELDS) {
-      throw new Error('invariant broken');
-    }
-  }
-
-  toFieldConstraints(): Constraint.Equals<Field>[] {
-    return [...this.constraints];
-  }
-
-  static empty(): GenericStateConstraints {
-    return new GenericStateConstraints([]);
-  }
-}
-
-export class GenericStateUpdates implements State.Updates {
-  constructor(
-    public updates: Update<Field>[]
-  ) {
-    if(this.updates.length > MAX_ZKAPP_STATE_FIELDS) {
-      throw new Error('exceeded maximum number of state constraints');
-    }
-
-    if(this.updates.length < MAX_ZKAPP_STATE_FIELDS) {
-      for(let i = this.updates.length; i < MAX_ZKAPP_STATE_FIELDS; i++) {
-        this.updates.push(Update.disabled(Field.empty()))
-      }
-    }
-
-    if(this.updates.length !== MAX_ZKAPP_STATE_FIELDS) {
-      throw new Error('invariant broken');
-    }
-  }
-
-  toFieldUpdates(): Update<Field>[] {
-    return [...this.updates];
-  }
-
-  static empty(): GenericStateUpdates {
-    return new GenericStateUpdates([]);
-  }
-}
-
-export const GenericState = {
-  Constraints: GenericStateConstraints,
-  Updates: GenericStateUpdates,
-};
-
-GenericState satisfies State.Definition<GenericStateConstraints, GenericStateUpdates>;
-*/
-
-/*
-export class GenericEvent implements ToFields {
-  constructor(
-    public data: Field[]
-  ) {}
-
-  toFields(): Field[] {
-    return [...this.data];
-  }
-
-  hash(): Field {
-    return hashWithPrefix(prefixes.event, this.data);
-  }
-
-  static hashList(emptyPrefix: string, consPrefix: string, events: GenericEvent[]): Field {
-    let hash = emptyHashWithPrefix(emptyPrefix);
-
-    for(let i = events.length - 1; i >= 0; i--) {
-      const event = events[i];
-      hash = hashWithPrefix(consPrefix, [hash, event.hash()]);
-    }
-
-    return hash;
-  }
-
-  static from<Event extends ToFields>(event: Event): GenericEvent {
-    return new GenericEvent(event.toFields());
-  }
-}
-
-export function hashEvents(events: GenericEvent[]): Field {
-  return GenericEvent.hashList('MinaZkappEventsEmpty', prefixes.events, events);
-}
-
-export function hashActions(actions: GenericEvent[]): Field {
-  return GenericEvent.hashList('MinaZkappActionsEmpty', prefixes.sequenceEvents, actions);
-}
-*/
-
 export class Update<T> {
   constructor(
     public set: Bool,
     public value: T
   ) {}
-
-  // these functions are bad because they rely on toBoolean, such usage needs to be better considered and marked
-  /*
-  toValue<D>(defaultValue: D): T | D {
-    if(this.set.toBoolean()) {
-      return this.value;
-    } else {
-      return defaultValue;
-    }
-  }
-
-  mapToValue<D, R>(defaultValue: D, f: (t: T) => R): R | D {
-    if(this.set.toBoolean()) {
-      return f(this.value);
-    } else {
-      return defaultValue;
-    }
-  }
-  */
 
   toOption(): Option<T> {
     return {isSome: this.set, value: this.value};
@@ -412,137 +178,3 @@ export class Update<T> {
     }
   }
 }
-
-export namespace Constraint {
-  export class Equals<T> {
-    constructor(
-      public isEnabled: Bool,
-      public value: T
-    ) {}
-
-    toValue<D>(defaultValue: D): T | D {
-      if(this.isEnabled.toBoolean()) {
-        return this.value;
-      } else {
-        return defaultValue;
-      }
-    }
-
-    mapToValue<D, R>(defaultValue: D, f: (t: T) => R): R | D {
-      if(this.isEnabled.toBoolean()) {
-        return f(this.value);
-      } else {
-        return defaultValue;
-      }
-    }
-
-    toOption(): Option<T> {
-      return {isSome: this.isEnabled, value: this.value};
-    }
-
-    static disabled<T>(defaultValue: T): Equals<T> {
-      return new Equals(new Bool(false), defaultValue);
-    }
-
-    static equals<T>(value: T): Equals<T> {
-      return new Equals(new Bool(true), value);
-    }
-
-    static fromOption<T>(option: Option<T>): Equals<T> {
-      return new Equals(option.isSome, option.value);
-    }
-
-    static from<T>(value: Equals<T> | T | undefined, defaultValue: T): Equals<T> {
-      if(value instanceof Equals) {
-        return value;
-      } else if(value !== undefined) {
-        return Equals.equals(value);
-      } else {
-        return Equals.disabled(defaultValue);
-      }
-    }
-  }
-
-  export class InRange<T> {
-    constructor(
-      public isEnabled: Bool,
-      public lower: T,
-      public upper: T
-    ) {}
-
-    toValue<D>(defaultValue: D): {lower: T, upper: T} | D {
-      if(this.isEnabled.toBoolean()) {
-        return {lower: this.lower, upper: this.upper};
-      } else {
-        return defaultValue;
-      }
-    }
-
-    mapToValue<D, R>(defaultValue: D, f: (t: T) => R): {lower: R, upper: R} | D {
-      if(this.isEnabled.toBoolean()) {
-        return {lower: f(this.lower), upper: f(this.upper)};
-      } else {
-        return defaultValue;
-      }
-    }
-
-    toOption(): Option<Range<T>> {
-      return {
-        isSome: this.isEnabled,
-        value: {
-          lower: this.lower,
-          upper: this.upper
-        }
-      };
-    }
-
-    static disabled<T>(defaultValue: T | {lower: T, upper: T}): InRange<T> {
-      const isDefaultRange = typeof defaultValue === 'object' && defaultValue !== null && 'lower' in defaultValue && 'upper' in defaultValue;
-      const lower = isDefaultRange ? defaultValue.lower : defaultValue;
-      const upper = isDefaultRange ? defaultValue.upper : defaultValue;
-      return new InRange(new Bool(false), lower, upper);
-    }
-
-    static equals<T>(value: T): InRange<T> {
-      return new InRange(new Bool(true), value, value);
-    }
-
-    static betweenInclusive<T>(lower: T, upper: T): InRange<T> {
-      return new InRange(new Bool(true), lower, upper);
-    }
-
-    static fromOption<T>(option: Option<Range<T>>): InRange<T> {
-      return new InRange(option.isSome, option.value.lower, option.value.upper);
-    }
-
-    // TODO: lessThan, greaterThan
-
-    static from<T>(value: InRange<T> | T | undefined, defaultValue: T | {lower: T, upper: T}): InRange<T> {
-      if(value instanceof InRange) {
-        return value;
-      } else if(value !== undefined) {
-        return InRange.equals(value);
-      } else {
-        return InRange.disabled(defaultValue);
-      }
-    }
-  }
-}
-
-/*
-export namespace State {
-  export interface Constraints {
-    toFieldConstraints(): Constraint.Equals<Field>[];
-  }
-
-  export interface Updates {
-    toFieldUpdates(): Update<Field>[];
-  }
-
-  // TODO: do we really want to have empty defined here? maybe we rely on conversion from builtin updates instead
-  export type Definition<Constraints extends State.Constraints, Updates extends State.Updates> = {
-    Constraints: Constructor<Constraints> & Empty<Constraints>;
-    Updates: Constructor<Updates> & Empty<Updates>;
-  }
-}
-*/

@@ -1,8 +1,10 @@
 import { AccountUpdate, AccountUpdateCommitment, AccountUpdateTree, AccountUpdateTreeDescription, ContextFreeAccountUpdateDescription, ContextFreeAccountUpdate, DynamicProvable } from '../mina/account-update.js';
 import { AccountUpdateAuthorizationKind } from '../mina/authorization.js';
-import { Account } from '../mina/account.js';
-import { AccountId, ProvableTuple, ProvableTupleInstances } from '../mina/core.js';
+import { Account, AccountId } from '../mina/account.js';
+import { ProvableTuple, ProvableTupleInstances } from '../mina/core.js';
+import { getCallerFrame } from '../mina/errors.js';
 import { StateDefinition, StateLayout } from '../mina/state.js';
+import { ZkappCommandContext } from '../mina/transaction.js';
 import { Cache } from '../../proof-system/cache.js';
 import { Method as ZkProgramMethod, Proof, VerificationKey, ZkProgram } from '../../proof-system/zkprogram.js';
 import { Field } from '../../provable/field.js';
@@ -54,7 +56,7 @@ export class MinaProgramEnv<State extends StateLayout> {
   }
 
   get accountVerificationKeyHash(): Field {
-    return Provable.witness(Field, () => this.account.get().verificationKeyHash);
+    return Provable.witness(Field, () => this.account.get().zkapp.verificationKey.hash);
   }
 
   get programVerificationKey(): VerificationKey {
@@ -94,9 +96,9 @@ export class MinaProgramEnv<State extends StateLayout> {
 }
 
 export type MinaProgramMethodReturn<
-  State extends StateLayout,
-  Event,
-  Action
+  State extends StateLayout = 'GenericState',
+  Event = Field[],
+  Action = Field[]
 > =
   | Omit<AccountUpdateTreeDescription<ContextFreeAccountUpdateDescription<State, Event, Action>, AccountUpdate>, "authorizationKind">
   | ContextFreeAccountUpdate<State, Event, Action>;
@@ -115,13 +117,11 @@ export type MinaProgramMethodImpl<
 // TODO: return the tree, not the proof and the single update
 export type MinaProgramMethodProver<
   State extends StateLayout,
+  Event,
+  Action,
   PrivateInputs extends ProvableTuple
 > =
-  (account: Account<State>, ...args: ProvableTupleInstances<PrivateInputs>) => Promise<AccountUpdateTree<AccountUpdate>>;
-  // Promise<{
-  //   proof: Proof<undefined, AccountUpdateCommitment>,
-  //   auxiliaryOutput: AccountUpdate
-  // }>;
+  (env: ZkappCommandContext, accountId: AccountId, ...args: ProvableTupleInstances<PrivateInputs>) => Promise<AccountUpdateTree<AccountUpdate<State, Event, Action>, AccountUpdate>>;
 
 export interface MinaProgramDescription<
   State extends StateLayout,
@@ -157,7 +157,7 @@ export type MinaProgram<
     };
   }>;
 } & {
-  [key in keyof MethodPrivateInputs]: MinaProgramMethodProver<State, MethodPrivateInputs[key]>
+  [key in keyof MethodPrivateInputs]: MinaProgramMethodProver<State, Event, Action, MethodPrivateInputs[key]>
 };
 
 // TODO really need to fix the types here...
@@ -220,7 +220,7 @@ function zkProgramMethod<
       // TODO: return update as auxiliary output
       return {
         publicOutput: updateTree.rootAccountUpdate.commit('testnet' /* TODO */),
-        auxiliaryOutput: updateTree
+        auxiliaryOutput: AccountUpdateTree.mapRoot(updateTree, (accountUpdate) => accountUpdate.toGeneric())
       };
     }
   } as unknown as ZkProgramMethod<undefined, AccountUpdateCommitment, {
@@ -235,23 +235,87 @@ function proverMethod<
   Action,
   PrivateInputs extends ProvableTuple
 >(
+  State: StateDefinition<State>,
+  Event: DynamicProvable<Event>,
+  Action: DynamicProvable<Action>,
   getVerificationKey: () => VerificationKey,
   rawProver: (env: MinaProgramEnv<State>, ...inputs: ProvableTupleInstances<PrivateInputs>) => Promise<{
     proof: Proof<undefined, AccountUpdateCommitment>,
     auxiliaryOutput: AccountUpdateTree<AccountUpdate>
   }>, 
   _impl: MinaProgramMethodImpl<State, Event, Action, PrivateInputs>
-): MinaProgramMethodProver<State, PrivateInputs> {
-  return async (account: Account<State>, ...inputs: ProvableTupleInstances<PrivateInputs>) => {
-    const verificationKey = getVerificationKey();
+): MinaProgramMethodProver<State, Event, Action, PrivateInputs> {
+  // TODO HORRIBLE HACK:
+  // In order to circumvent the lack of support for nested program calls, some hard assumptions are
+  // made within this function which will only work if certain rules are followed when prover
+  // methods are invoked externally.
+  //
+  // We perform shallow evaluation on the roots of account update trees returned by method
+  // invokations. This requires that all child updates were manually applied before invoking the
+  // method call. Importantly, with this restriction, methods cannot actually generate new
+  // children, the children must be passed in as private inputs and constrained accordingly.
+  // Unproven update arguments which are not at the root of the tree returned by a method must be
+  // manually applied to the ledger in the correct order.
 
-    // TODO: thread env between calls
+  return async (
+    ctx: ZkappCommandContext,
+    accountId: AccountId,
+    ...inputs: ProvableTupleInstances<PrivateInputs>
+  ) => {
+    const callSite = getCallerFrame();
+    const verificationKey = getVerificationKey();
+    const genericAccount = ctx.ledger.getAccount(accountId) ?? Account.empty(accountId);
+
+    // TODO: This conversion is safe only under the assumption that the account is new or the
+    //       verification key matches the current program's verification key. Assert this is true,
+    //       or throw an error.
+    const account: Account<State> = Account.fromGeneric(genericAccount, State)
+
     const env = new MinaProgramEnv(
       new Unconstrained(true, account),
       new Unconstrained(true, verificationKey)
     );
-    const {proof, auxiliaryOutput: accountUpdateTree} = await rawProver(env, ...inputs);
-    accountUpdateTree.rootAccountUpdate.proof = proof;
+
+    const {proof, auxiliaryOutput: genericAccountUpdateTree} = await rawProver(env, ...inputs);
+    genericAccountUpdateTree.rootAccountUpdate.proof = proof;
+
+    // TODO: We currently throw an error here if there are any children, until we solve the
+    //       problems around account update tracing and not adding duplicate child updates
+    //       to the root (when calling this prover method).
+    if(genericAccountUpdateTree.children.length !== 0)
+      throw new Error('TODO: support nested account updates');
+
+    // TODO HACK: Currently, the rawProver is only able to return the generic state representation,
+    //            so we must convert it again for the return value.
+    const accountUpdateTree = AccountUpdateTree.mapRoot(
+      genericAccountUpdateTree,
+      (accountUpdate) => AccountUpdate.fromGeneric(accountUpdate, State, Event, Action)
+    );
+
+    // apply only the root update and not the children (see above for details)
+    const applied = genericAccount.checkAndApplyUpdate(genericAccountUpdateTree.rootAccountUpdate);
+
+    let errors: Error[];
+    switch(applied.status) {
+      case 'Applied':
+        ctx.ledger.setAccount(applied.updatedAccount.toGeneric());
+        errors = [];
+        break;
+      case 'Failed':
+        errors = applied.errors;
+        break;
+    }
+
+    const trace = {
+      accountId,
+      callSite,
+      errors,
+      // TODO (for now, we throw an error above if there are children)
+      childTraces: []
+    };
+
+    ctx.unsafeAddWithoutApplying(genericAccountUpdateTree, trace);
+
     // TODO: do we need to clone the accountUpdate here so that we have fresh variables?
     return accountUpdateTree;
   }
@@ -343,6 +407,9 @@ export function MinaProgram<
   const proverMethods = mapObject(
     descr.methods,
     (key: keyof MethodPrivateInputs) => proverMethod(
+      descr.State,
+      descr.Event,
+      descr.Action,
       getVerificationKey,
       Program[key] as any /* TODO */,
       descr.methods[key]

@@ -1,3 +1,4 @@
+import { AccountId, AccountTiming } from './account.js'
 import {
   AccountUpdateAuthorization,
   AccountUpdateAuthorizationEnvironment,
@@ -6,8 +7,6 @@ import {
   AccountUpdateAuthorizationKindWithZkappContext
 } from './authorization.js';
 import {
-  AccountId,
-  AccountTiming,
   Option,
   TokenId,
   TokenSymbol,
@@ -23,7 +22,7 @@ import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, UInt64 } from '../../provable/int.js';
 import { Proof, VerificationKey } from '../../proof-system/zkprogram.js';
-import { Poseidon, emptyHashWithPrefix, hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
+import { emptyHashWithPrefix, hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { HashInput } from '../../provable/types/provable-derivers.js';
 import { Provable } from '../../provable/types/provable-intf.js'
@@ -33,8 +32,6 @@ import * as PoseidonBigint from '../../../mina-signer/src/poseidon-bigint.js';
 import { Signature, signFieldElement, zkAppBodyPrefix } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { Struct } from '../../provable/types/struct.js';
-
-import util from 'util';
 
 // TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
 // TODO: replay checks
@@ -125,6 +122,16 @@ export class CommittedList<Item> {
     };
   }
 
+  // IMPORTANT: It is the callers responsibility to ensure the commitment will compute the same
+  //            after mapping the list (this function does not check this for you at runtime).
+  mapUnsafe<B>(NewItem: DynamicProvable<B>, f: (a: Item) => B): CommittedList<B> {
+    return new CommittedList({
+      Item: NewItem,
+      data: this.data.map(f),
+      hash: this.hash
+    });
+  }
+
   static hashList<Item>(config: HashableDataConfig<Item>, items: Item[]): Field {
     let hash = emptyHashWithPrefix(config.emptyPrefix);
 
@@ -178,6 +185,7 @@ export interface MayUseToken {
 
 export type AccountUpdateTreeDescription<RootDescription, Child> =
   RootDescription & {
+    // TODO: support using commitments?
     children?: AccountUpdateTree<Child>[]
   };
 
@@ -189,6 +197,7 @@ export class AccountUpdateTree<Root, Child = Root> {
     public children: AccountUpdateTree<Child, Child>[]
   ) {}
 
+  // depth first traversal (parents before children)
   static forEachNode<T>(
     tree: AccountUpdateTree<T>,
     depth: number,
@@ -196,6 +205,59 @@ export class AccountUpdateTree<Root, Child = Root> {
   ): void {
     f(tree.rootAccountUpdate, depth);
     tree.children.forEach((child) => AccountUpdateTree.forEachNode(child, depth+1, f));
+  }
+
+  // inverted depth first traversal (children before parents)
+  static forEachNodeInverted<T>(
+    tree: AccountUpdateTree<T>,
+    depth: number,
+    f: (accountUpdate: T, depth: number) => void
+  ): void {
+    tree.children.forEach((child) => AccountUpdateTree.forEachNodeInverted(child, depth+1, f));
+    f(tree.rootAccountUpdate, depth);
+  }
+
+  static reduce<T, R>(
+    tree: AccountUpdateTree<T>,
+    f: (accountUpdate: T, childValues: R[]) => R
+  ): R {
+    const childValues = tree.children.map((child) => AccountUpdateTree.reduce(child, f));
+    return f(tree.rootAccountUpdate, childValues);
+  }
+
+  // TODO: delete (realized I didn't need it part way through writing)
+  // // build context as we descend the tree, map, then reduce as we ascend
+  // static mapReduceWithContext<T, Ctx, R>(
+  //   tree: AccountUpdateTree<T>,
+  //   context: Ctx,
+  //   mapContext: (ctx: Ctx, index: number) => Ctx,
+  //   map: (ctx: Ctx, accountUpdate: T) => R,
+  //   reduce: (values: R[]) => R
+  // ): R {
+  //   if(tree.children.length === 0) {
+  //     return map(context, tree.rootAccountUpdate);
+  //   } else {
+  //     const reducedValues = tree.children.map((child, index) =>
+  //       AccountUpdateTree.mapReduceWithContext(
+  //         child,
+  //         mapContext(context, index),
+  //         mapContext,
+  //         map,
+  //         reduce
+  //       );
+  //     );
+  //     return reduce(reducedValues);
+  //   }
+  // }
+
+  // TODO: refactor the type parameter interfaces
+
+  static mapRoot<RootIn, RootOut, Child>(
+    tree: AccountUpdateTree<RootIn, Child>,
+    f: (accountUpdate: RootIn) => RootOut
+  ): AccountUpdateTree<RootOut, Child> {
+    const newAccountUpdate = f(tree.rootAccountUpdate);
+    return new AccountUpdateTree(newAccountUpdate, tree.children)
   }
 
   static async map<A, B>(
@@ -222,6 +284,7 @@ export class AccountUpdateTree<Root, Child = Root> {
     }
 
     // TODO: negotiate between this implementation and AccountUpdate#hash to figure out what is correct
+    // TODO NOW: ^ this was done, but we need to update this function to share code still
     const accountUpdateCommitment =
       PoseidonBigint.hashWithPrefix(
         zkAppBodyPrefix(networkId),
@@ -345,7 +408,7 @@ export class ContextFreeAccountUpdate<
     State: StateDefinition<State>,
     Event: DynamicProvable<Event>,
     Action: DynamicProvable<Action>,
-    descr: ContextFreeAccountUpdateDescription<State, Event, Action>
+    descr: ContextFreeAccountUpdateDescription<State, Event, Action> | ContextFreeAccountUpdate<State, Event, Action>
   ) {
     function castUpdate<A, B>(value: undefined | A | Update<B>, defaultValue: B, f: (a: A) => B): Update<B> {
       if(value instanceof Update) {
@@ -365,14 +428,95 @@ export class ContextFreeAccountUpdate<
     this.mayUseToken = descr.mayUseToken ?? { parentsOwnToken: new Bool(false), inheritFromParent: new Bool(false) };
     this.pushEvents = CommittedList.from(Event, EventsHashConfig(Event), descr.pushEvents);
     this.pushActions = CommittedList.from(Action, ActionsHashConfig(Action), descr.pushActions);
-    this.stateUpdates = descr.setState ?? StateUpdates.empty(State);
-    this.permissionsUpdate = castUpdate(descr.setPermissions, Permissions.empty(), Permissions.from);
-    this.delegateUpdate = Update.from(descr.setDelegate, PublicKey.empty());
-    this.verificationKeyUpdate = Update.from(descr.setVerificationKey, VerificationKey.empty());
-    this.zkappUriUpdate = castUpdate(descr.setZkappUri, ZkappUri.empty(), ZkappUri.from);
-    this.tokenSymbolUpdate = castUpdate(descr.setTokenSymbol, TokenSymbol.empty(), TokenSymbol.from);
-    this.timingUpdate = Update.from(descr.setTiming, AccountTiming.empty());
-    this.votingForUpdate = Update.from(descr.setVotingFor, Field.empty());
+
+    if(descr instanceof ContextFreeAccountUpdate) {
+      this.stateUpdates = descr.stateUpdates;
+      this.permissionsUpdate = descr.permissionsUpdate;
+      this.delegateUpdate = descr.delegateUpdate;
+      this.verificationKeyUpdate = descr.verificationKeyUpdate;
+      this.zkappUriUpdate = descr.zkappUriUpdate;
+      this.tokenSymbolUpdate = descr.tokenSymbolUpdate;
+      this.timingUpdate = descr.timingUpdate;
+      this.votingForUpdate = descr.votingForUpdate;
+    } else {
+      this.stateUpdates = descr.setState ?? StateUpdates.empty(State);
+      this.permissionsUpdate = castUpdate(descr.setPermissions, Permissions.empty(), Permissions.from);
+      this.delegateUpdate = Update.from(descr.setDelegate, PublicKey.empty());
+      this.verificationKeyUpdate = Update.from(descr.setVerificationKey, VerificationKey.empty());
+      this.zkappUriUpdate = castUpdate(descr.setZkappUri, ZkappUri.empty(), ZkappUri.from);
+      this.tokenSymbolUpdate = castUpdate(descr.setTokenSymbol, TokenSymbol.empty(), TokenSymbol.from);
+      this.timingUpdate = Update.from(descr.setTiming, AccountTiming.empty());
+      this.votingForUpdate = Update.from(descr.setVotingFor, Field.empty());
+    }
+  }
+
+  toGeneric(): ContextFreeAccountUpdate {
+    return ContextFreeAccountUpdate.generic({
+      authorizationKind: this.authorizationKind,
+      preconditions: this.preconditions.toGeneric(),
+      balanceChange: this.balanceChange,
+      incrementNonce: this.incrementNonce,
+      useFullCommitment: this.useFullCommitment,
+      implicitAccountCreationFee: this.implicitAccountCreationFee,
+      mayUseToken: this.mayUseToken,
+      pushEvents: this.pushEvents.mapUnsafe(GenericData, this.pushEvents.Item.toFields),
+      pushActions: this.pushActions.mapUnsafe(GenericData, this.pushActions.Item.toFields),
+      setState: StateUpdates.toGeneric(this.State, this.stateUpdates),
+      setPermissions: this.permissionsUpdate,
+      setDelegate: this.delegateUpdate,
+      setVerificationKey: this.verificationKeyUpdate,
+      setZkappUri: this.zkappUriUpdate,
+      setTokenSymbol: this.tokenSymbolUpdate,
+      setTiming: this.timingUpdate,
+      setVotingFor: this.votingForUpdate
+    });
+  }
+
+  static fromGeneric<
+    State extends StateLayout,
+    Event,
+    Action
+  >(
+    x: ContextFreeAccountUpdate,
+    State: StateDefinition<State>,
+    Event: DynamicProvable<Event>,
+    Action: DynamicProvable<Action>,
+  ): ContextFreeAccountUpdate<State, Event, Action> {
+    // TODO: this method is broken because we aren't storing aux data in the generic format...
+    return new ContextFreeAccountUpdate(
+      State,
+      Event,
+      Action,
+      {
+        authorizationKind: x.authorizationKind,
+        preconditions: Preconditions.fromGeneric(x.preconditions, State),
+        balanceChange: x.balanceChange,
+        incrementNonce: x.incrementNonce,
+        useFullCommitment: x.useFullCommitment,
+        implicitAccountCreationFee: x.implicitAccountCreationFee,
+        mayUseToken: x.mayUseToken,
+        pushEvents: x.pushEvents.mapUnsafe(
+          Event,
+          (fields) =>
+            // TODO: this is really unsafe, make it safe
+            'fromFieldsDynamic' in Event ? Event.fromFieldsDynamic(fields, []).value : Event.fromFields(fields, [])
+        ),
+        pushActions: x.pushActions.mapUnsafe(
+          Action,
+          (fields) =>
+            // TODO: this is really unsafe, make it safe
+            'fromFieldsDynamic' in Action ? Action.fromFieldsDynamic(fields, []).value : Action.fromFields(fields, [])
+        ),
+        setState: StateUpdates.fromGeneric(x.stateUpdates, State),
+        setPermissions: x.permissionsUpdate,
+        setDelegate: x.delegateUpdate,
+        setVerificationKey: x.verificationKeyUpdate,
+        setZkappUri: x.zkappUriUpdate,
+        setTokenSymbol: x.tokenSymbolUpdate,
+        setTiming: x.timingUpdate,
+        setVotingFor: x.votingForUpdate
+      }
+    );
   }
 
   static generic(descr: ContextFreeAccountUpdateDescription): ContextFreeAccountUpdate {
@@ -449,6 +593,8 @@ export class AccountUpdate<
     Action: DynamicProvable<Action>,
     descr: AccountUpdateDescription<State, Event, Action>
   ) {
+    // TODO NOW: THIS PATTERN IS BROKEN (we are casting and update into a description, which only works because the missing fields are all optional)
+
     const superInput = 'update' in descr ? descr.update : descr;
     super(State, Event, Action, superInput);
 
@@ -507,8 +653,46 @@ export class AccountUpdate<
       zkAppBodyPrefix(networkId),
       packToFields(this.toInput())
     );
-    // const commitment = Poseidon.hash(packToFields(this.toInput()));
     return new AccountUpdateCommitment(commitment);
+  }
+
+  toGeneric(): AccountUpdate {
+    return new AccountUpdate(
+      'GenericState',
+      GenericData,
+      GenericData,
+      {
+        update: super.toGeneric(),
+        proof: this.proof instanceof Proof ? this.proof : undefined,
+        accountId: this.accountId,
+        verificationKeyHash: this.verificationKeyHash,
+        callData: this.callData
+      }
+    );
+  }
+
+  static fromGeneric<
+    State extends StateLayout,
+    Event,
+    Action
+  >(
+    x: AccountUpdate,
+    State: StateDefinition<State>,
+    Event: DynamicProvable<Event>,
+    Action: DynamicProvable<Action>
+  ): AccountUpdate<State, Event, Action> {
+    return new AccountUpdate(
+      State,
+      Event,
+      Action,
+      {
+        update: ContextFreeAccountUpdate.fromGeneric(x, State, Event, Action),
+        proof: x.proof instanceof Proof ? x.proof : undefined,
+        accountId: x.accountId,
+        verificationKeyHash: x.verificationKeyHash,
+        callData: x.callData
+      }
+    );
   }
 
   async authorize(authEnv: AccountUpdateAuthorizationEnvironment): Promise<AccountUpdate.Authorized<State, Event, Action>> {

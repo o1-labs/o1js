@@ -59,8 +59,8 @@ export class Permissions {
 
   static defaults(): Permissions {
     return new Permissions({
-      editState: 'Proof',
-      send: 'Proof',
+      editState: 'Signature',
+      send: 'Signature',
       receive: 'None',
       setDelegate: 'Signature',
       setPermissions: 'Signature',

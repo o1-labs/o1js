@@ -4,7 +4,12 @@ import {
   ZkappFeePaymentAuthorizationEnvironment
 } from './authorization.js';
 import { AccountUpdate, AccountUpdateTree, GenericData } from './account-update.js';
-import { AccountId, Constraint, TokenId } from './core.js';
+import { Account, AccountId, AccountIdSet } from './account.js';
+import { TokenId } from './core.js';
+import { AccountUpdateErrorTrace, ZkappCommandErrorTrace, getCallerFrame } from './errors.js';
+import { Precondition } from './preconditions.js';
+import { StateLayout } from './state.js';
+import { LedgerView } from './views.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
@@ -71,7 +76,7 @@ export class ZkappFeePayment {
               nonce: this.nonce
             },
             network: {
-              globalSlotSinceGenesis: Constraint.InRange.betweenInclusive(UInt32.zero, this.validUntil ?? UInt32.MAXINT())
+              globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(UInt32.zero, this.validUntil ?? UInt32.MAXINT())
             }
           }
         }
@@ -209,4 +214,170 @@ export class AuthorizedZkappCommand {
   static toJSON(x: AuthorizedZkappCommand): any {
     return BindingsLayout.ZkappCommand.toJSON(x.toInternalRepr());
   }
+}
+
+// NB: this is really more of an environment than a context, but this naming convention helps to
+//     disambiguate the transaction environment from the mina program environment
+export class ZkappCommandContext {
+  ledger: LedgerView;
+  failedAccounts: AccountIdSet;
+  private accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
+  private accountUpdateForestTrace: AccountUpdateErrorTrace[];
+
+  constructor(ledger: LedgerView, failedAccounts: AccountIdSet) {
+    this.ledger = ledger;
+    this.failedAccounts = failedAccounts;
+    this.accountUpdateForest = [];
+    this.accountUpdateForestTrace = [];
+  }
+
+  add<State extends StateLayout>(
+    x: AccountUpdate<State, any, any> | AccountUpdateTree<AccountUpdate<State, any, any>, AccountUpdate>
+  ) {
+    const callSite = getCallerFrame();
+
+    const accountUpdateTree = x instanceof AccountUpdateTree ? x : new AccountUpdateTree(x, []);
+    const genericAccountUpdateTree = AccountUpdateTree.mapRoot(accountUpdateTree, (accountUpdate) => accountUpdate.toGeneric());
+
+    const trace = AccountUpdateTree.reduce(
+      genericAccountUpdateTree,
+      (accountUpdate: AccountUpdate, childTraces: AccountUpdateErrorTrace[]): AccountUpdateErrorTrace => {
+        let errors: Error[];
+        if(!this.failedAccounts.has(accountUpdate.accountId)) {
+          const account = this.ledger.getAccount(accountUpdate.accountId) ?? Account.empty(accountUpdate.accountId);
+          const applied = account.checkAndApplyUpdate(accountUpdate);
+
+          switch(applied.status) {
+            case 'Applied':
+              errors = [];
+              this.ledger.setAccount(applied.updatedAccount);
+              break;
+            case 'Failed':
+              errors = applied.errors;
+              break;
+          }
+        } else {
+          errors = [
+            // TODO: this should be a warning
+            new Error('skipping account update because a previous account update failed when accessing the same account')
+          ];
+        }
+
+
+        return {
+          accountId: accountUpdate.accountId,
+          callSite,
+          errors,
+          childTraces
+        }
+      }
+    );
+
+    this.accountUpdateForest.push(genericAccountUpdateTree);
+    this.accountUpdateForestTrace.push(trace);
+  }
+
+  // only to be used when an account update tree has already been applied to the ledger view
+  unsafeAddWithoutApplying<State extends StateLayout>(
+    x: AccountUpdate<State, any, any> | AccountUpdateTree<AccountUpdate<State, any, any>, AccountUpdate>,
+    trace: AccountUpdateErrorTrace
+  ) {
+    const accountUpdateTree = x instanceof AccountUpdateTree ? x : new AccountUpdateTree(x, []);
+    const genericAccountUpdateTree = AccountUpdateTree.mapRoot(accountUpdateTree, (accountUpdate) => accountUpdate.toGeneric());
+    this.accountUpdateForest.push(genericAccountUpdateTree);
+    // TODO: check that the trace shape matches the account update shape
+    this.accountUpdateForestTrace.push(trace);
+  }
+
+  get output(): {
+    accountUpdateForest: AccountUpdateTree<AccountUpdate>[],
+    accountUpdateForestTrace: AccountUpdateErrorTrace[]
+  } {
+    return {
+      accountUpdateForest: [...this.accountUpdateForest],
+      accountUpdateForestTrace: [...this.accountUpdateForestTrace],
+    }
+  }
+}
+
+// IMPORTANT TODO: Currently, if a zkapp command fails in the virtual application, any successful
+//                 account updates are still applied to the provided ledger view. We should
+//                 probably make the ledger view interface immutable, or clone it every time we
+//                 create a new zkapp command, to help avoid unexpected behavior externally.
+export async function createUnsignedZkappCommand(
+  ledger: LedgerView,
+  {feePayer, fee, validUntil}: {
+    feePayer: PublicKey,
+    fee: UInt64,
+    validUntil?: UInt32
+  },
+  f: (ctx: ZkappCommandContext) => Promise<void>
+): Promise<ZkappCommand> {
+  const failedAccounts = new AccountIdSet();
+  let feePaymentErrors: Error[] = [];
+  let feePayment: ZkappFeePayment | null = null;
+
+  const feePayerId = new AccountId(feePayer, TokenId.MINA);
+  const feePayerAccount = ledger.getAccount(feePayerId);
+
+  if(feePayerAccount !== null) {
+    feePayment = new ZkappFeePayment({
+      publicKey: feePayer,
+      nonce: feePayerAccount.nonce,
+      fee,
+      validUntil
+    });
+
+    const applied = feePayerAccount.checkAndApplyFeePayment(feePayment);
+    switch(applied.status) {
+      case 'Applied':
+        ledger.setAccount(applied.updatedAccount);
+        break;
+      case 'Failed':
+        feePaymentErrors = applied.errors;
+        failedAccounts.add(feePayerAccount.accountId);
+        break;
+    }
+  } else {
+    feePaymentErrors = [
+      new Error('zkapp fee payer account not found')
+    ];
+    failedAccounts.add(feePayerId);
+  }
+
+  const ctx = new ZkappCommandContext(ledger, failedAccounts);
+  await f(ctx);
+  const {accountUpdateForest, accountUpdateForestTrace} = ctx.output;
+
+  const errorTrace = new ZkappCommandErrorTrace(
+    feePaymentErrors,
+    accountUpdateForestTrace
+  );
+
+  if(!errorTrace.hasErrors()) {
+    // should never be true if we hit this branch
+    if(feePayment === null) throw new Error('internal error');
+
+    return new ZkappCommand({
+      feePayment,
+      accountUpdates: accountUpdateForest
+    });
+  } else {
+    console.log(errorTrace.generateReport());
+    throw new Error('errors were encountered while creating a ZkappCommand (an error report is available in the logs)');
+  }
+}
+
+export async function createZkappCommand(
+  ledger: LedgerView,
+  authEnv: ZkappCommandAuthorizationEnvironment,
+  feePayment: {
+    feePayer: PublicKey,
+    fee: UInt64,
+    validUntil?: UInt32
+  },
+  f: (ctx: ZkappCommandContext) => Promise<void>
+): Promise<AuthorizedZkappCommand> {
+  const unsignedCmd = await createUnsignedZkappCommand(ledger, feePayment, f);
+  return unsignedCmd.authorize(authEnv);
 }

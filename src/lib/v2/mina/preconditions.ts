@@ -1,5 +1,5 @@
-import { MAX_ZKAPP_STATE_FIELDS, Constraint, MinaAmount } from './core.js';
-import { GenericStateConstraints, StateConstraints, StateDefinition, StateLayout } from './state.js';
+import { Compare, Eq, MinaAmount, Option, Range, MAX_ZKAPP_STATE_FIELDS } from './core.js';
+import { GenericStatePreconditions, StatePreconditions, StateDefinition, StateLayout } from './state.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
@@ -9,24 +9,192 @@ import { HashInput } from '../../provable/types/provable-derivers.js';
 import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/js-layout-v2.js';
 
+export namespace Precondition {
+  export class Equals<T extends Eq<T>> {
+    constructor(
+      public isEnabled: Bool,
+      public value: T
+    ) {}
+
+    toStringHuman(): string {
+      if(!this.isEnabled.toBoolean()) {
+        return 'disabled';
+      } else {
+        return `== ${this.value}`;
+      }
+    }
+
+    toValue<D>(defaultValue: D): T | D {
+      if(this.isEnabled.toBoolean()) {
+        return this.value;
+      } else {
+        return defaultValue;
+      }
+    }
+
+    mapToValue<D, R>(defaultValue: D, f: (t: T) => R): R | D {
+      if(this.isEnabled.toBoolean()) {
+        return f(this.value);
+      } else {
+        return defaultValue;
+      }
+    }
+
+    toOption(): Option<T> {
+      return {isSome: this.isEnabled, value: this.value};
+    }
+
+    isSatisfied(x: T): Bool {
+      return Bool.or(this.isEnabled.not(), this.value.equals(x))
+    }
+
+    static disabled<T extends Eq<T>>(defaultValue: T): Equals<T> {
+      return new Equals(new Bool(false), defaultValue);
+    }
+
+    static equals<T extends Eq<T>>(value: T): Equals<T> {
+      return new Equals(new Bool(true), value);
+    }
+
+    static fromOption<T extends Eq<T>>(option: Option<T>): Equals<T> {
+      return new Equals(option.isSome, option.value);
+    }
+
+    static from<T extends Eq<T>>(value: Equals<T> | T | undefined, defaultValue: T): Equals<T> {
+      if(value instanceof Equals) {
+        return value;
+      } else if(value !== undefined) {
+        return Equals.equals(value);
+      } else {
+        return Equals.disabled(defaultValue);
+      }
+    }
+  }
+
+  export class InRange<T extends Compare<T>> {
+    constructor(
+      public isEnabled: Bool,
+      public lower: T,
+      public upper: T
+    ) {}
+
+    toStringHuman(): string {
+      if(!this.isEnabled.toBoolean()) {
+        return 'disabled';
+      } else if(this.lower.equals(this.upper).toBoolean()) {
+        return `== ${this.lower}`;
+      } else {
+        return `between (${this.lower}, ${this.upper})`;
+      }
+    }
+
+    toValue<D>(defaultValue: D): {lower: T, upper: T} | D {
+      if(this.isEnabled.toBoolean()) {
+        return {lower: this.lower, upper: this.upper};
+      } else {
+        return defaultValue;
+      }
+    }
+
+    mapToValue<D, R>(defaultValue: D, f: (t: T) => R): {lower: R, upper: R} | D {
+      if(this.isEnabled.toBoolean()) {
+        return {lower: f(this.lower), upper: f(this.upper)};
+      } else {
+        return defaultValue;
+      }
+    }
+
+    toOption(): Option<Range<T>> {
+      return {
+        isSome: this.isEnabled,
+        value: {
+          lower: this.lower,
+          upper: this.upper
+        }
+      };
+    }
+
+    isSatisfied(x: T): Bool {
+      return Bool.or(
+        this.isEnabled.not(),
+        Bool.and(
+          this.lower.lessThanOrEqual(x),
+          this.upper.greaterThanOrEqual(x)
+        )
+      )
+    }
+
+    static disabled<T extends Compare<T>>(defaultValue: T | {lower: T, upper: T}): InRange<T> {
+      const isDefaultRange = typeof defaultValue === 'object' && defaultValue !== null && 'lower' in defaultValue && 'upper' in defaultValue;
+      const lower = isDefaultRange ? defaultValue.lower : defaultValue;
+      const upper = isDefaultRange ? defaultValue.upper : defaultValue;
+      return new InRange(new Bool(false), lower, upper);
+    }
+
+    static equals<T extends Compare<T>>(value: T): InRange<T> {
+      return new InRange(new Bool(true), value, value);
+    }
+
+    static betweenInclusive<T extends Compare<T>>(lower: T, upper: T): InRange<T> {
+      return new InRange(new Bool(true), lower, upper);
+    }
+
+    static fromOption<T extends Compare<T>>(option: Option<Range<T>>): InRange<T> {
+      return new InRange(option.isSome, option.value.lower, option.value.upper);
+    }
+
+    // TODO: lessThan, greaterThan
+
+    static from<T extends Compare<T>>(value: InRange<T> | T | undefined, defaultValue: T | {lower: T, upper: T}): InRange<T> {
+      if(value instanceof InRange) {
+        return value;
+      } else if(value !== undefined) {
+        return InRange.equals(value);
+      } else {
+        return InRange.disabled(defaultValue);
+      }
+    }
+  }
+}
+
 export type PreconditionsDescription<State extends StateLayout> = {
-	network?: Preconditions.NetworkDescription | Preconditions.Network,
-	account?: Preconditions.Account<State> | Preconditions.AccountDescription<State>,
-	validWhile?: UInt32 | Constraint.InRange<UInt32>
+	network?: NetworkPreconditionsDescription | NetworkPreconditions,
+	account?: AccountPreconditionsDescription<State> | AccountPreconditions<State>,
+	validWhile?: UInt32 | Precondition.InRange<UInt32>
 }
 
 export class Preconditions<State extends StateLayout = 'GenericState'> {
-	readonly network: Preconditions.Network;
-	readonly account: Preconditions.Account<State>;
-	readonly validWhile: Constraint.InRange<UInt32>;
+	readonly network: NetworkPreconditions;
+	readonly account: AccountPreconditions<State>;
+	readonly validWhile: Precondition.InRange<UInt32>;
 
   constructor(State: StateDefinition<State>, descr?: PreconditionsDescription<State>) {
-    this.network = Preconditions.Network.from(descr?.network);
-    this.account = Preconditions.Account.from(State, descr?.account);
-    this.validWhile = Constraint.InRange.from(descr?.validWhile, {
+    this.network = NetworkPreconditions.from(descr?.network);
+    this.account = AccountPreconditions.from(State, descr?.account);
+    this.validWhile = Precondition.InRange.from(descr?.validWhile, {
       lower: UInt32.empty(),
       upper: UInt32.MAXINT()
     });
+  }
+
+  toGeneric(): Preconditions {
+    return new Preconditions<'GenericState'>(
+      'GenericState',
+      {
+        ...this,
+        account: this.account.toGeneric()
+      }
+    );
+  }
+
+  static fromGeneric<State extends StateLayout>(x: Preconditions, State: StateDefinition<State>): Preconditions<State> {
+    return new Preconditions(
+      State,
+      {
+        ...this,
+        account: AccountPreconditions.fromGeneric(x.account, State)
+      }
+    );
   }
 
   toInternalRepr(): BindingsLayout.Preconditions {
@@ -39,9 +207,9 @@ export class Preconditions<State extends StateLayout = 'GenericState'> {
 
   static fromInternalRepr(x: BindingsLayout.Preconditions): Preconditions {
     return new Preconditions('GenericState', {
-      network: Preconditions.Network.fromInternalRepr(x.network),
-      account: Preconditions.Account.fromInternalRepr(x.account),
-      validWhile: Constraint.InRange.fromOption(x.validWhile),
+      network: NetworkPreconditions.fromInternalRepr(x.network),
+      account: AccountPreconditions.fromInternalRepr(x.account),
+      validWhile: Precondition.InRange.fromOption(x.validWhile),
     });
   }
 
@@ -112,557 +280,502 @@ export class Preconditions<State extends StateLayout = 'GenericState'> {
   }
 }
 
-export namespace Preconditions {
-  export type EpochLedgerDescription = {
-    hash?: Field | Constraint.Equals<Field>,
-    totalCurrency?: MinaAmount | Constraint.InRange<MinaAmount>
-  };
+export type EpochLedgerPreconditionsDescription = {
+  hash?: Field | Precondition.Equals<Field>,
+  totalCurrency?: MinaAmount | Precondition.InRange<MinaAmount>
+};
 
-  export class EpochLedger {
-    readonly hash: Constraint.Equals<Field>;
-    readonly totalCurrency: Constraint.InRange<MinaAmount>;
+export class EpochLedgerPreconditions {
+  readonly hash: Precondition.Equals<Field>;
+  readonly totalCurrency: Precondition.InRange<MinaAmount>;
 
-    constructor(descr?: EpochLedgerDescription) {
-      this.hash = Constraint.Equals.from(descr?.hash, new Field(0));
-      this.totalCurrency = Constraint.InRange.from(descr?.totalCurrency, {
-        lower: UInt64.empty(),
-        upper: UInt64.MAXINT()
-      });
-    }
+  constructor(descr?: EpochLedgerPreconditionsDescription) {
+    this.hash = Precondition.Equals.from(descr?.hash, new Field(0));
+    this.totalCurrency = Precondition.InRange.from(descr?.totalCurrency, {
+      lower: UInt64.empty(),
+      upper: UInt64.MAXINT()
+    });
+  }
 
-    toInternalRepr(): BindingsLayout.EpochLedgerPrecondition {
-      return {
-        hash: this.hash.toOption(),
-        totalCurrency: this.totalCurrency.toOption(),
-      }
-    }
-
-    static fromInternalRepr(x: BindingsLayout.EpochLedgerPrecondition): EpochLedger {
-      return new EpochLedger({
-        hash: Constraint.Equals.fromOption(x.hash),
-        totalCurrency: Constraint.InRange.fromOption(x.totalCurrency)
-      });
-    }
-
-    toJSON(): any {
-      return EpochLedger.toJSON(this);
-    }
-
-    toInput(): HashInput {
-      return EpochLedger.toInput(this);
-    }
-
-    toFields(): Field[] {
-      return EpochLedger.toFields(this);
-    }
-
-    static sizeInFields(): number {
-      return BindingsLayout.EpochLedgerPrecondition.sizeInFields();
-    }
-
-    static empty(): EpochLedger {
-      return new EpochLedger();
-    }
-
-    static check(_x: EpochLedger) {
-      throw new Error('TODO');
-    }
-
-    static toJSON(x: EpochLedger): any {
-      return BindingsLayout.EpochLedgerPrecondition.toJSON(x.toInternalRepr());
-    }
-
-    static toInput(x: EpochLedger): HashInput {
-      return BindingsLayout.EpochLedgerPrecondition.toInput(x.toInternalRepr());
-    }
-
-    static toFields(x: EpochLedger): Field[] {
-      return BindingsLayout.EpochLedgerPrecondition.toFields(x.toInternalRepr());
-    }
-
-    static fromFields(fields: Field[], aux: any[]): EpochLedger {
-      return EpochLedger.fromInternalRepr(BindingsLayout.EpochLedgerPrecondition.fromFields(fields, aux));
-    }
-
-    static toAuxiliary(x?: EpochLedger): any[] {
-      return BindingsLayout.EpochLedgerPrecondition.toAuxiliary(x?.toInternalRepr())
-    }
-
-    static toValue(x: EpochLedger): EpochLedger {
-      return x;
-    }
-
-    static fromValue(x: EpochLedger): EpochLedger {
-      return x;
-    }
-
-    static from(value: EpochLedger | EpochLedgerDescription | undefined): EpochLedger {
-      if(value instanceof EpochLedger) {
-        return value;
-      } else if(value === undefined) {
-        return EpochLedger.empty();
-      } else {
-        return new EpochLedger(value);
-      }
+  toInternalRepr(): BindingsLayout.EpochLedgerPrecondition {
+    return {
+      hash: this.hash.toOption(),
+      totalCurrency: this.totalCurrency.toOption(),
     }
   }
 
-  export type EpochDataDescription = {
-    ledger?: EpochLedger | EpochLedgerDescription,
-    seed?: Field | Constraint.Equals<Field>,
-    startCheckpoint?: Field | Constraint.Equals<Field>,
-    lockCheckpoint?: Field | Constraint.Equals<Field>,
-    epochLength?: UInt32 | Constraint.InRange<UInt32>
-  };
+  static fromInternalRepr(x: BindingsLayout.EpochLedgerPrecondition): EpochLedgerPreconditions {
+    return new EpochLedgerPreconditions({
+      hash: Precondition.Equals.fromOption(x.hash),
+      totalCurrency: Precondition.InRange.fromOption(x.totalCurrency)
+    });
+  }
 
-  export class EpochData {
-    readonly ledger: EpochLedger;
-    readonly seed: Constraint.Equals<Field>;
-    readonly startCheckpoint: Constraint.Equals<Field>;
-    readonly lockCheckpoint: Constraint.Equals<Field>;
-    readonly epochLength: Constraint.InRange<UInt32>;
+  toJSON(): any {
+    return EpochLedgerPreconditions.toJSON(this);
+  }
 
-    constructor(descr?: EpochDataDescription) {
-      this.ledger = EpochLedger.from(descr?.ledger);
-      this.seed = Constraint.Equals.from(descr?.seed, new Field(0));
-      this.startCheckpoint = Constraint.Equals.from(descr?.startCheckpoint, new Field(0));
-      this.lockCheckpoint = Constraint.Equals.from(descr?.lockCheckpoint, new Field(0));
-      this.epochLength = Constraint.InRange.from(descr?.epochLength, {
-        lower: UInt32.empty(),
-        upper: UInt32.MAXINT()
-      });
+  toInput(): HashInput {
+    return EpochLedgerPreconditions.toInput(this);
+  }
+
+  toFields(): Field[] {
+    return EpochLedgerPreconditions.toFields(this);
+  }
+
+  static sizeInFields(): number {
+    return BindingsLayout.EpochLedgerPrecondition.sizeInFields();
+  }
+
+  static empty(): EpochLedgerPreconditions {
+    return new EpochLedgerPreconditions();
+  }
+
+  static check(_x: EpochLedgerPreconditions) {
+    throw new Error('TODO');
+  }
+
+  static toJSON(x: EpochLedgerPreconditions): any {
+    return BindingsLayout.EpochLedgerPrecondition.toJSON(x.toInternalRepr());
+  }
+
+  static toInput(x: EpochLedgerPreconditions): HashInput {
+    return BindingsLayout.EpochLedgerPrecondition.toInput(x.toInternalRepr());
+  }
+
+  static toFields(x: EpochLedgerPreconditions): Field[] {
+    return BindingsLayout.EpochLedgerPrecondition.toFields(x.toInternalRepr());
+  }
+
+  static fromFields(fields: Field[], aux: any[]): EpochLedgerPreconditions {
+    return EpochLedgerPreconditions.fromInternalRepr(BindingsLayout.EpochLedgerPrecondition.fromFields(fields, aux));
+  }
+
+  static toAuxiliary(x?: EpochLedgerPreconditions): any[] {
+    return BindingsLayout.EpochLedgerPrecondition.toAuxiliary(x?.toInternalRepr())
+  }
+
+  static toValue(x: EpochLedgerPreconditions): EpochLedgerPreconditions {
+    return x;
+  }
+
+  static fromValue(x: EpochLedgerPreconditions): EpochLedgerPreconditions {
+    return x;
+  }
+
+  static from(value: EpochLedgerPreconditions | EpochLedgerPreconditionsDescription | undefined): EpochLedgerPreconditions {
+    if(value instanceof EpochLedgerPreconditions) {
+      return value;
+    } else if(value === undefined) {
+      return EpochLedgerPreconditions.empty();
+    } else {
+      return new EpochLedgerPreconditions(value);
     }
+  }
+}
 
-    toInternalRepr(): BindingsLayout.EpochDataPrecondition {
-      return {
-        ledger: this.ledger.toInternalRepr(),
-        seed: this.seed.toOption(),
-        startCheckpoint: this.startCheckpoint.toOption(),
-        lockCheckpoint: this.lockCheckpoint.toOption(),
-        epochLength: this.epochLength.toOption(),
-      };
+export type EpochDataPreconditionsDescription = {
+  ledger?: EpochLedgerPreconditions | EpochLedgerPreconditionsDescription,
+  seed?: Field | Precondition.Equals<Field>,
+  startCheckpoint?: Field | Precondition.Equals<Field>,
+  lockCheckpoint?: Field | Precondition.Equals<Field>,
+  epochLength?: UInt32 | Precondition.InRange<UInt32>
+};
+
+export class EpochDataPreconditions {
+  readonly ledger: EpochLedgerPreconditions;
+  readonly seed: Precondition.Equals<Field>;
+  readonly startCheckpoint: Precondition.Equals<Field>;
+  readonly lockCheckpoint: Precondition.Equals<Field>;
+  readonly epochLength: Precondition.InRange<UInt32>;
+
+  constructor(descr?: EpochDataPreconditionsDescription) {
+    this.ledger = EpochLedgerPreconditions.from(descr?.ledger);
+    this.seed = Precondition.Equals.from(descr?.seed, new Field(0));
+    this.startCheckpoint = Precondition.Equals.from(descr?.startCheckpoint, new Field(0));
+    this.lockCheckpoint = Precondition.Equals.from(descr?.lockCheckpoint, new Field(0));
+    this.epochLength = Precondition.InRange.from(descr?.epochLength, {
+      lower: UInt32.empty(),
+      upper: UInt32.MAXINT()
+    });
+  }
+
+  toInternalRepr(): BindingsLayout.EpochDataPrecondition {
+    return {
+      ledger: this.ledger.toInternalRepr(),
+      seed: this.seed.toOption(),
+      startCheckpoint: this.startCheckpoint.toOption(),
+      lockCheckpoint: this.lockCheckpoint.toOption(),
+      epochLength: this.epochLength.toOption(),
+    };
+  }
+
+  static fromInternalRepr(x: BindingsLayout.EpochDataPrecondition): EpochDataPreconditions {
+    return new EpochDataPreconditions({
+      ledger: EpochLedgerPreconditions.fromInternalRepr(x.ledger),
+      seed: Precondition.Equals.fromOption(x.seed),
+      startCheckpoint: Precondition.Equals.fromOption(x.startCheckpoint),
+      lockCheckpoint: Precondition.Equals.fromOption(x.lockCheckpoint),
+      epochLength: Precondition.InRange.fromOption(x.epochLength),
+    });
+  }
+
+  toJSON(): any {
+    return EpochDataPreconditions.toJSON(this);
+  }
+
+  toInput(): HashInput {
+    return EpochDataPreconditions.toInput(this);
+  }
+
+  toFields(): Field[] {
+    return EpochDataPreconditions.toFields(this);
+  }
+
+  static sizeInFields(): number {
+    return BindingsLayout.EpochDataPrecondition.sizeInFields();
+  }
+
+  static empty(): EpochDataPreconditions {
+    return new EpochDataPreconditions();
+  }
+
+  static check(_x: EpochDataPreconditions) {
+    throw new Error('TODO');
+  }
+
+  static toJSON(x: EpochDataPreconditions): any {
+    return BindingsLayout.EpochDataPrecondition.toJSON(x.toInternalRepr());
+  }
+
+  static toInput(x: EpochDataPreconditions): HashInput {
+    return BindingsLayout.EpochDataPrecondition.toInput(x.toInternalRepr());
+  }
+
+  static toFields(x: EpochDataPreconditions): Field[] {
+    return BindingsLayout.EpochDataPrecondition.toFields(x.toInternalRepr());
+  }
+
+  static fromFields(fields: Field[], aux: any[]): EpochDataPreconditions {
+    return EpochDataPreconditions.fromInternalRepr(BindingsLayout.EpochDataPrecondition.fromFields(fields, aux));
+  }
+
+  static toAuxiliary(x?: EpochDataPreconditions): any[] {
+    return BindingsLayout.EpochDataPrecondition.toAuxiliary(x?.toInternalRepr())
+  }
+
+  static toValue(x: EpochDataPreconditions): EpochDataPreconditions {
+    return x;
+  }
+
+  static fromValue(x: EpochDataPreconditions): EpochDataPreconditions {
+    return x;
+  }
+
+  static from(value: EpochDataPreconditions | EpochDataPreconditionsDescription | undefined): EpochDataPreconditions {
+    if(value instanceof EpochDataPreconditions) {
+      return value;
+    } else if(value === undefined) {
+      return EpochDataPreconditions.empty();
+    } else {
+      return new EpochDataPreconditions(value);
     }
+  }
+}
 
-    static fromInternalRepr(x: BindingsLayout.EpochDataPrecondition): EpochData {
-      return new EpochData({
-        ledger: EpochLedger.fromInternalRepr(x.ledger),
-        seed: Constraint.Equals.fromOption(x.seed),
-        startCheckpoint: Constraint.Equals.fromOption(x.startCheckpoint),
-        lockCheckpoint: Constraint.Equals.fromOption(x.lockCheckpoint),
-        epochLength: Constraint.InRange.fromOption(x.epochLength),
-      });
-    }
+export type NetworkPreconditionsDescription = {
+  snarkedLedgerHash?: Field | Precondition.Equals<Field>,
+  blockchainLength?: UInt32 | Precondition.InRange<UInt32>,
+  minWindowDensity?: UInt32 | Precondition.InRange<UInt32>,
+  totalCurrency?: MinaAmount | Precondition.InRange<MinaAmount>,
+  globalSlotSinceGenesis?: UInt32 | Precondition.InRange<UInt32>,
+  stakingEpochData?: EpochDataPreconditions | EpochDataPreconditionsDescription,
+  nextEpochData?: EpochDataPreconditions | EpochDataPreconditionsDescription,
+};
 
-    toJSON(): any {
-      return EpochData.toJSON(this);
-    }
+export class NetworkPreconditions {
+  readonly snarkedLedgerHash: Precondition.Equals<Field>;
+  readonly blockchainLength: Precondition.InRange<UInt32>;
+  readonly minWindowDensity: Precondition.InRange<UInt32>;
+  readonly totalCurrency: Precondition.InRange<MinaAmount>;
+  readonly globalSlotSinceGenesis: Precondition.InRange<UInt32>;
+  readonly stakingEpochData: EpochDataPreconditions;
+  readonly nextEpochData: EpochDataPreconditions;
 
-    toInput(): HashInput {
-      return EpochData.toInput(this);
-    }
+  constructor(descr?: NetworkPreconditionsDescription) {
+    this.snarkedLedgerHash = Precondition.Equals.from(descr?.snarkedLedgerHash, Field.empty());
+    this.blockchainLength = Precondition.InRange.from(descr?.blockchainLength, {
+      lower: UInt32.empty(),
+      upper: UInt32.MAXINT()
+    });
+    this.minWindowDensity = Precondition.InRange.from(descr?.minWindowDensity, {
+      lower: UInt32.empty(),
+      upper: UInt32.MAXINT()
+    });
+    this.totalCurrency = Precondition.InRange.from(descr?.totalCurrency, {
+      lower: UInt64.empty(),
+      upper: UInt64.MAXINT()
+    });
+    this.globalSlotSinceGenesis = Precondition.InRange.from(descr?.globalSlotSinceGenesis, {
+      lower: UInt32.empty(),
+      upper: UInt32.MAXINT(),
+    });
+    this.stakingEpochData = EpochDataPreconditions.from(descr?.stakingEpochData);
+    this.nextEpochData = EpochDataPreconditions.from(descr?.nextEpochData);
+  }
 
-    toFields(): Field[] {
-      return EpochData.toFields(this);
-    }
-
-    static sizeInFields(): number {
-      return BindingsLayout.EpochDataPrecondition.sizeInFields();
-    }
-
-    static empty(): EpochData {
-      return new EpochData();
-    }
-
-    static check(_x: EpochData) {
-      throw new Error('TODO');
-    }
-
-    static toJSON(x: EpochData): any {
-      return BindingsLayout.EpochDataPrecondition.toJSON(x.toInternalRepr());
-    }
-
-    static toInput(x: EpochData): HashInput {
-      return BindingsLayout.EpochDataPrecondition.toInput(x.toInternalRepr());
-    }
-
-    static toFields(x: EpochData): Field[] {
-      return BindingsLayout.EpochDataPrecondition.toFields(x.toInternalRepr());
-    }
-
-    static fromFields(fields: Field[], aux: any[]): EpochData {
-      return EpochData.fromInternalRepr(BindingsLayout.EpochDataPrecondition.fromFields(fields, aux));
-    }
-
-    static toAuxiliary(x?: EpochData): any[] {
-      return BindingsLayout.EpochDataPrecondition.toAuxiliary(x?.toInternalRepr())
-    }
-
-    static toValue(x: EpochData): EpochData {
-      return x;
-    }
-
-    static fromValue(x: EpochData): EpochData {
-      return x;
-    }
-
-    static from(value: EpochData | EpochDataDescription | undefined): EpochData {
-      if(value instanceof EpochData) {
-        return value;
-      } else if(value === undefined) {
-        return EpochData.empty();
-      } else {
-        return new EpochData(value);
-      }
+  toInternalRepr(): BindingsLayout.NetworkPrecondition {
+    return {
+      snarkedLedgerHash: this.snarkedLedgerHash.toOption(),
+      blockchainLength: this.blockchainLength.toOption(),
+      minWindowDensity: this.minWindowDensity.toOption(),
+      totalCurrency: this.totalCurrency.toOption(),
+      globalSlotSinceGenesis: this.globalSlotSinceGenesis.toOption(),
+      stakingEpochData: this.stakingEpochData.toInternalRepr(),
+      nextEpochData: this.nextEpochData.toInternalRepr(),
     }
   }
 
-  export type NetworkDescription = {
-    snarkedLedgerHash?: Field | Constraint.Equals<Field>,
-    blockchainLength?: UInt32 | Constraint.InRange<UInt32>,
-    minWindowDensity?: UInt32 | Constraint.InRange<UInt32>,
-    totalCurrency?: MinaAmount | Constraint.InRange<MinaAmount>,
-    globalSlotSinceGenesis?: UInt32 | Constraint.InRange<UInt32>,
-    stakingEpochData?: EpochData | EpochDataDescription,
-    nextEpochData?: EpochData | EpochDataDescription,
-  };
-
-  /*
-  export class Network extends deriveProvableUnderConversion(
-    BindingsLayout.NetworkPrecondition,
-    class NetworkBase {
-      readonly snarkedLedgerHash: Constraint.Equals<Field>;
-      readonly blockchainLength: Constraint.InRange<UInt32>;
-      readonly minWindowDensity: Constraint.InRange<UInt32>;
-      readonly totalCurrency: Constraint.InRange<MinaAmount>;
-      readonly globalSlotSinceGenesis: Constraint.InRange<UInt32>;
-      readonly stakingEpochData: EpochData;
-      readonly nextEpochData: EpochData;
-
-      constructor(descr?: NetworkDescription) {
-        this.snarkedLedgerHash = Constraint.Equals.from(descr?.snarkedLedgerHash, Field.empty());
-        this.blockchainLength = Constraint.InRange.from(descr?.blockchainLength, {
-          lower: UInt32.empty(),
-          upper: UInt32.MAXINT()
-        });
-        this.minWindowDensity = Constraint.InRange.from(descr?.minWindowDensity, {
-          lower: UInt32.empty(),
-          upper: UInt32.MAXINT()
-        });
-        this.totalCurrency = Constraint.InRange.from(descr?.totalCurrency, {
-          lower: UInt64.empty(),
-          upper: UInt64.MAXINT()
-        });
-        this.globalSlotSinceGenesis = Constraint.InRange.from(descr?.globalSlotSinceGenesis, {
-          lower: UInt32.empty(),
-          upper: UInt32.MAXINT(),
-        });
-        this.stakingEpochData = EpochData.from(descr?.stakingEpochData);
-        this.nextEpochData = EpochData.from(descr?.nextEpochData);
-      }
-
-      static toProvableRepr(x: NetworkBase): BindingsLayout.NetworkPrecondition {
-        return {
-          snarkedLedgerHash: x.snarkedLedgerHash.toOption(),
-          blockchainLength: x.blockchainLength.toOption(),
-          minWindowDensity: x.minWindowDensity.toOption(),
-          totalCurrency: x.totalCurrency.toOption(),
-          globalSlotSinceGenesis: x.globalSlotSinceGenesis.toOption(),
-          stakingEpochData: x.stakingEpochData.toInternalRepr(),
-          nextEpochData: x.nextEpochData.toInternalRepr(),
-        }
-      }
-
-      static fromProvableRepr(x: BindingsLayout.NetworkPrecondition): NetworkBase {
-        return new NetworkBase({
-          snarkedLedgerHash: Constraint.Equals.fromOption(x.snarkedLedgerHash),
-          blockchainLength: Constraint.InRange.fromOption(x.blockchainLength),
-          minWindowDensity: Constraint.InRange.fromOption(x.minWindowDensity),
-          totalCurrency: Constraint.InRange.fromOption(x.totalCurrency),
-          globalSlotSinceGenesis: Constraint.InRange.fromOption(x.globalSlotSinceGenesis),
-          stakingEpochData: EpochData.fromInternalRepr(x.stakingEpochData),
-          nextEpochData: EpochData.fromInternalRepr(x.nextEpochData),
-        });
-      }
-    }
-  ) {
-    static empty(): Network {
-      return new Network();
-    }
-
-    static from(value: Network | NetworkDescription | undefined): Network {
-      if(value instanceof Network) {
-        return value;
-      } else if(value === undefined) {
-        return Network.empty();
-      } else {
-        return new Network(value);
-      }
-    }
-  }
-  */
-
-  export class Network {
-    readonly snarkedLedgerHash: Constraint.Equals<Field>;
-    readonly blockchainLength: Constraint.InRange<UInt32>;
-    readonly minWindowDensity: Constraint.InRange<UInt32>;
-    readonly totalCurrency: Constraint.InRange<MinaAmount>;
-    readonly globalSlotSinceGenesis: Constraint.InRange<UInt32>;
-    readonly stakingEpochData: EpochData;
-    readonly nextEpochData: EpochData;
-
-    constructor(descr?: NetworkDescription) {
-      this.snarkedLedgerHash = Constraint.Equals.from(descr?.snarkedLedgerHash, Field.empty());
-      this.blockchainLength = Constraint.InRange.from(descr?.blockchainLength, {
-        lower: UInt32.empty(),
-        upper: UInt32.MAXINT()
-      });
-      this.minWindowDensity = Constraint.InRange.from(descr?.minWindowDensity, {
-        lower: UInt32.empty(),
-        upper: UInt32.MAXINT()
-      });
-      this.totalCurrency = Constraint.InRange.from(descr?.totalCurrency, {
-        lower: UInt64.empty(),
-        upper: UInt64.MAXINT()
-      });
-      this.globalSlotSinceGenesis = Constraint.InRange.from(descr?.globalSlotSinceGenesis, {
-        lower: UInt32.empty(),
-        upper: UInt32.MAXINT(),
-      });
-      this.stakingEpochData = EpochData.from(descr?.stakingEpochData);
-      this.nextEpochData = EpochData.from(descr?.nextEpochData);
-    }
-
-    toInternalRepr(): BindingsLayout.NetworkPrecondition {
-      return {
-        snarkedLedgerHash: this.snarkedLedgerHash.toOption(),
-        blockchainLength: this.blockchainLength.toOption(),
-        minWindowDensity: this.minWindowDensity.toOption(),
-        totalCurrency: this.totalCurrency.toOption(),
-        globalSlotSinceGenesis: this.globalSlotSinceGenesis.toOption(),
-        stakingEpochData: this.stakingEpochData.toInternalRepr(),
-        nextEpochData: this.nextEpochData.toInternalRepr(),
-      }
-    }
-
-    static fromInternalRepr(x: BindingsLayout.NetworkPrecondition): Network {
-      return new Network({
-        snarkedLedgerHash: Constraint.Equals.fromOption(x.snarkedLedgerHash),
-        blockchainLength: Constraint.InRange.fromOption(x.blockchainLength),
-        minWindowDensity: Constraint.InRange.fromOption(x.minWindowDensity),
-        totalCurrency: Constraint.InRange.fromOption(x.totalCurrency),
-        globalSlotSinceGenesis: Constraint.InRange.fromOption(x.globalSlotSinceGenesis),
-        stakingEpochData: EpochData.fromInternalRepr(x.stakingEpochData),
-        nextEpochData: EpochData.fromInternalRepr(x.nextEpochData),
-      });
-    }
-
-    static empty(): Network {
-      return new Network();
-    }
-
-    toJSON(): any {
-      return Network.toJSON(this);
-    }
-
-    toInput(): HashInput {
-      return Network.toInput(this);
-    }
-
-
-    toFields(): Field[] {
-      return Network.toFields(this);
-    }
-
-    static sizeInFields(): number {
-      return BindingsLayout.NetworkPrecondition.sizeInFields();
-    }
-
-    static check(_x: Network) {
-      throw new Error('TODO');
-    }
-
-    static toJSON(x: Network): any {
-      return BindingsLayout.NetworkPrecondition.toJSON(x.toInternalRepr());
-    }
-
-    static toInput(x: Network): HashInput {
-      return BindingsLayout.NetworkPrecondition.toInput(x.toInternalRepr());
-    }
-
-    static toFields(x: Network): Field[] {
-      return BindingsLayout.NetworkPrecondition.toFields(x.toInternalRepr());
-    }
-
-    static fromFields(fields: Field[], aux: any[]): Network {
-      return Network.fromInternalRepr(BindingsLayout.NetworkPrecondition.fromFields(fields, aux));
-    }
-
-    static toAuxiliary(x?: Network): any[] {
-      return BindingsLayout.NetworkPrecondition.toAuxiliary(x?.toInternalRepr())
-    }
-
-    static toValue(x: Network): Network {
-      return x;
-    }
-
-    static fromValue(x: Network): Network {
-      return x;
-    }
-
-    static from(value: Network | NetworkDescription | undefined): Network {
-      if(value instanceof Network) {
-        return value;
-      } else if(value === undefined) {
-        return Network.empty();
-      } else {
-        return new Network(value);
-      }
-    }
+  static fromInternalRepr(x: BindingsLayout.NetworkPrecondition): NetworkPreconditions {
+    return new NetworkPreconditions({
+      snarkedLedgerHash: Precondition.Equals.fromOption(x.snarkedLedgerHash),
+      blockchainLength: Precondition.InRange.fromOption(x.blockchainLength),
+      minWindowDensity: Precondition.InRange.fromOption(x.minWindowDensity),
+      totalCurrency: Precondition.InRange.fromOption(x.totalCurrency),
+      globalSlotSinceGenesis: Precondition.InRange.fromOption(x.globalSlotSinceGenesis),
+      stakingEpochData: EpochDataPreconditions.fromInternalRepr(x.stakingEpochData),
+      nextEpochData: EpochDataPreconditions.fromInternalRepr(x.nextEpochData),
+    });
   }
 
-  export type AccountDescription<State extends StateLayout> = {
-		balance?: MinaAmount | Constraint.InRange<MinaAmount>,
-		nonce?: UInt32 | Constraint.InRange<UInt32>,
-		receiptChainHash?: Field | Constraint.Equals<Field>,
-		delegate?: PublicKey | Constraint.Equals<PublicKey>,
-		state?: StateConstraints<State>,
-		actionState?: Field | Constraint.Equals<Field>,
-    // NB: renamed from the protocol's type name of `provenState`
-		isProven?: Bool | Constraint.Equals<Bool>,
-		isNew?: Bool | Constraint.Equals<Bool>
-  };
+  static empty(): NetworkPreconditions {
+    return new NetworkPreconditions();
+  }
 
-  export class Account<State extends StateLayout = 'GenericState'> {
-    // TODO: should these really be read-only?
-    readonly State: StateDefinition<State>;
-		readonly balance: Constraint.InRange<MinaAmount>;
-		readonly nonce: Constraint.InRange<UInt32>;
-		readonly receiptChainHash: Constraint.Equals<Field>;
-		readonly delegate: Constraint.Equals<PublicKey>;
-		readonly state: StateConstraints<State>;
-		readonly actionState: Constraint.Equals<Field>;
-		readonly isProven: Constraint.Equals<Bool>;
-		readonly isNew: Constraint.Equals<Bool>;
+  toJSON(): any {
+    return NetworkPreconditions.toJSON(this);
+  }
 
-    constructor(State: StateDefinition<State>, descr?: AccountDescription<State>) {
-      this.State = State;
-      this.balance = Constraint.InRange.from(descr?.balance, {
-        lower: UInt64.empty(),
-        upper: UInt64.MAXINT()
-      });
-      this.nonce = Constraint.InRange.from(descr?.nonce, {
-        lower: UInt32.empty(),
-        upper: UInt32.MAXINT()
-      });
-      this.receiptChainHash = Constraint.Equals.from(descr?.receiptChainHash, Field.empty());
-      this.delegate = Constraint.Equals.from(descr?.delegate, PublicKey.empty());
-      this.state = descr?.state ?? StateConstraints.empty(State);
-      this.actionState = Constraint.Equals.from(descr?.actionState, Actions.emptyActionState());
-      this.isProven = Constraint.Equals.from(descr?.isProven, Bool.empty());
-      this.isNew = Constraint.Equals.from(descr?.isNew, Bool.empty());
+  toInput(): HashInput {
+    return NetworkPreconditions.toInput(this);
+  }
+
+
+  toFields(): Field[] {
+    return NetworkPreconditions.toFields(this);
+  }
+
+  static sizeInFields(): number {
+    return BindingsLayout.NetworkPrecondition.sizeInFields();
+  }
+
+  static check(_x: NetworkPreconditions) {
+    throw new Error('TODO');
+  }
+
+  static toJSON(x: NetworkPreconditions): any {
+    return BindingsLayout.NetworkPrecondition.toJSON(x.toInternalRepr());
+  }
+
+  static toInput(x: NetworkPreconditions): HashInput {
+    return BindingsLayout.NetworkPrecondition.toInput(x.toInternalRepr());
+  }
+
+  static toFields(x: NetworkPreconditions): Field[] {
+    return BindingsLayout.NetworkPrecondition.toFields(x.toInternalRepr());
+  }
+
+  static fromFields(fields: Field[], aux: any[]): NetworkPreconditions {
+    return NetworkPreconditions.fromInternalRepr(BindingsLayout.NetworkPrecondition.fromFields(fields, aux));
+  }
+
+  static toAuxiliary(x?: NetworkPreconditions): any[] {
+    return BindingsLayout.NetworkPrecondition.toAuxiliary(x?.toInternalRepr())
+  }
+
+  static toValue(x: NetworkPreconditions): NetworkPreconditions {
+    return x;
+  }
+
+  static fromValue(x: NetworkPreconditions): NetworkPreconditions {
+    return x;
+  }
+
+  static from(value: NetworkPreconditions | NetworkPreconditionsDescription | undefined): NetworkPreconditions {
+    if(value instanceof NetworkPreconditions) {
+      return value;
+    } else if(value === undefined) {
+      return NetworkPreconditions.empty();
+    } else {
+      return new NetworkPreconditions(value);
     }
+  }
+}
 
-    toInternalRepr(): BindingsLayout.AccountPrecondition {
-      // const stateConstraints = this.state instanceof GenericStateConstraints ? this.state.constraints : ;
-      const stateConstraints = StateConstraints.toFieldConstraints(this.State, this.state);
+export type AccountPreconditionsDescription<State extends StateLayout> = {
+  balance?: MinaAmount | Precondition.InRange<MinaAmount>,
+  nonce?: UInt32 | Precondition.InRange<UInt32>,
+  receiptChainHash?: Field | Precondition.Equals<Field>,
+  delegate?: PublicKey | Precondition.Equals<PublicKey>,
+  state?: StatePreconditions<State>,
+  actionState?: Field | Precondition.Equals<Field>,
+  // NB: renamed from the protocol's type name of `provenState`
+  isProven?: Bool | Precondition.Equals<Bool>,
+  isNew?: Bool | Precondition.Equals<Bool>
+};
 
-      if(stateConstraints.length !== MAX_ZKAPP_STATE_FIELDS) {
-        console.log(`length = ${stateConstraints.length}, stateConstraints = ${JSON.stringify(stateConstraints)}`);
-        throw new Error('invalid number of zkapp state field constraints');
+export class AccountPreconditions<State extends StateLayout = 'GenericState'> {
+  // TODO: should these really be read-only?
+  readonly State: StateDefinition<State>;
+  readonly balance: Precondition.InRange<MinaAmount>;
+  readonly nonce: Precondition.InRange<UInt32>;
+  readonly receiptChainHash: Precondition.Equals<Field>;
+  readonly delegate: Precondition.Equals<PublicKey>;
+  readonly state: StatePreconditions<State>;
+  readonly actionState: Precondition.Equals<Field>;
+  readonly isProven: Precondition.Equals<Bool>;
+  readonly isNew: Precondition.Equals<Bool>;
+
+  constructor(State: StateDefinition<State>, descr?: AccountPreconditionsDescription<State>) {
+    this.State = State;
+    this.balance = Precondition.InRange.from(descr?.balance, {
+      lower: UInt64.empty(),
+      upper: UInt64.MAXINT()
+    });
+    this.nonce = Precondition.InRange.from(descr?.nonce, {
+      lower: UInt32.empty(),
+      upper: UInt32.MAXINT()
+    });
+    this.receiptChainHash = Precondition.Equals.from(descr?.receiptChainHash, Field.empty());
+    this.delegate = Precondition.Equals.from(descr?.delegate, PublicKey.empty());
+    this.state = descr?.state ?? StatePreconditions.empty(State);
+    this.actionState = Precondition.Equals.from(descr?.actionState, Actions.emptyActionState());
+    this.isProven = Precondition.Equals.from(descr?.isProven, Bool.empty());
+    this.isNew = Precondition.Equals.from(descr?.isNew, Bool.empty());
+  }
+
+  toGeneric(): AccountPreconditions {
+    return AccountPreconditions.generic({
+      ...this,
+      state: StatePreconditions.toGeneric(this.State, this.state)
+    });
+  }
+
+  static fromGeneric<State extends StateLayout>(x: AccountPreconditions, State: StateDefinition<State>): AccountPreconditions<State> {
+    return new AccountPreconditions(
+      State,
+      {
+        ...this,
+        state: StatePreconditions.fromGeneric(x.state, State)
       }
+    );
+  }
 
-      return {
-        balance: this.balance.toOption(),
-        nonce: this.nonce.toOption(),
-        receiptChainHash: this.receiptChainHash.toOption(),
-        delegate: this.delegate.toOption(),
-        state: stateConstraints.map((c) => c.toOption()),
-        actionState: this.actionState.toOption(),
-        provedState: this.isProven.toOption(),
-        isNew: this.isNew.toOption()
-      };
+  toInternalRepr(): BindingsLayout.AccountPrecondition {
+    const statePreconditions = StatePreconditions.toFieldPreconditions(this.State, this.state);
+
+    if(statePreconditions.length !== MAX_ZKAPP_STATE_FIELDS) {
+      throw new Error('invalid number of zkapp state field constraints');
     }
 
-    static fromInternalRepr(x: BindingsLayout.AccountPrecondition): Account {
-      return new Account<'GenericState'>('GenericState', {
-        balance: Constraint.InRange.fromOption(x.balance),
-        nonce: Constraint.InRange.fromOption(x.nonce),
-        receiptChainHash: Constraint.Equals.fromOption(x.receiptChainHash),
-        delegate: Constraint.Equals.fromOption(x.delegate),
-        state: new GenericStateConstraints(x.state.map(Constraint.Equals.fromOption<Field>)),
-        actionState: Constraint.Equals.fromOption(x.actionState),
-        isProven: Constraint.Equals.fromOption(x.provedState),
-        isNew: Constraint.Equals.fromOption(x.isNew),
-      })
-    }
+    return {
+      balance: this.balance.toOption(),
+      nonce: this.nonce.toOption(),
+      receiptChainHash: this.receiptChainHash.toOption(),
+      delegate: this.delegate.toOption(),
+      state: statePreconditions.map((c) => c.toOption()),
+      actionState: this.actionState.toOption(),
+      provedState: this.isProven.toOption(),
+      isNew: this.isNew.toOption()
+    };
+  }
 
-    toJSON(): any {
-      return Account.toJSON(this);
-    }
+  static fromInternalRepr(x: BindingsLayout.AccountPrecondition): AccountPreconditions {
+    return new AccountPreconditions<'GenericState'>('GenericState', {
+      balance: Precondition.InRange.fromOption(x.balance),
+      nonce: Precondition.InRange.fromOption(x.nonce),
+      receiptChainHash: Precondition.Equals.fromOption(x.receiptChainHash),
+      delegate: Precondition.Equals.fromOption(x.delegate),
+      state: new GenericStatePreconditions(x.state.map(Precondition.Equals.fromOption<Field>)),
+      actionState: Precondition.Equals.fromOption(x.actionState),
+      isProven: Precondition.Equals.fromOption(x.provedState),
+      isNew: Precondition.Equals.fromOption(x.isNew),
+    })
+  }
 
-    toInput(): HashInput {
-      return Account.toInput(this);
-    }
+  toJSON(): any {
+    return AccountPreconditions.toJSON(this);
+  }
 
-    toFields(): Field[] {
-      return Account.toFields(this);
-    }
+  toInput(): HashInput {
+    return AccountPreconditions.toInput(this);
+  }
 
-    static sizeInFields(): number {
-      return BindingsLayout.AccountPrecondition.sizeInFields();
-    }
+  toFields(): Field[] {
+    return AccountPreconditions.toFields(this);
+  }
 
-    static emptyPoly<State extends StateLayout>(State: StateDefinition<State>): Account<State> {
-      return new Account(State);
-    }
+  static generic(descr?: AccountPreconditionsDescription<'GenericState'>): AccountPreconditions {
+    return new AccountPreconditions<'GenericState'>(
+      'GenericState',
+      descr
+    );
+  }
 
-    static empty(): Account {
-      return this.emptyPoly('GenericState');
-    }
+  static sizeInFields(): number {
+    return BindingsLayout.AccountPrecondition.sizeInFields();
+  }
 
-    static check<State extends StateLayout>(_x: Account<State>) {
-      throw new Error('TODO');
-    }
+  static emptyPoly<State extends StateLayout>(State: StateDefinition<State>): AccountPreconditions<State> {
+    return new AccountPreconditions(State);
+  }
 
-    static toJSON<State extends StateLayout>(x: Account<State>): any {
-      return BindingsLayout.AccountPrecondition.toJSON(x.toInternalRepr());
-    }
+  static empty(): AccountPreconditions {
+    return this.emptyPoly('GenericState');
+  }
 
-    static toInput<State extends StateLayout>(x: Account<State>): HashInput {
-      return BindingsLayout.AccountPrecondition.toInput(x.toInternalRepr());
-    }
+  static check<State extends StateLayout>(_x: AccountPreconditions<State>) {
+    throw new Error('TODO');
+  }
 
-    static toFields<State extends StateLayout>(x: Account<State>): Field[] {
-      return BindingsLayout.AccountPrecondition.toFields(x.toInternalRepr());
-    }
+  static toJSON<State extends StateLayout>(x: AccountPreconditions<State>): any {
+    return BindingsLayout.AccountPrecondition.toJSON(x.toInternalRepr());
+  }
 
-    static fromFields(fields: Field[], aux: any[]): Account {
-      return Account.fromInternalRepr(BindingsLayout.AccountPrecondition.fromFields(fields, aux));
-    }
+  static toInput<State extends StateLayout>(x: AccountPreconditions<State>): HashInput {
+    return BindingsLayout.AccountPrecondition.toInput(x.toInternalRepr());
+  }
 
-    static toAuxiliary<State extends StateLayout>(x?: Account<State>): any[] {
-      return BindingsLayout.AccountPrecondition.toAuxiliary(x?.toInternalRepr())
-    }
+  static toFields<State extends StateLayout>(x: AccountPreconditions<State>): Field[] {
+    return BindingsLayout.AccountPrecondition.toFields(x.toInternalRepr());
+  }
 
-    static toValue<State extends StateLayout>(x: Account<State>): Account<State> {
-      return x;
-    }
+  static fromFields(fields: Field[], aux: any[]): AccountPreconditions {
+    return AccountPreconditions.fromInternalRepr(BindingsLayout.AccountPrecondition.fromFields(fields, aux));
+  }
 
-    static fromValue<State extends StateLayout>(x: Account<State>): Account<State> {
-      return x;
-    }
+  static toAuxiliary<State extends StateLayout>(x?: AccountPreconditions<State>): any[] {
+    return BindingsLayout.AccountPrecondition.toAuxiliary(x?.toInternalRepr())
+  }
 
-    static from<State extends StateLayout>(
-      State: StateDefinition<State>,
-      value: Account<State> | AccountDescription<State> | undefined
-    ): Account<State> {
-      if(value instanceof Account) {
-        return value;
-      } else if(value === undefined) {
-        return Account.emptyPoly(State);
-      } else {
-        return new Account(State, value);
-      }
+  static toValue<State extends StateLayout>(x: AccountPreconditions<State>): AccountPreconditions<State> {
+    return x;
+  }
+
+  static fromValue<State extends StateLayout>(x: AccountPreconditions<State>): AccountPreconditions<State> {
+    return x;
+  }
+
+  static from<State extends StateLayout>(
+    State: StateDefinition<State>,
+    value: AccountPreconditions<State> | AccountPreconditionsDescription<State> | undefined
+  ): AccountPreconditions<State> {
+    if(value instanceof AccountPreconditions) {
+      return value;
+    } else if(value === undefined) {
+      return AccountPreconditions.emptyPoly(State);
+    } else {
+      return new AccountPreconditions(State, value);
     }
   }
 }

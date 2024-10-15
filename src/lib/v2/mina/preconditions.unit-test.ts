@@ -1,7 +1,14 @@
 import { testV1V2ClassEquivalence, testV1V2ValueEquivalence, testV2Encoding, v1FetchLayout } from './bindings-test-utils.js';
-import { Preconditions } from './preconditions.js';
-import { Constraint, MAX_ZKAPP_STATE_FIELDS } from './core.js';
-import { GenericStateConstraints } from './state.js';
+import {
+  AccountPreconditions,
+  EpochDataPreconditions,
+  EpochLedgerPreconditions,
+  NetworkPreconditions,
+  Precondition,
+  Preconditions
+} from './preconditions.js';
+import { MAX_ZKAPP_STATE_FIELDS } from './core.js';
+import { GenericStatePreconditions } from './state.js';
 import { Bool } from '../../provable/bool.js'
 import { Field } from '../../provable/field.js'
 import { UInt32, UInt64 } from '../../provable/int.js'
@@ -33,17 +40,17 @@ const v1EpochLedgerPreconditions: TypesV1.AccountUpdate['body']['preconditions']
   }
 };
 
-const v2EpochLedgerPreconditions = new Preconditions.EpochLedger({
+const v2EpochLedgerPreconditions = new EpochLedgerPreconditions({
   hash: new Field(100),
-  totalCurrency: Constraint.InRange.betweenInclusive(new UInt64(0), new UInt64(10**6 * 10**9)),
+  totalCurrency: Precondition.InRange.betweenInclusive(new UInt64(0), new UInt64(10**6 * 10**9)),
 });
 
 {
-  testV2Encoding(Preconditions.EpochLedger, v2EpochLedgerPreconditions);
-  testV1V2ClassEquivalence(V1EpochLedgerPreconditions, Preconditions.EpochLedger, undefined)
+  testV2Encoding(EpochLedgerPreconditions, v2EpochLedgerPreconditions);
+  testV1V2ClassEquivalence(V1EpochLedgerPreconditions, EpochLedgerPreconditions, undefined)
   testV1V2ValueEquivalence(
     V1EpochLedgerPreconditions,
-    Preconditions.EpochLedger,
+    EpochLedgerPreconditions,
     v1EpochLedgerPreconditions,
     v2EpochLedgerPreconditions,
     undefined
@@ -81,20 +88,20 @@ const v1EpochDataPreconditions: TypesV1.AccountUpdate['body']['preconditions']['
   }
 };
 
-const v2EpochDataPreconditions = new Preconditions.EpochData({
+const v2EpochDataPreconditions = new EpochDataPreconditions({
   ledger: v2EpochLedgerPreconditions,
-  seed: Constraint.Equals.disabled(new Field(24)),
+  seed: Precondition.Equals.disabled(new Field(24)),
   startCheckpoint: new Field(2048),
   lockCheckpoint: new Field(4073),
-  epochLength: Constraint.InRange.disabled({lower: new UInt32(7), upper: new UInt32(9)}),
+  epochLength: Precondition.InRange.disabled({lower: new UInt32(7), upper: new UInt32(9)}),
 })
 
 {
-  testV2Encoding(Preconditions.EpochData, v2EpochDataPreconditions);
-  testV1V2ClassEquivalence(V1EpochDataPreconditions, Preconditions.EpochData, undefined)
+  testV2Encoding(EpochDataPreconditions, v2EpochDataPreconditions);
+  testV1V2ClassEquivalence(V1EpochDataPreconditions, EpochDataPreconditions, undefined)
   testV1V2ValueEquivalence(
     V1EpochDataPreconditions,
-    Preconditions.EpochData,
+    EpochDataPreconditions,
     v1EpochDataPreconditions,
     v2EpochDataPreconditions,
     undefined
@@ -147,22 +154,22 @@ const v1NetworkPreconditions: TypesV1.AccountUpdate['body']['preconditions']['ne
   nextEpochData: v1EpochDataPreconditions,
 };
 
-const v2NetworkPreconditions = new Preconditions.Network({
+const v2NetworkPreconditions = new NetworkPreconditions({
   snarkedLedgerHash: new Field(17),
-  blockchainLength: Constraint.InRange.equals(UInt32.one),
-  minWindowDensity: Constraint.InRange.betweenInclusive(new UInt32(32), new UInt32(48)),
-  totalCurrency: Constraint.InRange.disabled({ lower: UInt64.zero, upper: new UInt64(10**8 * 10**9) }),
-  globalSlotSinceGenesis: Constraint.InRange.betweenInclusive(new UInt32(400), new UInt32(900)),
+  blockchainLength: Precondition.InRange.equals(UInt32.one),
+  minWindowDensity: Precondition.InRange.betweenInclusive(new UInt32(32), new UInt32(48)),
+  totalCurrency: Precondition.InRange.disabled({ lower: UInt64.zero, upper: new UInt64(10**8 * 10**9) }),
+  globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(new UInt32(400), new UInt32(900)),
   stakingEpochData: v2EpochDataPreconditions,
   nextEpochData: v2EpochDataPreconditions,
 });
 
 {
-  testV2Encoding(Preconditions.Network, v2NetworkPreconditions);
-  testV1V2ClassEquivalence(V1NetworkPreconditions, Preconditions.Network, undefined)
+  testV2Encoding(NetworkPreconditions, v2NetworkPreconditions);
+  testV1V2ClassEquivalence(V1NetworkPreconditions, NetworkPreconditions, undefined)
   testV1V2ValueEquivalence(
     V1NetworkPreconditions,
-    Preconditions.Network,
+    NetworkPreconditions,
     v1NetworkPreconditions,
     v2NetworkPreconditions,
     undefined
@@ -218,23 +225,23 @@ const v1AccountPreconditions: TypesV1.AccountUpdate['body']['preconditions']['ac
   }
 };
 
-const v2AccountPreconditions = new Preconditions.Account('GenericState', {
-  balance: Constraint.InRange.betweenInclusive(new UInt64(10 * 10**9), new UInt64(100 * 10**9)),
+const v2AccountPreconditions = new AccountPreconditions('GenericState', {
+  balance: Precondition.InRange.betweenInclusive(new UInt64(10 * 10**9), new UInt64(100 * 10**9)),
   nonce: new UInt32(42),
-  receiptChainHash: Constraint.Equals.disabled(new Field(999)),
+  receiptChainHash: Precondition.Equals.disabled(new Field(999)),
   delegate: undefined,
-  state: new GenericStateConstraints(new Array(MAX_ZKAPP_STATE_FIELDS).fill(Constraint.Equals.equals(new Field(50)))),
-  actionState: Constraint.Equals.disabled(new Field(30)),
+  state: new GenericStatePreconditions(new Array(MAX_ZKAPP_STATE_FIELDS).fill(Precondition.Equals.equals(new Field(50)))),
+  actionState: Precondition.Equals.disabled(new Field(30)),
   isProven: new Bool(false),
-  isNew: Constraint.Equals.disabled(new Bool(true)),
+  isNew: Precondition.Equals.disabled(new Bool(true)),
 });
 
 {
-  testV2Encoding(Preconditions.Account, v2AccountPreconditions);
-  testV1V2ClassEquivalence(V1AccountPreconditions, Preconditions.Account, undefined)
+  testV2Encoding(AccountPreconditions, v2AccountPreconditions);
+  testV1V2ClassEquivalence(V1AccountPreconditions, AccountPreconditions, undefined)
   testV1V2ValueEquivalence(
     V1AccountPreconditions,
-    Preconditions.Account,
+    AccountPreconditions,
     v1AccountPreconditions,
     v2AccountPreconditions,
     undefined
@@ -264,7 +271,7 @@ const v1Preconditions: TypesV1.AccountUpdate['body']['preconditions'] = {
 const v2Preconditions = new Preconditions('GenericState', {
   network: v2NetworkPreconditions,
   account: v2AccountPreconditions,
-  validWhile: Constraint.InRange.betweenInclusive(new UInt32(5), new UInt32(15))
+  validWhile: Precondition.InRange.betweenInclusive(new UInt32(5), new UInt32(15))
 });
 
 {
