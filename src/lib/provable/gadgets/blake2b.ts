@@ -70,8 +70,8 @@ const BLAKE2B = {
       `data byte length must be in the range [0, 2**128), got ${data.length}`
     );
     const state = initialize(digestLength);
-    const updated_state = update(state, Bytes.from(data).bytes);
-    const out = final(updated_state);
+    const updatedState = update(state, Bytes.from(data).bytes);
+    const out = final(updatedState);
     return Bytes.from(out);
   },
   get IV() {
@@ -79,17 +79,6 @@ const BLAKE2B = {
   },
 };
 
-/**
- * G function
- *
- * @param {UInt64[]} v
- * @param {number} a
- * @param {number} b
- * @param {number} c
- * @param {number} d
- * @param {UInt64} x
- * @param {UInt64} y
- */
 function G(
   v: UInt64[],
   a: number,
@@ -125,16 +114,7 @@ function G(
  * @param {State} state
  * @param {boolean} last
  */
-function compress(
-  state: {
-    h: UInt64[];
-    t: [bigint, bigint];
-    buf: UInt8[];
-    buflen: number;
-    outlen: number;
-  },
-  last: boolean
-): State {
+function compress(state: State, last: boolean): State {
   const { h, t, buf } = state;
   const v = h.concat(BLAKE2B.IV); // initalize local work vector. First half from state and second half from IV.
 
@@ -191,13 +171,7 @@ function compress(
  * @param {number} outlen - Digest length in bits
  * @returns {State}
  */
-function initialize(outlen: number): {
-  h: UInt64[];
-  t: [bigint, bigint];
-  buf: UInt8[];
-  buflen: number;
-  outlen: number;
-} {
+function initialize(outlen: number): State {
   const h = BLAKE2B.IV.slice(); // shallow copy IV to h
   h[0] = UInt64.from(0x01010000).xor(UInt64.from(outlen)).xor(h[0]); // state "param block"
 
@@ -216,16 +190,7 @@ function initialize(outlen: number): {
  * @param {UInt8[]} input
  * @returns {State} updated state
  */
-function update(
-  state: {
-    h: UInt64[];
-    t: [bigint, bigint];
-    buf: UInt8[];
-    buflen: number;
-    outlen: number;
-  },
-  input: UInt8[]
-): State {
+function update(state: State, input: UInt8[]): State {
   for (let i = 0; i < input.length; i++) {
     if (state.buflen === 128) {
       // buffer full ?
@@ -249,13 +214,7 @@ function update(
  * @param {State} state
  * @returns {UInt8[]} digest
  */
-function final(state: {
-  h: UInt64[];
-  t: [bigint, bigint];
-  buf: UInt8[];
-  buflen: number;
-  outlen: number;
-}): UInt8[] {
+function final(state: State): UInt8[] {
   state.t[0] = UInt64.from(state.t[0])
     .addMod64(UInt64.from(state.buflen))
     .toBigInt(); // add counters
