@@ -161,10 +161,10 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
-  let auxInputCache: Map<string, Provable<any>> = new Map();
+  let auxInputCache: Map<string, unknown> = new Map();
   let methodCache: Map<string, unknown> = new Map();
   return {
-    setAuxilaryInput(value: Provable<any>) {
+    setAuxilaryInput(value: unknown) {
       auxInputCache.set('auxinput', value);
     },
     getAuxilaryInput: () => {
@@ -799,6 +799,7 @@ function ZkProgram<
         getPreviousProofsForProver(args, methodIntfs[i])
       );
 
+      // store publicInput auxilary data in programState cache
       programState.setAuxilaryInput(publicInputAux);
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
