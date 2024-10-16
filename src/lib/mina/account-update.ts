@@ -697,7 +697,6 @@ class AccountUpdate implements Types.AccountUpdate {
   lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
     undefined;
   account: Account;
-  permissions: PreconditionPermission;
   // TODO probably alias this type at some point?
   network: Network;
   currentSlot: CurrentSlot;
@@ -712,10 +711,9 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network, currentSlot, permissions } = preconditions(this, isSelf);
+    let { account, network, currentSlot} = preconditions(this, isSelf);
     this.account = account;
     this.network = network;
-    this.permissions = permissions;
     this.currentSlot = currentSlot;
     this.isSelf = isSelf;
   }

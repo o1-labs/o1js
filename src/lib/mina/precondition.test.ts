@@ -98,7 +98,7 @@ describe('preconditions', () => {
   it('get + require recieve default permissions should not throw', async () => {
     let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
-      contract.permissions.receive.requireEquals(
+      contract.account.permissions.receive.requireEquals(
         { constant : Bool(true),
           signatureNecessary : Bool(false),
           signatureSufficient : Bool(true)
@@ -114,19 +114,20 @@ describe('preconditions', () => {
   it('getAndrequireEquals all perms should not throw', async () => {
     let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
-      contract.permissions.editState.getAndRequireEquals();
-      contract.permissions.access.getAndRequireEquals();
-      contract.permissions.send.getAndRequireEquals();
-      contract.permissions.receive.getAndRequireEquals();
-      contract.permissions.setDelegate.getAndRequireEquals();
-      contract.permissions.setPermissions.getAndRequireEquals();
-      contract.permissions.setVerificationKey.getAndRequireEquals();
-      contract.permissions.setZkappUri.getAndRequireEquals();
-      contract.permissions.editActionState.getAndRequireEquals();
-      contract.permissions.setTokenSymbol.getAndRequireEquals();
-      contract.permissions.incrementNonce.getAndRequireEquals();
-      contract.permissions.setVotingFor.getAndRequireEquals();
-      contract.permissions.setTiming.getAndRequireEquals();
+      contract.account.permissions.editState.get();
+      contract.account.permissions.editState.getAndRequireEquals();
+      contract.account.permissions.access.getAndRequireEquals();
+      contract.account.permissions.send.getAndRequireEquals();
+      contract.account.permissions.receive.getAndRequireEquals();
+      contract.account.permissions.setDelegate.getAndRequireEquals();
+      contract.account.permissions.setPermissions.getAndRequireEquals();
+      contract.account.permissions.setVerificationKey.getAndRequireEquals();
+      contract.account.permissions.setZkappUri.getAndRequireEquals();
+      contract.account.permissions.editActionState.getAndRequireEquals();
+      contract.account.permissions.setTokenSymbol.getAndRequireEquals();
+      contract.account.permissions.incrementNonce.getAndRequireEquals();
+      contract.account.permissions.setVotingFor.getAndRequireEquals();
+      contract.account.permissions.setTiming.getAndRequireEquals();
       contract.requireSignature();
       AccountUpdate.attachToTransaction(contract.self);
     });
@@ -136,7 +137,7 @@ describe('preconditions', () => {
 
   it('get + require recieve signatureNecessary should throw', async () => {
     let tx = await Mina.transaction(feePayer, async () => {
-      contract.permissions.receive.requireEquals(
+      contract.account.permissions.receive.requireEquals(
         { constant : Bool(true),
           signatureNecessary : Bool(true),
           signatureSufficient : Bool(false)

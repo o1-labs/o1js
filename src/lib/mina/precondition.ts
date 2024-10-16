@@ -127,11 +127,12 @@ const AccountPrecondition = {
       actionState: ignore(Actions.emptyActionState()),
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
+      permissions : PermissionsPrecondition.ignoreAll()
     };
   },
 };
 
-type PermissionsPrecondition = Preconditions['permissions'];
+type PermissionsPrecondition = Preconditions['account']['permissions'];
 const PermissionsPrecondition = {
   ignoreAll(): PermissionsPrecondition {
     let appState: Array<OrIgnore<Field>> = [];
@@ -167,7 +168,6 @@ const Preconditions = {
   ignoreAll(): Preconditions {
     return {
       account: AccountPrecondition.ignoreAll(),
-      permissions: PermissionsPrecondition.ignoreAll(),
       network: NetworkPrecondition.ignoreAll(),
       validWhile: GlobalSlotPrecondition.ignoreAll(),
     };
@@ -181,7 +181,6 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
     test: Account(accountUpdate),
     network: Network(accountUpdate),
     currentSlot: CurrentSlot(accountUpdate),
-    permissions: PreconditionPermission(accountUpdate),
   };
 }
 
@@ -239,18 +238,14 @@ function Network(accountUpdate: AccountUpdate): Network {
   return { ...network, timestamp };
 }
 
-function PreconditionPermission(accountUpdate: AccountUpdate): PreconditionPermission {
-  let layout =
-    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.permissions;
-  let context = getPreconditionContextExn(accountUpdate);
-  let permissions: PreconditionPermission = preconditionClass(layout as Layout,'permissions',accountUpdate,context);
-  return {...permissions};
-}
-
 function Account(accountUpdate: AccountUpdate): Account {
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(accountUpdate);
+  let permsLayout =
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account.entries.permissions;
+  let permissions: PreconditionPermission =
+    preconditionClass(permsLayout as Layout,'account.permissions',accountUpdate,context);
   let identity = (x: any) => x;
   let update: Update = {
     delegate: {
@@ -272,6 +267,10 @@ function Account(accountUpdate: AccountUpdate): Account {
   return {
     ...preconditionClass(layout as Layout, 'account', accountUpdate, context),
     ...update,
+    permissions :
+    {...permissions,
+    ... updateSubclass(accountUpdate, 'permissions', identity)
+    },
   };
 }
 
@@ -517,16 +516,18 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
     let key = rest.join('.');
     let value: U;
     if (accountOrNetwork === 'account') {
-      let account = getAccountPreconditions(accountUpdate.body);
-      value = account[key as keyof AccountValue] as U;
-    } else if (accountOrNetwork === 'permissions') {
-      let perms =
-        Mina.getAccount(accountUpdate.body.publicKey,accountUpdate.body?.tokenId)
-            .permissions;
-      if( key == 'setVerificationKey' ) {
-        value = perms['setVerificationKey']['auth'] as U;
-      }else{
-        value = perms[key as keyof typeof perms] as U;
+      if(rest[0] === 'permissions') {
+        let perms =
+          Mina.getAccount(accountUpdate.body.publicKey,accountUpdate.body?.tokenId)
+              .permissions;
+        if( rest[1] == 'setVerificationKey' ) {
+          value = perms['setVerificationKey']['auth'] as U;
+        }else{
+          value = perms[rest[1] as keyof typeof perms] as U;
+        }
+      } else {
+        let account = getAccountPreconditions(accountUpdate.body);
+        value = account[key as keyof AccountValue] as U;
       }
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
@@ -593,6 +594,21 @@ function getAccountPreconditions(body: {
       delegate: publicKey,
       provedState: Bool(false),
       isNew: Bool(true),
+      permissions :
+        { editState : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , access : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , send : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , receive : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setDelegate : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setPermissions : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setVerificationKey : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setZkappUri : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , editActionState : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setTokenSymbol : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , incrementNonce : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setVotingFor : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setTiming : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        }
     };
   }
   let account = Mina.getAccount(publicKey, tokenId);
@@ -604,6 +620,10 @@ function getAccountPreconditions(body: {
     delegate: account.delegate ?? account.publicKey,
     provedState: account.zkapp?.provedState ?? Bool(false),
     isNew: Bool(false),
+    permissions :
+      {...account.permissions
+      , setVerificationKey : account.permissions.setVerificationKey.auth
+      },
   };
 }
 
@@ -807,8 +827,6 @@ type PreconditionFlatEntry<T> = T extends RangeCondition<infer V>
   : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
 
 type FlatPreconditionValue = {
-  [S in PreconditionFlatEntry<PermissionsPrecondition> as `permissions.${S[0]}`]: S[2];
-} & {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];
 } & {
   [S in PreconditionFlatEntry<AccountPreconditionNoState> as `account.${S[0]}`]: S[2];
