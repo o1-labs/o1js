@@ -799,6 +799,7 @@ function ZkProgram<
         getPreviousProofsForProver(args, methodIntfs[i])
       );
 
+      programState.setAuxilaryInput(publicInputAux);
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
