@@ -245,8 +245,8 @@ async function featureFlagsfromFlatMethodIntfs(
 }
 
 class ProofBase<Input, Output> {
-  static publicInputType: FlexibleProvablePure<any> = undefined as any;
-  static publicOutputType: FlexibleProvablePure<any> = undefined as any;
+  static publicInputType: FlexibleProvable<any> = undefined as any;
+  static publicOutputType: FlexibleProvable<any> = undefined as any;
   static tag: () => { name: string } = () => {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
