@@ -790,8 +790,11 @@ function ZkProgram<
         );
       }
 
-      // serialize PublicInput into pure provable
-      let publicInputFields = toFieldConsts(publicInputType, publicInput);
+      // serialize publicInput into pure provable field elements and auxilary data
+      let { publicInputFields, publicInputAux } = toFieldAndAuxConsts(
+        publicInputType,
+        publicInput
+      );
       let previousProofs = MlArray.to(
         getPreviousProofsForProver(args, methodIntfs[i])
       );
