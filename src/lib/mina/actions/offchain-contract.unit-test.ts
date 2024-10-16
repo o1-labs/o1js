@@ -30,11 +30,6 @@ class ExampleContract extends SmartContract {
   // o1js memoizes the offchain state by contract address so that this pattern works
   offchainState = offchainState.init(this);
 
-  init(): void {
-    super.init();
-    this.offchainState.setContractInstance(this);
-  }
-
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {
     // setting `from` to `undefined` means that the account must not exist yet
@@ -102,6 +97,9 @@ await testLocal(
   ({ accounts: { sender, receiver, other }, contract, Local }) => [
     // create first account
     transaction('create account', async () => {
+      // Make sure the contract instance is set on the offchain state
+      contract.offchainState.setContractInstance(contract);
+
       // first call (should succeed)
       await contract.createAccount(sender, UInt64.from(1000));
 
@@ -168,6 +166,8 @@ const [sender, receiver, contractAccountA, contractAccountB] =
 
 const contractA = new ExampleContract(contractAccountA);
 const contractB = new ExampleContract(contractAccountB);
+contractA.offchainState.setContractInstance(contractA);
+contractB.offchainState.setContractInstance(contractB);
 
 console.time('compile offchain state program');
 await offchainState.compile();
@@ -198,15 +198,8 @@ await accountCreationTx.send().wait();
 console.timeEnd('create accounts');
 
 console.time('settle');
-const proofA = await contractA.offchainState.createSettlementProof();
-const proofB = await contractB.offchainState.createSettlementProof();
-const settleTx = Mina.transaction(sender, async () => {
-  await contractA.settle(proofA);
-  await contractB.settle(proofB);
-});
-await settleTx.sign([sender.key]);
-await settleTx.prove();
-await settleTx.send().wait();
+await settle(contractA, sender);
+await settle(contractB, sender);
 console.timeEnd('settle');
 
 console.log('Initial supply:');
@@ -234,26 +227,48 @@ assert((await contractA.getBalance(sender)).toBigInt() == 1000n);
 assert((await contractB.getBalance(sender)).toBigInt() == 1500n);
 
 console.time('transfer');
-const transferTx = Mina.transaction(sender, async () => {
-  await contractA.transfer(sender, receiver, UInt64.from(100));
-  await contractB.transfer(sender, receiver, UInt64.from(200));
-});
-await transferTx.sign([sender.key]);
-await transferTx.prove();
-await transferTx.send().wait();
+await transfer(contractA, sender, receiver, UInt64.from(100));
+await transfer(contractB, sender, receiver, UInt64.from(200));
 console.timeEnd('transfer');
 
 console.time('settle');
-const proofA2 = await contractA.offchainState.createSettlementProof();
-const proofB2 = await contractB.offchainState.createSettlementProof();
-const settleTx2 = Mina.transaction(sender, async () => {
-  await contractA.settle(proofA2);
-  await contractB.settle(proofB2);
-});
-await settleTx2.sign([sender.key]);
-await settleTx2.prove();
-await settleTx2.send().wait();
+await settle(contractA, sender);
+await settle(contractB, sender);
 console.timeEnd('settle');
+
+console.log('After Settlement balances:');
+console.log(
+  'Contract A, Sender: ',
+  (await contractA.offchainState.fields.accounts.get(sender)).value.toBigInt()
+);
+console.log(
+  'Contract A, Receiver: ',
+  (await contractA.offchainState.fields.accounts.get(receiver)).value.toBigInt()
+);
+
+console.log(
+  'Contract B, Sender: ',
+  (await contractB.offchainState.fields.accounts.get(sender)).value.toBigInt()
+);
+console.log(
+  'Contract B, Receiver: ',
+  (await contractB.offchainState.fields.accounts.get(receiver)).value.toBigInt()
+);
+assert((await contractA.getBalance(sender)).toBigInt() == 900n);
+assert((await contractA.getBalance(receiver)).toBigInt() == 100n);
+
+assert((await contractB.getBalance(sender)).toBigInt() == 1300n);
+assert((await contractB.getBalance(receiver)).toBigInt() == 200n);
+
+console.time('advance contract A state but leave B unsettled');
+await transfer(contractA, sender, receiver, UInt64.from(150));
+await settle(contractA, sender);
+
+await transfer(contractA, receiver, sender, UInt64.from(50));
+await settle(contractA, sender);
+
+await transfer(contractB, sender, receiver, UInt64.from(5));
+console.timeEnd('advance contract A state but leave B unsettled');
 
 console.log('Final supply:');
 console.log(
@@ -273,18 +288,44 @@ console.log(
   (await contractA.offchainState.fields.accounts.get(sender)).value.toBigInt()
 );
 console.log(
-  'Contract B, Sender: ',
-  (await contractB.offchainState.fields.accounts.get(sender)).value.toBigInt()
-);
-console.log(
   'Contract A, Receiver: ',
   (await contractA.offchainState.fields.accounts.get(receiver)).value.toBigInt()
+);
+
+console.log(
+  'Contract B, Sender: ',
+  (await contractB.offchainState.fields.accounts.get(sender)).value.toBigInt()
 );
 console.log(
   'Contract B, Receiver: ',
   (await contractB.offchainState.fields.accounts.get(receiver)).value.toBigInt()
 );
-assert((await contractA.getBalance(sender)).toBigInt() == 900n);
+
+assert((await contractA.getBalance(sender)).toBigInt() == 800n);
+assert((await contractA.getBalance(receiver)).toBigInt() == 200n);
+
+// The 5 token transfer has not been settled
 assert((await contractB.getBalance(sender)).toBigInt() == 1300n);
-assert((await contractA.getBalance(receiver)).toBigInt() == 100n);
 assert((await contractB.getBalance(receiver)).toBigInt() == 200n);
+
+async function transfer(
+  contract: ExampleContract,
+  sender: Mina.TestPublicKey,
+  receiver: PublicKey,
+  amount: UInt64
+) {
+  const tx = Mina.transaction(sender, async () => {
+    await contract.transfer(sender, receiver, amount);
+  });
+  tx.sign([sender.key]);
+  await tx.prove().send().wait();
+}
+
+async function settle(contract: ExampleContract, sender: Mina.TestPublicKey) {
+  const proof = await contract.offchainState.createSettlementProof();
+  const tx = Mina.transaction(sender, async () => {
+    await contract.settle(proof);
+  });
+  tx.sign([sender.key]);
+  await tx.prove().send().wait();
+}

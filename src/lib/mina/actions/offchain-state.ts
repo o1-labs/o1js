@@ -229,13 +229,6 @@ function OffchainState<
       valueMap: Map<bigint, Field[]>;
     };
 
-    type InitializedInternalState = {
-      contract: OffchainStateContract<Config>;
-      contractClass: OffchainStateContractClass<Config>;
-      merkleMap: IndexedMerkleMapN;
-      valueMap: Map<bigint, Field[]>;
-    };
-
     function defaultInternalState(): InternalState {
       return {
         _contract: undefined,
