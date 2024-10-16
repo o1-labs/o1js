@@ -569,8 +569,8 @@ let SideloadedTag = {
 
 function ZkProgram<
   Config extends {
-    publicInput?: ProvableTypePure;
-    publicOutput?: ProvableTypePure;
+    publicInput?: ProvableType;
+    publicOutput?: ProvableType;
     methods: {
       [I in string]: {
         privateInputs: Tuple<PrivateInput>;
