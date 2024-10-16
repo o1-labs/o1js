@@ -1534,7 +1534,8 @@ function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
 }
 
 function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
-  const fields = MlFieldConstArray.to(type.toFields(value));
+  let fields = MlFieldConstArray.to(type.toFields(value));
+  let aux = type.toAuxiliary(value);
 }
 
 ZkProgram.Proof = function <
