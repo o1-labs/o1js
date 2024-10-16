@@ -1109,14 +1109,6 @@ async function compileProgram({
 Try adding a method to your ZkProgram or SmartContract.
 If you are using a SmartContract, make sure you are using the @method decorator.`);
 
-  // decompose auxiliary data type
-  let purePublicInput = publicInputType.toFields(publicInput);
-
-  let auxilaryPublicInput = publicInputType.toAuxiliary();
-
-  // store auxiliary data in cache
-  state.setAuxilaryInput(auxilaryPublicInput);
-
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
       publicInputType,
