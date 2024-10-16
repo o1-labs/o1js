@@ -1534,12 +1534,12 @@ function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
 }
 
 function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
-  let fields = MlFieldConstArray.to(type.toFields(value));
-  let aux = type.toAuxiliary(value);
+  let publicInputFields = MlFieldConstArray.to(type.toFields(value));
+  let publicInputAux = type.toAuxiliary(value);
 
   return {
-    aux,
-    fields,
+    publicInputFields,
+    publicInputAux,
   };
 }
 
