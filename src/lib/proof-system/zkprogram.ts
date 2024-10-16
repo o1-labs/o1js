@@ -1205,7 +1205,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
 }
 
 function analyzeMethod(
-  publicInputType: ProvablePure<any>,
+  publicInputType: Provable<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => unknown
 ) {
