@@ -843,6 +843,7 @@ function ZkProgram<
           publicOutputFields,
           publicInputAux
         );
+        programState.resetAuxCache();
       } else {
         publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       }
