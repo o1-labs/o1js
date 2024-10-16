@@ -1532,11 +1532,11 @@ function toFieldVars<T>(type: ProvablePure<T>, value: T) {
 }
 
 function fromFieldConsts<T>(
-  type: ProvablePure<T>,
+  type: Provable<T>,
   fields: MlFieldConstArray,
-  aux?: unknown
+  aux?: any[]
 ) {
-  return type.fromFields(MlFieldConstArray.from(fields));
+  return type.fromFields(MlFieldConstArray.from(fields), aux);
 }
 function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
   return MlFieldConstArray.to(type.toFields(value));
