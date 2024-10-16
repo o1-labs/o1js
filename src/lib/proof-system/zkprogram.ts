@@ -834,8 +834,14 @@ function ZkProgram<
         );
         programState.resetAuxCache();
       }
-
       let [publicOutputFields, proof] = MlPair.from(result);
+      if (publicInputAux) {
+        fromFieldAndAuxConsts(
+          publicOutputType,
+          publicOutputFields,
+          publicInputAux
+        );
+      }
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
       return {
