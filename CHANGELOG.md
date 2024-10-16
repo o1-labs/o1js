@@ -15,19 +15,36 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
+
+## [1.9.0](https://github.com/o1-labs/o1js/compare/450943...f15293a69) - 2024-10-15
+
+### Added
+
+- Added `VerificationKey.dummy()` method to get the dummy value of a verification key https://github.com/o1-labs/o1js/pull/1852 [@rpanic](https://github.com/rpanic)
+
+### Changed
+
+- Make `Proof` a normal provable type, that can be witnessed and composed into Structs https://github.com/o1-labs/o1js/pull/1847, https://github.com/o1-labs/o1js/pull/1851
+  - ZkProgram and SmartContract now also support private inputs that are not proofs themselves, but contain proofs nested within a Struct or array
+  - Only `SelfProof` can still not be nested because it needs special treatment
+
+### Fixes
+
+- Fix verification of serialized proofs done before compiling any circuits https://github.com/o1-labs/o1js/pull/1857
 
 ## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
 
 ### Added
 
-- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard. https://github.com/o1-labs/o1js/pull/1815
   - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
   - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
 
 ### Fixes
 
-- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()` https://github.com/o1-labs/o1js/pull/1827
+- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()`. https://github.com/o1-labs/o1js/pull/1827
+- Fix incorrect behavior of `state.fetch()` for custom token contracts. [@rpanic](https://github.com/rpanic) https://github.com/o1-labs/o1js/pull/1853
 
 ## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
 

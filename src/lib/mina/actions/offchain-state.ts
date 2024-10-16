@@ -8,7 +8,7 @@ import {
   toKeyHash,
 } from './offchain-state-serialization.js';
 import { Field } from '../../provable/wrapped.js';
-import { Proof } from '../../proof-system/zkprogram.js';
+import { Proof } from '../../proof-system/proof.js';
 import {
   OffchainStateCommitments,
   OffchainStateRollup,
