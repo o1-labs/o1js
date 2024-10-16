@@ -1538,6 +1538,15 @@ function fromFieldConsts<T>(
 ) {
   return type.fromFields(MlFieldConstArray.from(fields), aux);
 }
+
+function fromFieldAndAuxConsts<T>(
+  type: Provable<T>,
+  fields: MlFieldConstArray,
+  aux: any[]
+) {
+  return type.fromFields(MlFieldConstArray.from(fields), aux);
+}
+
 function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
   return MlFieldConstArray.to(type.toFields(value));
 }
