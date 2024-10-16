@@ -1,3 +1,4 @@
+export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
@@ -37,7 +38,12 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
-export { From } from './bindings/lib/provable-generic.js';
+export {
+  From,
+  InferValue,
+  InferJson,
+  IsPure,
+} from './bindings/lib/provable-generic.js';
 export { ProvableType } from './lib/provable/types/provable-intf.js';
 export {
   provable,
