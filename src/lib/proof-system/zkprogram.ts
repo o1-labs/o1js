@@ -789,6 +789,8 @@ function ZkProgram<
             `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
+
+      // serialize PublicInput into pure provable
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
       let previousProofs = MlArray.to(
         getPreviousProofsForProver(args, methodIntfs[i])
@@ -1530,6 +1532,8 @@ function fromFieldConsts<T>(type: ProvablePure<T>, fields: MlFieldConstArray) {
 function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
   return MlFieldConstArray.to(type.toFields(value));
 }
+
+function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {}
 
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvablePure<any>,
