@@ -1119,7 +1119,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
 
   let rules = methodIntfs.map((methodEntry, i) =>
     picklesRuleFromFunction(
-      purePublicInput,
+      publicInputType,
       publicOutputType,
       methods[i],
       proofSystemTag,
