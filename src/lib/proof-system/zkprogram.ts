@@ -823,6 +823,7 @@ function ZkProgram<
           publicInput,
           auxilaryPublicInput
         );
+        programState.resetAuxCache();
       }
 
       let [publicOutputFields, proof] = MlPair.from(result);
