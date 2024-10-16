@@ -1533,7 +1533,9 @@ function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
   return MlFieldConstArray.to(type.toFields(value));
 }
 
-function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {}
+function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
+  const fields = MlFieldConstArray.to(type.toFields(value));
+}
 
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvablePure<any>,
