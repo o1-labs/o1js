@@ -5,9 +5,3 @@
 # We are relying on good faith to wait for admin approval on these PRs
 # Dangerous PRs that could release a new version, new consensus rules, or anything like that will necessarily touch more than `/src/lib`, so this is minimally risky
 /src/lib @o1-labs/o1js-admins @o1-labs/exploration-team @o1-labs/future-zkapps
-
-# Changes to the following paths can be safely owned by the current and future zkapps teams (correct use of codeowners)
-/src/examples @o1-labs/exploration-team @o1-labs/future-zkapps
-/src/lib/util @o1-labs/exploration-team @o1-labs/future-zkapps
-
-
