@@ -824,17 +824,6 @@ function ZkProgram<
         programState.reset(methodIntfs[i].methodName);
       }
 
-      let auxilaryPublicInput = programState.getAuxilaryInput();
-
-      let nonPurePublicInput;
-      if (auxilaryPublicInput) {
-        nonPurePublicInput = publicInputType.fromFields(
-          publicInput,
-          auxilaryPublicInput
-        );
-        programState.resetAuxCache();
-      }
-
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
       if (publicInputAux) {
