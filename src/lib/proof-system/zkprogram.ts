@@ -799,8 +799,10 @@ function ZkProgram<
         getPreviousProofsForProver(args, methodIntfs[i])
       );
 
-      // store publicInput auxilary data in programState cache
-      programState.setAuxilaryInput(publicInputAux);
+      if (publicInputAux) {
+        // store publicInput auxilary data in programState cache
+        programState.setAuxilaryInput(publicInputAux);
+      }
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
