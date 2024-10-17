@@ -1,4 +1,5 @@
-import { Field } from '../field.js';
+import { createField } from '../core/field-constructor.js';
+import type { Field } from '../field.js';
 
 export {
   Provable,
@@ -129,10 +130,15 @@ const ProvableType = {
         : type
     ) as ToProvable<A>;
   },
-  
-  null<T>(type_: ProvableType<T>): T {
-    let type = ProvableType.get(type_);
-    let fields = Array.from({ length: type.sizeInFields() }, () => new Field(0));
-    return type.fromFields(fields, type.toAuxiliary());
+
+  /**
+   * Create some value of type `T` from its provable type description.
+   */
+  null<T>(type: ProvableType<T>): T {
+    let provable = ProvableType.get(type);
+    let fields = Array(provable.sizeInFields()).fill(createField(0));
+    return provable.fromFields(fields,
+      provable.toAuxiliary()
+    );
   },
 };

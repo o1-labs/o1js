@@ -18,6 +18,8 @@ import {
   lessThanOrEqualGeneric,
 } from './gadgets/comparison.js';
 import { assert } from '../util/assert.js';
+import { TupleN } from '../util/types.js';
+import { bytesToWord, wordToBytes } from './gadgets/bit-slices.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -955,6 +957,35 @@ class UInt32 extends CircuitValue {
     x: bigint | UInt32
   ): InstanceType<T> {
     return UInt32.from(x) as any;
+  }
+
+  /**
+   * Split a UInt32 into 4 UInt8s, in little-endian order.
+   */
+  toBytes() {
+    return TupleN.fromArray(4, wordToBytes(this.value, 4));
+  }
+
+  /**
+   * Split a UInt32 into 4 UInt8s, in big-endian order.
+   */
+  toBytesBE() {
+    return TupleN.fromArray(4, wordToBytes(this.value, 4).reverse());
+  }
+
+  /**
+   * Combine 4 UInt8s into a UInt32, in little-endian order.
+   */
+  static fromBytes(bytes: UInt8[]): UInt32 {
+    assert(bytes.length === 4, '4 bytes needed to create a uint32');
+    return UInt32.Unsafe.fromField(bytesToWord(bytes));
+  }
+
+  /**
+   * Combine 4 UInt8s into a UInt32, in big-endian order.
+   */
+  static fromBytesBE(bytes: UInt8[]): UInt32 {
+    return UInt32.fromBytes([...bytes].reverse());
   }
 }
 

@@ -162,9 +162,11 @@ jobs:
           shopt -s globstar
           test_files=(./dist/node/**/*.unit-test.js)
 
+          set -o pipefail
+
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
-            echo "Running test: ${test_files[$i]}"
-            node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              echo "Running test: ${test_files[$i]}"
+              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
           done
         continue-on-error: false
 
