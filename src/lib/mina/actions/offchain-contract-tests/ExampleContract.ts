@@ -27,7 +27,7 @@ class ExampleContract extends SmartContract {
     offchainState.emptyCommitments();
 
   // o1js memoizes the offchain state by contract address so that this pattern works
-  offchainState: any = offchainState.init(this);
+  offchainState = offchainState.init(this);
 
   @method
   async createAccount(address: PublicKey, amountToMint: UInt64) {

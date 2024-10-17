@@ -33,7 +33,7 @@ import { ProvableType } from '../../provable/types/provable-intf.js';
 export { OffchainState, OffchainStateCommitments };
 
 // internal API
-export { OffchainField, OffchainMap };
+export { OffchainField, OffchainMap, OffchainStateInstance };
 
 type OffchainStateInstance<
   Config extends { [key: string]: OffchainStateKind }
