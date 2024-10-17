@@ -78,7 +78,7 @@ function Option<A extends ProvableType>(
       if (value === undefined)
         return {
           isSome: Bool(false),
-          value: ProvableType.synthesize(strictType),
+          value: ProvableType.null(strictType),
         };
       // TODO: this isn't 100% robust. We would need recursive type validation on any nested objects to make it work
       if (typeof value === 'object' && 'isSome' in value)
@@ -107,7 +107,7 @@ function Option<A extends ProvableType>(
       return value === undefined
         ? new Option_({
             isSome: Bool(false),
-            value: ProvableType.synthesize(strictType),
+            value: ProvableType.null(strictType),
           })
         : new Option_({
             isSome: Bool(true),

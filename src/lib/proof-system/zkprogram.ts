@@ -718,7 +718,7 @@ function picklesRuleFromFunction(
       let type = args[i];
       try {
         let value = Provable.witness(type, () => {
-          return argsWithoutPublicInput?.[i] ?? ProvableType.synthesize(type);
+          return argsWithoutPublicInput?.[i] ?? ProvableType.null(type);
         });
         finalArgs[i] = value;
 
