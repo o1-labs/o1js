@@ -553,7 +553,7 @@ class UInt32 extends CircuitValue {
   /**
    * Turns the {@link UInt32} into a {@link BigInt}.
    */
-  toBigint() {
+  toBigInt() {
     return this.value.toBigInt();
   }
   /**

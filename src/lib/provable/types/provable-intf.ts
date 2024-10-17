@@ -1,4 +1,4 @@
-import type { Field } from '../field.js';
+import { Field } from '../field.js';
 
 export {
   Provable,
@@ -128,5 +128,11 @@ const ProvableType = {
         ? type.provable
         : type
     ) as ToProvable<A>;
+  },
+  
+  null<T>(type_: ProvableType<T>): T {
+    let type = ProvableType.get(type_);
+    let fields = Array.from({ length: type.sizeInFields() }, () => new Field(0));
+    return type.fromFields(fields, type.toAuxiliary());
   },
 };

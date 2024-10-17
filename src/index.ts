@@ -55,6 +55,7 @@ export { Bytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
+export { DynamicArray } from './lib/provable/dynamic-array.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 import {
