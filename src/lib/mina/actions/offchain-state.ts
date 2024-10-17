@@ -512,10 +512,7 @@ function OffchainState<
   const memoizedInstances = new Map<String, OffchainStateInstance<Config>>();
 
   return {
-    init(contractInstance: OffchainStateContract<Config> | null) {
-      if (contractInstance === null) {
-        return OffchainStateInstance();
-      }
+    init(contractInstance: OffchainStateContract<Config>) {
       let key = 'COMPILE_TIME';
       let contractAddress = contractInstance.address;
       if (contractAddress.isConstant()) {
