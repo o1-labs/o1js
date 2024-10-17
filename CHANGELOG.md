@@ -17,6 +17,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
 
+## 2.0.0
+
+### Added
+- Added `.account.permissions.<permission> : PreconditionSubclassType<AuthRequired>` to `SmartContract` class for each permission type
+    this permits setting preconditions on the account permissions ie `let delegatePermission = contract.account.permissions.setDelegate.getAndRequireEquals();`
+
 ## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
 
 ### Added
@@ -277,7 +283,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `this.sender.getAndRequireSignature()` which requires a signature from the sender's public key and therefore proves that whoever created the transaction really owns the sender account
 - `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
   - The default value is 1 and should work for most existing contracts
-- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)
    As a replacement, `UInt64.Unsafe.fromField()` was introduced
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
@@ -1052,7 +1058,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Recursive proofs**. RFC: https://github.com/o1-labs/o1js/issues/89, PRs: https://github.com/o1-labs/o1js/pull/245 https://github.com/o1-labs/o1js/pull/250 https://github.com/o1-labs/o1js/pull/261
   - Enable smart contract methods to take previous proofs as arguments, and verify them in the circuit
-  - Add `ZkProgram`, a new primitive which represents a collection of circuits that produce instances of the same proof. So, it's a more general version of `SmartContract`, without any of the Mina-related API.  
+  - Add `ZkProgram`, a new primitive which represents a collection of circuits that produce instances of the same proof. So, it's a more general version of `SmartContract`, without any of the Mina-related API.
     `ZkProgram` is suitable for rollup-type systems and offchain usage of Pickles + Kimchi.
 - **zkApp composability** -- calling other zkApps from inside zkApps. RFC: https://github.com/o1-labs/o1js/issues/303, PRs: https://github.com/o1-labs/o1js/pull/285, https://github.com/o1-labs/o1js/pull/296, https://github.com/o1-labs/o1js/pull/294, https://github.com/o1-labs/o1js/pull/297
 - **Events** support via `SmartContract.events`, `this.emitEvent`. RFC: https://github.com/o1-labs/o1js/issues/248, PR: https://github.com/o1-labs/o1js/pull/272
