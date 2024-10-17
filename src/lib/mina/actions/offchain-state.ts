@@ -33,7 +33,7 @@ import { ProvableType } from '../../provable/types/provable-intf.js';
 export { OffchainState, OffchainStateCommitments };
 
 // internal API
-export { OffchainField, OffchainMap };
+export { OffchainField, OffchainMap, OffchainStateInstance };
 
 type OffchainStateInstance<
   Config extends { [key: string]: OffchainStateKind }
@@ -512,7 +512,10 @@ function OffchainState<
   const memoizedInstances = new Map<String, OffchainStateInstance<Config>>();
 
   return {
-    init(contractInstance: OffchainStateContract<Config>) {
+    init(contractInstance: OffchainStateContract<Config> | null) {
+      if (contractInstance === null) {
+        return OffchainStateInstance();
+      }
       let key = 'COMPILE_TIME';
       let contractAddress = contractInstance.address;
       if (contractAddress.isConstant()) {
