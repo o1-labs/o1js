@@ -2,6 +2,7 @@ name: Build o1js
 on:
   push:
     branches:
+      - perf-recording
       - main
       - develop
   pull_request:
@@ -138,6 +139,8 @@ jobs:
 
       - name: Prepare for tests
         run: touch profiling.md
+      - name: create dir
+        run: mkdir tests/report/profile-data
 
       - name: Run unit tests
         env:
@@ -166,7 +169,7 @@ jobs:
 
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test: ${test_files[$i]}"
-              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              node --cpu-prof --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir tests/report/profile-data --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
           done
         continue-on-error: false
 
@@ -229,7 +232,13 @@ jobs:
           npm run e2e:prepare-server
 
       - name: Execute E2E tests
-        run: npm run test:e2e
+        run: node --prof $(which npm) run test:e2e
+      - name: Execute E2E tests
+        run: node --heap-prof $(which npm) run test:e2e
+      - name: Execute E2E tests
+        run: node --cpu-prof --cpu-prof-name "e2e-tests" --cpu-prof-dir tests/report/profile-data $(which npm) run test:e2e
+      - name: archive results
+        run: tar -czf profile-data.tgz tests/report/profile-data
 
       - name: Upload E2E test artifacts
         uses: actions/upload-artifact@v4
