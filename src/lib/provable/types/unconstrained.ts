@@ -140,13 +140,6 @@ and Provable.asProver() blocks, which execute outside the proof.
       empty: () => Unconstrained.from(empty),
     };
   }
-
-  /**
-   * @deprecated
-   */
-  static provableWithEmpty<T>(empty: T) {
-    return Unconstrained.withEmpty(empty);
-  }
 }
 
 type UnconstrainedProvable<T> = Provable<Unconstrained<T>, T>;

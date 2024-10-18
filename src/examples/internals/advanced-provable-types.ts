@@ -19,7 +19,7 @@ AccountUpdate satisfies Provable<AccountUpdate>;
 console.log(`an account update has ${AccountUpdate.sizeInFields()} fields`);
 
 let address = PrivateKey.random().toPublicKey();
-let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+let accountUpdate = AccountUpdate.default(address);
 accountUpdate.body.callDepth = 5;
 accountUpdate.lazyAuthorization = { kind: 'lazy-signature' };
 
