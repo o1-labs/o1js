@@ -32,10 +32,29 @@ import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
 import { BLAKE2B } from './blake2b.js';
 import { rangeCheck3x12 } from './lookup.js';
+import { arrayGet } from './basic.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 
 const Gadgets = {
+  /**
+   * Get value from array at a Field element index, in O(n) constraints, where n is the array length.
+   *
+   * **Warning**: This gadget assumes that the index is within the array bounds `[0, n)`,
+   * and returns an unconstrained result otherwise.
+   * To use it with an index that is not already guaranteed to be within the array bounds, you should add a suitable range check.
+   *
+   * ```ts
+   * let array = Provable.witnessFields(3, () => [1n, 2n, 3n]);
+   * let index = Provable.witness(Field, () => 1n);
+   *
+   * let value = Gadgets.arrayGet(array, index);
+   * ```
+   *
+   * **Note**: This saves n constraints compared to `Provable.switch(array.map((_, i) => index.equals(i)), type, array)`.
+   */
+  arrayGet,
+
   /**
    * Asserts that the input value is in the range [0, 2^64).
    *

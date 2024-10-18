@@ -19,3 +19,6 @@ function Bytes(size: number) {
 Bytes.from = InternalBytes.from;
 Bytes.fromHex = InternalBytes.fromHex;
 Bytes.fromString = InternalBytes.fromString;
+
+// expore base class so that we can detect Bytes with `instanceof`
+Bytes.Base = InternalBytes;

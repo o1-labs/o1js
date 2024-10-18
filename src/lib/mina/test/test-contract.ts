@@ -46,14 +46,13 @@ async function testLocal<S extends SmartContract>(
 ): Promise<LocalBlockchain> {
   // instance-independent setup: compile programs
 
-  offchainState?.setContractClass(Contract as any);
   batchReducer?.setContractClass(Contract as any);
 
   if (proofsEnabled) {
     if (offchainState !== undefined) {
-      console.time('compile program');
+      console.time('compile offchain state program');
       await offchainState.compile();
-      console.timeEnd('compile program');
+      console.timeEnd('compile offchain state program');
     }
     if (batchReducer !== undefined) {
       console.time('compile reducer');
@@ -105,7 +104,9 @@ async function testLocal<S extends SmartContract>(
     );
 
     let contract = new Contract(contractAccount);
-    offchainState?.setContractInstance(contract as any);
+    if (offchainState) {
+      (contract as any).offchainState.setContractInstance(contract);
+    }
     batchReducer?.setContractInstance(contract as any);
 
     // run test setup to return instructions
@@ -170,7 +171,7 @@ async function runInstruction(
     let feepayer = instruction.sender ?? sender;
     let signers = [feepayer.key, ...(instruction.signers ?? [])];
     let tx = await Mina.transaction(feepayer, instruction.callback);
-    await assertionWithTrace(instruction.trace, async () => {
+    await assertionWithTracePreferInner(instruction.trace, async () => {
       // console.log(instruction.label, tx.toPretty());
       await tx.sign(signers).prove();
       await tx.send();
@@ -311,9 +312,28 @@ async function assertionWithTrace(trace: string | undefined, fn: () => any) {
   try {
     await fn();
   } catch (err: any) {
-    if (trace !== undefined) {
-      err.message += `\n\nAssertion was created here:${trace}\n\nError was thrown from here:`;
-    }
-    throw Error(err.message);
+    if (trace === undefined) throw err;
+
+    let message = err.message;
+    throw Error(
+      `${message}\n\nAssertion was created here:${trace}\n\nError was thrown from here:`
+    );
+  }
+}
+
+async function assertionWithTracePreferInner(
+  trace: string | undefined,
+  fn: () => any
+) {
+  try {
+    await fn();
+  } catch (err: any) {
+    if (trace === undefined) throw err;
+
+    // note: overwriting the message doesn't work with all errors and I don't know why.
+    // we call this function, rather than `assertionWithInner()`, when we're ok with not having the added message,
+    // and prefer preserving the original stack trace at all costs
+    err.message = `${err.message}\n\nError was thrown from here:${trace}\n\nAssertion was created here:`;
+    throw err;
   }
 }

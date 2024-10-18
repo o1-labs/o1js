@@ -1,4 +1,5 @@
-import { Proof, ZkProgram } from '../../proof-system/zkprogram.js';
+import { ZkProgram } from '../../proof-system/zkprogram.js';
+import { Proof } from '../../proof-system/proof.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
 import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';

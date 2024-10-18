@@ -1,3 +1,4 @@
+export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
@@ -33,6 +34,13 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
+export {
+  From,
+  InferValue,
+  InferJson,
+  IsPure,
+} from './bindings/lib/provable-generic.js';
+export { ProvableType } from './lib/provable/types/provable-intf.js';
 export {
   provable,
   provablePure,
@@ -75,17 +83,19 @@ export { state, State, declareState } from './lib/mina/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
-  type ProofBase,
-  Proof,
-  DynamicProof,
   SelfProof,
   verify,
   Empty,
   Undefined,
   Void,
   VerificationKey,
-  FeatureFlags,
 } from './lib/proof-system/zkprogram.js';
+export {
+  type ProofBase,
+  Proof,
+  DynamicProof,
+} from './lib/proof-system/proof.js';
+export { FeatureFlags } from './lib/proof-system/feature-flags.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export { Account } from './lib/mina/account.js';
