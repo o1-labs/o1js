@@ -867,6 +867,7 @@ super.init();
 
   sender = {
     self: this as SmartContract,
+
     /**
      * The public key of the current transaction's sender account.
      *
@@ -878,7 +879,22 @@ super.init();
      * Consider using `this.sender.getAndRequireSignature()` if you need to prove that the sender controls this account.
      */
     getUnconstrained(): PublicKey {
-      let sender = this.getUnconstrained();
+      // TODO this logic now has some overlap with this.self, we should combine them somehow
+      // (but with care since the logic in this.self is a bit more complicated)
+      if (!Mina.currentTransaction.has()) {
+        throw Error(
+          `this.sender is not available outside a transaction. Make sure you only use it within \`Mina.transaction\` blocks or smart contract methods.`
+        );
+      }
+      let transactionId = Mina.currentTransaction.id();
+      let sender;
+      if (this.self.#_senderState?.transactionId === transactionId) {
+        sender = this.self.#_senderState.sender;
+      } else {
+        sender = Provable.witness(PublicKey, () => Mina.sender());
+        this.self.#_senderState = { transactionId, sender };
+      }
+
       // we prove that the returned public key is not the empty key, in which case
       // `createSigned()` would skip adding the account update, and nothing is proved
       sender.x.assertNotEquals(0);
