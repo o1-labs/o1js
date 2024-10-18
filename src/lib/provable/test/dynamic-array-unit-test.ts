@@ -1,4 +1,5 @@
-import { UInt8, Field, DynamicArray } from 'o1js';
+import { UInt8, Field } from 'o1js';
+import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
 
 // Define classes of dynamic arrays for specific provable types
