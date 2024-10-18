@@ -17,6 +17,33 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
 
+## [2.0.0](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
+
+### Breaking Changes
+
+- The `divMod32()` gadget was modified to accept `nBits` instead of `quotientBits`, and assert it is in the range [0, 2\*\*255) to address an issue previously where the bound on `quotientBits` was too low https://github.com/o1-labs/o1js/pull/1763.
+- `Provable.equal()` now turns both types into canonical form before comparing them https://github.com/o1-labs/o1js/pull/1759
+  - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
+- The return signature of a zkProgram has changed. https://github.com/o1-labs/o1js/pull/1809
+  - A zkProgram method must now explicitly define the return type of the method when the method has a public or auxiliary output defined.
+  - The return type of a proven method has changed as a result of this.
+- Various breaking constraint changes in internal methods or circuits because of audit fix.
+- Removal of various deprecated methods and functions.
+  - Promotion of various methods and functions to stable as part of change.
+  - A slightly modified encryption and decryption algorithm. https://github.com/o1-labs/o1js/pull/1729
+- Promotion of `TokenContractV2` to `TokenContract` with a correct amount of maximum account updates.
+
+### Added
+
+- `zkProgram` methods now support `auxiliaryOutput`. https://github.com/o1-labs/o1js/pull/1809
+  - Each program method now accepts an optional property `auxiliaryOutput`
+  - Auxiliary output is additional output that the zkProgram method returns
+- New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
+- `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
+- `addMod64()` addition modulo 2^64
+- Bitwise OR via `{UInt32, UInt64}.or()`
+- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+
 ### Fixes
 
 - Decouple offchain state instances from their definitions https://github.com/o1-labs/o1js/pull/1834

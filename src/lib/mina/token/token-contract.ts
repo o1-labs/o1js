@@ -13,10 +13,9 @@ import { DeployArgs, SmartContract } from '../zkapp.js';
 import { TokenAccountUpdateIterator } from './forest-iterator.js';
 import { tokenMethods } from './token-methods.js';
 
-export { TokenContract, TokenContractV2 };
+export { TokenContract };
 
 /**
- * @deprecated Use {@link TokenContractV2} instead, which has the right max account update limit.
  *
  * Base token contract which
  * - implements the `Approvable` API, with the `approveBase()` method left to be defined by subclasses
@@ -27,7 +26,7 @@ abstract class TokenContract extends SmartContract {
 
   /** The maximum number of account updates using the token in a single
    * transaction that this contract supports. */
-  static MAX_ACCOUNT_UPDATES = 20;
+  static MAX_ACCOUNT_UPDATES = 9;
 
   /**
    * Deploys a {@link TokenContract}.
@@ -185,15 +184,6 @@ abstract class TokenContract extends SmartContract {
     let forest = toForest([from, to]);
     await this.approveBase(forest);
   }
-}
-
-/** Version of `TokenContract` with the precise number of `MAX_ACCOUNT_UPDATES`
- *
- * The value of 20 in `TokenContract` was a rough upper limit, the precise upper
- * bound is 9.
- */
-abstract class TokenContractV2 extends TokenContract {
-  static MAX_ACCOUNT_UPDATES = 9;
 }
 
 function toForest(

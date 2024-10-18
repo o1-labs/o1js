@@ -748,7 +748,7 @@ class AccountUpdate implements Types.AccountUpdate {
       receiver = to.self;
       receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
-      receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
+      receiver = AccountUpdate.default(to, this.body.tokenId);
       receiver.label = `${this.label ?? 'Unlabeled'}.send()`;
       this.approve(receiver);
     }
@@ -1029,13 +1029,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * @deprecated Use {@link AccountUpdate.default} instead.
-   */
-  static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
-    return AccountUpdate.default(address, tokenId);
-  }
-
-  /**
    * Create an account update from a public key and an optional token id.
    *
    * **Important**: This method is different from `AccountUpdate.create()`, in that it really just creates the account update object.
@@ -1077,7 +1070,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * becomes part of the proof.
    */
   static create(publicKey: PublicKey, tokenId?: Field) {
-    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
+    let accountUpdate = AccountUpdate.default(publicKey, tokenId);
     let insideContract = smartContractContext.get();
     if (insideContract) {
       let self = insideContract.this.self;
