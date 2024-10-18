@@ -153,7 +153,7 @@ class DynamicArrayBase<T = any, V = any> {
       'length of the array should be at least the length provided'
     );
 
-    let NULL = ProvableType.null(this.innerType);
+    let NULL = ProvableType.synthesize(this.innerType);
     this.array = pad(a, this.capacity, NULL);
     this.length = l;
   }
@@ -208,7 +208,7 @@ class DynamicArrayBase<T = any, V = any> {
    */
   getOrUnconstrained(i: Field): T {
     let type = this.innerType;
-    let NULL = ProvableType.null(type);
+    let NULL = ProvableType.synthesize(type);
     let ai = Provable.witness(type, () => this.array[Number(i)] ?? NULL);
     let aiFields = type.toFields(ai);
 
@@ -324,7 +324,7 @@ class DynamicArrayBase<T = any, V = any> {
     dec.assertLessThanOrEqual(oldLength);
     this.length = oldLength.sub(dec).seal();
 
-    let NULL = ProvableType.null(this.innerType);
+    let NULL = ProvableType.synthesize(this.innerType);
     if (n !== undefined) {
       // set the last n elements to NULL
       for (let i = 0; i <= this.capacity; i++) {
@@ -352,7 +352,7 @@ class DynamicArrayBase<T = any, V = any> {
   growCapacityTo(capacity: number): DynamicArray<T> {
     assert(capacity >= this.capacity, 'new capacity must be greater or equal');
     let NewArray = DynamicArray(this.innerType, { capacity });
-    let NULL = ProvableType.null(this.innerType);
+    let NULL = ProvableType.synthesize(this.innerType);
     let array = pad(this.array, capacity, NULL);
     return new NewArray(array, this.length);
   }
@@ -446,7 +446,7 @@ function provable<T, V>(
   Class: typeof DynamicArrayBase<T, V>
 ): ProvableHashable<DynamicArrayBase<T, V>, V[]> {
   let capacity = Class.capacity;
-  let NULL = ProvableType.null(type);
+  let NULL = ProvableType.synthesize(type);
 
   let PlainArray = struct({
     array: Provable.Array(type, capacity),

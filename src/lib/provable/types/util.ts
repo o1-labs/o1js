@@ -4,5 +4,5 @@ import { witness } from './witness.js';
 export { emptyWitness };
 
 function emptyWitness<T>(type: ProvableType<T>) {
-  return witness(type, () => ProvableType.null(type));
+  return witness(type, () => ProvableType.synthesize(type));
 }

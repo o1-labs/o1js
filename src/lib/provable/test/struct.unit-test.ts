@@ -229,8 +229,8 @@ class MyContract extends SmartContract {
       assert.equal(pk.isOdd.toBoolean(), true, 'pk.isOdd');
 
       assert.equal(struct.nested.a.toBigInt(), 0n, 'struct.nested.a');
-      assert.equal(struct.uint[0].toBigInt(), 0n, 'struct.uint');
-      assert.equal(struct.uint[1].toBigInt(), 1n, 'struct.uint');
+      assert.equal(struct.uint[0].toBigint(), 0n, 'struct.uint');
+      assert.equal(struct.uint[1].toBigint(), 1n, 'struct.uint');
     });
   }
 }

@@ -424,7 +424,7 @@ function extractProofs(value: unknown): ProofBase[] {
 }
 
 function extractProofTypes(type: ProvableType) {
-  let value = ProvableType.null(type);
+  let value = ProvableType.synthesize(type);
   let proofValues = extractProofs(value);
   return proofValues.map((proof) => proof.constructor as typeof ProofBase);
 }

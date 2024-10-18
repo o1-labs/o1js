@@ -134,10 +134,10 @@ const ProvableType = {
   /**
    * Create some value of type `T` from its provable type description.
    */
-  null<T>(type: ProvableType<T>): T {
+  synthesize<T>(type: ProvableType<T>): T {
     let provable = ProvableType.get(type);
-    let fields = Array(provable.sizeInFields()).fill(createField(0));
-    return provable.fromFields(fields,
+    return provable.fromFields(
+      Array(provable.sizeInFields()).fill(createField(0)),
       provable.toAuxiliary()
     );
   },
