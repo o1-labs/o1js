@@ -122,7 +122,13 @@ it('pickles rule creation: nested proof', async () => {
   }
 
   // collect method interface
-  let methodIntf = sortMethodArguments('mock', 'main', [NestedProof2], Proof);
+  let methodIntf = sortMethodArguments(
+    'mock',
+    'main',
+    [NestedProof2],
+    undefined,
+    Proof
+  );
 
   expect(methodIntf).toEqual({
     methodName: 'main',
@@ -171,7 +177,13 @@ it('pickles rule creation: nested proof', async () => {
 
 it('fails with more than two (nested) proofs', async () => {
   expect(() => {
-    sortMethodArguments('mock', 'main', [NestedProof2, NestedProof], Proof);
+    sortMethodArguments(
+      'mock',
+      'main',
+      [NestedProof2, NestedProof],
+      undefined,
+      Proof
+    );
   }).toThrowError('mock.main() has more than two proof arguments');
 });
 
