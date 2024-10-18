@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
 
+### Added
+
+- Dynamic array provable type https://github.com/o1-labs/o1js/pull/1848
+
 ### Fixes
 
 - Decouple offchain state instances from their definitions https://github.com/o1-labs/o1js/pull/1834
