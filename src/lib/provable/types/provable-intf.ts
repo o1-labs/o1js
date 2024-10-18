@@ -130,7 +130,6 @@ const ProvableType = {
         : type
     ) as ToProvable<A>;
   },
-
   /**
    * Create some value of type `T` from its provable type description.
    */

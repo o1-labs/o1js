@@ -3,7 +3,10 @@ import { assert } from './errors.js';
 export { chunk, chunkString, zip, pad };
 
 function chunk<T>(array: T[], size: number): T[][] {
-  assert(array.length % size === 0, 'chunk(): invalid input length, it must be a multiple of ${size}');
+  assert(
+    array.length % size === 0,
+    'chunk(): invalid input length, it must be a multiple of ${size}'
+  );
   return Array.from({ length: array.length / size }, (_, i) =>
     array.slice(size * i, size * (i + 1))
   );
@@ -20,7 +23,7 @@ function zip<T, S>(a: T[], b: S[]) {
 
 function pad<T>(array: T[], size: number, value: T): T[] {
   assert(
-    array.length <= size, 
+    array.length <= size,
     `target size ${size} should be greater or equal than the length of the array ${array.length}`
   );
   return array.concat(Array.from({ length: size - array.length }, () => value));
