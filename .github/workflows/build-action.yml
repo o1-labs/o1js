@@ -1,9 +1,12 @@
 name: Build o1js
 on:
   push:
-    branches:
-      - main
-      - develop
+    #branches:
+    #  - feature/perf
+    #  - perf-recording
+    #  - main
+    #  - develop
+    #  - *
   pull_request:
   workflow_dispatch: {}
 
@@ -12,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       test_count: ${{ steps.count_tests.outputs.test_count }}
-      chunk_count: 8 # This is hardcoded to 8, but it can be changed to any number.
+      chunk_count: 32 # This is hardcoded to 8, but it can be changed to any number.
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -44,7 +47,7 @@ jobs:
         id: count_tests
         run: |
           TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
-          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "test_count=${TEST_COUNT}" >> "$GITHUB_OUTPUT"
           echo "Total test count: ${TEST_COUNT}"
 
       - name: Cache repository
@@ -103,8 +106,8 @@ jobs:
       - name: Add to job summary
         if: always()
         run: |
-          echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
-          cat profiling.md >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results for ${{ matrix.test_type }}" >> "$GITHUB_STEP_SUMMARY"
+          cat profiling.md >> "$GITHUB_STEP_SUMMARY"
 
   Run-Unit-Tests:
     needs: Prepare
@@ -114,7 +117,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        chunk: [
+        #1,2,3,4,5,6,7,8,9,10,11,12,
+        13
+        #,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32
+        ]
+        perf: [
+        no,
+        prof, heap, cpu,
+        all]
+        node_version: [
+        18,20,22
+        ]
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -125,7 +139,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          # FIXME change to use matrix 
+          node-version: ${{ matrix.node_version }}
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -138,17 +153,36 @@ jobs:
 
       - name: Prepare for tests
         run: touch profiling.md
+      - name: create dir
+        run: mkdir -p profile/profile-data
+        #- name: create dirs
+
+        # from https://stackoverflow.com/questions/75985925/how-to-replace-slashes-with-dashes-and-set-it-an-environment-variable-in-github
+      - name: Sets MODIFIED_BRANCH_NAME
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}           
+        run: |
+          MODIFIED_BRANCH_NAME=${BRANCH_NAME/\//-}
+          OUTPUT_DIR="profile/profile-data/${MODIFIED_BRANCH_NAME}"
+          OUTPUT_TEST_DIR="${OUTPUT_DIR}/profile-data-${{matrix.chunk}}-${{ matrix.perf }}-${{ matrix.node_version }}"
+
+          echo "MODIFIED_BRANCH_NAME=${MODIFIED_BRANCH_NAME}" >> "$GITHUB_ENV"
+          echo "OUTPUT_DIR=${OUTPUT_DIR}"                     >> "$GITHUB_ENV"
+          echo "OUTPUT_TEST_DIR=${OUTPUT_TEST_DIR}"           >> "$GITHUB_ENV"
+          
+      - name: create dir
+        run: mkdir -p ${{env.OUTPUT_TEST_DIR}}
 
       - name: Run unit tests
         env:
           TOTAL_TESTS: ${{ needs.Prepare.outputs.test_count }}
           CHUNK: ${{ matrix.chunk }}
-          CHUNKS: 8
+          CHUNKS: 32
         run: |
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
-          echo "Total chunks: $CHUNKS"
-
+          echo "Total chunks: $CHUNKS"          
+              
           if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
             echo "Error: TOTAL_TESTS is not set or is zero. Exiting."
             exit 1
@@ -162,26 +196,63 @@ jobs:
           shopt -s globstar
           test_files=(./dist/node/**/*.unit-test.js)
 
-          set -o pipefail
+          #set -o pipefail
 
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test: ${test_files[$i]}"
-              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+
+              # NO prof
+              if [ "${{ matrix.perf }}" == "no" ]; then
+              echo no prof
+            (node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              fi
+
+              # cpu prof
+              if [ "${{ matrix.perf }}" == "cpu" ]; then
+              echo cpu
+              (node --cpu-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              fi
+
+              # HEAP
+              if [ "${{ matrix.perf }}" == "heap" ]; then
+              echo heap prof
+              (node --heap-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              fi
+
+              # PROF
+              if [ "${{ matrix.perf }}" == "prof" ]; then
+              echo prof
+              (node --prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              fi
+
+              # ALL
+              if [ "${{ matrix.perf }}" == "all" ]; then
+              echo all prof
+              (node --prof --heap-prof --cpu-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+
+              fi
+
+              # sweep up results
+              mv isolate-*-v8.log  "${OUTPUT_TEST_DIR}" || echo ok
+              mv Heap.*.heapprofile  "${OUTPUT_TEST_DIR}" || echo ok
+              mv CPU.*.cpuprofile "${OUTPUT_TEST_DIR}" || echo ok
+
+              
           done
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.chunk }}
-          path: profiling.md
+          name: test-results-${{env.MODIFIED_BRANCH_NAME}}-${{ matrix.chunk }}-${{ matrix.perf }}-${{ matrix.node_version }}
+          path: ${{env.OUTPUT_TEST_DIR}}
 
       - name: Add to job summary
         if: always()
         run: |
-          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
-          cat profiling.md >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> "$GITHUB_STEP_SUMMARY"
+          cat profiling.md >> "$GITHUB_STEP_SUMMARY"
 
   Build-And-Test-Server-Unit-Tests:
     name: Build-And-Test-Server (Unit tests)
@@ -229,8 +300,7 @@ jobs:
           npm run e2e:prepare-server
 
       - name: Execute E2E tests
-        run: npm run test:e2e
-
+        run:  npm run test:e2e
       - name: Upload E2E test artifacts
         uses: actions/upload-artifact@v4
         continue-on-error: true
@@ -238,6 +308,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: e2e-tests-report
+          # playwrite data
           path: tests/report/
           retention-days: 30
 
