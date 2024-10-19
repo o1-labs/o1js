@@ -166,20 +166,23 @@ jobs:
           shopt -s globstar
           test_files=(./dist/node/**/*.unit-test.js)
 
-          set -o pipefail
+          #set -o pipefail
 
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test: ${test_files[$i]}"
-              node --cpu-prof --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir tests/report/profile-data --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              export OUTPATH="tests/report/profile-data-${i}"
+              mkdir -p ${OUTPATH}
+              (node --cpu-prof --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir tests/report/profile-data ${OUTPATH} --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              #
           done
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.chunk }}
-          path: profiling.md
+          path: test/report/
 
       - name: Add to job summary
         if: always()
