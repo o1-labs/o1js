@@ -805,6 +805,8 @@ function ZkProgram<
 
         // store publicInput auxilary data in programState cache
         programState.setAuxilaryInput(publicInputAux);
+      } else {
+        publicInputFields = toFieldConsts(publicInputType, publicInput);
       }
 
       console.log(
