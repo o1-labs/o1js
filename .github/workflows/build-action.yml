@@ -141,7 +141,8 @@ jobs:
         run: touch profiling.md
       - name: create dir
         run: mkdir -p tests/report/profile-data
-
+      - name: create dirs
+        run: mkdir -p tests/report/profile-data/dist/node/bindings/crypto/  tests/report/profile-data/dist/node/lib/mina/actions tests/report/profile-data/dist/node/lib tests/report/profile-data/dist/node/lib/util/ tests/report/profile-data/dist/node/lib/ml/ tests/report/profile-data/dist/node/lib/mina/ tests/report/profile-data/dist/node/lib/mina/actions/ tests/report/profile-data/dist/node/lib/mina/actions/offchain-contract-tests/ tests/report/profile-data/dist/node/lib/mina/test/ tests/report/profile-data/dist/node/lib/mina/token/ tests/report/profile-data/dist/node/lib/proof-system/ tests/report/profile-data/dist/node/lib/provable/test/ tests/report/profile-data/dist/node/lib/testing/ tests/report/profile-data/dist/node/mina-signer/tests/ tests/report/profile-data/dist/node/mina/buildkite/scripts/ tests/report/profile-data/dist/node/bindings/lib/ tests/report/profile-data/dist/node/bindings/crypto/ tests/report/profile-data/dist/node/bindings/crypto/bindings/        
       - name: Run unit tests
         env:
           TOTAL_TESTS: ${{ needs.Prepare.outputs.test_count }}
