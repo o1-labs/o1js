@@ -173,8 +173,14 @@ jobs:
               export OUTPATH="tests/report/profile-data-${i}"
               mkdir -p ${OUTPATH}
               mkdir -p ${OUTPATH}/dist/node/bindings/crypto/  ${OUTPATH}/dist/node/lib/mina/actions ${OUTPATH}/dist/node/lib ${OUTPATH}/dist/node/lib/util/ ${OUTPATH}/dist/node/lib/ml/ ${OUTPATH}/dist/node/lib/mina/ ${OUTPATH}/dist/node/lib/mina/actions/ ${OUTPATH}/dist/node/lib/mina/actions/offchain-contract-tests/ ${OUTPATH}/dist/node/lib/mina/test/ ${OUTPATH}/dist/node/lib/mina/token/ ${OUTPATH}/dist/node/lib/proof-system/ ${OUTPATH}/dist/node/lib/provable/test/ ${OUTPATH}/dist/node/lib/testing/ ${OUTPATH}/dist/node/mina-signer/tests/ ${OUTPATH}/dist/node/mina/buildkite/scripts/ ${OUTPATH}/dist/node/bindings/lib/ ${OUTPATH}/dist/node/bindings/crypto/ ${OUTPATH}/dist/node/bindings/crypto/bindings ${OUTPATH}/./dist/node/mina-signer/src/
-              (node --cpu-prof --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir ${OUTPATH} --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              (node --cpu-prof --expose-gc --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir ${OUTPATH} --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              (node --heap-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              (node --prof --expose-gc   --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
               #
+              find . -name \*.log
+              find . -name \*.heapprofile
+              find . -name \*.cpuprofile
+              mv isolate-*-v8.log Heap.*.heapprofile CPU.*.cpuprofile ${OUTPATH}
           done
         continue-on-error: true
 
