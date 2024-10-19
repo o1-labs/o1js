@@ -797,12 +797,15 @@ function ZkProgram<
 
       let publicInputFields, publicInputAux;
       if (publicInputAuxExists) {
+        // serialize publicInput into pure provable field elements and auxilary data
         ({ publicInputFields, publicInputAux } = toFieldAndAuxConsts(
           publicInputType,
           publicInput
         ));
+
+        // store publicInput auxilary data in programState cache
+        programState.setAuxilaryInput(publicInputAux);
       }
-      // serialize publicInput into pure provable field elements and auxilary data
 
       console.log(
         'publicInputAux after calling toFieldAndAuxConsts',
@@ -813,8 +816,6 @@ function ZkProgram<
       );
 
       if (publicInputAux) {
-        // store publicInput auxilary data in programState cache
-        programState.setAuxilaryInput(publicInputAux);
       }
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
