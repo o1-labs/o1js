@@ -152,7 +152,9 @@ jobs:
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"
-
+          export OUTPATH="tests/report/profile-data-${CHUNK}"
+          mkdir -p "${OUTPATH}"
+              
           if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
             echo "Error: TOTAL_TESTS is not set or is zero. Exiting."
             exit 1
@@ -170,19 +172,27 @@ jobs:
 
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test: ${test_files[$i]}"
-              export OUTPATH="tests/report/profile-data-${i}"
-              mkdir -p ${OUTPATH}
-              mkdir -p ${OUTPATH}/dist/node/bindings/crypto/  ${OUTPATH}/dist/node/lib/mina/actions ${OUTPATH}/dist/node/lib ${OUTPATH}/dist/node/lib/util/ ${OUTPATH}/dist/node/lib/ml/ ${OUTPATH}/dist/node/lib/mina/ ${OUTPATH}/dist/node/lib/mina/actions/ ${OUTPATH}/dist/node/lib/mina/actions/offchain-contract-tests/ ${OUTPATH}/dist/node/lib/mina/test/ ${OUTPATH}/dist/node/lib/mina/token/ ${OUTPATH}/dist/node/lib/proof-system/ ${OUTPATH}/dist/node/lib/provable/test/ ${OUTPATH}/dist/node/lib/testing/ ${OUTPATH}/dist/node/mina-signer/tests/ ${OUTPATH}/dist/node/mina/buildkite/scripts/ ${OUTPATH}/dist/node/bindings/lib/ ${OUTPATH}/dist/node/bindings/crypto/ ${OUTPATH}/dist/node/bindings/crypto/bindings ${OUTPATH}/./dist/node/mina-signer/src/
-              (node --cpu-prof --expose-gc --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir ${OUTPATH} --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
-              (node --heap-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
-              (node --prof --expose-gc   --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
-              #
-              find . -name isolate\*.log
-              find . -name \*.heapprofile
+              OUTFILEPATH=$(dirname "${test_files[$i]}")
+
+              # cpu prof
+              (node --cpu-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
               find . -name \*.cpuprofile
-              mv isolate-*-v8.log  ${OUTPATH} || echo ok
-              mv Heap.*.heapprofile  ${OUTPATH} || echo ok
               mv CPU.*.cpuprofile ${OUTPATH} || echo ok
+              #mv ${OUTFILEPATH}/CPU.*.cpuprofile "${OUTPATH}" || echo ok
+
+              ## heap prof
+              (node --heap-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              find . -name \*.heapprofile
+              mv Heap.*.heapprofile  "${OUTPATH}" || echo ok
+              #mv ${OUTFILEPATH}/Heap.*.heapprofile "${OUTPATH}" || echo ok
+
+              ## prof
+              (node --prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              #
+              find . -name isolate\*.log              
+              mv isolate-*-v8.log  "${OUTPATH}" || echo ok
+              #mv ${OUTFILEPATH}/isolate-*-v8.log "${OUTPATH}" || echo ok
+              
           done
         continue-on-error: true
 
