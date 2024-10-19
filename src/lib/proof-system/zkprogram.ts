@@ -165,10 +165,12 @@ function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
   return {
     setAuxilaryInput(value: unknown) {
+      console.log('setAuxilaryInput with', value);
       auxInputCache.set('auxinput', value);
     },
     getAuxilaryInput: () => {
       let entry = auxInputCache.get('auxinput');
+      console.log('getAuxilaryInput', entry);
       return entry;
     },
 
@@ -790,10 +792,18 @@ function ZkProgram<
         );
       }
 
+      let publicInputAuxExists =
+        publicInputType.toAuxiliary(publicInput).length !== 0;
+
       // serialize publicInput into pure provable field elements and auxilary data
       let { publicInputFields, publicInputAux } = toFieldAndAuxConsts(
         publicInputType,
         publicInput
+      );
+
+      console.log(
+        'publicInputAux after calling toFieldAndAuxConsts',
+        publicInputAux
       );
       let previousProofs = MlArray.to(
         getPreviousProofsForProver(args, methodIntfs[i])
@@ -827,13 +837,17 @@ function ZkProgram<
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
       if (publicInputAux) {
+        console.log('if publicInputAux', publicInputAux);
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields,
           publicInputAux
         );
+
+        console.log('publicOutput after fromFieldAndAuxConsts', publicOutput);
         programState.resetAuxCache();
       } else {
+        // create public output when public input is pure
         publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       }
 
