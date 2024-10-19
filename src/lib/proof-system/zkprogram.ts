@@ -854,7 +854,10 @@ function ZkProgram<
         programState.resetAuxCache();
       } else {
         // create public output when public input is pure
-        publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
+        publicOutput = fromFieldAndAuxConsts(
+          publicOutputType,
+          publicOutputFields
+        );
       }
 
       return {
@@ -1551,7 +1554,7 @@ function fromFieldConsts<T>(type: any, fields: MlFieldConstArray) {
 function fromFieldAndAuxConsts<T>(
   type: Provable<T>,
   fields: MlFieldConstArray,
-  aux: any[]
+  aux: any[] = []
 ) {
   return type.fromFields(MlFieldConstArray.from(fields), aux);
 }
