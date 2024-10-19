@@ -25,3 +25,6 @@ let MyProgram = ZkProgram({
 console.log('compiling MyProgram...');
 await MyProgram.compile();
 console.log('compile done');
+
+let input = new MyStruct({ label: 'input', value: Field(5) });
+let result = await MyProgram.baseCase(input);
