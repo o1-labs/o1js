@@ -16,3 +16,7 @@ let MyProgram = ZkProgram({
     },
   },
 });
+
+console.log('compiling MyProgram...');
+await MyProgram.compile();
+console.log('compile done');
