@@ -795,11 +795,14 @@ function ZkProgram<
       let publicInputAuxExists =
         publicInputType.toAuxiliary(publicInput).length !== 0;
 
+      let publicInputFields, publicInputAux;
+      if (publicInputAuxExists) {
+        ({ publicInputFields, publicInputAux } = toFieldAndAuxConsts(
+          publicInputType,
+          publicInput
+        ));
+      }
       // serialize publicInput into pure provable field elements and auxilary data
-      let { publicInputFields, publicInputAux } = toFieldAndAuxConsts(
-        publicInputType,
-        publicInput
-      );
 
       console.log(
         'publicInputAux after calling toFieldAndAuxConsts',
