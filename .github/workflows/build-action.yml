@@ -172,7 +172,7 @@ jobs:
               echo "Running test: ${test_files[$i]}"
               export OUTPATH="tests/report/profile-data-${i}"
               mkdir -p ${OUTPATH}
-              (node --cpu-prof --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir tests/report/profile-data ${OUTPATH} --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              (node --cpu-prof --cpu-prof-name "${test_files[$i]}-test" --cpu-prof-dir ${OUTPATH} --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
               #
           done
         continue-on-error: true
