@@ -180,7 +180,9 @@ jobs:
               find . -name \*.log
               find . -name \*.heapprofile
               find . -name \*.cpuprofile
-              mv isolate-*-v8.log Heap.*.heapprofile CPU.*.cpuprofile ${OUTPATH}
+              mv isolate-*-v8.log  ${OUTPATH} || echo ok
+              mv Heap.*.heapprofile  ${OUTPATH} || echo ok
+              mv CPU.*.cpuprofile ${OUTPATH} || echo ok
           done
         continue-on-error: true
 
