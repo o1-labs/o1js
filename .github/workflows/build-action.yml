@@ -193,6 +193,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "All unit tests completed successfully"
+      - name: archive results
+        run: tar -czf profile-data.tgz tests/report/profile-data
+      - name: Upload E2E test artifacts
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: profile-data.tgz
+          path: profile-data.tgz
 
   Build-And-Test-Web:
     needs: Prepare
