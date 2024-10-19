@@ -13,9 +13,10 @@
 name: Auto-merge main to v2
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - main
 
 jobs:
   auto-merge:

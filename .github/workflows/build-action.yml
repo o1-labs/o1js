@@ -140,7 +140,7 @@ jobs:
       - name: Prepare for tests
         run: touch profiling.md
       - name: create dir
-        run: mkdir tests/report/profile-data
+        run: mkdir -p tests/report/profile-data
 
       - name: Run unit tests
         env:
@@ -237,6 +237,9 @@ jobs:
         run: node --heap-prof $(which npm) run test:e2e
       - name: Execute E2E tests
         run: node --cpu-prof --cpu-prof-name "e2e-tests" --cpu-prof-dir tests/report/profile-data $(which npm) run test:e2e
+      - name: move files
+        run: mv isolate-*-v8.log Heap.*.heapprofile CPU.*.cpuprofile tests/report/profile-data
+
       - name: archive results
         run: tar -czf profile-data.tgz tests/report/profile-data
 
