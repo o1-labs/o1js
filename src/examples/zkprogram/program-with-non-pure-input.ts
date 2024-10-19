@@ -7,7 +7,12 @@ class MyStruct extends Struct({
 
 let MyProgram = ZkProgram({
   name: 'example-with-non-pure-inputs',
-  publicOutput: Field,
   publicInput: MyStruct,
-  methods: {},
+
+  methods: {
+    baseCase: {
+      privateInputs: [],
+      async method(input: MyStruct) {},
+    },
+  },
 });
