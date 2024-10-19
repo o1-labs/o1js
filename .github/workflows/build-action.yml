@@ -177,7 +177,7 @@ jobs:
               (node --heap-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
               (node --prof --expose-gc   --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
               #
-              find . -name \*.log
+              find . -name isolate\*.log
               find . -name \*.heapprofile
               find . -name \*.cpuprofile
               mv isolate-*-v8.log  ${OUTPATH} || echo ok
