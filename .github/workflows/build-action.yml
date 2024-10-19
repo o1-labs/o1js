@@ -201,7 +201,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.chunk }}
-          path: test/report/
+          path: tests/report/profile-data-${{ matrix.chunk }}
 
       - name: Add to job summary
         if: always()
