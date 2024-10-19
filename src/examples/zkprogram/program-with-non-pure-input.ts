@@ -8,11 +8,16 @@ class MyStruct extends Struct({
 let MyProgram = ZkProgram({
   name: 'example-with-non-pure-inputs',
   publicInput: MyStruct,
+  publicOutput: MyStruct,
 
   methods: {
     baseCase: {
       privateInputs: [],
-      async method(input: MyStruct) {},
+      async method(input: MyStruct) {
+        return {
+          publicOutput: input,
+        };
+      },
     },
   },
 });
