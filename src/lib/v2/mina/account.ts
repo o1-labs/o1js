@@ -1,18 +1,18 @@
-import { AccountUpdate } from './account-update.js';
-import { TokenId, TokenSymbol, Update, ZkappUri } from './core.js';
-import { Permissions } from './permissions.js';
 import {
-  StateDefinition,
-  StateLayout,
-  StateUpdates,
-  StateValues,
-} from './state.js';
-import { ZkappFeePayment } from './transaction.js';
+  TokenId,
+  TokenSymbol,
+  ZkappUri,
+  DUMMY_VERIFICATION_KEY,
+} from './core.js';
+import { Permissions } from './permissions.js';
+import { StateDefinition, StateLayout, StateValues } from './state.js';
 import { VerificationKey } from '../../proof-system/zkprogram.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt64, UInt32 } from '../../provable/int.js';
+import { Provable } from '../../provable/provable.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
+import { Unconstrained } from '../../provable/types/unconstrained.js';
 
 function accountIdKeys(accountId: AccountId): {
   publicKey: string;
@@ -145,6 +145,56 @@ export class AccountTiming {
     this.vestingIncrement = vestingIncrement;
   }
 
+  minimumBalanceAtSlot(globalSlot: UInt32): UInt64 {
+    // TODO: implement the provable friendly version of this function
+    // const beforeVestingCliff = globalSlot.lessThan(this.cliffTime);
+    // Provable.if(
+    //   beforeVestingCliff,
+    //   UInt64,
+    //   this.initialMinimumBalance,
+    //   ...
+    // )
+
+    if (Provable.inCheckedComputation())
+      throw new Error(
+        'cannot call minimumBalanceAtSlot from a checked computation'
+      );
+
+    if (globalSlot.lessThan(this.cliffTime).toBoolean()) {
+      return this.initialMinimumBalance;
+    } else if (this.vestingPeriod.equals(UInt32.zero).toBoolean()) {
+      return UInt64.zero;
+    } else if (
+      this.initialMinimumBalance.lessThan(this.cliffAmount).toBoolean()
+    ) {
+      return UInt64.zero;
+    } else {
+      const minBalanceAfterCliff = this.initialMinimumBalance.sub(
+        this.cliffAmount
+      );
+      const numPeriodsVested = globalSlot
+        .sub(this.cliffTime)
+        .div(this.vestingPeriod)
+        .toUInt64();
+
+      const vestingDecrementWillOverflow =
+        !numPeriodsVested.equals(UInt64.zero).toBoolean() &&
+        UInt64.MAXINT()
+          .div(numPeriodsVested)
+          .lessThan(this.vestingIncrement)
+          .toBoolean();
+      const vestingDecrement = vestingDecrementWillOverflow
+        ? UInt64.MAXINT()
+        : numPeriodsVested.mul(this.vestingIncrement);
+
+      if (minBalanceAfterCliff.lessThan(vestingDecrement).toBoolean()) {
+        return UInt64.zero;
+      } else {
+        return minBalanceAfterCliff.sub(vestingDecrement);
+      }
+    }
+  }
+
   static empty(): AccountTiming {
     return new AccountTiming({
       initialMinimumBalance: UInt64.empty(),
@@ -158,6 +208,8 @@ export class AccountTiming {
 
 export class Account<State extends StateLayout = 'GenericState'> {
   State: StateDefinition<State>;
+  isNew: Unconstrained<boolean>;
+
   accountId: AccountId;
   tokenSymbol: TokenSymbol;
   balance: UInt64;
@@ -183,6 +235,7 @@ export class Account<State extends StateLayout = 'GenericState'> {
 
   constructor(
     State: StateDefinition<State>,
+    isNew: boolean | Unconstrained<boolean>,
     data: {
       accountId: AccountId;
       tokenSymbol: TokenSymbol;
@@ -208,6 +261,9 @@ export class Account<State extends StateLayout = 'GenericState'> {
   ) {
     this.State = State;
 
+    this.isNew =
+      isNew instanceof Unconstrained ? isNew : new Unconstrained(true, isNew);
+
     this.accountId = data.accountId;
     this.tokenSymbol = data.tokenSymbol;
     this.balance = data.balance;
@@ -219,7 +275,7 @@ export class Account<State extends StateLayout = 'GenericState'> {
     this.permissions = data.permissions;
     this.zkapp = {
       state: data.zkapp?.state ?? StateValues.empty(this.State),
-      verificationKey: data.zkapp?.verificationKey ?? VerificationKey.empty(),
+      verificationKey: data.zkapp?.verificationKey ?? DUMMY_VERIFICATION_KEY(),
       actionState: [
         new Field(0),
         new Field(0),
@@ -232,7 +288,7 @@ export class Account<State extends StateLayout = 'GenericState'> {
     };
   }
 
-  // TODO: error handling
+  /*
   checkAndApplyFeePayment(
     feePayment: ZkappFeePayment
   ):
@@ -261,7 +317,7 @@ export class Account<State extends StateLayout = 'GenericState'> {
     // TODO: validWhile (probably checked elsewhere)
 
     if (errors.length === 0) {
-      const updatedAccount = new Account(this.State, {
+      const updatedAccount = new Account(this.State, false, {
         ...this,
         balance: this.balance.sub(feePayment.fee),
         nonce: this.nonce.add(UInt32.one),
@@ -340,8 +396,6 @@ export class Account<State extends StateLayout = 'GenericState'> {
       this.zkapp.isProven
     );
 
-    // checkPrecondition('state', update.preconditions.account.state, this.state);
-
     StateValues.checkPreconditions(
       this.State,
       this.zkapp.state,
@@ -368,7 +422,32 @@ export class Account<State extends StateLayout = 'GenericState'> {
     // TODO: network (probably checked elsewhere)
     // TODO: validWhile (probably checked elsewhere)
 
-    // TODO: check permissions
+    // CHECK PERMISSIONS
+
+    function checkPermission(
+      permissionName: string,
+      requiredAuthLevel: AuthorizationLevel,
+      actionIsPerformed: boolean
+    ): void {
+      if(actionIsPerformed && !requiredAuthLevel.isSatisfied(update.authorizationKind))
+        errors.push(new Error(
+          `${permissionName} permission was violated: account update has authorization kind ${update.authorizationKind.identifier()}, but required auth level is ${requiredAuthLevel.identifier()}`
+        ));
+    }
+
+    checkPermission('access', this.permissions.access, true);
+    checkPermission('send', this.permissions.send, update.balanceChange.isNegative().toBoolean());
+    checkPermission('receive', this.permissions.receive, update.balanceChange.isPositive().toBoolean());
+    checkPermission('incrementNonce', this.permissions.incrementNonce, update.incrementNonce.toBoolean());
+    checkPermission('setDelegate', this.permissions.setDelegate, update.delegateUpdate.set.toBoolean());
+    checkPermission('setPermissions', this.permissions.setPermissions, update.permissionsUpdate.set.toBoolean());
+    checkPermission('setVerificationKey', this.permissions.setVerificationKey.auth, update.verificationKeyUpdate.set.toBoolean());
+    checkPermission('setZkappUri', this.permissions.setZkappUri, update.zkappUriUpdate.set.toBoolean());
+    checkPermission('setTokenSymbol', this.permissions.setTokenSymbol, update.tokenSymbolUpdate.set.toBoolean());
+    checkPermission('setVotingFor', this.permissions.setVotingFor, update.votingForUpdate.set.toBoolean());
+    checkPermission('setTiming', this.permissions.setTiming, update.timingUpdate.set.toBoolean());
+    checkPermission('editActionState', this.permissions.editActionState, update.pushActions.data.length > 0);
+    checkPermission('editState', this.permissions.editState, StateUpdates.anyValuesAreSet(update.stateUpdates).toBoolean());
 
     // APPLY UPDATES
 
@@ -394,7 +473,6 @@ export class Account<State extends StateLayout = 'GenericState'> {
         : this.balance.sub(amount);
     }
 
-    // TODO: balanceChange (account for implicitAccountCreationFee)
     // TODO: pushEvents
     // TODO: pushActions
 
@@ -409,7 +487,7 @@ export class Account<State extends StateLayout = 'GenericState'> {
         )
       );
 
-      const updatedAccount = new Account(this.State, {
+      const updatedAccount = new Account(this.State, false, {
         ...this,
         balance: updatedBalance,
         tokenSymbol: applyUpdate(update.tokenSymbolUpdate, this.tokenSymbol),
@@ -441,9 +519,10 @@ export class Account<State extends StateLayout = 'GenericState'> {
       return { status: 'Failed', errors };
     }
   }
+  */
 
   toGeneric(): Account {
-    return new Account<'GenericState'>('GenericState', {
+    return new Account<'GenericState'>('GenericState', this.isNew, {
       ...this,
       zkapp: {
         ...this.zkapp,
@@ -456,7 +535,7 @@ export class Account<State extends StateLayout = 'GenericState'> {
     account: Account,
     State: StateDefinition<State>
   ): Account<State> {
-    return new Account(State, {
+    return new Account(State, account.isNew, {
       ...account,
       zkapp: {
         ...account.zkapp,
@@ -466,7 +545,7 @@ export class Account<State extends StateLayout = 'GenericState'> {
   }
 
   static empty(accountId: AccountId): Account {
-    return new Account('GenericState', {
+    return new Account('GenericState', true, {
       accountId,
       tokenSymbol: TokenSymbol.empty(),
       balance: UInt64.zero,

@@ -79,6 +79,30 @@ export class AuthorizationLevel {
     return this.isSignature().or(this.isProofOrSignature());
   }
 
+  isSatisfied(authKind: AccountUpdateAuthorizationKind): Bool {
+    return Bool.allTrue([
+      this.requiresProof().implies(authKind.isProved),
+      this.requiresSignature().implies(authKind.isSigned),
+    ]);
+  }
+
+  // TODO: property test that this is the inverse of `from` identifier
+  identifier(): AuthorizationLevelIdentifier {
+    if (this.isImpossible().toBoolean()) {
+      return 'Impossible';
+    } else if (this.isNone().toBoolean()) {
+      return 'None';
+    } else if (this.isProof().toBoolean()) {
+      return 'Proof';
+    } else if (this.isSignature().toBoolean()) {
+      return 'Signature';
+    } else if (this.isProofOrSignature().toBoolean()) {
+      return 'Either';
+    } else {
+      throw new Error('internal error: invalid authorization level');
+    }
+  }
+
   static Impossible(): AuthorizationLevel {
     return new AuthorizationLevel({
       constant: new Bool(true),

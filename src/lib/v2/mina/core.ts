@@ -1,3 +1,4 @@
+import { VerificationKey } from '../../proof-system/zkprogram.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
@@ -8,6 +9,7 @@ import {
 } from '../../provable/crypto/poseidon.js';
 import { Provable } from '../../provable/types/provable-intf.js';
 import {
+  mocks,
   prefixes,
   protocolVersions,
 } from '../../../bindings/crypto/constants.js';
@@ -26,11 +28,22 @@ export import Range = Bindings.Leaves.Range;
 
 export const MAX_ZKAPP_STATE_FIELDS = 8;
 
+export const MAX_TOKEN_SYMBOL_LENGTH = 6;
+
+export const ACCOUNT_ACTION_STATE_BUFFER_SIZE = 5;
+
 export const CURRENT_TRANSACTION_VERSION = UInt32.from(
   protocolVersions.txnVersion
 );
 
-export const MAX_TOKEN_SYMBOL_LENGTH = 6;
+export const ACCOUNT_CREATION_FEE = UInt64.from(10 ** 9);
+
+export function DUMMY_VERIFICATION_KEY(): VerificationKey {
+  return {
+    data: '' /* TODO */,
+    hash: new Field(mocks.dummyVerificationKeyHash),
+  };
+}
 
 // TODO: constructors from Mina and NanoMina
 export type MinaAmount = UInt64;

@@ -20,6 +20,7 @@ export function getCallerFrame(): StackFrame {
 
 export class ZkappCommandErrorTrace {
   constructor(
+    public generalErrors: Error[],
     public feePaymentErrors: Error[],
     public accountUpdateForestTrace: AccountUpdateErrorTrace[]
   ) {}
@@ -90,6 +91,7 @@ export class ZkappCommandErrorTrace {
 
     out += 'ZKAPP COMMAND ERROR TRACE\n';
     out += '=========================\n';
+    writeErrors(0, this.generalErrors);
     out += '  feePayment: ';
     writeErrors(1, this.feePaymentErrors);
     out += '  accountUpdates:\n';

@@ -9,9 +9,21 @@ import {
 } from '../mina/account-update.js';
 import { AccountUpdateAuthorizationKind } from '../mina/authorization.js';
 import { Account, AccountId } from '../mina/account.js';
-import { ProvableTuple, ProvableTupleInstances } from '../mina/core.js';
+import {
+  MinaAmount,
+  ProvableTuple,
+  ProvableTupleInstances,
+  ACCOUNT_ACTION_STATE_BUFFER_SIZE,
+} from '../mina/core.js';
 import { getCallerFrame } from '../mina/errors.js';
-import { StateDefinition, StateLayout } from '../mina/state.js';
+import {
+  StateDefinition,
+  StateMask,
+  StateLayout,
+  StateReader,
+  StateValues,
+} from '../mina/state.js';
+import { checkAndApplyAccountUpdate } from '../mina/zkapp-logic.js';
 import { ZkappCommandContext } from '../mina/transaction.js';
 import { Cache } from '../../proof-system/cache.js';
 import {
@@ -20,8 +32,11 @@ import {
   VerificationKey,
   ZkProgram,
 } from '../../proof-system/zkprogram.js';
+import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
 import { Provable } from '../../provable/provable.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 
 // TODO: move
@@ -40,33 +55,29 @@ function mapObject<
   return newObject as { [key in keyof In]: Out[key] };
 }
 
-/*
-// TODO: move
-export type ZkProgramMethod<
-  PublicInput,
-  PublicOutput,
-  PrivateInputs extends ProvableTuple
-> =
-  {
-    privateInputs: PrivateInputs,
-    // TODO: simplify so that we can use ProvableTupleInstances here instead
-    method(
-      ...inputs:
-        PublicInput extends undefined
-          ? ProvableTupleInstances<PrivateInputs>
-          : [PublicInput, ...ProvableTupleInstances<PrivateInputs>]
-    ): Promise<PublicOutput extends undefined ? void : PublicOutput>
-  };
-*/
-
 export class MinaProgramEnv<State extends StateLayout> {
-  // TODO: reader interface
-  constructor(
-    private account: Unconstrained<Account<State>>,
-    private verificationKey: Unconstrained<VerificationKey>
-  ) {}
+  private expectedPreconditions: Unconstrained<{
+    balance?: MinaAmount;
+    nonce?: UInt32;
+    receiptChainHash?: Field;
+    delegate?: PublicKey;
+    state: StateMask<State>;
+    actionState?: Field;
+    isProven?: Bool;
+  }>;
 
-  // TODO: cache witnesses (per-circuit)
+  constructor(
+    public State: StateDefinition<State>,
+    private account: Unconstrained<Account<State>>,
+    // TODO: we can actually remove this since the verification key will always be set on an
+    //       account before we call a method on it
+    private verificationKey: Unconstrained<VerificationKey>
+  ) {
+    this.expectedPreconditions = new Unconstrained(true, {
+      state: StateMask.create(State),
+    });
+  }
+
   get accountId(): AccountId {
     return Provable.witness(AccountId, () => this.account.get().accountId);
   }
@@ -80,6 +91,75 @@ export class MinaProgramEnv<State extends StateLayout> {
 
   get programVerificationKey(): VerificationKey {
     return Provable.witness(VerificationKey, () => this.verificationKey.get());
+  }
+
+  get balance(): MinaAmount {
+    return Provable.witness(UInt64, () => {
+      const balance = this.account.get().balance;
+      this.expectedPreconditions.get().balance = balance;
+      return balance;
+    });
+  }
+
+  get nonce(): UInt32 {
+    return Provable.witness(UInt32, () => {
+      const nonce = this.account.get().nonce;
+      this.expectedPreconditions.get().nonce = nonce;
+      return nonce;
+    });
+  }
+
+  get receiptChainHash(): Field {
+    return Provable.witness(Field, () => {
+      const receiptChainHash = this.account.get().receiptChainHash;
+      this.expectedPreconditions.get().receiptChainHash = receiptChainHash;
+      return receiptChainHash;
+    });
+  }
+
+  get delegate(): PublicKey {
+    return Provable.witness(PublicKey, () => {
+      const delegate =
+        this.account.get().delegate ?? this.account.get().accountId.publicKey;
+      this.expectedPreconditions.get().delegate = delegate;
+      return delegate;
+    });
+  }
+
+  get state(): StateReader<State> {
+    const accountState = Provable.witness(
+      Unconstrained<StateValues<State>>,
+      () => {
+        return new Unconstrained(true, this.account.get().zkapp.state);
+      }
+    );
+    const accountStateMask = Provable.witness(
+      Unconstrained<StateMask<State>>,
+      () => {
+        return new Unconstrained(true, this.expectedPreconditions.get().state);
+      }
+    );
+    return StateReader.create(this.State, accountState, accountStateMask);
+  }
+
+  // only returns the most recent action state for an account
+  get actionState(): Field {
+    return Provable.witness(Field, () => {
+      const actionState =
+        this.account.get().zkapp.actionState[
+          ACCOUNT_ACTION_STATE_BUFFER_SIZE - 1
+        ];
+      this.expectedPreconditions.get().actionState = actionState;
+      return actionState;
+    });
+  }
+
+  get isProven(): Bool {
+    return Provable.witness(Bool, () => {
+      const isProven = this.account.get().zkapp.isProven;
+      this.expectedPreconditions.get().isProven = isProven;
+      return isProven;
+    });
   }
 
   static sizeInFields(): number {
@@ -100,11 +180,11 @@ export class MinaProgramEnv<State extends StateLayout> {
     return [x?.account, x?.verificationKey];
   }
 
-  static fromFields<State extends StateLayout>(
+  static fromFields(
     _fields: Field[],
     aux: any[]
-  ): MinaProgramEnv<State> {
-    return new MinaProgramEnv(aux[0], aux[1]);
+  ): MinaProgramEnv<'GenericState'> {
+    return new MinaProgramEnv('GenericState', aux[0], aux[1]);
   }
 
   static toValue<State extends StateLayout>(
@@ -347,6 +427,7 @@ function proverMethod<
     const account: Account<State> = Account.fromGeneric(genericAccount, State);
 
     const env = new MinaProgramEnv(
+      account.State,
       new Unconstrained(true, account),
       new Unconstrained(true, verificationKey)
     );
@@ -370,14 +451,18 @@ function proverMethod<
     );
 
     // apply only the root update and not the children (see above for details)
-    const applied = genericAccount.checkAndApplyUpdate(
-      genericAccountUpdateTree.rootAccountUpdate
+    const applied = checkAndApplyAccountUpdate(
+      genericAccount,
+      genericAccountUpdateTree.rootAccountUpdate,
+      ctx.globalSlot,
+      ctx.feeExcessState
     );
 
     let errors: Error[];
     switch (applied.status) {
       case 'Applied':
         ctx.ledger.setAccount(applied.updatedAccount.toGeneric());
+        ctx.feeExcessState = applied.updatedFeeExcessState;
         errors = [];
         break;
       case 'Failed':

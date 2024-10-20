@@ -15,8 +15,13 @@ import { Empty, Eq, Update, MAX_ZKAPP_STATE_FIELDS } from './core.js';
 import { Precondition } from './preconditions.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
-import { Provable } from '../../provable/types/provable-intf.js';
+import { Provable } from '../../provable/provable.js';
+import { Unconstrained } from '../../provable/types/unconstrained.js';
 
+// TODO IMMEDIATELY: This representation doesn't actually work, because if you specify a state
+//                   element in a custom state layout that doesn't satisfy the StateElement type,
+//                   typescript will just replace the state element types in the layout with `any`.
+//                   Fucking typescript.
 export type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
 export type StateElementInstance<E> = E extends StateElement<infer T>
   ? T
@@ -280,7 +285,7 @@ export const StatePreconditions = {
       () => statePreconditions,
       (Layout: CustomStateLayout) => {
         // NB: this relies on the order of map being deterministic
-        // TODO: make the order of map deterministic (lol)
+        // TODO: make the order of custom state layout keys deterministic (lol)
         let i = 0;
         return CustomStateLayout.project(Layout, (_key, T) => {
           const fieldPreconditions = statePreconditions.preconditions.slice(
@@ -346,6 +351,16 @@ export const StateUpdates = {
     );
   },
 
+  anyValuesAreSet<State extends StateLayout>(
+    stateUpdates: StateUpdates<State>
+  ): Bool {
+    const updates: Update<unknown>[] =
+      stateUpdates instanceof GenericStateUpdates
+        ? stateUpdates.updates
+        : Object.values(stateUpdates);
+    return Bool.anyTrue(updates.map((update) => update.set));
+  },
+
   toGeneric<State extends StateLayout>(
     State: StateDefinition<State>,
     stateUpdates: StateUpdates<State>
@@ -392,7 +407,7 @@ export const StateUpdates = {
       () => stateUpdates,
       (Layout: CustomStateLayout) => {
         // NB: this relies on the order of map being deterministic
-        // TODO: make the order of map deterministic (lol)
+        // TODO: make the order of custom state layout keys deterministic (lol)
         let i = 0;
         return CustomStateLayout.project(Layout, (_key, T) => {
           const fieldUpdates = stateUpdates.updates.slice(
@@ -481,7 +496,7 @@ export const StateValues = {
       () => stateValues,
       (Layout: CustomStateLayout) => {
         // NB: this relies on the order of map being deterministic
-        // TODO: make the order of map deterministic (lol)
+        // TODO: make the order of custom state layout keys deterministic (lol)
         let i = 0;
         return CustomStateLayout.project(Layout, (_key, T) => {
           const fields = stateValues.values.slice(i, i + T.sizeInFields());
@@ -571,6 +586,58 @@ export const StateValues = {
   },
 };
 
+export type StateMask<State extends StateLayout> = State extends 'GenericState'
+  ? GenericStateMask
+  : { [name in keyof State]?: StateElementInstance<State[name]> };
+
+export const StateMask = {
+  create<State extends StateLayout>(
+    State: StateDefinition<State>
+  ): StateMask<State> {
+    return StateDefinition.project(State, GenericStateMask.empty, () => ({}));
+  },
+};
+
+export type StateReader<State extends StateLayout> =
+  State extends 'GenericState'
+    ? GenericStateReader
+    : {
+        [name in keyof State]: State[name] extends Provable<infer U>
+          ? () => U
+          : never;
+      };
+
+export const StateReader = {
+  create<State extends StateLayout>(
+    State: StateDefinition<State>,
+    stateValues: Unconstrained<StateValues<State>>,
+    stateMask: Unconstrained<StateMask<State>>
+  ): StateReader<State> {
+    if (State === 'GenericState') {
+      const values = stateValues as Unconstrained<GenericStateValues>;
+      const mask = stateMask as Unconstrained<GenericStateMask>;
+      return new GenericStateReader(values, mask) as StateReader<State>;
+    } else {
+      const values = stateValues as Unconstrained<{
+        [name in keyof State]: StateElementInstance<State[name]>;
+      }>;
+      const mask = stateMask as Unconstrained<{
+        [name in keyof State]?: StateElementInstance<State[name]>;
+      }>;
+      return CustomStateLayout.project(
+        State.Layout,
+        (key, T) => (): StateElementInstance<typeof T> => {
+          return Provable.witness(T, () => {
+            const value = values.get()[key as keyof State];
+            mask.get()[key as keyof State] = value;
+            return value;
+          });
+        }
+      ) as StateReader<State>;
+    }
+  },
+};
+
 export class StateFieldsArray<T> {
   constructor(private fieldElements: T[], empty: () => T) {
     if (this.fieldElements.length > MAX_ZKAPP_STATE_FIELDS) {
@@ -600,6 +667,12 @@ export class GenericStateValues extends StateFieldsArray<Field> {
 
   get values(): Field[] {
     return this.fields;
+  }
+
+  get(index: number): Field {
+    if (index >= MAX_ZKAPP_STATE_FIELDS)
+      throw new Error('zkapp state index out of bounds');
+    return this.fields[index];
   }
 
   map(f: (x: Field, i: number) => Field): GenericStateValues {
@@ -638,5 +711,36 @@ export class GenericStateUpdates extends StateFieldsArray<Update<Field>> {
 
   static empty(): GenericStateUpdates {
     return new GenericStateUpdates([]);
+  }
+}
+
+export class GenericStateMask extends StateFieldsArray<Field | undefined> {
+  constructor() {
+    super([], () => undefined);
+  }
+
+  set(index: number, value: Field): void {
+    if (index >= MAX_ZKAPP_STATE_FIELDS)
+      throw new Error('zkapp state index out of bounds');
+    this.fields[index] = value;
+  }
+
+  static empty(): GenericStateMask {
+    return new GenericStateMask();
+  }
+}
+
+export class GenericStateReader {
+  constructor(
+    private values: Unconstrained<GenericStateValues>,
+    private mask: Unconstrained<GenericStateMask>
+  ) {}
+
+  read(index: number): Field {
+    return Provable.witness(Field, () => {
+      const value = this.values.get().get(index);
+      this.mask.get().set(index, value);
+      return value;
+    });
   }
 }

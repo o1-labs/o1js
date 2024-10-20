@@ -18,6 +18,11 @@ import {
 import { Precondition } from './preconditions.js';
 import { StateLayout } from './state.js';
 import { LedgerView } from './views.js';
+import {
+  ApplyState,
+  checkAndApplyAccountUpdate,
+  checkAndApplyFeePayment,
+} from './zkapp-logic.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
@@ -70,30 +75,34 @@ export class ZkappFeePayment {
     return new AuthorizedZkappFeePayment(this, Signature.toBase58(signature));
   }
 
-  toAccountUpdate(): AccountUpdate.Authorized {
+  toAccountUpdate(): AccountUpdate {
+    return new AccountUpdate('GenericState', GenericData, GenericData, {
+      authorizationKind: AccountUpdateAuthorizationKind.Signature(),
+      verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
+      callData: new Field(0),
+      accountId: new AccountId(this.publicKey, TokenId.MINA),
+      balanceChange: Int64.create(this.fee, Sign.minusOne),
+      incrementNonce: new Bool(true),
+      useFullCommitment: new Bool(true),
+      implicitAccountCreationFee: new Bool(true),
+      preconditions: {
+        account: {
+          nonce: this.nonce,
+        },
+        network: {
+          globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(
+            UInt32.zero,
+            this.validUntil ?? UInt32.MAXINT()
+          ),
+        },
+      },
+    });
+  }
+
+  toDummyAuthorizedAccountUpdate(): AccountUpdate.Authorized {
     return new AccountUpdate.Authorized(
       { signature: '', proof: null },
-      new AccountUpdate('GenericState', GenericData, GenericData, {
-        authorizationKind: AccountUpdateAuthorizationKind.Signature(),
-        verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
-        callData: new Field(0),
-        accountId: new AccountId(this.publicKey, TokenId.MINA),
-        balanceChange: Int64.create(this.fee, Sign.minusOne),
-        incrementNonce: new Bool(true),
-        useFullCommitment: new Bool(true),
-        implicitAccountCreationFee: new Bool(true),
-        preconditions: {
-          account: {
-            nonce: this.nonce,
-          },
-          network: {
-            globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(
-              UInt32.zero,
-              this.validUntil ?? UInt32.MAXINT()
-            ),
-          },
-        },
-      })
+      this.toAccountUpdate()
     );
   }
 
@@ -160,7 +169,7 @@ export class ZkappCommand {
     fullTransactionCommitment: bigint;
   } {
     const feePayerCommitment = this.feePayment
-      .toAccountUpdate()
+      .toDummyAuthorizedAccountUpdate()
       .hash(networkId);
     const accountUpdateForestCommitment = AccountUpdateTree.hashForest(
       networkId,
@@ -257,12 +266,20 @@ export class AuthorizedZkappCommand {
 export class ZkappCommandContext {
   ledger: LedgerView;
   failedAccounts: AccountIdSet;
+  globalSlot: UInt32;
+  feeExcessState: ApplyState<Int64>;
   private accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
   private accountUpdateForestTrace: AccountUpdateErrorTrace[];
 
-  constructor(ledger: LedgerView, failedAccounts: AccountIdSet) {
+  constructor(
+    ledger: LedgerView,
+    failedAccounts: AccountIdSet,
+    globalSlot: UInt32
+  ) {
     this.ledger = ledger;
     this.failedAccounts = failedAccounts;
+    this.globalSlot = globalSlot;
+    this.feeExcessState = { status: 'Alive', value: Int64.zero };
     this.accountUpdateForest = [];
     this.accountUpdateForestTrace = [];
   }
@@ -292,12 +309,18 @@ export class ZkappCommandContext {
           const account =
             this.ledger.getAccount(accountUpdate.accountId) ??
             Account.empty(accountUpdate.accountId);
-          const applied = account.checkAndApplyUpdate(accountUpdate);
+          const applied = checkAndApplyAccountUpdate(
+            account,
+            accountUpdate,
+            this.globalSlot,
+            this.feeExcessState
+          );
 
           switch (applied.status) {
             case 'Applied':
               errors = [];
               this.ledger.setAccount(applied.updatedAccount);
+              this.feeExcessState = applied.updatedFeeExcessState;
               break;
             case 'Failed':
               errors = applied.errors;
@@ -343,13 +366,29 @@ export class ZkappCommandContext {
     this.accountUpdateForestTrace.push(trace);
   }
 
-  get output(): {
+  finalize(): {
     accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
     accountUpdateForestTrace: AccountUpdateErrorTrace[];
+    generalErrors: Error[];
   } {
+    const errors: Error[] = [];
+
+    if (this.feeExcessState.status === 'Dead') {
+      errors.push(
+        new Error('fee excess could not be computed due to other errors')
+      );
+    } else if (!this.feeExcessState.value.equals(Int64.zero).toBoolean()) {
+      errors.push(
+        new Error(
+          'fee excess does not equal 0 (this transaction is attempting to either burn or mint new Mina tokens, which is disallowed)'
+        )
+      );
+    }
+
     return {
       accountUpdateForest: [...this.accountUpdateForest],
       accountUpdateForestTrace: [...this.accountUpdateForestTrace],
+      generalErrors: errors,
     };
   }
 }
@@ -371,6 +410,9 @@ export async function createUnsignedZkappCommand(
   },
   f: (ctx: ZkappCommandContext) => Promise<void>
 ): Promise<ZkappCommand> {
+  // TODO
+  const globalSlot = UInt32.zero;
+
   const failedAccounts = new AccountIdSet();
   let feePaymentErrors: Error[] = [];
   let feePayment: ZkappFeePayment | null = null;
@@ -386,7 +428,11 @@ export async function createUnsignedZkappCommand(
       validUntil,
     });
 
-    const applied = feePayerAccount.checkAndApplyFeePayment(feePayment);
+    const applied = checkAndApplyFeePayment(
+      feePayerAccount,
+      feePayment,
+      globalSlot
+    );
     switch (applied.status) {
       case 'Applied':
         ledger.setAccount(applied.updatedAccount);
@@ -401,11 +447,13 @@ export async function createUnsignedZkappCommand(
     failedAccounts.add(feePayerId);
   }
 
-  const ctx = new ZkappCommandContext(ledger, failedAccounts);
+  const ctx = new ZkappCommandContext(ledger, failedAccounts, globalSlot);
   await f(ctx);
-  const { accountUpdateForest, accountUpdateForestTrace } = ctx.output;
+  const { accountUpdateForest, accountUpdateForestTrace, generalErrors } =
+    ctx.finalize();
 
   const errorTrace = new ZkappCommandErrorTrace(
+    generalErrors,
     feePaymentErrors,
     accountUpdateForestTrace
   );
