@@ -13,3 +13,6 @@ src/config.mlh
 .direnv
 .rustup
 result
+isolate*-v8.log
+CPU*.cpuprofile
+Heap*heapprofile

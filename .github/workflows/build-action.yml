@@ -115,7 +115,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        chunk: [1, 2, 3, 4, 5, 6, 7, 8, 9 , 10, 11,12,13,14,15,16]
+        perf: [prof, heap, cpu, all]
+        # TODO : node_version: [18,20,22]
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -147,7 +149,7 @@ jobs:
         env:
           TOTAL_TESTS: ${{ needs.Prepare.outputs.test_count }}
           CHUNK: ${{ matrix.chunk }}
-          CHUNKS: 8
+          CHUNKS: 16
         run: |
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
@@ -175,23 +177,40 @@ jobs:
               OUTFILEPATH=$(dirname "${test_files[$i]}")
 
               # cpu prof
+              if [ "${{ matrix.perf }}" == "cpu" ]; then
               (node --cpu-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
               find . -name \*.cpuprofile
               mv CPU.*.cpuprofile ${OUTPATH} || echo ok
               #mv ${OUTFILEPATH}/CPU.*.cpuprofile "${OUTPATH}" || echo ok
+              fi
 
+              if [ "${{ matrix.perf }}" == "heap" ]; then
               ## heap prof
               (node --heap-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
-              find . -name \*.heapprofile
+              #find . -name \*.heapprofile
               mv Heap.*.heapprofile  "${OUTPATH}" || echo ok
               #mv ${OUTFILEPATH}/Heap.*.heapprofile "${OUTPATH}" || echo ok
+              fi
 
+              if [ "${{ matrix.perf }}" == "prof" ]; then
               ## prof
               (node --prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
               #
-              find . -name isolate\*.log              
+              #find . -name isolate\*.log              
               mv isolate-*-v8.log  "${OUTPATH}" || echo ok
               #mv ${OUTFILEPATH}/isolate-*-v8.log "${OUTPATH}" || echo ok
+              fi
+
+              if [ "${{ matrix.perf }}" == "all" ]; then
+              ## prof
+              (node --prof --heap-prof --cpu-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              #
+              #find . -name isolate\*.log              
+              mv isolate-*-v8.log  "${OUTPATH}" || echo ok
+              mv Heap.*.heapprofile  "${OUTPATH}" || echo ok
+              mv CPU.*.cpuprofile ${OUTPATH} || echo ok
+              #mv ${OUTFILEPATH}/isolate-*-v8.log "${OUTPATH}" || echo ok
+              fi
               
           done
         continue-on-error: true
