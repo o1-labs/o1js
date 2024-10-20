@@ -1,6 +1,32 @@
 // Views into chain-state (ledger and best block)
 
 import { Account, AccountId, AccountIdMap } from './account.js';
+import { MinaAmount } from './core.js';
+import { Field } from '../../provable/field.js';
+import { UInt32 } from '../../provable/int.js';
+
+export interface ChainView {
+  snarkedLedgerHash: Field;
+  blockchainLength: UInt32;
+  minWindowDensity: UInt32;
+  totalCurrency: MinaAmount;
+  globalSlotSinceGenesis: UInt32;
+  stakingEpochData: EpochData;
+  nextEpochData: EpochData;
+}
+
+export interface EpochData {
+  ledger: EpochLedgerData;
+  seed: Field;
+  startCheckpoint: Field;
+  lockCheckpoint: Field;
+  epochLength: UInt32;
+}
+
+export interface EpochLedgerData {
+  hash: Field;
+  totalCurrency: MinaAmount;
+}
 
 export interface LedgerView {
   hasAccount(accountId: AccountId): boolean;

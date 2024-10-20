@@ -78,7 +78,11 @@ export type Tuple<T> = [T, ...T[]] | [];
 
 export type ProvableTuple = Tuple<Provable<any>>;
 
-export type ProvableInstance<P> = P extends Provable<infer T> ? T : never;
+export type ProvableInstance<P> = P extends Provable<infer T>
+  ? unknown extends T
+    ? T
+    : never
+  : never;
 
 export type ProvableTupleInstances<T extends ProvableTuple> = {
   [I in keyof T]: ProvableInstance<T[I]>;

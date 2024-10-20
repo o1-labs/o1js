@@ -3,9 +3,14 @@ import { Account } from './account.js';
 import { AuthorizationLevel } from './authorization.js';
 import { TokenId, Update, ACCOUNT_CREATION_FEE } from './core.js';
 import { Permissions } from './permissions.js';
-import { Preconditions } from './preconditions.js';
+import {
+  Preconditions,
+  EpochDataPreconditions,
+  EpochLedgerPreconditions,
+} from './preconditions.js';
 import { StateLayout, StateUpdates, StateValues } from './state.js';
 import { ZkappFeePayment } from './transaction.js';
+import { ChainView, EpochData, EpochLedgerData } from './views.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, Sign, UInt64, UInt32 } from '../../provable/int.js';
@@ -48,6 +53,7 @@ function tryAddInt64(a: Int64, b: Int64): Int64 | null {
 }
 
 function checkPreconditions<State extends StateLayout>(
+  chain: ChainView,
   account: Account<State>,
   preconditions: Preconditions<State>,
   errors: Error[]
@@ -75,6 +81,8 @@ function checkPreconditions<State extends StateLayout>(
       errors.push(preconditionError(preconditionName, constraint, value));
   }
 
+  // ACCOUNT PRECONDITIONS
+
   checkPrecondition<UInt64>(
     'balance',
     preconditions.account.balance,
@@ -101,6 +109,11 @@ function checkPreconditions<State extends StateLayout>(
     preconditions.account.isProven,
     account.zkapp.isProven
   );
+  checkPrecondition<Bool>(
+    'isNew',
+    preconditions.account.isNew,
+    new Bool(account.isNew.get())
+  );
 
   StateValues.checkPreconditions(
     account.State,
@@ -121,10 +134,99 @@ function checkPreconditions<State extends StateLayout>(
       )
     );
 
-  // TODO: updates.preconditions.account.isNew
+  // NETWORK PRECONDITIONS
 
-  // TODO: network (probably checked elsewhere)
-  // TODO: validWhile (probably checked elsewhere)
+  checkPrecondition(
+    'validWhile',
+    preconditions.validWhile,
+    chain.globalSlotSinceGenesis
+  );
+  checkPrecondition(
+    'snarkedLedgerHash',
+    preconditions.network.snarkedLedgerHash,
+    chain.snarkedLedgerHash
+  );
+  checkPrecondition(
+    'blockchainLength',
+    preconditions.network.blockchainLength,
+    chain.blockchainLength
+  );
+  checkPrecondition(
+    'minWindowDensity',
+    preconditions.network.minWindowDensity,
+    chain.minWindowDensity
+  );
+  checkPrecondition(
+    'totalCurrency',
+    preconditions.network.totalCurrency,
+    chain.totalCurrency
+  );
+  checkPrecondition(
+    'globalSlotSinceGenesis',
+    preconditions.network.globalSlotSinceGenesis,
+    chain.globalSlotSinceGenesis
+  );
+
+  function checkEpochLedgerPreconditions(
+    name: string,
+    epochLedgerPreconditions: EpochLedgerPreconditions,
+    epochLedgerData: EpochLedgerData
+  ) {
+    checkPrecondition(
+      `${name}.hash`,
+      epochLedgerPreconditions.hash,
+      epochLedgerData.hash
+    );
+    checkPrecondition(
+      `${name}.totalCurrency`,
+      epochLedgerPreconditions.totalCurrency,
+      epochLedgerData.totalCurrency
+    );
+  }
+
+  function checkEpochDataPreconditions(
+    name: string,
+    epochDataPreconditions: EpochDataPreconditions,
+    epochData: EpochData
+  ): void {
+    checkPrecondition(
+      `${name}.seed`,
+      epochDataPreconditions.seed,
+      epochData.seed
+    );
+    checkPrecondition(
+      `${name}.startCheckpoint`,
+      epochDataPreconditions.startCheckpoint,
+      epochData.startCheckpoint
+    );
+    checkPrecondition(
+      `${name}.lockCheckpoint`,
+      epochDataPreconditions.lockCheckpoint,
+      epochData.lockCheckpoint
+    );
+    checkPrecondition(
+      `${name}.epochLength`,
+      epochDataPreconditions.epochLength,
+      epochData.epochLength
+    );
+
+    checkEpochLedgerPreconditions(
+      `${name}.ledger`,
+      epochDataPreconditions.ledger,
+      epochData.ledger
+    );
+  }
+
+  checkEpochDataPreconditions(
+    'stakingEpochData',
+    preconditions.network.stakingEpochData,
+    chain.stakingEpochData
+  );
+  checkEpochDataPreconditions(
+    'nextEpochData',
+    preconditions.network.nextEpochData,
+    chain.nextEpochData
+  );
 }
 
 function checkPermissions<State extends StateLayout, Event, Action>(
@@ -307,13 +409,13 @@ function applyUpdates<State extends StateLayout, Event, Action>(
         update.verificationKeyUpdate,
         account.zkapp.verificationKey
       ),
-      actionState: [
+      actionState: /* TODO */ [
         new Field(0),
         new Field(0),
         new Field(0),
         new Field(0),
         new Field(0),
-      ] /* TODO */,
+      ],
       isProven: account.zkapp.isProven.or(allStateUpdated),
       zkappUri: applyUpdate(update.zkappUriUpdate, account.zkapp.zkappUri),
     },
@@ -336,7 +438,6 @@ export function checkAccountTiming<State extends StateLayout>(
     );
 }
 
-// TODO: fee excess
 // TODO: It's a good idea to have a check somewhere which asserts an account is valid before trying
 //       applying account updates (eg: the account balance already meets the minimum requirement of
 //       the account timing). This will help prevent other mistakes that occur before applying an
@@ -346,9 +447,9 @@ export function checkAndApplyAccountUpdate<
   Event,
   Action
 >(
+  chain: ChainView,
   account: Account<State>,
   update: AccountUpdate<State, Event, Action>,
-  globalSlot: UInt32,
   feeExcessState: ApplyState<Int64>
 ): ApplyResult<{
   updatedFeeExcessState: ApplyState<Int64>;
@@ -374,7 +475,7 @@ export function checkAndApplyAccountUpdate<
 
   // TODO: check mayUseToken (somewhere, maybe not here)
 
-  checkPreconditions(account, update.preconditions, errors);
+  checkPreconditions(chain, account, update.preconditions, errors);
   checkPermissions(account.permissions, update, errors);
   const { updatedFeeExcessState, updatedAccount } = applyUpdates(
     account,
@@ -382,7 +483,7 @@ export function checkAndApplyAccountUpdate<
     feeExcessState,
     errors
   );
-  checkAccountTiming(updatedAccount, globalSlot, errors);
+  checkAccountTiming(updatedAccount, chain.globalSlotSinceGenesis, errors);
 
   if (errors.length === 0) {
     return { status: 'Applied', updatedFeeExcessState, updatedAccount };
@@ -392,14 +493,14 @@ export function checkAndApplyAccountUpdate<
 }
 
 export function checkAndApplyFeePayment(
+  chain: ChainView,
   account: Account,
-  feePayment: ZkappFeePayment,
-  globalSlot: UInt32
+  feePayment: ZkappFeePayment
 ): ApplyResult<{ updatedAccount: Account }> {
   const result = checkAndApplyAccountUpdate(
+    chain,
     account,
     feePayment.toAccountUpdate(),
-    globalSlot,
     { status: 'Alive', value: Int64.zero }
   );
 

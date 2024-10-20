@@ -11,7 +11,13 @@
 
 // TODO: there is a lot of duplication here on the generic representation that we can reduce
 
-import { Empty, Eq, Update, MAX_ZKAPP_STATE_FIELDS } from './core.js';
+import {
+  Empty,
+  Eq,
+  ProvableInstance,
+  Update,
+  MAX_ZKAPP_STATE_FIELDS,
+} from './core.js';
 import { Precondition } from './preconditions.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
@@ -22,12 +28,12 @@ import { Unconstrained } from '../../provable/types/unconstrained.js';
 //                   element in a custom state layout that doesn't satisfy the StateElement type,
 //                   typescript will just replace the state element types in the layout with `any`.
 //                   Fucking typescript.
-export type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
-export type StateElementInstance<E> = E extends StateElement<infer T>
-  ? T
-  : never;
+// export type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
+// export type StateElementInstance<E> = E extends StateElement<infer T>
+//   ? T
+//   : never;
 // TODO: custom state layouts need to specify the order of their keys
-export type CustomStateLayout = { [name: string]: StateElement<any> };
+export type CustomStateLayout = { [name: string]: Provable<any> };
 export type StateLayout = 'GenericState' | CustomStateLayout;
 
 export const CustomStateLayout = {
@@ -40,7 +46,7 @@ export const CustomStateLayout = {
   ): StateOut {
     const entriesIn = Object.entries(Layout) as [
       keyof StateIn,
-      StateElement<any>
+      Provable<any>
     ][];
     const entriesOut = entriesIn.map(([key, T]) => [
       key,
@@ -64,7 +70,7 @@ export type StateDefinition<State extends StateLayout> =
   State extends 'GenericState'
     ? 'GenericState'
     : { Layout: State } & Provable<{
-        [name in keyof State]: StateElementInstance<State[name]>;
+        [name in keyof State]: ProvableInstance<State[name]>;
       }>;
 
 export const StateDefinition = {
@@ -169,7 +175,7 @@ export function State<State extends CustomStateLayout>(
       return sizeInFields;
     },
     toFields(x: {
-      [name in keyof State]: StateElementInstance<State[name]>;
+      [name in keyof State]: ProvableInstance<State[name]>;
     }): Field[] {
       const fields = [];
       for (const key in Layout) {
@@ -178,7 +184,7 @@ export function State<State extends CustomStateLayout>(
       return fields;
     },
     toAuxiliary(x?: {
-      [name in keyof State]: StateElementInstance<State[name]>;
+      [name in keyof State]: ProvableInstance<State[name]>;
     }): any[] {
       const aux = [];
       for (const key in Layout) {
@@ -189,21 +195,21 @@ export function State<State extends CustomStateLayout>(
     fromFields(
       _fields: Field[],
       _aux: any[]
-    ): { [name in keyof State]: StateElementInstance<State[name]> } {
+    ): { [name in keyof State]: ProvableInstance<State[name]> } {
       throw new Error('TODO');
     },
-    toValue(x: { [name in keyof State]: StateElementInstance<State[name]> }): {
-      [name in keyof State]: StateElementInstance<State[name]>;
+    toValue(x: { [name in keyof State]: ProvableInstance<State[name]> }): {
+      [name in keyof State]: ProvableInstance<State[name]>;
     } {
       return x;
     },
     fromValue(x: {
-      [name in keyof State]: StateElementInstance<State[name]>;
-    }): { [name in keyof State]: StateElementInstance<State[name]> } {
+      [name in keyof State]: ProvableInstance<State[name]>;
+    }): { [name in keyof State]: ProvableInstance<State[name]> } {
       return x;
     },
     check(_x: {
-      [name in keyof State]: StateElementInstance<State[name]>;
+      [name in keyof State]: ProvableInstance<State[name]>;
     }): void {
       throw new Error('TODO');
     },
@@ -216,7 +222,7 @@ export type StatePreconditions<State extends StateLayout> =
     ? GenericStatePreconditions
     : {
         [name in keyof State]: Precondition.Equals<
-          StateElementInstance<State[name]>
+          ProvableInstance<State[name]>
         >;
       };
 
@@ -246,7 +252,7 @@ export const StatePreconditions = {
         Layout: CustomStateLayout,
         preconditions: {
           [name in keyof State]: Precondition.Equals<
-            StateElementInstance<State[name]>
+            ProvableInstance<State[name]>
           >;
         }
       ) => {
@@ -333,8 +339,8 @@ export type StateUpdates<State extends StateLayout> =
     ? GenericStateUpdates
     : {
         [name in keyof State]?:
-          | StateElementInstance<State[name]>
-          | Update<StateElementInstance<State[name]>>;
+          | ProvableInstance<State[name]>
+          | Update<ProvableInstance<State[name]>>;
       };
 
 export const StateUpdates = {
@@ -373,13 +379,13 @@ export const StateUpdates = {
         Layout: CustomStateLayout,
         updates: {
           [name in keyof State]?:
-            | StateElementInstance<State[name]>
-            | Update<StateElementInstance<State[name]>>;
+            | ProvableInstance<State[name]>
+            | Update<ProvableInstance<State[name]>>;
         }
       ) => {
         const entries = Object.entries(Layout) as [
           keyof State,
-          StateElement<any>
+          Provable<any>
         ][];
         const fieldUpdates = entries.flatMap(([key, T]) => {
           const update = updates[key];
@@ -447,7 +453,7 @@ export const StateUpdates = {
 export type StateValues<State extends StateLayout> =
   State extends 'GenericState'
     ? GenericStateValues
-    : { [name in keyof State]: StateElementInstance<State[name]> };
+    : { [name in keyof State]: ProvableInstance<State[name]> };
 
 export const StateValues = {
   empty<State extends StateLayout>(
@@ -471,11 +477,11 @@ export const StateValues = {
       (x: GenericStateValues) => x as StateValues<'GenericState'>,
       (
         Layout: CustomStateLayout,
-        updates: { [name in keyof State]?: StateElementInstance<State[name]> }
+        updates: { [name in keyof State]?: ProvableInstance<State[name]> }
       ) => {
         const entries = Object.entries(Layout) as [
           keyof State,
-          StateElement<any>
+          Provable<any>
         ][];
         const fieldValues = entries.flatMap(([key, T]) => {
           const value = updates[key];
@@ -579,7 +585,7 @@ export const StateValues = {
         Layout,
         values,
         state
-      ): { [name in keyof State]: StateElementInstance<State[name]> } => {
+      ): { [name in keyof State]: ProvableInstance<State[name]> } => {
         throw new Error('no');
       }
     );
@@ -588,7 +594,7 @@ export const StateValues = {
 
 export type StateMask<State extends StateLayout> = State extends 'GenericState'
   ? GenericStateMask
-  : { [name in keyof State]?: StateElementInstance<State[name]> };
+  : { [name in keyof State]?: ProvableInstance<State[name]> };
 
 export const StateMask = {
   create<State extends StateLayout>(
@@ -619,14 +625,14 @@ export const StateReader = {
       return new GenericStateReader(values, mask) as StateReader<State>;
     } else {
       const values = stateValues as Unconstrained<{
-        [name in keyof State]: StateElementInstance<State[name]>;
+        [name in keyof State]: ProvableInstance<State[name]>;
       }>;
       const mask = stateMask as Unconstrained<{
-        [name in keyof State]?: StateElementInstance<State[name]>;
+        [name in keyof State]?: ProvableInstance<State[name]>;
       }>;
       return CustomStateLayout.project(
         State.Layout,
-        (key, T) => (): StateElementInstance<typeof T> => {
+        (key, T) => (): ProvableInstance<typeof T> => {
           return Provable.witness(T, () => {
             const value = values.get()[key as keyof State];
             mask.get()[key as keyof State] = value;
