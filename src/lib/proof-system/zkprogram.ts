@@ -817,8 +817,6 @@ function ZkProgram<
         getPreviousProofsForProver(args, methodIntfs[i])
       );
 
-      if (publicInputAux) {
-      }
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
@@ -1543,6 +1541,7 @@ function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
 function fromFieldVars<T>(type: Provable<T>, fields: MlFieldArray) {
   return type.fromFields(MlFieldArray.from(fields), []);
 }
+
 function toFieldVars<T>(type: ProvablePure<T>, value: T) {
   return MlFieldArray.to(type.toFields(value));
 }
