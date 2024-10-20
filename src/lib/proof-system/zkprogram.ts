@@ -809,10 +809,6 @@ function ZkProgram<
         publicInputFields = toFieldConsts(publicInputType, publicInput);
       }
 
-      console.log(
-        'publicInputAux after calling toFieldAndAuxConsts',
-        publicInputAux
-      );
       let previousProofs = MlArray.to(
         getPreviousProofsForProver(args, methodIntfs[i])
       );
@@ -840,8 +836,8 @@ function ZkProgram<
 
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
-      if (publicInputAuxExists) {
-        console.log('if publicInputAux', publicInputAux);
+      if (publicInputAux) {
+        publicInputAux = programState.getAuxilaryInput();
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields,
