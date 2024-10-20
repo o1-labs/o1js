@@ -1540,7 +1540,7 @@ function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
   ) as any as 0 | 1 | 2;
 }
 
-function fromFieldVars<T>(type: any, fields: MlFieldArray) {
+function fromFieldVars<T>(type: Provable<T>, fields: MlFieldArray) {
   return type.fromFields(MlFieldArray.from(fields));
 }
 function toFieldVars<T>(type: ProvablePure<T>, value: T) {
