@@ -840,7 +840,7 @@ function ZkProgram<
 
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
-      if (publicInputAux) {
+      if (publicInputAuxExists) {
         console.log('if publicInputAux', publicInputAux);
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
