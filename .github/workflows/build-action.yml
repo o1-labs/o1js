@@ -117,7 +117,7 @@ jobs:
       matrix:
         chunk: [1, 2, 3, 4, 5, 6, 7, 8, 9 , 10, 11,12,13,14,15,16]
         perf: [prof, heap, cpu, all]
-        # TODO : node_version: [18,20,22]
+        node_version: [18,20,22]
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -128,7 +128,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          # FIXME change to use matrix 
+          node-version: ${{ matrix.node_version }}
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -142,7 +143,7 @@ jobs:
       - name: Prepare for tests
         run: touch profiling.md
       - name: create dir
-        run: mkdir -p tests/report/profile-data
+        run: mkdir -p tests/profile/profile-data
         #- name: create dirs
 
       - name: Run unit tests
@@ -154,7 +155,7 @@ jobs:
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"
-          export OUTPATH="tests/report/profile-data-${CHUNK}"
+          export OUTPATH="tests/profile/profile-data-${CHUNK}-${{ matrix.perf }}"
           mkdir -p "${OUTPATH}"
               
           if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
@@ -219,8 +220,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.chunk }}
-          path: tests/report/profile-data-${{ matrix.chunk }}
+          name: test-results-${{ matrix.chunk }}-${{ matrix.perf }}
+          path: tests/profile/profile-data-${{ matrix.chunk }}-${{ matrix.perf }}
 
       - name: Add to job summary
         if: always()
@@ -234,14 +235,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "All unit tests completed successfully"
-      - name: archive results
-        run: tar -czf profile-data.tgz tests/report/
-      - name: Upload E2E test artifacts
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: profile-data.tgz
-          path: profile-data.tgz
 
   Build-And-Test-Web:
     needs: Prepare
@@ -282,17 +275,7 @@ jobs:
           npm run e2e:prepare-server
 
       - name: Execute E2E tests
-        run: node --prof $(which npm) run test:e2e
-      - name: Execute E2E tests
-        run: node --heap-prof $(which npm) run test:e2e
-      - name: Execute E2E tests
-        run: node --cpu-prof --cpu-prof-name "e2e-tests" --cpu-prof-dir tests/report/profile-data $(which npm) run test:e2e
-      - name: move files
-        run: mv isolate-*-v8.log Heap.*.heapprofile CPU.*.cpuprofile tests/report/profile-data || echo skip errors
-
-      - name: archive results
-        run: tar -czf profile-data.tgz tests/report/profile-data
-
+        run:  npm run test:e2e
       - name: Upload E2E test artifacts
         uses: actions/upload-artifact@v4
         continue-on-error: true
@@ -300,6 +283,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: e2e-tests-report
+          # playwrite data
           path: tests/report/
           retention-days: 30
 
