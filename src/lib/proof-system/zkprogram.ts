@@ -161,12 +161,22 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
+  let auxInputCache: Map<string, any[]> = new Map();
   let methodCache: Map<string, unknown> = new Map();
-
   return {
+    setAuxilaryInput(value: any[]) {
+      auxInputCache.set('auxinput', value);
+    },
+    getAuxilaryInput: () => {
+      let entry = auxInputCache.get('auxinput');
+      if (entry === undefined) throw Error(`Auxiliary input not defined`);
+      return entry;
+    },
+
     setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
     },
+
     getAuxiliaryOutput(methodName: string): unknown {
       let entry = methodCache.get(methodName);
       if (entry === undefined)
@@ -175,6 +185,9 @@ function createProgramState() {
     },
     reset(methodName: string) {
       methodCache.delete(methodName);
+    },
+    resetAuxCache() {
+      auxInputCache.delete('auxinput');
     },
   };
 }
@@ -234,8 +247,8 @@ async function featureFlagsfromFlatMethodIntfs(
 }
 
 class ProofBase<Input, Output> {
-  static publicInputType: FlexibleProvablePure<any> = undefined as any;
-  static publicOutputType: FlexibleProvablePure<any> = undefined as any;
+  static publicInputType: FlexibleProvable<any> = undefined as any;
+  static publicOutputType: FlexibleProvable<any> = undefined as any;
   static tag: () => { name: string } = () => {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
@@ -558,8 +571,8 @@ let SideloadedTag = {
 
 function ZkProgram<
   Config extends {
-    publicInput?: ProvableTypePure;
-    publicOutput?: ProvableTypePure;
+    publicInput?: ProvableType;
+    publicOutput?: ProvableType;
     methods: {
       [I in string]: {
         privateInputs: Tuple<PrivateInput>;
@@ -635,10 +648,10 @@ function ZkProgram<
   let doProving = true;
 
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = ProvableType.get(
+  let publicInputType: Provable<any> = ProvableType.get(
     config.publicInput ?? Undefined
   );
-  let publicOutputType: ProvablePure<any> = ProvableType.get(
+  let publicOutputType: Provable<any> = ProvableType.get(
     config.publicOutput ?? Void
   );
 
@@ -778,7 +791,24 @@ function ZkProgram<
             `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
-      let publicInputFields = toFieldConsts(publicInputType, publicInput);
+
+      let publicInputAuxExists =
+        publicInputType.toAuxiliary(publicInput).length !== 0;
+
+      let publicInputFields, publicInputAux;
+      if (publicInputAuxExists) {
+        // serialize publicInput into pure provable field elements and auxilary data
+        ({ publicInputFields, publicInputAux } = toFieldAndAuxConsts(
+          publicInputType,
+          publicInput
+        ));
+
+        // store publicInput auxilary data in programState cache
+        programState.setAuxilaryInput(publicInputAux);
+      } else {
+        publicInputFields = toFieldConsts(publicInputType, publicInput);
+      }
+
       let previousProofs = MlArray.to(
         getPreviousProofsForProver(args, methodIntfs[i])
       );
@@ -804,8 +834,24 @@ function ZkProgram<
         programState.reset(methodIntfs[i].methodName);
       }
 
+      let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
-      let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
+      if (publicInputAuxExists) {
+        publicInputAux = programState.getAuxilaryInput();
+        publicOutput = fromFieldAndAuxConsts(
+          publicOutputType,
+          publicOutputFields,
+          publicInputAux
+        );
+
+        programState.resetAuxCache();
+      } else {
+        // create public output when public input is pure
+        publicOutput = fromFieldAndAuxConsts(
+          publicOutputType,
+          publicOutputFields
+        );
+      }
 
       return {
         proof: new ProgramProof({
@@ -1062,8 +1108,8 @@ async function compileProgram({
   overrideWrapDomain,
   state,
 }: {
-  publicInputType: ProvablePure<any>;
-  publicOutputType: ProvablePure<any>;
+  publicInputType: Provable<any>;
+  publicOutputType: Provable<any>;
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => unknown)[];
   gates: Gate[][];
@@ -1175,7 +1221,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
 }
 
 function analyzeMethod(
-  publicInputType: ProvablePure<any>,
+  publicInputType: Provable<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => unknown
 ) {
@@ -1203,8 +1249,8 @@ function inCircuitVkHash(inCircuitVk: unknown): Field {
 }
 
 function picklesRuleFromFunction(
-  publicInputType: ProvablePure<unknown>,
-  publicOutputType: ProvablePure<unknown>,
+  publicInputType: Provable<unknown>,
+  publicOutputType: Provable<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
   {
@@ -1299,7 +1345,7 @@ function picklesRuleFromFunction(
       Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
     });
 
-    // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
+    // if the output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput
       ? publicOutputType.toFields(result.publicOutput)
@@ -1487,18 +1533,35 @@ function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
   ) as any as 0 | 1 | 2;
 }
 
-function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {
-  return type.fromFields(MlFieldArray.from(fields));
+function fromFieldVars<T>(type: Provable<T>, fields: MlFieldArray) {
+  return type.fromFields(MlFieldArray.from(fields), []);
 }
+
 function toFieldVars<T>(type: ProvablePure<T>, value: T) {
   return MlFieldArray.to(type.toFields(value));
 }
 
-function fromFieldConsts<T>(type: ProvablePure<T>, fields: MlFieldConstArray) {
+function fromFieldConsts<T>(type: any, fields: MlFieldConstArray) {
   return type.fromFields(MlFieldConstArray.from(fields));
 }
-function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
+
+function fromFieldAndAuxConsts<T>(
+  type: Provable<T>,
+  fields: MlFieldConstArray,
+  aux: any[] = []
+) {
+  return type.fromFields(MlFieldConstArray.from(fields), aux);
+}
+
+function toFieldConsts<T>(type: Provable<T>, value: T) {
   return MlFieldConstArray.to(type.toFields(value));
+}
+
+function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
+  return {
+    publicInputFields: MlFieldConstArray.to(type.toFields(value)),
+    publicInputAux: type.toAuxiliary(value),
+  };
 }
 
 ZkProgram.Proof = function <
