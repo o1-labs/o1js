@@ -17,6 +17,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
 
+## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...f15293a69) - 2024-10-15
+
 ### Fixes
 
 - Performance regression when compiling recursive circuits is fixed https://github.com/o1-labs/o1js/pull/1874
