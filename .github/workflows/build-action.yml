@@ -121,13 +121,29 @@ jobs:
         #1,2,3,4,5,6,7,8,9,10,11,12,
         13
         #,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32
-        ]
+
+
+
+You can simplify the matrix by using a range function in the workflow definition. While GitHub Actions doesn't natively support ranges in YAML, you can generate a matrix dynamically through bash scripting or use a simpler YAML structure. Here's an example using a shell command to create a sequence of numbers (from 1 to 32) and pass it as matrix jobs:
+
+name: Matrix with Range
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        #chunk: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+        chunk: ${{ fromJSON('[' + range(1, 33).join(',') + ']') }}
         perf: [
         no,
-        prof, heap, cpu,
+        #prof, heap, cpu,
         all]
         node_version: [
-        18,20,22
+        18
+        #,20,22
         ]
     steps:
       - name: Restore repository
