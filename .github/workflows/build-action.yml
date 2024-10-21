@@ -4,6 +4,8 @@ on:
     branches:
       - main
       - develop
+      - v1
+      - v3
   pull_request:
   workflow_dispatch: {}
 
