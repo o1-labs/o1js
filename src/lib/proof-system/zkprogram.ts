@@ -165,12 +165,10 @@ function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
   return {
     setAuxilaryInput(value: any[]) {
-      console.log('setAuxilaryInput with', value);
       auxInputCache.set('auxinput', value);
     },
     getAuxilaryInput: () => {
       let entry = auxInputCache.get('auxinput');
-      console.log('getAuxilaryInput', entry);
       if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
     },
@@ -178,6 +176,7 @@ function createProgramState() {
     setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
     },
+
     getAuxiliaryOutput(methodName: string): unknown {
       let entry = methodCache.get(methodName);
       if (entry === undefined)
@@ -845,7 +844,6 @@ function ZkProgram<
           publicInputAux
         );
 
-        console.log('publicOutput after fromFieldAndAuxConsts', publicOutput);
         programState.resetAuxCache();
       } else {
         // create public output when public input is pure
