@@ -11,8 +11,8 @@ name: Version Bump
 
 on:
   workflow_dispatch: # Allow to manually trigger the workflow
-  schedule:
-    - cron: '0 0 * * 2' # At 00:00 UTC every Tuesday
+#  schedule:
+#    - cron: '0 0 * * 2' # At 00:00 UTC every Tuesday
 
 jobs:
   version-bump:

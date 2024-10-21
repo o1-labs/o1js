@@ -1,9 +1,9 @@
 name: Benchmark o1js
 on:
-  push:
-    branches:
-      - main
-      - develop
+#  push:
+#    branches:
+#      - main
+#      - develop
   pull_request:
   workflow_dispatch: {}
 

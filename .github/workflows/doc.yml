@@ -1,8 +1,9 @@
 name: o1js typedoc
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - main
 
 jobs:
   Build-Doc:

@@ -1,1 +1,4 @@
-node --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@
+node --cpu-prof --expose-gc --cpu-prof-dir tests/report/profile-data --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@
+
+node --heap-prof --expose-gc  --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@
+node --prof --expose-gc  --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@

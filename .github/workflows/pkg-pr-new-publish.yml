@@ -4,9 +4,9 @@
 
 name: Continuous releases on pkg-pr-new
 on:
-  push:
-    branches:
-      - main
+#  push:
+#    branches:
+#      - main
   workflow_dispatch: {}
 
 jobs:
