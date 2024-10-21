@@ -17,8 +17,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/7e9394...HEAD)
 
-## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
-
 ## [2.0.0](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
 
 ### Breaking Changes
@@ -45,6 +43,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `addMod64()` addition modulo 2^64
 - Bitwise OR via `{UInt32, UInt64}.or()`
 - **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+
+## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
+
+### Fixes
+
+- Performance regression when compiling recursive circuits is fixed https://github.com/o1-labs/o1js/pull/1874
+- Decouple offchain state instances from their definitions https://github.com/o1-labs/o1js/pull/1834
 
 ## [1.9.0](https://github.com/o1-labs/o1js/compare/450943...f15293a69) - 2024-10-15
 
