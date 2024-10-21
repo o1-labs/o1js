@@ -164,7 +164,7 @@ function createProgramState() {
   let auxInputCache: Map<string, any[]> = new Map();
   let methodCache: Map<string, unknown> = new Map();
   return {
-    setAuxilaryInput(value: unknown) {
+    setAuxilaryInput(value: any[]) {
       console.log('setAuxilaryInput with', value);
       auxInputCache.set('auxinput', value);
     },
