@@ -35,7 +35,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- `zkProgram` methods now support `auxiliaryOutput`. https://github.com/o1-labs/o1js/pull/1809
+- `ZkProgram` methods now support `auxiliaryOutput`. https://github.com/o1-labs/o1js/pull/1809
   - Each program method now accepts an optional property `auxiliaryOutput`
   - Auxiliary output is additional output that the zkProgram method returns
 - New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
