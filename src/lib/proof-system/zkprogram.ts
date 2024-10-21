@@ -836,7 +836,7 @@ function ZkProgram<
 
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
-      if (publicInputAux) {
+      if (publicInputAuxExists) {
         publicInputAux = programState.getAuxilaryInput();
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
