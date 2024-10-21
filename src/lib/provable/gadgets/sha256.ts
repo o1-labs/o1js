@@ -8,7 +8,6 @@ import { Bytes } from '../wrapped-classes.js';
 import { chunk } from '../../util/arrays.js';
 import { TupleN } from '../../util/types.js';
 import { divMod32 } from './arithmetic.js';
-import { bytesToWord, wordToBytes } from './bit-slices.js';
 import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';
 
@@ -70,11 +69,7 @@ function padding(data: FlexibleBytes): UInt32[][] {
   for (let i = 0; i < paddedMessage.length; i += 4) {
     // chunk 4 bytes into one UInt32, as expected by SHA256
     // bytesToWord expects little endian, so we reverse the bytes
-    chunks.push(
-      UInt32.Unsafe.fromField(
-        bytesToWord(paddedMessage.slice(i, i + 4).reverse())
-      )
-    );
+    chunks.push(UInt32.fromBytesBE(paddedMessage.slice(i, i + 4)));
   }
 
   // split message into 16 element sized message blocks
@@ -97,11 +92,11 @@ const SHA256 = {
     }
 
     // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
-    // wordToBytes expects little endian, so we reverse the bytes
-    return Bytes.from(H.map((x) => wordToBytes(x.value, 4).reverse()).flat());
+    return Bytes.from(H.map((x) => x.toBytesBE()).flat());
   },
   compression: sha256Compression,
   createMessageSchedule,
+  padding,
   get initialState() {
     return SHA256Constants.H.map((x) => UInt32.from(x));
   },
@@ -239,7 +234,7 @@ function sigma(u: UInt32, bits: TupleN<number, 3>, firstShifted = false) {
  *
  * @returns The updated intermediate hash values after compression.
  */
-function sha256Compression(H: UInt32[], W: UInt32[]) {
+function sha256Compression([...H]: UInt32[], W: UInt32[]) {
   // initialize working variables
   let a = H[0];
   let b = H[1];

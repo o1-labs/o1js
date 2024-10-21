@@ -15,19 +15,70 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/7e9394...HEAD)
+
+## [2.0.0](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
+
+### Breaking Changes
+
+- The `divMod32()` gadget was modified to accept `nBits` instead of `quotientBits`, and assert it is in the range [0, 2\*\*255) to address an issue previously where the bound on `quotientBits` was too low https://github.com/o1-labs/o1js/pull/1763.
+- `Provable.equal()` now turns both types into canonical form before comparing them https://github.com/o1-labs/o1js/pull/1759
+  - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
+- The return signature of a zkProgram has changed. https://github.com/o1-labs/o1js/pull/1809
+  - A zkProgram method must now explicitly define the return type of the method when the method has a public or auxiliary output defined.
+  - The return type of a proven method has changed as a result of this.
+- Various breaking constraint changes in internal methods or circuits because of audit fix.
+- Removal of various deprecated methods and functions.
+  - Promotion of various methods and functions to stable as part of change.
+  - A slightly modified encryption and decryption algorithm. https://github.com/o1-labs/o1js/pull/1729
+- Promotion of `TokenContractV2` to `TokenContract` with a correct amount of maximum account updates.
+
+### Added
+
+- `ZkProgram` methods now support `auxiliaryOutput`. https://github.com/o1-labs/o1js/pull/1809
+  - Each program method now accepts an optional property `auxiliaryOutput`
+  - Auxiliary output is additional output that the zkProgram method returns
+- New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
+- `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
+- `addMod64()` addition modulo 2^64
+- Bitwise OR via `{UInt32, UInt64}.or()`
+- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+
+## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
+
+### Fixes
+
+- Performance regression when compiling recursive circuits is fixed https://github.com/o1-labs/o1js/pull/1874
+- Decouple offchain state instances from their definitions https://github.com/o1-labs/o1js/pull/1834
+
+## [1.9.0](https://github.com/o1-labs/o1js/compare/450943...f15293a69) - 2024-10-15
+
+### Added
+
+- Added `VerificationKey.dummy()` method to get the dummy value of a verification key https://github.com/o1-labs/o1js/pull/1852 [@rpanic](https://github.com/rpanic)
+
+### Changed
+
+- Make `Proof` a normal provable type, that can be witnessed and composed into Structs https://github.com/o1-labs/o1js/pull/1847, https://github.com/o1-labs/o1js/pull/1851
+  - ZkProgram and SmartContract now also support private inputs that are not proofs themselves, but contain proofs nested within a Struct or array
+  - Only `SelfProof` can still not be nested because it needs special treatment
+
+### Fixes
+
+- Fix verification of serialized proofs done before compiling any circuits https://github.com/o1-labs/o1js/pull/1857
 
 ## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
 
 ### Added
 
-- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard. https://github.com/o1-labs/o1js/pull/1815
   - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
   - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
 
 ### Fixes
 
-- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()` https://github.com/o1-labs/o1js/pull/1827
+- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()`. https://github.com/o1-labs/o1js/pull/1827
+- Fix incorrect behavior of `state.fetch()` for custom token contracts. [@rpanic](https://github.com/rpanic) https://github.com/o1-labs/o1js/pull/1853
 
 ## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
 
