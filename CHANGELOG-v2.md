@@ -30,11 +30,11 @@ Showing all changes since the last release (v.1.5.0)
 
   - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
 
-- `zkProgram` to support `auxiliaryOutput`
+- `ZkProgram` to support `auxiliaryOutput`
 
 ### Added
 
--`zkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
+-`ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
 
 - New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
 - `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
