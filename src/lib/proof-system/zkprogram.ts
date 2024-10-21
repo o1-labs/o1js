@@ -161,7 +161,7 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
-  let auxInputCache: Map<string, unknown> = new Map();
+  let auxInputCache: Map<string, any[]> = new Map();
   let methodCache: Map<string, unknown> = new Map();
   return {
     setAuxilaryInput(value: unknown) {
