@@ -125,8 +125,8 @@ class EcdsaSignature {
    * import { Wallet } from 'ethers';
    *
    * // create the class for Secp256k1 curve
-   * class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
-   * class Ecdsa extends createEcdsaV2(Secp256k1) {}
+   * class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
+   * class Ecdsa extends createEcdsa(Secp256k1) {}
    *
    * // outside provable code: create inputs
    * let message = 'my message';

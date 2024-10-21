@@ -7,13 +7,13 @@ import { SmartContract, method } from './zkapp.js';
 
 class NestedCall extends SmartContract {
   @method async deposit() {
-    let sender = this.sender.getUnconstrainedV2();
+    let sender = this.sender.getUnconstrained();
     let payerUpdate = AccountUpdate.createSigned(sender);
     payerUpdate.send({ to: this.address, amount: UInt64.one });
   }
 
   @method async depositUsingTree() {
-    let sender = this.sender.getUnconstrainedV2();
+    let sender = this.sender.getUnconstrained();
     let payerUpdate = AccountUpdate.createSigned(sender);
     let receiverUpdate = AccountUpdate.create(this.address);
     payerUpdate.send({ to: receiverUpdate, amount: UInt64.one });

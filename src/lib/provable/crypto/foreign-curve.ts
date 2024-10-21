@@ -68,7 +68,7 @@ class ForeignCurve {
   }
 
   /**
-   * Parses a hexadecimal string representing an uncompressed elliptic curve point and coerces it into a {@link ForeignCurveV2} point.
+   * Parses a hexadecimal string representing an uncompressed elliptic curve point and coerces it into a {@link ForeignCurve} point.
    *
    * The method extracts the x and y coordinates from the provided hex string and verifies that the resulting point lies on the curve.
    *
@@ -81,7 +81,7 @@ class ForeignCurve {
    *
    * @example
    * ```ts
-   * class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+   * class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
    *
    * const publicKeyHex = '04f8b8db25c619d0c66b2dc9e97ecbafafae...'; // Example hex string for uncompressed point
    * const point = Secp256k1.fromHex(publicKeyHex);
@@ -117,7 +117,7 @@ class ForeignCurve {
   }
 
   /**
-   * Create a new {@link ForeignCurveV2} instance from an Ethereum public key in hex format, which may be either compressed or uncompressed.
+   * Create a new {@link ForeignCurve} instance from an Ethereum public key in hex format, which may be either compressed or uncompressed.
    * This method is designed to handle the parsing of public keys as used by the ethers.js library.
    *
    * The input should represent the affine x and y coordinates of the point, in hexadecimal format.
@@ -130,7 +130,7 @@ class ForeignCurve {
    * ```ts
    * import { Wallet, Signature, getBytes } from 'ethers';
    *
-   * class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+   * class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
    *
    * const wallet = Wallet.createRandom();
    *
