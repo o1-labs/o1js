@@ -171,6 +171,7 @@ function createProgramState() {
     getAuxilaryInput: () => {
       let entry = auxInputCache.get('auxinput');
       console.log('getAuxilaryInput', entry);
+      if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
     },
 
@@ -1346,7 +1347,7 @@ function picklesRuleFromFunction(
       Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
     });
 
-    // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
+    // if the output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
     let publicOutput = hasPublicOutput
       ? publicOutputType.toFields(result.publicOutput)
