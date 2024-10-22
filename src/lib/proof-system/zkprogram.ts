@@ -1561,7 +1561,7 @@ function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
 }
 
 ZkProgram.Proof = function <
-  PublicInputType extends FlexibleProvablePure<any>,
+  PublicInputType extends FlexibleProvable<any>,
   PublicOutputType extends FlexibleProvablePure<any>
 >(program: {
   name: string;
