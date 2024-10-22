@@ -186,7 +186,7 @@ function createProgramState() {
     reset(methodName: string) {
       methodCache.delete(methodName);
     },
-    resetAuxCache() {
+    resetNonPureDataCache() {
       nonPureDataCache.delete('auxinput');
     },
   };
@@ -844,7 +844,7 @@ function ZkProgram<
           publicInputAux
         );
 
-        programState.resetAuxCache();
+        programState.resetNonPureDataCache();
       } else {
         // create public output when public input is pure
         publicOutput = fromFieldAndAuxConsts(
