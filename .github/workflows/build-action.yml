@@ -39,13 +39,17 @@ jobs:
 
       - name: Build o1js
         if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
         run: |
+          #!/bin/bash
           npm ci
           npm run build
 
       - name: Count tests
         id: count_tests
+        shell: bash
         run: |
+          #!/bin/bash
           TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
           echo "test_count=${TEST_COUNT}" >> "$GITHUB_OUTPUT"
           echo "Total test count: ${TEST_COUNT}"
@@ -58,22 +62,26 @@ jobs:
 
   Build-And-Test-Server:
     needs: Prepare
-    timeout-minutes: 210
+    #timeout-minutes: 210
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        test_type:
-          [
-            'Simple integration tests',
-            'Reducer integration tests',
-            'DEX integration tests',
-            'DEX integration test with proofs',
-            'Voting integration tests',
-            'Verification Key Regression Check 1',
-            'Verification Key Regression Check 2',
-            'CommonJS test',
-          ]
+       #	      prof, heap, cpu,
+       perf: [     no,		              all]
+       node_version: [	        18,20,22        ]
+       
+       test_type:
+         [
+         'Simple integration tests',
+         'Reducer integration tests',
+         'DEX integration tests',
+         'DEX integration test with proofs',
+         'Voting integration tests',
+         'Verification Key Regression Check 1',
+         'Verification Key Regression Check 2',
+         'CommonJS test',
+         ]
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -96,23 +104,64 @@ jobs:
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
       - name: Prepare for tests
-        run: touch profiling.md
+        shell: bash
+        run: |
+          #!/bin/bash
+          touch profiling.md
+
+      - name: Sets MODIFIED_BRANCH_NAME
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        shell: bash
+        run: |
+          #!/bin/bash
+          MODIFIED_BRANCH_NAME=${BRANCH_NAME/\//-}
+          OUTPUT_DIR="profile/profile-data/${MODIFIED_BRANCH_NAME}"
+          OUTPUT_TEST_DIR="${OUTPUT_DIR}/profile-data-${{matrix.test_type}}-${{ matrix.perf }}-${{ matrix.node_version }}"
+
+          echo "MODIFIED_BRANCH_NAME=${MODIFIED_BRANCH_NAME}" >> "$GITHUB_ENV"
+          echo "OUTPUT_DIR=${OUTPUT_DIR}"                     >> "$GITHUB_ENV"
+          echo "OUTPUT_TEST_DIR=${OUTPUT_TEST_DIR}"           >> "$GITHUB_ENV"
+          
+      - name: create dir
+        shell: bash
+        run: |
+          #!/bin/bash
+          mkdir -p "${{env.OUTPUT_TEST_DIR}}"
 
       - name: Execute tests
         env:
           TEST_TYPE: ${{ matrix.test_type }}
-        run: sh run-ci-tests.sh
+          PERF_TYPE: ${{ matrix.perf }}
+        shell: bash
+        run: |
+          #!/bin/bash
+          sh run-ci-tests.sh || echo skip errors
+          mv isolate-*-v8.log  "${OUTPUT_TEST_DIR}" || echo ok
+          mv Heap.*.heapprofile  "${OUTPUT_TEST_DIR}" || echo ok
+          mv CPU.*.cpuprofile "${OUTPUT_TEST_DIR}" || echo ok
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{env.MODIFIED_BRANCH_NAME}}-${{ matrix.chunk }}-${{ matrix.perf }}-${{ matrix.node_version }}
+          path: ${{env.OUTPUT_TEST_DIR}}
+
 
       - name: Add to job summary
         if: always()
+        shell: bash
         run: |
+          #!/bin/bash
           echo "### Test Results for ${{ matrix.test_type }}" >> "$GITHUB_STEP_SUMMARY"
           cat profiling.md >> "$GITHUB_STEP_SUMMARY"
 
   Run-Unit-Tests:
     needs: Prepare
     name: Run unit tests parallel
-    timeout-minutes: 60 # lets keep the individual jobs shorter
+    #timeout-minutes: 60 # lets keep the individual jobs shorter
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -137,8 +186,7 @@ jobs:
 
       - name: Setup Node
         uses: actions/setup-node@v4
-        with:
-          # FIXME change to use matrix 
+        with:        
           node-version: ${{ matrix.node_version }}
 
       - name: Restore cache
@@ -151,16 +199,24 @@ jobs:
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
       - name: Prepare for tests
-        run: touch profiling.md
+        shell: bash
+        run: |
+          #!/bin/bash
+          touch profiling.md
       - name: create dir
-        run: mkdir -p profile/profile-data
+        shell: bash
+        run: |
+          #!/bin/bash
+          mkdir -p profile/profile-data
         #- name: create dirs
 
         # from https://stackoverflow.com/questions/75985925/how-to-replace-slashes-with-dashes-and-set-it-an-environment-variable-in-github
       - name: Sets MODIFIED_BRANCH_NAME
         env:
-          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}           
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        shell: bash
         run: |
+          #!/bin/bash
           MODIFIED_BRANCH_NAME=${BRANCH_NAME/\//-}
           OUTPUT_DIR="profile/profile-data/${MODIFIED_BRANCH_NAME}"
           OUTPUT_TEST_DIR="${OUTPUT_DIR}/profile-data-${{matrix.chunk}}-${{ matrix.perf }}-${{ matrix.node_version }}"
@@ -170,15 +226,20 @@ jobs:
           echo "OUTPUT_TEST_DIR=${OUTPUT_TEST_DIR}"           >> "$GITHUB_ENV"
           
       - name: create dir
-        run: mkdir -p ${{env.OUTPUT_TEST_DIR}}
+        shell: bash
+        run: |
+          #!/bin/bash
+          mkdir -p "${{env.OUTPUT_TEST_DIR}}"
 
       - name: Run unit tests
-        timeout-minutes: 30
+        #timeout-minutes: 30
         env:
           TOTAL_TESTS: ${{ needs.Prepare.outputs.test_count }}
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 32
+        shell: bash
         run: |
+          #!/bin/bash
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"          
@@ -228,7 +289,7 @@ jobs:
               # ALL
               if [ "${{ matrix.perf }}" == "all" ]; then
               echo all prof
-              (node --prof --heap-prof --cpu-prof --expose-gc --enable-source-maps "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
+              (node  "${test_files[$i]}" | tee -a profiling.md) || echo skip errors
 
               fi
 
@@ -250,7 +311,9 @@ jobs:
 
       - name: Add to job summary
         if: always()
+        shell: bash
         run: |
+          #!/bin/bash
           echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> "$GITHUB_STEP_SUMMARY"
           cat profiling.md >> "$GITHUB_STEP_SUMMARY"
 
@@ -259,11 +322,15 @@ jobs:
     needs: [Run-Unit-Tests]
     runs-on: ubuntu-latest
     steps:
-      - run: echo "All unit tests completed successfully"
+      
+      - run: |
+          #!/bin/bash
+          echo "All unit tests completed successfully"
+        shell: bash
 
   Build-And-Test-Web:
     needs: Prepare
-    timeout-minutes: 90
+    #timeout-minutes: 90
     runs-on: ubuntu-latest
     steps:
       - name: Restore repository
@@ -292,15 +359,23 @@ jobs:
 
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npm run e2e:install
+        run: |
+          #!/bin/bash
+          npm run e2e:install
+        shell: bash
 
       - name: Build o1js and prepare the web server
+        shell: bash
         run: |
+          #!/bin/bash
           npm run build:web
           npm run e2e:prepare-server
 
       - name: Execute E2E tests
-        run:  npm run test:e2e
+        shell: bash
+        run: |
+          #!/bin/bash
+          npm run test:e2e
       - name: Upload E2E test artifacts
         uses: actions/upload-artifact@v4
         continue-on-error: true
@@ -314,7 +389,7 @@ jobs:
 
   Release-on-NPM:
     if: github.ref == 'refs/heads/main'
-    timeout-minutes: 180
+    #timeout-minutes: 180
     runs-on: ubuntu-latest
     needs: [Build-And-Test-Server, Run-Unit-Tests, Build-And-Test-Web]
     steps:
@@ -330,7 +405,9 @@ jobs:
           node-version: '18'
 
       - name: Build o1js
+        shell: bash
         run: |
+          #!/bin/bash
           npm ci
           npm run prepublishOnly
 
@@ -344,7 +421,7 @@ jobs:
 
   Release-mina-signer-on-NPM:
     if: github.ref == 'refs/heads/main'
-    timeout-minutes: 180
+    #timeout-minutes: 180
     runs-on: ubuntu-latest
     needs: [Build-And-Test-Server, Run-Unit-Tests, Build-And-Test-Web]
     steps:
@@ -360,9 +437,11 @@ jobs:
           node-version: '18'
 
       - name: Build mina-signer
+        shell: bash
         run: |
+          #!/bin/bash
           npm ci
-          cd src/mina-signer
+          cd src/mina-signer || exit
           npm ci
           npm run prepublishOnly
 

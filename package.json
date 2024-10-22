@@ -99,11 +99,14 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@opentelemetry/auto-instrumentations-node": "^0.51.0",
+    "@opentelemetry/sdk-node": "^0.53.0",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
     "isomorphic-fetch": "^3.0.0",
     "js-sha256": "^0.9.0",
     "reflect-metadata": "^0.1.13",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "wasm-trace": "^0.1.6"
   }
 }
