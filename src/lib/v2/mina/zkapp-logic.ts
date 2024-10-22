@@ -328,10 +328,7 @@ function applyUpdates<State extends StateLayout, Event, Action>(
 
   let actualBalanceChange: Int64 = update.balanceChange;
 
-  if (
-    account.accountId.tokenId.equals(TokenId.MINA).toBoolean() &&
-    account.isNew.get()
-  ) {
+  if (account.isNew.get()) {
     const accountCreationFee = Int64.create(
       ACCOUNT_CREATION_FEE,
       Sign.minusOne
@@ -430,7 +427,7 @@ export function checkAccountTiming<State extends StateLayout>(
   errors: Error[]
 ): void {
   const minimumBalance = account.timing.minimumBalanceAtSlot(globalSlot);
-  if (account.balance.lessThan(minimumBalance).toBoolean())
+  if (account.balance.greaterThanOrEqual(minimumBalance).toBoolean())
     errors.push(
       new Error(
         'account has an insufficient minimum balance after applying update'
