@@ -161,14 +161,14 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
-  let auxInputCache: Map<string, any[]> = new Map();
+  let nonPureDataCache: Map<string, any[]> = new Map();
   let methodCache: Map<string, unknown> = new Map();
   return {
     setAuxilaryInput(value: any[]) {
-      auxInputCache.set('auxinput', value);
+      nonPureDataCache.set('auxinput', value);
     },
     getAuxilaryInput: () => {
-      let entry = auxInputCache.get('auxinput');
+      let entry = nonPureDataCache.get('auxinput');
       if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
     },
@@ -187,7 +187,7 @@ function createProgramState() {
       methodCache.delete(methodName);
     },
     resetAuxCache() {
-      auxInputCache.delete('auxinput');
+      nonPureDataCache.delete('auxinput');
     },
   };
 }
