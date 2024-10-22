@@ -172,6 +172,9 @@ function createProgramState() {
       if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
     },
+    setNonPureOutput(value: any[]) {
+      nonPureDataCache.set('nonPureOutput', value);
+    },
 
     setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
