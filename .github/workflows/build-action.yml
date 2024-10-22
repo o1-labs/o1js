@@ -39,7 +39,6 @@ jobs:
 
       - name: Build o1js
         if: steps.cache.outputs.cache-hit != 'true'
-        shell: bash
         run: |
           #!/bin/bash
           npm ci
@@ -47,7 +46,6 @@ jobs:
 
       - name: Count tests
         id: count_tests
-        shell: bash
         run: |
           #!/bin/bash
           TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
@@ -104,7 +102,6 @@ jobs:
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
       - name: Prepare for tests
-        shell: bash
         run: |
           #!/bin/bash
           touch profiling.md
@@ -112,19 +109,21 @@ jobs:
       - name: Sets MODIFIED_BRANCH_NAME
         env:
           BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-        shell: bash
+          TEST_TYPE: ${{ matrix.test_type }}
         run: |
           #!/bin/bash
           MODIFIED_BRANCH_NAME=${BRANCH_NAME/\//-}
+          MODIFIED_TEST_TYPE=${TEST_TYPE/\//-}
           OUTPUT_DIR="profile/profile-data/${MODIFIED_BRANCH_NAME}"
-          OUTPUT_TEST_DIR="${OUTPUT_DIR}/profile-data-${{matrix.test_type}}-${{ matrix.perf }}-${{ matrix.node_version }}"
+          OUTPUT_TEST_DIR="${OUTPUT_DIR}/profile-data-${MODIFIED_TEST_TYPE}-${{ matrix.perf }}-${{ matrix.node_version }}"
+          OUTPUT_TEST_NAME="profile-data-${MODIFIED_TEST_TYPE}-${{ matrix.perf }}-${{ matrix.node_version }}"
 
           echo "MODIFIED_BRANCH_NAME=${MODIFIED_BRANCH_NAME}" >> "$GITHUB_ENV"
           echo "OUTPUT_DIR=${OUTPUT_DIR}"                     >> "$GITHUB_ENV"
           echo "OUTPUT_TEST_DIR=${OUTPUT_TEST_DIR}"           >> "$GITHUB_ENV"
+          echo "OUTPUT_TEST_NAME=${OUTPUT_TEST_NAME}"           >> "$GITHUB_ENV"
           
       - name: create dir
-        shell: bash
         run: |
           #!/bin/bash
           mkdir -p "${{env.OUTPUT_TEST_DIR}}"
@@ -133,26 +132,24 @@ jobs:
         env:
           TEST_TYPE: ${{ matrix.test_type }}
           PERF_TYPE: ${{ matrix.perf }}
-        shell: bash
         run: |
           #!/bin/bash
           sh run-ci-tests.sh || echo skip errors
           mv isolate-*-v8.log  "${OUTPUT_TEST_DIR}" || echo ok
           mv Heap.*.heapprofile  "${OUTPUT_TEST_DIR}" || echo ok
           mv CPU.*.cpuprofile "${OUTPUT_TEST_DIR}" || echo ok
+          find -name \*log
         continue-on-error: true
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{env.MODIFIED_BRANCH_NAME}}-${{ matrix.chunk }}-${{ matrix.perf }}-${{ matrix.node_version }}
+          name: test-results-${{env.OUTPUT_TEST_NAME}}
           path: ${{env.OUTPUT_TEST_DIR}}
-
 
       - name: Add to job summary
         if: always()
-        shell: bash
         run: |
           #!/bin/bash
           echo "### Test Results for ${{ matrix.test_type }}" >> "$GITHUB_STEP_SUMMARY"
@@ -199,12 +196,10 @@ jobs:
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
       - name: Prepare for tests
-        shell: bash
         run: |
           #!/bin/bash
           touch profiling.md
       - name: create dir
-        shell: bash
         run: |
           #!/bin/bash
           mkdir -p profile/profile-data
@@ -214,10 +209,10 @@ jobs:
       - name: Sets MODIFIED_BRANCH_NAME
         env:
           BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-        shell: bash
         run: |
           #!/bin/bash
           MODIFIED_BRANCH_NAME=${BRANCH_NAME/\//-}
+
           OUTPUT_DIR="profile/profile-data/${MODIFIED_BRANCH_NAME}"
           OUTPUT_TEST_DIR="${OUTPUT_DIR}/profile-data-${{matrix.chunk}}-${{ matrix.perf }}-${{ matrix.node_version }}"
 
@@ -226,7 +221,6 @@ jobs:
           echo "OUTPUT_TEST_DIR=${OUTPUT_TEST_DIR}"           >> "$GITHUB_ENV"
           
       - name: create dir
-        shell: bash
         run: |
           #!/bin/bash
           mkdir -p "${{env.OUTPUT_TEST_DIR}}"
@@ -237,7 +231,6 @@ jobs:
           TOTAL_TESTS: ${{ needs.Prepare.outputs.test_count }}
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 32
-        shell: bash
         run: |
           #!/bin/bash
           echo "Total tests: $TOTAL_TESTS"
@@ -311,7 +304,6 @@ jobs:
 
       - name: Add to job summary
         if: always()
-        shell: bash
         run: |
           #!/bin/bash
           echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> "$GITHUB_STEP_SUMMARY"
@@ -326,7 +318,6 @@ jobs:
       - run: |
           #!/bin/bash
           echo "All unit tests completed successfully"
-        shell: bash
 
   Build-And-Test-Web:
     needs: Prepare
@@ -362,17 +353,17 @@ jobs:
         run: |
           #!/bin/bash
           npm run e2e:install
-        shell: bash
+
 
       - name: Build o1js and prepare the web server
-        shell: bash
+
         run: |
           #!/bin/bash
           npm run build:web
           npm run e2e:prepare-server
 
       - name: Execute E2E tests
-        shell: bash
+
         run: |
           #!/bin/bash
           npm run test:e2e
@@ -405,7 +396,6 @@ jobs:
           node-version: '18'
 
       - name: Build o1js
-        shell: bash
         run: |
           #!/bin/bash
           npm ci
@@ -437,7 +427,6 @@ jobs:
           node-version: '18'
 
       - name: Build mina-signer
-        shell: bash
         run: |
           #!/bin/bash
           npm ci
