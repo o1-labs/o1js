@@ -164,7 +164,7 @@ function createProgramState() {
   let nonPureDataCache: Map<string, any[]> = new Map();
   let methodCache: Map<string, unknown> = new Map();
   return {
-    setAuxilaryInput(value: any[]) {
+    setNonPureInput(value: any[]) {
       nonPureDataCache.set('auxinput', value);
     },
     getNonPureInput: () => {
@@ -804,7 +804,7 @@ function ZkProgram<
         ));
 
         // store publicInput auxilary data in programState cache
-        programState.setAuxilaryInput(publicInputAux);
+        programState.setNonPureInput(publicInputAux);
       } else {
         publicInputFields = toFieldConsts(publicInputType, publicInput);
       }
