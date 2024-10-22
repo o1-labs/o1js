@@ -1,5 +1,23 @@
 #!/usr/bin/env bash
 set -e
+export PERF_FLAGS=" --expose-gc --enable-source-maps"
+case $PERF_TYPE in
+    "no")
+	export PERF_FLAGS="${PERF_FLAGS}"
+    ;;
+    "all")
+	export PERF_FLAGS="${PERF_FLAGS} --prof --heap-prof --cpu-prof"
+	;;
+    "cpu")
+	export PERF_FLAGS="${PERF_FLAGS} --cpu-prof"
+    ;;
+    "prof")
+	export PERF_FLAGS="${PERF_FLAGS} --prof"
+    ;;
+    "heap")
+	export PERF_FLAGS="${PERF_FLAGS} --heap-prof"
+	;;
+esac
 
 case $TEST_TYPE in
 "Simple integration tests")

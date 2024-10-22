@@ -1,1 +1,3 @@
-node --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@
+# just run one time
+node --prof --cpu-prof --heap-prof --expose-gc  --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@
+

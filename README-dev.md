@@ -227,3 +227,16 @@ To facilitate this process, use the provided script named `run-debug`. To use th
 This script initializes a Node.js process with the `--inspect-brk` flag that starts the Node.js inspector and breaks before the user script starts (i.e., it pauses execution until a debugger is attached). The `--enable-source-maps` flag ensures that source maps are used to allow easy debugging of o1js code directly.
 
 After the Node.js process is running, open the Chrome browser and navigate to `chrome://inspect` to attach the Chrome Debugger to the Node.js process. You can set breakpoints, inspect variables, and profile the performance of your zkApp or o1js. For more information on using the Chrome Debugger, see the [DevTools documentation](https://developer.chrome.com/docs/devtools/).
+
+# Profiling
+
+## Github Actions
+
+### Build o1js
+Source .github/workflows/build-action.yml
+
+#### Feature Matrix
+
+prof :
+node : 
+test :

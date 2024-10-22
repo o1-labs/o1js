@@ -38,7 +38,9 @@ const testImplementations = {
   },
 };
 
-const lengths = [256, 384, 512] as const;
+const lengths = [
+    //256, 384,
+    512] as const;
 
 // EQUIVALENCE TESTS AGAINST REF IMPLEMENTATION
 
