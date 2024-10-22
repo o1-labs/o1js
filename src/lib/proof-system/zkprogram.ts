@@ -167,7 +167,7 @@ function createProgramState() {
     setAuxilaryInput(value: any[]) {
       nonPureDataCache.set('auxinput', value);
     },
-    getAuxilaryInput: () => {
+    getNonPureInput: () => {
       let entry = nonPureDataCache.get('auxinput');
       if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
@@ -837,7 +837,7 @@ function ZkProgram<
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
       if (publicInputAuxExists) {
-        publicInputAux = programState.getAuxilaryInput();
+        publicInputAux = programState.getNonPureInput();
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields,
