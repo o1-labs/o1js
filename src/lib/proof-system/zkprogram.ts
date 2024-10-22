@@ -175,7 +175,11 @@ function createProgramState() {
     setNonPureOutput(value: any[]) {
       nonPureDataCache.set('nonPureOutput', value);
     },
-
+    getNonPureOutput: () => {
+      let entry = nonPureDataCache.get('nonPureOutput');
+      if (entry === undefined) throw Error(`Auxiliary output not defined`);
+      return entry;
+    },
     setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
     },
