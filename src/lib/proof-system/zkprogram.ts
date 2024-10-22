@@ -1319,6 +1319,8 @@ function picklesRuleFromFunction(
       result = (await func(input, ...finalArgs)) as any;
     }
 
+    let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
+
     proofs.forEach(({ proofInstance, classReference }) => {
       if (!(proofInstance instanceof DynamicProof)) {
         return;
