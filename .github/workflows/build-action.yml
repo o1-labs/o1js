@@ -113,7 +113,7 @@ jobs:
         run: |
           #!/bin/bash
           MODIFIED_BRANCH_NAME=${BRANCH_NAME/\//-}
-          MODIFIED_TEST_TYPE=${TEST_TYPE/\//-}
+          MODIFIED_TEST_TYPE=${TEST_TYPE//[\/ ]/-}
           OUTPUT_DIR="profile/profile-data/${MODIFIED_BRANCH_NAME}"
           OUTPUT_TEST_DIR="${OUTPUT_DIR}/profile-data-${MODIFIED_TEST_TYPE}-${{ matrix.perf }}-${{ matrix.node_version }}"
           OUTPUT_TEST_NAME="profile-data-${MODIFIED_TEST_TYPE}-${{ matrix.perf }}-${{ matrix.node_version }}"
@@ -139,6 +139,8 @@ jobs:
           mv Heap.*.heapprofile  "${OUTPUT_TEST_DIR}" || echo ok
           mv CPU.*.cpuprofile "${OUTPUT_TEST_DIR}" || echo ok
           find -name \*log
+          find -name \*.cpuprofile
+          find -name \*.heapprofile
         continue-on-error: true
 
       - name: Upload test results
