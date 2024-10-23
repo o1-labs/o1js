@@ -165,10 +165,10 @@ function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
   return {
     setNonPureInput(value: any[]) {
-      nonPureDataCache.set('auxinput', value);
+      nonPureDataCache.set('nonPureInput', value);
     },
     getNonPureInput: () => {
-      let entry = nonPureDataCache.get('auxinput');
+      let entry = nonPureDataCache.get('nonPureInput');
       if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
     },
@@ -853,7 +853,7 @@ function ZkProgram<
           publicInputAux
         );
 
-        programState.resetNonPureDataCache();
+        programState.resetNonPureDataCache('nonPureInput');
       } else {
         // create public output when public input is pure
         publicOutput = fromFieldAndAuxConsts(
