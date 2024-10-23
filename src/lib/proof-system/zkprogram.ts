@@ -800,11 +800,11 @@ function ZkProgram<
         );
       }
 
-      let publicInputAuxExists =
+      let nonPureInputExists =
         publicInputType.toAuxiliary(publicInput).length !== 0;
 
       let publicInputFields, publicInputAux;
-      if (publicInputAuxExists) {
+      if (nonPureInputExists) {
         // serialize publicInput into pure provable field elements and auxilary data
         ({ publicInputFields, publicInputAux } = toFieldAndAuxConsts(
           publicInputType,
@@ -844,7 +844,7 @@ function ZkProgram<
 
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
-      if (publicInputAuxExists) {
+      if (nonPureInputExists) {
         publicInputAux = programState.getNonPureInput();
 
         publicOutput = fromFieldAndAuxConsts(
@@ -855,7 +855,6 @@ function ZkProgram<
 
         programState.resetNonPureDataCache('nonPureInput');
       } else {
-        // create public output when public input is pure
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields
