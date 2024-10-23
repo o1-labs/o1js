@@ -180,6 +180,7 @@ function createProgramState() {
       if (entry === undefined) throw Error(`Auxiliary output not defined`);
       return entry;
     },
+
     setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
     },
@@ -193,8 +194,8 @@ function createProgramState() {
     reset(methodName: string) {
       methodCache.delete(methodName);
     },
-    resetNonPureDataCache() {
-      nonPureDataCache.delete('auxinput');
+    resetNonPureDataCache(key: string) {
+      nonPureDataCache.delete(key);
     },
   };
 }
@@ -845,6 +846,7 @@ function ZkProgram<
       let [publicOutputFields, proof] = MlPair.from(result);
       if (publicInputAuxExists) {
         publicInputAux = programState.getNonPureInput();
+
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields,
