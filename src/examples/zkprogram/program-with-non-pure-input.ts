@@ -14,6 +14,8 @@ let MyProgram = ZkProgram({
     baseCase: {
       privateInputs: [],
       async method(input: MyStruct) {
+        //update input in circuit
+        input.label = 'inCircuit';
         return {
           publicOutput: input,
         };
@@ -22,13 +24,15 @@ let MyProgram = ZkProgram({
   },
 });
 
+//
+
 console.log('compiling MyProgram...');
 await MyProgram.compile();
 console.log('compile done');
 
 let input = new MyStruct({ label: 'input', value: Field(5) });
+
 let result = await MyProgram.baseCase(input);
 let ok = await MyProgram.verify(result.proof);
 
-console.log('ok', ok);
 assert(ok, 'proof not valid!');
