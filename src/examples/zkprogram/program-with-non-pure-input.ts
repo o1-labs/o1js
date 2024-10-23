@@ -32,7 +32,8 @@ console.log('compile done');
 
 let input = new MyStruct({ label: 'input', value: Field(5) });
 
-let result = await MyProgram.baseCase(input);
-let ok = await MyProgram.verify(result.proof);
+let { proof } = await MyProgram.baseCase(input);
+let ok = await MyProgram.verify(proof);
 
 assert(ok, 'proof not valid!');
+assert(proof.publicOutput.label === 'inCircuit');
