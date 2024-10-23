@@ -802,7 +802,7 @@ function ZkProgram<
 
       let nonPureInputExists =
         publicInputType.toAuxiliary(publicInput).length !== 0;
-
+      console.log('nonPure Input Exists', nonPureInputExists);
       let publicInputFields, publicInputAux;
       if (nonPureInputExists) {
         // serialize publicInput into pure provable field elements and auxilary data
@@ -845,16 +845,21 @@ function ZkProgram<
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
       if (nonPureInputExists) {
-        publicInputAux = programState.getNonPureOutput();
-        console.log('result of get utput', publicInputAux);
+        let nonPureOutput = programState.getNonPureOutput();
+        let nonPureOutputExists = nonPureOutput.length !== 0;
+
+        let nonPureData = nonPureOutputExists
+          ? nonPureOutput
+          : programState.getNonPureInput();
 
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields,
-          publicInputAux
+          nonPureData
         );
 
         programState.resetNonPureDataCache('nonPureInput');
+        programState.resetNonPureDataCache('nonPureOutPut');
       } else {
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
@@ -1326,10 +1331,10 @@ function picklesRuleFromFunction(
     }
 
     let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
-    let nonPureOutputExists = nonPureOutput.length !== 0;
+    let nonPureOutputExists = nonPureOutput[0].length !== 0;
 
     if (state !== undefined && nonPureOutputExists) {
-      state?.setNonPureOutput(nonPureOutput);
+      state.setNonPureOutput(nonPureOutput);
     }
 
     proofs.forEach(({ proofInstance, classReference }) => {
