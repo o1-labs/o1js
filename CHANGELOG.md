@@ -19,6 +19,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
 
+### Added
+
+- Configuration of runtime tables https://github.com/o1-labs/o1js/pull/1858
+
 ### Fixes
 
 - Performance regression when compiling recursive circuits is fixed https://github.com/o1-labs/o1js/pull/1874
