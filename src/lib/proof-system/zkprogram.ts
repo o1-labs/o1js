@@ -845,7 +845,8 @@ function ZkProgram<
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
       if (nonPureInputExists) {
-        publicInputAux = programState.getNonPureInput();
+        publicInputAux = programState.getNonPureOutput();
+        console.log('result of get utput', publicInputAux);
 
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
@@ -1325,7 +1326,11 @@ function picklesRuleFromFunction(
     }
 
     let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
-    state?.setNonPureOutput(nonPureOutput);
+    let nonPureOutputExists = nonPureOutput.length !== 0;
+
+    if (state !== undefined && nonPureOutputExists) {
+      state?.setNonPureOutput(nonPureOutput);
+    }
 
     proofs.forEach(({ proofInstance, classReference }) => {
       if (!(proofInstance instanceof DynamicProof)) {
