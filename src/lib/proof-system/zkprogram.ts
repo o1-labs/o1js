@@ -846,20 +846,19 @@ function ZkProgram<
       let [publicOutputFields, proof] = MlPair.from(result);
       if (nonPureInputExists) {
         let nonPureOutput = programState.getNonPureOutput();
-        let nonPureOutputExists = nonPureOutput.length !== 0;
+        let nonPureInput = programState.getNonPureInput();
 
-        let nonPureData = nonPureOutputExists
-          ? nonPureOutput
-          : programState.getNonPureInput();
-
+        // get updates that were made to non-pure auxiliary data in-circuit
+        let nonPureUpdate = getNonPureUpdate(nonPureInput, nonPureOutput);
+        console.log('nonPureUpdate', nonPureUpdate);
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields,
-          nonPureData
+          nonPureUpdate
         );
 
         programState.resetNonPureDataCache('nonPureInput');
-        programState.resetNonPureDataCache('nonPureOutPut');
+        programState.resetNonPureDataCache('nonPureOutput');
       } else {
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
