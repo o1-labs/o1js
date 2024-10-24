@@ -194,7 +194,7 @@ proof.publicOutput.assertTrue('signature verifies');
 // check constraints w/o endomorphism
 
 let programNoEndo = ZkProgram({
-  name: 'ecdsa',
+  name: 'ecdsa-secp256r1',
   publicOutput: Bool,
   methods: {
     ecdsa: {
