@@ -19,9 +19,10 @@ import { foreignField, throwError } from './test-utils.js';
 
 // provable equivalence tests
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
+const Secp256r1 = createCurveAffine(CurveParams.Secp256r1);
 const Pallas = createCurveAffine(CurveParams.Pallas);
 const Vesta = createCurveAffine(CurveParams.Vesta);
-let curves = [Secp256k1, Pallas, Vesta];
+let curves = [Secp256k1, Secp256r1, Pallas, Vesta];
 
 for (let Curve of curves) {
   // prepare test inputs
