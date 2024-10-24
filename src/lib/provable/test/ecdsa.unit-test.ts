@@ -27,9 +27,10 @@ import { Random } from '../../testing/random.js';
 
 // quick tests
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);
+const Secp256r1 = createCurveAffine(CurveParams.Secp256r1);
 const Pallas = createCurveAffine(CurveParams.Pallas);
 const Vesta = createCurveAffine(CurveParams.Vesta);
-let curves = [Secp256k1, Pallas, Vesta];
+let curves = [Secp256k1, Secp256r1, Pallas, Vesta];
 
 for (let Curve of curves) {
   // prepare test inputs
@@ -189,3 +190,36 @@ console.timeEnd('ecdsa verify (prove)');
 
 assert(await program.verify(proof), 'proof verifies');
 proof.publicOutput.assertTrue('signature verifies');
+
+// check constraints w/o endomorphism
+
+let programNoEndo = ZkProgram({
+  name: 'ecdsa',
+  publicOutput: Bool,
+  methods: {
+    ecdsa: {
+      privateInputs: [],
+      async method() {
+        let signature_ = Provable.witness(Ecdsa.Signature, () => signature);
+        let msgHash_ = Provable.witness(Field3, () => msgHash);
+        let publicKey_ = Provable.witness(Point, () => publicKey);
+
+        return {
+          publicOutput: Ecdsa.verify(
+            Secp256r1,
+            signature_,
+            msgHash_,
+            publicKey_,
+            config
+          ),
+        };
+      },
+    },
+  },
+});
+
+console.time('ecdsa verify, no endomorphism (build constraint system)');
+let csNoEndo = (await programNoEndo.analyzeMethods()).ecdsa;
+console.timeEnd('ecdsa verify, no endomorphism (build constraint system)');
+
+console.log(csNoEndo.summary());
