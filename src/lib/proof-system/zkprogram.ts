@@ -1330,11 +1330,14 @@ function picklesRuleFromFunction(
       result = (await func(input, ...finalArgs)) as any;
     }
 
-    let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
-    let nonPureOutputExists = nonPureOutput[0].length !== 0;
+    if (result.publicOutput) {
+      // store the nonPure auxiliary data in program state cache if it exists
+      let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
+      let nonPureOutputExists = nonPureOutput.length !== 0;
 
-    if (state !== undefined && nonPureOutputExists) {
-      state.setNonPureOutput(nonPureOutput);
+      if (state !== undefined && nonPureOutputExists) {
+        state.setNonPureOutput(nonPureOutput);
+      }
     }
 
     proofs.forEach(({ proofInstance, classReference }) => {
