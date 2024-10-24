@@ -128,7 +128,7 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint }) {
     let [x1_, y1_] = Field3.toBigints(x1, y1);
     let denom = inverse(mod(2n * y1_, f), f) ?? 0n;
 
-    let m = mod(3n * mod(x1_ ** 2n, f) * denom, f);
+    let m = mod((3n * mod(x1_ ** 2n, f) + Curve.a) * denom, f);
     let x3 = mod(m * m - 2n * x1_, f);
     let y3 = mod(m * (x1_ - x3) - y1_, f);
 
