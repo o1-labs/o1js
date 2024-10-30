@@ -860,7 +860,7 @@ function ZkProgram<
         publicOutput = fromFieldAndAuxConsts(
           publicOutputType,
           publicOutputFields,
-          nonPureUpdate
+          nonPureOutput
         );
 
         programState.resetNonPureDataCache('nonPureInput');
