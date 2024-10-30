@@ -853,7 +853,7 @@ function ZkProgram<
       if (nonPureInputExists) {
         let nonPureOutput = programState.getNonPureOutput();
 
-        publicOutput = fromFieldAndAuxConsts(
+        publicOutput = fromFieldConsts(
           publicOutputType,
           publicOutputFields,
           nonPureOutput
@@ -861,10 +861,7 @@ function ZkProgram<
 
         programState.resetNonPureDataCache('nonPureOutput');
       } else {
-        publicOutput = fromFieldAndAuxConsts(
-          publicOutputType,
-          publicOutputFields
-        );
+        publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       }
 
       return {
@@ -1575,7 +1572,7 @@ function toFieldVars<T>(type: ProvablePure<T>, value: T) {
   return MlFieldArray.to(type.toFields(value));
 }
 
-function fromFieldAndAuxConsts<T>(
+function fromFieldConsts<T>(
   type: Provable<T>,
   fields: MlFieldConstArray,
   aux: any[] = []
