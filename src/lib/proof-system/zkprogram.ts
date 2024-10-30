@@ -821,7 +821,11 @@ function ZkProgram<
         getPreviousProofsForProver(args, methodIntfs[i])
       );
 
-      let id = snarkContext.enter({ witnesses: args, inProver: true });
+      let id = snarkContext.enter({
+        witnesses: args,
+        inProver: true,
+        auxInputData: publicInputAux,
+      });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
         result = await picklesProver(publicInputFields, previousProofs);
@@ -848,7 +852,7 @@ function ZkProgram<
         let nonPureOutput = programState.getNonPureOutput();
         let nonPureInput = programState.getNonPureInput();
 
-        // get updates that were made to non-pure auxiliary data in-circuit
+        // get update made to non-pure auxiliary data in circuit
         let nonPureUpdate = getNonPureUpdate(nonPureInput, nonPureOutput);
         console.log('nonPureUpdate', nonPureUpdate);
         publicOutput = fromFieldAndAuxConsts(
