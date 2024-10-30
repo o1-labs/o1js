@@ -821,6 +821,7 @@ function ZkProgram<
         getPreviousProofsForProver(args, methodIntfs[i])
       );
 
+      console.log('auxdata before entering snarkContext ', publicInputAux);
       let id = snarkContext.enter({
         witnesses: args,
         inProver: true,
@@ -1565,8 +1566,12 @@ function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
   ) as any as 0 | 1 | 2;
 }
 
-function fromFieldVars<T>(type: Provable<T>, fields: MlFieldArray) {
-  return type.fromFields(MlFieldArray.from(fields), []);
+function fromFieldVars<T>(
+  type: Provable<T>,
+  fields: MlFieldArray,
+  auxData: any[] = []
+) {
+  return type.fromFields(MlFieldArray.from(fields), auxData);
 }
 
 function toFieldVars<T>(type: ProvablePure<T>, value: T) {
