@@ -826,6 +826,7 @@ function ZkProgram<
         inProver: true,
         auxInputData: publicInputAux,
       });
+
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
         result = await picklesProver(publicInputFields, previousProofs);
@@ -1283,7 +1284,11 @@ function picklesRuleFromFunction(
   async function main(
     publicInput: MlFieldArray
   ): ReturnType<Pickles.Rule['main']> {
-    let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
+    let {
+      witnesses: argsWithoutPublicInput,
+      inProver,
+      auxInputData,
+    } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
     let finalArgs = [];
     let proofs: {
