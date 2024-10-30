@@ -1335,10 +1335,12 @@ function picklesRuleFromFunction(
     if (publicInputType === Undefined || publicInputType === Void) {
       result = (await func(...finalArgs)) as any;
     } else {
-      let input = fromFieldVars(publicInputType, publicInput);
+      console.log('auxData before input', auxInputData);
+      let input = fromFieldVars(publicInputType, publicInput, auxInputData);
       result = (await func(input, ...finalArgs)) as any;
     }
 
+    console.log('result input', result);
     if (result.publicOutput) {
       // store the nonPure auxiliary data in program state cache if it exists
       let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
