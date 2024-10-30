@@ -1815,19 +1815,3 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 type Get<T, Key extends string> = T extends { [K in Key]: infer Value }
   ? Value
   : undefined;
-
-function getNonPureUpdate(nonPureInput: any[], nonPureOutput: any[]): any[] {
-  var result = [];
-  for (var i = 0; i < nonPureOutput.length; i++) {
-    if (Array.isArray(nonPureOutput[i])) {
-      result[i] = getNonPureUpdate(nonPureInput[i], nonPureOutput[i]);
-    } else {
-      if (nonPureOutput[i] !== '') {
-        result[i] = nonPureOutput[i];
-      } else {
-        result[i] = nonPureInput[i];
-      }
-    }
-  }
-  return result;
-}
