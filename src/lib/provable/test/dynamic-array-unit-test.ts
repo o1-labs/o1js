@@ -84,7 +84,19 @@ let List = ZkProgram({
         bytes.getOption(new Field(0)).assertSome();
         //assert(bytes.getOption(new Field(1)) === undefined);
 
-        // TODO: Error if accessing out-of-bounds index
+        // Error if getting out-of-bounds index
+        try {
+          bytes.get(new Field(1));
+        } catch (error) {
+          console.log('Cannot get out-of-bounds index');
+        }
+
+        // Error if setting out-of-bounds index
+        try {
+          bytes.set(new Field(1), new UInt8(3));
+        } catch (error) {
+          console.log('Cannot set out-of-bounds index');
+        }
 
         // Growing capacity should work correctly
         let longerArray = bytes.growCapacityTo(10);
