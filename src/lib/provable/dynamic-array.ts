@@ -302,10 +302,8 @@ class DynamicArrayBase<T = any, V = any> {
    * ```
    */
   push(value: T): void {
-    let oldLength = new Field(this.length);
-    let newLength = oldLength.add(1).seal();
-    newLength.lessThanOrEqual(new Field(this.capacity)).assertTrue();
-    this.length = newLength;
+    let oldLength = this.length;
+    this.incrementLength(new Field(1));
     this.setOrDoNothing(oldLength, value);
   }
 
@@ -317,10 +315,8 @@ class DynamicArrayBase<T = any, V = any> {
    * @param n
    */
   pop(n?: Field): void {
-    let oldLength = this.length;
     let dec = n !== undefined ? n : new Field(1);
-    dec.assertLessThanOrEqual(oldLength);
-    this.length = oldLength.sub(dec).seal();
+    this.decrementLength(dec);
 
     let NULL: T = ProvableType.synthesize(this.innerType);
     if (n !== undefined) {
@@ -376,15 +372,69 @@ class DynamicArrayBase<T = any, V = any> {
     return this.length.equals(new Field(0));
   }
 
+  /**
+   * In-circuit check whether the array includes a value.
+   */
+  /* TODO
+   * Fix `this.innerType.equals`
+
+  includes(value: T): Bool {
+    let result = Field(0);
+    for (let i = 0; i < this.capacity; i++) {
+      result = result.add(
+        Provable.if(
+          this.innerType.equals(this.array[i], value),
+          Field(1),
+          Field(0)
+        )
+      );
+    }
+    return result.equals(new Field(0)).not();
+  }
+*/
+
+  /**
+   * Copies this array into a new array, checking in-circuit that all entries
+   * are the same.
+   *
+   * @returns a new DynamicArray with the same values as the current one.
+   */
+  /*
+  copy(): DynamicArray<T> {
+    let array = this.array.map((t) => t);
+    for (let i = 0; i < this.capacity; i++) {
+      this.innerType.equals(this.array[i], array[i]).assertTrue();
+    }
+    return new (this.constructor as any)(array, this.length);
+  }
+  */
+
   // TODO:
   // - concat
-  // - includes
-  // - copy
   // - slice
   // - insert
-  // - map
   // - shift_left
   // - shift_right
+
+  /**
+   * Increments the length of the current array by n elements, checking that the
+   * new length is within the capacity.
+   */
+  incrementLength(n: Field): void {
+    let newLength = this.length.add(n).seal();
+    newLength.lessThanOrEqual(new Field(this.capacity)).assertTrue();
+    this.length = newLength;
+  }
+
+  /**
+   * Decrements the length of the current array by n elements, checking that the
+   * n is less or equal than the current length.
+   */
+  decrementLength(n: Field): void {
+    let oldLength = this.length;
+    n.assertLessThanOrEqual(this.length);
+    this.length = oldLength.sub(n).seal();
+  }
 
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
