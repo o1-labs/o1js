@@ -86,18 +86,6 @@ let List = ZkProgram({
 
         // TODO: Error if accessing out-of-bounds index
 
-        // TODO: Mapping over elements should work correctly
-        
-      /*  bytes.push(new Field(1));
-        bytes.push(new Field(0));
-        let mapped = bytes.map(UInt8, (value) =>
-          Gadgets.add(value, new UInt8(1))
-        );
-        assert(mapped.get(new Field(0)).equals(new Field(3)));
-        assert(mapped.get(new Field(1)).equals(new Field(2)));
-        assert(mapped.get(new Field(2)).equals(new Field(1)));
-        */
-
         // Growing capacity should work correctly
         let longerArray = bytes.growCapacityTo(10);
         assert(longerArray.capacity === 10);
@@ -110,6 +98,16 @@ let List = ZkProgram({
         let otherArray = bytes.growCapacityBy(2);
         assert(otherArray.capacity === 10);
         assert(otherArray.length.equals(new Field(1)));
+
+        // Mapping over elements should work correctly
+        bytes.push(new UInt8(1));
+        bytes.push(new UInt8(0));
+        let mapped = bytes.map(UInt8, (value) =>
+          UInt8.from(Gadgets.addMod32(value.value, UInt8.from(1).value))
+        );
+        assert(mapped.get(new Field(0)).value.equals(new Field(3)));
+        assert(mapped.get(new Field(1)).value.equals(new Field(2)));
+        assert(mapped.get(new Field(2)).value.equals(new Field(1)));
       },
     },
   },
