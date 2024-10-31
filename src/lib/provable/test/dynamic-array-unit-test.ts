@@ -47,19 +47,11 @@ let List = ZkProgram({
         }
 
         // Popping zero elements should not change the array
-        //bytes.pop(new Field(0));
+        bytes.pop(new Field(0));
 
         // Popping multiple elements should decrease length by the specified amount
         assert(bytes.length.equals(new Field(8)));
-        // TODO: substitute for bytes.pop(new Field(8));
-        bytes.pop();
-        bytes.pop();
-        bytes.pop();
-        bytes.pop();
-        bytes.pop();
-        bytes.pop();
-        bytes.pop();
-        bytes.pop();
+        bytes.pop(new Field(8));
         assert(bytes.length.equals(new Field(0)));
 
         // Cannot pop more elements than the current length

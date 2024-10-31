@@ -11,8 +11,6 @@ import {
   Option,
   Provable,
   provable as struct,
-  UInt32,
-  Gadgets,
   type ProvableHashable,
 } from 'o1js';
 import { ProvableType } from './types/provable-intf.js';
@@ -324,15 +322,15 @@ class DynamicArrayBase<T = any, V = any> {
     dec.assertLessThanOrEqual(oldLength);
     this.length = oldLength.sub(dec).seal();
 
-    let NULL = ProvableType.synthesize(this.innerType);
+    let NULL: T = ProvableType.synthesize(this.innerType);
     if (n !== undefined) {
       // set the last n elements to NULL
-      for (let i = 0; i <= this.capacity; i++) {
+      for (let i = 0; i < this.capacity; i++) {
         this.array[i] = Provable.if(
-          new Field(i).greaterThan(this.length),
+          new Field(i).lessThanOrEqual(this.length),
           this.innerType,
-          NULL,
-          this.array[i]
+          this.array[i],
+          NULL
         );
       }
     } else {
