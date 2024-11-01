@@ -375,11 +375,12 @@ class DynamicArrayBase<T = any, V = any> {
   }
 
   /**
+   * Shifts all elements of the array to the left by n positions, reducing the
+   * length by n, which must be less than or equal to the current length.
    *
    * @param n
    */
   shiftLeft(n: Field): void {
-    n.equals(this.length).assertFalse();
     this.decrementLength(n);
 
     let Array = DynamicArray(this.innerType, { capacity: this.capacity });

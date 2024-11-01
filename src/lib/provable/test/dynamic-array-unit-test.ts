@@ -111,11 +111,20 @@ let List = ZkProgram({
         assert(mapped.get(new Field(1)).value.equals(new Field(2)));
         assert(mapped.get(new Field(2)).value.equals(new Field(1)));
 
-        // Checks shifting elements
+        // Reinstantiating the array for further tests
         bytes = new Bytestring();
         for (let i = 0; i < 8; i++) {
           bytes.push(new UInt8(1 + i));
         }
+
+        // Shifting elements does not change the array
+        bytes.shiftLeft(new Field(0));
+        assert(bytes.length.equals(new Field(8)));
+        for (let i = 0; i < 8; i++) {
+          assert(bytes.get(new Field(i)).value.equals(new Field(1 + i)));
+        }
+
+        // Checks shifting elements
         bytes.shiftLeft(new Field(3));
         assert(bytes.length.equals(new Field(5)));
         assert(bytes.get(new Field(0)).value.equals(new Field(4)));
@@ -126,6 +135,17 @@ let List = ZkProgram({
         bytes.getOption(new Field(5)).assertNone();
         bytes.getOption(new Field(6)).assertNone();
         bytes.getOption(new Field(7)).assertNone();
+
+        // Shift left by the length
+        bytes.shiftLeft(bytes.length);
+        assert(bytes.length.equals(new Field(0)));
+
+        // Cannot shift more elements than the current length
+        try {
+          bytes.shiftLeft(new Field(1));
+        } catch (error) {
+          console.log('Cannot shift more elements than the length');
+        }
       },
     },
   },
