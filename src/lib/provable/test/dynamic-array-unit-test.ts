@@ -74,7 +74,7 @@ let List = ZkProgram({
 
         // getOption returns None for out-of-bounds and Some for in-bounds index
         bytes.getOption(new Field(0)).assertSome();
-        //assert(bytes.getOption(new Field(1)) === undefined);
+        bytes.getOption(new Field(1)).assertNone();
 
         // Error if getting out-of-bounds index
         try {
@@ -110,6 +110,22 @@ let List = ZkProgram({
         assert(mapped.get(new Field(0)).value.equals(new Field(3)));
         assert(mapped.get(new Field(1)).value.equals(new Field(2)));
         assert(mapped.get(new Field(2)).value.equals(new Field(1)));
+
+        // Checks shifting elements
+        bytes = new Bytestring();
+        for (let i = 0; i < 8; i++) {
+          bytes.push(new UInt8(1 + i));
+        }
+        bytes.shiftLeft(new Field(3));
+        assert(bytes.length.equals(new Field(5)));
+        assert(bytes.get(new Field(0)).value.equals(new Field(4)));
+        assert(bytes.get(new Field(1)).value.equals(new Field(5)));
+        assert(bytes.get(new Field(2)).value.equals(new Field(6)));
+        assert(bytes.get(new Field(3)).value.equals(new Field(7)));
+        assert(bytes.get(new Field(4)).value.equals(new Field(8)));
+        bytes.getOption(new Field(5)).assertNone();
+        bytes.getOption(new Field(6)).assertNone();
+        bytes.getOption(new Field(7)).assertNone();
       },
     },
   },

@@ -375,39 +375,30 @@ class DynamicArrayBase<T = any, V = any> {
   }
 
   /**
-   * In-circuit check whether the array includes a value.
+   *
+   * @param n
    */
-  /*
-  includes(value: T): Bool {
-    let result = Field(0);
+  shiftLeft(n: Field): void {
+    n.equals(this.length).assertFalse();
+    this.decrementLength(n);
+
+    let Array = DynamicArray(this.innerType, { capacity: this.capacity });
+    let a = new Array();
+    let NULL = ProvableType.synthesize(this.innerType);
+
     for (let i = 0; i < this.capacity; i++) {
-      result = result.add(
+      a.push(
         Provable.if(
-          this.array[i].value.this.innerType.equals(this.array[i], value),
-          Field(1),
-          Field(0)
+          new Field(i).lessThan(this.length),
+          this.innerType,
+          this.getOrUnconstrained(n.add(new Field(i))),
+          NULL
         )
       );
     }
-    return result.equals(new Field(0)).not();
-  }
-    */
 
-  /**
-   * Copies this array into a new array, checking in-circuit that all entries
-   * are the same.
-   *
-   * @returns a new DynamicArray with the same values as the current one.
-   */
-  /*
-  copy(): DynamicArray<T> {
-    let array = this.array.map((t) => t);
-    for (let i = 0; i < this.capacity; i++) {
-      this.innerType.equals(this.array[i], array[i]).assertTrue();
-    }
-    return new (this.constructor as any)(array, this.length);
+    this.array = a.array;
   }
-  */
 
   // TODO:
   // - concat
