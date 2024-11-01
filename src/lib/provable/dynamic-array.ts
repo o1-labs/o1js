@@ -272,24 +272,6 @@ class DynamicArrayBase<T = any, V = any> {
   }
 
   /**
-   * Reduce the array to a single value.
-   *
-   * The callback will be passed the current state, an element, and a boolean
-   * `isDummy` indicating whether the value is part of the actual array.
-   */
-  reduce<S>(
-    stateType: ProvableType<S>,
-    state: S,
-    f: (state: S, t: T, isDummy: Bool) => S
-  ): S {
-    this.forEach((t, isDummy) => {
-      let newState = f(state, t, isDummy);
-      state = Provable.if(isDummy, stateType, state, newState);
-    });
-    return state;
-  }
-
-  /**
    * Return a version of the same array with a larger capacity.
    *
    * **Warning**: Does not modify the array, but returns a new one.

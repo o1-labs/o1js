@@ -1,12 +1,4 @@
-import {
-  UInt8,
-  Field,
-  Gadgets,
-  provable as struct,
-  ProvableType,
-  Bool,
-  ZkProgram,
-} from 'o1js';
+import { UInt8, Field, ZkProgram } from 'o1js';
 import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
 import {
@@ -24,7 +16,7 @@ let List = ZkProgram({
       privateInputs: [],
       async method() {
         // Define classes of dynamic arrays for specific provable types
-        let Bytestring = DynamicArray(UInt8, { capacity: 8 });
+        class Bytestring extends DynamicArray(UInt8, { capacity: 8 }) {}
 
         // Initialize an empty dynamic array
         let bytes = new Bytestring();
