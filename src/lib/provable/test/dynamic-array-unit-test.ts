@@ -1,4 +1,12 @@
-import { UInt8, Field, Gadgets, ZkProgram } from 'o1js';
+import {
+  UInt8,
+  Field,
+  Gadgets,
+  provable as struct,
+  ProvableType,
+  Bool,
+  ZkProgram,
+} from 'o1js';
 import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
 import {
@@ -106,9 +114,7 @@ let List = ZkProgram({
         // Mapping over elements should work correctly
         bytes.push(new UInt8(1));
         bytes.push(new UInt8(0));
-        let mapped = bytes.map(UInt8, (value) =>
-          UInt8.from(Gadgets.addMod32(value.value, UInt8.from(1).value))
-        );
+        let mapped = bytes.map(UInt8, (value) => value.add(UInt8.from(1)));
         assert(mapped.get(new Field(0)).value.equals(new Field(3)));
         assert(mapped.get(new Field(1)).value.equals(new Field(2)));
         assert(mapped.get(new Field(2)).value.equals(new Field(1)));
