@@ -142,7 +142,7 @@ class DynamicArrayBase<T = any, V = any> {
    * Note: this is different from `T[]` because it is a provable type.
    */
   constructor(array?: T[], length?: Field) {
-    let a = array ?? [];
+    let a: T[] = array ?? [];
     assert(a.length <= this.capacity, 'input length must fit in capacity');
 
     let l = length ?? new Field(a.length);
@@ -290,6 +290,54 @@ class DynamicArrayBase<T = any, V = any> {
   }
 
   /**
+   * Return a version of the same array with a larger capacity.
+   *
+   * **Warning**: Does not modify the array, but returns a new one.
+   *
+   * **Note**: this doesn't cost constraints, but currently doesn't preserve any
+   * cached constraints.
+   */
+  growCapacityTo(capacity: number): DynamicArray<T> {
+    assert(capacity >= this.capacity, 'new capacity must be greater or equal');
+    let NewArray = DynamicArray(this.innerType, { capacity });
+    let NULL = ProvableType.synthesize(this.innerType);
+    let array = pad(this.array, capacity, NULL);
+    return new NewArray(array, this.length);
+  }
+
+  /**
+   * Return a version of the same array with a larger capacity.
+   *
+   * **Warning**: Does not modify the array, but returns a new one.
+   *
+   * **Note**: this doesn't cost constraints, but currently doesn't preserve any
+   * cached constraints.
+   */
+  growCapacityBy(increment: number): DynamicArray<T> {
+    return this.growCapacityTo(this.capacity + increment);
+  }
+
+  /**
+   * Increments the length of the current array by n elements, checking that the
+   * new length is within the capacity.
+   */
+  incrementLength(n: Field): void {
+    let newLength = this.length.add(n).seal();
+    newLength.lessThanOrEqual(new Field(this.capacity)).assertTrue();
+    this.length = newLength;
+  }
+
+  /**
+   * Decrements the length of the current array by n elements, checking that the
+   * n is less or equal than the current length.
+   */
+  decrementLength(n: Field): void {
+    let oldLength = this.length;
+    n.assertLessThanOrEqual(this.length);
+    this.length = oldLength.sub(n).seal();
+  }
+
+  /**
    * Push a value, without changing the capacity.
    *
    * Proves that the new length is still within the capacity, fails otherwise.
@@ -336,34 +384,6 @@ class DynamicArrayBase<T = any, V = any> {
   }
 
   /**
-   * Return a version of the same array with a larger capacity.
-   *
-   * **Warning**: Does not modify the array, but returns a new one.
-   *
-   * **Note**: this doesn't cost constraints, but currently doesn't preserve any
-   * cached constraints.
-   */
-  growCapacityTo(capacity: number): DynamicArray<T> {
-    assert(capacity >= this.capacity, 'new capacity must be greater or equal');
-    let NewArray = DynamicArray(this.innerType, { capacity });
-    let NULL = ProvableType.synthesize(this.innerType);
-    let array = pad(this.array, capacity, NULL);
-    return new NewArray(array, this.length);
-  }
-
-  /**
-   * Return a version of the same array with a larger capacity.
-   *
-   * **Warning**: Does not modify the array, but returns a new one.
-   *
-   * **Note**: this doesn't cost constraints, but currently doesn't preserve any
-   * cached constraints.
-   */
-  growCapacityBy(increment: number): DynamicArray<T> {
-    return this.growCapacityTo(this.capacity + increment);
-  }
-
-  /**
    * In-circuit check whether the array is empty.
    *
    * @returns true or false depending on whether the dynamic array is empty
@@ -375,15 +395,13 @@ class DynamicArrayBase<T = any, V = any> {
   /**
    * In-circuit check whether the array includes a value.
    */
-  /* TODO
-   * Fix `this.innerType.equals`
-
+  /*
   includes(value: T): Bool {
     let result = Field(0);
     for (let i = 0; i < this.capacity; i++) {
       result = result.add(
         Provable.if(
-          this.innerType.equals(this.array[i], value),
+          this.array[i].value.this.innerType.equals(this.array[i], value),
           Field(1),
           Field(0)
         )
@@ -391,7 +409,7 @@ class DynamicArrayBase<T = any, V = any> {
     }
     return result.equals(new Field(0)).not();
   }
-*/
+    */
 
   /**
    * Copies this array into a new array, checking in-circuit that all entries
@@ -415,26 +433,6 @@ class DynamicArrayBase<T = any, V = any> {
   // - insert
   // - shift_left
   // - shift_right
-
-  /**
-   * Increments the length of the current array by n elements, checking that the
-   * new length is within the capacity.
-   */
-  incrementLength(n: Field): void {
-    let newLength = this.length.add(n).seal();
-    newLength.lessThanOrEqual(new Field(this.capacity)).assertTrue();
-    this.length = newLength;
-  }
-
-  /**
-   * Decrements the length of the current array by n elements, checking that the
-   * n is less or equal than the current length.
-   */
-  decrementLength(n: Field): void {
-    let oldLength = this.length;
-    n.assertLessThanOrEqual(this.length);
-    this.length = oldLength.sub(n).seal();
-  }
 
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
