@@ -303,7 +303,7 @@ class DynamicArrayBase<T = any, V = any> {
    * Increments the length of the current array by n elements, checking that the
    * new length is within the capacity.
    */
-  incrementLength(n: Field): void {
+  increaseLength(n: Field): void {
     let newLength = this.length.add(n).seal();
     newLength.lessThanOrEqual(new Field(this.capacity)).assertTrue();
     this.length = newLength;
@@ -313,7 +313,7 @@ class DynamicArrayBase<T = any, V = any> {
    * Decrements the length of the current array by n elements, checking that the
    * n is less or equal than the current length.
    */
-  decrementLength(n: Field): void {
+  decreaseLength(n: Field): void {
     let oldLength = this.length;
     n.assertLessThanOrEqual(this.length);
     this.length = oldLength.sub(n).seal();
@@ -333,7 +333,7 @@ class DynamicArrayBase<T = any, V = any> {
    */
   push(value: T): void {
     let oldLength = this.length;
-    this.incrementLength(new Field(1));
+    this.increaseLength(new Field(1));
     this.setOrDoNothing(oldLength, value);
   }
 
@@ -346,7 +346,7 @@ class DynamicArrayBase<T = any, V = any> {
    */
   pop(n?: Field): void {
     let dec = n !== undefined ? n : new Field(1);
-    this.decrementLength(dec);
+    this.decreaseLength(dec);
 
     let NULL: T = ProvableType.synthesize(this.innerType);
     if (n !== undefined) {
@@ -391,7 +391,29 @@ class DynamicArrayBase<T = any, V = any> {
         NULL
       );
     }
-    this.decrementLength(n);
+    this.decreaseLength(n);
+  }
+
+  /**
+   * Shifts all elements of the array to the right by n positions, increasing
+   * the length by n, which must result in less than or equal to the capacity.
+   * The new elements on the left are set to NULL values.
+   *
+   * @param n
+   */
+  shiftRight(n: Field): void {
+    this.increaseLength(n);
+    let NULL = ProvableType.synthesize(this.innerType);
+
+    for (let i = this.capacity - 1; i >= 0; i--) {
+      let offset = new Field(i).sub(n);
+      this.array[i] = Provable.if(
+        new Field(i).lessThan(n),
+        this.innerType,
+        NULL,
+        this.getOrUnconstrained(offset)
+      );
+    }
   }
 
   /**

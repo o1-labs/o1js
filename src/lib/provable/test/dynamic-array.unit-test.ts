@@ -117,14 +117,14 @@ let List = ZkProgram({
           bytes.push(new UInt8(10 + i));
         }
 
-        // Shifting elements does not change the array
+        // Shifting left 0 positions does not change the array
         bytes.shiftLeft(new Field(0));
         assert(bytes.length.equals(new Field(8)));
         for (let i = 0; i < 8; i++) {
           assert(bytes.get(new Field(i)).value.equals(new Field(10 + i)));
         }
 
-        // Checks shifting elements
+        // Checks shifting left elements
         bytes.shiftLeft(new Field(3));
         assert(bytes.length.equals(new Field(5)));
         assert(bytes.get(new Field(0)).value.equals(new Field(13)));
@@ -140,14 +140,48 @@ let List = ZkProgram({
         bytes.shiftLeft(bytes.length);
         assert(bytes.length.equals(new Field(0)));
 
-        // Cannot shift more elements than the current length
+        // Cannot shift left more elements than the current length
         try {
           bytes.shiftLeft(new Field(1));
         } catch (error) {
-          console.log('Cannot shift more elements than the length');
+          console.log('Cannot shift left further than the length');
+        }
+
+        // Reinstantiating the array for further tests with space for shifting
+        bytes = new Bytestring();
+        for (let i = 0; i < 5; i++) {
+          bytes.push(new UInt8(10 + i));
+        }
+
+        // Shifting right 0 positions does not change the array
+        bytes.shiftRight(new Field(0));
+        assert(bytes.length.equals(new Field(5)));
+        for (let i = 0; i < 5; i++) {
+          assert(bytes.get(new Field(i)).value.equals(new Field(10 + i)));
+        }
+
+        // Checks shifting right elements
+        bytes.shiftRight(new Field(2));
+        assert(bytes.length.equals(new Field(7)));
+        let NULL = new Field(0);
+        assert(bytes.get(new Field(0)).value.equals(NULL));
+        assert(bytes.get(new Field(1)).value.equals(NULL));
+        assert(bytes.get(new Field(2)).value.equals(new Field(10)));
+        assert(bytes.get(new Field(3)).value.equals(new Field(11)));
+        assert(bytes.get(new Field(4)).value.equals(new Field(12)));
+        assert(bytes.get(new Field(5)).value.equals(new Field(13)));
+        assert(bytes.get(new Field(6)).value.equals(new Field(14)));
+        bytes.getOption(new Field(7)).assertNone();
+
+        // Cannot shift right more elements than the capacity
+        try {
+          bytes.shiftRight(new Field(2));
+        } catch (error) {
+          console.log('Cannot shift right above capacity');
         }
 
         // Slicing [0, length) should return the same array
+        bytes = new Bytestring();
         for (let i = 0; i < 4; i++) {
           bytes.push(new UInt8(10 + i));
         }
