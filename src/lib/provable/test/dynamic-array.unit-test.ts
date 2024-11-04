@@ -221,6 +221,22 @@ let List = ZkProgram({
             .value.equals(bytes.get(new Field(2)).value)
         );
 
+        // Cannot slice out-of-bounds positions
+        try {
+          bytes.slice(new Field(1), new Field(5));
+        } catch (error) {
+          console.log('Cannot slice out-of-bounds positions');
+        }
+
+        // Cannot slice with end position smaller than start position
+        try {
+          bytes.slice(new Field(2), new Field(1));
+        } catch (error) {
+          console.log(
+            'Cannot slice with end position smaller than start position'
+          );
+        }
+
         // Concatenate two empty arrays gives an empty array
         let emptyLeft = new Bytestring();
         let emptyRight = new Bytestring();
@@ -282,6 +298,56 @@ let List = ZkProgram({
               .get(new Field(i + 8))
               .value.equals(right.get(new Field(i)).value)
           );
+        }
+
+        // Inserting elements at the beginning of the array
+        bytes = new Bytestring([
+          new UInt8(2),
+          new UInt8(3),
+          new UInt8(4),
+          new UInt8(6),
+          new UInt8(7),
+        ]);
+        bytes.insert(new Field(0), new UInt8(1));
+        assert(bytes.length.equals(new Field(6)));
+        assert(bytes.get(new Field(0)).value.equals(new Field(1)));
+        assert(bytes.get(new Field(1)).value.equals(new Field(2)));
+        assert(bytes.get(new Field(2)).value.equals(new Field(3)));
+        assert(bytes.get(new Field(3)).value.equals(new Field(4)));
+        assert(bytes.get(new Field(4)).value.equals(new Field(6)));
+        assert(bytes.get(new Field(5)).value.equals(new Field(7)));
+
+        // Inserting elements at the end of the array
+        bytes.insert(bytes.length, new UInt8(8));
+        assert(bytes.length.equals(new Field(7)));
+        assert(bytes.get(new Field(0)).value.equals(new Field(1)));
+        assert(bytes.get(new Field(1)).value.equals(new Field(2)));
+        assert(bytes.get(new Field(2)).value.equals(new Field(3)));
+        assert(bytes.get(new Field(3)).value.equals(new Field(4)));
+        assert(bytes.get(new Field(4)).value.equals(new Field(6)));
+        assert(bytes.get(new Field(5)).value.equals(new Field(7)));
+        assert(bytes.get(new Field(6)).value.equals(new Field(8)));
+
+        // Inserting elements in the middle of the array
+        bytes.insert(new Field(4), new UInt8(5));
+        assert(bytes.length.equals(new Field(8)));
+        for (let i = 0; i < 8; i++) {
+          assert(bytes.get(new Field(i)).value.equals(new Field(i + 1)));
+        }
+
+        // Cannot insert elements exceeding capacity
+        try {
+          bytes.insert(new Field(1), new UInt8(0));
+        } catch (error) {
+          console.log('Cannot insert above capacity');
+        }
+
+        // Cannot insert elements out-of-bounds
+        bytes = new Bytestring([new UInt8(1), new UInt8(2), new UInt8(3)]);
+        try {
+          bytes.insert(new Field(4), new UInt8(5));
+        } catch (error) {
+          console.log('Cannot insert out-of-bounds');
         }
       },
     },

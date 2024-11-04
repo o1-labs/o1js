@@ -303,7 +303,7 @@ class DynamicArrayBase<T = any, V = any> {
    * Increments the length of the current array by n elements, checking that the
    * new length is within the capacity.
    */
-  increaseLength(n: Field): void {
+  increaseLengthBy(n: Field): void {
     let newLength = this.length.add(n).seal();
     newLength.lessThanOrEqual(new Field(this.capacity)).assertTrue();
     this.length = newLength;
@@ -313,7 +313,7 @@ class DynamicArrayBase<T = any, V = any> {
    * Decrements the length of the current array by n elements, checking that the
    * n is less or equal than the current length.
    */
-  decreaseLength(n: Field): void {
+  decreaseLengthBy(n: Field): void {
     let oldLength = this.length;
     n.assertLessThanOrEqual(this.length);
     this.length = oldLength.sub(n).seal();
@@ -333,7 +333,7 @@ class DynamicArrayBase<T = any, V = any> {
    */
   push(value: T): void {
     let oldLength = this.length;
-    this.increaseLength(new Field(1));
+    this.increaseLengthBy(new Field(1));
     this.setOrDoNothing(oldLength, value);
   }
 
@@ -346,7 +346,7 @@ class DynamicArrayBase<T = any, V = any> {
    */
   pop(n?: Field): void {
     let dec = n !== undefined ? n : new Field(1);
-    this.decreaseLength(dec);
+    this.decreaseLengthBy(dec);
 
     let NULL: T = ProvableType.synthesize(this.innerType);
     if (n !== undefined) {
@@ -391,7 +391,7 @@ class DynamicArrayBase<T = any, V = any> {
         NULL
       );
     }
-    this.decreaseLength(n);
+    this.decreaseLengthBy(n);
   }
 
   /**
@@ -402,7 +402,7 @@ class DynamicArrayBase<T = any, V = any> {
    * @param n
    */
   shiftRight(n: Field): void {
-    this.increaseLength(n);
+    this.increaseLengthBy(n);
     let NULL = ProvableType.synthesize(this.innerType);
 
     for (let i = this.capacity - 1; i >= 0; i--) {
@@ -470,9 +470,31 @@ class DynamicArrayBase<T = any, V = any> {
     return res;
   }
 
+  /**
+   * Inserts a value at index i, shifting all elements after that position to
+   * the right by one. The length of the array is increased by one, which must
+   * result in less than or equal to the capacity.
+   *
+   * @param i
+   * @param value
+   */
+  insert(index: Field, value: T): void {
+    const right = this.slice(index, this.length);
+    this.increaseLengthBy(new Field(1));
+    this.set(index, value);
+    for (let i = 0; i < this.capacity; i++) {
+      let offset = new Field(i).sub(index).sub(new Field(1));
+      this.array[i] = Provable.if(
+        new Field(i).lessThanOrEqual(index),
+        this.innerType,
+        this.getOrUnconstrained(new Field(i)),
+        right.getOrUnconstrained(offset)
+      );
+    }
+  }
+
   // TODO:
   // - includes
-  // - insert
 
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
