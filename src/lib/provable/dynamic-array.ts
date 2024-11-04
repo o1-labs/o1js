@@ -493,7 +493,7 @@ class DynamicArrayBase<T = any, V = any> {
     }
   }
 
-  // TODO:
+  // TODO: when we can check .equals on arrays eleemnts we can implement:
   // - includes
 
   // cached variables to not duplicate constraints if we do something like
