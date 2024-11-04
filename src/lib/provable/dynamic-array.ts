@@ -381,31 +381,53 @@ class DynamicArrayBase<T = any, V = any> {
    * @param n
    */
   shiftLeft(n: Field): void {
-    this.decrementLength(n);
-
-    let Array = DynamicArray(this.innerType, { capacity: this.capacity });
-    let a = new Array();
     let NULL = ProvableType.synthesize(this.innerType);
-
     for (let i = 0; i < this.capacity; i++) {
-      a.push(
-        Provable.if(
-          new Field(i).lessThan(this.length),
-          this.innerType,
-          this.getOrUnconstrained(n.add(new Field(i))),
-          NULL
-        )
+      let offset = new Field(i).add(n);
+      this.array[i] = Provable.if(
+        offset.lessThan(this.length),
+        this.innerType,
+        this.getOrUnconstrained(offset),
+        NULL
       );
     }
+    this.decrementLength(n);
+  }
 
-    this.array = a.array;
+  /**
+   * @returns a  new DynamicArray instance with the same values as the current
+   */
+  copy(): this {
+    let newArr = new (<any>this.constructor)();
+    newArr.array = this.array.slice();
+    newArr.length = this.length;
+    // TODO: assert equality of the two arrays?
+    return newArr;
+  }
+
+  /**
+   * Creates a new dynamic array with the values of the current array from
+   * index `start` (included) to index `end` (excluded). If `start` is not
+   * provided, it defaults to 0. If `end` is not provided, it defaults to the
+   * length of the array.
+   *
+   * @param start
+   * @param end
+   * @returns
+   */
+  slice(start?: Field, end?: Field): DynamicArray<T, V> {
+    start ??= new Field(0);
+    end ??= this.length;
+    let sliced = this.copy();
+    sliced.shiftLeft(start);
+    sliced.pop(this.length.sub(end));
+    return sliced;
   }
 
   // TODO:
   // - concat
-  // - slice
+  // - includes
   // - insert
-  // - shift_left
   // - shift_right
 
   // cached variables to not duplicate constraints if we do something like

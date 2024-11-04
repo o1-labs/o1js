@@ -1,4 +1,4 @@
-import { UInt8, Field, ZkProgram } from 'o1js';
+import { UInt8, Field, ZkProgram, Provable } from 'o1js';
 import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
 import {
@@ -114,24 +114,24 @@ let List = ZkProgram({
         // Reinstantiating the array for further tests
         bytes = new Bytestring();
         for (let i = 0; i < 8; i++) {
-          bytes.push(new UInt8(1 + i));
+          bytes.push(new UInt8(10 + i));
         }
 
         // Shifting elements does not change the array
         bytes.shiftLeft(new Field(0));
         assert(bytes.length.equals(new Field(8)));
         for (let i = 0; i < 8; i++) {
-          assert(bytes.get(new Field(i)).value.equals(new Field(1 + i)));
+          assert(bytes.get(new Field(i)).value.equals(new Field(10 + i)));
         }
 
         // Checks shifting elements
         bytes.shiftLeft(new Field(3));
         assert(bytes.length.equals(new Field(5)));
-        assert(bytes.get(new Field(0)).value.equals(new Field(4)));
-        assert(bytes.get(new Field(1)).value.equals(new Field(5)));
-        assert(bytes.get(new Field(2)).value.equals(new Field(6)));
-        assert(bytes.get(new Field(3)).value.equals(new Field(7)));
-        assert(bytes.get(new Field(4)).value.equals(new Field(8)));
+        assert(bytes.get(new Field(0)).value.equals(new Field(13)));
+        assert(bytes.get(new Field(1)).value.equals(new Field(14)));
+        assert(bytes.get(new Field(2)).value.equals(new Field(15)));
+        assert(bytes.get(new Field(3)).value.equals(new Field(16)));
+        assert(bytes.get(new Field(4)).value.equals(new Field(17)));
         bytes.getOption(new Field(5)).assertNone();
         bytes.getOption(new Field(6)).assertNone();
         bytes.getOption(new Field(7)).assertNone();
@@ -146,6 +146,46 @@ let List = ZkProgram({
         } catch (error) {
           console.log('Cannot shift more elements than the length');
         }
+
+        // Slicing [0, length) should return the same array
+        for (let i = 0; i < 4; i++) {
+          bytes.push(new UInt8(10 + i));
+        }
+        let whole = bytes.slice(new Field(0), bytes.length);
+        assert(bytes.length.equals(new Field(4)));
+        assert(whole.length.equals(bytes.length));
+        for (let i = 0; i < 4; i++) {
+          assert(
+            whole.get(new Field(i)).value.equals(bytes.get(new Field(i)).value)
+          );
+        }
+
+        // Slicing [0, 0) should return an empty array
+        let empty = bytes.slice(new Field(0), new Field(0));
+        assert(bytes.length.equals(new Field(4)));
+        assert(empty.length.equals(new Field(0)));
+
+        // Slicing [0, 1) should return an array with the first element
+        let first = bytes.slice(new Field(0), new Field(1));
+        assert(bytes.length.equals(new Field(4)));
+        assert(first.length.equals(new Field(1)));
+        assert(
+          first.get(new Field(0)).value.equals(bytes.get(new Field(0)).value)
+        );
+
+        // Slicing intermediate positions should work correctly
+        let intermediate = bytes.slice(new Field(1), new Field(3));
+        assert(intermediate.length.equals(new Field(2)));
+        assert(
+          intermediate
+            .get(new Field(0))
+            .value.equals(bytes.get(new Field(1)).value)
+        );
+        assert(
+          intermediate
+            .get(new Field(1))
+            .value.equals(bytes.get(new Field(2)).value)
+        );
       },
     },
   },
