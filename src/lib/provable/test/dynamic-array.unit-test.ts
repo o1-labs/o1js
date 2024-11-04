@@ -220,6 +220,69 @@ let List = ZkProgram({
             .get(new Field(1))
             .value.equals(bytes.get(new Field(2)).value)
         );
+
+        // Concatenate two empty arrays gives an empty array
+        let emptyLeft = new Bytestring();
+        let emptyRight = new Bytestring();
+        let emptyConcat = emptyLeft.concat(emptyRight);
+        assert(emptyConcat.length.equals(new Field(0)));
+        assert(emptyConcat.capacity === 16);
+
+        // Concatenate an empty array with a non-empty array gives the non-empty array
+        let right = new Bytestring([
+          new UInt8(10),
+          new UInt8(20),
+          new UInt8(30),
+        ]);
+        let nonEmptyRight = emptyLeft.concat(right);
+        assert(nonEmptyRight.length.equals(new Field(3)));
+        assert(nonEmptyRight.capacity === 16);
+        for (let i = 0; i < 3; i++) {
+          assert(
+            nonEmptyRight
+              .get(new Field(i))
+              .value.equals(right.get(new Field(i)).value)
+          );
+        }
+
+        // Concatenate a non-empty array with an empty array gives the non-empty array
+        let left = new Bytestring([
+          new UInt8(1),
+          new UInt8(2),
+          new UInt8(3),
+          new UInt8(4),
+          new UInt8(5),
+          new UInt8(6),
+          new UInt8(7),
+          new UInt8(8),
+        ]);
+        let nonEmptyLeft = left.concat(emptyRight);
+        assert(nonEmptyLeft.length.equals(new Field(8)));
+        assert(nonEmptyLeft.capacity === 16);
+        for (let i = 0; i < 8; i++) {
+          assert(
+            nonEmptyLeft
+              .get(new Field(i))
+              .value.equals(left.get(new Field(i)).value)
+          );
+        }
+
+        // Concatenate two non-empty arrays gives the concatenation of both
+        let both = left.concat(right);
+        assert(both.length.equals(new Field(11)));
+        assert(both.capacity === 16);
+        for (let i = 0; i < 8; i++) {
+          assert(
+            both.get(new Field(i)).value.equals(left.get(new Field(i)).value)
+          );
+        }
+        for (let i = 0; i < 3; i++) {
+          assert(
+            both
+              .get(new Field(i + 8))
+              .value.equals(right.get(new Field(i)).value)
+          );
+        }
       },
     },
   },

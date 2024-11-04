@@ -279,7 +279,7 @@ class DynamicArrayBase<T = any, V = any> {
    * **Note**: this doesn't cost constraints, but currently doesn't preserve any
    * cached constraints.
    */
-  growCapacityTo(capacity: number): DynamicArray<T> {
+  growCapacityTo(capacity: number): DynamicArray<T, V> {
     assert(capacity >= this.capacity, 'new capacity must be greater or equal');
     let NewArray = DynamicArray(this.innerType, { capacity });
     let NULL = ProvableType.synthesize(this.innerType);
@@ -446,11 +446,33 @@ class DynamicArrayBase<T = any, V = any> {
     return sliced;
   }
 
+  /**
+   * Concatenates the current array with another dynamic array, returning a new
+   * dynamic array with the values of both arrays. The capacity of the new array
+   * is the sum of the capacities of the two arrays.
+   *
+   * @param other
+   * @returns
+   */
+  concat(other: DynamicArray<T, V>): DynamicArray<T, V> {
+    let res = this.growCapacityTo(this.capacity + other.capacity);
+    let offset = new Field(0).sub(new Field(this.length));
+    for (let i = 0; i < res.capacity; i++) {
+      res.array[i] = Provable.if(
+        new Field(i).lessThan(this.length),
+        this.innerType,
+        this.getOrUnconstrained(new Field(i)),
+        other.getOrUnconstrained(offset)
+      );
+      offset = offset.add(Field(1));
+    }
+    res.length = this.length.add(other.length);
+    return res;
+  }
+
   // TODO:
-  // - concat
   // - includes
   // - insert
-  // - shift_right
 
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
