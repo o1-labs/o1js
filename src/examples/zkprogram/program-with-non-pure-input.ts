@@ -2,7 +2,6 @@ import { Field, Provable, Struct, ZkProgram, assert } from 'o1js';
 
 class MyStruct extends Struct({
   label: String,
-  description: String,
   value: Field,
 }) {}
 
@@ -39,4 +38,4 @@ let ok = await MyProgram.verify(proof);
 console.log('proof', proof);
 
 assert(ok, 'proof not valid!');
-// assert(proof.publicOutput.label === 'inCircuit');
+assert(proof.publicOutput.label === 'inCircuit');
