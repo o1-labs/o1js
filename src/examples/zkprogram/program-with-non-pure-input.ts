@@ -35,7 +35,5 @@ let input = new MyStruct({ label: 'input', value: Field(5) });
 let { proof } = await MyProgram.baseCase(input);
 let ok = await MyProgram.verify(proof);
 
-console.log('proof', proof);
-
 assert(ok, 'proof not valid!');
 assert(proof.publicOutput.label === 'inCircuit');
