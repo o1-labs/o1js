@@ -166,7 +166,7 @@ function createProgramState() {
     setNonPureInput(value: any[]) {
       methodCache.set('nonPureInput', value);
     },
-    getNonPureInput() {
+    getNonPureInput(): any[] {
       let entry = methodCache.get('nonPureInput');
       if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
@@ -174,7 +174,7 @@ function createProgramState() {
     setNonPureOutput(value: any[]) {
       methodCache.set('nonPureOutput', value);
     },
-    getNonPureOutput(): any {
+    getNonPureOutput(): any[] {
       let entry = methodCache.get('nonPureOutput');
       if (entry === undefined) throw Error(`Auxiliary output not defined`);
       return entry;
