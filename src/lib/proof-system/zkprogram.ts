@@ -167,7 +167,7 @@ function createProgramState() {
       methodCache.set('nonPureInput', value);
     },
     getNonPureInput() {
-      let entry = nonPureDataCache.get('nonPureInput');
+      let entry = methodCache.get('nonPureInput');
       if (entry === undefined) throw Error(`Auxiliary input not defined`);
       return entry;
     },
@@ -175,7 +175,7 @@ function createProgramState() {
       methodCache.set('nonPureOutput', value);
     },
     getNonPureOutput(): any {
-      let entry = nonPureDataCache.get('nonPureOutput');
+      let entry = methodCache.get('nonPureOutput');
       if (entry === undefined) throw Error(`Auxiliary output not defined`);
       return entry;
     },
@@ -194,7 +194,7 @@ function createProgramState() {
       methodCache.delete(methodName);
     },
     resetNonPureDataCache(key: string) {
-      nonPureDataCache.delete(key);
+      methodCache.delete(key);
     },
   };
 }
