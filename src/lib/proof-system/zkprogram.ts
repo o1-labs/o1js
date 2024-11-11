@@ -190,10 +190,7 @@ function createProgramState() {
         throw Error(`Auxiliary value for method ${methodName} not defined`);
       return entry;
     },
-    reset(methodName: string) {
-      methodCache.delete(methodName);
-    },
-    resetNonPureDataCache(key: string) {
+    reset(key: string) {
       methodCache.delete(key);
     },
   };
@@ -858,7 +855,7 @@ function ZkProgram<
           nonPureOutput
         );
 
-        programState.resetNonPureDataCache('nonPureOutput');
+        programState.reset('nonPureOutput');
       } else {
         publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       }
