@@ -46,12 +46,11 @@ import {
   compileProgram,
   Empty,
   getPreviousProofsForProver,
-  methodArgumentsToConstant,
-  methodArgumentTypesAndValues,
   MethodInterface,
-  Proof,
   sortMethodArguments,
+  VerificationKey,
 } from '../proof-system/zkprogram.js';
+import { Proof } from '../proof-system/proof.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   InternalStateType,
@@ -158,7 +157,7 @@ function method<K extends string, T extends SmartContract>(
   ZkappClass._maxProofsVerified ??= 0;
   ZkappClass._maxProofsVerified = Math.max(
     ZkappClass._maxProofsVerified,
-    methodEntry.proofArgs.length
+    methodEntry.numberOfProofs
   ) as 0 | 1 | 2;
   let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
@@ -315,12 +314,7 @@ function wrapMethod(
               method.apply(
                 this,
                 actualArgs.map((a, i) => {
-                  let arg = methodIntf.allArgs[i];
-                  if (arg.type === 'witness') {
-                    let type = methodIntf.witnessArgs[arg.index];
-                    return Provable.witness(type, () => a);
-                  }
-                  return a;
+                  return Provable.witness(methodIntf.args[i], () => a);
                 })
               ),
               noPromiseError
@@ -348,10 +342,7 @@ function wrapMethod(
                 methodName: methodIntf.methodName,
                 args: clonedArgs,
                 // proofs actually don't have to be cloned
-                previousProofs: getPreviousProofsForProver(
-                  actualArgs,
-                  methodIntf
-                ),
+                previousProofs: getPreviousProofsForProver(actualArgs),
                 ZkappClass,
                 memoized,
                 blindingValue,
@@ -393,7 +384,9 @@ function wrapMethod(
       let blindingValue = getBlindingValue();
 
       let runCalledContract = async () => {
-        let constantArgs = methodArgumentsToConstant(methodIntf, actualArgs);
+        let constantArgs = methodIntf.args.map((type, i) =>
+          Provable.toConstant(type, actualArgs[i])
+        );
         let constantBlindingValue = blindingValue.toConstant();
         let accountUpdate = this.self;
         accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
@@ -440,10 +433,7 @@ function wrapMethod(
             {
               methodName: methodIntf.methodName,
               args: constantArgs,
-              previousProofs: getPreviousProofsForProver(
-                constantArgs,
-                methodIntf
-              ),
+              previousProofs: getPreviousProofsForProver(constantArgs),
               ZkappClass,
               memoized,
               blindingValue: constantBlindingValue,
@@ -533,7 +523,9 @@ function computeCallData(
   blindingValue: Field
 ) {
   let { returnType, methodName } = methodIntf;
-  let args = methodArgumentTypesAndValues(methodIntf, argumentValues);
+  let args = methodIntf.args.map((type, i) => {
+    return { type: ProvableType.get(type), value: argumentValues[i] };
+  });
 
   let input: HashInput = { fields: [], packed: [] };
   for (let { type, value } of args) {
@@ -718,9 +710,7 @@ class SmartContract extends SmartContractBase {
       ._verificationKey;
     if (verificationKey === undefined) {
       if (!Mina.getProofsEnabled()) {
-        await initializeBindings();
-        let [, data, hash] = Pickles.dummyVerificationKey();
-        verificationKey = { data, hash: Field(hash) };
+        verificationKey = await VerificationKey.dummy();
       } else {
         throw Error(
           `\`${this.constructor.name}.deploy()\` was called but no verification key was found.\n` +
@@ -877,11 +867,16 @@ super.init();
 
   sender = {
     self: this as SmartContract,
+
     /**
-     * @deprecated
-     * Deprecated in favor of `this.sender.getUnconstrainedV2()`.
-     * This method is vulnerable because it allows the prover to return a dummy (empty) public key,
-     * which would cause an account update with that public key to not be included.
+     * The public key of the current transaction's sender account.
+     *
+     * Throws an error if not inside a transaction, or the sender wasn't passed in.
+     *
+     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+     * A malicious prover could use any other public key without affecting the validity of the proof.
+     *
+     * Consider using `this.sender.getAndRequireSignature()` if you need to prove that the sender controls this account.
      */
     getUnconstrained(): PublicKey {
       // TODO this logic now has some overlap with this.self, we should combine them somehow
@@ -892,41 +887,17 @@ super.init();
         );
       }
       let transactionId = Mina.currentTransaction.id();
+      let sender;
       if (this.self.#_senderState?.transactionId === transactionId) {
-        return this.self.#_senderState.sender;
+        sender = this.self.#_senderState.sender;
       } else {
-        let sender = Provable.witness(PublicKey, () => Mina.sender());
+        sender = Provable.witness(PublicKey, () => Mina.sender());
         this.self.#_senderState = { transactionId, sender };
-        return sender;
       }
-    },
 
-    /**
-     * The public key of the current transaction's sender account.
-     *
-     * Throws an error if not inside a transaction, or the sender wasn't passed in.
-     *
-     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
-     * A malicious prover could use any other public key without affecting the validity of the proof.
-     *
-     * Consider using `this.sender.getAndRequireSignatureV2()` if you need to prove that the sender controls this account.
-     */
-    getUnconstrainedV2(): PublicKey {
-      let sender = this.getUnconstrained();
       // we prove that the returned public key is not the empty key, in which case
       // `createSigned()` would skip adding the account update, and nothing is proved
       sender.x.assertNotEquals(0);
-      return sender;
-    },
-
-    /**
-     * @deprecated
-     * Deprecated in favor of `this.sender.getAndRequireSignatureV2()`.
-     * This method is vulnerable because it allows the prover to return a dummy (empty) public key.
-     */
-    getAndRequireSignature(): PublicKey {
-      let sender = this.getUnconstrained();
-      AccountUpdate.createSigned(sender);
       return sender;
     },
 
@@ -936,8 +907,8 @@ super.init();
      * Note: This doesn't prove that the return value is the transaction sender, but it proves that whoever created
      * the transaction controls the private key associated with the returned public key.
      */
-    getAndRequireSignatureV2(): PublicKey {
-      let sender = this.getUnconstrainedV2();
+    getAndRequireSignature(): PublicKey {
+      let sender = this.getUnconstrained();
       AccountUpdate.createSigned(sender);
       return sender;
     },
@@ -1109,16 +1080,20 @@ super.init();
     }
 
     const queryFilterOptions: EventActionFilterOptions = {};
-    if(start.greaterThan(UInt32.from(0)).toBoolean()) {
+    if (start.greaterThan(UInt32.from(0)).toBoolean()) {
       queryFilterOptions.from = start;
     }
-    if(end) {
+    if (end) {
       queryFilterOptions.to = end;
     }
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
     let events = (
-      await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions)
+      await Mina.fetchEvents(
+        this.address,
+        this.self.body.tokenId,
+        queryFilterOptions
+      )
     )
       .map((event) => {
         return event.events.map((eventData) => {

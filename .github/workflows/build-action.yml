@@ -4,6 +4,8 @@ on:
     branches:
       - main
       - develop
+      - v1
+      - v3
   pull_request:
   workflow_dispatch: {}
 
@@ -22,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Cache dependencies and build
         uses: actions/cache@v4
@@ -87,7 +89,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -131,7 +133,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -210,7 +212,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Restore npm cache
         uses: actions/cache@v4
@@ -262,7 +264,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Build o1js
         run: |
@@ -291,7 +293,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Build mina-signer
         run: |

@@ -362,13 +362,14 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
 
       let layout = getLayoutPosition(this._contract);
       let address: PublicKey = this._contract.instance.address;
+      let tokenId: Field = this._contract.instance.tokenId;
       let account: Account | undefined;
       if (networkConfig.minaEndpoint === '') {
-        account = Mina.getAccount(address, TokenId.default);
+        account = Mina.getAccount(address, tokenId);
       } else {
         ({ account } = await fetchAccount({
           publicKey: address,
-          tokenId: TokenId.toBase58(TokenId.default),
+          tokenId: TokenId.toBase58(tokenId),
         }));
       }
       if (account === undefined) return undefined;

@@ -114,35 +114,11 @@ class MerkleMapWitness extends CircuitValue {
   }
 
   /**
-   * @deprecated This method is deprecated and will be removed in the next release. Please use {@link computeRootAndKeyV2} instead.
-   */
-  computeRootAndKey(value: Field) {
-    let hash = value;
-
-    const isLeft = this.isLefts;
-    const siblings = this.siblings;
-
-    let key = Field(0);
-
-    for (let i = 0; i < 255; i++) {
-      const left = Provable.if(isLeft[i], hash, siblings[i]);
-      const right = Provable.if(isLeft[i], siblings[i], hash);
-      hash = Poseidon.hash([left, right]);
-
-      const bit = Provable.if(isLeft[i], Field(0), Field(1));
-
-      key = key.mul(2).add(bit);
-    }
-
-    return [hash, key];
-  }
-
-  /**
    * Computes the merkle tree root for a given value and the key for this witness
    * @param value The value to compute the root for.
    * @returns A tuple of the computed merkle root, and the key that is connected to the path updated by this witness.
    */
-  computeRootAndKeyV2(value: Field) {
+  computeRootAndKey(value: Field) {
     // Check that the computed key is less than 2^254, in order to avoid collisions since the Pasta field modulus is smaller than 2^255
     this.isLefts[0].assertTrue();
 
