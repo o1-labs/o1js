@@ -164,7 +164,7 @@ function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
   return {
     setNonPureInput(value: any[]) {
-      nonPureDataCache.set('nonPureInput', value);
+      methodCache.set('nonPureInput', value);
     },
     getNonPureInput() {
       let entry = nonPureDataCache.get('nonPureInput');
@@ -172,7 +172,7 @@ function createProgramState() {
       return entry;
     },
     setNonPureOutput(value: any[]) {
-      nonPureDataCache.set('nonPureOutput', value);
+      methodCache.set('nonPureOutput', value);
     },
     getNonPureOutput(): any {
       let entry = nonPureDataCache.get('nonPureOutput');
