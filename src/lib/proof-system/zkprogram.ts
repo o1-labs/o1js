@@ -161,7 +161,6 @@ const FeatureFlags = {
 };
 
 function createProgramState() {
-  let nonPureDataCache: Map<string, any[]> = new Map();
   let methodCache: Map<string, unknown> = new Map();
   return {
     setNonPureInput(value: any[]) {
