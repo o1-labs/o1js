@@ -1,19 +1,17 @@
 import { Bytes, Gadgets, ZkProgram } from 'o1js';
 
-export { SHA256Program, Bytes12 };
+export { BLAKE2BProgram, Bytes12 };
 
 class Bytes12 extends Bytes(12) {}
 
-let SHA256Program = ZkProgram({
-  name: 'sha256',
+let BLAKE2BProgram = ZkProgram({
+  name: 'blake2b',
   publicOutput: Bytes(32),
   methods: {
-    sha256: {
+    blake2b: {
       privateInputs: [Bytes12],
       async method(xs: Bytes12) {
-        return {
-          publicOutput: Gadgets.SHA256.hash(xs),
-        };
+        return { publicOutput: Gadgets.BLAKE2B.hash(xs, 32) };
       },
     },
   },

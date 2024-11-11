@@ -112,7 +112,7 @@ await equivalentAsync({ from: [maybeUint(64)], to: boolean }, { runs })(
     return true;
   },
   async (x) => {
-    let proof = await RangeCheck.check64(x);
+    let { proof } = await RangeCheck.check64(x);
     return await RangeCheck.verify(proof);
   }
 );
@@ -123,7 +123,7 @@ await equivalentAsync({ from: [maybeUint(8)], to: boolean }, { runs })(
     return true;
   },
   async (x) => {
-    let proof = await RangeCheck.check8(x);
+    let { proof } = await RangeCheck.check8(x);
     return await RangeCheck.verify(proof);
   }
 );
@@ -137,7 +137,7 @@ await equivalentAsync(
     return true;
   },
   async (x, y, z) => {
-    let proof = await RangeCheck.checkMulti(x, y, z);
+    let { proof } = await RangeCheck.checkMulti(x, y, z);
     return await RangeCheck.verify(proof);
   }
 );
@@ -151,7 +151,7 @@ await equivalentAsync(
     return true;
   },
   async (xy, z) => {
-    let proof = await RangeCheck.checkCompact(xy, z);
+    let { proof } = await RangeCheck.checkCompact(xy, z);
     return await RangeCheck.verify(proof);
   }
 );

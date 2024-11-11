@@ -15,12 +15,7 @@ import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
 import { Bytes } from '../bytes.js';
 
 // external API
-export {
-  createForeignCurve,
-  createForeignCurveV2,
-  ForeignCurve,
-  ForeignCurveV2,
-};
+export { createForeignCurve, ForeignCurve };
 
 // internal API
 export { toPoint, FlexiblePoint };
@@ -33,9 +28,6 @@ function toPoint({ x, y }: ForeignCurve): Point {
   return { x: x.value, y: y.value };
 }
 
-/**
- * @deprecated `ForeignCurve` is now deprecated and will be removed in a future release. Please use {@link ForeignCurveV2} instead.
- */
 class ForeignCurve {
   x: AlmostForeignField;
   y: AlmostForeignField;
@@ -76,7 +68,7 @@ class ForeignCurve {
   }
 
   /**
-   * Parses a hexadecimal string representing an uncompressed elliptic curve point and coerces it into a {@link ForeignCurveV2} point.
+   * Parses a hexadecimal string representing an uncompressed elliptic curve point and coerces it into a {@link ForeignCurve} point.
    *
    * The method extracts the x and y coordinates from the provided hex string and verifies that the resulting point lies on the curve.
    *
@@ -89,7 +81,7 @@ class ForeignCurve {
    *
    * @example
    * ```ts
-   * class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+   * class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
    *
    * const publicKeyHex = '04f8b8db25c619d0c66b2dc9e97ecbafafae...'; // Example hex string for uncompressed point
    * const point = Secp256k1.fromHex(publicKeyHex);
@@ -125,7 +117,7 @@ class ForeignCurve {
   }
 
   /**
-   * Create a new {@link ForeignCurveV2} instance from an Ethereum public key in hex format, which may be either compressed or uncompressed.
+   * Create a new {@link ForeignCurve} instance from an Ethereum public key in hex format, which may be either compressed or uncompressed.
    * This method is designed to handle the parsing of public keys as used by the ethers.js library.
    *
    * The input should represent the affine x and y coordinates of the point, in hexadecimal format.
@@ -138,7 +130,7 @@ class ForeignCurve {
    * ```ts
    * import { Wallet, Signature, getBytes } from 'ethers';
    *
-   * class Secp256k1 extends createForeignCurveV2(Crypto.CurveParams.Secp256k1) {}
+   * class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
    *
    * const wallet = Wallet.createRandom();
    *
@@ -356,10 +348,10 @@ class ForeignCurve {
    * - Use {@link assertOnCurve()} to check that the point lies on the curve
    * - If the curve has cofactor unequal to 1, use {@link assertInSubgroup()}.
    */
-  static check(g: ForeignCurve) {
-    // more efficient than the automatic check, which would do this for each field separately
-    this.Field.assertAlmostReduced(g.x, g.y);
-    this.assertOnCurve(g);
+  static check(g: ForeignCurveNotNeeded) {
+    multiRangeCheck(g.x.value);
+    multiRangeCheck(g.y.value);
+    this.assertOnCurve(g); // this does almost reduced checks on x and y
     this.assertInSubgroup(g);
   }
 
@@ -406,7 +398,7 @@ class ForeignCurve {
   }
 }
 
-class ForeignCurveV2 extends ForeignCurve {
+class ForeignCurveNotNeeded extends ForeignCurve {
   constructor(g: {
     x: AlmostForeignField | Field3 | bigint | number;
     y: AlmostForeignField | Field3 | bigint | number;
@@ -414,18 +406,28 @@ class ForeignCurveV2 extends ForeignCurve {
     super(g);
   }
 
-  static check(g: ForeignCurveV2) {
+  static check(g: ForeignCurveNotNeeded) {
     multiRangeCheck(g.x.value);
     multiRangeCheck(g.y.value);
-    // more efficient than the automatic check, which would do this for each field separately
-    this.Field.assertAlmostReduced(g.x, g.y);
     this.assertOnCurve(g);
     this.assertInSubgroup(g);
   }
 }
 
 /**
- * @deprecated `createForeignCurve` is now deprecated and will be removed in a future release. Please use {@link createForeignCurveV2} instead.
+ * Create a class representing an elliptic curve group, which is different from the native {@link Group}.
+ *
+ * ```ts
+ * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
+ * ```
+ *
+ * `createForeignCurve(params)` takes curve parameters {@link CurveParams} as input.
+ * We support `modulus` and `order` to be prime numbers up to 259 bits.
+ *
+ * The returned {@link ForeignCurveNotNeeded} class represents a _non-zero curve point_ and supports standard
+ * elliptic curve operations like point addition and scalar multiplication.
+ *
+ * {@link ForeignCurveNotNeeded} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   assert(
@@ -441,44 +443,6 @@ function createForeignCurve(params: CurveParams): typeof ForeignCurve {
   const BigintCurve = createCurveAffine(params);
 
   class Curve extends ForeignCurve {
-    static _Bigint = BigintCurve;
-    static _Field = Field;
-    static _Scalar = Scalar;
-    static _provable = provableFromClass(Curve, { x: Field, y: Field });
-  }
-
-  return Curve;
-}
-
-/**
- * Create a class representing an elliptic curve group, which is different from the native {@link Group}.
- *
- * ```ts
- * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
- * ```
- *
- * `createForeignCurve(params)` takes curve parameters {@link CurveParams} as input.
- * We support `modulus` and `order` to be prime numbers up to 259 bits.
- *
- * The returned {@link ForeignCurveV2} class represents a _non-zero curve point_ and supports standard
- * elliptic curve operations like point addition and scalar multiplication.
- *
- * {@link ForeignCurveV2} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignFieldV2}.
- */
-function createForeignCurveV2(params: CurveParams): typeof ForeignCurveV2 {
-  assert(
-    params.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
-  );
-
-  const FieldUnreduced = createForeignField(params.modulus);
-  const ScalarUnreduced = createForeignField(params.order);
-  class Field extends FieldUnreduced.AlmostReduced {}
-  class Scalar extends ScalarUnreduced.AlmostReduced {}
-
-  const BigintCurve = createCurveAffine(params);
-
-  class Curve extends ForeignCurveV2 {
     static _Bigint = BigintCurve;
     static _Field = Field;
     static _Scalar = Scalar;
