@@ -7,6 +7,7 @@ import {
   ShiftedScalar,
   field3ToShiftedScalar,
   fieldToShiftedScalar,
+  shiftedScalarToField3,
 } from './gadgets/native-curve.js';
 import { isConstant } from './gadgets/common.js';
 import { Provable } from './provable.js';
@@ -289,6 +290,14 @@ class Scalar implements ShiftedScalar {
      * which relies on that range is scalar multiplication -- which constrains the range itself.
      */
     return Bool.check(s.lowBit);
+  }
+
+  static toCanonical(s: Scalar): Scalar {
+    // we convert to a field3, which always works
+    // and then back, which proves the result is canonical
+    let sBig = shiftedScalarToField3(s);
+    let sCanonical = field3ToShiftedScalar(sBig);
+    return Scalar.fromShiftedScalar(sCanonical);
   }
 
   static toValue(x: Scalar) {

@@ -3,9 +3,13 @@ on:
   push:
     branches:
       - main
+      - v3
+      - v1
   pull_request:
     branches:
       - main
+      - v3
+      - v1
   workflow_dispatch: {}
 
 jobs:

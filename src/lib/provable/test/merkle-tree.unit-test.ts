@@ -37,7 +37,7 @@ console.log(
       let mapWitness = Provable.witness(MerkleMapWitness, () =>
         throwError('unused')
       );
-      let [actualRoot, actualKey] = mapWitness.computeRootAndKeyV2(value);
+      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(value);
       key.assertEquals(actualKey);
       root.assertEquals(actualRoot);
     }
@@ -71,11 +71,11 @@ console.log(
       let mapWitness = Provable.witness(MerkleMapWitness, () =>
         throwError('unused')
       );
-      let [actualRoot, actualKey] = mapWitness.computeRootAndKeyV2(oldValue);
+      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(oldValue);
       key.assertEquals(actualKey);
       root.assertEquals(actualRoot);
 
-      let [_newRoot] = mapWitness.computeRootAndKeyV2(value);
+      let [_newRoot] = mapWitness.computeRootAndKey(value);
     }
   )
 );
@@ -300,11 +300,11 @@ test(Random.field, (key) => {
   if (key > 2n ** 254n) {
     expect(() => {
       let witness = map.getWitness(Field(key));
-      witness.computeRootAndKeyV2(Field(0));
+      witness.computeRootAndKey(Field(0));
     }).toThrowError();
   } else {
     let witness = map.getWitness(Field(key));
-    let [, calculatedKey] = witness.computeRootAndKeyV2(Field(0));
+    let [, calculatedKey] = witness.computeRootAndKey(Field(0));
     expect(calculatedKey.toBigInt()).toEqual(key);
   }
 });

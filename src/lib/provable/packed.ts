@@ -1,4 +1,4 @@
-import { provableFromClass } from './types/provable-derivers.js';
+import { mapValue, provableFromClass } from './types/provable-derivers.js';
 import { HashInput, ProvableExtended } from './types/struct.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { Field } from './field.js';
@@ -42,6 +42,10 @@ export { Packed, Hashed };
  * **Warning**: Packing only makes sense where packing actually reduces the number of field elements.
  * For example, it doesn't make sense to pack a _single_ Bool, because it will be 1 field element before
  * and after packing. On the other hand, it does makes sense to pack a type that holds 10 or 20 Bools.
+ *
+ * **Warning**: When wrapping a type with `Packed`, make sure that that type is safe to automatically _pack_
+ * and _unpack_ in provable code. In particular, do not use `Packed` with types that define a custom `toInput()`
+ * (specifying a certain bit packing) but no corresponding `check()` method (that constrains the bit lengths of the packed parts).
  */
 class Packed<T> {
   packed: Field[];
@@ -50,22 +54,52 @@ class Packed<T> {
   /**
    * Create a packed representation of `type`. You can then use `PackedType.pack(x)` to pack a value.
    */
-  static create<T>(
-    type: WithProvable<ProvableExtended<T>>
+  static create<T, V>(
+    type: WithProvable<ProvableHashable<T, V>>
   ): typeof Packed<T> & {
-    provable: ProvableHashable<Packed<T>>;
+    provable: ProvableHashable<Packed<T>, V>;
+
+    /**
+     * Pack a value.
+     */
+    pack(x: T): Packed<T>;
   } {
     let provable = ProvableType.get(type);
     // compute size of packed representation
     let input = provable.toInput(provable.empty());
     let packedSize = countFields(input);
+    let packedFields = fields(packedSize);
 
     return class Packed_ extends Packed<T> {
       static _innerProvable = provable;
-      static _provable = provableFromClass(Packed_, {
-        packed: fields(packedSize),
-        value: Unconstrained,
-      }) satisfies ProvableHashable<Packed<T>> as ProvableHashable<Packed<T>>;
+      static _provable = mapValue(
+        provableFromClass(Packed_, {
+          packed: packedFields,
+          value: Unconstrained,
+        }),
+        ({ value }: { value: Unconstrained<T> }) =>
+          provable.toValue(value.get()),
+        (x) => {
+          if (x instanceof Packed) return x;
+          let { packed, value } = Packed_.pack(provable.fromValue(x));
+          return {
+            packed: packedFields.toValue(packed),
+            value: Unconstrained.from(value),
+          };
+        }
+      ) satisfies ProvableHashable<Packed<T>, V> as ProvableHashable<
+        Packed<T>,
+        V
+      >;
+
+      static pack(x: T): Packed<T> {
+        let input = provable.toInput(x);
+        let packed = packToFields(input);
+        let unconstrained = Unconstrained.witness(() =>
+          Provable.toConstant(provable, x)
+        );
+        return new Packed_(packed, unconstrained);
+      }
 
       static empty(): Packed<T> {
         return Packed_.pack(provable.empty());
@@ -81,19 +115,6 @@ class Packed<T> {
   constructor(packed: Field[], value: Unconstrained<T>) {
     this.packed = packed;
     this.value = value;
-  }
-
-  /**
-   * Pack a value.
-   */
-  static pack<T>(x: T): Packed<T> {
-    let type = this.innerProvable;
-    let input = type.toInput(x);
-    let packed = packToFields(input);
-    let unconstrained = Unconstrained.witness(() =>
-      Provable.toConstant(type, x)
-    );
-    return new this(packed, unconstrained);
   }
 
   /**
@@ -120,13 +141,13 @@ class Packed<T> {
 
   // dynamic subclassing infra
   static _provable: ProvableHashable<Packed<any>> | undefined;
-  static _innerProvable: ProvableExtended<any> | undefined;
+  static _innerProvable: ProvableHashable<any> | undefined;
 
   get Constructor(): typeof Packed {
     return this.constructor as typeof Packed;
   }
 
-  static get innerProvable(): ProvableExtended<any> {
+  static get innerProvable(): ProvableHashable<any> {
     assert(this._innerProvable !== undefined, 'Packed not initialized');
     return this._innerProvable;
   }
@@ -174,6 +195,10 @@ function countFields(input: HashInput) {
  * // unhash to get the original value
  * let value = hashed.unhash();
  * ```
+ *
+ * **Warning**: When wrapping a type with `Hashed`, make sure that that type is safe to automatically _pack_
+ * and _unpack_ in provable code. In particular, do not use `Hashed` with types that define a custom `toInput()`
+ * (specifying a certain bit packing) but no corresponding `check()` method  (that constrains the bit lengths of the packed parts).
  */
 class Hashed<T> {
   hash: Field;

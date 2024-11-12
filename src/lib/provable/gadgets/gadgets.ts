@@ -4,12 +4,12 @@
 import {
   compactMultiRangeCheck,
   multiRangeCheck,
+  rangeCheck8,
   rangeCheck16,
-  rangeCheck64,
   rangeCheck32,
+  rangeCheck64,
   rangeCheckN,
   isDefinitelyInRangeN,
-  rangeCheck8,
 } from './range-check.js';
 import {
   not,
@@ -17,6 +17,7 @@ import {
   rotate64,
   xor,
   and,
+  or,
   leftShift64,
   rightShift64,
   leftShift32,
@@ -27,13 +28,33 @@ import {
   Field3,
   Sum as ForeignFieldSum,
 } from './foreign-field.js';
-import { divMod32, addMod32 } from './arithmetic.js';
+import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
+import { BLAKE2B } from './blake2b.js';
 import { rangeCheck3x12 } from './lookup.js';
+import { arrayGet } from './basic.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 
 const Gadgets = {
+  /**
+   * Get value from array at a Field element index, in O(n) constraints, where n is the array length.
+   *
+   * **Warning**: This gadget assumes that the index is within the array bounds `[0, n)`,
+   * and returns an unconstrained result otherwise.
+   * To use it with an index that is not already guaranteed to be within the array bounds, you should add a suitable range check.
+   *
+   * ```ts
+   * let array = Provable.witnessFields(3, () => [1n, 2n, 3n]);
+   * let index = Provable.witness(Field, () => 1n);
+   *
+   * let value = Gadgets.arrayGet(array, index);
+   * ```
+   *
+   * **Note**: This saves n constraints compared to `Provable.switch(array.map((_, i) => index.equals(i)), type, array)`.
+   */
+  arrayGet,
+
   /**
    * Asserts that the input value is in the range [0, 2^64).
    *
@@ -418,7 +439,8 @@ const Gadgets = {
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
    * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
    *
-   * It can be checked by a double generic gate that verifies the following relationship between the values below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
+   * It can be checked by a double generic gate that verifies the following relationship between the values 
+   * below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
    *
    * The generic gate verifies:\
    * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
@@ -429,7 +451,9 @@ const Gadgets = {
    *
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
    *
-   * The `length` parameter lets you define how many bits should be compared. `length` is rounded to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
    *
@@ -447,6 +471,31 @@ const Gadgets = {
    */
   and(a: Field, b: Field, length: number) {
     return and(a, b, length);
+  },
+  /**
+   * Bitwise OR gadget on {@link Field} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded 
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
+   *
+   * **Note:** Specifying a larger `length` parameter adds additional constraints.
+   *
+   * **Note:** Both {@link Field} elements need to fit into `2^paddedLength - 1`. Otherwise, an error is thrown and no proof can be generated.
+   * For example, with `length = 2` (`paddedLength = 16`), `and()` will fail for any input that is larger than `2**16`.
+   *
+   * @example
+   * ```typescript
+   * let a = Field.from(3);    // ... 000011
+   * let b = Field.from(5);    // ... 000101
+   *
+   * let c = Gadgets.or(a, b, 16);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(a: Field, b: Field, length: number) {
+    return or(a, b, length);
   },
 
   /**
@@ -811,6 +860,17 @@ const Gadgets = {
     assertLessThanOrEqual(x: Field3, f: bigint | Field3) {
       ForeignField.assertLessThanOrEqual(x, f);
     },
+
+    /**
+     * Convert x, which may be unreduced, to a canonical representative xR < f
+     * such that x = xR mod f
+     *
+     * Note: This method is complete, it works for all unreduced field elements.
+     * It can therefore be used to protect against incompleteness of field operations in other places.
+     */
+    toCanonical(x: Field3, f: bigint) {
+      return ForeignField.toCanonical(x, f);
+    },
   },
 
   /**
@@ -838,7 +898,7 @@ const Gadgets = {
   divMod32,
 
   /**
-   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^64] and returns the result modulo 2^32.
+   * Addition modulo 2^32. The operation adds two {@link Field} elements in the range [0, 2^32) and returns the result modulo 2^32.
    *
    * Asserts that the result is in the range [0, 2^32) using {@link Gadgets.rangeCheck32}.
    *
@@ -855,6 +915,43 @@ const Gadgets = {
    * ```
    *    */
   addMod32,
+
+  /**
+   * Division modulo 2^64. The operation decomposes a {@link Field} element in the range [0, 2^128) into two 64-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^64 + remainder`.
+   *
+   * **Note:** The gadget acts as a proof that the input is in the range [0, 2^128). If the input exceeds 128 bits, the gadget fails.
+   *
+   * Asserts that both `remainder` and `quotient` are in the range [0, 2^64) using {@link Gadgets.rangeCheck64}.
+   *
+   * @example
+   * ```ts
+   * let n = Field((1n << 64n) + 8n)
+   * let { remainder, quotient } = Gadgets.divMod64(n);
+   * // remainder = 8, quotient = 1
+   *
+   * n.assertEquals(quotient.mul(1n << 64n).add(remainder));
+   * ```
+   */
+  divMod64,
+
+  /**
+   * Addition modulo 2^64. The operation adds two {@link Field} elements in the range [0, 2^64) and returns the result modulo 2^64.
+   *
+   * Asserts that the result is in the range [0, 2^64) using {@link Gadgets.rangeCheck64}.
+   *
+   * It uses {@link Gadgets.divMod64} internally by adding the two {@link Field} elements and then decomposing the result into `remainder` and `quotient` and returning the `remainder`.
+   *
+   * **Note:** The gadget assumes both inputs to be in the range [0, 2^64). When called with non-range-checked inputs, be aware that the sum `a + b` can overflow the native field and the gadget can succeed but return an invalid result.
+   *
+   * @example
+   * ```ts
+   * let a = Field(8n);
+   * let b = Field(1n << 64n);
+   *
+   * Gadgets.addMod64(a, b).assertEquals(Field(8n));
+   * ```
+   */
+  addMod64,
 
   /**
    * Implementation of the [SHA256 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function with 256bit output.
@@ -875,4 +972,24 @@ const Gadgets = {
    *
    */
   SHA256: SHA256,
+
+  /**
+   * Implementation of the [BLAKE2b hash function.](https://en.wikipedia.org/wiki/BLAKE_(hash_function)#BLAKE2) Hash function with arbitrary length output.
+   *
+   * Applies the BLAKE2b hash function to a list of byte-sized elements.
+   *
+   * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]`, `bigint[]` or `Uint8Array` to perform a hash outside provable code.
+   *
+   * Produces an output of {@link Bytes} that conforms to the chosen digest length.
+   *
+   * @param data - {@link Bytes} representing the message to hash.
+   *
+   * ```ts
+   * let preimage = Bytes.fromString("hello world");
+   * let digest = Gadgets.BLAKE2b.hash(preimage);
+   * ```
+   *
+   */
+  BLAKE2B: BLAKE2B,
 };
