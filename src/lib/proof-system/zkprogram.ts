@@ -91,10 +91,10 @@ function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
   return {
     setNonPureOutput(value: any[]) {
-      methodCache.set('nonPureOutput', value);
+      methodCache.set('__nonPureOutput__', value);
     },
     getNonPureOutput(): any[] {
-      let entry = methodCache.get('nonPureOutput');
+      let entry = methodCache.get('__nonPureOutput__');
       if (entry === undefined) throw Error(`Non-pure output not defined`);
       return entry as any[];
     },
