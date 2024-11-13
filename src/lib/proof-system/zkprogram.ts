@@ -3,7 +3,7 @@ import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import {
-  FlexibleProvablePure,
+  FlexibleProvable,
   InferProvable,
   ProvablePureExtended,
   Struct,
