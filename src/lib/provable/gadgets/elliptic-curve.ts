@@ -20,7 +20,6 @@ import { provable } from '../types/provable-derivers.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { arrayGet, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
-import { Hashed } from '../packed.js';
 import { exists } from '../core/exists.js';
 import { ProvableType } from '../types/provable-intf.js';
 
@@ -54,7 +53,7 @@ namespace Ecdsa {
   export type signature = { r: bigint; s: bigint };
 }
 
-function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
+function add(p1: Point, p2: Point, Curve: { modulus: bigint; a: bigint }) {
   let { x: x1, y: y1 } = p1;
   let { x: x2, y: y2 } = p2;
   let f = Curve.modulus;
@@ -63,7 +62,7 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint }) {
 
   // constant case
   if (Point.isConstant(p1) && Point.isConstant(p2)) {
-    let p3 = affineAdd(Point.toBigint(p1), Point.toBigint(p2), f);
+    let p3 = affineAdd(Point.toBigint(p1), Point.toBigint(p2), f, Curve.a);
     return Point.from(p3);
   }
 
@@ -120,7 +119,7 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint }) {
 
   // constant case
   if (Point.isConstant(p1)) {
-    let p3 = affineDouble(Point.toBigint(p1), f);
+    let p3 = affineDouble(Point.toBigint(p1), f, Curve.a);
     return Point.from(p3);
   }
 
@@ -129,7 +128,7 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint }) {
     let [x1_, y1_] = Field3.toBigints(x1, y1);
     let denom = inverse(mod(2n * y1_, f), f) ?? 0n;
 
-    let m = mod(3n * mod(x1_ ** 2n, f) * denom, f);
+    let m = mod((3n * mod(x1_ ** 2n, f) + Curve.a) * denom, f);
     let x3 = mod(m * m - 2n * x1_, f);
     let y3 = mod(m * (x1_ - x3) - y1_, f);
 

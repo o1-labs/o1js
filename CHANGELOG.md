@@ -15,9 +15,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/577c8bac6...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/e1bac02...HEAD)
 
-## [2.0.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...577c8bac6) - 2024-10-29
+## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
+
+### Added
+
+- Support secp256r1 in elliptic curve and ECDSA gadgets https://github.com/o1-labs/o1js/pull/1885
 
 ### Fixed
 
