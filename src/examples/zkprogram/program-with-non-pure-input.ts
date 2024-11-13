@@ -15,7 +15,7 @@ let MyProgram = ZkProgram({
       privateInputs: [],
       async method(input: MyStruct) {
         //update input in circuit
-        input.label = 'inCircuit';
+        input.label = 'in-circuit';
         return {
           publicOutput: input,
         };
@@ -36,4 +36,4 @@ let { proof } = await MyProgram.baseCase(input);
 let ok = await MyProgram.verify(proof);
 
 assert(ok, 'proof not valid!');
-assert(proof.publicOutput.label === 'inCircuit');
+assert(proof.publicOutput.label === 'in-circuit');
