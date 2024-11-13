@@ -90,14 +90,6 @@ const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
   return {
-    setNonPureInput(value: any[]) {
-      methodCache.set('nonPureInput', value);
-    },
-    getNonPureInput(): any[] {
-      let entry = methodCache.get('nonPureInput');
-      if (entry === undefined) throw Error(`Non-pure input not defined`);
-      return entry as any[];
-    },
     setNonPureOutput(value: any[]) {
       methodCache.set('nonPureOutput', value);
     },
@@ -419,9 +411,6 @@ function ZkProgram<
           publicInputType,
           publicInput
         ));
-
-        // store publicInput auxilary data in programState cache
-        programState.setNonPureInput(publicInputAux);
       } else {
         publicInputFields = toFieldConsts(publicInputType, publicInput);
       }
