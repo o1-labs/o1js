@@ -19,6 +19,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+-`ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
+
 - Support secp256r1 in elliptic curve and ECDSA gadgets https://github.com/o1-labs/o1js/pull/1885
 
 ### Fixed
