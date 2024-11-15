@@ -1,0 +1,28 @@
+# Purpose: We want to build the o1js bindings in CI so that people in the 
+# community can change them without being scared of breaking things, or
+# needing to do the complicated (without nix) build setup.
+
+name: Build o1js bindings
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:  
+  nix-build:
+    name: build-bindings-ubuntu
+    runs-on: hetzner-1
+    steps:
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - run: |
+          set -Eeu
+          export GIT_LFS_SKIP_SMUDGE=1
+          ./pin.sh
+          nix develop o1js --command bash --command "npm run build:update-bindings"
