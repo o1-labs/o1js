@@ -61,6 +61,33 @@ jobs:
           path: .
           key: repo-${{ github.sha }}
 
+  Check-mina-commit:
+    needs: Prepare
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Restore repository
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Check Commit
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            dist
+          key: npm run checkCommit
+
   Build-And-Test-Server:
     needs: Prepare
     timeout-minutes: 210
