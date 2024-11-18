@@ -95,6 +95,7 @@ function createProgramState() {
     },
     getNonPureOutput(): any[] {
       let entry = methodCache.get('__nonPureOutput__');
+      console.log('entry in get nonPureOutput', entry);
       if (entry === undefined) throw Error(`Non-pure output not defined`);
       return entry as any[];
     },
@@ -401,8 +402,11 @@ function ZkProgram<
         );
       }
 
-      let nonPureInputExists =
-        publicInputType.toAuxiliary(publicInput).length !== 0;
+      console.log('aux before check', publicInputType.toAuxiliary(publicInput));
+      let nonPureInputExists = publicInputType
+        .toAuxiliary(publicInput)
+        .some((aux) => aux.length !== 0);
+
       console.log('nonPure Input Exists', nonPureInputExists);
       let publicInputFields, publicInputAux;
       if (nonPureInputExists) {
@@ -447,6 +451,11 @@ function ZkProgram<
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
       if (nonPureInputExists) {
+        console.log('auxInputData', publicInputAux);
+        console.log(
+          'nonPureInputExists before calling getNonPureOutput',
+          nonPureInputExists
+        );
         let nonPureOutput = programState.getNonPureOutput();
 
         publicOutput = fromFieldConsts(
