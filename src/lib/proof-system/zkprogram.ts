@@ -95,7 +95,6 @@ function createProgramState() {
     },
     getNonPureOutput(): any[] {
       let entry = methodCache.get('__nonPureOutput__');
-      console.log('entry in get nonPureOutput', entry);
       if (entry === undefined) throw Error(`Non-pure output not defined`);
       return entry as any[];
     },
@@ -402,12 +401,10 @@ function ZkProgram<
         );
       }
 
-      console.log('aux before check', publicInputType.toAuxiliary(publicInput));
       let nonPureInputExists = publicInputType
         .toAuxiliary(publicInput)
         .some((aux) => aux.length !== 0);
 
-      console.log('nonPure Input Exists', nonPureInputExists);
       let publicInputFields, publicInputAux;
       if (nonPureInputExists) {
         // serialize publicInput into pure provable field elements and auxilary data
@@ -421,7 +418,6 @@ function ZkProgram<
 
       let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
-      console.log('auxdata before entering snarkContext ', publicInputAux);
       let id = snarkContext.enter({
         witnesses: args,
         inProver: true,
@@ -451,11 +447,6 @@ function ZkProgram<
       let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
       if (nonPureInputExists) {
-        console.log('auxInputData', publicInputAux);
-        console.log(
-          'nonPureInputExists before calling getNonPureOutput',
-          nonPureInputExists
-        );
         let nonPureOutput = programState.getNonPureOutput();
 
         publicOutput = fromFieldConsts(
@@ -892,12 +883,10 @@ function picklesRuleFromFunction(
     if (publicInputType === Undefined || publicInputType === Void) {
       result = (await func(...finalArgs)) as any;
     } else {
-      console.log('auxData before input', auxInputData);
       let input = fromFieldVars(publicInputType, publicInput, auxInputData);
       result = (await func(input, ...finalArgs)) as any;
     }
 
-    console.log('result input', result);
     if (result?.publicOutput) {
       // store the nonPure auxiliary data in program state cache if it exists
       let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
