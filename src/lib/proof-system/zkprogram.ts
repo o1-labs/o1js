@@ -233,7 +233,7 @@ function ZkProgram<
       [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
-    chunks?: number;
+    numChunks?: number;
   }
 ): {
   name: string;
@@ -244,6 +244,7 @@ function ZkProgram<
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
+    numChunks?: number;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -387,9 +388,9 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
-        chunks: config.chunks,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -692,9 +693,9 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  numChunks,
   state,
   withRuntimeTables,
-  chunks,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -706,9 +707,9 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
-  chunks?: number;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -753,36 +754,35 @@ If you are using a SmartContract, make sure you are using the @method decorator.
     MlBool(cache.canWrite),
   ];
 
-  let { verificationKey, provers, verify, tag } =
-    await prettifyStacktracePromise(
-      withThreadPool(async () => {
-        let result: ReturnType<typeof Pickles.compile>;
-        let id = snarkContext.enter({ inCompile: true });
-        setSrsCache(cache);
-        try {
-          result = Pickles.compile(MlArray.to(rules), {
-            publicInputSize: publicInputType.sizeInFields(),
-            publicOutputSize: publicOutputType.sizeInFields(),
-            storable: picklesCache,
-            overrideWrapDomain,
-            chunks: chunks ?? 1,
-          });
-          let { getVerificationKey, provers, verify, tag } = result;
-          CompiledTag.store(proofSystemTag, tag);
-          let [, data, hash] = await getVerificationKey();
-          let verificationKey = { data, hash: Field(hash) };
-          return {
-            verificationKey,
-            provers: MlArray.from(provers),
-            verify,
-            tag,
-          };
-        } finally {
-          snarkContext.leave(id);
-          unsetSrsCache();
-        }
-      })
-    );
+  let { verificationKey, provers, verify, tag } = await prettifyStacktracePromise(
+    withThreadPool(async () => {
+      let result: ReturnType<typeof Pickles.compile>;
+      let id = snarkContext.enter({ inCompile: true });
+      setSrsCache(cache);
+      try {
+        result = Pickles.compile(MlArray.to(rules), {
+          publicInputSize: publicInputType.sizeInFields(),
+          publicOutputSize: publicOutputType.sizeInFields(),
+          storable: picklesCache,
+          overrideWrapDomain,
+          numChunks: numChunks ?? 1,
+        });
+        let { getVerificationKey, provers, verify, tag } = result;
+        CompiledTag.store(proofSystemTag, tag);
+        let [, data, hash] = await getVerificationKey();
+        let verificationKey = { data, hash: Field(hash) };
+        return {
+          verificationKey,
+          provers: MlArray.from(provers),
+          verify,
+          tag,
+        };
+      } finally {
+        snarkContext.leave(id);
+        unsetSrsCache();
+      }
+    })
+  );
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
