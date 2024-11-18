@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -68,7 +68,8 @@
     "e2e:run-server": "node dist/web/server.js",
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report",
-    "update-changelog": "./update-changelog.sh"
+    "update-changelog": "./update-changelog.sh",
+    "checkCommit": "./src/bindings/scripts/check-commit.sh"
   },
   "author": "O(1) Labs",
   "devDependencies": {
