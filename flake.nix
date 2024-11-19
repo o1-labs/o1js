@@ -84,13 +84,40 @@
           { targets = ["wasm32-unknown-unknown" "x86_64-unknown-linux-gnu" ];
             extensions = [ "rust-src" ];
           });
+        inherit (nixpkgs) lib;
+        # All the submodules required by .gitmodules
+        submodules = map builtins.head (builtins.filter lib.isList
+          (map (builtins.match "	path = (.*)")
+            (lib.splitString "\n" (builtins.readFile ./.gitmodules))));
+
+        # Warn about missing submodules
+        requireSubmodules = let
+          ref = r: "[34;1m${r}[31;1m";
+          command = c: "[37;1m${c}[31;1m";
+        in lib.warnIf (!builtins.all (x: x)
+          (map (x: builtins.pathExists ./${x} && builtins.readDir ./${x} != { })
+            submodules)) ''
+              Some submodules are missing, you may get errors. Consider one of the following:
+              - run ${command "./pin.sh"} and use "${
+                ref "o1js"
+              }" flake ref, e.g. ${command "nix develop o1js"} or ${
+                command "nix build o1js"
+              };
+              - use "${ref "git+file://$PWD?submodules=1"}";
+              - use "${
+                ref "git+https://github.com/o1-labs/o1js?submodules=1"
+              }";
+              - use non-flake commands like ${command "nix-build"} and ${
+                command "nix-shell"
+              }.
+            '';
       in {
         formatter = pkgs.nixfmt;
         inherit mina;
         devShells = {
           # This seems to work better for macos
-          mina-shell = inputs.mina.devShells."${system}".with-lsp;
-          default = pkgs.mkShell {
+          mina-shell = requireSubmodules inputs.mina.devShells."${system}".with-lsp;
+          default = requireSubmodules (pkgs.mkShell {
             shellHook =
             ''
             RUSTUP_HOME=$(pwd)/.rustup
@@ -125,7 +152,7 @@
 
                 dune_3
               ] ++ commonOverrides.buildInputs ;
-          };
+          });
         };
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
