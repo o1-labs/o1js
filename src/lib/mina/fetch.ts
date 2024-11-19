@@ -1,4 +1,4 @@
-import 'isomorphic-fetch';
+import 'cross-fetch';
 import { Field } from '../provable/wrapped.js';
 import { UInt32, UInt64 } from '../provable/int.js';
 import { Actions, TokenId } from './account-update.js';
