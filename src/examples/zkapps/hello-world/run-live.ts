@@ -9,6 +9,8 @@ import {
 } from 'o1js';
 import { HelloWorld, adminPrivateKey } from './hello-world.js';
 
+throw Error('Error!');
+
 const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
 const zkAppKey = PrivateKey.random();
 const zkAppAddress = zkAppKey.toPublicKey();
