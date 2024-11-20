@@ -2,6 +2,8 @@ import { AccountUpdate, Field, Mina, PrivateKey } from 'o1js';
 import { getProfiler } from '../../utils/profiler.js';
 import { HelloWorld, adminPrivateKey } from './hello-world.js';
 
+throw Error('Error!');
+
 const HelloWorldProfier = getProfiler('Hello World');
 HelloWorldProfier.start('Hello World test flow');
 
