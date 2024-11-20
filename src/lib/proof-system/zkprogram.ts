@@ -442,19 +442,17 @@ function ZkProgram<
         programState.reset(methodIntfs[i].methodName);
       }
 
-      let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
-      if (nonPureInputExists) {
-        let nonPureOutput = programState.getNonPureOutput();
 
-        publicOutput = fromFieldConsts(
-          publicOutputType,
-          publicOutputFields,
-          nonPureOutput
-        );
+      let nonPureOutput = programState.getNonPureOutput();
 
-        programState.reset('__nonPureOutput__');
-      }
+      let publicOutput = fromFieldConsts(
+        publicOutputType,
+        publicOutputFields,
+        nonPureOutput
+      );
+
+      programState.reset('__nonPureOutput__');
 
       return {
         proof: new ProgramProof({
