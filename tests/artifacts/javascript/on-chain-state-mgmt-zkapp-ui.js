@@ -3,7 +3,10 @@ import {
   adminPrivateKey,
   HelloWorld,
 } from './examples/zkapps/hello-world/hello-world.js';
-import { MyProgram } from './examples/zkprogram/program-with-input.js'
+// MyProgram to serve as a test case for recursive ZkProgram compilation.
+// This helps to catch any regressions that might occur in the future.
+// For more details, refer to: https://github.com/o1-labs/o1js/pull/1906
+import { MyProgram } from './examples/zkprogram/program-with-input.js';
 import { AccountUpdate, Field, Mina, verify } from './index.js';
 
 const compileButton = document.querySelector('#compileButton');
