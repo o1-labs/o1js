@@ -403,16 +403,10 @@ function ZkProgram<
         .toAuxiliary(publicInput)
         .some((aux) => aux.length !== 0);
 
-      let publicInputFields, publicInputAux;
-      if (nonPureInputExists) {
-        // serialize publicInput into pure provable field elements and auxiliary data
-        ({ publicInputFields, publicInputAux } = toFieldAndAuxConsts(
-          publicInputType,
-          publicInput
-        ));
-      } else {
-        publicInputFields = toFieldConsts(publicInputType, publicInput);
-      }
+      let { publicInputFields, publicInputAux } = toFieldAndAuxConsts(
+        publicInputType,
+        publicInput
+      );
 
       let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
