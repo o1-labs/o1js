@@ -399,10 +399,6 @@ function ZkProgram<
         );
       }
 
-      let nonPureInputExists = publicInputType
-        .toAuxiliary(publicInput)
-        .some((aux) => aux.length !== 0);
-
       let { publicInputFields, publicInputAux } = toFieldAndAuxConsts(
         publicInputType,
         publicInput
