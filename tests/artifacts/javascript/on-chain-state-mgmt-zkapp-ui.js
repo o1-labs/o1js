@@ -3,10 +3,7 @@ import {
   adminPrivateKey,
   HelloWorld,
 } from './examples/zkapps/hello-world/hello-world.js';
-// MyProgram to serve as a test case for recursive ZkProgram compilation.
-// This helps to catch any regressions that might occur in the future.
-// For more details, refer to: https://github.com/o1-labs/o1js/pull/1906
-import { MyProgram } from './examples/zkprogram/program-with-input.js';
+import { RecursiveProgram } from './examples/zkprogram/recursive-program.js';
 import { AccountUpdate, Field, Mina, verify } from './index.js';
 
 const compileButton = document.querySelector('#compileButton');
@@ -36,7 +33,7 @@ compileButton.addEventListener('click', async () => {
   logEvents('Compiling ZkProgram', eventsContainer);
 
   try {
-    await MyProgram.compile();
+    await RecursiveProgram.compile();
     logEvents('ZkProgram compiled successfully!', eventsContainer);
   } catch (exception) {
     logEvents(`Compilation failure: ${exception.message}`, eventsContainer);

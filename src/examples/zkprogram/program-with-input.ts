@@ -8,7 +8,7 @@ import {
   Provable,
 } from 'o1js';
 
-export let MyProgram = ZkProgram({
+let MyProgram = ZkProgram({
   name: 'example-with-input',
   publicInput: Field,
 
