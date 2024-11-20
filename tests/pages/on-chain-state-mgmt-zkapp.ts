@@ -48,7 +48,9 @@ export class OnChainStateMgmtZkAppPage {
 
   async checkZkProgramCompilation() {
     await expect(this.eventsContainer).toContainText('Compiling ZkProgram');
-    await expect(this.eventsContainer).toContainText('ZkProgram compiled successfully!');
+    await expect(this.eventsContainer).toContainText(
+      'ZkProgram compiled successfully!'
+    );
   }
 
   async checkDeployedZkApp() {
