@@ -455,7 +455,7 @@ function ZkProgram<
           nonPureOutput
         );
 
-        programState.reset('nonPureOutput');
+        programState.reset('__nonPureOutput__');
       } else {
         publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
       }
