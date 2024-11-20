@@ -3,8 +3,10 @@ import {
   adminPrivateKey,
   HelloWorld,
 } from './examples/zkapps/hello-world/hello-world.js';
+import { MyProgram } from './examples/zkprogram/program-with-input.js'
 import { AccountUpdate, Field, Mina, verify } from './index.js';
 
+const compileButton = document.querySelector('#compileButton');
 const deployButton = document.querySelector('#deployButton');
 const updateButton = document.querySelector('#updateButton');
 const clearEventsButton = document.querySelector('#clearEventsButton');
@@ -24,6 +26,22 @@ const [feePayer] = Local.testAccounts;
 const contractAddress = Mina.TestPublicKey.random();
 const contract = new HelloWorld(contractAddress);
 let verificationKey = null;
+
+compileButton.addEventListener('click', async () => {
+  compileButton.disabled = true;
+
+  logEvents('Compiling ZkProgram', eventsContainer);
+
+  try {
+    await MyProgram.compile();
+    logEvents('ZkProgram compiled successfully!', eventsContainer);
+  } catch (exception) {
+    logEvents(`Compilation failure: ${exception.message}`, eventsContainer);
+    console.log(exception);
+  }
+
+  compileButton.disabled = false;
+});
 
 deployButton.addEventListener('click', async () => {
   deployButton.disabled = true;
