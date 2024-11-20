@@ -5,8 +5,8 @@ class MyStruct extends Struct({
   value: Field,
 }) {}
 
-let MyProgram = ZkProgram({
-  name: 'example-with-non-pure-inputs',
+let NonPureIOprogram = ZkProgram({
+  name: 'example-with-non-pure-io',
   publicInput: MyStruct,
   publicOutput: MyStruct,
 
@@ -24,14 +24,39 @@ let MyProgram = ZkProgram({
   },
 });
 
-console.log('compiling MyProgram...');
-await MyProgram.compile();
-console.log('compile done');
+let NonPureOutputProgram = ZkProgram({
+  name: 'example-with-non-pure-output',
+  publicOutput: MyStruct,
 
+  methods: {
+    baseCase: {
+      privateInputs: [],
+      async method() {
+        return {
+          publicOutput: new MyStruct({ label: 'output', value: Field(5) }),
+        };
+      },
+    },
+  },
+});
+
+console.log('compiling NonPureIOprogram...');
+await NonPureIOprogram.compile();
+console.log('compile done');
 let input = new MyStruct({ label: 'input', value: Field(5) });
 
-let { proof } = await MyProgram.baseCase(input);
-let ok = await MyProgram.verify(proof);
+let result1 = await NonPureIOprogram.baseCase(input);
+let isProof1Valid = await NonPureIOprogram.verify(result1.proof);
+assert(isProof1Valid, 'proof not valid!');
+assert(result1.proof.publicOutput.label === 'in-circuit');
+console.log('proof IO', result1.proof);
 
-assert(ok, 'proof not valid!');
-assert(proof.publicOutput.label === 'in-circuit');
+console.log('compiling NonPureOutputProgram...');
+await NonPureOutputProgram.compile();
+console.log('compile done');
+
+let result2 = await NonPureOutputProgram.baseCase();
+let isProof2Valid = await NonPureOutputProgram.verify(result2.proof);
+assert(isProof2Valid, 'proof not valid!');
+assert(result2.proof.publicOutput.label === 'output');
+console.log('proof O', result2.proof);
