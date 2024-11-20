@@ -40,6 +40,17 @@ let NonPureOutputProgram = ZkProgram({
   },
 });
 
+let NonPureInputProgram = ZkProgram({
+  name: 'example-with-non-pure-input',
+  publicInput: MyStruct,
+
+  methods: {
+    baseCase: {
+      privateInputs: [],
+      async method(input) {},
+    },
+  },
+});
 console.log('compiling NonPureIOprogram...');
 await NonPureIOprogram.compile();
 console.log('compile done');
@@ -60,3 +71,13 @@ let isProof2Valid = await NonPureOutputProgram.verify(result2.proof);
 assert(isProof2Valid, 'proof not valid!');
 assert(result2.proof.publicOutput.label === 'output');
 console.log('proof O', result2.proof);
+
+console.log('compiling NonPureInputProgram...');
+await NonPureInputProgram.compile();
+console.log('compile done');
+
+let result3 = await NonPureInputProgram.baseCase(input);
+let isProof3Valid = await NonPureInputProgram.verify(result3.proof);
+assert(isProof3Valid, 'proof not valid!');
+assert(result3.proof.publicInput.label === 'input');
+console.log('proof O', result3.proof);
