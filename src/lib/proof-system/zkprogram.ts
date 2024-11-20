@@ -95,7 +95,7 @@ function createProgramState() {
     },
     getNonPureOutput(): any[] {
       let entry = methodCache.get('__nonPureOutput__');
-      if (entry === undefined) throw Error(`Non-pure output not defined`);
+      if (entry === undefined) return [];
       return entry as any[];
     },
     setAuxiliaryOutput(value: unknown, methodName: string) {
