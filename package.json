@@ -101,7 +101,6 @@
   "dependencies": {
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
-    "cross-fetch": "^4.0.0",
     "js-sha256": "^0.9.0",
     "reflect-metadata": "^0.1.13",
     "tslib": "^2.3.0"
