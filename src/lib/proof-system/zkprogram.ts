@@ -405,7 +405,7 @@ function ZkProgram<
 
       let publicInputFields, publicInputAux;
       if (nonPureInputExists) {
-        // serialize publicInput into pure provable field elements and auxilary data
+        // serialize publicInput into pure provable field elements and auxiliary data
         ({ publicInputFields, publicInputAux } = toFieldAndAuxConsts(
           publicInputType,
           publicInput
