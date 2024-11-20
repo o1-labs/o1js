@@ -98,11 +98,9 @@ function createProgramState() {
       if (entry === undefined) throw Error(`Non-pure output not defined`);
       return entry as any[];
     },
-
     setAuxiliaryOutput(value: unknown, methodName: string) {
       methodCache.set(methodName, value);
     },
-
     getAuxiliaryOutput(methodName: string): unknown {
       let entry = methodCache.get(methodName);
       if (entry === undefined)
