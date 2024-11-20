@@ -1005,10 +1005,6 @@ function fromFieldVars<T>(
   return type.fromFields(MlFieldArray.from(fields), auxData);
 }
 
-function toFieldVars<T>(type: ProvablePure<T>, value: T) {
-  return MlFieldArray.to(type.toFields(value));
-}
-
 function fromFieldConsts<T>(
   type: Provable<T>,
   fields: MlFieldConstArray,
