@@ -1,6 +1,6 @@
 import { SelfProof, Field, ZkProgram } from 'o1js';
 
-export const RecusiveProgram = ZkProgram({
+export const RecursiveProgram = ZkProgram({
   name: 'recursive-program',
   publicInput: Field,
 
