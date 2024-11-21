@@ -19,11 +19,8 @@ BRANCH=$1
 echo "4"
 
 function in_branch {
-  echo "5"
-
-  if git rev-list origin/$1 | grep -q $CURR; then
-    echo "6"
-
+  echo $1
+  if git rev-list origin/compatible | grep -q $CURR; then
     echo "Mina submodule commit is an ancestor of $1"
     true
   else
