@@ -84,7 +84,7 @@ jobs:
           node-version: '18'
 
       - name: Check Mina submodule compatibility
-        run: sh scripts/check-mina-commit.sh compatible
+        run: bash scripts/check-mina-commit.sh compatible
 
       - name: Check Commit
         run: npm run checkCommit
