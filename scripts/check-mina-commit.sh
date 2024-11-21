@@ -9,13 +9,9 @@ fi
 
 cd src/mina
 
+git fetch --depth=1 origin $1
+
 CURR=$(git rev-parse HEAD)
-
-
-    git config http.sslVerify false
-    git fetch origin
-    git config http.sslVerify true
-
 
 BRANCH=$1
 
