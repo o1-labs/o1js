@@ -399,10 +399,20 @@ function ZkProgram<
         );
       }
 
-      let { publicInputFields, publicInputAux } = toFieldAndAuxConsts(
-        publicInputType,
-        publicInput
-      );
+      let nonPureInputExists = publicInputType
+        .toAuxiliary(publicInput)
+        .some((aux) => aux.length !== 0);
+
+      let publicInputFields, publicInputAux;
+      if (nonPureInputExists) {
+        // serialize publicInput into pure provable field elements and auxiliary data
+        ({ publicInputFields, publicInputAux } = toFieldAndAuxConsts(
+          publicInputType,
+          publicInput
+        ));
+      } else {
+        publicInputFields = toFieldConsts(publicInputType, publicInput);
+      }
 
       let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
@@ -432,17 +442,19 @@ function ZkProgram<
         programState.reset(methodIntfs[i].methodName);
       }
 
+      let publicOutput;
       let [publicOutputFields, proof] = MlPair.from(result);
+      if (nonPureInputExists) {
+        let nonPureOutput = programState.getNonPureOutput();
 
-      let nonPureOutput = programState.getNonPureOutput();
+        publicOutput = fromFieldConsts(
+          publicOutputType,
+          publicOutputFields,
+          nonPureOutput
+        );
 
-      let publicOutput = fromFieldConsts(
-        publicOutputType,
-        publicOutputFields,
-        nonPureOutput
-      );
-
-      programState.reset('__nonPureOutput__');
+        programState.reset('__nonPureOutput__');
+      }
 
       return {
         proof: new ProgramProof({
@@ -1003,6 +1015,10 @@ function fromFieldVars<T>(
   auxData: any[] = []
 ) {
   return type.fromFields(MlFieldArray.from(fields), auxData);
+}
+
+function toFieldVars<T>(type: ProvablePure<T>, value: T) {
+  return MlFieldArray.to(type.toFields(value));
 }
 
 function fromFieldConsts<T>(
