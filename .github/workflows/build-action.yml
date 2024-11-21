@@ -83,6 +83,10 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
       - name: Check Mina submodule compatibility
         run: bash scripts/check-mina-commit.sh compatible
 
