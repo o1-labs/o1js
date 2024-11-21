@@ -83,6 +83,14 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Check Mina submodule compatibility
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            src
+          key: sh scripts/check-mina-commit.sh compatible
+
       - name: Check Commit
         uses: actions/cache@v4
         with:
