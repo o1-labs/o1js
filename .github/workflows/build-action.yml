@@ -94,7 +94,7 @@ jobs:
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
       - name: Check Mina submodule compatibility
-        run: sh scripts/check-mina-commit.sh compatible
+        run: bash scripts/check-mina-commit.sh compatible
 
       - name: Check Commit
         run: npm run checkCommit
