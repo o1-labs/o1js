@@ -83,16 +83,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            node_modules
-            dist
-            src
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
-
       - name: Check Mina submodule compatibility
         run: bash scripts/check-mina-commit.sh compatible
 
