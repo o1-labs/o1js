@@ -6,17 +6,24 @@ if [[ $# -ne 1 ]]; then
   echo "Usage: $0 <target-branch>"
   exit 1
 fi
-
+echo "1"
 cd src/mina
 
 git fetch --depth=1 origin $1
+echo "2"
 
 CURR=$(git rev-parse HEAD)
+echo "3"
 
 BRANCH=$1
+echo "4"
 
 function in_branch {
+  echo "5"
+
   if git rev-list origin/$1 | grep -q $CURR; then
+    echo "6"
+
     echo "Mina submodule commit is an ancestor of $1"
     true
   else
