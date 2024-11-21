@@ -87,6 +87,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
       - name: Check Mina submodule compatibility
         run: bash scripts/check-mina-commit.sh compatible
 

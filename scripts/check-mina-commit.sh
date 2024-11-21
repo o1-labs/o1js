@@ -12,6 +12,11 @@ cd src/mina
 CURR=$(git rev-parse HEAD)
 
 
+    git config http.sslVerify false
+    git fetch origin
+    git config http.sslVerify true
+
+
 BRANCH=$1
 
 function in_branch {
