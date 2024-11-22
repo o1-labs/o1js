@@ -262,6 +262,10 @@ type FetchedAction = {
   actionData: {
     accountUpdateId: string;
     data: string[];
+    transactionInfo?: {
+      sequenceNumber: number;
+      zkappAccountUpdateIds: number[];
+    };
   }[];
 };
 
@@ -339,6 +343,10 @@ const getActionsQuery = (
     actionData {
       accountUpdateId
       data
+      transactionInfo {
+        sequenceNumber
+        zkappAccountUpdateIds
+      }
     }
   }
 }`;

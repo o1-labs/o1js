@@ -757,9 +757,31 @@ export function createActionsList(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
-    actionData = actionData.sort((a1, a2) => {
-      return Number(a1.accountUpdateId) < Number(a2.accountUpdateId) ? -1 : 1;
-    });
+    // DEPRECATED: In case the archive node is running an out-of-date version, best guess is to sort by the account update id
+    if (!actionData[0].transactionInfo) {
+      actionData = actionData.sort((a1, a2) => {
+        return Number(a1.accountUpdateId) - Number(a2.accountUpdateId);
+      });
+    } else {
+      // sort actions within one block by transaction sequence number and account update sequence
+      actionData = actionData.sort((a1, a2) => {
+        const a1TxSequence = a1.transactionInfo!.sequenceNumber;
+        const a2TxSequence = a2.transactionInfo!.sequenceNumber;
+        if (a1TxSequence === a2TxSequence) {
+          const a1AuSequence =
+            a1.transactionInfo!.zkappAccountUpdateIds.indexOf(
+              Number(a1.accountUpdateId)
+            );
+          const a2AuSequence =
+            a2.transactionInfo!.zkappAccountUpdateIds.indexOf(
+              Number(a2.accountUpdateId)
+            );
+          return a1AuSequence - a2AuSequence;
+        } else {
+          return a1TxSequence - a2TxSequence;
+        }
+      });
+    }
 
     // split actions by account update
     let actionsByAccountUpdate: string[][][] = [];
