@@ -3,6 +3,10 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
     mina.url = "path:src/mina";
+    # Nix doesn't seem to handle recursive submodules well
+    # so we import mina once not as a git repo so the submodules work
+    # but also as a git repo so the git rev is visible
+    mina-rev.url = "git+file:src/mina";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
@@ -84,6 +88,42 @@
           { targets = ["wasm32-unknown-unknown" "x86_64-unknown-linux-gnu" ];
             extensions = [ "rust-src" ];
           });
+        rust-platform = pkgs.makeRustPlatform
+            { cargo = rust-channel;
+              rustc = rust-channel;
+            };
+
+        bindings-pkgs = with pkgs;
+            [ nodejs
+              nodePackages.npm
+              typescript
+              nodePackages.typescript-language-server
+
+              #Rustup doesn't allow local toolchains to contain 'nightly' in the name
+              #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
+              #which calls the nix toolchain instead of the nightly one
+              (writeShellApplication
+                { name = "rustup";
+                  text =
+                  ''
+                  if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [ "$2" = 1.72-x86_64-unknowl-linux-gnu ]; }
+                  then
+                    echo USING NIX TOOLCHAIN
+                    ${rustup}/bin/rustup run nix "''${@:3}"
+                  else
+                    echo escape rustup "$@"
+                    ${rustup}/bin/rustup "$@"
+                  fi
+                  '';
+                }
+              )
+              rustup
+              wasm-pack
+              binaryen # provides wasm-opt
+
+              dune_3
+            ] ++ commonOverrides.buildInputs ;
+
         inherit (nixpkgs) lib;
         # All the submodules required by .gitmodules
         submodules = map builtins.head (builtins.filter lib.isList
@@ -111,6 +151,47 @@
                 command "nix-shell"
               }.
             '';
+
+          o1js-npm-deps = pkgs.buildNpmPackage
+            { name = "o1js";
+              src = with pkgs.lib.fileset;
+                  (toSource {
+                    root = ./.;
+                    fileset = unions [
+                      ./package.json
+                      ./package-lock.json
+                    ];
+                  });
+              npmDepsHash = "sha256-UdzSaZJmr5k4voyKPA+9Odb6a2Ia9+3C5YQol9dSIDE=";
+              # The prepack script runs the build script, which we'd rather do in the build phase.
+              npmPackFlags = [ "--ignore-scripts" ];
+              dontNpmBuild = true;
+              installPhase = ''
+                runHook preInstall
+
+                mkdir -p $out/lib
+                cp -r node_modules $out/lib
+
+                runHook postInstall
+              '';
+            };
+          test-vectors = rust-platform.buildRustPackage {
+            src = pkgs.lib.sourceByRegex ./src/mina/src
+              [
+                "^lib(/crypto(/kimchi_bindings(/stubs(/.*)?)?)?)?$"
+                "^lib(/crypto(/proof-systems(/.*)?)?)?$"
+              ];
+            sourceRoot = "source/lib/crypto/proof-systems/poseidon/export_test_vectors";
+            patchPhase =
+            ''
+            cp ${./src/mina/src/lib/crypto/proof-systems/Cargo.lock} .
+            '';
+            name = "export_test_vectors";
+            version = "0.1.0";
+            cargoSha256 = "";
+            CARGO_TARGET_DIR = "./target";
+            cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock ; };
+          };
       in {
         formatter = pkgs.nixfmt;
         inherit mina;
@@ -124,48 +205,62 @@
             export RUSTUP_HOME
             rustup toolchain link nix ${rust-channel}
             '';
-            packages = with pkgs;
-              [ nodejs
-                nodePackages.npm
-                typescript
-                nodePackages.typescript-language-server
-
-                #Rustup doesn't allow local toolchains to contain 'nightly' in the name
-                #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
-                #which calls the nix toolchain instead of the nightly one
-                (writeShellApplication
-                  { name = "rustup";
-                    text =
-                    ''
-                    if [ "$1" = run ] && [ "$2" = nightly-2023-09-01 ]
-                    then
-                      ${rustup}/bin/rustup run nix "''${@:3}"
-                    else
-                      ${rustup}/bin/rustup "$@"
-                    fi
-                    '';
-                  }
-                )
-                rustup
-                wasm-pack
-                binaryen # provides wasm-opt
-
-                dune_3
-              ] ++ commonOverrides.buildInputs ;
+            packages = bindings-pkgs;
           });
+
+
         };
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
-          kim = pkgs.kimchi-rust-wasm;
           inherit dune-description;
-          bindings = prj.pkgs.o1js_bindings;
+          o1js-bindings = pkgs.stdenv.mkDerivation {
+            name = "o1js_bindings";
+            src = ./.;
+            inherit (inputs.mina.devShells."${system}".default)
+              PLONK_WASM_NODEJS
+              PLONK_WASM_WEB
+              MARLIN_PLONK_STUBS
+              ;
+            PREBUILT_KIMCHI_BINDINGS_JS_WEB =
+              "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
+            PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
+              "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
+            EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
+            buildInputs = bindings-pkgs ++ [ pkgs.bash ];
+            MINA_COMMIT = inputs.mina-rev.rev;
+            patchPhase = ''
+            patchShebangs ./src/bindings/scripts/
+            patchShebangs ./src/bindings/crypto/test-vectors/
+            '';
+            buildPhase =
+            ''
+            RUSTUP_HOME=$(pwd)/.rustup
+            export RUSTUP_HOME
+            rustup toolchain link nix ${rust-channel}
+            cp -r ${o1js-npm-deps}/lib/node_modules/ .
+
+            npm run build:update-bindings
+            mkdir $out
+            pushd ./src/bindings
+              cp -Lr ./compiled ./mina-transaction ./ocaml MINA_COMMIT $out
+            popd
+            '';
+          };
+          kimchi = pkgs.kimchi-rust-wasm;
           ocaml-js = prj.pkgs.__ocaml-js__;
-          default = pkgs.buildNpmPackage
-            { name = "o1js";
-              src = ./.;
-              npmDepsHash = "sha256-++MTGDUVBccYN8LA2Xb0FkbrZ14ZyVCrDPESXa52AwQ=";
-              # TODO ideally re-build bindings here
-            };
+        };
+        apps = {
+
+          update-bindings = {
+            type = "app";
+            program = "${pkgs.writeShellApplication
+              { name = "update-bindings";
+                text =
+                ''
+                cp -r ${self.packages."${system}".o1js-bindings}/* ./src/bindings
+                '';
+              }}/bin/update-bindings";
+          };
         };
       });
 }
