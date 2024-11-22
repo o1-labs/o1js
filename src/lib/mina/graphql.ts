@@ -321,7 +321,8 @@ const getActionsQuery = (
   publicKey: string,
   actionStates: ActionStatesStringified,
   tokenId: string,
-  _filterOptions?: EventActionFilterOptions
+  _filterOptions?: EventActionFilterOptions,
+  retryWithoutTxInfo: boolean = false
 ) => {
   const { fromActionState, endActionState } = actionStates ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
@@ -343,9 +344,10 @@ const getActionsQuery = (
     actionData {
       accountUpdateId
       data
-      transactionInfo {
-        sequenceNumber
-        zkappAccountUpdateIds
+      ${
+        retryWithoutTxInfo
+          ? ''
+          : 'transactionInfo { sequenceNumber zkappAccountUpdateIds }'
       }
     }
   }

@@ -710,7 +710,15 @@ async function fetchActions(
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints
   );
-  if (error) throw Error(error.statusText);
+  if (error) {
+    // retry once without querying transaction info
+    [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
+      getActionsQuery(publicKey, actionStates, tokenId, undefined, true),
+      graphqlEndpoint,
+      networkConfig.archiveFallbackEndpoints
+    );
+    if (error) throw Error(error.statusText);
+  }
   let fetchedActions = response?.data.actions;
   if (fetchedActions === undefined) {
     return {
