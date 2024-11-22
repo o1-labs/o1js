@@ -104,21 +104,24 @@ function Network(options: {
   mina: string | string[];
   archive?: string | string[];
   lightnetAccountManager?: string;
+  enforceTransactionLimits?: boolean;
 }): Mina;
 function Network(
   options:
     | {
-        networkId?: NetworkId;
-        mina: string | string[];
-        archive?: string | string[];
-        lightnetAccountManager?: string;
-      }
+      networkId?: NetworkId;
+      mina: string | string[];
+      archive?: string | string[];
+      lightnetAccountManager?: string;
+      enforceTransactionLimits?: boolean;
+    }
     | string
 ): Mina {
   let minaNetworkId: NetworkId = 'testnet';
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
+  let enforceTransactionLimits: boolean = true;
 
   if (options && typeof options === 'string') {
     minaGraphqlEndpoint = options;
@@ -157,6 +160,10 @@ function Network(
     ) {
       lightnetAccountManagerEndpoint = options.lightnetAccountManager;
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
+    }
+
+    if (options.enforceTransactionLimits) {
+      enforceTransactionLimits = options.enforceTransactionLimits;
     }
   } else {
     throw new Error(
@@ -251,7 +258,7 @@ function Network(
     },
     sendTransaction(txn) {
       return toPendingTransactionPromise(async () => {
-        verifyTransactionLimits(txn.transaction);
+        if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
         let [response, error] = await Fetch.sendZkapp(txn.toJSON());
         let errors: string[] = [];
