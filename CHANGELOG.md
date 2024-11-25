@@ -27,6 +27,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Support secp256r1 in elliptic curve and ECDSA gadgets https://github.com/o1-labs/o1js/pull/1885
 
+- Provide `zip` and `pad` for the array utility https://github.com/o1-labs/o1js/pull/1921
+
 ### Fixed
 
 - Witness generation error in `Gadgets.arrayGet()` when accessing out-of-bounds indices https://github.com/o1-labs/o1js/pull/1886
