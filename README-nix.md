@@ -45,12 +45,31 @@ nix-shell -p nix-info --run "nix-info -m"
 
 That should output some basic information about the configuration parameters for Nix.
 
+## Enabling Flakes (recommended)
+
+Mina is packaged using [Nix Flakes](https://nixos.wiki/wiki/Flakes),
+which are an experimental feature of Nix. However, compatibility with
+pre-flake Nix is provided. If you wish to contribute the Nix
+expressions in this repository, or want to get some convenience
+features and speed improvements, **it is advisable to enable flakes**. For
+this, you'll want to make sure you're running recent Nix (⩾2.5) and
+have enabled the relevant experimental features, either in
+`/etc/nix/nix.conf` or (recommended) in `~/.config/nix/nix.conf`:
+
+```
+mkdir -p "${XDG_CONFIG_HOME-${HOME}/.config}/nix"
+echo 'experimental-features = nix-command flakes' > "${XDG_CONFIG_HOME-${HOME}/.config}/nix/nix.conf"
+```
+
+You can check that your flake support is working by running `nix flake metadata
+github:nixos/nixpkgs` for example.
+
 ## Building with Nix
 
 From a new shell, go to `{REPO_PATH}/o1js` and from there execute `./pin.sh` to
 update the submodules and add the flakes entries. Then, you can open a Nix shell
 with all the dependencies required executing `nix develop o1js#default`, or
-alternatively `nix develop o1js#mina-shell` (which works better from MacOS). Once
+alternatively `nix develop o1js#mina-shell` (which works better from MacOS).
 
 ```console
 cd {REPO_PATH}/o1js
