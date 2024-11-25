@@ -251,7 +251,6 @@
           ocaml-js = prj.pkgs.__ocaml-js__;
         };
         apps = {
-
           update-bindings = {
             type = "app";
             program = "${pkgs.writeShellApplication

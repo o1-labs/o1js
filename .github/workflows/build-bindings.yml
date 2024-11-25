@@ -1,4 +1,4 @@
-# Purpose: We want to build the o1js bindings in CI so that people in the 
+# Purpose: We want to build the o1js bindings in CI so that people in the
 # community can change them without being scared of breaking things, or
 # needing to do the complicated (without nix) build setup.
 
@@ -7,7 +7,7 @@ name: Build o1js bindings
 on:
   pull_request:
 
-jobs:  
+jobs:
   nix-build:
     name: build-bindings-ubuntu
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
@@ -22,4 +22,4 @@ jobs:
           # Until we restart the runner and the PATH gets updated from /etc/bash.bashrc
           export PATH="$PATH":/nix/var/nix/profiles/default/bin
           ./pin.sh
-          nix develop o1js --command bash -c "npm run build:update-bindings"
+          nix run o1js#update-bindings
