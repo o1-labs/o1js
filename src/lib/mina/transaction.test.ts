@@ -59,8 +59,6 @@ describe('Test default network', () => {
       accountUpdateBob.account.balance.requireEquals(UInt64.zero);
       accountUpdateBob.balance.addInPlace(UInt64.one);
     });
-    console.log("Simple account update", txn.toPretty());
-    console.log("Simple account update", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([bobKey]).safeSend();
 
@@ -75,8 +73,6 @@ describe('Test default network', () => {
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
     });
-    console.log("Multiple account update", txn.toPretty());
-    console.log("Multiple account update", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([bobKey]).safeSend();
 
@@ -91,9 +87,8 @@ describe('Test default network', () => {
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
     });
-    console.log("More than limit account update", txn.toPretty());
-    console.log("More than limit account update", txn.transaction.accountUpdates.length);
     await txn.prove();
+    // failure with default enforceTransactionLimits
     await expect(txn.sign([bobKey]).safeSend()).rejects.toThrow();
   });
 });
@@ -117,8 +112,6 @@ describe('Test enforced network', () => {
       accountUpdateBob.account.balance.requireEquals(UInt64.zero);
       accountUpdateBob.balance.addInPlace(UInt64.one);
     });
-    console.log("Simple account update", txn.toPretty());
-    console.log("Simple account update", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([bobKey]).safeSend();
 
@@ -133,8 +126,6 @@ describe('Test enforced network', () => {
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
     });
-    console.log("Multiple account update", txn.toPretty());
-    console.log("Multiple account update", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([bobKey]).safeSend();
 
@@ -149,9 +140,8 @@ describe('Test enforced network', () => {
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
     });
-    console.log("More than limit account update", txn.toPretty());
-    console.log("More than limit account update", txn.transaction.accountUpdates.length);
     await txn.prove();
+    // failure with enforceTransactionLimits = true
     await expect(txn.sign([bobKey]).safeSend()).rejects.toThrow();
   });
 });
@@ -175,8 +165,6 @@ describe('Test unlimited network', () => {
       accountUpdateBob.account.balance.requireEquals(UInt64.zero);
       accountUpdateBob.balance.addInPlace(UInt64.one);
     });
-    console.log("Simple account update", txn.toPretty());
-    console.log("Simple account update", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([bobKey]).safeSend();
 
@@ -191,8 +179,6 @@ describe('Test unlimited network', () => {
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
     });
-    console.log("Multiple account update", txn.toPretty());
-    console.log("Multiple account update", txn.transaction.accountUpdates.length);
     await txn.prove();
     await txn.sign([bobKey]).safeSend();
 
@@ -207,9 +193,8 @@ describe('Test unlimited network', () => {
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
     });
-    console.log("More than limit account update", txn.toPretty());
-    console.log("More than limit account update", txn.transaction.accountUpdates.length);
     await txn.prove();
+    // success with enforceTransactionLimits = false
     await txn.sign([bobKey]).safeSend();
   });
 });
