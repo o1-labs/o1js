@@ -242,7 +242,8 @@
             npm run build:update-bindings
             mkdir $out
             pushd ./src/bindings
-              cp -Lr ./compiled ./mina-transaction ./ocaml MINA_COMMIT $out
+              rm -rf ./compiled/_node_bindings
+              cp -Lr ./compiled ./mina-transaction ./ocaml ./MINA_COMMIT $out
             popd
             '';
           };

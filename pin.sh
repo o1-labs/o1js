@@ -10,4 +10,5 @@ git submodule sync && git submodule update --init --recursive
 nix registry add o1js "git+file://$ROOT?submodules=1"
 # update mina input to local submodule
 nix flake update mina --override-input mina 'path:src/mina' --flake '.?submodules=1'
+nix flake update mina-rev --flake '.?submodules=1'
 popd
