@@ -162,7 +162,8 @@ function Network(
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
     }
 
-    if (options.enforceTransactionLimits) {
+    if (options.enforceTransactionLimits !== undefined &&
+      typeof options.enforceTransactionLimits === 'boolean') {
       enforceTransactionLimits = options.enforceTransactionLimits;
     }
   } else {
