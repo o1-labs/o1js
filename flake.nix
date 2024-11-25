@@ -162,7 +162,7 @@
                       ./package-lock.json
                     ];
                   });
-              npmDepsHash = "sha256-UdzSaZJmr5k4voyKPA+9Odb6a2Ia9+3C5YQol9dSIDE=";
+              npmDepsHash = "sha256-8EPvXpOgn0nvm/pFKN3h6EMjabOeBqfy5optIfe8E8Q=";
               # The prepack script runs the build script, which we'd rather do in the build phase.
               npmPackFlags = [ "--ignore-scripts" ];
               dontNpmBuild = true;
