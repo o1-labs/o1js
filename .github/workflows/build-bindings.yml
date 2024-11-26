@@ -1,4 +1,4 @@
-# Purpose: We want to build the o1js bindings in CI so that people in the 
+# Purpose: We want to build the o1js bindings in CI so that people in the
 # community can change them without being scared of breaking things, or
 # needing to do the complicated (without nix) build setup.
 
@@ -7,19 +7,24 @@ name: Build o1js bindings
 on:
   pull_request:
 
-jobs:  
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
   nix-build:
     name: build-bindings-ubuntu
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Disable smudging
         run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - run: |
+      - name: Build the o1js bindings
+        run: |
           set -Eeu
-          # Until we restart the runner and the PATH gets updated from /etc/bash.bashrc
-          export PATH="$PATH":/nix/var/nix/profiles/default/bin
           ./pin.sh
           nix develop o1js --command bash -c "npm run build:update-bindings"
