@@ -12,7 +12,7 @@ jobs:
     name: build-bindings-ubuntu
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
-      - name: Set up Nix in PATH
+      - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Disable smudging
         run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
@@ -22,8 +22,6 @@ jobs:
       - name: Build the o1js bindings
         run: |
           set -Eeu
-          # Until we restart the runner and the PATH gets updated from /etc/bash.bashrc
-          export PATH="$PATH":/nix/var/nix/profiles/default/bin
           ./pin.sh
           nix develop o1js --command bash -c "npm run build:update-bindings"
       - name: Cleanup the Nix store
