@@ -93,8 +93,14 @@ function double(p: Point): Point {
   return { x: x3, y: y3 };
 }
 
-Provable.constraintSystem(() => add(dummy(), dummy())).print();
-Provable.constraintSystem(() => double(dummy())).print();
+{
+  let { print } = await Provable.constraintSystem(() => add(dummy(), dummy()));
+  print();
+}
+{
+  let { print } = await Provable.constraintSystem(() => double(dummy()));
+  print();
+}
 
 function dummy() {
   return Provable.witness(Point, Point.empty);
