@@ -1,5 +1,5 @@
 /**
- * Implementation of twisted Edwards curves for Ed25529.
+ * Implementation of twisted Edwards curves for Ed25519.
  *
  * https://en.wikipedia.org/wiki/Twisted_Edwards_curve
  * https://en.wikipedia.org/wiki/EdDSA#Ed25519
