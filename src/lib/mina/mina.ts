@@ -104,7 +104,7 @@ function Network(options: {
   mina: string | string[];
   archive?: string | string[];
   lightnetAccountManager?: string;
-  enforceTransactionLimits?: boolean;
+  bypassTransactionLimits?: boolean;
 }): Mina;
 function Network(
   options:
@@ -113,7 +113,7 @@ function Network(
       mina: string | string[];
       archive?: string | string[];
       lightnetAccountManager?: string;
-      enforceTransactionLimits?: boolean;
+      bypassTransactionLimits?: boolean;
     }
     | string
 ): Mina {
@@ -162,9 +162,9 @@ function Network(
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
     }
 
-    if (options.enforceTransactionLimits !== undefined &&
-      typeof options.enforceTransactionLimits === 'boolean') {
-      enforceTransactionLimits = options.enforceTransactionLimits;
+    if (options.bypassTransactionLimits !== undefined &&
+      typeof options.bypassTransactionLimits === 'boolean') {
+      enforceTransactionLimits = !options.bypassTransactionLimits;
     }
   } else {
     throw new Error(

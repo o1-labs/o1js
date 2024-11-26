@@ -17,6 +17,8 @@ import {
   AccountUpdateForest,
   PrivateKey,
 } from 'o1js';
+import { test, describe, it, before } from 'node:test';
+import { expect } from 'expect';
 
 
 
@@ -30,21 +32,21 @@ const enforcedNetwork = Mina.Network({
   networkId: "testnet",
   mina: "https://example.com/graphql",
   archive: "https://example.com//graphql",
-  enforceTransactionLimits: true
+  bypassTransactionLimits: false
 });
 
 const unlimitedNetwork = Mina.Network({
   networkId: "testnet",
   mina: "https://unlimited.com/graphql",
   archive: "https://unlimited.com//graphql",
-  enforceTransactionLimits: false
+  bypassTransactionLimits: true
 });
 
 describe('Test default network', () => {
   let bobAccount: PublicKey,
     bobKey: PrivateKey;
 
-  beforeAll(async () => {
+  before(async () => {
 
     Mina.setActiveInstance(defaultNetwork);
     bobKey = PrivateKey.random();
@@ -88,7 +90,7 @@ describe('Test default network', () => {
       }
     });
     await txn.prove();
-    // failure with default enforceTransactionLimits
+    // failure with default bypassTransactionLimits value
     await expect(txn.sign([bobKey]).safeSend()).rejects.toThrow();
   });
 });
@@ -97,7 +99,7 @@ describe('Test enforced network', () => {
   let bobAccount: PublicKey,
     bobKey: PrivateKey;
 
-  beforeAll(async () => {
+  before(async () => {
 
     Mina.setActiveInstance(enforcedNetwork);
     bobKey = PrivateKey.random();
@@ -141,7 +143,7 @@ describe('Test enforced network', () => {
       }
     });
     await txn.prove();
-    // failure with enforceTransactionLimits = true
+    // failure with bypassTransactionLimits = false
     await expect(txn.sign([bobKey]).safeSend()).rejects.toThrow();
   });
 });
@@ -150,7 +152,7 @@ describe('Test unlimited network', () => {
   let bobAccount: PublicKey,
     bobKey: PrivateKey;
 
-  beforeAll(async () => {
+  before(async () => {
 
     Mina.setActiveInstance(unlimitedNetwork);
     bobKey = PrivateKey.random();
@@ -194,7 +196,7 @@ describe('Test unlimited network', () => {
       }
     });
     await txn.prove();
-    // success with enforceTransactionLimits = false
+    // success with bypassTransactionLimits = true
     await txn.sign([bobKey]).safeSend();
   });
 });
