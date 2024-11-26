@@ -1,91 +1,32 @@
+import assert from 'assert';
 import {
+  Bytes,
+  PrivateKey,
+  initializeBindings,
   Encryption,
   Encoding,
-  PrivateKey,
-  isReady,
-  Circuit,
-  Provable,
 } from 'o1js';
 
-await isReady;
+await initializeBindings();
 
-// generate keys
-let privateKey = PrivateKey.random();
-let publicKey = privateKey.toPublicKey();
+class Bytes256 extends Bytes(256) {}
+const priv = PrivateKey.random();
+const pub = priv.toPublicKey();
 
-// message
-let message = 'This is a secret.';
-let messageFields = Encoding.stringToFields(message);
+const plainMsg = 'The quick brown fox jumped over the angry dog.';
 
-// encrypt
-let cipherText = Encryption.encrypt(messageFields, publicKey);
+console.log('en/decryption of field elements');
+const cipher2 = Encryption.encrypt(Encoding.stringToFields(plainMsg), pub);
+const plainText2 = Encryption.decrypt(cipher2, priv);
 
-// decrypt
-let decryptedFields = Encryption.decrypt(cipherText, privateKey);
-let decryptedMessage = Encoding.stringFromFields(decryptedFields);
+assert(
+  Encoding.stringFromFields(plainText2) === plainMsg,
+  'Plain message and decrypted message are the same'
+);
 
-if (decryptedMessage !== message) throw Error('decryption failed');
-console.log(`Original message: "${message}"`);
-console.log(`Recovered message: "${decryptedMessage}"`);
-
-// the same but in a checked computation
-
-Provable.runAndCheck(() => {
-  // encrypt
-  let cipherText = Encryption.encrypt(messageFields, publicKey);
-
-  // decrypt
-  let decryptedFields = Encryption.decrypt(cipherText, privateKey);
-
-  messageFields.forEach((m, i) => {
-    m.assertEquals(decryptedFields[i]);
-  });
-});
-
-// With a longer message
-message = JSON.stringify({
-  coinbase: {
-    btc: 40000.0,
-    eth: 3000.0,
-    usdc: 1.0,
-    ada: 1.02,
-    avax: 70.43,
-    mina: 2.13,
-  },
-  binance: {
-    btc: 39999.0,
-    eth: 3001.0,
-    usdc: 1.01,
-    ada: 0.99,
-    avax: 70.21,
-    mina: 2.07,
-  },
-});
-messageFields = Encoding.stringToFields(message);
-
-// encrypt
-cipherText = Encryption.encrypt(messageFields, publicKey);
-
-// decrypt
-decryptedFields = Encryption.decrypt(cipherText, privateKey);
-decryptedMessage = Encoding.stringFromFields(decryptedFields);
-
-if (decryptedMessage !== message) throw Error('decryption failed');
-console.log(`Original message: "${message}"`);
-console.log(`Recovered message: "${decryptedMessage}"`);
-
-// the same but in a checked computation
-
-Provable.runAndCheck(() => {
-  // encrypt
-  let cipherText = Encryption.encrypt(messageFields, publicKey);
-
-  // decrypt
-  let decryptedFields = Encryption.decrypt(cipherText, privateKey);
-
-  messageFields.forEach((m, i) => {
-    m.assertEquals(decryptedFields[i]);
-  });
-});
-
-console.log('everything works!');
+console.log('en/decryption of bytes');
+const message = Bytes256.fromString(plainMsg);
+console.log('plain message', plainMsg);
+const cipher = Encryption.encryptBytes(message, pub);
+const plainText = Encryption.decryptBytes(cipher, priv);
+console.log('decrypted message', Buffer.from(plainText.toBytes()).toString());

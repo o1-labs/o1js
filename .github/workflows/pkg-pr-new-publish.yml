@@ -1,0 +1,36 @@
+#
+# https://github.com/stackblitz-labs/pkg.pr.new
+#
+
+name: Continuous releases on pkg-pr-new
+on:
+  push:
+    branches:
+      - main
+      - v1
+      - v3
+  workflow_dispatch: {}
+
+jobs:
+  pkg-pr-new:
+    strategy:
+      matrix:
+        node: [20]
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Build o1js and mina-signer
+        run: |
+          GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
+          npm ci
+          npm run prepublishOnly
+          cd src/mina-signer
+          npm ci
+          npm run prepublishOnly
+      - name: Publish o1js and mina-signer on pkg-pr-new
+        run: npx pkg-pr-new publish ./ ./src/mina-signer # Enable `--compact` once published to NPM with `repository` in package.json

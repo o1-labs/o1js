@@ -1,10 +1,14 @@
+/*
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+ * in progress to mitigate this limitation.
+ */ 
 import {
   Field,
   SmartContract,
   state,
   State,
   method,
-  DeployArgs,
   Permissions,
   Bool,
   PublicKey,
@@ -18,11 +22,13 @@ import { ParticipantPreconditions } from './preconditions.js';
 
 let participantPreconditions = ParticipantPreconditions.default;
 
-interface MembershipParams {
+Provable;
+
+type MembershipParams = {
   participantPreconditions: ParticipantPreconditions;
   contractAddress: PublicKey;
   doProofs: boolean;
-}
+};
 
 /**
  * Returns a new contract instance that based on a set of preconditions.
@@ -67,14 +73,14 @@ export class Membership_ extends SmartContract {
     }),
   };
 
-  deploy(args: DeployArgs) {
-    super.deploy(args);
+  async deploy() {
+    await super.deploy();
     this.account.permissions.set({
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
       editActionState: Permissions.proofOrSignature(),
       setPermissions: Permissions.proofOrSignature(),
-      setVerificationKey: Permissions.proofOrSignature(),
+      setVerificationKey: Permissions.VerificationKey.proofOrSignature(),
       incrementNonce: Permissions.proofOrSignature(),
     });
   }
@@ -84,7 +90,8 @@ export class Membership_ extends SmartContract {
    * Dispatches a new member sequence event.
    * @param member
    */
-  @method addEntry(member: Member): Bool {
+  @method.returns(Bool)
+  async addEntry(member: Member) {
     // Emit event that indicates adding this item
     // Preconditions: Restrict who can vote or who can be a candidate
 
@@ -113,16 +120,16 @@ export class Membership_ extends SmartContract {
     this.accumulatedMembers.requireEquals(accumulatedMembers);
 
     // checking if the member already exists within the accumulator
-    let { state: exists } = this.reducer.reduce(
+    let exists = this.reducer.reduce(
       this.reducer.getActions({
         fromActionState: accumulatedMembers,
       }),
       Bool,
       (state: Bool, action: Member) => {
-        return action.equals(member).or(state);
+        return Provable.equal(Member, action, member).or(state);
       },
       // initial state
-      { state: Bool(false), actionState: accumulatedMembers }
+      Bool(false)
     );
 
     /*
@@ -143,7 +150,8 @@ export class Membership_ extends SmartContract {
    * @param accountId
    * @returns true if member exists
    */
-  @method isMember(member: Member): Bool {
+  @method.returns(Bool)
+  async isMember(member: Member) {
     // Verify membership (voter or candidate) with the accountId via merkle tree committed to by the sequence events and returns a boolean
     // Preconditions: Item exists in committed storage
 
@@ -151,14 +159,14 @@ export class Membership_ extends SmartContract {
     this.committedMembers.requireEquals(committedMembers);
 
     return member.witness
-      .calculateRootSlow(member.getHash())
+      .calculateRoot(member.getHash())
       .equals(committedMembers);
   }
 
   /**
    * Method used to commit to the accumulated list of members.
    */
-  @method publish() {
+  @method async publish() {
     // Commit to the items accumulated so far. This is a periodic update
 
     let accumulatedMembers = this.accumulatedMembers.get();
@@ -171,30 +179,30 @@ export class Membership_ extends SmartContract {
       fromActionState: accumulatedMembers,
     });
 
-    let { state: newCommittedMembers, actionState: newAccumulatedMembers } =
-      this.reducer.reduce(
-        pendingActions,
-        Field,
-        (state: Field, action: Member) => {
-          // because we inserted empty members, we need to check if a member is empty or "real"
-          let isRealMember = Provable.if(
-            action.publicKey.equals(PublicKey.empty()),
-            Bool(false),
-            Bool(true)
-          );
+    let newCommittedMembers = this.reducer.reduce(
+      pendingActions,
+      Field,
+      (state: Field, action: Member) => {
+        // because we inserted empty members, we need to check if a member is empty or "real"
+        let isRealMember = Provable.if(
+          action.publicKey.equals(PublicKey.empty()),
+          Bool(false),
+          Bool(true)
+        );
 
-          // if the member is real and not empty, we calculate and return the new merkle root
-          // otherwise, we simply return the unmodified state - this is our way of branching
-          return Provable.if(
-            isRealMember,
-            action.witness.calculateRootSlow(action.getHash()),
-            state
-          );
-        },
-        // initial state
-        { state: committedMembers, actionState: accumulatedMembers },
-        { maxTransactionsWithActions: 2 }
-      );
+        // if the member is real and not empty, we calculate and return the new merkle root
+        // otherwise, we simply return the unmodified state - this is our way of branching
+        return Provable.if(
+          isRealMember,
+          action.witness.calculateRoot(action.getHash()),
+          state
+        );
+      },
+      // initial state
+      committedMembers,
+      { maxUpdatesWithActions: 2 }
+    );
+    let newAccumulatedMembers = pendingActions.hash;
 
     this.committedMembers.set(newCommittedMembers);
     this.accumulatedMembers.set(newAccumulatedMembers);

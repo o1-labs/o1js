@@ -2,12 +2,13 @@
  * helpers for testing equivalence of two implementations, one of them on bigints
  */
 import { test, Random } from '../testing/property.js';
-import { Provable } from '../provable.js';
+import { Provable } from '../provable/provable.js';
 import { deepEqual } from 'node:assert/strict';
-import { Bool, Field } from '../core.js';
-import { AnyFunction, Tuple } from '../util/types.js';
-import { provable } from '../circuit_value.js';
-import { assert } from '../gadgets/common.js';
+import { Bool, Field } from '../provable/wrapped.js';
+import { AnyTuple, Tuple } from '../util/types.js';
+import { provable } from '../provable/types/provable-derivers.js';
+import { assert } from '../provable/gadgets/common.js';
+import { synchronousRunners } from '../provable/core/provable-context.js';
 
 export {
   equivalent,
@@ -34,6 +35,7 @@ export {
   fromRandom,
   first,
   second,
+  constant,
 };
 export {
   Spec,
@@ -44,6 +46,9 @@ export {
   First,
   Second,
 };
+
+// TODO get rid of this top-level await by making `test` support async functions
+let { runAndCheckSync } = await synchronousRunners();
 
 // a `Spec` tells us how to compare two functions
 
@@ -57,7 +62,7 @@ type FromSpec<In1, In2> = {
   // `provable` tells us how to create witnesses, to test provable code
   // note: we only allow the second function to be provable;
   // the second because it's more natural to have non-provable types as random generator output
-  provable?: Provable<In2>;
+  provable?: Provable<In2, any>;
 };
 
 type ToSpec<Out1, Out2> = {
@@ -70,7 +75,7 @@ type ToSpec<Out1, Out2> = {
 
 type Spec<T1, T2> = FromSpec<T1, T2> & ToSpec<T1, T2>;
 
-type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2> };
+type ProvableSpec<T1, T2> = Spec<T1, T2> & { provable: Provable<T2, any> };
 
 type FuncSpec<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2> = {
   from: {
@@ -79,9 +84,11 @@ type FuncSpec<In1 extends Tuple<any>, Out1, In2 extends Tuple<any>, Out2> = {
   to: ToSpec<Out1, Out2>;
 };
 
+type AnyTupleFunction = (...args: AnyTuple) => any;
+
 type SpecFromFunctions<
-  F1 extends AnyFunction,
-  F2 extends AnyFunction
+  F1 extends AnyTupleFunction,
+  F2 extends AnyTupleFunction
 > = FuncSpec<Parameters<F1>, ReturnType<F1>, Parameters<F2>, ReturnType<F2>>;
 
 function id<T>(x: T) {
@@ -237,7 +244,7 @@ function equivalentProvable<
       );
 
       // inside provable code
-      Provable.runAndCheck(() => {
+      runAndCheckSync(() => {
         let inputWitnesses = inputs2.map((x, i) => {
           let provable = from[i].provable;
           return provable !== undefined
@@ -277,6 +284,11 @@ function spec<T, S>(spec: {
   back: (x: S) => T;
   assertEqual?: (x: T, y: T, message: string) => void;
 }): Spec<T, S>;
+function spec<T>(spec: {
+  rng: Random<T>;
+  provable: Provable<T>;
+  assertEqual?: (x: T, y: T, message: string) => void;
+}): ProvableSpec<T, T>;
 function spec<T>(spec: {
   rng: Random<T>;
   assertEqual?: (x: T, y: T, message: string) => void;
@@ -322,7 +334,7 @@ let bool: ProvableSpec<boolean, Bool> = {
 };
 let boolean: Spec<boolean, boolean> = fromRandom(Random.boolean);
 
-function fieldWithRng(rng: Random<bigint>): Spec<bigint, Field> {
+function fieldWithRng(rng: Random<bigint>): ProvableSpec<bigint, Field> {
   return { ...field, rng };
 }
 
@@ -369,6 +381,14 @@ function record<Specs extends { [k in string]: Spec<any, any> }>(
 }
 
 function map<T1, T2, S1, S2>(
+  { from, to }: { from: ProvableSpec<T1, T2>; to: ProvableSpec<S1, S2> },
+  there: (t: T1) => S1
+): ProvableSpec<S1, S2>;
+function map<T1, T2, S1, S2>(
+  { from, to }: { from: FromSpec<T1, T2>; to: Spec<S1, S2> },
+  there: (t: T1) => S1
+): Spec<S1, S2>;
+function map<T1, T2, S1, S2>(
   { from, to }: { from: FromSpec<T1, T2>; to: Spec<S1, S2> },
   there: (t: T1) => S1
 ): Spec<S1, S2> {
@@ -402,6 +422,10 @@ function second<T, S>(spec: Spec<T, S>): Spec<S, S> {
     back: id,
     provable: spec.provable,
   };
+}
+
+function constant<T, S>(spec: Spec<T, S>, value: T): Spec<T, S> {
+  return { ...spec, rng: Random.constant(value) };
 }
 
 // helper to ensure two functions throw equivalent errors

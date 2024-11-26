@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["."],
+  "exclude": [],
+  "compilerOptions": {
+    "noEmit": true, // no build output, we just want type checking
+    "rootDir": "..",
+    "baseUrl": "..",
+    "paths": {
+      "o1js": ["."]
+    }
+  }
+}

@@ -15,7 +15,475 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/7acf19d0d...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/e1bac02...HEAD)
+
+### Fixed
+
+- Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
+
+## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
+
+### Added
+
+- Support secp256r1 in elliptic curve and ECDSA gadgets https://github.com/o1-labs/o1js/pull/1885
+
+### Fixed
+
+- Witness generation error in `Gadgets.arrayGet()` when accessing out-of-bounds indices https://github.com/o1-labs/o1js/pull/1886
+
+## [2.0.0](https://github.com/o1-labs/o1js/compare/7e9394...b04520d)
+
+### Breaking Changes
+
+- The `divMod32()` gadget was modified to accept `nBits` instead of `quotientBits`, and assert it is in the range [0, 2\*\*255) to address an issue previously where the bound on `quotientBits` was too low https://github.com/o1-labs/o1js/pull/1763.
+- `Provable.equal()` now turns both types into canonical form before comparing them https://github.com/o1-labs/o1js/pull/1759
+  - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
+- The return signature of a zkProgram has changed. https://github.com/o1-labs/o1js/pull/1809
+  - A zkProgram method must now explicitly define the return type of the method when the method has a public or auxiliary output defined.
+  - The return type of a proven method has changed as a result of this.
+- Various breaking constraint changes in internal methods or circuits because of audit fix.
+- Removal of various deprecated methods and functions.
+  - Promotion of various methods and functions to stable as part of change.
+  - A slightly modified encryption and decryption algorithm. https://github.com/o1-labs/o1js/pull/1729
+- Promotion of `TokenContractV2` to `TokenContract` with a correct amount of maximum account updates.
+
+### Added
+
+- `ZkProgram` methods now support `auxiliaryOutput`. https://github.com/o1-labs/o1js/pull/1809
+  - Each program method now accepts an optional property `auxiliaryOutput`
+  - Auxiliary output is additional output that the zkProgram method returns
+- New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
+- `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
+- `addMod64()` addition modulo 2^64
+- Bitwise OR via `{UInt32, UInt64}.or()`
+- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+
+## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
+
+### Fixes
+
+- Performance regression when compiling recursive circuits is fixed https://github.com/o1-labs/o1js/pull/1874
+- Decouple offchain state instances from their definitions https://github.com/o1-labs/o1js/pull/1834
+
+## [1.9.0](https://github.com/o1-labs/o1js/compare/450943...f15293a69) - 2024-10-15
+
+### Added
+
+- Added `VerificationKey.dummy()` method to get the dummy value of a verification key https://github.com/o1-labs/o1js/pull/1852 [@rpanic](https://github.com/rpanic)
+
+### Changed
+
+- Make `Proof` a normal provable type, that can be witnessed and composed into Structs https://github.com/o1-labs/o1js/pull/1847, https://github.com/o1-labs/o1js/pull/1851
+  - ZkProgram and SmartContract now also support private inputs that are not proofs themselves, but contain proofs nested within a Struct or array
+  - Only `SelfProof` can still not be nested because it needs special treatment
+
+### Fixes
+
+- Fix verification of serialized proofs done before compiling any circuits https://github.com/o1-labs/o1js/pull/1857
+
+## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
+
+### Added
+
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard. https://github.com/o1-labs/o1js/pull/1815
+  - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
+  - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
+
+### Fixes
+
+- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()`. https://github.com/o1-labs/o1js/pull/1827
+- Fix incorrect behavior of `state.fetch()` for custom token contracts. [@rpanic](https://github.com/rpanic) https://github.com/o1-labs/o1js/pull/1853
+
+## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
+
+### Added
+
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+- New option `proofsEnabled` for `zkProgram` (default value: `true`), to quickly test circuit logic with proofs disabled https://github.com/o1-labs/o1js/pull/1805
+  - Additionally added `MyProgram.proofsEnabled` to get the internal value of `proofsEnabled` and `MyProgram.setProofsEnabled(proofsEnabled)` to set the value dynamically.
+
+### Deprecated
+
+- `this.sender.getAndRequireSignature()` / `getUnconstrained()` deprecated in favor of `V2` versions due to a vulnerability https://github.com/o1-labs/o1js/pull/1799
+
+### Fixes
+
+- Fix behavior of `Int64.modV2()` when the input is negative and the remainder should be 0 https://github.com/o1-labs/o1js/pull/1797
+
+## [1.6.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...d6abf1d97) - 2024-07-23
+
+### Added
+
+- `SmartContract.emitEventIf()` to conditionally emit an event https://github.com/o1-labs/o1js/pull/1746
+- Added `Encryption.encryptV2()` and `Encryption.decryptV2()` for an updated encryption algorithm that guarantees cipher text integrity.
+  - Also added `Encryption.encryptBytes()` and `Encryption.decryptBytes()` using the same algorithm.
+
+### Changed
+
+- Reduced maximum bit length for `xor`, `not`, and `and`, operations from 254 to 240 bits to prevent overflow vulnerabilities. https://github.com/o1-labs/o1js/pull/1745
+- Allow using `Type` instead of `Type.provable` in APIs that expect a provable type https://github.com/o1-labs/o1js/pull/1751
+  - Example: `Provable.witness(Bytes32, () => bytes)`
+- Automatically wrap and unwrap `Unconstrained` in `fromValue` and `toValue`, so that we don't need to deal with "unconstrained" values outside provable code https://github.com/o1-labs/o1js/pull/1751
+
+## [1.5.0](https://github.com/o1-labs/o1js/compare/ed198f305...1c736add) - 2024-07-09
+
+### Breaking changes
+
+- Fixed a vulnerability in `OffchainState` where it didn't store the `IndexedMerkleTree` length onchain and left it unconstrained https://github.com/o1-labs/o1js/pull/1676
+
+### Added
+
+- A warning about the current reducer API limitations, as well as a mention of active work to mitigate them was added to doc comments and examples https://github.com/o1-labs/o1js/pull/1728
+- `ForeignField`-based representation of scalars via `ScalarField` https://github.com/o1-labs/o1js/pull/1705
+- Introduced new V2 methods for nullifier operations: `isUnusedV2()`, `assertUnusedV2()`, and `setUsedV2()` https://github.com/o1-labs/o1js/pull/1715
+- `Int64.create()` method for safe instance creation with canonical zero representation https://github.com/o1-labs/o1js/pull/1735
+- New V2 methods for `Int64` operations: `fromObjectV2`, `divV2()` https://github.com/o1-labs/o1js/pull/1735
+- `Experimental.BatchReducer` to reduce actions in batches https://github.com/o1-labs/o1js/pull/1676
+  - Avoids the account update limit
+  - Handles arbitrary numbers of pending actions thanks to recursive validation of the next batch
+- Add conditional versions of all preconditions: `.requireEqualsIf()` https://github.com/o1-labs/o1js/pull/1676
+- `AccountUpdate.createIf()` to conditionally add an account update to the current transaction https://github.com/o1-labs/o1js/pull/1676
+- `IndexedMerkleMap.setIf()` to set a key-value pair conditionally https://github.com/o1-labs/o1js/pull/1676
+- `Provable.assertEqualIf()` to conditionally assert that two values are equal https://github.com/o1-labs/o1js/pull/1676
+- Add `offchainState.setContractClass()` which enables us to declare the connected contract at the top level, without creating a contract instance https://github.com/o1-labs/o1js/pull/1676
+  - This is enough to call `offchainState.compile()`
+- More low-level methods to interact with `MerkleList` https://github.com/o1-labs/o1js/pull/1676
+  - `popIfUnsafe()`, `toArrayUnconstrained()` and `lengthUnconstrained()`
+
+### Changed
+
+- Improve error message when o1js global state is accessed in an invalid way https://github.com/o1-labs/o1js/pull/1676
+- Start developing an internal framework for local zkapp testing https://github.com/o1-labs/o1js/pull/1676
+- Internally upgrade o1js to TypeScript 5.4 https://github.com/o1-labs/o1js/pull/1676
+
+### Deprecated
+
+- Deprecated `Nullifier.isUnused()`, `Nullifier.assertUnused()`, and `Nullifier.setUsed()` methods https://github.com/o1-labs/o1js/pull/1715
+- `createEcdsa`, `createForeignCurve`, `ForeignCurve` and `EcdsaSignature` deprecated in favor of `V2` versions due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1703
+- `Int64` constructor, recommending `Int64.create()` instead https://github.com/o1-labs/o1js/pull/1735
+- Original `div()` and `fromObject`, methods in favor of V2 versions https://github.com/o1-labs/o1js/pull/1735
+- Deprecate `AccountUpdate.defaultAccountUpdate()` in favor of `AccountUpdate.default()` https://github.com/o1-labs/o1js/pull/1676
+
+### Fixed
+
+- Fix reversed order of account updates when using `TokenContract.approveAccountUpdates()` https://github.com/o1-labs/o1js/pull/1722
+- Fixed the static `check()` method in Struct classes to properly handle inheritance, preventing issues with under-constrained circuits. Added error handling to avoid using Struct directly as a field type. https://github.com/o1-labs/o1js/pull/1707
+- Fixed that `Option` could not be used as `@state` or event https://github.com/o1-labs/o1js/pull/1736
+
+## [1.4.0](https://github.com/o1-labs/o1js/compare/40c597775...ed198f305) - 2024-06-25
+
+### Added
+
+- **SHA256 low-level API** exposed via `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1689 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
+- Added the option to specify custom feature flags for sided loaded proofs in the `DynamicProof` class. https://github.com/o1-labs/o1js/pull/1688
+  - Feature flags are required to tell Pickles what proof structure it should expect when side loading dynamic proofs and verification keys.
+  - `FeatureFlags` is now exported and provides a set of helper functions to compute feature flags correctly.
+
+### Deprecated
+
+- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
+
+## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
+
+### Breaking Changes
+
+- Improve efficiency of `Experimental.OffchainState` implementation https://github.com/o1-labs/o1js/pull/1672
+  - Comes with breaking changes to the internal circuits of `OffchainState`
+  - Also, introduce `offchainState.commitments()` to initialize the state commitments onchain. Using `OffchainStateCommitments.empty()` no longer works.
+
+### Added
+
+- `Experimental.IndexedMerkleMap`, a better primitive for Merkleized storage https://github.com/o1-labs/o1js/pull/1666 https://github.com/o1-labs/o1js/pull/1671
+  - Uses 4-8x fewer constraints than `MerkleMap`
+  - In contrast to `MerkleTree` and `MerkleMap`, `IndexedMerkleMap` has a high-level API that can be used in provable code
+- Added `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2` methods to the `Ecdsa` class. https://github.com/o1-labs/o1js/pull/1669
+
+### Deprecated
+
+- `Int64.isPositive()` and `Int64.mod()` deprecated because they behave incorrectly on `-0` https://github.com/o1-labs/o1js/pull/1660
+  - This can pose an attack surface, since it is easy to maliciously pick either the `+0` or the `-0` representation
+  - Use `Int64.isPositiveV2()` and `Int64.modV2()` instead
+  - Also deprecated `Int64.neg()` in favor of `Int64.negV2()`, for compatibility with v2 version of `Int64` that will use `Int64.checkV2()`
+- `Ecdsa.verify()` and `Ecdsa.verifySignedHash()` deprecated in favor of `Ecdsa.verifyV2()` and `Ecdsa.verifySignedHashV2()` due to a security vulnerability found in the current implementation https://github.com/o1-labs/o1js/pull/1669
+
+### Fixed
+
+- Fix handling of fetch response for non-existing accounts https://github.com/o1-labs/o1js/pull/1679
+
+## [1.3.0](https://github.com/o1-labs/o1js/compare/6a1012162...54d6545bf) - 2024-05-23
+
+### Added
+
+- Added `base64Encode()` and `base64Decode(byteLength)` methods to the `Bytes` class. https://github.com/o1-labs/o1js/pull/1659
+
+### Fixes
+
+- Fix type inference for `method.returns(Type)`, to require a matching return signature https://github.com/o1-labs/o1js/pull/1653
+- Fix `Struct.empty()` returning a garbage object when one of the base types doesn't support `empty()` https://github.com/o1-labs/o1js/pull/1657
+- Fix `Option.value_exn None` error when using certain custom gates in combination with recursion https://github.com/o1-labs/o1js/issues/1336 https://github.com/MinaProtocol/mina/pull/15588
+
+## [1.2.0](https://github.com/o1-labs/o1js/compare/4a17de857...6a1012162) - 2024-05-14
+
+### Added
+
+- **Offchain state MVP** exported under `Experimental.OffchainState` https://github.com/o1-labs/o1js/pull/1630 https://github.com/o1-labs/o1js/pull/1652
+  - allows you to store any number of fields and key-value maps on your zkApp
+  - implemented using actions which define an offchain Merkle tree
+- `Option` for defining an optional version of any provable type https://github.com/o1-labs/o1js/pull/1630
+- `MerkleTree.clone()` and `MerkleTree.getLeaf()`, new convenience methods for merkle trees https://github.com/o1-labs/o1js/pull/1630
+- `MerkleList.forEach()`, a simple and safe way for iterating over a `MerkleList`
+- `Unconstrained.provableWithEmpty()` to create an unconstrained provable type with a known `empty()` value https://github.com/o1-labs/o1js/pull/1630
+- `Permissions.VerificationKey`, a namespace for verification key permissions https://github.com/o1-labs/o1js/pull/1639
+  - Includes more accurate names for the `impossible` and `proof` permissions for verification keys, which are now called `impossibleDuringCurrentVersion` and `proofDuringCurrentVersion` respectively.
+
+### Changed
+
+- `State()` now optionally accepts an initial value as input parameter https://github.com/o1-labs/o1js/pull/1630
+  - Example: `@state(Field) x = State(Field(1));`
+  - Initial values will be set in the default `init()` method
+  - You no longer need a custom `init()` method to set initial values
+
+### Fixes
+
+- Fix absolute imports which prevented compilation in some TS projects that used o1js https://github.com/o1-labs/o1js/pull/1628
+
+## [1.1.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...4a17de857) - 2024-04-30
+
+### Added
+
+- Exposed **sideloaded verification keys** https://github.com/o1-labs/o1js/pull/1606 [@rpanic](https://github.com/rpanic)
+  - Added Proof type `DynamicProof` that allows verification through specifying a verification key in-circuit
+- `Provable.witnessFields()` to easily witness a tuple of field elements https://github.com/o1-labs/o1js/pull/1229
+- Example for implementing RSA verification in o1js https://github.com/o1-labs/o1js/pull/1229 [@Shigoto-dev19](https://github.com/Shigoto-dev19)
+  - Check out https://github.com/o1-labs/o1js/blob/main/src/examples/crypto/rsa/rsa.ts and tests in the same folder
+
+### Changed
+
+- `Gadgets.rangeCheck64()` now returns individual range-checked limbs for advanced use cases https://github.com/o1-labs/o1js/pull/1229
+
+### Fixed
+
+- Fixed issue in `UInt64.rightShift()` where it incorrectly performed a left shift instead of a right shift. https://github.com/o1-labs/o1js/pull/1617
+- Fixed issue in `ForeignField.toBits()` where high limbs were under-constrained for input length less than 176. https://github.com/o1-labs/o1js/pull/1617
+- Make `dummyBase64Proof()` lazy. Significant speed up when generating many account updates with authorization `Proof` while proofs turned off. https://github.com/o1-labs/o1js/pull/1624
+
+## [1.0.1](https://github.com/o1-labs/o1js/compare/1b6fd8b8e...02c5e8d4d) - 2024-04-22
+
+### Breaking changes
+
+- Native curve improvements https://github.com/o1-labs/o1js/pull/1530
+  - Change the internal representation of `Scalar` from 255 Bools to 1 Bool and 1 Field (low bit and high 254 bits)
+  - Make `Group.scale()` support all scalars (previously did not support 0, 1 and -1)
+  - Make `Group.scale()` directly accept `Field` elements, and much more efficient than previous methods of scaling by Fields
+    - As a result, `Signature.verify()` and `Nullifier.verify()` use much fewer constraints
+  - Fix `Scalar.fromBits()` to not produce a shifted scalar; shifting is no longer exposed to users of `Scalar`.
+- Add assertion to the foreign EC addition gadget that prevents degenerate cases https://github.com/o1-labs/o1js/pull/1545
+  - Fixes soundness of ECDSA; slightly increases its constraints from ~28k to 29k
+  - Breaks circuits that used EC addition, like ECDSA
+- `Mina.LocalBlockchain()` and `Proof.fromJSON()` are made async https://github.com/o1-labs/o1js/pull/1583
+  - These were the last remaining sync APIs that depended on an async setup task; making them async enables removing top-level await
+- `Mina.LocalBlockchain` no longer supports the network kind configuration https://github.com/o1-labs/o1js/pull/1581
+- `Poseidon.hashToGroup()` now returns a `Group` directly, and constrains it to be deterministic https://github.com/o1-labs/o1js/pull/1546
+  - Added `Poseidon.Unsafe.hashToGroup()` as a more efficient, non-deterministic version for advanced use cases
+- A `Transaction`'s `prove` method no longer returns the proofs promise directly, but rather returns a `Transaction` promise, the resolved value of which contains a `proofs` prop. https://github.com/o1-labs/o1js/pull/1567
+- The `Transaction` type now has two type params `Proven extends boolean` and `Signed extends boolean`, which are used to conditionally show/hide relevant state. https://github.com/o1-labs/o1js/pull/1567
+- Improved functionality of `MerkleList` and `MerkleListIterator` for easier traversal of `MerkleList`s. https://github.com/o1-labs/o1js/pull/1562
+- Simplified internal logic of reducer. https://github.com/o1-labs/o1js/pull/1577
+  - `contract.getActions()` now returns a `MerkleList`
+- Add `toValue()` and `fromValue()` interface to `Provable<T>` to encode how provable types map to plain JS values https://github.com/o1-labs/o1js/pull/1271
+  - You can now return the plain value from a `Provable.witness()` callback, and it will be transformed into the provable type
+- Remove `Account()` constructor which was no different from `AccountUpdate.create().account`, and export `Account` type instead. https://github.com/o1-labs/o1js/pull/1598
+
+### Added
+
+- Export `Events` under `AccountUpdate.Events`. https://github.com/o1-labs/o1js/pull/1563
+- `Mina.transaction` has been reworked such that one can call methods directly on the returned promise (now a `TransactionPromise`). This enables a fluent / method-chaining API. https://github.com/o1-labs/o1js/pull/1567
+- `TransactionPendingPromise` enables calling `wait` directly on the promise returned by calling `send` on a `Transaction`. https://github.com/o1-labs/o1js/pull/1567
+- `initializeBindings()` to explicitly trigger setup work that is needed when running provable code https://github.com/o1-labs/o1js/pull/1583
+  - calling this function is optional
+
+### Changed
+
+- Remove top-level await https://github.com/o1-labs/o1js/pull/1583
+  - To simplify integration with bundlers like webpack
+- Make `MerkleTree.{nodes,zeroes}` public properties https://github.com/o1-labs/o1js/pull/1555
+  - This makes it possible to clone merkle trees, which is often needed
+
+### Fixed
+
+- Fix error when computing Merkle map witnesses, introduced in the last version due to the `toBits()` change https://github.com/o1-labs/o1js/pull/1559
+- Improved error message when compiling a program that has no methods. https://github.com/o1-labs/o1js/pull/1563
+
+## [0.18.0](https://github.com/o1-labs/o1js/compare/74948acac...1b6fd8b8e) - 2024-04-09
+
+### Breaking changes
+
+- **Async circuits**. Require all smart contract and zkprogram methods to be async https://github.com/o1-labs/o1js/pull/1477
+  - This change allows you to use `await` inside your methods. Change the method signature by adding the `async` keyword.
+  - Don't forget to add `await` to all contract calls! `await MyContract.myMethod();`
+  - To declare a return value from a method, use the new `@method.returns()` decorator
+- Require the callback to `Mina.transaction()` to be async https://github.com/o1-labs/o1js/pull/1468
+- Change `{SmartContract,ZkProgram}.analyzeMethods()` to be async https://github.com/o1-labs/o1js/pull/1450
+  - `Provable.runAndCheck()`, `Provable.constraintSystem()` and `{SmartContract,ZkProgram}.digest()` are also async now
+- **Remove deprecated APIs**
+  - Remove `CircuitValue`, `prop`, `arrayProp` and `matrixProp` https://github.com/o1-labs/o1js/pull/1507
+  - Remove `Mina.accountCreationFee()`, `Mina.BerkeleyQANet`, all APIs which accept private keys for feepayers, `Token`, `AccountUpdate.tokenSymbol`, `SmartContract.{token, setValue, setPermissions}`, "assert" methods for preconditions, `MerkleTee.calculateRootSlow()`, `Scalar.fromBigInt()`, `UInt64.lt()` and friends, deprecated static methods on `Group`, utility methods on `Circuit` like `Circuit.if()`, `Field.isZero()`, `isReady` and `shutdown()` https://github.com/o1-labs/o1js/pull/1515
+- Remove `privateKey` from the accepted arguments of `SmartContract.deploy()` https://github.com/o1-labs/o1js/pull/1515
+- **Efficient comparisons**. Support arbitrary bit lengths for `Field` comparisons and massively reduce their constraints https://github.com/o1-labs/o1js/pull/1523
+  - `Field.assertLessThan()` goes from 510 to 24 constraints, `Field.lessThan()` from 509 to 38
+  - Moderately improve other comparisons: `UInt64.assertLessThan()` from 27 to 14, `UInt64.lessThan()` from 27 to 15, `UInt32` similar.
+  - Massively improve `Field.isEven()`, add `Field.isOdd()`
+  - `PrivateKey.toPublicKey()` from 358 to 119 constraints thanks to `isOdd()`
+  - Add `Gadgets.ForeignField.assertLessThanOrEqual()` and support two variables as input to `ForeignField.assertLessThan()`
+- Remove `this.sender` which unintuitively did not prove that its value was the actual sender of the transaction https://github.com/o1-labs/o1js/pull/1464 [@julio4](https://github.com/julio4)
+  Replaced by more explicit APIs:
+  - `this.sender.getUnconstrained()` which has the old behavior of `this.sender`, and returns an unconstrained value (which means that the prover can set it to any value they want)
+  - `this.sender.getAndRequireSignature()` which requires a signature from the sender's public key and therefore proves that whoever created the transaction really owns the sender account
+- `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
+  - The default value is 1 and should work for most existing contracts
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
+   As a replacement, `UInt64.Unsafe.fromField()` was introduced
+  - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
+  - Equivalent changes were made to `UInt32`
+- Fixed vulnerability in `Field.to/fromBits()` outlined in [#1023](https://github.com/o1-labs/o1js/issues/1023) by imposing a limit of 254 bits https://github.com/o1-labs/o1js/pull/1461
+- Remove `Field.rangeCheckHelper()` which was too low-level and easy to misuse https://github.com/o1-labs/o1js/pull/1485
+  - Also, rename the misleadingly named `Gadgets.isInRangeN()` to `Gadgets.isDefinitelyInRangeN()`
+- Rename `Bool.Unsafe.ofField()` to `Bool.Unsafe.fromField()` https://github.com/o1-labs/o1js/pull/1485
+- Replace the namespaced type exports `Gadgets.Field3` and `Gadgets.ForeignField.Sum` with `Field3` and `ForeignFieldSum`
+  - Unfortunately, the namespace didn't play well with auto-imports in TypeScript
+- Add `Gadgets.rangeCheck3x12()` and fix proof system bug that prevented it from working https://github.com/o1-labs/o1js/pull/1534
+- Update transaction version and other bindings changes to ensure berkeley compatibility https://github.com/o1-labs/o1js/pull/1542
+
+### Added
+
+- `Provable.witnessAsync()` to introduce provable values from an async callback https://github.com/o1-labs/o1js/pull/1468
+- Internal benchmarking tooling to keep track of performance https://github.com/o1-labs/o1js/pull/1481
+- Add `toInput` method for `Group` instance https://github.com/o1-labs/o1js/pull/1483
+
+### Changed
+
+- `field.assertBool()` now also returns the `Field` as a `Bool` for ergonomics https://github.com/o1-labs/o1js/pull/1523
+
+## [0.17.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...74948acac) - 2024-03-06
+
+### Breaking changes
+
+- Fixed parity between `Mina.LocalBlockchain` and `Mina.Network` to have the same behaviors https://github.com/o1-labs/o1js/pull/1422 https://github.com/o1-labs/o1js/pull/1480
+  - Changed the `TransactionId` type to `Transaction`. Additionally added `PendingTransaction` and `RejectedTransaction` types to better represent the state of a transaction.
+  - `Transaction.safeSend()` and `PendingTransaction.safeWait()` are introduced to return a `IncludedTransaction` or `RejectedTransaction` object without throwing errors.
+  - `transaction.send()` throws an error if the transaction was not successful for both `Mina.LocalBlockchain` and `Mina.Network` and returns a `PendingTransaction` object if it was successful. Use `transaction.safeSend` to send a transaction that will not throw an error and either return a `PendingTransaction` or `RejectedTransaction`.
+  - `transaction.wait()` throws an error if the transaction was not successful for both `Mina.LocalBlockchain` and `Mina.Network` and returns a `IncludedTransaction` object if it was successful. Use `transaction.safeWait` to send a transaction that will not throw an error and either return a `IncludedTransaction` or `RejectedTransaction`.
+  - `transaction.hash()` is no longer a function, it is now a property that returns the hash of the transaction.
+  - Changed `Transaction.isSuccess` to `Transaction.status` to better represent the state of a transaction.
+- Improved efficiency of computing `AccountUpdate.callData` by packing field elements into as few field elements as possible https://github.com/o1-labs/o1js/pull/1458
+  - This leads to a large reduction in the number of constraints used when inputs to a zkApp method are many field elements (e.g. a long list of `Bool`s)
+- Return events in the `LocalBlockchain` in reverse chronological order (latest events at the beginning) to match the behavior of the `Network` https://github.com/o1-labs/o1js/pull/1460
+
+### Added
+
+- Support for custom network identifiers other than `mainnet` or `testnet` https://github.com/o1-labs/o1js/pull/1444
+- `PrivateKey.randomKeypair()` to generate private and public key in one command https://github.com/o1-labs/o1js/pull/1446
+- `setNumberOfWorkers()` to allow developer to override the number of workers used during compilation and proof generation/verification https://github.com/o1-labs/o1js/pull/1456
+
+### Changed
+
+- Improve all-around performance by reverting the Apple silicon workaround (https://github.com/o1-labs/o1js/pull/683) as the root problem is now fixed upstream https://github.com/o1-labs/o1js/pull/1456
+- Improved error message when trying to use `fetchActions`/`fetchEvents` with a missing Archive Node endpoint https://github.com/o1-labs/o1js/pull/1459
+
+### Deprecated
+
+- `SmartContract.token` is deprecated in favor of new methods on `TokenContract` https://github.com/o1-labs/o1js/pull/1446
+  - `TokenContract.deriveTokenId()` to get the ID of the managed token
+  - `TokenContract.internal.{send, mint, burn}` to perform token operations from within the contract
+
+### Fixed
+
+- Mitigate security hazard of deploying token contracts https://github.com/o1-labs/o1js/issues/1439
+- Make `Circuit` handle types with a `.provable` property (like those used in ECDSA) https://github.com/o1-labs/o1js/pull/1471
+  - To support offchain, non-Pickles proofs of ECDSA signatures
+
+## [0.16.1](https://github.com/o1-labs/o1js/compare/834a44002...3b5f7c7)
+
+### Breaking changes
+
+- Remove `AccountUpdate.children` and `AccountUpdate.parent` properties https://github.com/o1-labs/o1js/pull/1402
+  - Also removes the optional `AccountUpdatesLayout` argument to `approve()`
+  - Adds `AccountUpdateTree` and `AccountUpdateForest`, new classes that represent a layout of account updates explicitly
+  - Both of the new types are now accepted as inputs to `approve()`
+  - `accountUpdate.extractTree()` to obtain the tree associated with an account update in the current transaction context.
+- Remove `Experimental.Callback` API https://github.com/o1-labs/o1js/pull/1430
+
+### Added
+
+- `MerkleList<T>` to enable provable operations on a dynamically-sized list https://github.com/o1-labs/o1js/pull/1398
+  - including `MerkleListIterator<T>` to iterate over a merkle list
+- `TokenContract`, a new base smart contract class for token contracts https://github.com/o1-labs/o1js/pull/1384
+  - Usage example: `https://github.com/o1-labs/o1js/blob/main/src/lib/mina/token/token-contract.unit-test.ts`
+- `TokenAccountUpdateIterator`, a primitive to iterate over all token account updates in a transaction https://github.com/o1-labs/o1js/pull/1398
+  - this is used to implement `TokenContract` under the hood
+
+### Fixed
+
+- Mainnet support. https://github.com/o1-labs/o1js/pull/1437
+
+## [0.16.0](https://github.com/o1-labs/o1js/compare/e5d1e0f...834a44002)
+
+### Breaking changes
+
+- Protocol change that adds a "transaction version" to the permission to set verification keys https://github.com/MinaProtocol/mina/pull/14407
+  - See [the relevant RFC](https://github.com/MinaProtocol/mina/blob/9577ad689a8e4d4f97e1d0fc3d26e20219f4abd1/rfcs/0051-verification-key-permissions.md) for the motivation behind this change
+  - Breaks all deployed contracts, as it changes the account update layout
+
+### Added
+
+- Provable type `Packed<T>` to pack small field elements into fewer field elements https://github.com/o1-labs/o1js/pull/1376
+- Provable type `Hashed<T>` to represent provable types by their hash https://github.com/o1-labs/o1js/pull/1377
+  - This also exposes `Poseidon.hashPacked()` to efficiently hash an arbitrary type
+
+### Changed
+
+- Reduce number of constraints of ECDSA verification by 5% https://github.com/o1-labs/o1js/pull/1376
+
+## [0.15.4](https://github.com/o1-labs/o1js/compare/be748e42e...e5d1e0f)
+
+### Changed
+
+- Improve performance of Wasm Poseidon hashing by a factor of 13x https://github.com/o1-labs/o1js/pull/1378
+  - Speeds up local blockchain tests without proving by ~40%
+- Improve performance of Field inverse https://github.com/o1-labs/o1js/pull/1373
+  - Speeds up proving by ~2-4%
+
+### Added
+
+- Configurable `networkId` when declaring a Mina instance. https://github.com/o1-labs/o1js/pull/1387
+  - Defaults to `"testnet"`, the other option is `"mainnet"`
+  - The `networkId` parameter influences the algorithm used for signatures, and ensures that testnet transactions can't be replayed on mainnet
+
+## [0.15.3](https://github.com/o1-labs/o1js/compare/1ad7333e9e...be748e42e)
+
+### Added
+
+- **SHA256 hash function** exposed via `Hash.SHA2_256` or `Gadgets.SHA256`. https://github.com/o1-labs/o1js/pull/1285
+
+### Changed
+
+- `Mina.accountCreationFee()` is deprecated in favor of `Mina.getNetworkConstants().accountCreationFee`. https://github.com/o1-labs/o1js/pull/1367
+  - `Mina.getNetworkConstants()` returns:
+    - [default](https://github.com/o1-labs/o1js/pull/1367/files#diff-ef2c3547d64a8eaa8253cd82b3623288f3271e14f1dc893a0a3ddc1ff4b9688fR7) network constants if used outside of the transaction scope.
+    - [actual](https://github.com/o1-labs/o1js/pull/1367/files#diff-437f2c15df7c90ad8154c5de1677ec0838d51859bcc0a0cefd8a0424b5736f31R1051) network constants if used within the transaction scope.
+
+### Fixed
+
+- Fix approving of complex account update layouts https://github.com/o1-labs/o1js/pull/1364
+
+## [0.15.2](https://github.com/o1-labs/o1js/compare/1ad7333e9e...08ba27329)
+
+### Fixed
+
+- Fix bug in `Hash.hash()` which always resulted in an error https://github.com/o1-labs/o1js/pull/1346
+
+## [0.15.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...19115a159)
 
 ### Breaking changes
 
@@ -25,10 +493,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Non-native elliptic curve operations exposed through `createForeignCurve()` class factory https://github.com/o1-labs/o1js/pull/1007
-- **ECDSA signature verification** exposed through `createEcdsa()` class factory https://github.com/o1-labs/o1js/pull/1240 https://github.com/o1-labs/o1js/pull/1007
-
+- **ECDSA signature verification** exposed through `createEcdsa()` class factory https://github.com/o1-labs/o1js/pull/1240 https://github.com/o1-labs/o1js/pull/1007 https://github.com/o1-labs/o1js/pull/1307
   - For an example, see `./src/examples/crypto/ecdsa`
-
+- **Keccak/SHA3 hash function** exposed on `Keccak` namespace https://github.com/o1-labs/o1js/pull/1291
+- `Hash` namespace which holds all hash functions https://github.com/o1-labs/o1js/pull/999
+  - `Bytes`, provable type to hold a byte array, which serves as input and output for Keccak variants
+  - `UInt8`, provable type to hold a single byte, which is constrained to be in the 0 to 255 range
 - `Gadgets.rotate32()` for rotation over 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.leftShift32()` for left shift over 32 bit values https://github.com/o1-labs/o1js/pull/1259
 - `Gadgets.divMod32()` division modulo 2^32 that returns the remainder and quotient of the operation https://github.com/o1-labs/o1js/pull/1259
@@ -41,10 +511,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - bitwise LEFTSHIFT via `{UInt32, UInt64}.leftShift()`
   - bitwise RIGHTSHIFT via `{UInt32, UInt64}.rightShift()`
   - bitwise AND via `{UInt32, UInt64}.and()`
+- Example for using actions to store a map data structure https://github.com/o1-labs/o1js/pull/1300
+- `Provable.constraintSystem()` and `{ZkProgram,SmartContract}.analyzeMethods()` return a `summary()` method to return a summary of the constraints used by a method https://github.com/o1-labs/o1js/pull/1007
+- `assert()` asserts that a given statement is true https://github.com/o1-labs/o1js/pull/1285
 
 ### Fixed
 
 - Fix stack overflows when calling provable methods with large inputs https://github.com/o1-labs/o1js/pull/1334
+- Fix `Local.setProofsEnabled()` which would not get picked up by `deploy()` https://github.com/o1-labs/o1js/pull/1330
+- Remove usage of private class fields in core types like `Field`, for better type compatibility between different o1js versions https://github.com/o1-labs/o1js/pull/1319
 
 ## [0.15.0](https://github.com/o1-labs/o1js/compare/1ad7333e9e...7acf19d0d)
 

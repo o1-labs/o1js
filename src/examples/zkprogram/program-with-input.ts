@@ -3,13 +3,10 @@ import {
   Field,
   ZkProgram,
   verify,
-  isReady,
   Proof,
   JsonProof,
   Provable,
 } from 'o1js';
-
-await isReady;
 
 let MyProgram = ZkProgram({
   name: 'example-with-input',
@@ -18,14 +15,14 @@ let MyProgram = ZkProgram({
   methods: {
     baseCase: {
       privateInputs: [],
-      method(input: Field) {
+      async method(input: Field) {
         input.assertEquals(Field(0));
       },
     },
 
     inductiveCase: {
       privateInputs: [SelfProof],
-      method(input: Field, earlierProof: SelfProof<Field, void>) {
+      async method(input: Field, earlierProof: SelfProof<Field, void>) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(input);
       },
@@ -35,18 +32,20 @@ let MyProgram = ZkProgram({
 // type sanity checks
 MyProgram.publicInputType satisfies typeof Field;
 MyProgram.publicOutputType satisfies Provable<void>;
+MyProgram.privateInputTypes;
+MyProgram.auxiliaryOutputTypes;
 
 let MyProof = ZkProgram.Proof(MyProgram);
 
-console.log('program digest', MyProgram.digest());
+console.log('program digest', await MyProgram.digest());
 
 console.log('compiling MyProgram...');
 let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
 console.log('proving base case...');
-let proof = await MyProgram.baseCase(Field(0));
-proof = testJsonRoundtrip(MyProof, proof);
+let { proof } = await MyProgram.baseCase(Field(0));
+proof = await testJsonRoundtrip(MyProof, proof);
 
 // type sanity check
 proof satisfies Proof<Field, void>;
@@ -60,29 +59,29 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
-proof = await MyProgram.inductiveCase(Field(1), proof);
-proof = testJsonRoundtrip(MyProof, proof);
+let { proof: proof1 } = await MyProgram.inductiveCase(Field(1), proof);
+proof1 = await testJsonRoundtrip(MyProof, proof1);
 
 console.log('verify...');
-ok = await verify(proof, verificationKey);
+ok = await verify(proof1, verificationKey);
 console.log('ok?', ok);
 
 console.log('verify alternative...');
-ok = await MyProgram.verify(proof);
+ok = await MyProgram.verify(proof1);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
-proof = await MyProgram.inductiveCase(Field(2), proof);
-proof = testJsonRoundtrip(MyProof, proof);
+let { proof: proof2 } = await MyProgram.inductiveCase(Field(2), proof1);
+proof2 = await testJsonRoundtrip(MyProof, proof2);
 
 console.log('verify...');
-ok = await verify(proof.toJSON(), verificationKey);
+ok = await verify(proof2.toJSON(), verificationKey);
 
-console.log('ok?', ok && proof.publicInput.toString() === '2');
+console.log('ok?', ok && proof2.publicInput.toString() === '2');
 
 function testJsonRoundtrip<
   P extends Proof<any, any>,
-  MyProof extends { fromJSON(jsonProof: JsonProof): P }
+  MyProof extends { fromJSON(jsonProof: JsonProof): Promise<P> }
 >(MyProof: MyProof, proof: P) {
   let jsonProof = proof.toJSON();
   console.log(

@@ -5,14 +5,8 @@ class ForeignScalar extends createForeignField(
 ) {}
 
 function main() {
-  let s = Provable.witness(
-    ForeignScalar.Canonical.provable,
-    ForeignScalar.random
-  );
-  let t = Provable.witness(
-    ForeignScalar.Canonical.provable,
-    ForeignScalar.random
-  );
+  let s = Provable.witness(ForeignScalar.Canonical, ForeignScalar.random);
+  let t = Provable.witness(ForeignScalar.Canonical, ForeignScalar.random);
   s.mul(t);
 }
 
@@ -21,11 +15,11 @@ main();
 console.timeEnd('running constant version');
 
 console.time('running witness generation & checks');
-Provable.runAndCheck(main);
+await Provable.runAndCheck(main);
 console.timeEnd('running witness generation & checks');
 
 console.time('creating constraint system');
-let cs = Provable.constraintSystem(main);
+let cs = await Provable.constraintSystem(main);
 console.timeEnd('creating constraint system');
 
 console.log(cs.summary());

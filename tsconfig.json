@@ -1,6 +1,6 @@
 {
   "include": ["./src/**/*.ts"],
-  "exclude": ["./src/**/*.bc.js", "./src/build", "./src/examples"],
+  "exclude": ["./src/**/*.bc.js", "./src/build", "./src/examples", "./src/mina"],
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "dist",

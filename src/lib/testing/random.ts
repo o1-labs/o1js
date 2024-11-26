@@ -22,6 +22,7 @@ import {
   ZkappUri,
   PublicKey,
   StateHash,
+  MayUseToken,
 } from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
@@ -29,17 +30,21 @@ import {
   PrimitiveTypeMap,
   primitiveTypeMap,
 } from '../../bindings/lib/generic.js';
-import { Scalar, PrivateKey, Group } from '../../provable/curve-bigint.js';
+import {
+  Scalar,
+  PrivateKey,
+  Group,
+} from '../../mina-signer/src/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { alphabet } from '../base58.js';
+import { alphabet } from '../util/base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
-import { Signable } from '../../bindings/lib/provable-bigint.js';
+import { Signable } from '../../mina-signer/src/derivers-bigint.js';
 import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import type { FiniteField } from '../../bindings/crypto/finite_field.js';
+import type { FiniteField } from '../../bindings/crypto/finite-field.js';
 
 export { Random, sample, withHardCoded };
 
@@ -75,6 +80,7 @@ const field = fieldWithInvalid(Field);
 const scalar = fieldWithInvalid(Scalar);
 
 const sign = map(boolean, (b) => Sign(b ? 1 : -1));
+const int64 = record({ magnitude: uint64, sgn: sign });
 const privateKey = Random_(PrivateKey.random);
 const publicKey = publicKeyWithInvalid();
 const keypair = map(privateKey, (privatekey) => ({
@@ -93,6 +99,23 @@ const authRequired = map(
     'Impossible'
   ),
   AuthRequired.fromJSON
+);
+const mayUseToken = map(
+  oneOf<Json.MayUseToken[]>(
+    {
+      parentsOwnToken: true,
+      inheritFromParent: false,
+    },
+    {
+      parentsOwnToken: false,
+      inheritFromParent: true,
+    },
+    {
+      parentsOwnToken: false,
+      inheritFromParent: false,
+    }
+  ),
+  MayUseToken.fromJSON
 );
 const tokenSymbolString = reject(
   string(nat(tokenSymbolLength)),
@@ -124,6 +147,7 @@ const Generators: Generators = {
   UInt32: uint32,
   UInt64: uint64,
   Sign: sign,
+  BalanceChange: int64,
   PublicKey: publicKey,
   TokenId: tokenId,
   StateHash: stateHash,
@@ -138,6 +162,8 @@ const Generators: Generators = {
   null: constant(null),
   string: base58(nat(50)), // TODO replace various strings, like signature, with parsed types
   number: nat(3),
+  TransactionVersion: uint32,
+  MayUseToken: mayUseToken,
 };
 let typeToBigintGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]
@@ -162,7 +188,8 @@ const accountUpdate = mapWithInvalid(
       a.body.authorizationKind.isProved = Bool(false);
     }
     if (!a.body.authorizationKind.isProved) {
-      a.body.authorizationKind.verificationKeyHash = Field(0);
+      a.body.authorizationKind.verificationKeyHash =
+        VerificationKeyHash.empty();
     }
     // ensure mayUseToken is valid
     let { inheritFromParent, parentsOwnToken } = a.body.mayUseToken;
@@ -202,6 +229,7 @@ const invalidUint64Json = toString(
 let json_ = {
   uint32: { ...toString(uint32), invalid: invalidUint32Json },
   uint64: { ...toString(uint64), invalid: invalidUint64Json },
+  sign: withInvalidRandomString(map(sign, Sign.toJSON)),
   publicKey: withInvalidBase58(mapWithInvalid(publicKey, PublicKey.toBase58)),
   privateKey: withInvalidBase58(map(privateKey, PrivateKey.toBase58)),
   keypair: map(keypair, ({ privatekey, publicKey }) => ({
@@ -227,7 +255,8 @@ const JsonGenerators: JsonGenerators = {
   Bool: boolean,
   UInt32: json_.uint32,
   UInt64: json_.uint64,
-  Sign: withInvalidRandomString(map(sign, Sign.toJSON)),
+  Sign: json_.sign,
+  BalanceChange: record({ magnitude: json_.uint64, sgn: json_.sign }),
   PublicKey: json_.publicKey,
   TokenId: withInvalidBase58(map(tokenId, TokenId.toJSON)),
   StateHash: withInvalidBase58(map(stateHash, StateHash.toJSON)),
@@ -244,6 +273,8 @@ const JsonGenerators: JsonGenerators = {
   null: constant(null),
   string: base58(nat(50)),
   number: nat(3),
+  TransactionVersion: json_.uint32,
+  MayUseToken: mapWithInvalid(mayUseToken, MayUseToken.toJSON),
 };
 let typeToJsonGenerator = new Map<Signable<any, any>, Random<any>>(
   [TypeMap, primitiveTypeMap, customTypes]
@@ -356,7 +387,7 @@ function generatorFromLayout<T>(
         return array(element, size);
       },
       reduceObject(keys, object) {
-        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overriden)
+        // hack to not sample invalid vk hashes (because vk hash is correlated with other fields, and has to be overridden)
         if (keys.includes('verificationKeyHash')) {
           (object as any).verificationKeyHash = noInvalid(
             (object as any).verificationKeyHash

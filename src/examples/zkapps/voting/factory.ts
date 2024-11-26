@@ -11,7 +11,9 @@ import {
 } from './preconditions.js';
 import { Voting, Voting_ } from './voting.js';
 
-export interface VotingAppParams {
+export { VotingAppParams };
+
+type VotingAppParams = {
   candidatePreconditions: ParticipantPreconditions;
   voterPreconditions: ParticipantPreconditions;
   electionPreconditions: ElectionPreconditions;
@@ -19,7 +21,7 @@ export interface VotingAppParams {
   candidateKey: PrivateKey;
   votingKey: PrivateKey;
   doProofs: boolean;
-}
+};
 
 function defaultParams(): VotingAppParams {
   return {

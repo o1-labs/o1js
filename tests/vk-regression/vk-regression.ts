@@ -1,40 +1,58 @@
 import fs from 'fs';
 import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
-import { HelloWorld } from '../../src/examples/zkapps/hello_world/hello_world.js';
+import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
 import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
 import {
   ecdsa,
   keccakAndEcdsa,
+  ecdsaEthers,
 } from '../../src/examples/crypto/ecdsa/ecdsa.js';
-import { GroupCS, BitwiseCS, HashCS } from './plain-constraint-system.js';
+import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
+import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js'
+import {
+  GroupCS,
+  BitwiseCS,
+  HashCS,
+  BasicCS,
+  CryptoCS,
+} from './plain-constraint-system.js';
+import { diverse } from './diverse-zk-program.js';
 
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
 
-// usage ./run ./tests/regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
+// toggle to override caches
+const forceRecompile = false;
+
+// usage ./run ./tests/vk-regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
+let vkTest = process.env.VK_TEST;
 
 type MinimumConstraintSystem = {
-  analyzeMethods(): Record<
-    string,
-    {
-      rows: number;
-      digest: string;
-    }
+  analyzeMethods(): Promise<
+    Record<
+      string,
+      {
+        rows: number;
+        digest: string;
+      }
+    >
   >;
-  compile(): Promise<{
+  compile(options?: { forceRecompile?: boolean }): Promise<{
     verificationKey: {
       hash: { toString(): string };
       data: string;
     };
   }>;
-  digest(): string;
+  digest(): Promise<string>;
   name: string;
 };
 
 const ConstraintSystems: MinimumConstraintSystem[] = [
+  ecdsa,
+  keccakAndEcdsa,
   Voting_,
   Membership_,
   HelloWorld,
@@ -43,9 +61,25 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   GroupCS,
   BitwiseCS,
   HashCS,
-  ecdsa,
-  keccakAndEcdsa,
+  BasicCS,
+  CryptoCS,
+  ecdsaEthers,
+  SHA256Program,
+  BLAKE2BProgram,
+  diverse,
 ];
+
+let selectedConstraintSystems: MinimumConstraintSystem[] = [];
+
+if (vkTest === '1') {
+  selectedConstraintSystems = ConstraintSystems.slice(0, 10);
+  console.log('Running regression checks - Part 1');
+} else if (vkTest === '2') {
+  selectedConstraintSystems = ConstraintSystems.slice(10);
+  console.log('Running regression checks - Part 2');
+} else if (!dump) {
+  throw new Error('Invalid VK_TEST value. Please set VK_TEST to 1 or 2!');
+}
 
 let filePath = jsonPath ? jsonPath : './tests/vk-regression/vk-regression.json';
 let RegressionJson: {
@@ -82,9 +116,9 @@ async function checkVk(contracts: typeof ConstraintSystems) {
 
     let {
       verificationKey: { data, hash },
-    } = await c.compile();
+    } = await c.compile({ forceRecompile });
 
-    let methodData = c.analyzeMethods();
+    let methodData = await c.analyzeMethods();
 
     for (const methodKey in methodData) {
       let actualMethod = methodData[methodKey];
@@ -94,20 +128,14 @@ async function checkVk(contracts: typeof ConstraintSystems) {
         errorStack += `\n\nMethod digest mismatch for ${c.name}.${methodKey}()
   Actual
     ${JSON.stringify(
-      {
-        digest: actualMethod.digest,
-        rows: actualMethod.rows,
-      },
+      { digest: actualMethod.digest, rows: actualMethod.rows },
       undefined,
       2
     )}
   \n
   Expected
     ${JSON.stringify(
-      {
-        digest: expectedMethod.digest,
-        rows: expectedMethod.rows,
-      },
+      { digest: expectedMethod.digest, rows: expectedMethod.rows },
       undefined,
       2
     )}`;
@@ -119,14 +147,7 @@ async function checkVk(contracts: typeof ConstraintSystems) {
         c.name
       } failed, because of a verification key mismatch.
 Contract has
-  ${JSON.stringify(
-    {
-      data,
-      hash,
-    },
-    undefined,
-    2
-  )}
+  ${JSON.stringify({ data, hash }, undefined, 2)}
 \n
 but expected was
   ${JSON.stringify(ref.verificationKey, undefined, 2)}`;
@@ -141,12 +162,13 @@ but expected was
 async function dumpVk(contracts: typeof ConstraintSystems) {
   let newEntries: typeof RegressionJson = {};
   for await (const c of contracts) {
-    let data = c.analyzeMethods();
-    let digest = c.digest();
+    let data = await c.analyzeMethods();
+    let digest = await c.digest();
     let verificationKey:
       | { data: string; hash: { toString(): string } }
       | undefined;
-    if (!skipVerificationKeys) ({ verificationKey } = await c.compile());
+    if (!skipVerificationKeys)
+      ({ verificationKey } = await c.compile({ forceRecompile }));
     newEntries[c.name] = {
       digest,
       methods: Object.fromEntries(
@@ -166,4 +188,4 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
 }
 
 if (dump) await dumpVk(ConstraintSystems);
-else await checkVk(ConstraintSystems);
+else await checkVk(selectedConstraintSystems);

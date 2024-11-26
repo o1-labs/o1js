@@ -19,18 +19,17 @@ runs:
         node-version: '20'
     - name: Build o1js and execute tests
       env:
-        TEST_TYPE: 'Live integration tests'
         USE_CUSTOM_LOCAL_NETWORK: 'true'
       run: |
-        git submodule update --init --recursive
+        GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
         npm ci
         npm run build
         touch profiling.md
-        sh run-ci-tests.sh
+        bash run-ci-live-tests.sh
         cat profiling.md >> $GITHUB_STEP_SUMMARY
       shell: bash
     - name: Upload Mina logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       continue-on-error: true
       if: always()
       with:

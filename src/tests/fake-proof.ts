@@ -6,6 +6,9 @@ import {
   method,
   ZkProgram,
   verify,
+  Struct,
+  Field,
+  Proof,
 } from 'o1js';
 import assert from 'assert';
 
@@ -14,7 +17,7 @@ const RealProgram = ZkProgram({
   methods: {
     make: {
       privateInputs: [UInt64],
-      method(value: UInt64) {
+      async method(value: UInt64) {
         let expected = UInt64.from(34);
         value.assertEquals(expected);
       },
@@ -25,31 +28,39 @@ const RealProgram = ZkProgram({
 const FakeProgram = ZkProgram({
   name: 'fake',
   methods: {
-    make: { privateInputs: [UInt64], method(_: UInt64) {} },
+    make: { privateInputs: [UInt64], async method(_: UInt64) {} },
   },
 });
 
 class RealProof extends ZkProgram.Proof(RealProgram) {}
+const Nested = Struct({ inner: RealProof });
 
 const RecursiveProgram = ZkProgram({
-  name: 'broken',
+  name: 'recursive',
   methods: {
     verifyReal: {
       privateInputs: [RealProof],
-      method(proof: RealProof) {
+      async method(proof: RealProof) {
         proof.verify();
+      },
+    },
+    verifyNested: {
+      privateInputs: [Field, Nested],
+      async method(_unrelated, { inner }) {
+        inner satisfies Proof<undefined, void>;
+        inner.verify();
       },
     },
   },
 });
 
 class RecursiveContract extends SmartContract {
-  @method verifyReal(proof: RealProof) {
+  @method async verifyReal(proof: RealProof) {
     proof.verify();
   }
 }
 
-Mina.setActiveInstance(Mina.LocalBlockchain());
+Mina.setActiveInstance(await Mina.LocalBlockchain());
 let publicKey = PrivateKey.random().toPublicKey();
 let zkApp = new RecursiveContract(publicKey);
 
@@ -59,7 +70,7 @@ let { verificationKey: contractVk } = await RecursiveContract.compile();
 let { verificationKey: programVk } = await RecursiveProgram.compile();
 
 // proof that should be rejected
-const fakeProof = await FakeProgram.make(UInt64.from(99999));
+const { proof: fakeProof } = await FakeProgram.make(UInt64.from(99999));
 const dummyProof = await RealProof.dummy(undefined, undefined, 0);
 
 for (let proof of [fakeProof, dummyProof]) {
@@ -76,21 +87,43 @@ for (let proof of [fakeProof, dummyProof]) {
 }
 
 // proof that should be accepted
-const realProof = await RealProgram.make(UInt64.from(34));
+const { proof: realProof } = await RealProgram.make(UInt64.from(34));
 
 // zkprogram accepts proof
-const brokenProof = await RecursiveProgram.verifyReal(realProof);
+const { proof: recursiveProof } = await RecursiveProgram.verifyReal(realProof);
 assert(
-  await verify(brokenProof, programVk.data),
+  await verify(recursiveProof, programVk),
   'recursive program accepts real proof'
 );
 
 // contract accepts proof
 let tx = await Mina.transaction(() => zkApp.verifyReal(realProof));
-let [contractProof] = await tx.prove();
+let [contractProof] = (await tx.prove()).proofs;
 assert(
-  await verify(contractProof!, contractVk.data),
+  await verify(contractProof!, contractVk),
   'recursive contract accepts real proof'
 );
 
 console.log('fake proof test passed 🎉');
+
+// same test for nested proofs
+
+for (let proof of [fakeProof, dummyProof]) {
+  // zkprogram rejects proof (nested)
+  await assert.rejects(async () => {
+    await RecursiveProgram.verifyNested(Field(0), { inner: proof });
+  }, 'recursive program rejects fake proof (nested)');
+}
+
+const { proof: recursiveProofNested } = await RecursiveProgram.verifyNested(
+  Field(0),
+  {
+    inner: realProof,
+  }
+);
+assert(
+  await verify(recursiveProofNested, programVk),
+  'recursive program accepts real proof (nested)'
+);
+
+console.log('fake proof test passed for nested proofs 🎉');

@@ -1,6 +1,6 @@
-import { assert } from '../errors.js';
+import { assert } from './errors.js';
 
-export { AnyFunction, Tuple, TupleN, AnyTuple, TupleMap };
+export { AnyFunction, Tuple, TupleN, AnyTuple, TupleMap, Subclass };
 
 type AnyFunction = (...args: any) => any;
 
@@ -55,3 +55,11 @@ const TupleN = {
 type TupleRec<T, N extends number, R extends unknown[]> = R['length'] extends N
   ? R
   : TupleRec<T, N, [T, ...R]>;
+
+// classes
+
+type Subclass<Class extends new (...args: any) => any> = (new (
+  ...args: any
+) => InstanceType<Class>) & {
+  [K in keyof Class]: Class[K];
+} & { prototype: InstanceType<Class> };

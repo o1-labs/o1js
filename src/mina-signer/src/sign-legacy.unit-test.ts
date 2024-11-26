@@ -14,12 +14,13 @@ import {
   verifyStakeDelegation,
   verifyStringSignature,
 } from './sign-legacy.js';
-import { NetworkId, Signature, SignatureJson } from './signature.js';
+import { Signature, SignatureJson } from './signature.js';
 import { expect } from 'expect';
-import { PublicKey, Scalar } from '../../provable/curve-bigint.js';
-import { Field } from '../../provable/field-bigint.js';
+import { PublicKey, Scalar } from './curve-bigint.js';
+import { Field } from './field-bigint.js';
 import { Random, test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';
+import { NetworkId } from './types.js';
 
 let { privateKey, publicKey } = keypair;
 let networks: NetworkId[] = ['testnet', 'mainnet'];
@@ -28,7 +29,7 @@ let networks: NetworkId[] = ['testnet', 'mainnet'];
 
 for (let network of networks) {
   let i = 0;
-  let reference = signatures[network];
+  let reference = signatures[NetworkId.toString(network)];
 
   for (let payment of payments) {
     let signature = signPayment(payment, privateKey, network);

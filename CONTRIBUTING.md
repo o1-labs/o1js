@@ -21,7 +21,7 @@ To ensure consistency within the o1js ecosystem and ease review and use by our t
   - `npm install <your-package>` works and is all that is needed to use the package.
   - o1js must be listed as a [peer dependency](https://docs.npmjs.com/cli/v9/configuring-npm/package-json#peerdependencies).
   - If applicable, the package must work both on the web and in NodeJS.
-- The package is created using the [zkApp CLI](https://github.com/o1-labs/zkapp-cli) (recommended).  
+- The package is created using the [zkApp CLI](https://www.npmjs.com/package/zkapp-cli) (recommended).  
   If you did not create the package using the zkApp CLI, follow these guidelines for code consistency:
   - Use TypeScript, and export types from `d.ts` files. We suggest that you base your tsconfig on the [tsconfig.json](./tsconfig.json) that o1js uses.
   - Code must be auto-formatted with [prettier](https://prettier.io/). We encourage you to use [.prettierrc.cjs](./.prettierrc.cjs), the same prettier config as o1js.

@@ -5,7 +5,7 @@ import {
   ParticipantPreconditions,
 } from './preconditions.js';
 
-import { OffchainStorage } from './off_chain_storage.js';
+import { OffchainStorage } from './off-chain-storage.js';
 import { Member } from './member.js';
 import { testSet } from './test.js';
 import { getProfiler } from '../../utils/profiler.js';
