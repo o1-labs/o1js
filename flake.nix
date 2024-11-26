@@ -3,10 +3,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
     mina.url = "path:src/mina";
-    # Nix doesn't seem to handle recursive submodules well
-    # so we import mina once not as a git repo so the submodules work
-    # but also as a git repo so the git rev is visible
-    mina-rev.url = "git+file:src/mina";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
@@ -227,7 +223,7 @@
               "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
             EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
             buildInputs = bindings-pkgs ++ [ pkgs.bash ];
-            MINA_COMMIT = inputs.mina-rev.rev;
+            SKIP_MINA_COMMIT = true;
             patchPhase = ''
             patchShebangs ./src/bindings/scripts/
             patchShebangs ./src/bindings/crypto/test-vectors/
@@ -243,7 +239,7 @@
             mkdir $out
             pushd ./src/bindings
               rm -rf ./compiled/_node_bindings
-              cp -Lr ./compiled ./mina-transaction ./ocaml ./MINA_COMMIT $out
+              cp -Lr ./compiled ./mina-transaction ./ocaml $out
             popd
             '';
           };
@@ -258,6 +254,9 @@
                 text =
                 ''
                 cp -r ${self.packages."${system}".o1js-bindings}/* ./src/bindings
+                MINA_COMMIT=$(git -C src/mina rev-parse HEAD)
+                echo "The mina commit used to generate the backends for node and web is" "$MINA_COMMIT" \
+                  > src/bindings/MINA_COMMIT
                 '';
               }}/bin/update-bindings";
           };
