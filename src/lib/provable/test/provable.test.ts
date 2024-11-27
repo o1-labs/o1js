@@ -128,20 +128,16 @@ describe('Provable', () => {
       let b = Provable.witness(Bool, () => Bool(true));
       let pk = Provable.witness(PublicKey, () => pk1);
 
-      expectBoolean(Provable.equal(pk, pk1), true);
+      expectBoolean(Provable.equal(PublicKey, pk, pk1), true);
       expectBoolean(
         Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(true) }),
         true
       );
 
-      expectBoolean(Provable.equal(pk, pk2), false);
+      expectBoolean(Provable.equal(PublicKey, pk, pk2), false);
       expectBoolean(
         Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(false) }),
         false
-      );
-
-      expect(() => Provable.equal(b, pk2 as any)).toThrow(
-        'must contain the same number of field elements'
       );
     });
   });

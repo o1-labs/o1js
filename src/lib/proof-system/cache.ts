@@ -11,7 +11,13 @@ import { jsEnvironment } from '../../bindings/crypto/bindings/env.js';
 export { Cache, CacheHeader };
 
 // internal API
-export { readCache, writeCache, withVersion, cacheHeaderVersion };
+export {
+  readCache,
+  writeCache,
+  withVersion,
+  cacheHeaderVersion,
+  LAGRANGE_BASIS_PREFIX,
+};
 
 /**
  * Interface for storing and retrieving values, for caching.
@@ -90,6 +96,8 @@ type StepKeyHeader<Kind> = {
 type WrapKeyHeader<Kind> = { kind: Kind; programName: string; hash: string };
 type PlainHeader<Kind> = { kind: Kind };
 
+const LAGRANGE_BASIS_PREFIX = 'lagrange-basis' as const;
+
 /**
  * A header that is passed to the caching layer, to support rich caching strategies.
  *
@@ -101,7 +109,7 @@ type CacheHeader = (
   | WrapKeyHeader<'wrap-pk'>
   | WrapKeyHeader<'wrap-vk'>
   | PlainHeader<'srs'>
-  | PlainHeader<'lagrange-basis'>
+  | PlainHeader<typeof LAGRANGE_BASIS_PREFIX>
 ) &
   CommonHeader;
 

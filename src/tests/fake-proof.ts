@@ -70,7 +70,7 @@ let { verificationKey: contractVk } = await RecursiveContract.compile();
 let { verificationKey: programVk } = await RecursiveProgram.compile();
 
 // proof that should be rejected
-const fakeProof = await FakeProgram.make(UInt64.from(99999));
+const { proof: fakeProof } = await FakeProgram.make(UInt64.from(99999));
 const dummyProof = await RealProof.dummy(undefined, undefined, 0);
 
 for (let proof of [fakeProof, dummyProof]) {
@@ -87,10 +87,10 @@ for (let proof of [fakeProof, dummyProof]) {
 }
 
 // proof that should be accepted
-const realProof = await RealProgram.make(UInt64.from(34));
+const { proof: realProof } = await RealProgram.make(UInt64.from(34));
 
 // zkprogram accepts proof
-const recursiveProof = await RecursiveProgram.verifyReal(realProof);
+const { proof: recursiveProof } = await RecursiveProgram.verifyReal(realProof);
 assert(
   await verify(recursiveProof, programVk),
   'recursive program accepts real proof'
@@ -115,9 +115,12 @@ for (let proof of [fakeProof, dummyProof]) {
   }, 'recursive program rejects fake proof (nested)');
 }
 
-const recursiveProofNested = await RecursiveProgram.verifyNested(Field(0), {
-  inner: realProof,
-});
+const { proof: recursiveProofNested } = await RecursiveProgram.verifyNested(
+  Field(0),
+  {
+    inner: realProof,
+  }
+);
 assert(
   await verify(recursiveProofNested, programVk),
   'recursive program accepts real proof (nested)'

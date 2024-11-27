@@ -8,6 +8,16 @@ test.describe('On-Chain State Management zkApp UI', () => {
     await onChainStateMgmtZkAppPage.checkO1jsInitialization();
   });
 
+  test('should compile zkProgram', async ({
+    onChainStateMgmtZkAppPage,
+  }) => {
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
+    await onChainStateMgmtZkAppPage.compileZkProgram();
+    await onChainStateMgmtZkAppPage.checkZkProgramCompilation();
+  });
+
+
   test('should fail to update account state since zkApp was not yet deployed', async ({
     onChainStateMgmtZkAppPage,
   }) => {

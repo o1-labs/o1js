@@ -85,7 +85,7 @@ function arrayGet(array: Field[], index: Field) {
   let i = toVar(index);
 
   // witness result
-  let a = existsOne(() => array[Number(i.toBigInt())].toBigInt() ?? 0n);
+  let a = existsOne(() => array[Number(i.toBigInt())]?.toBigInt() ?? 0n);
 
   // we prove a === array[j] + z[j]*(i - j) for some z[j], for all j.
   // setting j = i, this implies a === array[i]

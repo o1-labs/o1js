@@ -15,7 +15,60 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/f15293a69...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/e1bac02...HEAD)
+
+
+### Added
+
+- Add `enforceTransactionLimits` parameter on Network https://github.com/o1-labs/o1js/issues/1910
+
+### Fixed
+
+- Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
+- Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
+
+### Added
+
+- Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
+
+## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
+
+### Added
+
+- Support secp256r1 in elliptic curve and ECDSA gadgets https://github.com/o1-labs/o1js/pull/1885
+
+### Fixed
+
+- Witness generation error in `Gadgets.arrayGet()` when accessing out-of-bounds indices https://github.com/o1-labs/o1js/pull/1886
+
+## [2.0.0](https://github.com/o1-labs/o1js/compare/7e9394...b04520d)
+
+### Breaking Changes
+
+- The `divMod32()` gadget was modified to accept `nBits` instead of `quotientBits`, and assert it is in the range [0, 2\*\*255) to address an issue previously where the bound on `quotientBits` was too low https://github.com/o1-labs/o1js/pull/1763.
+- `Provable.equal()` now turns both types into canonical form before comparing them https://github.com/o1-labs/o1js/pull/1759
+  - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
+- The return signature of a zkProgram has changed. https://github.com/o1-labs/o1js/pull/1809
+  - A zkProgram method must now explicitly define the return type of the method when the method has a public or auxiliary output defined.
+  - The return type of a proven method has changed as a result of this.
+- Various breaking constraint changes in internal methods or circuits because of audit fix.
+- Removal of various deprecated methods and functions.
+  - Promotion of various methods and functions to stable as part of change.
+  - A slightly modified encryption and decryption algorithm. https://github.com/o1-labs/o1js/pull/1729
+- Promotion of `TokenContractV2` to `TokenContract` with a correct amount of maximum account updates.
+
+### Added
+
+- `ZkProgram` methods now support `auxiliaryOutput`. https://github.com/o1-labs/o1js/pull/1809
+  - Each program method now accepts an optional property `auxiliaryOutput`
+  - Auxiliary output is additional output that the zkProgram method returns
+- New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
+- `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
+- `addMod64()` addition modulo 2^64
+- Bitwise OR via `{UInt32, UInt64}.or()`
+- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+
+## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
 
 ### Added
 
@@ -23,6 +76,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixes
 
+- Performance regression when compiling recursive circuits is fixed https://github.com/o1-labs/o1js/pull/1874
 - Decouple offchain state instances from their definitions https://github.com/o1-labs/o1js/pull/1834
 
 ## [1.9.0](https://github.com/o1-labs/o1js/compare/450943...f15293a69) - 2024-10-15
