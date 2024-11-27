@@ -92,6 +92,13 @@ class ProofBase<Input = any, Output = any> {
   publicFields() {
     return (this.constructor as typeof ProofBase).publicFields(this);
   }
+
+  static _proofFromBase64(proofString: string, maxProofsVerified: 0 | 1 | 2) {
+    return Pickles.proofOfBase64(proofString, maxProofsVerified)[1];
+  }
+  static _proofToBase64(proof: Pickles.Proof, maxProofsVerified: 0 | 1 | 2) {
+    return Pickles.proofToBase64([maxProofsVerified, proof]);
+  }
 }
 
 class Proof<Input, Output> extends ProofBase<Input, Output> {
