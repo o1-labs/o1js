@@ -302,7 +302,6 @@ jobs:
           npm ci
           npm run prepublishOnly
 
-
       - name: Publish to NPM if version has changed
         id: publish
         uses: JS-DevTools/npm-publish@v3
@@ -315,7 +314,7 @@ jobs:
       - name: Tag new version
         if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASED_VERSION: ${{ steps.publish.outputs.version }}
         run: |
           git tag $RELEASED_VERSION
