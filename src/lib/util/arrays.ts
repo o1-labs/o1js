@@ -19,7 +19,7 @@ function chunkString(str: string, size: number): string[] {
 function zip<T, S>(a: T[], b: S[]) {
   assert(
     a.length <= b.length,
-    'zip(): first array must be at least as long as the second array'
+    'zip(): second array must be at least as long as the first array'
   );
   return a.map((a, i): [T, S] => [a, b[i]!]);
 }
