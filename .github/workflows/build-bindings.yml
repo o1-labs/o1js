@@ -28,3 +28,9 @@ jobs:
           set -Eeu
           ./pin.sh
           nix develop o1js --command bash -c "npm run build:update-bindings"
+      - name: Cleanup the Nix store
+        run: |
+          nix-env --delete-generations old
+          nix-collect-garbage -d --quiet
+          nix-store --gc --print-dead
+          nix-store --optimise
