@@ -332,7 +332,7 @@ function rangeCheck16(x: Field) {
   if (x.isConstant()) {
     assert(
       x.toBigInt() < 1n << 16n,
-      `rangeCheck16: expected field to fit in 8 bits, got ${x}`
+      `rangeCheck16: expected field to fit in 16 bits, got ${x}`
     );
     return;
   }
