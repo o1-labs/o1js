@@ -1,4 +1,4 @@
-import { Field, Provable, Struct, ZkProgram, assert } from 'o1js';
+import { Field, Struct, ZkProgram, assert } from 'o1js';
 
 class MyStruct extends Struct({
   label: String,
