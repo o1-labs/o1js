@@ -304,6 +304,7 @@ jobs:
 
 
       - name: Publish to NPM if version has changed
+        id: publish
         uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
@@ -311,17 +312,15 @@ jobs:
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
       
-      - name: Determine released version
-        id: version
-        run: echo "::set-output name=version::$(node -p "require('./package.json').version")"
-      
       - name: Tag new version
+        if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
-          RELEASED_VERSION: ${{ steps.version.outputs.version }}
+          RELEASED_VERSION: ${{ steps.publish.outputs.version }}
         run: |
           git tag $RELEASED_VERSION
           git push origin $RELEASED_VERSION
+
 
   Release-mina-signer-on-NPM:
     if: github.ref == 'refs/heads/main'
