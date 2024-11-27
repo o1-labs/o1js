@@ -5,7 +5,7 @@ export { chunk, chunkString, zip, pad };
 function chunk<T>(array: T[], size: number): T[][] {
   assert(
     array.length % size === 0,
-    'chunk(): invalid input length, it must be a multiple of ${size}'
+    `chunk(): invalid input length, it must be a multiple of ${size}`
   );
   return Array.from({ length: array.length / size }, (_, i) =>
     array.slice(size * i, size * (i + 1))
