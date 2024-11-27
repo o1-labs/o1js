@@ -17,10 +17,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/e1bac02...HEAD)
 
+### Added
+
+- Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
+
 ### Fixed
 
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
-
 - Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
 
 ## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
