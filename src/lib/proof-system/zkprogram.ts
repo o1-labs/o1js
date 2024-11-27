@@ -796,7 +796,7 @@ function picklesRuleFromFunction(
   proofSystemTag: { name: string },
   { methodName, args, auxiliaryType }: MethodInterface,
   gates: Gate[],
-  state?: ReturnType<typeof createProgramState>
+  state: ReturnType<typeof createProgramState> = createProgramState()
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
@@ -875,11 +875,7 @@ function picklesRuleFromFunction(
       ? publicOutputType.toFields(result.publicOutput)
       : [];
 
-    if (
-      state !== undefined &&
-      auxiliaryType !== undefined &&
-      auxiliaryType.sizeInFields() !== 0
-    ) {
+    if (auxiliaryType !== undefined && auxiliaryType.sizeInFields() !== 0) {
       Provable.asProver(() => {
         let { auxiliaryOutput } = result;
         assert(
