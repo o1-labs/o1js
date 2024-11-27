@@ -25,6 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
+- Sort order for actions now includes the transaction sequence number and the exact account id sequence
 
 - Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
 

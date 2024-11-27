@@ -262,6 +262,10 @@ type FetchedAction = {
   actionData: {
     accountUpdateId: string;
     data: string[];
+    transactionInfo?: {
+      sequenceNumber: number;
+      zkappAccountUpdateIds: number[];
+    };
   }[];
 };
 
@@ -317,7 +321,8 @@ const getActionsQuery = (
   publicKey: string,
   actionStates: ActionStatesStringified,
   tokenId: string,
-  _filterOptions?: EventActionFilterOptions
+  _filterOptions?: EventActionFilterOptions,
+  retryWithoutTxInfo: boolean = false
 ) => {
   const { fromActionState, endActionState } = actionStates ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
@@ -339,6 +344,11 @@ const getActionsQuery = (
     actionData {
       accountUpdateId
       data
+      ${
+        retryWithoutTxInfo
+          ? ''
+          : 'transactionInfo { sequenceNumber zkappAccountUpdateIds }'
+      }
     }
   }
 }`;
