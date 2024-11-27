@@ -22,8 +22,8 @@ sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
 
 If you're unsure about your Nix setup, the assistant will guide you towards a
-clean installation. It will involve backing up your old `/etc/X` and `/etc/X.backup-before-nix` for `X = {bashrc, zshrc}`, and finally uninstalling and
-reinstalling Nix from scratch.
+clean installation. It will involve backing up your old `/etc/X` and `/etc/X.backup-before-nix` for `X = {bash.bashrc, bashrc, zshrc}`, and finally
+uninstalling and reinstalling Nix from scratch.
 
 > **warning for macOS users**: macOS updates will often break your nix
 > installation. To prevent that, you can add the following to your `~/.bashrc`
@@ -54,17 +54,30 @@ expressions in this repository, or want to get some convenience
 features and speed improvements, **it is advisable to enable flakes**. For
 this, you'll want to make sure you're running recent Nix (⩾2.5) and
 have enabled the relevant experimental features, either in
-`/etc/nix/nix.conf` or (recommended) in `~/.config/nix/nix.conf`:
+`/etc/nix/nix.conf` or (recommended) in `~/.config/nix/nix.conf` (meaning to add
+`experimental-features = nix-command flakes` in that file):
 
-```
+```console
 mkdir -p "${XDG_CONFIG_HOME-${HOME}/.config}/nix"
 echo 'experimental-features = nix-command flakes' > "${XDG_CONFIG_HOME-${HOME}/.config}/nix/nix.conf"
 ```
 
-You can check that your flake support is working by running `nix flake metadata
-github:nixos/nixpkgs` for example.
+Verify your flake support is working by running:
+
+```console
+nix flake metadata github:nixos/nixpkgs
+```
 
 ## Building with Nix
+
+Start by cloning the repository. Optionally, you can install dependencies with
+`npm i`, but Nix should take care of all the packages.
+
+```bash
+git clone --recurse-submodules git@github.com:o1-labs/o1js.git
+cd o1js
+# npm install
+```
 
 From a new shell, go to `{REPO_PATH}/o1js` and from there execute `./pin.sh` to
 update the submodules and add the flakes entries. Then, you can open a Nix shell
@@ -72,13 +85,26 @@ with all the dependencies required executing `nix develop o1js#default`, or
 alternatively `nix develop o1js#mina-shell` (which works better from MacOS).
 
 ```console
-cd {REPO_PATH}/o1js
 ./pin.sh
 nix develop o1js#default
 ```
 
 You will observe that the current devshell becomes a Nix shell with the right
 configuration for `o1js` and `mina`.
+
+In order to make sure that the bindings will be regenerated in the case that you
+are modifying them, make sure to comment out the conditionals in
+`src/mina/src/lib/crypto/kimchi_bindings/js/node_js/build.sh` and `src/mina/src/lib/crypto/kimchi_bindings/js/web/build.sh` locally. That's because otherwise the
+PLONK_WASM_WEB check prevents `proof-systems` from compiling with each build.
+
+```sh
+if true; then # [[ -z "${PLONK_WASM_WEB-}" ]]; then
+    export RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--no-check-features -C link-arg=--max-memory=4294967296"
+    rustup run nightly-2023-09-01 wasm-pack build --target web --out-dir ../js/web ../../wasm -- -Z build-std=panic_abort,std
+else
+    cp "$PLONK_WASM_WEB"/* -R .
+fi
+```
 
 Then, you can build o1js and update the bindings.
 
@@ -88,7 +114,14 @@ npm run build:update-bindings
 ```
 
 If you need to update the underlying `mina` code, you can also do so with Nix,
-but from the corresopnding subdirectory.
+but from the corresopnding subdirectory. In particular, you should build Mina
+from the o1js subdirectory from a Nix shell. That means,
+
+```console
+cd ./src/mina
+./nix/pin.sh
+nix develop mina
+```
 
 ## Common errors
 
@@ -128,6 +161,13 @@ export PATH="/opt/homebrew/opt/libiconv/bin:$PATH"
 export LDFLAGS="-L/opt/homebrew/opt/libiconv/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/libiconv/include"
 export LIBRARY_PATH="/opt/homebrew/opt/libiconv/lib:$LIBRARY_PATH"
+```
+
+Alternatively, try this change in the `src/mina/flake.nix` file:
+
+```
+-        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen ];
++        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen cargo libiconvI];
 ```
 
 ### wasm32-unknown-unknown
@@ -209,4 +249,23 @@ error: "/nix/store/w30zw23kmgks77d870i502a3185hjycv-rust/lib/rustlib/src/rust/Ca
 
 #### Fix
 
-Install `cargo` on your host machine.
+Install `cargo` on your host machine. If doing so does not solve the problem, it
+is very likely that the whole Nix setup has gone wrong and it is very adviceable
+to install it from scratch.
+
+### Old path
+
+When several clones of the repository are present in the system and both have
+used Nix (or if it has been moved from one location to another), Nix might cache
+an old path, impossibilitating builds. For example, typing `nix develop mina`
+would complain and produce the following error:
+
+```console
+error: resolving Git reference 'master': revspec 'master' not found
+```
+
+Then, the error message would still contain old directories.
+
+#### Fix
+
+Create a new environment for Nix and start from scratch.
