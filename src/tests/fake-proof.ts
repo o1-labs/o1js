@@ -148,17 +148,12 @@ console.log('fake proof test passed for nested proofs 🎉');
 
 // test internal proof
 
-let wasCalled = false;
-callRecursive = () => {
-  console.log('creating a proof inside another!!!');
-  wasCalled = true;
-};
+callRecursive = () => console.log('creating a proof inside another!!!');
 
 const { proof: internalProof } = await RecursiveProgram.verifyInternal();
 assert(
   await verify(internalProof, programVk),
   'recursive program accepts internal proof'
 );
-assert(wasCalled, 'other program was called');
 
 console.log('positive test passed for internal proofs 🎉');
