@@ -16,11 +16,12 @@ let MaxProofsVerifiedTwo = ZkProgram({
 
   methods: {
     baseCase: {
-      privateInputs: [],
+      privateInputs: [Field],
 
-      async method() {
+      async method(x: Field) {
         pushLog('baseCase');
-        return { publicOutput: Field(7) };
+        x = x.add(7);
+        return { publicOutput: x };
       },
     },
 
@@ -29,7 +30,8 @@ let MaxProofsVerifiedTwo = ZkProgram({
 
       async method() {
         pushLog('mergeOne');
-        let x: Field = await MaxProofsVerifiedTwo.proveRecursively.baseCase();
+        let z = Provable.witness(Field, () => 0);
+        let x: Field = await MaxProofsVerifiedTwo.proveRecursively.baseCase(z);
         return { publicOutput: x.add(1) };
       },
     },
@@ -39,7 +41,8 @@ let MaxProofsVerifiedTwo = ZkProgram({
 
       async method() {
         pushLog('mergeTwo');
-        let x: Field = await MaxProofsVerifiedTwo.proveRecursively.baseCase();
+        let z = Provable.witness(Field, () => 0);
+        let x: Field = await MaxProofsVerifiedTwo.proveRecursively.baseCase(z);
         let y: Field = await MaxProofsVerifiedTwo.proveRecursively.mergeOne();
         return { publicOutput: x.add(y) };
       },
