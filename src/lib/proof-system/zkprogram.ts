@@ -54,6 +54,7 @@ import {
 import { emptyWitness } from '../provable/types/util.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
+import { mapObject, mapToObject } from '../util/arrays.js';
 
 // public API
 export {
@@ -238,6 +239,13 @@ function ZkProgram<
   rawMethods: {
     [I in keyof Config['methods']]: Methods[I]['method'];
   };
+  proveRecursively: {
+    [I in keyof Config['methods']]: RecursiveProver<
+      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+      PrivateInputs[I]
+    >;
+  };
   proofsEnabled: boolean;
   setProofsEnabled(proofsEnabled: boolean): void;
 } & {
@@ -268,12 +276,13 @@ function ZkProgram<
     static tag = () => selfTag;
   }
 
+  type MethodKey = keyof Config['methods'];
   // TODO remove sort()! Object.keys() has a deterministic order
-  let methodKeys: (keyof Methods & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodKeys: MethodKey[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodIntfs = methodKeys.map((key) =>
     sortMethodArguments(
       'program',
-      key,
+      key as string,
       methods[key].privateInputs,
       ProvableType.get(methods[key].auxiliaryOutput) ?? Undefined,
       SelfProof
@@ -315,7 +324,7 @@ function ZkProgram<
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
-    proofsEnabled = undefined,
+    proofsEnabled = undefined as boolean | undefined,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -345,25 +354,19 @@ function ZkProgram<
     }
   }
 
-  function toProver<K extends keyof Methods & string>(
+  type RegularProver<K extends MethodKey> = (
+    publicInput: PublicInput,
+    ...args: PrivateInputs[K]
+  ) => Promise<{
+    proof: Proof<PublicInput, PublicOutput>;
+    auxiliaryOutput: InferProvableOrUndefined<AuxiliaryOutputs[K]>;
+  }>;
+
+  function toRegularProver<K extends MethodKey>(
     key: K,
     i: number
-  ): [
-    K,
-    Prover<
-      PublicInput,
-      PublicOutput,
-      PrivateInputs[K],
-      InferProvableOrUndefined<AuxiliaryOutputs[K]>
-    >
-  ] {
-    async function prove_(
-      publicInput: PublicInput,
-      ...args: TupleToInstances<PrivateInputs[K]>
-    ): Promise<{
-      proof: Proof<PublicInput, PublicOutput>;
-      auxiliaryOutput: any;
-    }> {
+  ): RegularProver<K> {
+    return async function prove_(publicInput, ...args) {
       class ProgramProof extends Proof<PublicInput, PublicOutput> {
         static publicInputType = publicInputType;
         static publicOutputType = publicOutputType;
@@ -388,7 +391,9 @@ function ZkProgram<
       let picklesProver = compileOutput?.provers?.[i];
       if (picklesProver === undefined) {
         throw Error(
-          `Cannot prove execution of program.${key}(), no prover found. ` +
+          `Cannot prove execution of program.${String(
+            key
+          )}(), no prover found. ` +
             `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
@@ -428,33 +433,27 @@ function ZkProgram<
         }),
         auxiliaryOutput,
       };
-    }
-
-    let prove: Prover<
-      PublicInput,
-      PublicOutput,
-      PrivateInputs[K],
-      InferProvableOrUndefined<AuxiliaryOutputs[K]>
-    >;
-    if (
-      (publicInputType as any) === Undefined ||
-      (publicInputType as any) === Void
-    ) {
-      prove = ((...args: any) => prove_(undefined as any, ...args)) as any;
-    } else {
-      prove = prove_ as any;
-    }
-    return [key, prove];
+    };
   }
+  let regularProvers = mapToObject(methodKeys, toRegularProver);
 
-  let provers = Object.fromEntries(methodKeys.map(toProver)) as {
-    [I in keyof Config['methods']]: Prover<
-      PublicInput,
-      PublicOutput,
-      PrivateInputs[I],
-      InferProvableOrUndefined<AuxiliaryOutputs[I]>
-    >;
+  type Prover_<K extends MethodKey = MethodKey> = Prover<
+    PublicInput,
+    PublicOutput,
+    PrivateInputs[K],
+    InferProvableOrUndefined<AuxiliaryOutputs[K]>
+  >;
+  type Provers = {
+    [K in MethodKey]: Prover_<K>;
   };
+  let provers: Provers = mapToObject(methodKeys, (key): Prover_ => {
+    if (publicInputType === Undefined || publicInputType === Void) {
+      return ((...args: any) =>
+        regularProvers[key](undefined as any, ...args)) as any;
+    } else {
+      return regularProvers[key] as any;
+    }
+  });
 
   function verify(proof: Proof<PublicInput, PublicOutput>) {
     if (!doProving) {
@@ -471,6 +470,31 @@ function ZkProgram<
     );
     return compileOutput.verify(statement, proof.proof);
   }
+
+  let regularRecursiveProvers = mapObject(regularProvers, (prove, key) => {
+    return async function proveRecursively_(
+      publicInput: PublicInput | undefined,
+      ...args: TupleToInstances<PrivateInputs[MethodKey]>
+    ) {
+      throw Error('todo');
+    };
+  });
+  type RecursiveProver_<K extends MethodKey> = RecursiveProver<
+    PublicInput,
+    PublicOutput,
+    PrivateInputs[K]
+  >;
+  type RecursiveProvers = {
+    [K in MethodKey]: RecursiveProver_<K>;
+  };
+  let proveRecursively: RecursiveProvers = mapToObject(methodKeys, (key) => {
+    if (publicInputType === Undefined || publicInputType === Void) {
+      return ((...args: any) =>
+        regularRecursiveProvers[key](undefined, ...args)) as any;
+    } else {
+      return regularRecursiveProvers[key] as any;
+    }
+  });
 
   async function digest() {
     let methodsMeta = await analyzeMethods();
@@ -502,9 +526,12 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+      proofsEnabled: doProving,
       setProofsEnabled(proofsEnabled: boolean) {
         doProving = proofsEnabled;
       },
+
+      proveRecursively,
     },
     provers
   );
@@ -514,7 +541,7 @@ function ZkProgram<
     get: () => doProving,
   });
 
-  return program as any;
+  return program;
 }
 
 type ZkProgram<
@@ -1109,6 +1136,17 @@ type Prover<
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
     }>;
+
+type RecursiveProver<
+  PublicInput,
+  PublicOutput,
+  Args extends Tuple<PrivateInput>
+> = PublicInput extends undefined
+  ? (...args: TupleToInstances<Args>) => Promise<PublicOutput>
+  : (
+      publicInput: PublicInput,
+      ...args: TupleToInstances<Args>
+    ) => Promise<PublicOutput>;
 
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
