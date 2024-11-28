@@ -54,7 +54,7 @@ import {
 import { emptyWitness } from '../provable/types/util.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
-import { mapObject, mapToObject } from '../util/arrays.js';
+import { mapObject, mapToObject, zip } from '../util/arrays.js';
 
 // public API
 export {
@@ -262,6 +262,8 @@ function ZkProgram<
   let publicInputType: ProvablePure<any> = ProvableType.get(
     config.publicInput ?? Undefined
   );
+  let hasPublicInput =
+    publicInputType !== Undefined && publicInputType !== Void;
   let publicOutputType: ProvablePure<any> = ProvableType.get(
     config.publicOutput ?? Void
   );
@@ -464,16 +466,27 @@ function ZkProgram<
     return compileOutput.verify(statement, proof.proof);
   }
 
-  let regularRecursiveProvers = mapObject(regularProvers, (prover) => {
+  let regularRecursiveProvers = mapObject(regularProvers, (prover, key) => {
     return async function proveRecursively_(
       publicInput: PublicInput,
       ...args: TupleToInstances<PrivateInputs[MethodKey]>
     ) {
       // create the base proof in a witness block
       let proof = await Provable.witnessAsync(SelfProof, async () => {
-        let { proof } = await prover(publicInput, ...(args as any));
+        // move method args to constants
+        let constInput = Provable.toConstant(publicInputType, publicInput);
+        let constArgs = zip(args, methods[key].privateInputs).map(
+          ([arg, type]) => Provable.toConstant(type, arg)
+        );
+        let { proof } = await prover(constInput, ...(constArgs as any));
         return proof;
       });
+
+      // assert that the witnessed proof has the correct public input (which will be used by Pickles as part of verification)
+      if (hasPublicInput) {
+        Provable.assertEqual(publicInputType, proof.publicInput, publicInput);
+      }
+
       // declare and verify the proof, and return its public output
       proof.declare();
       proof.verify();
