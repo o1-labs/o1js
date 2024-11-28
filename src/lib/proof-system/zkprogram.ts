@@ -53,6 +53,7 @@ import {
 } from './feature-flags.js';
 import { emptyWitness } from '../provable/types/util.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 
 // public API
 export {
@@ -803,15 +804,12 @@ function picklesRuleFromFunction(
   ): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
+
+    let id = ZkProgramContext.enter();
     let finalArgs = [];
-    let proofs: {
-      Proof: Subclass<typeof ProofBase<any, any>>;
-      proof: ProofBase<any, any>;
-    }[] = [];
-    let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < args.length; i++) {
-      let type = args[i];
       try {
+        let type = args[i];
         let value = Provable.witness(type, () => {
           return argsWithoutPublicInput?.[i] ?? ProvableType.synthesize(type);
         });
@@ -819,27 +817,39 @@ function picklesRuleFromFunction(
 
         for (let proof of extractProofs(value)) {
           let Proof = proof.constructor as Subclass<typeof ProofBase<any, any>>;
-          proofs.push({ Proof, proof });
-          let fields = proof.publicFields();
-          let input = MlFieldArray.to(fields.input);
-          let output = MlFieldArray.to(fields.output);
-          previousStatements.push(MlPair(input, output));
+          ZkProgramContext.declareProof({ Proof, proof });
         }
       } catch (e: any) {
+        ZkProgramContext.leave(id);
         e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
         throw e;
       }
     }
-    let result: {
-      publicOutput?: any;
-      auxiliaryOutput?: any;
-    };
-    if (publicInputType === Undefined || publicInputType === Void) {
-      result = (await func(...finalArgs)) as any;
-    } else {
-      let input = fromFieldVars(publicInputType, publicInput);
-      result = (await func(input, ...finalArgs)) as any;
+
+    let result: { publicOutput?: any; auxiliaryOutput?: any };
+    let proofs: DeclaredProof[];
+
+    try {
+      if (publicInputType === Undefined || publicInputType === Void) {
+        result = (await func(...finalArgs)) as any;
+      } else {
+        let input = fromFieldVars(publicInputType, publicInput);
+        result = (await func(input, ...finalArgs)) as any;
+      }
+      proofs = ZkProgramContext.getDeclaredProofs();
+    } finally {
+      ZkProgramContext.leave(id);
     }
+
+    // now all proofs are declared - extract their statements for Pickles
+    let previousStatements = proofs.map(
+      ({ proof }): Pickles.Statement<FieldVar> => {
+        let fields = proof.publicFields();
+        let input = MlFieldArray.to(fields.input);
+        let output = MlFieldArray.to(fields.output);
+        return MlPair(input, output);
+      }
+    );
 
     proofs.forEach(({ Proof, proof }) => {
       if (!(proof instanceof DynamicProof)) return;
