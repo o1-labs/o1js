@@ -797,7 +797,7 @@ function picklesRuleFromFunction(
   proofSystemTag: { name: string },
   { methodName, args, auxiliaryType }: MethodInterface,
   gates: Gate[],
-  state: ReturnType<typeof createProgramState> = createProgramState()
+  state?: ReturnType<typeof createProgramState>
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
@@ -805,6 +805,7 @@ function picklesRuleFromFunction(
     let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
 
+    // witness private inputs and declare input proofs
     let id = ZkProgramContext.enter();
     let finalArgs = [];
     for (let i = 0; i < args.length; i++) {
@@ -826,6 +827,7 @@ function picklesRuleFromFunction(
       }
     }
 
+    // run the user circuit
     let result: { publicOutput?: any; auxiliaryOutput?: any };
     let proofs: DeclaredProof[];
 
@@ -851,6 +853,7 @@ function picklesRuleFromFunction(
       }
     );
 
+    // handle dynamic proofs
     proofs.forEach(({ Proof, proof }) => {
       if (!(proof instanceof DynamicProof)) return;
 
@@ -885,7 +888,11 @@ function picklesRuleFromFunction(
       ? publicOutputType.toFields(result.publicOutput)
       : [];
 
-    if (auxiliaryType !== undefined && auxiliaryType.sizeInFields() !== 0) {
+    if (
+      state !== undefined &&
+      auxiliaryType !== undefined &&
+      auxiliaryType.sizeInFields() !== 0
+    ) {
       Provable.asProver(() => {
         let { auxiliaryOutput } = result;
         assert(
