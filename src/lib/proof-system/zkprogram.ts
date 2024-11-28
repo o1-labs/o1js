@@ -367,12 +367,6 @@ function ZkProgram<
     i: number
   ): RegularProver<K> {
     return async function prove_(publicInput, ...args) {
-      class ProgramProof extends Proof<PublicInput, PublicOutput> {
-        static publicInputType = publicInputType;
-        static publicOutputType = publicOutputType;
-        static tag = () => selfTag;
-      }
-
       if (!doProving) {
         let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
@@ -380,7 +374,7 @@ function ZkProgram<
           (await (methods[key].method as any)(publicInput, previousProofs)) ??
           {};
 
-        let proof = await ProgramProof.dummy(
+        let proof = await SelfProof.dummy(
           publicInput,
           publicOutput,
           maxProofsVerified
@@ -425,7 +419,7 @@ function ZkProgram<
       let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
       return {
-        proof: new ProgramProof({
+        proof: new SelfProof({
           publicInput,
           publicOutput,
           proof,
@@ -446,12 +440,11 @@ function ZkProgram<
   type Provers = {
     [K in MethodKey]: Prover_<K>;
   };
-  let provers: Provers = mapToObject(methodKeys, (key): Prover_ => {
+  let provers: Provers = mapObject(regularProvers, (prover): Prover_ => {
     if (publicInputType === Undefined || publicInputType === Void) {
-      return ((...args: any) =>
-        regularProvers[key](undefined as any, ...args)) as any;
+      return ((...args: any) => prover(undefined as any, ...args)) as any;
     } else {
-      return regularProvers[key] as any;
+      return prover as any;
     }
   });
 
@@ -471,12 +464,20 @@ function ZkProgram<
     return compileOutput.verify(statement, proof.proof);
   }
 
-  let regularRecursiveProvers = mapObject(regularProvers, (prove, key) => {
+  let regularRecursiveProvers = mapObject(regularProvers, (prover) => {
     return async function proveRecursively_(
-      publicInput: PublicInput | undefined,
+      publicInput: PublicInput,
       ...args: TupleToInstances<PrivateInputs[MethodKey]>
     ) {
-      throw Error('todo');
+      // create the base proof in a witness block
+      let proof = await Provable.witnessAsync(SelfProof, async () => {
+        let { proof } = await prover(publicInput, ...(args as any));
+        return proof;
+      });
+      // declare and verify the proof, and return its public output
+      proof.declare();
+      proof.verify();
+      return proof.publicOutput;
     };
   });
   type RecursiveProver_<K extends MethodKey> = RecursiveProver<
@@ -490,7 +491,7 @@ function ZkProgram<
   let proveRecursively: RecursiveProvers = mapToObject(methodKeys, (key) => {
     if (publicInputType === Undefined || publicInputType === Void) {
       return ((...args: any) =>
-        regularRecursiveProvers[key](undefined, ...args)) as any;
+        regularRecursiveProvers[key](undefined as any, ...args)) as any;
     } else {
       return regularRecursiveProvers[key] as any;
     }
