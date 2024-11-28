@@ -57,3 +57,5 @@ assert(await hashChain.verify(proof), 'Proof invalid');
 // check that the output is correct
 let z = Array.from({ length: n }, () => 0).reduce((y) => Poseidon.hash([y]), x);
 proof.publicOutput.assertEquals(z, 'Output is incorrect');
+
+console.log('Finished hash chain proof');
