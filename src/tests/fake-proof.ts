@@ -12,14 +12,19 @@ import {
 } from 'o1js';
 import assert from 'assert';
 
+let callRecursive = () => {};
+
 const RealProgram = ZkProgram({
   name: 'real',
+  publicOutput: UInt64,
   methods: {
     make: {
       privateInputs: [UInt64],
       async method(value: UInt64) {
+        callRecursive();
         let expected = UInt64.from(34);
         value.assertEquals(expected);
+        return { publicOutput: value.add(1) };
       },
     },
   },
@@ -27,13 +32,19 @@ const RealProgram = ZkProgram({
 
 const FakeProgram = ZkProgram({
   name: 'fake',
+  publicOutput: UInt64,
   methods: {
-    make: { privateInputs: [UInt64], async method(_: UInt64) {} },
+    make: {
+      privateInputs: [UInt64],
+      async method(_: UInt64) {
+        return { publicOutput: UInt64.zero };
+      },
+    },
   },
 });
 
 class RealProof extends ZkProgram.Proof(RealProgram) {}
-const Nested = Struct({ inner: RealProof });
+class Nested extends Struct({ inner: RealProof }) {}
 
 const RecursiveProgram = ZkProgram({
   name: 'recursive',
@@ -46,9 +57,16 @@ const RecursiveProgram = ZkProgram({
     },
     verifyNested: {
       privateInputs: [Field, Nested],
-      async method(_unrelated, { inner }) {
-        inner satisfies Proof<undefined, void>;
+      async method(_unrelated, { inner }: Nested) {
+        inner satisfies Proof<undefined, UInt64>;
         inner.verify();
+      },
+    },
+    verifyInternal: {
+      privateInputs: [],
+      async method() {
+        let x = await RealProgram.proveRecursively.make(UInt64.from(34));
+        x.assertEquals(UInt64.from(35));
       },
     },
   },
@@ -71,7 +89,7 @@ let { verificationKey: programVk } = await RecursiveProgram.compile();
 
 // proof that should be rejected
 const { proof: fakeProof } = await FakeProgram.make(UInt64.from(99999));
-const dummyProof = await RealProof.dummy(undefined, undefined, 0);
+const dummyProof = await RealProof.dummy(undefined, UInt64.zero, 0);
 
 for (let proof of [fakeProof, dummyProof]) {
   // zkprogram rejects proof
@@ -127,3 +145,20 @@ assert(
 );
 
 console.log('fake proof test passed for nested proofs 🎉');
+
+// test internal proof
+
+let wasCalled = false;
+callRecursive = () => {
+  console.log('creating a proof inside another!!!');
+  wasCalled = true;
+};
+
+const { proof: internalProof } = await RecursiveProgram.verifyInternal();
+assert(
+  await verify(internalProof, programVk),
+  'recursive program accepts internal proof'
+);
+assert(wasCalled, 'other program was called');
+
+console.log('positive test passed for internal proofs 🎉');
