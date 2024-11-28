@@ -12,6 +12,7 @@ import type { Provable } from '../provable/provable.js';
 import { assert } from '../util/assert.js';
 import { Unconstrained } from '../provable/types/unconstrained.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
+import { ZkProgramContext } from './zkprogram-context.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof };
@@ -35,6 +36,27 @@ class ProofBase<Input = any, Output = any> {
   proof: Pickles.Proof;
   maxProofsVerified: 0 | 1 | 2;
   shouldVerify = Bool(false);
+
+  /**
+   * To verify a recursive proof inside a ZkProgram method, it has to be "declared" as part of
+   * the method. This is done by calling `declare()` on the proof.
+   *
+   * Note: `declare()` is a low-level method that most users will not have to call directly.
+   * For proofs that are inputs to the ZkProgram, it is done automatically.
+   *
+   * You can think of declaring a proof as a similar step as witnessing a variable, which introduces
+   * that variable to the circuit. Declaring a proof will tell Pickles to add the additional constraints
+   * for recursive proof verification.
+   *
+   * Similar to `Provable.witness()`, `declare()` is a no-op when run outside ZkProgram compilation or proving.
+   * It returns `false` in that case, and `true` if the proof was actually declared.
+   */
+  declare() {
+    if (!ZkProgramContext.has()) return false;
+    const Proof = this.constructor as Subclass<typeof ProofBase>;
+    ZkProgramContext.declareProof({ Proof, proof: this });
+    return true;
+  }
 
   toJSON(): JsonProof {
     let fields = this.publicFields();

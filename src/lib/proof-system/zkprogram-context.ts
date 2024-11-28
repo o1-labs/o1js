@@ -18,6 +18,7 @@ const ZkProgramContext = {
     return context.enter({ proofs: [] });
   },
   leave: context.leave,
+  has: context.has,
 
   declareProof(proof: DeclaredProof) {
     context.get().proofs.push(proof);

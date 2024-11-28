@@ -816,10 +816,7 @@ function picklesRuleFromFunction(
         });
         finalArgs[i] = value;
 
-        for (let proof of extractProofs(value)) {
-          let Proof = proof.constructor as Subclass<typeof ProofBase<any, any>>;
-          ZkProgramContext.declareProof({ Proof, proof });
-        }
+        extractProofs(value).forEach((proof) => proof.declare());
       } catch (e: any) {
         ZkProgramContext.leave(id);
         e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
