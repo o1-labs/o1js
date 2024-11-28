@@ -1,23 +1,33 @@
 /**
- * This shows how to prove a preimage of an arbitrarily long chain of hashes using ZkProgram, i.e.
- * "I know x such that hash^n(x) = y".
+ * This shows how to prove an arbitrarily long chain of hashes using ZkProgram, i.e.
+ * `hash^n(x) = y`.
  *
  * We implement this as a self-recursive ZkProgram, using `proveRecursivelyIf()`
  */
-import { assert, Bool, Field, Poseidon, Provable, ZkProgram } from 'o1js';
+import {
+  assert,
+  Bool,
+  Field,
+  Poseidon,
+  Provable,
+  Struct,
+  ZkProgram,
+} from 'o1js';
 
 const HASHES_PER_PROOF = 30;
 
+class HashChainSpec extends Struct({ x: Field, n: Field }) {}
+
 const hashChain = ZkProgram({
   name: 'hash-chain',
-  publicInput: Field,
+  publicInput: HashChainSpec,
   publicOutput: Field,
 
   methods: {
     chain: {
-      privateInputs: [Field],
+      privateInputs: [],
 
-      async method(x: Field, n: Field) {
+      async method({ x, n }: HashChainSpec) {
         Provable.log('hashChain (start method)', n);
         let y = x;
         let k = Field(0);
@@ -34,8 +44,7 @@ const hashChain = ZkProgram({
         // except if we have k = n, then ignore the output and use y
         let z: Field = await hashChain.proveRecursivelyIf.chain(
           reachedN.not(),
-          y,
-          n.sub(k)
+          { x: y, n: n.sub(k) }
         );
         z = Provable.if(reachedN, y, z);
         Provable.log('hashChain (start proving)', n);
@@ -50,7 +59,7 @@ await hashChain.compile();
 let n = 100;
 let x = Field.random();
 
-let { proof } = await hashChain.chain(x, Field(n));
+let { proof } = await hashChain.chain({ x, n: Field(n) });
 
 assert(await hashChain.verify(proof), 'Proof invalid');
 
