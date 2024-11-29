@@ -1094,7 +1094,7 @@ type Infer<T> = T extends Subclass<typeof ProofBase>
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
-} & any[];
+};
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
