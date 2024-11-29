@@ -59,7 +59,7 @@ await hashChain.compile();
 let n = 100;
 let x = Field.random();
 
-let { proof } = await hashChain.chain({ x, n: Field(n) });
+let { proof } = await hashChain.chain({ x, n });
 
 assert(await hashChain.verify(proof), 'Proof invalid');
 
