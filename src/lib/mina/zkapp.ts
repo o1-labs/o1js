@@ -46,7 +46,6 @@ import {
   compileProgram,
   computeMaxProofsVerified,
   Empty,
-  getPreviousProofsForProver,
   MethodInterface,
   sortMethodArguments,
   VerificationKey,
@@ -337,8 +336,6 @@ function wrapMethod(
               {
                 methodName: methodIntf.methodName,
                 args: clonedArgs,
-                // proofs actually don't have to be cloned
-                previousProofs: getPreviousProofsForProver(actualArgs),
                 ZkappClass,
                 memoized,
                 blindingValue,
@@ -429,7 +426,6 @@ function wrapMethod(
             {
               methodName: methodIntf.methodName,
               args: constantArgs,
-              previousProofs: getPreviousProofsForProver(constantArgs),
               ZkappClass,
               memoized,
               blindingValue: constantBlindingValue,

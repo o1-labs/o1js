@@ -73,7 +73,6 @@ export {
 export {
   CompiledTag,
   sortMethodArguments,
-  getPreviousProofsForProver,
   MethodInterface,
   picklesRuleFromFunction,
   compileProgram,
@@ -384,11 +383,10 @@ function ZkProgram<
   ): RegularProver<K> {
     return async function prove_(publicInput, ...args) {
       if (!doProving) {
-        let previousProofs = MlArray.to(getPreviousProofsForProver(args));
-
         let { publicOutput, auxiliaryOutput } =
-          (await (methods[key].method as any)(publicInput, previousProofs)) ??
-          {};
+          (hasPublicInput
+            ? await (methods[key].method as any)(publicInput, ...args)
+            : await (methods[key].method as any)(...args)) ?? {};
 
         let proof = await SelfProof.dummy(
           publicInput,
@@ -409,12 +407,11 @@ function ZkProgram<
       let picklesProver = compileOutput.provers[i];
       let maxProofsVerified = compileOutput.maxProofsVerified;
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
-      let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
-        result = await picklesProver(publicInputFields, previousProofs);
+        result = await picklesProver(publicInputFields);
       } finally {
         snarkContext.leave(id);
       }
@@ -494,13 +491,6 @@ function ZkProgram<
           ([arg, type]) => Provable.toConstant(type, arg)
         );
         let { proof } = await prover(constInput, ...(constArgs as any));
-        // let publicOutput = proof.publicOutput;
-        // let publicOutput = ProvableType.synthesize(publicOutputType);
-        // return SelfProof.dummy(
-        //   constInput,
-        //   publicOutput,
-        //   await getMaxProofsVerified()
-        // );
         return proof;
       });
 
@@ -687,12 +677,6 @@ function isDynamicProof(
   return typeof type === 'function' && type.prototype instanceof DynamicProof;
 }
 
-// TODO: remove this and get proofs during proving with the handler
-function getPreviousProofsForProver(methodArgs: any[]) {
-  throw Error('todo: cant get previous proofs before proving');
-  return methodArgs.flatMap(extractProofs).map((proof) => proof.proof);
-}
-
 type MethodInterface = {
   methodName: string;
   args: ProvableType<unknown>[];
@@ -804,12 +788,9 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
-      async function picklesProver(
-        publicInput: MlFieldConstArray,
-        previousProofs: MlArray<Pickles.Proof>
-      ) {
+      async function picklesProver(publicInput: MlFieldConstArray) {
         return prettifyStacktracePromise(
-          withThreadPool(() => prover(publicInput, previousProofs))
+          withThreadPool(() => prover(publicInput))
         );
       }
   );
@@ -994,6 +975,7 @@ function picklesRuleFromFunction(
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
+      previousProofs: MlArray.to(proofs.map(({ proof }) => proof.proof)),
       shouldVerify: MlArray.to(
         proofs.map((proof) => proof.proof.shouldVerify.toField().value)
       ),
