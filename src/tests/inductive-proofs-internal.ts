@@ -55,7 +55,7 @@ let Wrapper = ZkProgram({
 
   methods: {
     wrap: {
-      privateInputs: [ZkProgram.Proof(MaxProofsVerifiedTwo)],
+      privateInputs: [MaxProofsVerifiedTwo.Proof],
 
       async method(proof: Proof<undefined, Field>) {
         proof.verify();

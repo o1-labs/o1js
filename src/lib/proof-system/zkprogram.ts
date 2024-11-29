@@ -53,7 +53,7 @@ import {
   featureFlagsToMlOption,
 } from './feature-flags.js';
 import { emptyWitness } from '../provable/types/util.js';
-import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
 
@@ -246,6 +246,7 @@ function ZkProgram<
   proveRecursively: {
     [I in keyof Config['methods']]: RecursiveProver<
       InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+      ProvableOrUndefined<Get<Config, 'publicInput'>>,
       InferProvableOrVoid<Get<Config, 'publicOutput'>>,
       PrivateInputs[I]
     >;
@@ -261,11 +262,16 @@ function ZkProgram<
 } & {
   [I in keyof Config['methods']]: Prover<
     InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    ProvableOrUndefined<Get<Config, 'publicInput'>>,
     InferProvableOrVoid<Get<Config, 'publicOutput'>>,
     PrivateInputs[I],
     InferProvableOrUndefined<AuxiliaryOutputs[I]>
   >;
 } {
+  type PublicInputType = ProvableOrUndefined<Get<Config, 'publicInput'>>;
+  type PublicInput = InferProvableOrUndefined<Get<Config, 'publicInput'>>;
+  type PublicOutput = InferProvableOrVoid<Get<Config, 'publicOutput'>>;
+
   let doProving = true;
 
   let methods = config.methods;
@@ -279,8 +285,6 @@ function ZkProgram<
   );
 
   let selfTag = { name: config.name };
-  type PublicInput = InferProvableOrUndefined<Get<Config, 'publicInput'>>;
-  type PublicOutput = InferProvableOrVoid<Get<Config, 'publicOutput'>>;
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
@@ -301,6 +305,7 @@ function ZkProgram<
     )
   );
   let methodFunctions = methodKeys.map((key) => methods[key].method);
+  let privateInputTypes = methodIntfs.map((m) => m.args);
   let maxProofsVerified: undefined | 0 | 1 | 2 = undefined;
 
   async function getMaxProofsVerified() {
@@ -379,8 +384,8 @@ function ZkProgram<
   }
 
   type RegularProver<K extends MethodKey> = (
-    publicInput: PublicInput,
-    ...args: PrivateInputs[K]
+    publicInput: From<PublicInputType>,
+    ...args: TupleFrom<PrivateInputs[K]>
   ) => Promise<{
     proof: Proof<PublicInput, PublicOutput>;
     auxiliaryOutput: InferProvableOrUndefined<AuxiliaryOutputs[K]>;
@@ -390,7 +395,11 @@ function ZkProgram<
     key: K,
     i: number
   ): RegularProver<K> {
-    return async function prove_(publicInput, ...args) {
+    return async function prove_(inputPublicInput, ...inputArgs) {
+      let publicInput = publicInputType.fromValue(inputPublicInput);
+      let args = zip(inputArgs, privateInputTypes[i]).map(([arg, type]) =>
+        ProvableType.get(type).fromValue(arg)
+      );
       if (!doProving) {
         let { publicOutput, auxiliaryOutput } =
           (hasPublicInput
@@ -456,6 +465,7 @@ function ZkProgram<
 
   type Prover_<K extends MethodKey = MethodKey> = Prover<
     PublicInput,
+    PublicInputType,
     PublicOutput,
     PrivateInputs[K],
     InferProvableOrUndefined<AuxiliaryOutputs[K]>
@@ -487,17 +497,20 @@ function ZkProgram<
     return compileOutput.verify(statement, proof.proof);
   }
 
-  let regularRecursiveProvers = mapObject(regularProvers, (prover, key) => {
+  let regularRecursiveProvers = mapObject(regularProvers, (prover, _key, i) => {
     return async function proveRecursively_(
       publicInput: PublicInput,
-      ...args: TupleToInstances<PrivateInputs[MethodKey]>
+      ...args: TupleFrom<PrivateInputs[MethodKey]>
     ) {
       // create the base proof in a witness block
       let proof = await Provable.witnessAsync(SelfProof, async () => {
         // move method args to constants
-        let constInput = Provable.toConstant(publicInputType, publicInput);
-        let constArgs = zip(args, methods[key].privateInputs).map(
-          ([arg, type]) => Provable.toConstant(type, arg)
+        let constInput = Provable.toConstant(
+          publicInputType,
+          publicInputType.fromValue(publicInput)
+        );
+        let constArgs = zip(args, privateInputTypes[i]).map(([arg, type]) =>
+          Provable.toConstant(type, ProvableType.get(type).fromValue(arg))
         );
         let { proof } = await prover(constInput, ...(constArgs as any));
         return proof;
@@ -516,6 +529,7 @@ function ZkProgram<
   });
   type RecursiveProver_<K extends MethodKey> = RecursiveProver<
     PublicInput,
+    PublicInputType,
     PublicOutput,
     PrivateInputs[K]
   >;
@@ -555,8 +569,9 @@ function ZkProgram<
       publicOutputType: publicOutputType as ProvableOrVoid<
         Get<Config, 'publicOutput'>
       >,
-      privateInputTypes: Object.fromEntries(
-        methodKeys.map((key) => [key, methods[key].privateInputs])
+      privateInputTypes: mapToObject(
+        methodKeys,
+        (_, i) => privateInputTypes[i]
       ) as any,
       auxiliaryOutputTypes: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].auxiliaryOutput])
@@ -1127,6 +1142,9 @@ type Infer<T> = T extends Subclass<typeof ProofBase>
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
 };
+type TupleFrom<T> = {
+  [I in keyof T]: From<T[I]>;
+};
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
@@ -1177,17 +1195,18 @@ type Method<
 
 type Prover<
   PublicInput,
+  PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
   AuxiliaryOutput
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<{
+  ? (...args: TupleFrom<Args>) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
     }>
   : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
     ) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
@@ -1195,13 +1214,14 @@ type Prover<
 
 type RecursiveProver<
   PublicInput,
+  PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<PublicOutput>
+  ? (...args: TupleFrom<Args>) => Promise<PublicOutput>
   : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
     ) => Promise<PublicOutput>;
 
 type ProvableOrUndefined<A> = A extends undefined
