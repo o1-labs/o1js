@@ -9,10 +9,10 @@ import {
   Struct,
   Field,
   Proof,
+  Unconstrained,
+  Provable,
 } from 'o1js';
 import assert from 'assert';
-
-let callRecursive = () => {};
 
 const RealProgram = ZkProgram({
   name: 'real',
@@ -21,7 +21,6 @@ const RealProgram = ZkProgram({
     make: {
       privateInputs: [UInt64],
       async method(value: UInt64) {
-        callRecursive();
         let expected = UInt64.from(34);
         value.assertEquals(expected);
         return { publicOutput: value.add(1) };
@@ -63,10 +62,21 @@ const RecursiveProgram = ZkProgram({
       },
     },
     verifyInternal: {
-      privateInputs: [],
-      async method() {
-        let x = await RealProgram.proveRecursively.make(UInt64.from(34));
-        x.assertEquals(UInt64.from(35));
+      privateInputs: [Unconstrained<Proof<undefined, UInt64> | undefined>],
+      async method(
+        fakeProof: Unconstrained<Proof<undefined, UInt64> | undefined>
+      ) {
+        // witness either fake proof from input, or real proof
+        let proof = await Provable.witnessAsync(RealProof, async () => {
+          let maybeFakeProof = fakeProof.get();
+          if (maybeFakeProof !== undefined) return maybeFakeProof;
+
+          let { proof } = await RealProgram.make(UInt64.from(34));
+          return proof;
+        });
+
+        proof.declare();
+        proof.verify();
       },
     },
   },
@@ -133,11 +143,10 @@ for (let proof of [fakeProof, dummyProof]) {
   }, 'recursive program rejects fake proof (nested)');
 }
 
+// zkprogram accepts proof (nested)
 const { proof: recursiveProofNested } = await RecursiveProgram.verifyNested(
   Field(0),
-  {
-    inner: realProof,
-  }
+  { inner: realProof }
 );
 assert(
   await verify(recursiveProofNested, programVk),
@@ -146,14 +155,22 @@ assert(
 
 console.log('fake proof test passed for nested proofs 🎉');
 
-// test internal proof
+// same test for internal proofs
 
-callRecursive = () => console.log('creating a proof inside another!!!');
+for (let proof of [fakeProof, dummyProof]) {
+  // zkprogram rejects proof (internal)
+  await assert.rejects(async () => {
+    await RecursiveProgram.verifyInternal(Unconstrained.from(proof));
+  }, 'recursive program rejects fake proof (internal)');
+}
 
-const { proof: internalProof } = await RecursiveProgram.verifyInternal();
+// zkprogram accepts proof (internal)
+const { proof: internalProof } = await RecursiveProgram.verifyInternal(
+  Unconstrained.from(undefined)
+);
 assert(
   await verify(internalProof, programVk),
   'recursive program accepts internal proof'
 );
 
-console.log('positive test passed for internal proofs 🎉');
+console.log('fake proof test passed for internal proofs 🎉');
