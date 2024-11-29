@@ -71,7 +71,7 @@ const RecursiveProgram = ZkProgram({
           let maybeFakeProof = fakeProof.get();
           if (maybeFakeProof !== undefined) return maybeFakeProof;
 
-          let { proof } = await RealProgram.make(UInt64.from(34));
+          let { proof } = await RealProgram.make(34);
           return proof;
         });
 
@@ -98,7 +98,7 @@ let { verificationKey: contractVk } = await RecursiveContract.compile();
 let { verificationKey: programVk } = await RecursiveProgram.compile();
 
 // proof that should be rejected
-const { proof: fakeProof } = await FakeProgram.make(99999n);
+const { proof: fakeProof } = await FakeProgram.make(99999);
 const dummyProof = await RealProof.dummy(undefined, UInt64.zero, 0);
 
 for (let proof of [fakeProof, dummyProof]) {
@@ -115,7 +115,7 @@ for (let proof of [fakeProof, dummyProof]) {
 }
 
 // proof that should be accepted
-const { proof: realProof } = await RealProgram.make(34n);
+const { proof: realProof } = await RealProgram.make(34);
 
 // zkprogram accepts proof
 const { proof: recursiveProof } = await RecursiveProgram.verifyReal(realProof);
