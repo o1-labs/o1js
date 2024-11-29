@@ -19,8 +19,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- API for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931
+- APIs for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931 https://github.com/o1-labs/o1js/pull/1932
   - `program.proveRecursively.<methodName>(...args): Promise<PublicOutput>`
+  - `program.proveRecursivelyIf.<methodName>(condition, ...args): Promise<PublicOutput>`
   - This also works within the same program, as long as the return value is type-annotated
 - Add `enforceTransactionLimits` parameter on Network https://github.com/o1-labs/o1js/issues/1910
 - Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
