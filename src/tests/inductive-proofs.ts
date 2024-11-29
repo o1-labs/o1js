@@ -1,5 +1,5 @@
-import { SelfProof, Field, ZkProgram, Proof } from 'o1js';
-import { tic, toc } from '../examples/utils/tic-toc.node.js';
+import { SelfProof, Field, ZkProgram, Proof, JsonProof } from 'o1js';
+import { tic, toc } from '../examples/utils/tic-toc.js';
 
 let MaxProofsVerifiedZero = ZkProgram({
   name: 'no-recursion',
@@ -100,12 +100,12 @@ async function testRecursion(
 ) {
   console.log(`testing maxProofsVerified = ${maxProofsVerified}`);
 
-  let ProofClass = ZkProgram.Proof(Program);
+  class ProofClass extends ZkProgram.Proof(Program) {}
 
   tic('executing base case');
-  let initialProof = await Program.baseCase(Field(0));
+  let { proof: initialProof } = await Program.baseCase(Field(0));
   toc();
-  initialProof = testJsonRoundtrip(ProofClass, initialProof);
+  initialProof = await testJsonRoundtrip(ProofClass, initialProof);
   initialProof.verify();
   initialProof.publicInput.assertEquals(Field(0));
 
@@ -115,13 +115,13 @@ async function testRecursion(
     );
   }
 
-  let p1, p2;
+  let p1: Proof<any, any>, p2: Proof<any, any>;
   if (initialProof.maxProofsVerified === 0) return;
 
   tic('executing mergeOne');
-  p1 = await Program.mergeOne(Field(1), initialProof);
+  p1 = (await Program.mergeOne(Field(1), initialProof)).proof;
   toc();
-  p1 = testJsonRoundtrip(ProofClass, p1);
+  p1 = await testJsonRoundtrip(ProofClass, p1);
   p1.verify();
   p1.publicInput.assertEquals(Field(1));
   if (p1.maxProofsVerified != maxProofsVerified) {
@@ -132,9 +132,9 @@ async function testRecursion(
 
   if (initialProof.maxProofsVerified === 1) return;
   tic('executing mergeTwo');
-  p2 = await Program.mergeTwo(Field(2), initialProof, p1);
+  p2 = (await Program.mergeTwo(Field(2), initialProof, p1)).proof;
   toc();
-  p2 = testJsonRoundtrip(ProofClass, p2);
+  p2 = await testJsonRoundtrip(ProofClass, p2);
   p2.verify();
   p2.publicInput.assertEquals(Field(2));
   if (p2.maxProofsVerified != maxProofsVerified) {
@@ -144,7 +144,10 @@ async function testRecursion(
   }
 }
 
-function testJsonRoundtrip(ProofClass: any, proof: Proof<Field, void>) {
+function testJsonRoundtrip(
+  ProofClass: { fromJSON: (p: JsonProof) => Promise<Proof<any, any>> },
+  proof: Proof<Field, void>
+) {
   let jsonProof = proof.toJSON();
   console.log(
     'json roundtrip',
