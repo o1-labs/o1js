@@ -2151,7 +2151,7 @@ async function createZkappProof(
     }
   );
 
-  let maxProofsVerified = ZkappClass._maxProofsVerified!;
+  let maxProofsVerified = await ZkappClass.getMaxProofsVerified();
   const Proof = ZkappClass.Proof();
   return new Proof({
     publicInput,

@@ -54,7 +54,6 @@ it('pickles rule creation', async () => {
   expect(methodIntf).toEqual({
     methodName: 'main',
     args: [EmptyProof, Bool],
-    numberOfProofs: 1,
   });
 
   // store compiled tag
@@ -67,6 +66,7 @@ it('pickles rule creation', async () => {
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
+    [],
     []
   );
 
@@ -146,6 +146,7 @@ it('pickles rule creation: nested proof', async () => {
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
+    [],
     []
   );
 
