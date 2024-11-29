@@ -502,6 +502,7 @@ function ZkProgram<
         let cond = condition.toBoolean();
         if (!cond) {
           let publicOutput = ProvableType.synthesize(publicOutputType);
+          let maxProofsVerified = compileOutput?.maxProofsVerified!;
           return SelfProof.dummy(
             publicInput,
             publicOutput,
