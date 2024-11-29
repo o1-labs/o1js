@@ -100,7 +100,7 @@ async function testRecursion(
 ) {
   console.log(`testing maxProofsVerified = ${maxProofsVerified}`);
 
-  class ProofClass extends ZkProgram.Proof(Program) {}
+  class ProofClass extends Program.Proof {}
 
   tic('executing base case');
   let { proof: initialProof } = await Program.baseCase(Field(0));
