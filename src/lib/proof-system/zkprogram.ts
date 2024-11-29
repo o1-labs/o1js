@@ -542,9 +542,7 @@ function ZkProgram<
   const program = Object.assign(
     selfTag,
     {
-      async maxProofsVerified() {
-        return maxProofsVerified;
-      },
+      maxProofsVerified: getMaxProofsVerified,
 
       compile,
       verify,
