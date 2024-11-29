@@ -250,6 +250,11 @@ function ZkProgram<
     >;
   };
 
+  Proof: typeof Proof<
+    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    InferProvableOrVoid<Get<Config, 'publicOutput'>>
+  >;
+
   proofsEnabled: boolean;
   setProofsEnabled(proofsEnabled: boolean): void;
 } & {
@@ -549,13 +554,14 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+      proveRecursively,
+
+      Proof: SelfProof,
 
       proofsEnabled: doProving,
       setProofsEnabled(proofsEnabled: boolean) {
         doProving = proofsEnabled;
       },
-
-      proveRecursively,
     },
     provers
   );
