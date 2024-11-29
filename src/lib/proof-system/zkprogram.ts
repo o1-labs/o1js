@@ -45,6 +45,7 @@ import {
   extractProofTypes,
   Proof,
   ProofBase,
+  ProofClass,
   ProofValue,
 } from './proof.js';
 import {
@@ -73,13 +74,13 @@ export {
 export {
   CompiledTag,
   sortMethodArguments,
-  getPreviousProofsForProver,
   MethodInterface,
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
   Prover,
   dummyBase64Proof,
+  computeMaxProofsVerified,
 };
 
 type Undefined = undefined;
@@ -299,7 +300,15 @@ function ZkProgram<
     )
   );
   let methodFunctions = methodKeys.map((key) => methods[key].method);
-  let maxProofsVerified = getMaxProofsVerified(methodIntfs);
+  let maxProofsVerified: undefined | 0 | 1 | 2 = undefined;
+
+  async function getMaxProofsVerified() {
+    if (maxProofsVerified !== undefined) return maxProofsVerified;
+    let methodsMeta = await analyzeMethods();
+    let proofs = methodKeys.map((k) => methodsMeta[k].proofs.length);
+    maxProofsVerified = computeMaxProofsVerified(proofs);
+    return maxProofsVerified;
+  }
 
   async function analyzeMethods() {
     let methodsMeta: Record<
@@ -322,6 +331,7 @@ function ZkProgram<
   let compileOutput:
     | {
         provers: Pickles.Prover[];
+        maxProofsVerified: 0 | 1 | 2;
         verify: (
           statement: Pickles.Statement<FieldConst>,
           proof: Pickles.Proof
@@ -341,6 +351,8 @@ function ZkProgram<
     if (doProving) {
       let methodsMeta = await analyzeMethods();
       let gates = methodKeys.map((k) => methodsMeta[k].gates);
+      let proofs = methodKeys.map((k) => methodsMeta[k].proofs);
+      maxProofsVerified = computeMaxProofsVerified(proofs.map((p) => p.length));
 
       let { provers, verify, verificationKey } = await compileProgram({
         publicInputType,
@@ -348,6 +360,7 @@ function ZkProgram<
         methodIntfs,
         methods: methodFunctions,
         gates,
+        proofs,
         proofSystemTag: selfTag,
         cache,
         forceRecompile,
@@ -355,7 +368,7 @@ function ZkProgram<
         state: programState,
       });
 
-      compileOutput = { provers, verify };
+      compileOutput = { provers, verify, maxProofsVerified };
       return { verificationKey };
     } else {
       return {
@@ -378,22 +391,20 @@ function ZkProgram<
   ): RegularProver<K> {
     return async function prove_(publicInput, ...args) {
       if (!doProving) {
-        let previousProofs = MlArray.to(getPreviousProofsForProver(args));
-
         let { publicOutput, auxiliaryOutput } =
-          (await (methods[key].method as any)(publicInput, previousProofs)) ??
-          {};
+          (hasPublicInput
+            ? await (methods[key].method as any)(publicInput, ...args)
+            : await (methods[key].method as any)(...args)) ?? {};
 
         let proof = await SelfProof.dummy(
           publicInput,
           publicOutput,
-          maxProofsVerified
+          await getMaxProofsVerified()
         );
         return { proof, auxiliaryOutput };
       }
 
-      let picklesProver = compileOutput?.provers?.[i];
-      if (picklesProver === undefined) {
+      if (compileOutput === undefined) {
         throw Error(
           `Cannot prove execution of program.${String(
             key
@@ -401,13 +412,14 @@ function ZkProgram<
             `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
+      let picklesProver = compileOutput.provers[i];
+      let maxProofsVerified = compileOutput.maxProofsVerified;
       let publicInputFields = toFieldConsts(publicInputType, publicInput);
-      let previousProofs = MlArray.to(getPreviousProofsForProver(args));
 
       let id = snarkContext.enter({ witnesses: args, inProver: true });
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
-        result = await picklesProver(publicInputFields, previousProofs);
+        result = await picklesProver(publicInputFields);
       } finally {
         snarkContext.leave(id);
       }
@@ -680,7 +692,8 @@ function sortMethodArguments(
     );
   });
 
-  // extract proofs to count them and for sanity checks
+  // extract input proofs to count them and for sanity checks
+  // WARNING: this doesn't include internally declared proofs!
   let proofs = args.flatMap(extractProofTypes);
   let numberOfProofs = proofs.length;
 
@@ -701,7 +714,7 @@ function sortMethodArguments(
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, args, numberOfProofs, auxiliaryType };
+  return { methodName, args, auxiliaryType };
 }
 
 function isProvable(type: unknown): type is ProvableType<unknown> {
@@ -721,14 +734,9 @@ function isDynamicProof(
   return typeof type === 'function' && type.prototype instanceof DynamicProof;
 }
 
-function getPreviousProofsForProver(methodArgs: any[]) {
-  return methodArgs.flatMap(extractProofs).map((proof) => proof.proof);
-}
-
 type MethodInterface = {
   methodName: string;
   args: ProvableType<unknown>[];
-  numberOfProofs: number;
   returnType?: Provable<any>;
   auxiliaryType?: Provable<any>;
 };
@@ -742,6 +750,7 @@ async function compileProgram({
   methodIntfs,
   methods,
   gates,
+  proofs,
   proofSystemTag,
   cache,
   forceRecompile,
@@ -753,6 +762,7 @@ async function compileProgram({
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => unknown)[];
   gates: Gate[][];
+  proofs: ProofClass[][];
   proofSystemTag: { name: string };
   cache: Cache;
   forceRecompile: boolean;
@@ -773,12 +783,13 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       proofSystemTag,
       methodEntry,
       gates[i],
+      proofs[i],
       state
     )
   );
-  let maxProofs = getMaxProofsVerified(methodIntfs);
-  overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
+  let maxProofs = computeMaxProofsVerified(proofs.map((p) => p.length));
+  overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
   let picklesCache: Pickles.Cache = [
     0,
     function read_(mlHeader) {
@@ -834,12 +845,9 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
-      async function picklesProver(
-        publicInput: MlFieldConstArray,
-        previousProofs: MlArray<Pickles.Proof>
-      ) {
+      async function picklesProver(publicInput: MlFieldConstArray) {
         return prettifyStacktracePromise(
-          withThreadPool(() => prover(publicInput, previousProofs))
+          withThreadPool(() => prover(publicInput))
         );
       }
   );
@@ -860,19 +868,32 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   };
 }
 
-function analyzeMethod(
+async function analyzeMethod(
   publicInputType: ProvablePure<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => unknown
 ) {
-  return Provable.constraintSystem(() => {
-    let args = methodIntf.args.map(emptyWitness);
-    let publicInput = emptyWitness(publicInputType);
-    // note: returning the method result here makes this handle async methods
-    if (publicInputType === Undefined || publicInputType === Void)
-      return method(...args);
-    return method(publicInput, ...args);
-  });
+  let result: Awaited<ReturnType<typeof Provable.constraintSystem>>;
+  let proofs: ProofClass[];
+  let id = ZkProgramContext.enter();
+  try {
+    result = await Provable.constraintSystem(() => {
+      let args = methodIntf.args.map(emptyWitness);
+      args.forEach((value) =>
+        extractProofs(value).forEach((proof) => proof.declare())
+      );
+
+      let publicInput = emptyWitness(publicInputType);
+      // note: returning the method result here makes this handle async methods
+      if (publicInputType === Undefined || publicInputType === Void)
+        return method(...args);
+      return method(publicInput, ...args);
+    });
+    proofs = ZkProgramContext.getDeclaredProofs().map(({ Proof }) => Proof);
+  } finally {
+    ZkProgramContext.leave(id);
+  }
+  return { ...result, proofs };
 }
 
 function inCircuitVkHash(inCircuitVk: unknown): Field {
@@ -895,6 +916,7 @@ function picklesRuleFromFunction(
   proofSystemTag: { name: string },
   { methodName, args, auxiliaryType }: MethodInterface,
   gates: Gate[],
+  verifiedProofs: ProofClass[],
   state?: ReturnType<typeof createProgramState>
 ): Pickles.Rule {
   async function main(
@@ -938,7 +960,13 @@ function picklesRuleFromFunction(
       ZkProgramContext.leave(id);
     }
 
-    // now all proofs are declared - extract their statements for Pickles
+    // now all proofs are declared - check that we got as many as during compile time
+    assert(
+      proofs.length === verifiedProofs.length,
+      `Expected ${verifiedProofs.length} proofs, but got ${proofs.length}`
+    );
+
+    // extract proof statements for Pickles
     let previousStatements = proofs.map(
       ({ proof }): Pickles.Statement<FieldVar> => {
         let fields = proof.publicFields();
@@ -1004,20 +1032,20 @@ function picklesRuleFromFunction(
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
+      previousProofs: MlArray.to(proofs.map(({ proof }) => proof.proof)),
       shouldVerify: MlArray.to(
         proofs.map((proof) => proof.proof.shouldVerify.toField().value)
       ),
     };
   }
 
-  let proofs: Subclass<typeof ProofBase>[] = args.flatMap(extractProofTypes);
-  if (proofs.length > 2) {
+  if (verifiedProofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  let proofsToVerify = proofs.map((Proof) => {
+  let proofsToVerify = verifiedProofs.map((Proof) => {
     let tag = Proof.tag();
     if (tag === proofSystemTag) return { isSelf: true as const };
     else if (isDynamicProof(Proof)) {
@@ -1058,11 +1086,11 @@ function picklesRuleFromFunction(
   };
 }
 
-function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
-  return methodIntfs.reduce(
-    (acc, { numberOfProofs }) => Math.max(acc, numberOfProofs),
-    0
-  ) as any as 0 | 1 | 2;
+function computeMaxProofsVerified(proofs: number[]) {
+  return proofs.reduce((acc: number, n) => {
+    assert(n <= 2, 'Too many proofs');
+    return Math.max(acc, n);
+  }, 0) as 0 | 1 | 2;
 }
 
 function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {

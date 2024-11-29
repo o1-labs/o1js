@@ -15,12 +15,14 @@ import { ProvableType } from '../provable/types/provable-intf.js';
 import { ZkProgramContext } from './zkprogram-context.js';
 
 // public API
-export { ProofBase, Proof, DynamicProof };
+export { ProofBase, Proof, DynamicProof, ProofClass };
 
 // internal API
 export { dummyProof, extractProofs, extractProofTypes, type ProofValue };
 
 type MaxProofs = 0 | 1 | 2;
+
+type ProofClass = Subclass<typeof ProofBase>;
 
 class ProofBase<Input = any, Output = any> {
   static publicInputType: FlexibleProvablePure<any> = undefined as any;
