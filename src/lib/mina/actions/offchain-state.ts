@@ -264,12 +264,12 @@ function OffchainState<
     };
 
     const merkleMaps = async () => {
-      if (
-        internal.merkleMap.root.toString() !== emptyMerkleMapRoot.toString() ||
-        internal.valueMap.size > 0
-      ) {
-        return { merkleMap: internal.merkleMap, valueMap: internal.valueMap };
-      }
+      // if (
+      //   internal.merkleMap.root.toString() !== emptyMerkleMapRoot.toString() ||
+      //   internal.valueMap.size > 0
+      // ) {
+      //   return { merkleMap: internal.merkleMap, valueMap: internal.valueMap };
+      // }
       let actionState = await onchainActionState();
       let { merkleMap, valueMap } = await fetchMerkleMap(
         height,
