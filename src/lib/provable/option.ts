@@ -9,6 +9,7 @@ export { Option, OptionOrValue };
 
 type Option<T, V = any> = { isSome: Bool; value: T } & {
   assertSome(message?: string): T;
+  assertNone(message?: string): void;
   orElse(defaultValue: T | V): T;
 };
 
@@ -102,6 +103,10 @@ function Option<A extends ProvableType>(
     assertSome(message?: string): T {
       this.isSome.assertTrue(message);
       return this.value;
+    }
+
+    assertNone(message?: string): void {
+      this.isSome.assertFalse(message);
     }
 
     static from(value?: V | T) {
