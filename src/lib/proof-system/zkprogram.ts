@@ -874,11 +874,7 @@ function picklesRuleFromFunction(
     if (result?.publicOutput) {
       // store the nonPure auxiliary data in program state cache if it exists
       let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
-      let nonPureOutputExists = nonPureOutput.length !== 0;
-
-      if (state !== undefined && nonPureOutputExists) {
-        state.setNonPureOutput(nonPureOutput);
-      }
+      state?.setNonPureOutput(nonPureOutput);
     }
 
     proofs.forEach(({ Proof, proof }) => {
