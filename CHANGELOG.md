@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
 - APIs for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931 https://github.com/o1-labs/o1js/pull/1932
   - `program.proveRecursively.<methodName>(...args): Promise<PublicOutput>`
   - `program.proveRecursivelyIf.<methodName>(condition, ...args): Promise<PublicOutput>`
