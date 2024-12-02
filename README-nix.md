@@ -10,7 +10,7 @@ handle the dependencies required across the codebase, including npm scripts.
 > **When should I use Nix?**
 > If you cannot build the codebase locally (due to untrusty package manager,
 > faulty versioning, or unavailable libraries), it is a good idea to try the Nix
-> build instead. This can specially happen if you're using a Mac–and even more
+> build instead. This can happen especially if you're using a Mac–and even more
 > likely–with non-Intel chips.
 
 ## Installing Nix
