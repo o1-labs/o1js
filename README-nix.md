@@ -257,7 +257,7 @@ to install it from scratch.
 
 When several clones of the repository are present in the system and both have
 used Nix (or if it has been moved from one location to another), Nix might cache
-an old path, impossibilitating builds. For example, typing `nix develop mina`
+an old path, breaking builds. For example, typing `nix develop mina`
 would complain and produce the following error:
 
 ```console
