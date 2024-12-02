@@ -211,7 +211,30 @@
           inherit dune-description;
           o1js-bindings = pkgs.stdenv.mkDerivation {
             name = "o1js_bindings";
-            src = ./.;
+            src = with pkgs.lib.fileset;
+            (toSource {
+              root = ./.;
+              fileset = unions [
+                ./src/mina
+                ./src/bindings/scripts
+                ./src/bindings/js
+                ./src/bindings/crypto
+                ./src/bindings/lib
+                ./src/bindings/mina-transaction/gen/dune
+                (fileFilter (file: file.hasExt "js") ./src/bindings/mina-transaction)
+                ./src/bindings/ocaml/lib
+                ./src/bindings/ocaml/dune
+                ./src/bindings/ocaml/dune-project
+                (fileFilter (file: file.hasExt "ml") ./src/bindings/ocaml)
+                ./package.json
+                ./package-lock.json
+                ./src/bindings/ocaml/jsoo_exports
+                ./dune-project
+                ./.prettierrc.cjs
+                ./src/build
+                ./src/snarky.d.ts
+              ];
+            });
             inherit (inputs.mina.devShells."${system}".default)
               PLONK_WASM_NODEJS
               PLONK_WASM_WEB
@@ -224,6 +247,7 @@
             EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
             buildInputs = bindings-pkgs ++ [ pkgs.bash ];
             SKIP_MINA_COMMIT = true;
+            JUST_BINDINGS = true;
             patchPhase = ''
             patchShebangs ./src/bindings/scripts/
             patchShebangs ./src/bindings/crypto/test-vectors/
@@ -235,11 +259,17 @@
             rustup toolchain link nix ${rust-channel}
             cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
+            mkdir -p src/bindings/compiled/node_bindings
+            echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
+              > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
+
             npm run build:update-bindings
-            mkdir $out
+
+            mkdir -p $out/mina-transaction
             pushd ./src/bindings
               rm -rf ./compiled/_node_bindings
-              cp -Lr ./compiled ./mina-transaction ./ocaml $out
+              cp -Lr ./compiled $out
+              cp -Lr ./mina-transaction/gen $out/mina-transaction/
             popd
             '';
           };
