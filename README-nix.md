@@ -250,7 +250,7 @@ error: "/nix/store/w30zw23kmgks77d870i502a3185hjycv-rust/lib/rustlib/src/rust/Ca
 #### Fix
 
 Install `cargo` on your host machine. If doing so does not solve the problem, it
-is very likely that the whole Nix setup has gone wrong and it is very adviceable
+is very likely that the whole Nix setup has gone wrong and it is very advisable
 to install it from scratch.
 
 ### Old path
