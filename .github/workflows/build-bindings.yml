@@ -28,6 +28,8 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-bindings
+          #fail if this changes any files
+          git -C src/bindings diff-index --exit-code HEAD
       - name: Cleanup the Nix store
         run: |
           nix-env --delete-generations old
