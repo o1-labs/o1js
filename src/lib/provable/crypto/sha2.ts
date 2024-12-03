@@ -10,6 +10,8 @@ import { divMod32 } from '../gadgets/arithmetic.js';
 import { bitSlice } from '../gadgets/common.js';
 import { rangeCheck16 } from '../gadgets/range-check.js';
 
+export { SHA2 };
+
 // SHA2 CONSTANTS
 
 // Bit length of the blocks used in SHA2-224 and SHA2-256
@@ -162,4 +164,69 @@ const SHA2Constants = {
     0x1f83d9abfb41bd6bn,
     0x5be0cd19137e2179n,
   ],
+};
+
+const SHA2 = {
+  /**
+   * Implementation of [NIST SHA-2](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)
+   * hash Function. Supports output lengths of 224, 256, 384, or 512 bits.
+   *
+   * Applies the SHA-3 hash function to a list of big-endian byte-sized {@link Field}
+   * elements, flexible to handle varying output lengths (224, 256, 384, 512 bits) as specified.
+   *
+   * The function accepts {@link Bytes} as the input message, which is a type that
+   * represents a static-length list of byte-sized field elements (range-checked
+   * using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]` of `Uint8Array` to perform a hash
+   * outside provable code.
+   *
+   * Produces an output of {@link Bytes} that conforms to the chosen bit length.
+   * Both input and output bytes are big-endian.
+   *
+   * @param len - Desired output length in bits. Valid options: 224, 256, 384, 512.
+   * @param message - Big-endian {@link Bytes} representing the message to hash.
+   *
+   * ```ts
+   * let preimage = Bytes.fromString("hello world");
+   * let digest224 = SHA2.hash(224, preimage);
+   * let digest256 = SHA2.hash(256, preimage);
+   * let digest384 = SHA2.hash(384, preimage);
+   * let digest512 = SHA2.hash(512, preimage);
+   * ```
+   *
+   */
+  hash(data: FlexibleBytes) {
+    // preprocessing §6.2
+    // padding the message $5.1.1 into blocks that are a multiple of 512
+    let messageBlocks = padding(SHA2.length, data);
+
+    let H = SHA2.initialState;
+    const N = messageBlocks.length;
+
+    for (let i = 0; i < N; i++) {
+      const W = createMessageSchedule(messageBlocks[i]);
+      H = sha256Compression(H, W);
+    }
+
+    // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
+    return Bytes.from(H.map((x) => x.toBytesBE()).flat());
+  },
+  length: 224 | 256 | 384 | 512,
+  compression: sha256Compression,
+  createMessageSchedule,
+  padding,
+  get initialState() {
+    switch (SHA2.length) {
+      case 224:
+        return SHA2Constants.H224.map((x) => UInt32.from(x));
+      case 256:
+        return SHA2Constants.H256.map((x) => UInt32.from(x));
+      case 384:
+        return SHA2Constants.H384.map((x) => UInt64.from(x));
+      case 512:
+        return SHA2Constants.H512.map((x) => UInt64.from(x));
+      default:
+        throw new Error('Invalid hash length');
+    }
+  },
 };
