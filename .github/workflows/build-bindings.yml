@@ -27,7 +27,7 @@ jobs:
         run: |
           set -Eeu
           ./pin.sh
-          nix run o1js#update-bindings
+          nix run o1js#update-bindings --max-jobs 4
           #fail if this changes any files
           cd src/bindings
           git diff-index --exit-code HEAD || (git submodule foreach git diff && exit 1)
