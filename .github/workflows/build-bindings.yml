@@ -29,7 +29,8 @@ jobs:
           ./pin.sh
           nix run o1js#update-bindings
           #fail if this changes any files
-          git -C src/bindings diff-index --exit-code HEAD
+          cd src/bindings
+          git diff-index --exit-code HEAD || (git submodule foreach git diff && exit 1)
       - name: Cleanup the Nix store
         run: |
           nix-env --delete-generations old
