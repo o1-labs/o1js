@@ -230,3 +230,81 @@ const SHA2 = {
     }
   },
 };
+
+// The only difference between the padding used in SHA2-224/256 and SHA2-384/512
+// is the size of the word (32bit vs 64bit). In the first case, UInt32[][] is
+// returned, in the second case UInt64[][] is returned.
+function padding(len: number, data: FlexibleBytes): UInt32[][] | UInt64[][] {
+  // create a provable Bytes instance from the input data
+  // the Bytes class will be static sized according to the length of the input data
+  let message = Bytes.from(data);
+
+  // Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
+  const is_short = len <= 256;
+
+  const blockLength = is_short
+    ? SHA2_224_256_BLOCK_LENGTH
+    : SHA2_384_512_BLOCK_LENGTH;
+  const paddingValue = is_short
+    ? SHA2_224_256_PADDING_VALUE
+    : SHA2_384_512_PADDING_VALUE;
+  const lengthChunk = is_short
+    ? SHA2_224_256_LENGTH_CHUNK
+    : SHA2_384_512_LENGTH_CHUNK;
+
+  // now pad the data to reach the format expected by SHA2
+  // pad 1 bit, followed by k zero bits where k is the smallest non-negative solution to
+  // l + 1 + k = (448 | 896) mod (512 | 1024)
+  // then append a (64 | 128)-bit block containing the length of the original message in bits
+  // it holds that PADDING_VALUE = BLOCK_LENGTH - LENGTH_CHUNK
+  // this way the padded message will be a multiple of the BLOCK_LENGTH
+
+  let l = message.length * 8; // length in bits
+  let k = Number(mod(paddingValue - (BigInt(l) + 1n), blockLength));
+
+  let lBinary = l.toString(2);
+
+  let paddingBits = (
+    '1' + // append 1 bit
+    '0'.repeat(k) + // append k zero bits
+    '0'.repeat(lengthChunk - lBinary.length) + // append 64|128-bit containing the length of the original message
+    lBinary
+  ).match(/.{1,8}/g)!; // this should always be divisible by 8
+
+  // map the padding bit string to UInt8 elements
+  let padding = paddingBits.map((x) => UInt8.from(BigInt('0b' + x)));
+
+  // concatenate the padding with the original padded data
+  let paddedMessage = message.bytes.concat(padding);
+
+  // Create chunks based on whether we are dealing with SHA2-224/256 or SHA2-384/512
+  // split the message into (32 | 64)-bit chunks
+  let chunks = is_short
+    ? createChunks(paddedMessage, 4, UInt32.fromBytesBE)
+    : createChunks(paddedMessage, 8, UInt64.fromBytesBE);
+
+  // SHA2-224 and SHA2-256:
+  // split the message into 16 elements of 32 bits, what gives a block of 512 bits
+  // SHA2-384 and SHA2-512:
+  // split the message into 16 elements of 64 bits, what gives a block of 1024 bits
+  if (is_short) {
+    return chunk(chunks as UInt32[], 16);
+  } else {
+    return chunk(chunks as UInt64[], 16);
+  }
+}
+
+// Helper function to create chunks based on the size and type (UInt32 or UInt64)
+function createChunks(
+  paddedMessage: UInt8[],
+  byteSize: number,
+  fromBytes: Function
+): UInt32[] | UInt64[] {
+  let chunks: any[] = [];
+  // bytesToWord expects little endian, so we reverse the bytes
+  for (let i = 0; i < paddedMessage.length; i += byteSize) {
+    // Chunk the data based on the specified byte size (4 bytes for UInt32, 8 bytes for UInt64)
+    chunks.push(fromBytes(paddedMessage.slice(i, i + byteSize)));
+  }
+  return chunks;
+}
