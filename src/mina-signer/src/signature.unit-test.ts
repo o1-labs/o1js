@@ -42,6 +42,14 @@ function checkConsistentSingle(
       networkId === 'mainnet' ? 'testnet' : 'mainnet'
     )
   ).toEqual(false);
+  expect(
+    verifyFieldElement(
+      sig,
+      msg,
+      pk,
+      networkId === 'mainnet' ? 'devnet' : 'mainnet'
+    )
+  ).toEqual(false);
 
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
