@@ -1,7 +1,7 @@
 # o1js README-nix
 
 [Nix](https://nixos.org/) is a tool for package management and system
-configurationthat can help developers build a project in a reproducible and
+configuration that can help developers build a project in a reproducible and
 reliable manner, without messing up versions during upgrades.
 
 Much like the `mina` repository, you can use Nix to
