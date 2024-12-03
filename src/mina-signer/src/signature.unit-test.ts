@@ -56,16 +56,21 @@ function checkConsistentSingle(
 
 // check that various multi-field hash inputs can be verified
 function checkCanVerify(msg: HashInput, key: PrivateKey, pk: PublicKey) {
+  let sigDev = sign(msg, key, 'devnet');
   let sigTest = sign(msg, key, 'testnet');
   let sigMain = sign(msg, key, 'mainnet');
   // verify
-  let okTestnetTestnet = verify(sigTest, msg, pk, 'testnet');
-  let okMainnetTestnet = verify(sigMain, msg, pk, 'testnet');
-  let okTestnetMainnet = verify(sigTest, msg, pk, 'mainnet');
+  let okTestnetDevnet = verify(sigTest, msg, pk, 'devnet');
+  let okDevnetTestnet = verify(sigDev, msg, pk, 'testnet');
+  let okDevnetDevnet = verify(sigDev, msg, pk, 'devnet');
+  let okMainnetDevnet = verify(sigMain, msg, pk, 'devnet');
+  let okDevnetMainnet = verify(sigDev, msg, pk, 'mainnet');
   let okMainnetMainnet = verify(sigMain, msg, pk, 'mainnet');
-  expect(okTestnetTestnet).toEqual(true);
-  expect(okMainnetTestnet).toEqual(false);
-  expect(okTestnetMainnet).toEqual(false);
+  expect(okTestnetDevnet).toEqual(true);
+  expect(okDevnetTestnet).toEqual(true);
+  expect(okDevnetDevnet).toEqual(true);
+  expect(okMainnetDevnet).toEqual(false);
+  expect(okDevnetMainnet).toEqual(false);
   expect(okMainnetMainnet).toEqual(true);
 }
 
