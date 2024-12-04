@@ -41,6 +41,30 @@ const SHA2Constants = {
   // Number of words in message schedule for SHA2-384 and SHA2-512
   SCHEDULE_WORDS_384_512: 80,
 
+  // Offsets for the DeltaZero function for SHA2
+  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.6
+  DELTA_ZERO_224_256: [3, 7, 18] as TupleN<number, 3>,
+  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.12
+  DELTA_ZERO_384_512: [7, 1, 8] as TupleN<number, 3>,
+
+  // Offsets for the DeltaOne function for SHA2.
+  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.7
+  DELTA_ONE_224_256: [10, 17, 19] as TupleN<number, 3>,
+  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.13
+  DELTA_ONE_384_512: [6, 19, 61] as TupleN<number, 3>,
+
+  // Offsets for the SigmaZero function for SHA2.
+  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.4
+  SIGMA_ZERO_224_256: [2, 13, 22] as TupleN<number, 3>,
+  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.10
+  SIGMA_ZERO_384_512: [28, 34, 39] as TupleN<number, 3>,
+
+  // Offsets for the SigmaOne function for SHA2.
+  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.5
+  SIGMA_ONE_224_256: [6, 11, 25] as TupleN<number, 3>,
+  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.11
+  SIGMA_ONE_384_512: [14, 18, 41] as TupleN<number, 3>,
+
   // constants for SHA2-224 and SHA2-256 §4.2.2
   K224_256: [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
@@ -251,25 +275,22 @@ const SHA2 = {
 // is the size of the word (32bit vs 64bit). In the first case, UInt32[][] is
 // returned, in the second case UInt64[][] is returned.
 function padding<T extends UInt32 | UInt64>(data: FlexibleBytes): T[][] {
-  // Using instance check to create the flag
-  // isShort = true if the hash is SHA2-224 or SHA2-256
-  // isShort = false if the hash is SHA2-384 or SHA2-512
-  const isShort: boolean = ({} as T) instanceof UInt32;
+  const is_short = isShort<T>();
 
   // create a provable Bytes instance from the input data
   // the Bytes class will be static sized according to the length of the input data
   let message = Bytes.from(data);
 
   // Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
-  const blockLength = isShort
+  const blockLength = is_short
     ? SHA2Constants.BLOCK_LENGTH_224_256
     : SHA2Constants.BLOCK_LENGTH_384_512;
 
-  const paddingValue = isShort
+  const paddingValue = is_short
     ? SHA2Constants.PADDING_VALUE_224_256
     : SHA2Constants.PADDING_VALUE_384_512;
 
-  const lengthChunk = isShort
+  const lengthChunk = is_short
     ? SHA2Constants.LENGTH_CHUNK_224_256
     : SHA2Constants.LENGTH_CHUNK_384_512;
 
@@ -300,7 +321,7 @@ function padding<T extends UInt32 | UInt64>(data: FlexibleBytes): T[][] {
 
   // Create chunks based on whether we are dealing with SHA2-224/256 or SHA2-384/512
   // split the message into (32 | 64)-bit chunks
-  let chunks = isShort
+  let chunks = is_short
     ? createChunks(paddedMessage, 4, UInt32.fromBytesBE)
     : createChunks(paddedMessage, 8, UInt64.fromBytesBE);
 
@@ -336,14 +357,11 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
   // Declare W as an empty array of type T[] (generic array)
   const W: T[] = [];
 
-  // Using instance check to create the flag
-  // isShort = true if the hash is SHA2-224 or SHA2-256
-  // isShort = false if the hash is SHA2-384 or SHA2-512
-  const isShort: boolean = ({} as T) instanceof UInt32;
+  let is_short = isShort();
 
   // for each message block of 16 x 32bit | 64bit do:
 
-  let scheduleWords = isShort
+  let scheduleWords = is_short
     ? SHA2Constants.SCHEDULE_WORDS_224_256
     : SHA2Constants.SCHEDULE_WORDS_384_512;
 
@@ -357,7 +375,7 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
       .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
     // mod 32 | 64 bit the unreduced field element
-    if (isShort) {
+    if (is_short) {
       W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 48).remainder) as T;
     } else {
       W[t] = UInt64.Unsafe.fromField(divMod64(unreduced).remainder) as T;
@@ -426,6 +444,12 @@ function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[]) {
   return H;
 }
 
+// Helper function to check if the hash length is short (SHA2-224 or SHA2-256)
+// depending on the generic type T used for the word size (UInt32 or UInt64)
+function isShort<T extends UInt32 | UInt64>(): boolean {
+  return ({} as T) instanceof UInt32;
+}
+
 // Subroutines for SHA2
 
 function Ch<T extends UInt32 | UInt64>(x: T, y: T, z: T) {
@@ -447,21 +471,29 @@ function Maj<T extends UInt32 | UInt64>(x: T, y: T, z: T) {
 }
 
 function SigmaZero<T extends UInt32 | UInt64>(x: T) {
-  return sigma(x, [2, 13, 22]);
+  return isShort()
+    ? sigma(x, SHA2Constants.SIGMA_ZERO_224_256)
+    : sigma(x, SHA2Constants.SIGMA_ZERO_384_512);
 }
 
 function SigmaOne<T extends UInt32 | UInt64>(x: T) {
-  return sigma(x, [6, 11, 25]);
+  return isShort()
+    ? sigma(x, SHA2Constants.SIGMA_ONE_224_256)
+    : sigma(x, SHA2Constants.SIGMA_ONE_384_512);
 }
 
 // lowercase sigma = delta to avoid confusing function names
 
 function DeltaZero<T extends UInt32 | UInt64>(x: T) {
-  return sigma(x, [3, 7, 18], true);
+  return isShort()
+    ? sigma(x, SHA2Constants.DELTA_ZERO_224_256, true)
+    : sigma(x, SHA2Constants.DELTA_ZERO_384_512, true);
 }
 
 function DeltaOne<T extends UInt32 | UInt64>(x: T) {
-  return sigma(x, [10, 17, 19], true);
+  return isShort()
+    ? sigma(x, SHA2Constants.DELTA_ONE_224_256, true)
+    : sigma(x, SHA2Constants.DELTA_ONE_384_512, true);
 }
 
 function ROTR<T extends UInt32 | UInt64>(n: number, x: T) {
