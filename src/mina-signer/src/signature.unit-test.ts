@@ -33,7 +33,7 @@ function checkConsistentSingle(
   // verify
   expect(verifyFieldElement(sig, msg, pk, networkId)).toEqual(true);
 
-  // verify against different network
+  // if the signature was generated with networkId=mainnet, the signature should not verify against testnet or devnet
   expect(
     verifyFieldElement(
       sig,
@@ -118,6 +118,7 @@ for (let i = 0; i < 10; i++) {
   // hard coded single field elements
   let hardcoded = [0n, 1n, 2n, p - 1n];
   for (let x of hardcoded) {
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'devnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });
@@ -125,6 +126,7 @@ for (let i = 0; i < 10; i++) {
   // random single field elements
   for (let i = 0; i < 10; i++) {
     let x = randomFields[i];
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'devnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });
