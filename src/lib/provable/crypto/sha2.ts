@@ -9,6 +9,7 @@ import { TupleN } from '../../util/types.js';
 import { divMod32, divMod64 } from '../gadgets/arithmetic.js';
 import { bitSlice } from '../gadgets/common.js';
 import { rangeCheck16 } from '../gadgets/range-check.js';
+import { Uint } from 'web3';
 
 export { SHA2 };
 
@@ -200,36 +201,39 @@ const SHA2 = {
    * ```
    *
    */
-  hash(data: FlexibleBytes) {
+  hash(length: 224 | 256 | 384 | 512, data: FlexibleBytes) {
+    // Infer the type T based on the value of `length` (conditional type)
+    type WordType = typeof length extends 224 | 256 ? UInt32 : UInt64;
+
     // preprocessing §6.2
     // padding the message $5.1.1 into blocks that are a multiple of 512
-    let messageBlocks = padding(data);
+    let messageBlocks = padding<WordType>(data);
 
-    let H = SHA2.initialState;
+    let H = SHA2.initialState();
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
       const W = createMessageSchedule(messageBlocks[i]);
-      H = sha256Compression(H, W);
+      H = compression(H, W);
     }
 
-    // the working variables H[i] are 32bit, however we want to decompose them into bytes to be more compatible
+    // the working variables H[i] are 32 | 64 bit, however we want to decompose them into bytes to be more compatible
     return Bytes.from(H.map((x) => x.toBytesBE()).flat());
   },
   length: 224 | 256 | 384 | 512,
-  compression: sha256Compression,
+  compression,
   createMessageSchedule,
   padding,
-  get initialState() {
+  initialState<T extends UInt32 | UInt64>() {
     switch (SHA2.length) {
       case 224:
-        return SHA2Constants.H224.map((x) => UInt32.from(x));
+        return SHA2Constants.H224.map((x) => UInt32.from(x) as T);
       case 256:
-        return SHA2Constants.H256.map((x) => UInt32.from(x));
+        return SHA2Constants.H256.map((x) => UInt32.from(x) as T);
       case 384:
-        return SHA2Constants.H384.map((x) => UInt64.from(x));
+        return SHA2Constants.H384.map((x) => UInt64.from(x) as T);
       case 512:
-        return SHA2Constants.H512.map((x) => UInt64.from(x));
+        return SHA2Constants.H512.map((x) => UInt64.from(x) as T);
       default:
         throw new Error('Invalid hash length');
     }
@@ -361,4 +365,197 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
   }
 
   return W;
+}
+
+/**
+ * Performs the SHA-2 compression function on the given hash values and message schedule.
+ *
+ * @param H - The initial or intermediate hash values (8-element array of T).
+ * @param W - The message schedule (64-element array of T).
+ *
+ * @returns The updated intermediate hash values after compression.
+ */
+function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[]) {
+  // initialize working variables
+  let a = H[0];
+  let b = H[1];
+  let c = H[2];
+  let d = H[3];
+  let e = H[4];
+  let f = H[5];
+  let g = H[6];
+  let h = H[7];
+
+  // main loop
+  for (let t = 0; t <= 63; t++) {
+    // T1 is unreduced and not proven to be 32bit, we will do this later to save constraints
+    const unreducedT1 = h.value
+      .add(SigmaOne(e).value)
+      .add(Ch(e, f, g).value)
+      .add(SHA256Constants.K[t])
+      .add(W[t].value)
+      .seal();
+
+    // T2 is also unreduced
+    const unreducedT2 = SigmaZero(a).value.add(Maj(a, b, c).value);
+
+    h = g;
+    g = f;
+    f = e;
+    e = UInt32.Unsafe.fromField(
+      divMod32(d.value.add(unreducedT1), 48).remainder
+    ); // mod 32bit the unreduced field element
+    d = c;
+    c = b;
+    b = a;
+    a = UInt32.Unsafe.fromField(
+      divMod32(unreducedT2.add(unreducedT1), 48).remainder
+    ); // mod 32bit
+  }
+
+  // new intermediate hash value
+  H[0] = H[0].addMod32(a);
+  H[1] = H[1].addMod32(b);
+  H[2] = H[2].addMod32(c);
+  H[3] = H[3].addMod32(d);
+  H[4] = H[4].addMod32(e);
+  H[5] = H[5].addMod32(f);
+  H[6] = H[6].addMod32(g);
+  H[7] = H[7].addMod32(h);
+
+  return H;
+}
+
+// Subroutines for SHA2
+
+function Ch<T extends UInt32 | UInt64>(x: T, y: T, z: T) {
+  // ch(x, y, z) = (x & y) ^ (~x & z)
+  //             = (x & y) + (~x & z) (since x & ~x = 0)
+  let xAndY = x.and(y).value;
+  let xNotAndZ = x.not().and(z).value;
+  let ch = xAndY.add(xNotAndZ).seal();
+  return UInt32.Unsafe.fromField(ch);
+}
+
+function Maj<T extends UInt32 | UInt64>(x: T, y: T, z: T) {
+  // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z)
+  //              = (x + y + z - (x ^ y ^ z)) / 2
+  let sum = x.value.add(y.value).add(z.value).seal();
+  let xor = x.xor(y).xor(z).value;
+  let maj = sum.sub(xor).div(2).seal();
+  return UInt32.Unsafe.fromField(maj);
+}
+
+function SigmaZero<T extends UInt32 | UInt64>(x: T) {
+  return sigma(x, [2, 13, 22]);
+}
+
+function SigmaOne<T extends UInt32 | UInt64>(x: T) {
+  return sigma(x, [6, 11, 25]);
+}
+
+// lowercase sigma = delta to avoid confusing function names
+
+function DeltaZero<T extends UInt32 | UInt64>(x: T) {
+  return sigma(x, [3, 7, 18], true);
+}
+
+function DeltaOne<T extends UInt32 | UInt64>(x: T) {
+  return sigma(x, [10, 17, 19], true);
+}
+
+function ROTR<T extends UInt32 | UInt64>(n: number, x: T) {
+  return x.rotate(n, 'right');
+}
+
+function SHR<T extends UInt32 | UInt64>(n: number, x: T) {
+  let val = x.rightShift(n);
+  return val;
+}
+
+function sigmaSimple<T extends UInt32 | UInt64>(
+  u: T,
+  bits: TupleN<number, 3>,
+  firstShifted = false
+) {
+  let [r0, r1, r2] = bits;
+  let rot0 = firstShifted ? SHR(r0, u) : ROTR(r0, u);
+  let rot1 = ROTR(r1, u);
+  let rot2 = ROTR(r2, u);
+  return rot0.xor(rot1).xor(rot2);
+}
+
+function sigma<T extends UInt32 | UInt64>(
+  u: T,
+  bits: TupleN<number, 3>,
+  firstShifted = false
+) {
+  if (u.isConstant()) return sigmaSimple(u, bits, firstShifted);
+
+  let [r0, r1, r2] = bits; // TODO assert bits are sorted
+  let x = u.value;
+
+  let d0 = r0;
+  let d1 = r1 - r0;
+  let d2 = r2 - r1;
+  let d3 = 32 - r2;
+
+  // decompose x into 4 chunks of size d0, d1, d2, d3
+  let [x0, x1, x2, x3] = exists(4, () => {
+    let xx = x.toBigInt();
+    return [
+      bitSlice(xx, 0, d0),
+      bitSlice(xx, r0, d1),
+      bitSlice(xx, r1, d2),
+      bitSlice(xx, r2, d3),
+    ];
+  });
+
+  // range check each chunk
+  // we only need to range check to 16 bits relying on the requirement that
+  // the rotated values are range-checked to 32 bits later; see comments below
+  rangeCheck16(x0);
+  rangeCheck16(x1);
+  rangeCheck16(x2);
+  rangeCheck16(x3);
+
+  // prove x decomposition
+
+  // x === x0 + x1*2^d0 + x2*2^(d0+d1) + x3*2^(d0+d1+d2)
+  let x23 = x2.add(x3.mul(1 << d2)).seal();
+  let x123 = x1.add(x23.mul(1 << d1)).seal();
+  x0.add(x123.mul(1 << d0)).assertEquals(x);
+  // ^ proves that 2^(32-d3)*x3 < x < 2^32 => x3 < 2^d3
+
+  // reassemble chunks into rotated values
+
+  let xRotR0: Field;
+
+  if (!firstShifted) {
+    // rotr(x, r0) = x1 + x2*2^d1 + x3*2^(d1+d2) + x0*2^(d1+d2+d3)
+    xRotR0 = x123.add(x0.mul(1 << (d1 + d2 + d3))).seal();
+    // ^ proves that 2^(32-d0)*x0 < xRotR0 => x0 < 2^d0 if we check xRotR0 < 2^32 later
+  } else {
+    // shr(x, r0) = x1 + x2*2^d1 + x3*2^(d1+d2)
+    xRotR0 = x123;
+
+    // finish x0 < 2^d0 proof:
+    rangeCheck16(x0.mul(1 << (16 - d0)).seal());
+  }
+
+  // rotr(x, r1) = x2 + x3*2^d2 + x0*2^(d2+d3) + x1*2^(d2+d3+d0)
+  let x01 = x0.add(x1.mul(1 << d0)).seal();
+  let xRotR1 = x23.add(x01.mul(1 << (d2 + d3))).seal();
+  // ^ proves that 2^(32-d1)*x1 < xRotR1 => x1 < 2^d1 if we check xRotR1 < 2^32 later
+
+  // rotr(x, r2) = x3 + x0*2^d3 + x1*2^(d3+d0) + x2*2^(d3+d0+d1)
+  let x012 = x01.add(x2.mul(1 << (d0 + d1))).seal();
+  let xRotR2 = x3.add(x012.mul(1 << d3)).seal();
+  // ^ proves that 2^(32-d2)*x2 < xRotR2 => x2 < 2^d2 if we check xRotR2 < 2^32 later
+
+  // since xor() is implicitly range-checking both of its inputs, this provides the missing
+  // proof that xRotR0, xRotR1, xRotR2 < 2^32, which implies x0 < 2^d0, x1 < 2^d1, x2 < 2^d2
+  return UInt32.Unsafe.fromField(xRotR0)
+    .xor(UInt32.Unsafe.fromField(xRotR1))
+    .xor(UInt32.Unsafe.fromField(xRotR2));
 }
