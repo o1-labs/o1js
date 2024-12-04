@@ -201,19 +201,15 @@ const SHA2 = {
    *
    */
   hash(data: FlexibleBytes) {
-    const is_short = SHA2.length <= 256;
-
-    let typ = is_short ? UInt32 : UInt64;
-
     // preprocessing §6.2
     // padding the message $5.1.1 into blocks that are a multiple of 512
-    let messageBlocks = padding(data, is_short);
+    let messageBlocks = padding(data);
 
     let H = SHA2.initialState;
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
-      const W = createMessageSchedule(messageBlocks[i], is_short);
+      const W = createMessageSchedule(messageBlocks[i]);
       H = sha256Compression(H, W);
     }
 
@@ -240,27 +236,36 @@ const SHA2 = {
   },
 };
 
+/**
+ * Padding function for SHA2, as specified in §5.1.1, §5.1.2,
+ *
+ * @param data  The message to hash
+ * @param is_short Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
+ * @returns
+ */
 // The only difference between the padding used in SHA2-224/256 and SHA2-384/512
 // is the size of the word (32bit vs 64bit). In the first case, UInt32[][] is
 // returned, in the second case UInt64[][] is returned.
-function padding<T extends UInt32 | UInt64>(
-  data: FlexibleBytes,
-  is_short: boolean
-): T[][] {
+function padding<T extends UInt32 | UInt64>(data: FlexibleBytes): T[][] {
+  // Using instance check to create the flag
+  // isShort = true if the hash is SHA2-224 or SHA2-256
+  // isShort = false if the hash is SHA2-384 or SHA2-512
+  const isShort: boolean = ({} as T) instanceof UInt32;
+
   // create a provable Bytes instance from the input data
   // the Bytes class will be static sized according to the length of the input data
   let message = Bytes.from(data);
 
   // Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
-  const blockLength = is_short
+  const blockLength = isShort
     ? SHA2Constants.BLOCK_LENGTH_224_256
     : SHA2Constants.BLOCK_LENGTH_384_512;
 
-  const paddingValue = is_short
+  const paddingValue = isShort
     ? SHA2Constants.PADDING_VALUE_224_256
     : SHA2Constants.PADDING_VALUE_384_512;
 
-  const lengthChunk = is_short
+  const lengthChunk = isShort
     ? SHA2Constants.LENGTH_CHUNK_224_256
     : SHA2Constants.LENGTH_CHUNK_384_512;
 
@@ -291,7 +296,7 @@ function padding<T extends UInt32 | UInt64>(
 
   // Create chunks based on whether we are dealing with SHA2-224/256 or SHA2-384/512
   // split the message into (32 | 64)-bit chunks
-  let chunks = is_short
+  let chunks = isShort
     ? createChunks(paddedMessage, 4, UInt32.fromBytesBE)
     : createChunks(paddedMessage, 8, UInt64.fromBytesBE);
 
@@ -317,21 +322,24 @@ function createChunks(
 
 /**
  * Prepares the message schedule for the SHA2 compression function from the given message block.
+ * §6.2.2.1 and §6.4.2.1
  *
  * @param M - The 512-bit message block (16-element array of UInt32)
  *            or the 1024-bit message block (16-element array of UInt64).
  * @returns The message schedule (64-element array of UInt32 or 80-element array of UInt64).
  */
-function createMessageSchedule<T extends UInt32 | UInt64>(
-  M: T[],
-  is_short: boolean
-): T[] {
+function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
   // Declare W as an empty array of type T[] (generic array)
   const W: T[] = [];
 
+  // Using instance check to create the flag
+  // isShort = true if the hash is SHA2-224 or SHA2-256
+  // isShort = false if the hash is SHA2-384 or SHA2-512
+  const isShort: boolean = ({} as T) instanceof UInt32;
+
   // for each message block of 16 x 32bit | 64bit do:
 
-  let scheduleWords = is_short
+  let scheduleWords = isShort
     ? SHA2Constants.SCHEDULE_WORDS_224_256
     : SHA2Constants.SCHEDULE_WORDS_384_512;
 
@@ -345,7 +353,7 @@ function createMessageSchedule<T extends UInt32 | UInt64>(
       .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
     // mod 32 | 64 bit the unreduced field element
-    if (is_short) {
+    if (isShort) {
       W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 48).remainder) as T;
     } else {
       W[t] = UInt64.Unsafe.fromField(divMod64(unreduced).remainder) as T;
