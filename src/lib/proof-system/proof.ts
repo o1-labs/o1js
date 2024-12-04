@@ -2,7 +2,7 @@ import { initializeBindings, withThreadPool } from '../../snarky.js';
 import { Pickles } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import type {
-  FlexibleProvablePure,
+  FlexibleProvable,
   InferProvable,
 } from '../provable/types/struct.js';
 import { FeatureFlags } from './feature-flags.js';
@@ -22,8 +22,8 @@ export { dummyProof, extractProofs, extractProofTypes, type ProofValue };
 type MaxProofs = 0 | 1 | 2;
 
 class ProofBase<Input = any, Output = any> {
-  static publicInputType: FlexibleProvablePure<any> = undefined as any;
-  static publicOutputType: FlexibleProvablePure<any> = undefined as any;
+  static publicInputType: FlexibleProvable<any> = undefined as any;
+  static publicOutputType: FlexibleProvable<any> = undefined as any;
   static tag: () => { name: string } = () => {
     throw Error(
       `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
