@@ -6,35 +6,40 @@ import { FlexibleBytes } from '../bytes.js';
 import { Bytes } from '../wrapped-classes.js';
 import { chunk } from '../../util/arrays.js';
 import { TupleN } from '../../util/types.js';
-import { divMod32 } from '../gadgets/arithmetic.js';
+import { divMod32, divMod64 } from '../gadgets/arithmetic.js';
 import { bitSlice } from '../gadgets/common.js';
 import { rangeCheck16 } from '../gadgets/range-check.js';
 
 export { SHA2 };
 
 // SHA2 CONSTANTS
-
-// Bit length of the blocks used in SHA2-224 and SHA2-256
-const SHA2_224_256_BLOCK_LENGTH = 512n;
-
-// Bit length of the blocks used in SHA2-384 and SHA2-512
-const SHA2_384_512_BLOCK_LENGTH = 1024n;
-
-// Value used in the padding equation for SHA2-224 and SHA2-256
-const SHA2_224_256_PADDING_VALUE = 448n;
-
-// Value used in the padding equation for SHA2-384 and SHA2-512
-const SHA2_384_512_PADDING_VALUE = 896n;
-
-// Bits used to store the length in the padding of SHA2-224 and SHA2-256
-// It corresponds to 512 - 448 = 64
-const SHA2_224_256_LENGTH_CHUNK = 64;
-
-// Bits used to store the length in the padding of SHA2-384 and SHA2-512
-// It corresponds to 1024 - 896 = 128
-const SHA2_384_512_LENGTH_CHUNK = 128;
-
 const SHA2Constants = {
+  // Bit length of the blocks used in SHA2-224 and SHA2-256
+  BLOCK_LENGTH_224_256: 512n,
+
+  // Bit length of the blocks used in SHA2-384 and SHA2-512
+  BLOCK_LENGTH_384_512: 1024n,
+
+  // Value used in the padding equation for SHA2-224 and SHA2-256
+  PADDING_VALUE_224_256: 448n,
+
+  // Value used in the padding equation for SHA2-384 and SHA2-512
+  PADDING_VALUE_384_512: 896n,
+
+  // Bits used to store the length in the padding of SHA2-224 and SHA2-256
+  // It corresponds to 512 - 448 = 64
+  LENGTH_CHUNK_224_256: 64,
+
+  // Bits used to store the length in the padding of SHA2-384 and SHA2-512
+  // It corresponds to 1024 - 896 = 128
+  LENGTH_CHUNK_384_512: 128,
+
+  // Number of words in message schedule for SHA2-224 and SHA2-256
+  SCHEDULE_WORDS_224_256: 64,
+
+  // Number of words in message schedule for SHA2-384 and SHA2-512
+  SCHEDULE_WORDS_384_512: 80,
+
   // constants for SHA2-224 and SHA2-256 §4.2.2
   K224_256: [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
@@ -196,15 +201,19 @@ const SHA2 = {
    *
    */
   hash(data: FlexibleBytes) {
+    const is_short = SHA2.length <= 256;
+
+    let typ = is_short ? UInt32 : UInt64;
+
     // preprocessing §6.2
     // padding the message $5.1.1 into blocks that are a multiple of 512
-    let messageBlocks = padding(SHA2.length, data);
+    let messageBlocks = padding(data, is_short);
 
     let H = SHA2.initialState;
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
-      const W = createMessageSchedule(messageBlocks[i]);
+      const W = createMessageSchedule(messageBlocks[i], is_short);
       H = sha256Compression(H, W);
     }
 
@@ -234,23 +243,26 @@ const SHA2 = {
 // The only difference between the padding used in SHA2-224/256 and SHA2-384/512
 // is the size of the word (32bit vs 64bit). In the first case, UInt32[][] is
 // returned, in the second case UInt64[][] is returned.
-function padding(len: number, data: FlexibleBytes): UInt32[][] | UInt64[][] {
+function padding<T extends UInt32 | UInt64>(
+  data: FlexibleBytes,
+  is_short: boolean
+): T[][] {
   // create a provable Bytes instance from the input data
   // the Bytes class will be static sized according to the length of the input data
   let message = Bytes.from(data);
 
   // Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
-  const is_short = len <= 256;
-
   const blockLength = is_short
-    ? SHA2_224_256_BLOCK_LENGTH
-    : SHA2_384_512_BLOCK_LENGTH;
+    ? SHA2Constants.BLOCK_LENGTH_224_256
+    : SHA2Constants.BLOCK_LENGTH_384_512;
+
   const paddingValue = is_short
-    ? SHA2_224_256_PADDING_VALUE
-    : SHA2_384_512_PADDING_VALUE;
+    ? SHA2Constants.PADDING_VALUE_224_256
+    : SHA2Constants.PADDING_VALUE_384_512;
+
   const lengthChunk = is_short
-    ? SHA2_224_256_LENGTH_CHUNK
-    : SHA2_384_512_LENGTH_CHUNK;
+    ? SHA2Constants.LENGTH_CHUNK_224_256
+    : SHA2Constants.LENGTH_CHUNK_384_512;
 
   // now pad the data to reach the format expected by SHA2
   // pad 1 bit, followed by k zero bits where k is the smallest non-negative solution to
@@ -283,15 +295,9 @@ function padding(len: number, data: FlexibleBytes): UInt32[][] | UInt64[][] {
     ? createChunks(paddedMessage, 4, UInt32.fromBytesBE)
     : createChunks(paddedMessage, 8, UInt64.fromBytesBE);
 
-  // SHA2-224 and SHA2-256:
-  // split the message into 16 elements of 32 bits, what gives a block of 512 bits
-  // SHA2-384 and SHA2-512:
-  // split the message into 16 elements of 64 bits, what gives a block of 1024 bits
-  if (is_short) {
-    return chunk(chunks as UInt32[], 16);
-  } else {
-    return chunk(chunks as UInt64[], 16);
-  }
+  // SHA2-224 and SHA2-256 | SHA2-384 and SHA2-512:
+  // split the message into 16 elements of 32 | 64 bits, what gives a block of 512 | 1024 bits
+  return chunk(chunks as T[], 16);
 }
 
 // Helper function to create chunks based on the size and type (UInt32 or UInt64)
@@ -307,4 +313,44 @@ function createChunks(
     chunks.push(fromBytes(paddedMessage.slice(i, i + byteSize)));
   }
   return chunks;
+}
+
+/**
+ * Prepares the message schedule for the SHA2 compression function from the given message block.
+ *
+ * @param M - The 512-bit message block (16-element array of UInt32)
+ *            or the 1024-bit message block (16-element array of UInt64).
+ * @returns The message schedule (64-element array of UInt32 or 80-element array of UInt64).
+ */
+function createMessageSchedule<T extends UInt32 | UInt64>(
+  M: T[],
+  is_short: boolean
+): T[] {
+  // Declare W as an empty array of type T[] (generic array)
+  const W: T[] = [];
+
+  // for each message block of 16 x 32bit | 64bit do:
+
+  let scheduleWords = is_short
+    ? SHA2Constants.SCHEDULE_WORDS_224_256
+    : SHA2Constants.SCHEDULE_WORDS_384_512;
+
+  // prepare message block
+  for (let t = 0; t <= 15; t++) W[t] = M[t];
+  for (let t = 16; t < scheduleWords; t++) {
+    // the field element is unreduced and not proven to be 32bit | 64bit,
+    // we will do this later to save constraints
+    let unreduced = DeltaOne(W[t - 2])
+      .value.add(W[t - 7].value)
+      .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
+
+    // mod 32 | 64 bit the unreduced field element
+    if (is_short) {
+      W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 48).remainder) as T;
+    } else {
+      W[t] = UInt64.Unsafe.fromField(divMod64(unreduced).remainder) as T;
+    }
+  }
+
+  return W;
 }
