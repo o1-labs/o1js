@@ -31,9 +31,11 @@ jobs:
           #fail if this changes any files
           cd src/bindings
           git diff --exit-code
+      - name: add build to gc-root if on main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          nix build o1js#o1js-bindings --out-link /var/o1js-bindings-gcroot
       - name: Cleanup the Nix store
         run: |
-          nix-env --delete-generations old
-          nix-collect-garbage -d --quiet
           nix-store --gc --print-dead
           nix-store --optimise
