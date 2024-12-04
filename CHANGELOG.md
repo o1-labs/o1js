@@ -22,8 +22,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 -`ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
 
 - Add `enforceTransactionLimits` parameter on Network https://github.com/o1-labs/o1js/issues/1910
-
 - Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
+- Increased maximum supported amount of methods in a `SmartContract` or `ZkProgram` to 30. https://github.com/o1-labs/o1js/pull/1918
+- Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
 
 ### Fixed
 
