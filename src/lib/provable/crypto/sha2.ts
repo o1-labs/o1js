@@ -172,8 +172,16 @@ const SHA2 = {
       H = compression(H, W);
     }
 
-    // the working variables H[i] are 32 | 64 bit, however we want to decompose them into bytes to be more compatible
-    return Bytes.from(H.map((x) => x.toBytesBE()).flat());
+    // the working variables H[i] are 32 | 64 bit, however we want to decompose
+    // them into bytes to be more compatible
+    let digest = Bytes.from(H.map((x) => x.toBytesBE()).flat());
+
+    // Take the first `length` bits of the digest. This has no effect in
+    // SHA256 and SHA512, because 8 words of 32 | 64 bits needs no truncation.
+    // Truncation is required for SHA224 and SHA384 though.
+    digest.bytes = digest.bytes.slice(0, length / 8);
+
+    return digest;
   },
   length: 224 | 256 | 384 | 512,
   compression,
