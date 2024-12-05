@@ -111,7 +111,7 @@ function verifyFieldElement(
  * @param privateKey The `privateKey` represents an element of the Pallas scalar field, and should be given as a native bigint.
  * It can be converted from the base58 string representation using {@link PrivateKey.fromBase58}.
  *
- * @param networkId The `networkId` is either "devnet"/"testnet" or "mainnet" and ensures that testnet transactions can
+ * @param networkId The `networkId` is either "devnet" or "mainnet" and ensures that testnet transactions can
  * never be used as valid mainnet transactions.
  *
  * @see {@link deriveNonce} and {@link hashMessage} for details on how the nonce and hash are computed.
