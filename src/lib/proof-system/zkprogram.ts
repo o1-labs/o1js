@@ -376,6 +376,9 @@ function ZkProgram<
     }
   }
 
+  // for each of the methods, create a prover function.
+  // in the first step, these are "regular" in that they always expect the public input as the first argument,
+  // which is easier to use internally.
   type RegularProver<K extends MethodKey> = (
     publicInput: PublicInput,
     ...args: PrivateInputs[K]
@@ -470,6 +473,8 @@ function ZkProgram<
   }
   let regularProvers = mapToObject(methodKeys, toRegularProver);
 
+  // wrap "regular" provers to remove an `undefined` public input argument,
+  // this matches how the method itself was defined in the case of no public input
   type Prover_<K extends MethodKey = MethodKey> = Prover<
     PublicInput,
     PublicOutput,
