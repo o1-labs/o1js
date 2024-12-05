@@ -655,7 +655,6 @@ type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
   args: any[];
-  previousProofs: Pickles.Proof[];
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
@@ -2116,14 +2115,7 @@ async function addProof(
 
 async function createZkappProof(
   prover: Pickles.Prover,
-  {
-    methodName,
-    args,
-    previousProofs,
-    ZkappClass,
-    memoized,
-    blindingValue,
-  }: LazyProof,
+  { methodName, args, ZkappClass, memoized, blindingValue }: LazyProof,
   { transaction, accountUpdate, index }: ZkappProverData
 ): Promise<Proof<ZkappPublicInput, Empty>> {
   let publicInput = accountUpdate.toPublicInput(transaction);
@@ -2141,7 +2133,7 @@ async function createZkappProof(
         blindingValue,
       });
       try {
-        return await prover(publicInputFields, MlArray.to(previousProofs));
+        return await prover(publicInputFields);
       } catch (err) {
         console.error(`Error when proving ${ZkappClass.name}.${methodName}()`);
         throw err;
@@ -2151,7 +2143,7 @@ async function createZkappProof(
     }
   );
 
-  let maxProofsVerified = ZkappClass._maxProofsVerified!;
+  let maxProofsVerified = await ZkappClass.getMaxProofsVerified();
   const Proof = ZkappClass.Proof();
   return new Proof({
     publicInput,

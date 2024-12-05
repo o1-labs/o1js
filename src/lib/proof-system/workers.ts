@@ -1,4 +1,4 @@
-export { workers, setNumberOfWorkers };
+export { workers, setNumberOfWorkers, WithThreadPool };
 
 const workers = {
   numWorkers: undefined as number | undefined,
@@ -15,3 +15,68 @@ const workers = {
 const setNumberOfWorkers = (numWorkers: number) => {
   workers.numWorkers = numWorkers;
 };
+
+type ThreadPoolState =
+  | { type: 'none' }
+  | { type: 'initializing'; initPromise: Promise<void> }
+  | { type: 'running' }
+  | { type: 'exiting'; exitPromise: Promise<void> };
+
+function WithThreadPool({
+  initThreadPool,
+  exitThreadPool,
+}: {
+  initThreadPool: () => Promise<void>;
+  exitThreadPool: () => Promise<void>;
+}) {
+  // state machine to enable calling multiple functions that need a thread pool at once
+  let state: ThreadPoolState = { type: 'none' };
+  let isNeededBy = 0;
+
+  return async function withThreadPool<T>(run: () => Promise<T>): Promise<T> {
+    isNeededBy++;
+    // none, exiting -> initializing
+    switch (state.type) {
+      case 'none': {
+        let initPromise = initThreadPool();
+        state = { type: 'initializing', initPromise };
+        break;
+      }
+      case 'initializing':
+      case 'running':
+        break;
+      case 'exiting': {
+        let initPromise = state.exitPromise.then(initThreadPool);
+        state = { type: 'initializing', initPromise };
+        break;
+      }
+    }
+    // initializing -> running
+    if (state.type === 'initializing') await state.initPromise;
+    state = { type: 'running' };
+
+    let result: T;
+    try {
+      result = await run();
+    } finally {
+      // running -> exiting IF we don't need to run longer
+      isNeededBy--;
+
+      if (state.type !== 'running') {
+        throw Error('bug in ThreadPool state machine');
+      }
+
+      if (isNeededBy < 1) {
+        let exitPromise = exitThreadPool();
+        state = { type: 'exiting', exitPromise };
+
+        // exiting -> none IF we didn't move exiting -> initializing
+        await exitPromise;
+        if (state.type === 'exiting') {
+          state = { type: 'none' };
+        }
+      }
+    }
+    return result;
+  };
+}

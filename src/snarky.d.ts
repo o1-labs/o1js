@@ -628,6 +628,7 @@ declare namespace Pickles {
     main: (publicInput: MlArray<FieldVar>) => Promise<{
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
+      previousProofs: MlArray<Proof>;
       shouldVerify: MlArray<BoolVar>;
     }>;
     /**
@@ -655,8 +656,7 @@ declare namespace Pickles {
   ];
 
   type Prover = (
-    publicInput: MlArray<FieldConst>,
-    previousProofs: MlArray<Proof>
+    publicInput: MlArray<FieldConst>
   ) => Promise<[_: 0, publicOutput: MlArray<FieldConst>, proof: Proof]>;
 }
 
