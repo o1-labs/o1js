@@ -156,7 +156,7 @@ const SHA2 = {
    * ```
    *
    */
-  hash(length: 224 | 256 | 384 | 512, data: FlexibleBytes) {
+  hash(length: 224 | 256 | 384 | 512, data: FlexibleBytes): Bytes {
     // Infer the type T based on the value of `length` (conditional type)
     type WordType = typeof length extends 224 | 256 ? UInt32 : UInt64;
 
@@ -164,7 +164,7 @@ const SHA2 = {
     // padding the message $5.1.1 into blocks that are a multiple of 512
     let messageBlocks = padding<WordType>(data);
 
-    let H = SHA2.initialState();
+    let H = SHA2.initialState(length);
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
@@ -183,12 +183,11 @@ const SHA2 = {
 
     return digest;
   },
-  length: 224 | 256 | 384 | 512,
   compression,
   messageSchedule,
   padding,
-  initialState<T extends UInt32 | UInt64>() {
-    switch (SHA2.length) {
+  initialState<T extends UInt32 | UInt64>(length: 224 | 256 | 384 | 512): T[] {
+    switch (length) {
       case 224:
         return SHA2Constants.H224.map((x) => UInt32.from(x) as T);
       case 256:
