@@ -16,7 +16,7 @@ import { divMod32 } from './arithmetic.js';
 import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';
 
-export { SHA2 };
+export { SHA256 };
 
 const SHA256Constants = {
   // constants §4.2.2
