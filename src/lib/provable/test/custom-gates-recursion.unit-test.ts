@@ -29,7 +29,7 @@ let emptyProgram = ZkProgram({
   name: 'empty',
   methods: { run: { privateInputs: [], async method() {} } },
 });
-class EmptyProof extends ZkProgram.Proof(emptyProgram) {}
+class EmptyProof extends emptyProgram.Proof {}
 
 let program = ZkProgram({
   name: 'ecdsa',

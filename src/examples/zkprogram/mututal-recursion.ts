@@ -47,15 +47,13 @@ const add = ZkProgram({
   },
 });
 
-const AddProof = ZkProgram.Proof(add);
-
 const multiply = ZkProgram({
   name: 'multiply',
   publicInput: Undefined,
   publicOutput: Field,
   methods: {
     performMultiplication: {
-      privateInputs: [Field, AddProof],
+      privateInputs: [Field, add.Proof],
       async method(field: Field, addProof: Proof<Undefined, Field>) {
         addProof.verify();
         const multiplicationResult = addProof.publicOutput.mul(field);
