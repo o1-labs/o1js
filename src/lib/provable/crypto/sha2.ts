@@ -45,7 +45,7 @@ const SHA2Constants = {
   // - SHA2-224 and SHA2-256: §4.1.2 eq.4.6
   DELTA_ZERO_224_256: [3, 7, 18] as TupleN<number, 3>,
   // - SHA2-384 and SHA2-512: §4.1.3 eq.4.12
-  DELTA_ZERO_384_512: [7, 1, 8] as TupleN<number, 3>,
+  DELTA_ZERO_384_512: [7, 8, 1] as TupleN<number, 3>,
 
   // Offsets for the DeltaOne function for SHA2.
   // - SHA2-224 and SHA2-256: §4.1.2 eq.4.7
@@ -237,7 +237,7 @@ const SHA2 = {
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
-      const W = createMessageSchedule(messageBlocks[i]);
+      const W = messageSchedule(messageBlocks[i]);
       H = compression(H, W);
     }
 
@@ -246,7 +246,7 @@ const SHA2 = {
   },
   length: 224 | 256 | 384 | 512,
   compression,
-  createMessageSchedule,
+  messageSchedule,
   padding,
   initialState<T extends UInt32 | UInt64>() {
     switch (SHA2.length) {
@@ -337,7 +337,7 @@ function padding<T extends UInt32 | UInt64>(data: FlexibleBytes): T[][] {
  *            or the 1024-bit message block (16-element array of UInt64).
  * @returns The message schedule (64-element array of UInt32 or 80-element array of UInt64).
  */
-function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
+function messageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
   // §6.2.2.1 and §6.4.2.1
 
   // Declare W as an empty array of type T[] (generic array)
@@ -352,7 +352,7 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
     : SHA2Constants.NUM_WORDS_384_512;
 
   // prepare message block
-  for (let t = 0; t <= 15; t++) W[t] = M[t];
+  for (let t = 0; t < 16; t++) W[t] = M[t];
   for (let t = 16; t < numWords; t++) {
     // the field element is unreduced and not proven to be 32bit | 64bit,
     // we will do this later to save constraints
@@ -476,22 +476,36 @@ function intermediateHash<T extends UInt32 | UInt64>(
 
 // Subroutines for SHA2
 
-function Ch<T extends UInt32 | UInt64>(x: T, y: T, z: T) {
+function Ch<T extends UInt32 | UInt64>(x: T, y: T, z: T): T {
   // ch(x, y, z) = (x & y) ^ (~x & z)
   //             = (x & y) + (~x & z) (since x & ~x = 0)
-  let xAndY = x.and(y).value;
-  let xNotAndZ = x.not().and(z).value;
-  let ch = xAndY.add(xNotAndZ).seal();
-  return UInt32.Unsafe.fromField(ch);
+  if (isShort()) {
+    let xAndY = (x as UInt32).and(y as UInt32).value;
+    let xNotAndZ = (x as UInt32).not().and(z as UInt32).value;
+    let ch = xAndY.add(xNotAndZ).seal();
+    return UInt32.Unsafe.fromField(ch) as T;
+  } else {
+    let xAndY = (x as UInt64).and(y as UInt64).value;
+    let xNotAndZ = (x as UInt64).not().and(z as UInt64).value;
+    let ch = xAndY.add(xNotAndZ).seal();
+    return UInt64.Unsafe.fromField(ch) as T;
+  }
 }
 
-function Maj<T extends UInt32 | UInt64>(x: T, y: T, z: T) {
+function Maj<T extends UInt32 | UInt64>(x: T, y: T, z: T): T {
   // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z)
   //              = (x + y + z - (x ^ y ^ z)) / 2
-  let sum = x.value.add(y.value).add(z.value).seal();
-  let xor = x.xor(y).xor(z).value;
-  let maj = sum.sub(xor).div(2).seal();
-  return UInt32.Unsafe.fromField(maj);
+  if (isShort()) {
+    let sum = (x as UInt32).value.add(y.value).add(z.value).seal();
+    let xor = (x as UInt32).xor(y as UInt32).xor(z as UInt32).value;
+    let maj = sum.sub(xor).div(2).seal();
+    return UInt32.Unsafe.fromField(maj) as T;
+  } else {
+    let sum = (x as UInt64).value.add(y.value).add(z.value).seal();
+    let xor = (x as UInt64).xor(y as UInt64).xor(z as UInt64).value;
+    let maj = sum.sub(xor).div(2).seal();
+    return UInt64.Unsafe.fromField(maj) as T;
+  }
 }
 
 function SigmaZero<T extends UInt32 | UInt64>(x: T) {
@@ -508,44 +522,50 @@ function SigmaOne<T extends UInt32 | UInt64>(x: T) {
 
 // lowercase sigma = delta to avoid confusing function names
 
-function DeltaZero<T extends UInt32 | UInt64>(x: T) {
+function DeltaZero<T extends UInt32 | UInt64>(x: T): T {
   return isShort()
     ? sigma(x, SHA2Constants.DELTA_ZERO_224_256, true)
     : sigma(x, SHA2Constants.DELTA_ZERO_384_512, true);
 }
 
-function DeltaOne<T extends UInt32 | UInt64>(x: T) {
+function DeltaOne<T extends UInt32 | UInt64>(x: T): T {
   return isShort()
     ? sigma(x, SHA2Constants.DELTA_ONE_224_256, true)
     : sigma(x, SHA2Constants.DELTA_ONE_384_512, true);
 }
 
-function ROTR<T extends UInt32 | UInt64>(n: number, x: T) {
-  return x.rotate(n, 'right');
+function ROTR<T extends UInt32 | UInt64>(n: number, x: T): T {
+  return x.rotate(n, 'right') as T;
 }
 
-function SHR<T extends UInt32 | UInt64>(n: number, x: T) {
-  let val = x.rightShift(n);
-  return val;
+function SHR<T extends UInt32 | UInt64>(n: number, x: T): T {
+  return x.rightShift(n) as T;
 }
 
 function sigmaSimple<T extends UInt32 | UInt64>(
   u: T,
   bits: TupleN<number, 3>,
   firstShifted = false
-) {
+): T {
   let [r0, r1, r2] = bits;
-  let rot0 = firstShifted ? SHR(r0, u) : ROTR(r0, u);
-  let rot1 = ROTR(r1, u);
-  let rot2 = ROTR(r2, u);
-  return rot0.xor(rot1).xor(rot2);
+  if (isShort()) {
+    let rot0 = firstShifted ? (SHR(r0, u) as UInt32) : (ROTR(r0, u) as UInt32);
+    let rot1 = ROTR(r1, u) as UInt32;
+    let rot2 = ROTR(r2, u) as UInt32;
+    return rot0.xor(rot1).xor(rot2) as T;
+  } else {
+    let rot0 = firstShifted ? (SHR(r0, u) as UInt64) : (ROTR(r0, u) as UInt64);
+    let rot1 = ROTR(r1, u) as UInt64;
+    let rot2 = ROTR(r2, u) as UInt64;
+    return rot0.xor(rot1).xor(rot2) as T;
+  }
 }
 
 function sigma<T extends UInt32 | UInt64>(
   u: T,
   bits: TupleN<number, 3>,
   firstShifted = false
-) {
+): T {
   if (u.isConstant()) return sigmaSimple(u, bits, firstShifted);
 
   let [r0, r1, r2] = bits; // TODO assert bits are sorted
