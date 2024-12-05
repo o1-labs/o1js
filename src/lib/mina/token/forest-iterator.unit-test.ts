@@ -16,6 +16,7 @@ import {
 import assert from 'assert';
 import { Field, Bool } from '../../provable/wrapped.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
+import { NetworkId } from '../../../mina-signer/index.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 
@@ -56,7 +57,7 @@ test.custom({ timeBudget: 1000 })(
   (flatUpdatesBigint) => {
     // reference: bigint callforest hash from mina-signer
     let forestBigint = accountUpdatesToCallForest(flatUpdatesBigint);
-    let expectedHash = callForestHash(forestBigint, 'testnet');
+    let expectedHash = callForestHash(forestBigint, 'devnet');
 
     let flatUpdates = flatUpdatesBigint.map(accountUpdateFromBigint);
     let forest = AccountUpdateForest.fromFlatArray(flatUpdates);

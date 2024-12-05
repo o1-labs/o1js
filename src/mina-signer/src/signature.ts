@@ -44,7 +44,7 @@ export {
 };
 
 const networkIdMainnet = 0x01n;
-const networkIdTestnet = 0x00n;
+const networkIdDevnet = 0x00n;
 
 type Signature = { r: Field; s: Scalar };
 type SignatureJson = { field: string; scalar: string };
@@ -111,7 +111,7 @@ function verifyFieldElement(
  * @param privateKey The `privateKey` represents an element of the Pallas scalar field, and should be given as a native bigint.
  * It can be converted from the base58 string representation using {@link PrivateKey.fromBase58}.
  *
- * @param networkId The `networkId` is either "testnet" or "mainnet" and ensures that testnet transactions can
+ * @param networkId The `networkId` is either "devnet" or "mainnet" and ensures that testnet transactions can
  * never be used as valid mainnet transactions.
  *
  * @see {@link deriveNonce} and {@link hashMessage} for details on how the nonce and hash are computed.
@@ -331,8 +331,9 @@ function getNetworkIdHashInput(network: NetworkId): [bigint, number] {
   switch (s) {
     case 'mainnet':
       return [networkIdMainnet, 8];
+    case 'devnet':
     case 'testnet':
-      return [networkIdTestnet, 8];
+      return [networkIdDevnet, 8];
     default:
       return networkIdOfString(s);
   }
@@ -356,6 +357,7 @@ const signaturePrefix = (network: NetworkId) => {
   switch (s) {
     case 'mainnet':
       return prefixes.signatureMainnet;
+    case 'devnet':
     case 'testnet':
       return prefixes.signatureTestnet;
     default:
@@ -368,6 +370,7 @@ const zkAppBodyPrefix = (network: NetworkId) => {
   switch (s) {
     case 'mainnet':
       return prefixes.zkappBodyMainnet;
+    case 'devnet':
     case 'testnet':
       return prefixes.zkappBodyTestnet;
     default:
