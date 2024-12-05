@@ -330,21 +330,6 @@ function padding<T extends UInt32 | UInt64>(data: FlexibleBytes): T[][] {
   return chunk(chunks as T[], 16);
 }
 
-// Helper function to create chunks based on the size and type (UInt32 or UInt64)
-function createChunks<T extends UInt32 | UInt64>(
-  paddedMessage: UInt8[],
-  byteSize: number,
-  fromBytes: Function
-): T[] {
-  let chunks: any[] = [];
-  // bytesToWord expects little endian, so we reverse the bytes
-  for (let i = 0; i < paddedMessage.length; i += byteSize) {
-    // Chunk the data based on the specified byte size (4 bytes for UInt32, 8 bytes for UInt64)
-    chunks.push(fromBytes(paddedMessage.slice(i, i + byteSize)));
-  }
-  return chunks;
-}
-
 /**
  * Prepares the message schedule for the SHA2 compression function from the given message block.
  *
@@ -376,13 +361,7 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
       .add(DeltaZero(W[t - 15]).value.add(W[t - 16].value));
 
     // mod 32 | 64 bit the unreduced field element
-    if (is_short) {
-      W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 48).remainder) as T;
-    } else {
-      W[t] = UInt64.Unsafe.fromField(
-        divMod64(unreduced, 64 + 16).remainder
-      ) as T;
-    }
+    W[t] = reduceMod(unreduced);
   }
 
   return W;
@@ -433,24 +412,12 @@ function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[]) {
     h = g;
     g = f;
     f = e;
-    e = is_short
-      ? (UInt32.Unsafe.fromField(
-          divMod32(d.value.add(unreducedT1), 48).remainder
-        ) as T)
-      : (UInt64.Unsafe.fromField(
-          divMod64(d.value.add(unreducedT1), 64 + 16).remainder
-        ) as T);
+    e = reduceMod(d.value.add(unreducedT1));
     // mod 32 | 64 bit the unreduced field element
     d = c;
     c = b;
     b = a;
-    a = is_short
-      ? (UInt32.Unsafe.fromField(
-          divMod32(unreducedT2.add(unreducedT1), 48).remainder
-        ) as T)
-      : (UInt64.Unsafe.fromField(
-          divMod64(unreducedT2.add(unreducedT1), 64 + 16).remainder
-        ) as T);
+    a = reduceMod(unreducedT2.add(unreducedT1));
     // mod 32 | 64 bit
   }
 
@@ -465,6 +432,38 @@ function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[]) {
   return H;
 }
 
+// Helper functions
+
+// Helper function to check if the hash length is short (SHA2-224 or SHA2-256)
+// depending on the generic type T used for the word size (UInt32 or UInt64)
+function isShort<T extends UInt32 | UInt64>(): boolean {
+  return ({} as T) instanceof UInt32;
+}
+
+// Shorthand to reduce a field element modulo 32 or 64 bits depending on T
+function reduceMod<T extends UInt32 | UInt64>(x: Field): T {
+  if (isShort()) {
+    return UInt32.Unsafe.fromField(divMod32(x, 32 + 16).remainder) as T;
+  } else {
+    return UInt64.Unsafe.fromField(divMod64(x, 64 + 16).remainder) as T;
+  }
+}
+
+// Helper function to create chunks based on the size and type (UInt32 or UInt64)
+function createChunks<T extends UInt32 | UInt64>(
+  paddedMessage: UInt8[],
+  byteSize: number,
+  fromBytes: Function
+): T[] {
+  let chunks: any[] = [];
+  // bytesToWord expects little endian, so we reverse the bytes
+  for (let i = 0; i < paddedMessage.length; i += byteSize) {
+    // Chunk the data based on the specified byte size (4 bytes for UInt32, 8 bytes for UInt64)
+    chunks.push(fromBytes(paddedMessage.slice(i, i + byteSize)));
+  }
+  return chunks;
+}
+
 function intermediateHash<T extends UInt32 | UInt64>(
   variables: T[],
   H: T[],
@@ -473,12 +472,6 @@ function intermediateHash<T extends UInt32 | UInt64>(
   for (let i = 0; i < 8; i++) {
     H[i] = addMod(variables[i], H[i]) as T;
   }
-}
-
-// Helper function to check if the hash length is short (SHA2-224 or SHA2-256)
-// depending on the generic type T used for the word size (UInt32 or UInt64)
-function isShort<T extends UInt32 | UInt64>(): boolean {
-  return ({} as T) instanceof UInt32;
 }
 
 // Subroutines for SHA2
