@@ -55,8 +55,8 @@ class ProofBase<Input = any, Output = any> {
    */
   declare() {
     if (!ZkProgramContext.has()) return false;
-    const Proof = this.constructor as Subclass<typeof ProofBase>;
-    ZkProgramContext.declareProof({ Proof, proof: this });
+    const ProofClass = this.constructor as Subclass<typeof ProofBase>;
+    ZkProgramContext.declareProof({ ProofClass, proofInstance: this });
     return true;
   }
 

@@ -857,7 +857,9 @@ async function analyzeMethod(
         return method(...args);
       return method(publicInput, ...args);
     });
-    proofs = ZkProgramContext.getDeclaredProofs().map(({ Proof }) => Proof);
+    proofs = ZkProgramContext.getDeclaredProofs().map(
+      ({ ProofClass }) => ProofClass
+    );
   } finally {
     ZkProgramContext.leave(id);
   }
@@ -946,8 +948,8 @@ function picklesRuleFromFunction(
 
     // extract proof statements for Pickles
     let previousStatements = proofs.map(
-      ({ proof }): Pickles.Statement<FieldVar> => {
-        let fields = proof.publicFields();
+      ({ proofInstance }): Pickles.Statement<FieldVar> => {
+        let fields = proofInstance.publicFields();
         let input = MlFieldArray.to(fields.input);
         let output = MlFieldArray.to(fields.output);
         return MlPair(input, output);
@@ -955,13 +957,13 @@ function picklesRuleFromFunction(
     );
 
     // handle dynamic proofs
-    proofs.forEach(({ Proof, proof }) => {
-      if (!(proof instanceof DynamicProof)) return;
+    proofs.forEach(({ ProofClass, proofInstance }) => {
+      if (!(proofInstance instanceof DynamicProof)) return;
 
       // Initialize side-loaded verification key
-      const tag = Proof.tag();
+      const tag = ProofClass.tag();
       const computedTag = SideloadedTag.get(tag.name);
-      const vk = proof.usedVerificationKey;
+      const vk = proofInstance.usedVerificationKey;
 
       if (vk === undefined) {
         throw new Error(
@@ -1010,9 +1012,9 @@ function picklesRuleFromFunction(
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
-      previousProofs: MlArray.to(proofs.map(({ proof }) => proof.proof)),
+      previousProofs: MlArray.to(proofs.map((p) => p.proofInstance.proof)),
       shouldVerify: MlArray.to(
-        proofs.map((proof) => proof.proof.shouldVerify.toField().value)
+        proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
       ),
     };
   }
