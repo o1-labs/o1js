@@ -35,11 +35,11 @@ const SHA2Constants = {
   // It corresponds to 1024 - 896 = 128
   LENGTH_CHUNK_384_512: 128,
 
-  // Number of words in message schedule for SHA2-224 and SHA2-256
-  SCHEDULE_WORDS_224_256: 64,
+  // Number of words in message schedule and compression for SHA2-224 and SHA2-256
+  NUM_WORDS_224_256: 64,
 
-  // Number of words in message schedule for SHA2-384 and SHA2-512
-  SCHEDULE_WORDS_384_512: 80,
+  // Number of words in message schedule and compression for SHA2-384 and SHA2-512
+  NUM_WORDS_384_512: 80,
 
   // Offsets for the DeltaZero function for SHA2
   // - SHA2-224 and SHA2-256: §4.1.2 eq.4.6
@@ -331,11 +331,11 @@ function padding<T extends UInt32 | UInt64>(data: FlexibleBytes): T[][] {
 }
 
 // Helper function to create chunks based on the size and type (UInt32 or UInt64)
-function createChunks(
+function createChunks<T extends UInt32 | UInt64>(
   paddedMessage: UInt8[],
   byteSize: number,
   fromBytes: Function
-): UInt32[] | UInt64[] {
+): T[] {
   let chunks: any[] = [];
   // bytesToWord expects little endian, so we reverse the bytes
   for (let i = 0; i < paddedMessage.length; i += byteSize) {
@@ -347,13 +347,14 @@ function createChunks(
 
 /**
  * Prepares the message schedule for the SHA2 compression function from the given message block.
- * §6.2.2.1 and §6.4.2.1
  *
  * @param M - The 512-bit message block (16-element array of UInt32)
  *            or the 1024-bit message block (16-element array of UInt64).
  * @returns The message schedule (64-element array of UInt32 or 80-element array of UInt64).
  */
 function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
+  // §6.2.2.1 and §6.4.2.1
+
   // Declare W as an empty array of type T[] (generic array)
   const W: T[] = [];
 
@@ -361,13 +362,13 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
 
   // for each message block of 16 x 32bit | 64bit do:
 
-  let scheduleWords = is_short
-    ? SHA2Constants.SCHEDULE_WORDS_224_256
-    : SHA2Constants.SCHEDULE_WORDS_384_512;
+  let numWords = is_short
+    ? SHA2Constants.NUM_WORDS_224_256
+    : SHA2Constants.NUM_WORDS_384_512;
 
   // prepare message block
   for (let t = 0; t <= 15; t++) W[t] = M[t];
-  for (let t = 16; t < scheduleWords; t++) {
+  for (let t = 16; t < numWords; t++) {
     // the field element is unreduced and not proven to be 32bit | 64bit,
     // we will do this later to save constraints
     let unreduced = DeltaOne(W[t - 2])
@@ -378,7 +379,9 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
     if (is_short) {
       W[t] = UInt32.Unsafe.fromField(divMod32(unreduced, 48).remainder) as T;
     } else {
-      W[t] = UInt64.Unsafe.fromField(divMod64(unreduced).remainder) as T;
+      W[t] = UInt64.Unsafe.fromField(
+        divMod64(unreduced, 64 + 16).remainder
+      ) as T;
     }
   }
 
@@ -394,6 +397,14 @@ function createMessageSchedule<T extends UInt32 | UInt64>(M: T[]): T[] {
  * @returns The updated intermediate hash values after compression.
  */
 function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[]) {
+  let is_short = isShort();
+  let numWords = is_short
+    ? SHA2Constants.NUM_WORDS_224_256
+    : SHA2Constants.NUM_WORDS_384_512;
+
+  let k = is_short ? SHA2Constants.K224_256 : SHA2Constants.K384_512;
+
+  // §6.2.2.2 and §6.4.2.2:
   // initialize working variables
   let a = H[0];
   let b = H[1];
@@ -404,13 +415,15 @@ function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[]) {
   let g = H[6];
   let h = H[7];
 
+  // §6.2.2.3 and §6.4.2.3:
   // main loop
-  for (let t = 0; t <= 63; t++) {
-    // T1 is unreduced and not proven to be 32bit, we will do this later to save constraints
+  for (let t = 0; t < numWords; t++) {
+    // T1 is unreduced and not proven to be 32 | 64 bit,
+    // we will do this later to save constraints
     const unreducedT1 = h.value
       .add(SigmaOne(e).value)
       .add(Ch(e, f, g).value)
-      .add(SHA256Constants.K[t])
+      .add(k[t])
       .add(W[t].value)
       .seal();
 
@@ -420,28 +433,46 @@ function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[]) {
     h = g;
     g = f;
     f = e;
-    e = UInt32.Unsafe.fromField(
-      divMod32(d.value.add(unreducedT1), 48).remainder
-    ); // mod 32bit the unreduced field element
+    e = is_short
+      ? (UInt32.Unsafe.fromField(
+          divMod32(d.value.add(unreducedT1), 48).remainder
+        ) as T)
+      : (UInt64.Unsafe.fromField(
+          divMod64(d.value.add(unreducedT1), 64 + 16).remainder
+        ) as T);
+    // mod 32 | 64 bit the unreduced field element
     d = c;
     c = b;
     b = a;
-    a = UInt32.Unsafe.fromField(
-      divMod32(unreducedT2.add(unreducedT1), 48).remainder
-    ); // mod 32bit
+    a = is_short
+      ? (UInt32.Unsafe.fromField(
+          divMod32(unreducedT2.add(unreducedT1), 48).remainder
+        ) as T)
+      : (UInt64.Unsafe.fromField(
+          divMod64(unreducedT2.add(unreducedT1), 64 + 16).remainder
+        ) as T);
+    // mod 32 | 64 bit
   }
 
+  // §6.2.2.4 and §6.4.2.4
   // new intermediate hash value
-  H[0] = H[0].addMod32(a);
-  H[1] = H[1].addMod32(b);
-  H[2] = H[2].addMod32(c);
-  H[3] = H[3].addMod32(d);
-  H[4] = H[4].addMod32(e);
-  H[5] = H[5].addMod32(f);
-  H[6] = H[6].addMod32(g);
-  H[7] = H[7].addMod32(h);
+  if (is_short) {
+    intermediateHash([a, b, c, d, e, f, g, h], H, UInt32.prototype.addMod32);
+  } else {
+    intermediateHash([a, b, c, d, e, f, g, h], H, UInt64.prototype.addMod64);
+  }
 
   return H;
+}
+
+function intermediateHash<T extends UInt32 | UInt64>(
+  variables: T[],
+  H: T[],
+  addMod: Function
+) {
+  for (let i = 0; i < 8; i++) {
+    H[i] = addMod(variables[i], H[i]) as T;
+  }
 }
 
 // Helper function to check if the hash length is short (SHA2-224 or SHA2-256)
