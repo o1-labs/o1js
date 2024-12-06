@@ -417,17 +417,25 @@ function ZkProgram<
         ProvableType.get(type).fromValue(arg)
       );
       if (!doProving) {
-        let { publicOutput, auxiliaryOutput } =
-          (hasPublicInput
-            ? await (methods[key].method as any)(publicInput, ...args)
-            : await (methods[key].method as any)(...args)) ?? {};
+        // we step into a ZkProgramContext here to match the context nesting
+        // that would happen if proofs were enabled -- otherwise, proofs declared
+        // in an inner program could be counted to the outer program
+        let id = ZkProgramContext.enter();
+        try {
+          let { publicOutput, auxiliaryOutput } =
+            (hasPublicInput
+              ? await (methods[key].method as any)(publicInput, ...args)
+              : await (methods[key].method as any)(...args)) ?? {};
 
-        let proof = await SelfProof.dummy(
-          publicInput,
-          publicOutput,
-          await getMaxProofsVerified()
-        );
-        return { proof, auxiliaryOutput };
+          let proof = await SelfProof.dummy(
+            publicInput,
+            publicOutput,
+            await getMaxProofsVerified()
+          );
+          return { proof, auxiliaryOutput };
+        } finally {
+          ZkProgramContext.leave(id);
+        }
       }
 
       if (compileOutput === undefined) {
