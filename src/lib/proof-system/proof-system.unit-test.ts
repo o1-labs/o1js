@@ -26,7 +26,7 @@ const EmptyProgram = ZkProgram({
   methods: { run: { privateInputs: [], async method(_) {} } },
 });
 
-class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
+class EmptyProof extends EmptyProgram.Proof {}
 
 // unit-test zkprogram creation helpers:
 // -) sortMethodArguments

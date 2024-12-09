@@ -221,6 +221,8 @@ function ZkProgram<
   }
 ): {
   name: string;
+  maxProofsVerified(): Promise<0 | 1 | 2>;
+
   compile: (options?: {
     cache?: Cache;
     forceRecompile?: boolean;
@@ -240,6 +242,7 @@ function ZkProgram<
       ReturnType<typeof analyzeMethod>
     >;
   }>;
+
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
   privateInputTypes: PrivateInputs;
@@ -254,6 +257,12 @@ function ZkProgram<
       PrivateInputs[I]
     >;
   };
+
+  Proof: typeof Proof<
+    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    InferProvableOrVoid<Get<Config, 'publicOutput'>>
+  >;
+
   proofsEnabled: boolean;
   setProofsEnabled(proofsEnabled: boolean): void;
 } & {
@@ -571,10 +580,13 @@ function ZkProgram<
   const program = Object.assign(
     selfTag,
     {
+      maxProofsVerified: getMaxProofsVerified,
+
       compile,
       verify,
       digest,
       analyzeMethods,
+
       publicInputType: publicInputType as ProvableOrUndefined<
         Get<Config, 'publicInput'>
       >,
@@ -590,12 +602,14 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+      proveRecursively,
+
+      Proof: SelfProof,
+
       proofsEnabled: doProving,
       setProofsEnabled(proofsEnabled: boolean) {
         doProving = proofsEnabled;
       },
-
-      proveRecursively,
     },
     provers
   );
@@ -1178,7 +1192,7 @@ type Infer<T> = T extends Subclass<typeof ProofBase>
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
-} & any[];
+};
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
