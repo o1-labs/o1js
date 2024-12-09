@@ -1,4 +1,8 @@
-import { initializeBindings, withThreadPool } from '../../snarky.js';
+import {
+  areBindingsInitialized,
+  initializeBindings,
+  withThreadPool,
+} from '../../snarky.js';
 import { Pickles } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import type {
@@ -91,6 +95,15 @@ class ProofBase<Input = any, Output = any> {
   }
   publicFields() {
     return (this.constructor as typeof ProofBase).publicFields(this);
+  }
+
+  static _proofFromBase64(proofString: string, maxProofsVerified: 0 | 1 | 2) {
+    assertBindingsInitialized();
+    return Pickles.proofOfBase64(proofString, maxProofsVerified)[1];
+  }
+  static _proofToBase64(proof: Pickles.Proof, maxProofsVerified: 0 | 1 | 2) {
+    assertBindingsInitialized();
+    return Pickles.proofToBase64([maxProofsVerified, proof]);
   }
 }
 
@@ -427,4 +440,11 @@ function extractProofTypes(type: ProvableType) {
   let value = ProvableType.synthesize(type);
   let proofValues = extractProofs(value);
   return proofValues.map((proof) => proof.constructor as typeof ProofBase);
+}
+
+function assertBindingsInitialized() {
+  assert(
+    areBindingsInitialized,
+    'Bindings are not initialized. Try calling `await initializeBindings()` first.'
+  );
 }
