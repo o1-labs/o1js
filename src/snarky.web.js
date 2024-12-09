@@ -29,4 +29,5 @@ export {
   withThreadPool,
   wasm,
   initializeBindings,
+  isInitialized as areBindingsInitialized,
 };

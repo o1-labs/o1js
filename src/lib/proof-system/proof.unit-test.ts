@@ -13,7 +13,18 @@ test('Proof provable', async () => {
 
   expect(MyProof.provable.sizeInFields()).toEqual(1);
 
+  // can't call this before bindings are initialized
+  expect(() => MyProof._proofFromBase64('', 0)).toThrow(
+    'Bindings are not initialized'
+  );
+
   let proof = await MyProof.dummy(Field(1n), undefined, 0);
+
+  // now bindings are initialized and we can call this
+  let proofBase64 = MyProof._proofToBase64(proof.proof, 0);
+  let proofRecovered = MyProof._proofFromBase64(proofBase64, 0);
+  let proofBase64_2 = MyProof._proofToBase64(proofRecovered, 0);
+  expect(proofBase64).toEqual(proofBase64_2);
 
   expect(MyProof.provable.toFields(proof)).toEqual([Field(1n)]);
   expect(MyProof.provable.toAuxiliary(proof)).toEqual([
