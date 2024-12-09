@@ -25,6 +25,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
 - Increased maximum supported amount of methods in a `SmartContract` or `ZkProgram` to 30. https://github.com/o1-labs/o1js/pull/1918
 - Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
+- Improve usage of branches of proof-systems. Mina uses only the master branch
+  from now. https://github.com/o1-labs/o1js/pull/1942
 
 ### Fixed
 
