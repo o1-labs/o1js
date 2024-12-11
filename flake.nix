@@ -158,6 +158,15 @@
                       ./package-lock.json
                     ];
                   });
+              # If you see 'ERROR: npmDepsHash is out of date' in ci
+              # set this to blank run ``nix build o1js#o1js-bindings` You should get an output like this:
+              # If you don't want to install nix you can also set it to "" and run ci to get the new hash
+
+              # error: hash mismatch in fixed-output derivation '/nix/store/a03cg2az0b2cvjsp1wnr89clf31i79c1-o1js-npm-deps.drv':
+              # specified: sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+              #    got:    sha256-8EPvXpOgn0nvm/pFKN3h6EMjabOeBqfy5optIfe8E8Q=
+              # replace npmDepsHash bellow with the new hash
+
               npmDepsHash = "sha256-8EPvXpOgn0nvm/pFKN3h6EMjabOeBqfy5optIfe8E8Q=";
               # The prepack script runs the build script, which we'd rather do in the build phase.
               npmPackFlags = [ "--ignore-scripts" ];
