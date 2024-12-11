@@ -284,6 +284,7 @@
                 text =
                 ''
                 cp -r ${self.packages."${system}".o1js-bindings}/* ./src/bindings
+                chmod +w -R src/bindings/compiled
                 MINA_COMMIT=$(git -C src/mina rev-parse HEAD)
                 echo "The mina commit used to generate the backends for node and web is" "$MINA_COMMIT" \
                   > src/bindings/MINA_COMMIT
