@@ -115,6 +115,12 @@ test(
     expect(hash).not.toEqual(
       accountUpdateHash(
         accountUpdate,
+        NetworkId.toString(networkId) === 'mainnet' ? 'devnet' : 'mainnet'
+      )
+    );
+    expect(hash).not.toEqual(
+      accountUpdateHash(
+        accountUpdate,
         NetworkId.toString(networkId) === 'mainnet' ? 'testnet' : 'mainnet'
       )
     );
@@ -262,6 +268,9 @@ test(
     expect(
       verify(sigFieldElements, networkId === 'mainnet' ? 'testnet' : 'mainnet')
     ).toEqual(false);
+    expect(
+      verify(sigFieldElements, networkId === 'mainnet' ? 'devnet' : 'mainnet')
+    ).toEqual(false);
 
     // full end-to-end test: sign a zkapp transaction
     let sig = signZkappCommand(zkappCommandJson, feePayerKeyBase58, networkId);
@@ -276,6 +285,13 @@ test(
         sig,
         feePayerAddressBase58,
         networkId === 'mainnet' ? 'testnet' : 'mainnet'
+      )
+    ).toEqual(false);
+    expect(
+      verifyZkappCommandSignature(
+        sig,
+        feePayerAddressBase58,
+        networkId === 'mainnet' ? 'devnet' : 'mainnet'
       )
     ).toEqual(false);
   }

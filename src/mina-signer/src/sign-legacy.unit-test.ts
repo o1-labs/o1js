@@ -23,7 +23,7 @@ import { RandomTransaction } from './random-transaction.js';
 import { NetworkId } from './types.js';
 
 let { privateKey, publicKey } = keypair;
-let networks: NetworkId[] = ['testnet', 'mainnet'];
+let networks: NetworkId[] = ['devnet', 'testnet', 'mainnet'];
 
 // test hard-coded cases against reference signature
 
@@ -73,16 +73,26 @@ test(
       verifyPayment(payment, sig, publicKey, network);
 
     // valid signatures & verification matrix
+    let devnet = signPayment(payment, privateKey, 'devnet');
     let testnet = signPayment(payment, privateKey, 'testnet');
     let mainnet = signPayment(payment, privateKey, 'mainnet');
+    assert(verify(devnet, 'testnet') === true);
+    assert(verify(testnet, 'devnet') === true);
+
     assert(verify(testnet, 'testnet') === true);
     assert(verify(testnet, 'mainnet') === false);
     assert(verify(mainnet, 'testnet') === false);
+
+    assert(verify(devnet, 'devnet') === true);
+    assert(verify(devnet, 'mainnet') === false);
+    assert(verify(mainnet, 'devnet') === false);
     assert(verify(mainnet, 'mainnet') === true);
 
     // fails when signing with wrong private key
     let testnetWrong = signPayment(payment, otherKey, 'testnet');
+    let devnetWrong = signPayment(payment, otherKey, 'devnet');
     let mainnetWrong = signPayment(payment, otherKey, 'mainnet');
+    assert(verify(devnetWrong, 'devnet') === false);
     assert(verify(testnetWrong, 'testnet') === false);
     assert(verify(mainnetWrong, 'mainnet') === false);
   }

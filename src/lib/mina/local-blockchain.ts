@@ -106,7 +106,7 @@ async function LocalBlockchain({
   const originalProofsEnabled = proofsEnabled;
 
   return {
-    getNetworkId: () => 'testnet' as NetworkId,
+    getNetworkId: () => 'devnet' as NetworkId,
     proofsEnabled,
     getNetworkConstants() {
       return {
