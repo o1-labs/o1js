@@ -32,7 +32,6 @@ jobs:
           cd src/bindings
           git diff --exit-code
       - name: add build to gc-root if on main
-        # enabeling on this branch for 1 commit to test it
         if: github.ref == 'refs/heads/main'
         run: |
           nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot

@@ -104,10 +104,10 @@
                   ''
                   if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [ "$2" = 1.72-x86_64-unknowl-linux-gnu ]; }
                   then
-                    echo USING NIX TOOLCHAIN
+                    echo using nix toolchain
                     ${rustup}/bin/rustup run nix "''${@:3}"
                   else
-                    echo escape rustup "$@"
+                    echo using plain rustup "$@"
                     ${rustup}/bin/rustup "$@"
                   fi
                   '';
@@ -184,7 +184,6 @@
           test-vectors = rust-platform.buildRustPackage {
             src = pkgs.lib.sourceByRegex ./src/mina/src
               [
-                "^lib(/crypto(/kimchi_bindings(/stubs(/.*)?)?)?)?$"
                 "^lib(/crypto(/proof-systems(/.*)?)?)?$"
               ];
             sourceRoot = "source/lib/crypto/proof-systems/poseidon/export_test_vectors";
