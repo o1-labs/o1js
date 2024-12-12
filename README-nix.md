@@ -157,6 +157,14 @@ The last two lines tell Nix to use the Mina Foundation's cache whenever possible
 Errors while using Nix have been reported. This section collects a set of common
 errors and proposes fixes for them.
 
+```console
+DISCLAIMER!
+
+The proposed solutions might not work universally, and could vary depending on your local environment.
+This section should be read as a starting roadmap, and engineers are highly encouraged to add any new error found
+and possible fixes to improve the helpfulness of this document.
+```
+
 ### Compiling _export_test_vectors_
 
 When trying to update the bindings for o1js in MacOS, Nix might fail at
