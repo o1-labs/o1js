@@ -32,6 +32,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
 - Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
 
+### Added
+
+- Twisted Edwards curve operations https://github.com/o1-labs/o1js/pull/1283
+
 ## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
 
 - Support secp256r1 in elliptic curve and ECDSA gadgets https://github.com/o1-labs/o1js/pull/1885
