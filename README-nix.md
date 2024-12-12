@@ -89,7 +89,7 @@ alternatively `nix develop o1js#mina-shell` (which works better from MacOS).
 nix develop o1js#default
 ```
 
-You will observe that the current devshell becomes a Nix shell with the right
+The first time you run this command, you can expect it to take hours (or even a full day) to complete. Then, you will observe that the current devshell becomes a Nix shell with the right
 configuration for `o1js` and `mina`.
 
 In order to make sure that the bindings will be regenerated in the case that you
@@ -122,6 +122,35 @@ cd ./src/mina
 ./nix/pin.sh
 nix develop mina
 ```
+
+## Desirable configurations
+
+### Storage handling
+
+Using Nix can take up a lot of disk space if not optimized. Every time you run `nix develop {SOMETHING}`, Nix will create new generations taking gigabytes of data instead of replacing the old ones. This can soon become a problem in your hard disk if you don't handle it carefully. Here are a few indications that can help with this. 
+
+Nix has a garbage collector that **is not used by default** after every run. Instead, artifacts get accumulated in your disk unless configured otherwise. But if the full gargabe collector is executed (`nix-store --gc`), it will get the dependencies removed completely, and you can expect that the next time executing the Nix build will take hours to complete.
+
+Instead, you can try to run `nix-env --delete-generations old` or any other time bound like `7d`. This will not have any effect on MacOS though. Alternatively, the [direnv](https://github.com/direnv/direnv) / [nix-direnv](https://github.com/nix-community/nix-direnv) tool can create garbage collector roots that won't be collected for removal. It just keeps one gc-root to the latest build of the dev shell so that `nix-store --gc` only removes older generations.
+
+On top of that, adding `auto-optimise-store = true` to `/etc/nix/nix.conf` and running `nix-store --optimize` shoud help with disk usage, as it replaces duplicated files with symlinks.
+
+### Runtime optimization
+
+Other configurations are worth adding into your `/etc/nix/nix.conf`: 
+
+```bash
+keep-otuputs = true 
+max-jobs = 20
+extra-substituters = https://storage.googleapis.com/mina-nix-cache
+extra-trusted-public-keys = nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10=
+```
+
+The first of those flags tells the garbage collector to keep build time dependencies of current gc-roots, which should help reduce the amount of data that gets removed and rebuilt. 
+
+The second flag increases the default number of jobs being 1, so that rebuilding from scratch will take shorter time.
+
+The last two lines tell Nix to use the Mina Foundation's cache whenever possible, which should as well speed things up when building code that has been build in Mina's CI before.
 
 ## Common errors
 
@@ -268,4 +297,4 @@ Then, the error message would still contain old directories.
 
 #### Fix
 
-Create a new environment for Nix and start from scratch.
+Create a new environment for Nix and start from scratch. In particular, run the garbage collector which will remove old dependencies. 
