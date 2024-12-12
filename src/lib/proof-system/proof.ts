@@ -183,7 +183,7 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
 let sideloadedKeysCounter = 0;
 
 /**
- * The `DynamicProof` class enables circuits to verify proofs using in-ciruit verfication keys.
+ * The `DynamicProof` class enables circuits to verify proofs using in-ciruit verification keys.
  * This is opposed to the baked-in verification keys of the `Proof` class.
  *
  * In order to use this, a subclass of DynamicProof that specifies the public input and output types along with the maxProofsVerified number has to be created.

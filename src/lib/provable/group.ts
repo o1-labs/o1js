@@ -96,7 +96,7 @@ class Group {
    */
   add(g: Group) {
     if (isConstant(this) && isConstant(g)) {
-      // we check if either operand is zero, because adding zero to g just results in g (and vise versa)
+      // we check if either operand is zero, because adding zero to g just results in g (and vice versa)
       if (this.isZero().toBoolean()) {
         return g;
       } else if (g.isZero().toBoolean()) {

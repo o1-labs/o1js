@@ -556,7 +556,7 @@ export async function testSet(
     }
 
     // the merkle roots of both membership contract should still be the initial ones because publish hasn't been invoked
-    // therefor the state should not have changes
+    // therefore the state should not have changes
     if (
       !candidateContract.committedMembers.get().equals(initialRoot).toBoolean()
     ) {
