@@ -109,7 +109,7 @@ async function featureFlagsfromFlatMethodIntfs(
     xor: false,
     rot: false,
     lookup: false,
-    runtimeTables: false,
+    runtimeTables: undefined, //
   };
 
   // if there's only one method that means it defines the feature flags for the entire program
@@ -152,7 +152,8 @@ function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
     xor: false,
     rot: false,
     lookup: false,
-    runtimeTables: false,
+    // Runtime tables are Maybe because it cannot be inferred from gates alone
+    runtimeTables: undefined,
   };
   for (let gate of gates) {
     let flag = gateToFlag[gate.type];
