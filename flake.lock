@@ -265,13 +265,8 @@
         "utils": "utils"
       },
       "locked": {
-<<<<<<< HEAD
-        "lastModified": 1731611028,
-        "narHash": "sha256-sehBPO+H9mtShGb3KNhdDVHj0pogt/tmiL9tc2ICkaU=",
-=======
         "lastModified": 1733764024,
         "narHash": "sha256-3e82deloDgZaV7hB8P6NfMEavRyrH/pB/E7AqWbxOs8=",
->>>>>>> b51c11ff2 (add, double, negate, assertOnCurve for twisted curves)
         "path": "src/mina",
         "type": "path"
       },
