@@ -27,10 +27,15 @@ jobs:
         run: |
           set -Eeu
           ./pin.sh
-          nix develop o1js --command bash -c "npm run build:update-bindings"
+          nix run o1js#update-bindings --max-jobs 4
+          #fail if this changes any files
+          cd src/bindings
+          git diff --exit-code
+      - name: add build to gc-root if on main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
       - name: Cleanup the Nix store
         run: |
-          nix-env --delete-generations old
-          nix-collect-garbage -d --quiet
           nix-store --gc --print-dead
           nix-store --optimise
