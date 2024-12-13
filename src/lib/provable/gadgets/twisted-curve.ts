@@ -1,9 +1,8 @@
 import { inverse, mod } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
-import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
-import { l, l2, l2Mask, multiRangeCheck } from './range-check.js';
+import { Field3, ForeignField, split } from './foreign-field.js';
+import { l2Mask } from './range-check.js';
 import { sha256 } from 'js-sha256';
 import {
   bigIntToBytes,
@@ -15,17 +14,13 @@ import {
   twistedAdd,
   twistedDouble,
 } from '../../../bindings/crypto/elliptic-curve.js';
-import { Bool } from '../bool.js';
-import { provable } from '../types/provable-derivers.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
-import { arrayGet, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { exists } from '../core/exists.js';
-import { ProvableType } from '../types/provable-intf.js';
 import { arrayGetGeneric, point, Point } from './elliptic-curve.js';
 
 // external API
-export { EllipticCurveTwisted, Eddsa };
+export { EllipticCurveTwisted };
 
 const EllipticCurveTwisted = {
   add,
@@ -33,14 +28,6 @@ const EllipticCurveTwisted = {
   negate,
   assertOnCurve,
 };
-
-namespace Eddsa {
-  /**
-   * EdDSA signature consisting of two curve scalars.
-   */
-  export type Signature = { r: Field3; s: Field3 };
-  export type signature = { r: bigint; s: bigint };
-}
 
 function add(
   p1: Point,
