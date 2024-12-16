@@ -1205,7 +1205,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * This function acts as the `check()` method on an `AccountUpdate` that is sent to the Mina node as part of a transaction.
    *
    * Background: the Mina node performs most necessary validity checks on account updates, both in- and outside of circuits.
-   * To save constraints, we don't repeat these checks in zkApps in places where we can be sure the checked account udpates
+   * To save constraints, we don't repeat these checks in zkApps in places where we can be sure the checked account updates
    * will be part of a transaction.
    *
    * However, there are a few checks skipped by the Mina node, that could cause vulnerabilities in zkApps if
