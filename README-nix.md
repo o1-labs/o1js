@@ -92,21 +92,7 @@ nix develop o1js#default
 The first time you run this command, you can expect it to take hours (or even a full day) to complete. Then, you will observe that the current devshell becomes a Nix shell with the right
 configuration for `o1js` and `mina`.
 
-In order to make sure that the bindings will be regenerated in the case that you
-are modifying them, make sure to comment out the conditionals in
-`src/mina/src/lib/crypto/kimchi_bindings/js/node_js/build.sh` and `src/mina/src/lib/crypto/kimchi_bindings/js/web/build.sh` locally. That's because otherwise the
-PLONK_WASM_WEB check prevents `proof-systems` from compiling with each build.
-
-```sh
-if true; then # [[ -z "${PLONK_WASM_WEB-}" ]]; then
-    export RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--no-check-features -C link-arg=--max-memory=4294967296"
-    rustup run nightly-2023-09-01 wasm-pack build --target web --out-dir ../js/web ../../wasm -- -Z build-std=panic_abort,std
-else
-    cp "$PLONK_WASM_WEB"/* -R .
-fi
-```
-
-Then, you can build o1js and update the bindings.
+From within the shell, you can build o1js and update the bindings.
 
 ```console
 npm run build
@@ -305,4 +291,4 @@ Then, the error message would still contain old directories.
 
 #### Fix
 
-Create a new environment for Nix and start from scratch. In particular, run the garbage collector which will remove old dependencies. 
+Rerun `pin.sh` and `src/mina/nix/pin.sh`.
