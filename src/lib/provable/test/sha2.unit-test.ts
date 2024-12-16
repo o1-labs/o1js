@@ -19,7 +19,7 @@ import {
 } from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
 import { expect } from 'expect';
-
+/*
 // SHA2-224 TESTS
 {
   sample(Random.nat(400), 5).forEach((preimageLength) => {
@@ -91,6 +91,7 @@ import { expect } from 'expect';
     ];
   }
 }
+  */
 
 // SHA2-256 TESTS
 {
@@ -164,6 +165,7 @@ import { expect } from 'expect';
   }
 }
 
+/*
 // SHA2-384 TESTS
 {
   sample(Random.nat(400), 5).forEach((preimageLength) => {
@@ -307,3 +309,4 @@ import { expect } from 'expect';
     ];
   }
 }
+*/

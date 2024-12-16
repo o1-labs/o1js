@@ -9,7 +9,6 @@ import { TupleN } from '../../util/types.js';
 import { divMod32, divMod64 } from './arithmetic.js';
 import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';
-import { Uint } from 'web3';
 
 export { SHA2 };
 
