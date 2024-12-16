@@ -104,6 +104,11 @@ type OffchainStateInstance<
    * Commitments to the offchain state, to use in your onchain state.
    */
   commitments(): State<OffchainStateCommitments>;
+
+  /**
+   * Rebuilds the internal state map by fetching actions up to the current actionState in offchainStateCommitments
+   * */
+  fetchInternalState(): void;
 };
 
 type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
@@ -468,6 +473,17 @@ function OffchainState<
         internal.valueMap = newValueMap;
 
         return result.proof;
+      },
+
+      async fetchInternalState() {
+        let actionState = await onchainActionState();
+        let { merkleMap, valueMap } = await fetchMerkleMap(
+          height,
+          internal.contract,
+          actionState
+        );
+        internal.merkleMap = merkleMap;
+        internal.valueMap = valueMap;
       },
 
       async settle(
