@@ -15,7 +15,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/e1bac02...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
+
+## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
 ### Added
 
@@ -68,7 +70,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
 - `addMod64()` addition modulo 2^64
 - Bitwise OR via `{UInt32, UInt64}.or()`
-- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+- **BLAKE2B hash function** gadget. https://github.com/o1-labs/o1js/pull/1767
 
 ## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
 
