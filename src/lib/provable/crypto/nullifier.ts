@@ -71,7 +71,7 @@ class Nullifier extends Struct({
     // h_m_pk_r =  h(m,pk)^s / nullifier^c
     let h_m_pk_s_div_nullifier_s = h_m_pk_s.sub(nullifier.scale(c));
 
-    // this is supposed to match the entries generated on "the other side" of the nullifier (mina-signer, in an wallet enclave)
+    // this is supposed to match the entries generated on "the other side" of the nullifier (mina-signer, in a wallet enclave)
     Poseidon.hash([
       ...Group.toFields(G),
       ...pk_fields,
