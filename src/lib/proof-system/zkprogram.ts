@@ -80,6 +80,9 @@ export {
   Prover,
   dummyBase64Proof,
   computeMaxProofsVerified,
+  RegularProver,
+  TupleToInstances,
+  PrivateInput,
 };
 
 type Undefined = undefined;
@@ -202,9 +205,9 @@ function ZkProgram<
   // derived types for convenience
   MethodSignatures extends Config['methods'] = Config['methods'],
   PrivateInputs extends {
-    [I in keyof MethodSignatures]: MethodSignatures[I]['privateInputs'];
+    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
   } = {
-    [I in keyof MethodSignatures]: MethodSignatures[I]['privateInputs'];
+    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
   },
   AuxiliaryOutputs extends {
     [I in keyof MethodSignatures]: Get<MethodSignatures[I], 'auxiliaryOutput'>;
@@ -247,11 +250,12 @@ function ZkProgram<
   rawMethods: {
     [I in keyof Config['methods']]: Methods[I]['method'];
   };
-  proveRecursively: {
-    [I in keyof Config['methods']]: RecursiveProver<
+  provers: {
+    [I in keyof Config['methods']]: RegularProver<
       InferProvableOrUndefined<Get<Config, 'publicInput'>>,
       InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      PrivateInputs[I]
+      PrivateInputs[I],
+      InferProvableOrUndefined<AuxiliaryOutputs[I]>
     >;
   };
   proofsEnabled: boolean;
@@ -379,18 +383,17 @@ function ZkProgram<
   // for each of the methods, create a prover function.
   // in the first step, these are "regular" in that they always expect the public input as the first argument,
   // which is easier to use internally.
-  type RegularProver<K extends MethodKey> = (
-    publicInput: PublicInput,
-    ...args: PrivateInputs[K]
-  ) => Promise<{
-    proof: Proof<PublicInput, PublicOutput>;
-    auxiliaryOutput: InferProvableOrUndefined<AuxiliaryOutputs[K]>;
-  }>;
+  type RegularProver_<K extends MethodKey> = RegularProver<
+    PublicInput,
+    PublicOutput,
+    PrivateInputs[K],
+    InferProvableOrUndefined<AuxiliaryOutputs[K]>
+  >;
 
   function toRegularProver<K extends MethodKey>(
     key: K,
     i: number
-  ): RegularProver<K> {
+  ): RegularProver_<K> {
     return async function prove_(publicInput, ...args) {
       if (!doProving) {
         // we step into a ZkProgramContext here to match the context nesting
@@ -516,50 +519,6 @@ function ZkProgram<
     return compileOutput.verify(statement, proof.proof);
   }
 
-  let regularRecursiveProvers = mapObject(regularProvers, (prover, key) => {
-    return async function proveRecursively_(
-      publicInput: PublicInput,
-      ...args: TupleToInstances<PrivateInputs[MethodKey]>
-    ) {
-      // create the base proof in a witness block
-      let proof = await Provable.witnessAsync(SelfProof, async () => {
-        // move method args to constants
-        let constInput = Provable.toConstant(publicInputType, publicInput);
-        let constArgs = zip(args, methods[key].privateInputs).map(
-          ([arg, type]) => Provable.toConstant(type, arg)
-        );
-        let { proof } = await prover(constInput, ...(constArgs as any));
-        return proof;
-      });
-
-      // assert that the witnessed proof has the correct public input (which will be used by Pickles as part of verification)
-      if (hasPublicInput) {
-        Provable.assertEqual(publicInputType, proof.publicInput, publicInput);
-      }
-
-      // declare and verify the proof, and return its public output
-      proof.declare();
-      proof.verify();
-      return proof.publicOutput;
-    };
-  });
-  type RecursiveProver_<K extends MethodKey> = RecursiveProver<
-    PublicInput,
-    PublicOutput,
-    PrivateInputs[K]
-  >;
-  type RecursiveProvers = {
-    [K in MethodKey]: RecursiveProver_<K>;
-  };
-  let proveRecursively: RecursiveProvers = mapToObject(methodKeys, (key) => {
-    if (publicInputType === Undefined || publicInputType === Void) {
-      return ((...args: any) =>
-        regularRecursiveProvers[key](undefined as any, ...args)) as any;
-    } else {
-      return regularRecursiveProvers[key] as any;
-    }
-  });
-
   async function digest() {
     let methodsMeta = await analyzeMethods();
     let digests: Field[] = methodKeys.map((k) =>
@@ -590,12 +549,11 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+      provers: regularProvers,
       proofsEnabled: doProving,
       setProofsEnabled(proofsEnabled: boolean) {
         doProving = proofsEnabled;
       },
-
-      proveRecursively,
     },
     provers
   );
@@ -1227,6 +1185,19 @@ type Method<
       >;
     };
 
+type RegularProver<
+  PublicInput,
+  PublicOutput,
+  Args extends Tuple<PrivateInput>,
+  AuxiliaryOutput
+> = (
+  publicInput: PublicInput,
+  ...args: TupleToInstances<Args>
+) => Promise<{
+  proof: Proof<PublicInput, PublicOutput>;
+  auxiliaryOutput: AuxiliaryOutput;
+}>;
+
 type Prover<
   PublicInput,
   PublicOutput,
@@ -1244,17 +1215,6 @@ type Prover<
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
     }>;
-
-type RecursiveProver<
-  PublicInput,
-  PublicOutput,
-  Args extends Tuple<PrivateInput>
-> = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<PublicOutput>
-  : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
-    ) => Promise<PublicOutput>;
 
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
