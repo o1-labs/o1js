@@ -250,14 +250,6 @@ function ZkProgram<
   rawMethods: {
     [I in keyof Config['methods']]: Methods[I]['method'];
   };
-  provers: {
-    [I in keyof Config['methods']]: RegularProver<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      PrivateInputs[I],
-      InferProvableOrUndefined<AuxiliaryOutputs[I]>
-    >;
-  };
   proofsEnabled: boolean;
   setProofsEnabled(proofsEnabled: boolean): void;
 } & {
@@ -549,7 +541,6 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
-      provers: regularProvers,
       proofsEnabled: doProving,
       setProofsEnabled(proofsEnabled: boolean) {
         doProving = proofsEnabled;
