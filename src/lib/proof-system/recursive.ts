@@ -62,7 +62,7 @@ function Recursive<
 
   let methodKeys: MethodKey[] = Object.keys(methods);
 
-  let regularRecursiveProvers = mapObject(zkprogram, (prover, key) => {
+  let regularRecursiveProvers = mapToObject(methodKeys, (key) => {
     return async function proveRecursively_(
       publicInput: PublicInput,
       ...args: TupleToInstances<PrivateInputs[MethodKey]>
@@ -77,6 +77,9 @@ function Recursive<
         let constArgs = zip(args, privateInputs[key]).map(([arg, type]) =>
           Provable.toConstant(type, arg)
         );
+
+        let prover = zkprogram[key];
+
         if (hasPublicInput) {
           let { proof } = await prover(constInput, ...constArgs);
           return proof;
