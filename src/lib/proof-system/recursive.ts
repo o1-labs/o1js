@@ -26,6 +26,7 @@ function Recursive<
         ...args: any
       ) => Promise<{ publicOutput: InferProvable<PublicOutputType> }>;
     };
+    maxProofsVerified: () => Promise<0 | 1 | 2>;
   } & {
     [Key in keyof PrivateInputs]: (...args: any) => Promise<{
       proof: Proof<
@@ -94,8 +95,7 @@ function Recursive<
         if (!condition.toBoolean()) {
           let publicOutput: PublicOutput =
             ProvableType.synthesize(publicOutputType);
-          let maxProofsVerified: 0 | 1 | 2 =
-            (await zkprogram.maxProofsVerified()) as any; // TODO
+          let maxProofsVerified = await zkprogram.maxProofsVerified();
           return SelfProof.dummy(
             publicInput,
             publicOutput,
