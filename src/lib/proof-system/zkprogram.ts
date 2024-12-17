@@ -553,7 +553,6 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
-      proveRecursively,
 
       Proof: SelfProof,
 
