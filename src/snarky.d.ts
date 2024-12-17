@@ -47,7 +47,10 @@ export {
   MlPublicKey,
   MlPublicKeyVar,
   MlFeatureFlags,
+  areBindingsInitialized,
 };
+
+declare let areBindingsInitialized: boolean;
 
 type WasmModule = typeof wasm;
 
