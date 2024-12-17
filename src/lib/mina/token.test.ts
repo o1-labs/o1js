@@ -30,7 +30,7 @@ class TokenContract extends TokenContractBase {
   }
 
   /**
-   * This deploy method lets a another token account deploy their contract and verification key as a child of this token contract.
+   * This deploy method lets an another token account deploy their contract and verification key as a child of this token contract.
    * This is important since we want the native token id of the deployed contract to be the token id of the token contract.
    */
   @method async deploy_(address: PublicKey, verificationKey: VerificationKey) {
