@@ -13,7 +13,7 @@
 
 import {
   Empty,
-  Eq,
+  Equals,
   ProvableInstance,
   Update,
   MAX_ZKAPP_STATE_FIELDS,
@@ -28,12 +28,14 @@ import { Unconstrained } from '../../provable/types/unconstrained.js';
 //                   element in a custom state layout that doesn't satisfy the StateElement type,
 //                   typescript will just replace the state element types in the layout with `any`.
 //                   Fucking typescript.
-// export type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
-// export type StateElementInstance<E> = E extends StateElement<infer T>
-//   ? T
+export type StateElement<T> = Provable<T> & Empty<T>;
+// export type ProvableInstance<E> = E extends StateElement<infer T>
+//   ? Equals<T, any> extends true
+//     ? never
+//     : T
 //   : never;
 // TODO: custom state layouts need to specify the order of their keys
-export type CustomStateLayout = { [name: string]: Provable<any> };
+export type CustomStateLayout = { [name: string]: StateElement<any> };
 export type StateLayout = 'GenericState' | CustomStateLayout;
 
 export const CustomStateLayout = {
@@ -217,6 +219,15 @@ export function State<State extends CustomStateLayout>(
   // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
 }
 
+export type StatePreconditionsDescription<State extends StateLayout> =
+  State extends 'GenericState'
+    ? GenericStatePreconditions
+    : {
+      [name in keyof State]?:
+        ProvableInstance<State[name]>
+        | Precondition.Equals<ProvableInstance<State[name]>>
+    }
+
 export type StatePreconditions<State extends StateLayout> =
   State extends 'GenericState'
     ? GenericStatePreconditions
@@ -238,6 +249,42 @@ export const StatePreconditions = {
           Precondition.Equals.disabled(T.empty())
         )
     );
+  },
+
+  from<State extends StateLayout>(
+    State: StateDefinition<State>,
+    descr: StatePreconditionsDescription<State> | StatePreconditions<State> | undefined
+  ): StatePreconditions<State> {
+    if(descr === undefined) {
+      return StatePreconditions.empty(State);
+    } else {
+      // TODO: implement this better
+      if(State === 'GenericState') {
+        return descr as StatePreconditions<State>;
+      } else {
+        const descr2 = descr as {
+          [name in keyof State]?:
+            ProvableInstance<State[name]>
+            | Precondition.Equals<ProvableInstance<State[name]>>
+        };
+        const preconditions: {
+          [name in keyof State]?: Precondition.Equals<ProvableInstance<State[name]>>
+        } = {};
+
+        for(const key in State.Layout) {
+          const value = descr2[key as keyof State];
+          const valuePrecondition: Precondition.Equals<any> =
+            value === undefined
+              ? Precondition.Equals.disabled(State.Layout[key].empty())
+              : value instanceof Precondition.Equals
+                ? value
+                : Precondition.Equals.equals(value);
+          preconditions[key as keyof State] = valuePrecondition;
+        }
+
+        return preconditions as StatePreconditions<State>;
+      }
+    }
   },
 
   toGeneric<State extends StateLayout>(
@@ -360,11 +407,11 @@ export const StateUpdates = {
   anyValuesAreSet<State extends StateLayout>(
     stateUpdates: StateUpdates<State>
   ): Bool {
-    const updates: Update<unknown>[] =
+    const updates: (Update<unknown> | undefined)[] =
       stateUpdates instanceof GenericStateUpdates
         ? stateUpdates.updates
         : Object.values(stateUpdates);
-    return Bool.anyTrue(updates.map((update) => update.set));
+    return Bool.anyTrue(updates.map((update) => update !== undefined && update.set));
   },
 
   toGeneric<State extends StateLayout>(
@@ -385,7 +432,7 @@ export const StateUpdates = {
       ) => {
         const entries = Object.entries(Layout) as [
           keyof State,
-          Provable<any>
+          StateElement<any>
         ][];
         const fieldUpdates = entries.flatMap(([key, T]) => {
           const update = updates[key];
@@ -526,7 +573,7 @@ export const StateValues = {
         for (const i in values.values) {
           if (
             preconditions.preconditions[i]
-              .isSatisfied(values.values[i])
+              .isSatisfied(Field, values.values[i])
               .not()
               .toBoolean()
           )
@@ -632,7 +679,7 @@ export const StateReader = {
       }>;
       return CustomStateLayout.project(
         State.Layout,
-        (key, T) => (): ProvableInstance<typeof T> => {
+        (key, T) => (): any /* TODO: ProvableInstance<typeof T> */ => {
           return Provable.witness(T, () => {
             const value = values.get()[key as keyof State];
             mask.get()[key as keyof State] = value;

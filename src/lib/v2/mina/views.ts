@@ -3,7 +3,7 @@
 import { Account, AccountId, AccountIdMap } from './account.js';
 import { MinaAmount } from './core.js';
 import { Field } from '../../provable/field.js';
-import { UInt32 } from '../../provable/int.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
 
 export interface ChainView {
   snarkedLedgerHash: Field;
@@ -15,6 +15,20 @@ export interface ChainView {
   nextEpochData: EpochData;
 }
 
+export const ChainView = {
+  dummy(): ChainView {
+    return {
+      snarkedLedgerHash: new Field(0),
+      blockchainLength: new UInt32(1),
+      minWindowDensity: new UInt32(77),
+      totalCurrency: new UInt64(100 * 10**9),
+      globalSlotSinceGenesis: new UInt32(1),
+      stakingEpochData: EpochData.dummy(),
+      nextEpochData: EpochData.dummy()
+    }
+  }
+}
+
 export interface EpochData {
   ledger: EpochLedgerData;
   seed: Field;
@@ -23,10 +37,31 @@ export interface EpochData {
   epochLength: UInt32;
 }
 
+export const EpochData = {
+  dummy(): EpochData {
+    return {
+      ledger: EpochLedgerData.dummy(),
+      seed: new Field(0),
+      startCheckpoint: new Field(0),
+      lockCheckpoint: new Field(0),
+      epochLength: new UInt32(1)
+    }
+  }
+};
+
 export interface EpochLedgerData {
   hash: Field;
   totalCurrency: MinaAmount;
 }
+
+export const EpochLedgerData = {
+  dummy(): EpochLedgerData {
+    return {
+      hash: new Field(0),
+      totalCurrency: new UInt64(100 * 10**9)
+    }
+  }
+};
 
 export interface LedgerView {
   hasAccount(accountId: AccountId): boolean;

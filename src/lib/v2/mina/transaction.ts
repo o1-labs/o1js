@@ -17,7 +17,7 @@ import {
 } from './errors.js';
 import { Precondition } from './preconditions.js';
 import { StateLayout } from './state.js';
-import { LedgerView } from './views.js';
+import { ChainView, LedgerView } from './views.js';
 import {
   ApplyState,
   checkAndApplyAccountUpdate,
@@ -264,21 +264,21 @@ export class AuthorizedZkappCommand {
 // NB: this is really more of an environment than a context, but this naming convention helps to
 //     disambiguate the transaction environment from the mina program environment
 export class ZkappCommandContext {
+  chain: ChainView;
   ledger: LedgerView;
   failedAccounts: AccountIdSet;
-  globalSlot: UInt32;
   feeExcessState: ApplyState<Int64>;
   private accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
   private accountUpdateForestTrace: AccountUpdateErrorTrace[];
 
   constructor(
+    chain: ChainView,
     ledger: LedgerView,
     failedAccounts: AccountIdSet,
-    globalSlot: UInt32
   ) {
+    this.chain = chain;
     this.ledger = ledger;
     this.failedAccounts = failedAccounts;
-    this.globalSlot = globalSlot;
     this.feeExcessState = { status: 'Alive', value: Int64.zero };
     this.accountUpdateForest = [];
     this.accountUpdateForestTrace = [];
@@ -310,9 +310,9 @@ export class ZkappCommandContext {
             this.ledger.getAccount(accountUpdate.accountId) ??
             Account.empty(accountUpdate.accountId);
           const applied = checkAndApplyAccountUpdate(
+            this.chain,
             account,
             accountUpdate,
-            this.globalSlot,
             this.feeExcessState
           );
 
@@ -398,6 +398,7 @@ export class ZkappCommandContext {
 //                 probably make the ledger view interface immutable, or clone it every time we
 //                 create a new zkapp command, to help avoid unexpected behavior externally.
 export async function createUnsignedZkappCommand(
+  chain: ChainView,
   ledger: LedgerView,
   {
     feePayer,
@@ -410,9 +411,6 @@ export async function createUnsignedZkappCommand(
   },
   f: (ctx: ZkappCommandContext) => Promise<void>
 ): Promise<ZkappCommand> {
-  // TODO
-  const globalSlot = UInt32.zero;
-
   const failedAccounts = new AccountIdSet();
   let feePaymentErrors: Error[] = [];
   let feePayment: ZkappFeePayment | null = null;
@@ -429,9 +427,9 @@ export async function createUnsignedZkappCommand(
     });
 
     const applied = checkAndApplyFeePayment(
+      chain,
       feePayerAccount,
       feePayment,
-      globalSlot
     );
     switch (applied.status) {
       case 'Applied':
@@ -447,7 +445,7 @@ export async function createUnsignedZkappCommand(
     failedAccounts.add(feePayerId);
   }
 
-  const ctx = new ZkappCommandContext(ledger, failedAccounts, globalSlot);
+  const ctx = new ZkappCommandContext(chain, ledger, failedAccounts);
   await f(ctx);
   const { accountUpdateForest, accountUpdateForestTrace, generalErrors } =
     ctx.finalize();
@@ -475,6 +473,7 @@ export async function createUnsignedZkappCommand(
 }
 
 export async function createZkappCommand(
+  chain: ChainView,
   ledger: LedgerView,
   authEnv: ZkappCommandAuthorizationEnvironment,
   feePayment: {
@@ -484,6 +483,6 @@ export async function createZkappCommand(
   },
   f: (ctx: ZkappCommandContext) => Promise<void>
 ): Promise<AuthorizedZkappCommand> {
-  const unsignedCmd = await createUnsignedZkappCommand(ledger, feePayment, f);
+  const unsignedCmd = await createUnsignedZkappCommand(chain, ledger, feePayment, f);
   return unsignedCmd.authorize(authEnv);
 }

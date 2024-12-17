@@ -9,7 +9,7 @@ import { ZkappCommandAuthorizationEnvironment } from './mina/authorization.js';
 import { TokenId } from './mina/core.js';
 import { State, StateDefinition } from './mina/state.js';
 import { createZkappCommand } from './mina/transaction.js';
-import { LocalLedger } from './mina/views.js';
+import { ChainView, LocalLedger } from './mina/views.js';
 import { Bool } from '../provable/bool.js';
 import { Field } from '../provable/field.js';
 import { Int64, Sign, UInt32, UInt64 } from '../provable/int.js';
@@ -30,25 +30,6 @@ const TestProgram = MinaProgram({
   Event: GenericData,
   Action: GenericData,
 
-  // deployConfig: {
-  //   permissions: {
-  //     editState: 'Proof',
-  //     send: 'Impossible',
-  //     receive: 'Impossible',
-  //     setDelegate: 'Impossible',
-  //     setPermissions: 'Impossible',
-  //     setVerificationKey: 'Impossible',
-  //     setZkappUri: 'Impossible',
-  //     editActionState: 'Impossible',
-  //     setTokenSymbol: 'Impossible',
-  //     incrementNonce: 'Proof',
-  //     setVotingFor: 'Impossible',
-  //     setTiming: 'Impossible',
-  //     access: 'None'
-  //   },
-  //   initMethod: 'init'
-  // },
-
   methods: {
     init: {
       privateInputs: [Field],
@@ -61,7 +42,7 @@ const TestProgram = MinaProgram({
           incrementNonce: new Bool(true),
           preconditions: {
             account: {
-              isProven: new Bool(false),
+              isProven: new Bool(true),
               nonce: new UInt32(0),
             },
           },
@@ -96,6 +77,8 @@ console.log(
 
 const testLedger = new LocalLedger([feePayer]);
 
+const testChain = ChainView.dummy();
+
 const authEnv: ZkappCommandAuthorizationEnvironment = {
   networkId: 'testnet',
   async getPrivateKey(pk: PublicKey): Promise<PrivateKey> {
@@ -105,54 +88,8 @@ const authEnv: ZkappCommandAuthorizationEnvironment = {
   },
 };
 
-/*
-const testTransaction = await new ZkappCommand({
-  feePayment: new ZkappFeePayment({
-    publicKey: feePayerAddress,
-    fee: new UInt64(10**9),
-    nonce: new UInt32(4)
-  }),
-  accountUpdates: [
-    AccountUpdate.create({
-      accountId: new AccountId(feePayerAddress, TokenId.MINA),
-      authorizationKind: 'Signature',
-      incrementNonce: new Bool(true),
-      balanceChange: Int64.create(new UInt64(10**9), Sign.minusOne),
-      preconditions: {
-        account: {
-          nonce: new UInt32(5)
-        }
-      }
-    }),
-    AccountUpdate.create({
-      accountId: new AccountId(appAddress, TokenId.MINA),
-      authorizationKind: 'Signature',
-      useFullCommitment: new Bool(true),
-      implicitAccountCreationFee: new Bool(true),
-      balanceChange: Int64.create(new UInt64(10**9), Sign.one),
-      setVerificationKey: compiledTestProgram.verificationKey,
-      setPermissions: {
-        editState: 'Proof',
-        send: 'Impossible',
-        receive: 'Impossible',
-        setDelegate: 'Impossible',
-        setPermissions: 'Impossible',
-        setVerificationKey: 'Impossible',
-        setZkappUri: 'Impossible',
-        editActionState: 'Impossible',
-        setTokenSymbol: 'Impossible',
-        incrementNonce: 'Proof',
-        setVotingFor: 'Impossible',
-        setTiming: 'Impossible',
-        access: 'None'
-      }
-    }),
-    await TestProgram.init(testAccount, new Field(42))
-  ],
-}).authorize(authEnv);;
-*/
-
 const testTransaction = await createZkappCommand(
+  testChain,
   testLedger,
   authEnv,
   {
@@ -181,7 +118,7 @@ const testTransaction = await createZkappCommand(
         authorizationKind: 'Signature',
         useFullCommitment: new Bool(true),
         implicitAccountCreationFee: new Bool(true),
-        balanceChange: Int64.create(new UInt64(10 ** 9), Sign.one),
+        balanceChange: Int64.create(new UInt64(100 ** 9), Sign.one),
         setVerificationKey: compiledTestProgram.verificationKey,
         setPermissions: {
           editState: 'Proof',

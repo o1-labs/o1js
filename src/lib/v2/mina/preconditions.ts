@@ -9,12 +9,14 @@ import {
 import {
   GenericStatePreconditions,
   StatePreconditions,
+  StatePreconditionsDescription,
   StateDefinition,
   StateLayout,
 } from './state.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
+import { Provable } from '../../provable/provable.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { HashInput } from '../../provable/types/provable-derivers.js';
 // TODO: pull last remanants of old transaction leavs into v2 bindings
@@ -22,7 +24,7 @@ import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.j
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/js-layout-v2.js';
 
 export namespace Precondition {
-  export class Equals<T extends Eq<T>> {
+  export class Equals<T> {
     constructor(public isEnabled: Bool, public value: T) {}
 
     toStringHuman(): string {
@@ -53,30 +55,32 @@ export namespace Precondition {
       return { isSome: this.isEnabled, value: this.value };
     }
 
-    isSatisfied(x: T): Bool {
-      return Bool.or(this.isEnabled.not(), this.value.equals(x));
+    isSatisfied(T: Provable<T>, x: T): Bool {
+      // TODO: used equality defined on the value class itself, don't use toFields equality
+      //       (need to fix inference on the Eq type)
+      return Bool.or(this.isEnabled.not(), Provable.equal(T, this.value, x));
     }
 
-    static disabled<T extends Eq<T>>(defaultValue: T): Equals<T> {
+    static disabled<T>(defaultValue: T): Equals<T> {
       return new Equals(new Bool(false), defaultValue);
     }
 
-    static equals<T extends Eq<T>>(value: T): Equals<T> {
+    static equals<T>(value: T): Equals<T> {
       return new Equals(new Bool(true), value);
     }
 
-    static fromOption<T extends Eq<T>>(option: Option<T>): Equals<T> {
+    static fromOption<T>(option: Option<T>): Equals<T> {
       return new Equals(option.isSome, option.value);
     }
 
-    static from<T extends Eq<T>>(
+    static from<T>(
       value: Equals<T> | T | undefined,
       defaultValue: T
     ): Equals<T> {
       if (value instanceof Equals) {
         return value;
       } else if (value !== undefined) {
-        return Equals.equals(value);
+        return Equals.equals(value as T);
       } else {
         return Equals.disabled(defaultValue);
       }
@@ -125,7 +129,7 @@ export namespace Precondition {
       };
     }
 
-    isSatisfied(x: T): Bool {
+    isSatisfied(_T: Provable<T>, x: T): Bool {
       return Bool.or(
         this.isEnabled.not(),
         Bool.and(
@@ -704,7 +708,7 @@ export type AccountPreconditionsDescription<State extends StateLayout> = {
   nonce?: UInt32 | Precondition.InRange<UInt32>;
   receiptChainHash?: Field | Precondition.Equals<Field>;
   delegate?: PublicKey | Precondition.Equals<PublicKey>;
-  state?: StatePreconditions<State>;
+  state?: StatePreconditionsDescription<State> | StatePreconditions<State>;
   actionState?: Field | Precondition.Equals<Field>;
   // NB: renamed from the protocol's type name of `provenState`
   isProven?: Bool | Precondition.Equals<Bool>;
@@ -744,7 +748,7 @@ export class AccountPreconditions<State extends StateLayout = 'GenericState'> {
       descr?.delegate,
       PublicKey.empty()
     );
-    this.state = descr?.state ?? StatePreconditions.empty(State);
+    this.state = StatePreconditions.from(State, descr?.state);
     this.actionState = Precondition.Equals.from(
       descr?.actionState,
       Actions.emptyActionState()

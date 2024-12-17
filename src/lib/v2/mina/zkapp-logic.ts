@@ -14,7 +14,14 @@ import { ChainView, EpochData, EpochLedgerData } from './views.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, Sign, UInt64, UInt32 } from '../../provable/int.js';
+import { Provable } from '../../provable/provable.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
+
+// TODOs:
+//   * update timing (set to untimed after full vest)
+//   * action state
+//   * may use token
+//   * commitments
 
 export type ApplyResult<T> =
   | ({ status: 'Applied' } & T)
@@ -74,10 +81,11 @@ function checkPreconditions<State extends StateLayout>(
   // to break it even more.
   function checkPrecondition<T>(
     preconditionName: string,
-    constraint: { isSatisfied(x: T): Bool; toStringHuman(): string },
+    T: Provable<T>,
+    constraint: { isSatisfied(T: Provable<T>, x: T): Bool; toStringHuman(): string },
     value: T
   ): void {
-    if (constraint.isSatisfied(value).not().toBoolean())
+    if (constraint.isSatisfied(T, value).not().toBoolean())
       errors.push(preconditionError(preconditionName, constraint, value));
   }
 
@@ -85,32 +93,38 @@ function checkPreconditions<State extends StateLayout>(
 
   checkPrecondition<UInt64>(
     'balance',
+    UInt64,
     preconditions.account.balance,
     account.balance
   );
   checkPrecondition<UInt32>(
     'nonce',
+    UInt32,
     preconditions.account.nonce,
     account.nonce
   );
   checkPrecondition<Field>(
     'receiptChainHash',
+    Field,
     preconditions.account.receiptChainHash,
     account.receiptChainHash
   );
   if (account.delegate !== null)
     checkPrecondition<PublicKey>(
       'delegate',
+      PublicKey,
       preconditions.account.delegate,
       account.delegate
     );
   checkPrecondition<Bool>(
     'isProven',
+    Bool,
     preconditions.account.isProven,
     account.zkapp.isProven
   );
   checkPrecondition<Bool>(
     'isNew',
+    Bool,
     preconditions.account.isNew,
     new Bool(account.isNew.get())
   );
@@ -123,7 +137,7 @@ function checkPreconditions<State extends StateLayout>(
 
   const actionState = account.zkapp?.actionState ?? [];
   const actionStateSatisfied = Bool.anyTrue(
-    actionState.map((s) => preconditions.account.actionState.isSatisfied(s))
+    actionState.map((s) => preconditions.account.actionState.isSatisfied(Field, s))
   );
   if (actionStateSatisfied.not().toBoolean())
     errors.push(
@@ -136,33 +150,39 @@ function checkPreconditions<State extends StateLayout>(
 
   // NETWORK PRECONDITIONS
 
-  checkPrecondition(
+  checkPrecondition<UInt32>(
     'validWhile',
+    UInt32,
     preconditions.validWhile,
     chain.globalSlotSinceGenesis
   );
-  checkPrecondition(
+  checkPrecondition<Field>(
     'snarkedLedgerHash',
+    Field,
     preconditions.network.snarkedLedgerHash,
     chain.snarkedLedgerHash
   );
-  checkPrecondition(
+  checkPrecondition<UInt32>(
     'blockchainLength',
+    UInt32,
     preconditions.network.blockchainLength,
     chain.blockchainLength
   );
-  checkPrecondition(
+  checkPrecondition<UInt32>(
     'minWindowDensity',
+    UInt32,
     preconditions.network.minWindowDensity,
     chain.minWindowDensity
   );
-  checkPrecondition(
+  checkPrecondition<UInt64>(
     'totalCurrency',
+    UInt64,
     preconditions.network.totalCurrency,
     chain.totalCurrency
   );
-  checkPrecondition(
+  checkPrecondition<UInt32>(
     'globalSlotSinceGenesis',
+    UInt32,
     preconditions.network.globalSlotSinceGenesis,
     chain.globalSlotSinceGenesis
   );
@@ -172,13 +192,15 @@ function checkPreconditions<State extends StateLayout>(
     epochLedgerPreconditions: EpochLedgerPreconditions,
     epochLedgerData: EpochLedgerData
   ) {
-    checkPrecondition(
+    checkPrecondition<Field>(
       `${name}.hash`,
+      Field,
       epochLedgerPreconditions.hash,
       epochLedgerData.hash
     );
-    checkPrecondition(
+    checkPrecondition<UInt64>(
       `${name}.totalCurrency`,
+      UInt64,
       epochLedgerPreconditions.totalCurrency,
       epochLedgerData.totalCurrency
     );
@@ -189,23 +211,27 @@ function checkPreconditions<State extends StateLayout>(
     epochDataPreconditions: EpochDataPreconditions,
     epochData: EpochData
   ): void {
-    checkPrecondition(
+    checkPrecondition<Field>(
       `${name}.seed`,
+      Field,
       epochDataPreconditions.seed,
       epochData.seed
     );
-    checkPrecondition(
+    checkPrecondition<Field>(
       `${name}.startCheckpoint`,
+      Field,
       epochDataPreconditions.startCheckpoint,
       epochData.startCheckpoint
     );
-    checkPrecondition(
+    checkPrecondition<Field>(
       `${name}.lockCheckpoint`,
+      Field,
       epochDataPreconditions.lockCheckpoint,
       epochData.lockCheckpoint
     );
-    checkPrecondition(
+    checkPrecondition<UInt32>(
       `${name}.epochLength`,
+      UInt32,
       epochDataPreconditions.epochLength,
       epochData.epochLength
     );

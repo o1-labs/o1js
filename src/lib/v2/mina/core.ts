@@ -74,14 +74,28 @@ export interface ToFields {
   toFields(): Field[];
 }
 
+// credit goes to https://github.com/microsoft/TypeScript/issues/27024#issuecomment-421529650
+export type Equals<X, Y> =
+  (<T>() => T extends X ? 1 : 2) extends
+  (<T>() => T extends Y ? 1 : 2)
+    ? true
+    : false;
+
 export type Tuple<T> = [T, ...T[]] | [];
 
 export type ProvableTuple = Tuple<Provable<any>>;
 
+// TODO: IMPORTANT -- we want this type definition, since not having it hides bugs
+//                    fortunately, there is one such bug I want to hide right now... lol
+//                    (ProvableTupleInstances is infering any)
+// export type ProvableInstance<P> = P extends Provable<infer T>
+//   ? Equals<T, any> extends true
+//     ? 'this type does not properly implement provable: the instance type cannot be inferred'
+//     : T
+//   : never;
+
 export type ProvableInstance<P> = P extends Provable<infer T>
-  ? unknown extends T
-    ? T
-    : never
+  ? T
   : never;
 
 export type ProvableTupleInstances<T extends ProvableTuple> = {
