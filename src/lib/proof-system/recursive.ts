@@ -4,7 +4,7 @@ import { ProvableType } from '../provable/types/provable-intf.js';
 import { Tuple } from '../util/types.js';
 import { Proof } from './proof.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
-import { RegularProver, Undefined, Void } from './zkprogram.js';
+import { Undefined, Void } from './zkprogram.js';
 
 export { Recursive };
 
@@ -14,25 +14,26 @@ function Recursive<
   PrivateInputs extends {
     [Key in string]: Tuple<ProvableType>;
   }
->(zkprogram: {
-  name: string;
-  publicInputType: PublicInputType;
-  publicOutputType: PublicOutputType;
-  privateInputTypes: PrivateInputs;
-  rawMethods: {
-    [Key in keyof PrivateInputs]: (
-      ...args: any
-    ) => Promise<{ publicOutput: InferProvable<PublicOutputType> }>;
-  };
-  provers: {
-    [Key in keyof PrivateInputs]: RegularProver<
-      InferProvable<PublicInputType>,
-      InferProvable<PublicOutputType>,
-      any,
-      any
-    >;
-  };
-}): {
+>(
+  zkprogram: {
+    name: string;
+    publicInputType: PublicInputType;
+    publicOutputType: PublicOutputType;
+    privateInputTypes: PrivateInputs;
+    rawMethods: {
+      [Key in keyof PrivateInputs]: (
+        ...args: any
+      ) => Promise<{ publicOutput: InferProvable<PublicOutputType> }>;
+    };
+  } & {
+    [Key in keyof PrivateInputs]: (...args: any) => Promise<{
+      proof: Proof<
+        InferProvable<PublicInputType>,
+        InferProvable<PublicOutputType>
+      >;
+    }>;
+  }
+): {
   [Key in keyof PrivateInputs]: RecursiveProver<
     InferProvable<PublicInputType>,
     InferProvable<PublicOutputType>,
@@ -48,7 +49,6 @@ function Recursive<
     publicOutputType,
     privateInputTypes: privateInputs,
     rawMethods: methods,
-    provers,
   } = zkprogram;
 
   let hasPublicInput =
@@ -62,7 +62,7 @@ function Recursive<
 
   let methodKeys: MethodKey[] = Object.keys(methods);
 
-  let regularRecursiveProvers = mapObject(provers, (prover, key) => {
+  let regularRecursiveProvers = mapObject(zkprogram, (prover, key) => {
     return async function proveRecursively_(
       publicInput: PublicInput,
       ...args: TupleToInstances<PrivateInputs[MethodKey]>
@@ -77,8 +77,13 @@ function Recursive<
         let constArgs = zip(args, privateInputs[key]).map(([arg, type]) =>
           Provable.toConstant(type, arg)
         );
-        let { proof } = await prover(constInput, ...(constArgs as any));
-        return proof;
+        if (hasPublicInput) {
+          let { proof } = await prover(constInput, ...constArgs);
+          return proof;
+        } else {
+          let { proof } = await prover(...constArgs);
+          return proof;
+        }
       });
 
       // assert that the witnessed proof has the correct public input (which will be used by Pickles as part of verification)
