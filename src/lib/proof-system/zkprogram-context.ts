@@ -5,8 +5,8 @@ import type { ProofBase } from './proof.js';
 export { ZkProgramContext, DeclaredProof };
 
 type DeclaredProof = {
-  Proof: Subclass<typeof ProofBase<any, any>>;
-  proof: ProofBase<any, any>;
+  ProofClass: Subclass<typeof ProofBase<any, any>>;
+  proofInstance: ProofBase<any, any>;
 };
 type ZkProgramContext = {
   proofs: DeclaredProof[];
