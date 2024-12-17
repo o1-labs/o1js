@@ -13,7 +13,7 @@ function rsaSign(message: bigint, privateKey: bigint, modulus: bigint): bigint {
 }
 
 /**
- * Generates a SHA-256 digest of the input message and returns the hash as a native bigint.
+ * Generates an SHA-256 digest of the input message and returns the hash as a native bigint.
  * @param  message - The input message to be hashed.
  * @returns The SHA-256 hash of the input message as a native bigint.
  */
