@@ -27,7 +27,13 @@ import { ProvableType } from '../types/provable-intf.js';
 export { EllipticCurve, Point, Ecdsa };
 
 // internal API
-export { verifyEcdsaConstant, initialAggregator, simpleMapToCurve };
+export {
+  verifyEcdsaConstant,
+  initialAggregator,
+  simpleMapToCurve,
+  arrayGetGeneric,
+  point,
+};
 
 const EllipticCurve = {
   add,
