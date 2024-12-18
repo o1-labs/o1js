@@ -35,27 +35,27 @@ const initialState =
 let currentState;
 console.log('Initial State', initialState);
 
-console.log(`Updating commitment from ${initialState} using SHA256 ...`);
+console.log(`Updating commitment from ${initialState} using SHA3-256 ...`);
 txn = await Mina.transaction(feePayer, async () => {
-  await contract.SHA256(hashData);
+  await contract.SHA3_256(hashData);
 });
 await txn.prove();
 await txn.sign([feePayer.key]).send();
 currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 console.log(`Current state successfully updated to ${currentState}`);
 
-console.log(`Updating commitment from ${initialState} using SHA384 ...`);
+console.log(`Updating commitment from ${initialState} using SHA3-384 ...`);
 txn = await Mina.transaction(feePayer, async () => {
-  await contract.SHA384(hashData);
+  await contract.SHA3_384(hashData);
 });
 await txn.prove();
 await txn.sign([feePayer.key]).send();
 currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 console.log(`Current state successfully updated to ${currentState}`);
 
-console.log(`Updating commitment from ${initialState} using SHA512 ...`);
+console.log(`Updating commitment from ${initialState} using SHA3-512 ...`);
 txn = await Mina.transaction(feePayer, async () => {
-  await contract.SHA512(hashData);
+  await contract.SHA3_512(hashData);
 });
 await txn.prove();
 await txn.sign([feePayer.key]).send();
