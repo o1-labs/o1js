@@ -29,7 +29,9 @@ let networks: NetworkId[] = ['devnet', 'testnet', 'mainnet'];
 
 for (let network of networks) {
   let i = 0;
-  let reference = signatures[NetworkId.toString(network)];
+  let reference = NetworkId.toString(network) === 'testnet'
+      ? signatures['devnet']
+      : signatures[NetworkId.toString(network)];
 
   for (let payment of payments) {
     let signature = signPayment(payment, privateKey, network);
