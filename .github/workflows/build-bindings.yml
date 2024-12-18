@@ -39,3 +39,18 @@ jobs:
         run: |
           nix-store --gc --print-dead
           nix-store --optimise
+  patch-upload:
+    needs: nix-build
+    if: ${{ failure() }}
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: generate patch
+        run: |
+          cd src/bindings
+          git add .
+          git diff HEAD > bindings.patch
+      - name: Upload patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings.patch
+          path: src/bindings/bindings.patch
