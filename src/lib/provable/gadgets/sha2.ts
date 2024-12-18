@@ -243,12 +243,12 @@ const SHA2 = {
   padding,
   initialState<T extends UInt32 | UInt64>(length: Length): T[] {
     switch (length) {
-      case 224 | 256:
+      case 224:
+      case 256:
         return SHA2Constants.H[length].map((x) => UInt32.from(x) as T);
-      case 384 | 512:
+      case 384:
+      case 512:
         return SHA2Constants.H[length].map((x) => UInt64.from(x) as T);
-      default:
-        throw new Error('Invalid hash length');
     }
   },
 };
