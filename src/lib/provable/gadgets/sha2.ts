@@ -12,60 +12,9 @@ import { rangeCheck16 } from './range-check.js';
 
 export { SHA2 };
 
-// SHA2 CONSTANTS
-const SHA2Constants = {
-  // Bit length of the blocks used in SHA2-224 and SHA2-256
-  BLOCK_LENGTH_224_256: 512n,
-
-  // Bit length of the blocks used in SHA2-384 and SHA2-512
-  BLOCK_LENGTH_384_512: 1024n,
-
-  // Value used in the padding equation for SHA2-224 and SHA2-256
-  PADDING_VALUE_224_256: 448n,
-
-  // Value used in the padding equation for SHA2-384 and SHA2-512
-  PADDING_VALUE_384_512: 896n,
-
-  // Bits used to store the length in the padding of SHA2-224 and SHA2-256
-  // It corresponds to 512 - 448 = 64
-  LENGTH_CHUNK_224_256: 64,
-
-  // Bits used to store the length in the padding of SHA2-384 and SHA2-512
-  // It corresponds to 1024 - 896 = 128
-  LENGTH_CHUNK_384_512: 128,
-
-  // Number of words in message schedule and compression for SHA2-224 and SHA2-256
-  NUM_WORDS_224_256: 64,
-
-  // Number of words in message schedule and compression for SHA2-384 and SHA2-512
-  NUM_WORDS_384_512: 80,
-
-  // Offsets for the DeltaZero function for SHA2
-  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.6
-  DELTA_ZERO_224_256: [3, 7, 18] as TupleN<number, 3>,
-  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.12
-  DELTA_ZERO_384_512: [7, 8, 1] as TupleN<number, 3>,
-
-  // Offsets for the DeltaOne function for SHA2.
-  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.7
-  DELTA_ONE_224_256: [10, 17, 19] as TupleN<number, 3>,
-  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.13
-  DELTA_ONE_384_512: [6, 19, 61] as TupleN<number, 3>,
-
-  // Offsets for the SigmaZero function for SHA2.
-  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.4
-  SIGMA_ZERO_224_256: [2, 13, 22] as TupleN<number, 3>,
-  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.10
-  SIGMA_ZERO_384_512: [28, 34, 39] as TupleN<number, 3>,
-
-  // Offsets for the SigmaOne function for SHA2.
-  // - SHA2-224 and SHA2-256: §4.1.2 eq.4.5
-  SIGMA_ONE_224_256: [6, 11, 25] as TupleN<number, 3>,
-  // - SHA2-384 and SHA2-512: §4.1.3 eq.4.11
-  SIGMA_ONE_384_512: [14, 18, 41] as TupleN<number, 3>,
 
   // constants for SHA2-224 and SHA2-256 §4.2.2
-  K224_256: [
+  const K224_256= [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
     0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
     0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
@@ -77,10 +26,11 @@ const SHA2Constants = {
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
     0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-  ],
+  ];
+
   // constants for SHA2-384 and SHA2-512 §4.2.3
   // prettier-ignore
-  K384_512: [
+  const K384_512 = [
     0x428a2f98d728ae22n, 0x7137449123ef65cdn, 0xb5c0fbcfec4d3b2fn, 0xe9b5dba58189dbbcn,
     0x3956c25bf348b538n, 0x59f111f1b605d019n, 0x923f82a4af194f9bn, 0xab1c5ed5da6d8118n,
     0xd807aa98a3030242n, 0x12835b0145706fben, 0x243185be4ee4b28cn, 0x550c7dc3d5ffb4e2n,
@@ -101,29 +51,108 @@ const SHA2Constants = {
     0x06f067aa72176fban, 0x0a637dc5a2c898a6n, 0x113f9804bef90daen, 0x1b710b35131c471bn,
     0x28db77f523047d84n, 0x32caab7b40c72493n, 0x3c9ebe0a15c9bebcn, 0x431d67c49c100d4cn,
     0x4cc5d4becb3e42b6n, 0x597f299cfc657e2an, 0x5fcb6fab3ad6faecn, 0x6c44198c4a475817n,
-  ],
-  // initial hash values for SHA2-224 §5.3.2
-  H224: [
-    0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511,
-    0x64f98fa7, 0xbefa4fa4,
-  ],
-  // initial hash values for SHA-256 §5.3.3
-  H256: [
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
-    0x1f83d9ab, 0x5be0cd19,
-  ],
-  // initial hash values for SHA2-384 §5.3.4
-  // prettier-ignore
-  H384: [
-    0xcbbb9d5dc1059ed8n, 0x629a292a367cd507n, 0x9159015a3070dd17n, 0x152fecd8f70e5939n,
-    0x67332667ffc00b31n, 0x8eb44a8768581511n, 0xdb0c2e0d64f98fa7n, 0x47b5481dbefa4fa4n,
-  ],
-  // initial hash values for SHA2-512 §5.3.5
-  // prettier-ignore
-  H512: [
-    0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn, 0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
-    0x510e527fade682d1n, 0x9b05688c2b3e6c1fn, 0x1f83d9abfb41bd6bn, 0x5be0cd19137e2179n,
-  ],
+  ];
+
+// SHA2 CONSTANTS
+const SHA2Constants = {
+
+  // Bit length of the blocks
+  BLOCK_LENGTH: {
+    // SHA2-224 and SHA2-256
+    256: 512n,
+    // SHA2-384 and SHA2-512
+    512: 1024n,
+  },
+
+  // Value used in the padding equation
+  PADDING_VALUE: {
+    // SHA2-224 and SHA2-256
+    256: 448n,
+    // SHA2-384 and SHA2-512
+    512: 1024n,
+  }, 
+
+  // Bits used to store the length in the padding
+  // It corresponds to BLOCK_LENGTH - PADDING_VALUE
+  LENGTH_CHUNK: {
+    // SHA2-224 and SHA2-256
+    256: 64,
+    // SHA2-384 and SHA2-512
+    512: 128,
+  },
+
+  // Number of words in message schedule and compression
+  NUM_WORDS: {
+    // SHA2-224 and SHA2-256
+    256: 64n,
+    // SHA2-384 and SHA2-512
+    512: 80n,
+  }, 
+
+  // Offsets for the DeltaZero function
+  DELTA_ZERO: {
+    // SHA2-224 and SHA2-256: §4.1.2 eq.4.6
+    256: [3, 7, 18] as TupleN<number, 3>,
+    // SHA2-384 and SHA2-512: §4.1.3 eq.4.12
+    512: [7, 8, 1] as TupleN<number, 3>,
+  },
+
+  // Offsets for the DeltaOne function 
+  DELTA_ONE: {
+    // SHA2-224 and SHA2-256: §4.1.2 eq.4.7
+    256: [10, 17, 19] as TupleN<number, 3>,
+    // - SHA2-384 and SHA2-512: §4.1.3 eq.4.13
+    384: [6, 19, 61] as TupleN<number, 3>,
+    512: [6, 19, 61] as TupleN<number, 3>,
+  },
+
+  // Offsets for the SigmaZero function
+  SIGMA_ZERO: {
+    // SHA2-224 and SHA2-256: §4.1.2 eq.4.4
+    256: [2, 13, 22] as TupleN<number, 3>,
+     // SHA2-384 and SHA2-512: §4.1.3 eq.4.10 
+    512: [28, 34, 39] as TupleN<number, 3>,
+  },
+
+  // Offsets for the SigmaOne function for SHA2.
+  SIGMA_ONE: {
+    // SHA2-224 and SHA2-256: §4.1.2 eq.4.5
+    256: [6, 11, 25] as TupleN<number, 3>,
+    // SHA2-384 and SHA2-512: §4.1.3 eq.4.11
+    512: [14, 18, 41] as TupleN<number, 3>,
+  },
+
+  // Initia hash values
+  H: {
+    // SHA2-224 §5.3.2
+    224: [
+      0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511,
+      0x64f98fa7, 0xbefa4fa4,
+    ],
+    // SHA-256 §5.3.3
+    256: [
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
+      0x1f83d9ab, 0x5be0cd19,
+    ],
+    // SHA2-384 §5.3.4
+    384:[
+      0xcbbb9d5dc1059ed8n, 0x629a292a367cd507n, 0x9159015a3070dd17n, 0x152fecd8f70e5939n,
+      0x67332667ffc00b31n, 0x8eb44a8768581511n, 0xdb0c2e0d64f98fa7n, 0x47b5481dbefa4fa4n,
+    ],
+    // SHA2-512 §5.3.5
+    512:[
+      0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn, 0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
+      0x510e527fade682d1n, 0x9b05688c2b3e6c1fn, 0x1f83d9abfb41bd6bn, 0x5be0cd19137e2179n,
+    ],
+  },
+
+  K: {
+    224: K224_256,
+    256: K224_256,
+    384: K384_512,
+    512: K384_512,
+  },
+
 };
 
 const SHA2 = {
@@ -190,14 +219,10 @@ const SHA2 = {
   padding,
   initialState<T extends UInt32 | UInt64>(length: 224 | 256 | 384 | 512): T[] {
     switch (length) {
-      case 224:
-        return SHA2Constants.H224.map((x) => UInt32.from(x) as T);
-      case 256:
-        return SHA2Constants.H256.map((x) => UInt32.from(x) as T);
-      case 384:
-        return SHA2Constants.H384.map((x) => UInt64.from(x) as T);
-      case 512:
-        return SHA2Constants.H512.map((x) => UInt64.from(x) as T);
+      case 224 | 256:
+        return SHA2Constants.H[length].map((x) => UInt32.from(x) as T);
+      case 384 | 512:
+        return SHA2Constants.H[length].map((x) => UInt64.from(x) as T);
       default:
         throw new Error('Invalid hash length');
     }
@@ -222,16 +247,16 @@ function padding<T extends UInt32 | UInt64>(data: FlexibleBytes, is256: boolean)
 
   // Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
   const blockLength = is256
-    ? SHA2Constants.BLOCK_LENGTH_224_256
-    : SHA2Constants.BLOCK_LENGTH_384_512;
+    ? SHA2Constants.BLOCK_LENGTH[256]
+    : SHA2Constants.BLOCK_LENGTH[512];
 
   const paddingValue = is256
-    ? SHA2Constants.PADDING_VALUE_224_256
-    : SHA2Constants.PADDING_VALUE_384_512;
+    ? SHA2Constants.PADDING_VALUE[256]
+    : SHA2Constants.PADDING_VALUE[512];
 
   const lengthChunk = is256
-    ? SHA2Constants.LENGTH_CHUNK_224_256
-    : SHA2Constants.LENGTH_CHUNK_384_512;
+    ? SHA2Constants.LENGTH_CHUNK[256]
+    : SHA2Constants.LENGTH_CHUNK[512];
 
   // now pad the data to reach the format expected by SHA2
   // pad 1 bit, followed by k zero bits where k is the smallest non-negative solution to
@@ -285,8 +310,8 @@ function messageSchedule<T extends UInt32 | UInt64>(M: T[], is256: boolean): T[]
   // for each message block of 16 x 32bit | 64bit do:
 
   let numWords = is256
-    ? SHA2Constants.NUM_WORDS_224_256
-    : SHA2Constants.NUM_WORDS_384_512;
+    ? SHA2Constants.NUM_WORDS[256]
+    : SHA2Constants.NUM_WORDS[512];
 
   // prepare message block
   for (let t = 0; t < 16; t++) W[t] = M[t];
@@ -314,10 +339,10 @@ function messageSchedule<T extends UInt32 | UInt64>(M: T[], is256: boolean): T[]
  */
 function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[], is256: boolean) {
   let numWords = is256
-    ? SHA2Constants.NUM_WORDS_224_256
-    : SHA2Constants.NUM_WORDS_384_512;
+    ? SHA2Constants.NUM_WORDS[256]
+    : SHA2Constants.NUM_WORDS[512];
 
-  let k = is256 ? SHA2Constants.K224_256 : SHA2Constants.K384_512;
+  let k = is256 ? SHA2Constants.K[256] : SHA2Constants.K[512];
 
   // §6.2.2.2 and §6.4.2.2:
   // initialize working variables
@@ -439,28 +464,28 @@ function Maj<T extends UInt32 | UInt64>(x: T, y: T, z: T, is256: boolean): T {
 
 function SigmaZero<T extends UInt32 | UInt64>(x: T, is256: boolean) {
   return is256
-    ? sigma(x, SHA2Constants.SIGMA_ZERO_224_256, false, is256)
-    : sigma(x, SHA2Constants.SIGMA_ZERO_384_512, false, is256);
+    ? sigma(x, SHA2Constants.SIGMA_ZERO[256], false, is256)
+    : sigma(x, SHA2Constants.SIGMA_ZERO[512], false, is256);
 }
 
 function SigmaOne<T extends UInt32 | UInt64>(x: T, is256: boolean) {
   return is256
-    ? sigma(x, SHA2Constants.SIGMA_ONE_224_256, false, is256)
-    : sigma(x, SHA2Constants.SIGMA_ONE_384_512, false, is256);
+    ? sigma(x, SHA2Constants.SIGMA_ONE[256], false, is256)
+    : sigma(x, SHA2Constants.SIGMA_ONE[512], false, is256);
 }
 
 // lowercase sigma = delta to avoid confusing function names
 
 function DeltaZero<T extends UInt32 | UInt64>(x: T, is256: boolean): T {
   return is256
-    ? sigma(x, SHA2Constants.DELTA_ZERO_224_256, true, is256)
-    : sigma(x, SHA2Constants.DELTA_ZERO_384_512, true, is256);
+    ? sigma(x, SHA2Constants.DELTA_ZERO[256], true, is256)
+    : sigma(x, SHA2Constants.DELTA_ZERO[512], true, is256);
 }
 
 function DeltaOne<T extends UInt32 | UInt64>(x: T, is256: boolean): T {
   return is256
-    ? sigma(x, SHA2Constants.DELTA_ONE_224_256, true, is256)
-    : sigma(x, SHA2Constants.DELTA_ONE_384_512, true, is256);
+    ? sigma(x, SHA2Constants.DELTA_ONE[256], true, is256)
+    : sigma(x, SHA2Constants.DELTA_ONE[512], true, is256);
 }
 
 function ROTR<T extends UInt32 | UInt64>(n: number, x: T): T {
