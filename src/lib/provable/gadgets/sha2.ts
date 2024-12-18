@@ -12,25 +12,24 @@ import { rangeCheck16 } from './range-check.js';
 
 export { SHA2 };
 
+// constants for SHA2-224 and SHA2-256 §4.2.2
+const K224_256 = [
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+  0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+  0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+];
 
-  // constants for SHA2-224 and SHA2-256 §4.2.2
-  const K224_256= [
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
-    0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-    0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-    0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-    0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-    0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-  ];
-
-  // constants for SHA2-384 and SHA2-512 §4.2.3
-  // prettier-ignore
-  const K384_512 = [
+// constants for SHA2-384 and SHA2-512 §4.2.3
+// prettier-ignore
+const K384_512 = [
     0x428a2f98d728ae22n, 0x7137449123ef65cdn, 0xb5c0fbcfec4d3b2fn, 0xe9b5dba58189dbbcn,
     0x3956c25bf348b538n, 0x59f111f1b605d019n, 0x923f82a4af194f9bn, 0xab1c5ed5da6d8118n,
     0xd807aa98a3030242n, 0x12835b0145706fben, 0x243185be4ee4b28cn, 0x550c7dc3d5ffb4e2n,
@@ -53,53 +52,65 @@ export { SHA2 };
     0x4cc5d4becb3e42b6n, 0x597f299cfc657e2an, 0x5fcb6fab3ad6faecn, 0x6c44198c4a475817n,
   ];
 
+type Length = 224 | 256 | 384 | 512;
+
 // SHA2 CONSTANTS
 const SHA2Constants = {
-
   // Bit length of the blocks
   BLOCK_LENGTH: {
     // SHA2-224 and SHA2-256
+    224: 512n,
     256: 512n,
     // SHA2-384 and SHA2-512
+    384: 1024n,
     512: 1024n,
   },
 
   // Value used in the padding equation
   PADDING_VALUE: {
     // SHA2-224 and SHA2-256
+    224: 448n,
     256: 448n,
     // SHA2-384 and SHA2-512
-    512: 1024n,
-  }, 
+    384: 896n,
+    512: 896n,
+  },
 
   // Bits used to store the length in the padding
   // It corresponds to BLOCK_LENGTH - PADDING_VALUE
   LENGTH_CHUNK: {
     // SHA2-224 and SHA2-256
+    224: 64,
     256: 64,
     // SHA2-384 and SHA2-512
+    384: 128,
     512: 128,
   },
 
   // Number of words in message schedule and compression
   NUM_WORDS: {
     // SHA2-224 and SHA2-256
+    224: 64n,
     256: 64n,
     // SHA2-384 and SHA2-512
+    384: 80n,
     512: 80n,
-  }, 
+  },
 
   // Offsets for the DeltaZero function
   DELTA_ZERO: {
     // SHA2-224 and SHA2-256: §4.1.2 eq.4.6
+    224: [3, 7, 18] as TupleN<number, 3>,
     256: [3, 7, 18] as TupleN<number, 3>,
     // SHA2-384 and SHA2-512: §4.1.3 eq.4.12
+    384: [7, 8, 1] as TupleN<number, 3>,
     512: [7, 8, 1] as TupleN<number, 3>,
   },
 
-  // Offsets for the DeltaOne function 
+  // Offsets for the DeltaOne function
   DELTA_ONE: {
     // SHA2-224 and SHA2-256: §4.1.2 eq.4.7
+    224: [10, 17, 19] as TupleN<number, 3>,
     256: [10, 17, 19] as TupleN<number, 3>,
     // - SHA2-384 and SHA2-512: §4.1.3 eq.4.13
     384: [6, 19, 61] as TupleN<number, 3>,
@@ -109,16 +120,20 @@ const SHA2Constants = {
   // Offsets for the SigmaZero function
   SIGMA_ZERO: {
     // SHA2-224 and SHA2-256: §4.1.2 eq.4.4
+    224: [2, 13, 22] as TupleN<number, 3>,
     256: [2, 13, 22] as TupleN<number, 3>,
-     // SHA2-384 and SHA2-512: §4.1.3 eq.4.10 
+    // SHA2-384 and SHA2-512: §4.1.3 eq.4.10
+    384: [28, 34, 39] as TupleN<number, 3>,
     512: [28, 34, 39] as TupleN<number, 3>,
   },
 
   // Offsets for the SigmaOne function for SHA2.
   SIGMA_ONE: {
     // SHA2-224 and SHA2-256: §4.1.2 eq.4.5
+    224: [6, 11, 25] as TupleN<number, 3>,
     256: [6, 11, 25] as TupleN<number, 3>,
     // SHA2-384 and SHA2-512: §4.1.3 eq.4.11
+    384: [14, 18, 41] as TupleN<number, 3>,
     512: [14, 18, 41] as TupleN<number, 3>,
   },
 
@@ -135,14 +150,26 @@ const SHA2Constants = {
       0x1f83d9ab, 0x5be0cd19,
     ],
     // SHA2-384 §5.3.4
-    384:[
-      0xcbbb9d5dc1059ed8n, 0x629a292a367cd507n, 0x9159015a3070dd17n, 0x152fecd8f70e5939n,
-      0x67332667ffc00b31n, 0x8eb44a8768581511n, 0xdb0c2e0d64f98fa7n, 0x47b5481dbefa4fa4n,
+    384: [
+      0xcbbb9d5dc1059ed8n,
+      0x629a292a367cd507n,
+      0x9159015a3070dd17n,
+      0x152fecd8f70e5939n,
+      0x67332667ffc00b31n,
+      0x8eb44a8768581511n,
+      0xdb0c2e0d64f98fa7n,
+      0x47b5481dbefa4fa4n,
     ],
     // SHA2-512 §5.3.5
-    512:[
-      0x6a09e667f3bcc908n, 0xbb67ae8584caa73bn, 0x3c6ef372fe94f82bn, 0xa54ff53a5f1d36f1n,
-      0x510e527fade682d1n, 0x9b05688c2b3e6c1fn, 0x1f83d9abfb41bd6bn, 0x5be0cd19137e2179n,
+    512: [
+      0x6a09e667f3bcc908n,
+      0xbb67ae8584caa73bn,
+      0x3c6ef372fe94f82bn,
+      0xa54ff53a5f1d36f1n,
+      0x510e527fade682d1n,
+      0x9b05688c2b3e6c1fn,
+      0x1f83d9abfb41bd6bn,
+      0x5be0cd19137e2179n,
     ],
   },
 
@@ -152,7 +179,6 @@ const SHA2Constants = {
     384: K384_512,
     512: K384_512,
   },
-
 };
 
 const SHA2 = {
@@ -184,23 +210,21 @@ const SHA2 = {
    * ```
    *
    */
-  hash<T extends 224 | 256 | 384 | 512>(length: T, data: FlexibleBytes): Bytes {
+  hash<T extends Length>(length: T, data: FlexibleBytes): Bytes {
     // Infer the type T based on the value of `length` (conditional type)
     type Type = T extends 224 | 256 ? UInt32 : UInt64;
 
-    let is256 = length === 224 || length === 256;
-
     // preprocessing §6.2
     // padding the message $5.1.1 into blocks that are a multiple of 512
-    let messageBlocks = padding<Type>(data, is256);
+    let messageBlocks = padding<Type>(length, data);
 
     let H = SHA2.initialState<Type>(length);
 
     const N = messageBlocks.length;
 
     for (let i = 0; i < N; i++) {
-      const W = messageSchedule(messageBlocks[i], is256);
-      H = compression(H, W, is256);
+      const W = messageSchedule(length, messageBlocks[i]);
+      H = compression(length, H, W);
     }
 
     // the working variables H[i] are 32 | 64 bit, however we want to decompose
@@ -217,7 +241,7 @@ const SHA2 = {
   compression,
   messageSchedule,
   padding,
-  initialState<T extends UInt32 | UInt64>(length: 224 | 256 | 384 | 512): T[] {
+  initialState<T extends UInt32 | UInt64>(length: Length): T[] {
     switch (length) {
       case 224 | 256:
         return SHA2Constants.H[length].map((x) => UInt32.from(x) as T);
@@ -233,30 +257,23 @@ const SHA2 = {
  * Padding function for SHA2, as specified in §5.1.1, §5.1.2,
  *
  * @param data  The message to hash
- * @param is256 Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
+ * @param length Whether this is a SHA2-224 or SHA2-256 or SHA2-384 or SHA2-512
  * @returns
  */
 // The only difference between the padding used in SHA2-224/256 and SHA2-384/512
 // is the size of the word (32bit vs 64bit). In the first case, UInt32[][] is
 // returned, in the second case UInt64[][] is returned.
-function padding<T extends UInt32 | UInt64>(data: FlexibleBytes, is256: boolean): T[][] {
-
+function padding<T extends UInt32 | UInt64>(
+  length: Length,
+  data: FlexibleBytes
+): T[][] {
   // create a provable Bytes instance from the input data
   // the Bytes class will be static sized according to the length of the input data
   let message = Bytes.from(data);
 
-  // Whether this is a short SHA2 (SHA2-224 or SHA2-256) or not (SHA2-384 or SHA2-512)
-  const blockLength = is256
-    ? SHA2Constants.BLOCK_LENGTH[256]
-    : SHA2Constants.BLOCK_LENGTH[512];
-
-  const paddingValue = is256
-    ? SHA2Constants.PADDING_VALUE[256]
-    : SHA2Constants.PADDING_VALUE[512];
-
-  const lengthChunk = is256
-    ? SHA2Constants.LENGTH_CHUNK[256]
-    : SHA2Constants.LENGTH_CHUNK[512];
+  const blockLength = SHA2Constants.BLOCK_LENGTH[length];
+  const paddingValue = SHA2Constants.PADDING_VALUE[length];
+  const lengthChunk = SHA2Constants.LENGTH_CHUNK[length];
 
   // now pad the data to reach the format expected by SHA2
   // pad 1 bit, followed by k zero bits where k is the smallest non-negative solution to
@@ -285,7 +302,7 @@ function padding<T extends UInt32 | UInt64>(data: FlexibleBytes, is256: boolean)
 
   // Create chunks based on whether we are dealing with SHA2-224/256 or SHA2-384/512
   // split the message into (32 | 64)-bit chunks
-  let chunks = is256
+  let chunks = isShort(length)
     ? createChunks(paddedMessage, 4, UInt32.fromBytesBE)
     : createChunks(paddedMessage, 8, UInt64.fromBytesBE);
 
@@ -297,11 +314,15 @@ function padding<T extends UInt32 | UInt64>(data: FlexibleBytes, is256: boolean)
 /**
  * Prepares the message schedule for the SHA2 compression function from the given message block.
  *
+ * @param length Whether this is a SHA2-224 or SHA2-256 or SHA2-384 or SHA2-512
  * @param M - The 512-bit message block (16-element array of UInt32)
  *            or the 1024-bit message block (16-element array of UInt64).
  * @returns The message schedule (64-element array of UInt32 or 80-element array of UInt64).
  */
-function messageSchedule<T extends UInt32 | UInt64>(M: T[], is256: boolean): T[] {
+function messageSchedule<T extends UInt32 | UInt64>(
+  length: Length,
+  M: T[]
+): T[] {
   // §6.2.2.1 and §6.4.2.1
 
   // Declare W as an empty array of type T[] (generic array)
@@ -309,21 +330,19 @@ function messageSchedule<T extends UInt32 | UInt64>(M: T[], is256: boolean): T[]
 
   // for each message block of 16 x 32bit | 64bit do:
 
-  let numWords = is256
-    ? SHA2Constants.NUM_WORDS[256]
-    : SHA2Constants.NUM_WORDS[512];
+  let numWords = SHA2Constants.NUM_WORDS[length];
 
   // prepare message block
   for (let t = 0; t < 16; t++) W[t] = M[t];
   for (let t = 16; t < numWords; t++) {
     // the field element is unreduced and not proven to be 32bit | 64bit,
     // we will do this later to save constraints
-    let unreduced = DeltaOne(W[t - 2], is256)
+    let unreduced = DeltaOne(length, W[t - 2])
       .value.add(W[t - 7].value)
-      .add(DeltaZero(W[t - 15], is256).value.add(W[t - 16].value));
+      .add(DeltaZero(length, W[t - 15]).value.add(W[t - 16].value));
 
     // mod 32 | 64 bit the unreduced field element
-    W[t] = reduceMod(unreduced, is256);
+    W[t] = reduceMod(length, unreduced);
   }
 
   return W;
@@ -332,17 +351,20 @@ function messageSchedule<T extends UInt32 | UInt64>(M: T[], is256: boolean): T[]
 /**
  * Performs the SHA-2 compression function on the given hash values and message schedule.
  *
+ * @param length Whether this is a SHA2-224 or SHA2-256 or SHA2-384 or SHA2-512
  * @param H - The initial or intermediate hash values (8-element array of T).
  * @param W - The message schedule (64-element array of T).
  *
  * @returns The updated intermediate hash values after compression.
  */
-function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[], is256: boolean) {
-  let numWords = is256
-    ? SHA2Constants.NUM_WORDS[256]
-    : SHA2Constants.NUM_WORDS[512];
+function compression<T extends UInt32 | UInt64>(
+  length: Length,
+  [...H]: T[],
+  W: T[]
+) {
+  let numWords = SHA2Constants.NUM_WORDS[length];
 
-  let k = is256 ? SHA2Constants.K[256] : SHA2Constants.K[512];
+  let k = SHA2Constants.K[length];
 
   // §6.2.2.2 and §6.4.2.2:
   // initialize working variables
@@ -361,40 +383,46 @@ function compression<T extends UInt32 | UInt64>([...H]: T[], W: T[], is256: bool
     // T1 is unreduced and not proven to be 32 | 64 bit,
     // we will do this later to save constraints
     const unreducedT1 = h.value
-      .add(SigmaOne(e, is256).value)
-      .add(Ch(e, f, g, is256).value)
+      .add(SigmaOne(length, e).value)
+      .add(Ch(length, e, f, g).value)
       .add(k[t])
       .add(W[t].value)
       .seal();
 
     // T2 is also unreduced
-    const unreducedT2 = SigmaZero(a, is256).value.add(Maj(a, b, c, is256).value);
+    const unreducedT2 = SigmaZero(length, a).value.add(
+      Maj(length, a, b, c).value
+    );
 
     h = g;
     g = f;
     f = e;
-    e = reduceMod(d.value.add(unreducedT1), is256);
+    e = reduceMod(length, d.value.add(unreducedT1));
     // mod 32 | 64 bit the unreduced field element
     d = c;
     c = b;
     b = a;
-    a = reduceMod(unreducedT2.add(unreducedT1), is256);
+    a = reduceMod(length, unreducedT2.add(unreducedT1));
     // mod 32 | 64 bit
   }
 
   // §6.2.2.4 and §6.4.2.4
   // new intermediate hash value
-  intermediateHash([a, b, c, d, e, f, g, h], H, is256);
+  intermediateHash(length, [a, b, c, d, e, f, g, h], H);
 
   return H;
 }
 
 // Helper functions
 
+// Helper function to check if it is a short SHA2 (SHA2-224 or SHA2-256) or not
+function isShort(length: Length): boolean {
+  return length === 224 || length === 256;
+}
 
 // Shorthand to reduce a field element modulo 32 or 64 bits depending on T
-function reduceMod<T extends UInt32 | UInt64>(x: Field, is256: boolean): T {
-  if (is256) {
+function reduceMod<T extends UInt32 | UInt64>(length: Length, x: Field): T {
+  if (isShort(length)) {
     return UInt32.Unsafe.fromField(divMod32(x, 32 + 16).remainder) as T;
   } else {
     return UInt64.Unsafe.fromField(divMod64(x, 64 + 16).remainder) as T;
@@ -416,8 +444,12 @@ function createChunks<T extends UInt32 | UInt64>(
   return chunks;
 }
 
-function intermediateHash<T extends UInt32 | UInt64>(variables: T[], H: T[], is256: boolean) {
-  if (is256) {
+function intermediateHash<T extends UInt32 | UInt64>(
+  length: Length,
+  variables: T[],
+  H: T[]
+) {
+  if (isShort(length)) {
     for (let i = 0; i < 8; i++) {
       H[i] = (variables[i] as UInt32).addMod32(H[i] as UInt32) as T;
     }
@@ -430,10 +462,10 @@ function intermediateHash<T extends UInt32 | UInt64>(variables: T[], H: T[], is2
 
 // Subroutines for SHA2
 
-function Ch<T extends UInt32 | UInt64>(x: T, y: T, z: T, is256: boolean): T {
+function Ch<T extends UInt32 | UInt64>(length: Length, x: T, y: T, z: T): T {
   // ch(x, y, z) = (x & y) ^ (~x & z)
   //             = (x & y) + (~x & z) (since x & ~x = 0)
-  if (is256) {
+  if (isShort(length)) {
     let xAndY = (x as UInt32).and(y as UInt32).value;
     let xNotAndZ = (x as UInt32).not().and(z as UInt32).value;
     let ch = xAndY.add(xNotAndZ).seal();
@@ -446,10 +478,10 @@ function Ch<T extends UInt32 | UInt64>(x: T, y: T, z: T, is256: boolean): T {
   }
 }
 
-function Maj<T extends UInt32 | UInt64>(x: T, y: T, z: T, is256: boolean): T {
+function Maj<T extends UInt32 | UInt64>(length: Length, x: T, y: T, z: T): T {
   // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z)
   //              = (x + y + z - (x ^ y ^ z)) / 2
-  if (is256) {
+  if (isShort(length)) {
     let sum = (x as UInt32).value.add(y.value).add(z.value).seal();
     let xor = (x as UInt32).xor(y as UInt32).xor(z as UInt32).value;
     let maj = sum.sub(xor).div(2).seal();
@@ -462,30 +494,22 @@ function Maj<T extends UInt32 | UInt64>(x: T, y: T, z: T, is256: boolean): T {
   }
 }
 
-function SigmaZero<T extends UInt32 | UInt64>(x: T, is256: boolean) {
-  return is256
-    ? sigma(x, SHA2Constants.SIGMA_ZERO[256], false, is256)
-    : sigma(x, SHA2Constants.SIGMA_ZERO[512], false, is256);
+function SigmaZero<T extends UInt32 | UInt64>(length: Length, x: T): T {
+  return sigma(length, x, SHA2Constants.SIGMA_ZERO[length]);
 }
 
-function SigmaOne<T extends UInt32 | UInt64>(x: T, is256: boolean) {
-  return is256
-    ? sigma(x, SHA2Constants.SIGMA_ONE[256], false, is256)
-    : sigma(x, SHA2Constants.SIGMA_ONE[512], false, is256);
+function SigmaOne<T extends UInt32 | UInt64>(length: Length, x: T): T {
+  return sigma(length, x, SHA2Constants.SIGMA_ONE[length]);
 }
 
 // lowercase sigma = delta to avoid confusing function names
 
-function DeltaZero<T extends UInt32 | UInt64>(x: T, is256: boolean): T {
-  return is256
-    ? sigma(x, SHA2Constants.DELTA_ZERO[256], true, is256)
-    : sigma(x, SHA2Constants.DELTA_ZERO[512], true, is256);
+function DeltaZero<T extends UInt32 | UInt64>(length: Length, x: T): T {
+  return sigma(length, x, SHA2Constants.DELTA_ZERO[length], true) as T;
 }
 
-function DeltaOne<T extends UInt32 | UInt64>(x: T, is256: boolean): T {
-  return is256
-    ? sigma(x, SHA2Constants.DELTA_ONE[256], true, is256)
-    : sigma(x, SHA2Constants.DELTA_ONE[512], true, is256);
+function DeltaOne<T extends UInt32 | UInt64>(length: Length, x: T): T {
+  return sigma(length, x, SHA2Constants.DELTA_ONE[length], true) as T;
 }
 
 function ROTR<T extends UInt32 | UInt64>(n: number, x: T): T {
@@ -497,13 +521,13 @@ function SHR<T extends UInt32 | UInt64>(n: number, x: T): T {
 }
 
 function sigmaSimple<T extends UInt32 | UInt64>(
+  length: Length,
   u: T,
   bits: TupleN<number, 3>,
-  firstShifted = false,
-  is256: boolean
+  firstShifted = false
 ): T {
   let [r0, r1, r2] = bits;
-  if (is256) {
+  if (isShort(length)) {
     let rot0 = firstShifted ? (SHR(r0, u) as UInt32) : (ROTR(r0, u) as UInt32);
     let rot1 = ROTR(r1, u) as UInt32;
     let rot2 = ROTR(r2, u) as UInt32;
@@ -517,12 +541,13 @@ function sigmaSimple<T extends UInt32 | UInt64>(
 }
 
 function sigma<T extends UInt32 | UInt64>(
+  length: Length,
   u: T,
   bits: TupleN<number, 3>,
-  firstShifted = false,
-  is256: boolean
+  firstShifted = false
 ): T {
-  if (u.isConstant() || !is256) return sigmaSimple(u, bits, firstShifted, is256);
+  if (u.isConstant() || !isShort(length))
+    return sigmaSimple(length, u, bits, firstShifted);
 
   // When T is UInt64, 64-bit rotation is natively supported in the gadgets.
   // However, 32-bit rotation is not natively supported, thus the following:
