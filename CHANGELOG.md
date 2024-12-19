@@ -35,6 +35,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - Changed an internal type to improve IntelliSense on ZkProgram methods https://github.com/o1-labs/o1js/pull/1933
+- Enable to pass normal JS values (e.g., `bigint` instead of `Field`) to ZkProgram provers https://github.com/o1-labs/o1js/pull/1934
+  - Also improves the supported JS values for a few important types like `Signature` and `UIntX`
 
 ### Fixed
 

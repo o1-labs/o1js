@@ -3,8 +3,9 @@ import { Provable } from '../provable/provable.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
 import { Tuple } from '../util/types.js';
 import { Proof } from './proof.js';
-import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { mapToObject, zip } from '../util/arrays.js';
 import { Undefined, Void } from './zkprogram.js';
+import { From } from '../../bindings/lib/provable-generic.js';
 
 export { Recursive };
 
@@ -36,6 +37,7 @@ function Recursive<
 ): {
   [Key in keyof PrivateInputs]: RecursiveProver<
     InferProvable<PublicInputType>,
+    PublicInputType,
     InferProvable<PublicOutputType>,
     PrivateInputs[Key]
   >;
@@ -62,20 +64,20 @@ function Recursive<
 
   let methodKeys: MethodKey[] = Object.keys(methods);
 
-  let regularRecursiveProvers = mapToObject(methodKeys, (key) => {
+  let regularRecursiveProvers = mapToObject(methodKeys, (key, i) => {
     return async function proveRecursively_(
       publicInput: PublicInput,
-      ...args: TupleToInstances<PrivateInputs[MethodKey]>
+      ...args: TupleFrom<PrivateInputs[MethodKey]>
     ) {
       // create the base proof in a witness block
       let proof = await Provable.witnessAsync(SelfProof, async () => {
         // move method args to constants
         let constInput = Provable.toConstant<PublicInput>(
           publicInputType,
-          publicInput
+          publicInputType.fromValue(publicInput)
         );
         let constArgs = zip(args, privateInputs[key]).map(([arg, type]) =>
-          Provable.toConstant(type, arg)
+          Provable.toConstant(type, ProvableType.get(type).fromValue(arg))
         );
 
         let prover = zkprogram[key];
@@ -103,6 +105,7 @@ function Recursive<
 
   type RecursiveProver_<K extends MethodKey> = RecursiveProver<
     PublicInput,
+    PublicInputType,
     PublicOutput,
     PrivateInputs[K]
   >;
@@ -126,15 +129,16 @@ function Recursive<
 
 type RecursiveProver<
   PublicInput,
+  PublicInputType,
   PublicOutput,
   Args extends Tuple<ProvableType>
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<PublicOutput>
+  ? (...args: TupleFrom<Args>) => Promise<PublicOutput>
   : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
     ) => Promise<PublicOutput>;
 
-type TupleToInstances<T> = {
-  [I in keyof T]: InferProvable<T[I]>;
+type TupleFrom<T> = {
+  [I in keyof T]: From<T[I]>;
 };
