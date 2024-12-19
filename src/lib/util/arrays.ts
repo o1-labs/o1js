@@ -1,6 +1,6 @@
 import { assert } from './errors.js';
 
-export { chunk, chunkString, zip, pad };
+export { chunk, chunkString, zip, pad, mapObject, mapToObject };
 
 function chunk<T>(array: T[], size: number): T[][] {
   assert(
@@ -30,4 +30,25 @@ function pad<T>(array: T[], size: number, value: T): T[] {
     `target size ${size} should be greater or equal than the length of the array ${array.length}`
   );
   return array.concat(Array.from({ length: size - array.length }, () => value));
+}
+
+function mapObject<
+  T extends Record<string, any>,
+  F extends <K extends keyof T>(value: T[K], key: K) => any
+>(t: T, fn: F) {
+  let s = {} as { [K in keyof T]: ReturnType<F> };
+  for (let key in t) {
+    s[key] = fn(t[key], key);
+  }
+  return s;
+}
+function mapToObject<
+  Key extends string | number | symbol,
+  F extends <K extends Key>(key: K, i: number) => any
+>(keys: Key[], fn: F) {
+  let s = {} as { [K in Key]: ReturnType<F> };
+  keys.forEach((key, i) => {
+    s[key] = fn(key, i);
+  });
+  return s;
 }
