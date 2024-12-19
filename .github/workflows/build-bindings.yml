@@ -30,6 +30,8 @@ jobs:
           nix run o1js#update-bindings --max-jobs 4
           #fail if this changes any files
           cd src/bindings
+          echo If this check fails you can download a patch from the patch-upload job
+          echo "https://github.com/o1-labs/o1js/blob/main/README-dev.md#build-scripts"
           git diff --exit-code
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
