@@ -42,7 +42,7 @@ const FakeProgram = ZkProgram({
   },
 });
 
-class RealProof extends ZkProgram.Proof(RealProgram) {}
+class RealProof extends RealProgram.Proof {}
 class Nested extends Struct({ inner: RealProof }) {}
 
 const RecursiveProgram = ZkProgram({

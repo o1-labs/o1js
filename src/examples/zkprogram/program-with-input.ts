@@ -35,8 +35,6 @@ MyProgram.publicOutputType satisfies Provable<void>;
 MyProgram.privateInputTypes;
 MyProgram.auxiliaryOutputTypes;
 
-let MyProof = ZkProgram.Proof(MyProgram);
-
 console.log('program digest', await MyProgram.digest());
 
 console.log('compiling MyProgram...');
@@ -45,7 +43,7 @@ console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
 console.log('proving base case...');
 let { proof } = await MyProgram.baseCase(Field(0));
-proof = await testJsonRoundtrip(MyProof, proof);
+proof = await testJsonRoundtrip(MyProgram.Proof, proof);
 
 // type sanity check
 proof satisfies Proof<Field, void>;
@@ -60,7 +58,7 @@ console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
 let { proof: proof1 } = await MyProgram.inductiveCase(Field(1), proof);
-proof1 = await testJsonRoundtrip(MyProof, proof1);
+proof1 = await testJsonRoundtrip(MyProgram.Proof, proof1);
 
 console.log('verify...');
 ok = await verify(proof1, verificationKey);
@@ -72,7 +70,7 @@ console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
 let { proof: proof2 } = await MyProgram.inductiveCase(Field(2), proof1);
-proof2 = await testJsonRoundtrip(MyProof, proof2);
+proof2 = await testJsonRoundtrip(MyProgram.Proof, proof2);
 
 console.log('verify...');
 ok = await verify(proof2.toJSON(), verificationKey);
