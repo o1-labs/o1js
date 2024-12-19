@@ -56,6 +56,7 @@ import { emptyWitness } from '../provable/types/util.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { Bool } from '../provable/bool.js';
 
 // public API
 export {
