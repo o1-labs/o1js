@@ -31,7 +31,7 @@ jobs:
           #fail if this changes any files
           cd src/bindings
           echo If this check fails you can download a patch from the patch-upload job
-          echo "https://github.com/o1-labs/o1js/blob/main/README-dev.md#build-scripts"
+          echo "https://github.com/o1-labs/o1js/blob/main/README-dev.md#bindings-check-in-ci"
           git diff --exit-code
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
