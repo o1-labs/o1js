@@ -985,6 +985,7 @@ const Gadgets = {
    *
    * Produces an output of {@link Bytes} that conforms to the chosen bit length.
    *
+   * @param length - 224 | 256 | 384 | 512 representing the length of the hash.
    * @param data - {@link Bytes} representing the message to hash.
    *
    * ```ts
