@@ -40,6 +40,7 @@ type SnarkContext = {
   inCheckedComputation?: boolean;
   inAnalyze?: boolean;
   inWitnessBlock?: boolean;
+  auxInputData?: any[];
 };
 let snarkContext = Context.create<SnarkContext>({ default: {} });
 

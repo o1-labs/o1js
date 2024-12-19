@@ -15,15 +15,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/e1bac02...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
+
+## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
 ### Added
 
+- `ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
 - API for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931
-  - `program.proveRecursively.<methodName>(...args): Promise<PublicOutput>`
+  - `let recursive = Experimental.Recursive(program);`
+  - `recursive.<methodName>(...args): Promise<PublicOutput>`
   - This also works within the same program, as long as the return value is type-annotated
 - Add `enforceTransactionLimits` parameter on Network https://github.com/o1-labs/o1js/issues/1910
 - Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
+- Increased maximum supported amount of methods in a `SmartContract` or `ZkProgram` to 30. https://github.com/o1-labs/o1js/pull/1918
+- Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
+- Expore `maxProofsVerified()` and a `Proof` class directly on ZkPrograms https://github.com/o1-labs/o1js/pull/1933
+
+### Changed
+
+- Changed an internal type to improve IntelliSense on ZkProgram methods https://github.com/o1-labs/o1js/pull/1933
 
 ### Fixed
 
@@ -65,7 +76,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
 - `addMod64()` addition modulo 2^64
 - Bitwise OR via `{UInt32, UInt64}.or()`
-- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+- **BLAKE2B hash function** gadget. https://github.com/o1-labs/o1js/pull/1767
 
 ## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
 
