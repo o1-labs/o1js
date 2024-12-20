@@ -268,14 +268,8 @@ function ZkProgram<Config extends ConfigBaseType>(
     InferProvableOrUndefined<InferAuxiliaryOutputs<Config>[I]>
   >;
 } {
-  type Methods = {
-    [I in keyof Config['methods']]: Method<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      Config['methods'][I]
-    >;
-  };
   // derived types for convenience
+  type Methods = InferMethodSignatures<Config>;
   type PrivateInputs = InferPrivateInput<Config>
   type AuxiliaryOutputs = InferAuxiliaryOutputs<Config>;
 
