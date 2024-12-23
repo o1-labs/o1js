@@ -133,7 +133,7 @@ Nix has a garbage collector that **is not used by default** after every run. Ins
 
 Instead, you can try to run `nix-env --delete-generations old` or any other time bound like `7d`. This will not have any effect on MacOS though. Alternatively, the [direnv](https://github.com/direnv/direnv) / [nix-direnv](https://github.com/nix-community/nix-direnv) tool can create garbage collector roots that won't be collected for removal. It just keeps one gc-root to the latest build of the dev shell so that `nix-store --gc` only removes older generations.
 
-On top of that, adding `auto-optimise-store = true` to `/etc/nix/nix.conf` and running `nix-store --optimize` shoud help with disk usage, as it replaces duplicated files with symlinks.
+On top of that, adding `auto-optimise-store = true` to `/etc/nix/nix.conf` and running `nix-store --optimize` should help with disk usage, as it replaces duplicated files with symlinks.
 
 ### Runtime optimization
 
