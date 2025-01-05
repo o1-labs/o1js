@@ -44,13 +44,13 @@ import {
 import {
   analyzeMethod,
   compileProgram,
+  computeMaxProofsVerified,
   Empty,
-  getPreviousProofsForProver,
   MethodInterface,
   sortMethodArguments,
   VerificationKey,
 } from '../proof-system/zkprogram.js';
-import { Proof } from '../proof-system/proof.js';
+import { Proof, ProofClass } from '../proof-system/proof.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   InternalStateType,
@@ -154,11 +154,6 @@ function method<K extends string, T extends SmartContract>(
   // FIXME: overriding a method implies pushing a separate method entry here, yielding two entries with the same name
   // this should only be changed once we no longer share the _methods array with the parent class (otherwise a subclass declaration messes up the parent class)
   ZkappClass._methods.push(methodEntry);
-  ZkappClass._maxProofsVerified ??= 0;
-  ZkappClass._maxProofsVerified = Math.max(
-    ZkappClass._maxProofsVerified,
-    methodEntry.numberOfProofs
-  ) as 0 | 1 | 2;
   let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
@@ -341,8 +336,6 @@ function wrapMethod(
               {
                 methodName: methodIntf.methodName,
                 args: clonedArgs,
-                // proofs actually don't have to be cloned
-                previousProofs: getPreviousProofsForProver(actualArgs),
                 ZkappClass,
                 memoized,
                 blindingValue,
@@ -433,7 +426,6 @@ function wrapMethod(
             {
               methodName: methodIntf.methodName,
               args: constantArgs,
-              previousProofs: getPreviousProofsForProver(constantArgs),
               ZkappClass,
               memoized,
               blindingValue: constantBlindingValue,
@@ -593,10 +585,10 @@ class SmartContract extends SmartContractBase {
       rows: number;
       digest: string;
       gates: Gate[];
+      proofs: ProofClass[];
     }
   >; // keyed by method name
   static _provers?: Pickles.Prover[];
-  static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
 
   /**
@@ -644,6 +636,7 @@ class SmartContract extends SmartContractBase {
     forceRecompile = false,
   } = {}) {
     let methodIntfs = this._methods ?? [];
+    let methodKeys = methodIntfs.map(({ methodName }) => methodName);
     let methods = methodIntfs.map(({ methodName }) => {
       return async (
         publicInput: unknown,
@@ -657,13 +650,15 @@ class SmartContract extends SmartContractBase {
     });
     // run methods once to get information that we need already at compile time
     let methodsMeta = await this.analyzeMethods();
-    let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
+    let gates = methodKeys.map((k) => methodsMeta[k].gates);
+    let proofs = methodKeys.map((k) => methodsMeta[k].proofs);
     let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
       publicOutputType: Empty,
       methodIntfs,
       methods,
       gates,
+      proofs,
       proofSystemTag: this,
       cache,
       forceRecompile,
@@ -687,6 +682,17 @@ class SmartContract extends SmartContractBase {
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
     return hash.toBigInt().toString(16);
+  }
+
+  /**
+   * The maximum number of proofs that are verified by any of the zkApp methods.
+   * This is an internal parameter needed by the proof system.
+   */
+  static async getMaxProofsVerified() {
+    let methodData = await this.analyzeMethods();
+    return computeMaxProofsVerified(
+      Object.values(methodData).map((d) => d.proofs.length)
+    );
   }
 
   /**
@@ -1189,7 +1195,7 @@ super.init();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, gates, summary } = await analyzeMethod(
+          let { rows, digest, gates, summary, proofs } = await analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             async (publicInput, publicKey, tokenId, ...args) => {
@@ -1207,6 +1213,7 @@ super.init();
             rows,
             digest,
             gates,
+            proofs,
           };
           if (printSummary) console.log(methodIntf.methodName, summary());
         }

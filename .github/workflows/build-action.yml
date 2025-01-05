@@ -311,6 +311,11 @@ jobs:
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
       
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
       - name: Tag new version
         if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
         env:

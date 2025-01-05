@@ -86,6 +86,20 @@ In addition to building the OCaml and Rust code, the build script also generates
 
 o1js uses these types to ensure that the constants used in the protocol are consistent with the OCaml source files.
 
+### Bindings check in ci
+
+If the bindings check fails in CI it will upload a patch you can use to update the bindings without having to rebuild locally.
+This can also be helpful when the bindings don't build identically, as unfortunately often happens.
+
+To use this patch:
+- Click details on the `Build o1js bindings / build-bindings-ubunutu` job
+- Go to the `patch-upload` job and expand the logs for `Upload patch`
+- Download the file linked in the last line of the logs ie.
+`Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
+- unzip it
+- navigate to `src/bindings`
+- run `git apply path/to/bindings.patch`
+
 ## Development
 
 ### Branching Policy
