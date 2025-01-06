@@ -245,8 +245,6 @@
               ];
             });
             inherit (inputs.mina.devShells."${system}".default)
-              PLONK_WASM_NODEJS
-              PLONK_WASM_WEB
               MARLIN_PLONK_STUBS
               ;
             PREBUILT_KIMCHI_BINDINGS_JS_WEB =
