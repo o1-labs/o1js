@@ -98,27 +98,28 @@
               #Rustup doesn't allow local toolchains to contain 'nightly' in the name
               #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
               #which calls the nix toolchain instead of the nightly one
-              (writeShellApplication
-                { name = "rustup";
-                  text =
-                  ''
-                  if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [ "$2" = 1.72-x86_64-unknowl-linux-gnu ]; }
-                  then
-                    echo using nix toolchain
-                    ${rustup}/bin/rustup run nix "''${@:3}"
-                  else
-                    echo using plain rustup "$@"
-                    ${rustup}/bin/rustup "$@"
-                  fi
-                  '';
-                }
-              )
+#              (writeShellApplication
+#                { name = "rustup";
+#                  checkPhase = with pkgs; !stdenv.isDarwin;
+#                  text =
+#                  ''
+#                  if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [ "$2" = 1.72-x86_64-unknowl-linux-gnu ]; }
+#                  then
+#                    echo using nix toolchain
+#                    ${rustup}/bin/rustup run nix "''${@:3}"
+#                  else
+#                    echo using plain rustup "$@"
+#                    ${rustup}/bin/rustup "$@"
+#                  fi
+#                  '';
+#                }
+#              )
               rustup
               wasm-pack
               binaryen # provides wasm-opt
 
               dune_3
-            ] ++ commonOverrides.buildInputs ;
+            ] ++ commonOverrides.buildInputs;
 
         inherit (nixpkgs) lib;
         # All the submodules required by .gitmodules
@@ -204,12 +205,12 @@
           # This seems to work better for macos
           mina-shell = requireSubmodules inputs.mina.devShells."${system}".with-lsp;
           default = requireSubmodules (pkgs.mkShell {
-            shellHook =
-            ''
-            RUSTUP_HOME=$(pwd)/.rustup
-            export RUSTUP_HOME
-            rustup toolchain link nix ${rust-channel}
-            '';
+#            shellHook =
+#            ''
+#            RUSTUP_HOME=$(pwd)/.rustup
+#            export RUSTUP_HOME
+#            rustup toolchain link nix ${rust-channel}
+#            '';
             packages = bindings-pkgs;
           });
 
@@ -245,8 +246,6 @@
               ];
             });
             inherit (inputs.mina.devShells."${system}".default)
-              PLONK_WASM_NODEJS
-              PLONK_WASM_WEB
               MARLIN_PLONK_STUBS
               ;
             PREBUILT_KIMCHI_BINDINGS_JS_WEB =
@@ -254,9 +253,11 @@
             PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
               "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
             EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
-            buildInputs = bindings-pkgs ++ [ pkgs.bash ];
             SKIP_MINA_COMMIT = true;
             JUST_BINDINGS = true;
+
+            buildInputs = bindings-pkgs ++ [ pkgs.bash ];
+
             patchPhase = ''
             patchShebangs ./src/bindings/scripts/
             patchShebangs ./src/bindings/crypto/test-vectors/
