@@ -138,7 +138,7 @@ The second flag increases the default number of jobs being 1, so that rebuilding
 
 The last two lines tell Nix to use the Mina Foundation's cache whenever possible, which should as well speed things up when building code that has been build in Mina's CI before.
 
-## Common errors
+## Common Issues
 
 Errors while using Nix have been reported. This section collects a set of common
 errors and proposes fixes for them.
@@ -292,3 +292,21 @@ Then, the error message would still contain old directories.
 #### Fix
 
 Rerun `pin.sh` and `src/mina/nix/pin.sh`.
+
+### Changes to nix flakes aren't taking effect
+
+On MacOS, nix may ignore changes to files when nix commands are run and reuse the flake cached in its registry. Running commands like `nix develop o1js` and `nix run o1js#update-bindings` will reuse the cached version of the flake. As a result:
+
+- The devshell could be missing newly added dependencies.
+- Builds executed directly with `nix run` could be generated from old source files.
+
+#### Fix
+
+There are two ways to ensure Nix recognizes flake changes:
+
+- Rerun `pin.sh` to force an update to the registry, then run your command.
+- Reference the flake by its directory path rather than its registry name. This forces Nix to use the current contents of the directory:
+
+```bash
+nix develop .'?submodules=1#default'
+```
