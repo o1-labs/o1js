@@ -5,6 +5,7 @@ import { Tuple } from '../util/types.js';
 import { Proof } from './proof.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
 import { Undefined, Void } from './zkprogram.js';
+import { Bool } from '../provable/bool.js';
 
 export { Recursive };
 
@@ -25,6 +26,7 @@ function Recursive<
         ...args: any
       ) => Promise<{ publicOutput: InferProvable<PublicOutputType> }>;
     };
+    maxProofsVerified: () => Promise<0 | 1 | 2>;
   } & {
     [Key in keyof PrivateInputs]: (...args: any) => Promise<{
       proof: Proof<
@@ -38,7 +40,13 @@ function Recursive<
     InferProvable<PublicInputType>,
     InferProvable<PublicOutputType>,
     PrivateInputs[Key]
-  >;
+  > & {
+    if: ConditionalRecursiveProver<
+      InferProvable<PublicInputType>,
+      InferProvable<PublicOutputType>,
+      PrivateInputs[Key]
+    >;
+  };
 } {
   type PublicInput = InferProvable<PublicInputType>;
   type PublicOutput = InferProvable<PublicOutputType>;
@@ -64,9 +72,15 @@ function Recursive<
 
   let regularRecursiveProvers = mapToObject(methodKeys, (key) => {
     return async function proveRecursively_(
+      conditionAndConfig: Bool | { condition: Bool; domainLog2?: number },
       publicInput: PublicInput,
       ...args: TupleToInstances<PrivateInputs[MethodKey]>
-    ) {
+    ): Promise<PublicOutput> {
+      let condition =
+        conditionAndConfig instanceof Bool
+          ? conditionAndConfig
+          : conditionAndConfig.condition;
+
       // create the base proof in a witness block
       let proof = await Provable.witnessAsync(SelfProof, async () => {
         // move method args to constants
@@ -77,6 +91,20 @@ function Recursive<
         let constArgs = zip(args, privateInputs[key]).map(([arg, type]) =>
           Provable.toConstant(type, arg)
         );
+
+        if (!condition.toBoolean()) {
+          let publicOutput: PublicOutput =
+            ProvableType.synthesize(publicOutputType);
+          let maxProofsVerified = await zkprogram.maxProofsVerified();
+          return SelfProof.dummy(
+            publicInput,
+            publicOutput,
+            maxProofsVerified,
+            conditionAndConfig instanceof Bool
+              ? undefined
+              : conditionAndConfig.domainLog2
+          );
+        }
 
         let prover = zkprogram[key];
 
@@ -96,32 +124,48 @@ function Recursive<
 
       // declare and verify the proof, and return its public output
       proof.declare();
-      proof.verify();
+      proof.verifyIf(condition);
       return proof.publicOutput;
     };
   });
 
-  type RecursiveProver_<K extends MethodKey> = RecursiveProver<
-    PublicInput,
-    PublicOutput,
-    PrivateInputs[K]
-  >;
-  type RecursiveProvers = {
-    [K in MethodKey]: RecursiveProver_<K>;
-  };
-  let proveRecursively: RecursiveProvers = mapToObject(
-    methodKeys,
-    (key: MethodKey) => {
+  return mapObject(
+    regularRecursiveProvers,
+    (
+      prover
+    ): RecursiveProver<PublicInput, PublicOutput, PrivateInputs[MethodKey]> & {
+      if: ConditionalRecursiveProver<
+        PublicInput,
+        PublicOutput,
+        PrivateInputs[MethodKey]
+      >;
+    } => {
       if (!hasPublicInput) {
-        return ((...args: any) =>
-          regularRecursiveProvers[key](undefined as any, ...args)) as any;
+        return Object.assign(
+          ((...args: any) =>
+            prover(new Bool(true), undefined as any, ...args)) as any,
+          {
+            if: (
+              condition: Bool | { condition: Bool; domainLog2?: number },
+              ...args: any
+            ) => prover(condition, undefined as any, ...args),
+          }
+        );
       } else {
-        return regularRecursiveProvers[key] as any;
+        return Object.assign(
+          ((pi: PublicInput, ...args: any) =>
+            prover(new Bool(true), pi, ...args)) as any,
+          {
+            if: (
+              condition: Bool | { condition: Bool; domainLog2?: number },
+              pi: PublicInput,
+              ...args: any
+            ) => prover(condition, pi, ...args),
+          }
+        );
       }
     }
   );
-
-  return proveRecursively;
 }
 
 type RecursiveProver<
@@ -131,6 +175,21 @@ type RecursiveProver<
 > = PublicInput extends undefined
   ? (...args: TupleToInstances<Args>) => Promise<PublicOutput>
   : (
+      publicInput: PublicInput,
+      ...args: TupleToInstances<Args>
+    ) => Promise<PublicOutput>;
+
+type ConditionalRecursiveProver<
+  PublicInput,
+  PublicOutput,
+  Args extends Tuple<ProvableType>
+> = PublicInput extends undefined
+  ? (
+      condition: Bool | { condition: Bool; domainLog2?: number },
+      ...args: TupleToInstances<Args>
+    ) => Promise<PublicOutput>
+  : (
+      condition: Bool | { condition: Bool; domainLog2?: number },
       publicInput: PublicInput,
       ...args: TupleToInstances<Args>
     ) => Promise<PublicOutput>;
