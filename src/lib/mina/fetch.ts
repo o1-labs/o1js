@@ -691,10 +691,30 @@ async function fetchEvents(
   });
 }
 
+/**
+ * Fetches account actions for a specified public key and token ID by performing a GraphQL query.
+ *
+ * @param accountInfo - An {@link ActionsQueryInputs} containing the public key, and optional query parameters for the actions query
+ * @param graphqlEndpoint - The GraphQL endpoint to fetch from. Defaults to the configured Mina endpoint.
+ *
+ * @returns A promise that resolves to an object containing the final actions hash for the account, and a list of actions
+ * @throws Will throw an error if the GraphQL endpoint is invalid or if the fetch request fails.
+ *
+ * @example
+ * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
+ * const acitonsList = await fetchAccount(accountInfo);
+ * console.log(acitonsList);
+ */
 async function fetchActions(
   accountInfo: ActionsQueryInputs,
   graphqlEndpoint = networkConfig.archiveEndpoint
-) {
+): Promise<
+  | {
+      actions: string[][];
+      hash: string;
+    }[]
+  | { error: FetchError }
+> {
   if (!graphqlEndpoint)
     throw Error(
       'fetchActions: Specified GraphQL endpoint is undefined. When using actions, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
@@ -710,14 +730,25 @@ async function fetchActions(
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints
   );
+  // As of 2025-01-07, minascan is running a version of the node which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
+  // We could consider removing this fallback since no other nodes are widely used
   if (error) {
-    // retry once without querying transaction info
+    const originalError = error;
     [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
-      getActionsQuery(publicKey, actionStates, tokenId, undefined, true),
+      getActionsQuery(
+        publicKey,
+        actionStates,
+        tokenId,
+        /* _filterOptions= */ undefined,
+        /* retryWithoutTxInfo= */ true
+      ),
       graphqlEndpoint,
       networkConfig.archiveFallbackEndpoints
     );
-    if (error) throw Error(error.statusText);
+    if (error)
+      throw Error(
+        `ORIGINAL ERROR: ${originalError.statusText} \n\nRETRY ERROR: ${error.statusText}`
+      );
   }
   let fetchedActions = response?.data.actions;
   if (fetchedActions === undefined) {
@@ -766,6 +797,8 @@ export function createActionsList(
       );
 
     // DEPRECATED: In case the archive node is running an out-of-date version, best guess is to sort by the account update id
+    // As of 2025-01-07, minascan is running a version of the node which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
+    // We could consider removing this fallback since no other nodes are widely used
     if (!actionData[0].transactionInfo) {
       actionData = actionData.sort((a1, a2) => {
         return Number(a1.accountUpdateId) - Number(a2.accountUpdateId);
