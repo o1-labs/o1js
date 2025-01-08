@@ -108,7 +108,7 @@ type OffchainStateInstance<
   /**
    * Rebuilds the internal state map by fetching actions up to the current actionState in offchainStateCommitments
    * */
-  fetchInternalState(): void;
+  fetchInternalState(): Promise<void>;
 };
 
 type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
