@@ -33,13 +33,21 @@ function checkConsistentSingle(
   // verify
   expect(verifyFieldElement(sig, msg, pk, networkId)).toEqual(true);
 
-  // verify against different network
+  // if the signature was generated with networkId=mainnet, the signature should not verify against testnet or devnet
   expect(
     verifyFieldElement(
       sig,
       msg,
       pk,
       networkId === 'mainnet' ? 'testnet' : 'mainnet'
+    )
+  ).toEqual(false);
+  expect(
+    verifyFieldElement(
+      sig,
+      msg,
+      pk,
+      networkId === 'mainnet' ? 'devnet' : 'mainnet'
     )
   ).toEqual(false);
 
@@ -56,16 +64,21 @@ function checkConsistentSingle(
 
 // check that various multi-field hash inputs can be verified
 function checkCanVerify(msg: HashInput, key: PrivateKey, pk: PublicKey) {
+  let sigDev = sign(msg, key, 'devnet');
   let sigTest = sign(msg, key, 'testnet');
   let sigMain = sign(msg, key, 'mainnet');
   // verify
-  let okTestnetTestnet = verify(sigTest, msg, pk, 'testnet');
-  let okMainnetTestnet = verify(sigMain, msg, pk, 'testnet');
-  let okTestnetMainnet = verify(sigTest, msg, pk, 'mainnet');
+  let okTestnetDevnet = verify(sigTest, msg, pk, 'devnet');
+  let okDevnetTestnet = verify(sigDev, msg, pk, 'testnet');
+  let okDevnetDevnet = verify(sigDev, msg, pk, 'devnet');
+  let okMainnetDevnet = verify(sigMain, msg, pk, 'devnet');
+  let okDevnetMainnet = verify(sigDev, msg, pk, 'mainnet');
   let okMainnetMainnet = verify(sigMain, msg, pk, 'mainnet');
-  expect(okTestnetTestnet).toEqual(true);
-  expect(okMainnetTestnet).toEqual(false);
-  expect(okTestnetMainnet).toEqual(false);
+  expect(okTestnetDevnet).toEqual(true);
+  expect(okDevnetTestnet).toEqual(true);
+  expect(okDevnetDevnet).toEqual(true);
+  expect(okMainnetDevnet).toEqual(false);
+  expect(okDevnetMainnet).toEqual(false);
   expect(okMainnetMainnet).toEqual(true);
 }
 
@@ -105,6 +118,7 @@ for (let i = 0; i < 10; i++) {
   // hard coded single field elements
   let hardcoded = [0n, 1n, 2n, p - 1n];
   for (let x of hardcoded) {
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'devnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });
@@ -112,6 +126,7 @@ for (let i = 0; i < 10; i++) {
   // random single field elements
   for (let i = 0; i < 10; i++) {
     let x = randomFields[i];
+    checkConsistentSingle(x, key, keySnarky, publicKey, 'devnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'testnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, 'mainnet');
     checkConsistentSingle(x, key, keySnarky, publicKey, { custom: 'other' });

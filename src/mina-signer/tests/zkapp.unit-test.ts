@@ -8,7 +8,7 @@ import { PrivateKey } from '../../lib/provable/crypto/signature.js';
 import { Signature } from '../src/signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 
-const client = new Client({ network: 'testnet' });
+const client = new Client({ network: 'devnet' });
 let { publicKey, privateKey } = client.genKeys();
 
 let dummy = ZkappCommand.toJSON(ZkappCommand.empty());
