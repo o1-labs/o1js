@@ -117,7 +117,7 @@ let activeInstance: Mina = {
   fetchActions: noActiveInstance,
   getActions: noActiveInstance,
   proofsEnabled: true,
-  getNetworkId: () => 'testnet',
+  getNetworkId: () => 'devnet',
 };
 
 /**
