@@ -26,9 +26,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - `ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
-- API for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931
+- APIs for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931 https://github.com/o1-labs/o1js/pull/1932
   - `let recursive = Experimental.Recursive(program);`
   - `recursive.<methodName>(...args): Promise<PublicOutput>`
+  - `recursive.<methodName>.if(condition, ...args): Promise<PublicOutput>`
   - This also works within the same program, as long as the return value is type-annotated
 - Add `enforceTransactionLimits` parameter on Network https://github.com/o1-labs/o1js/issues/1910
 - Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
@@ -44,6 +45,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
 - Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
+- Deprecate `testnet` `networkId` in favor of `devnet` https://github.com/o1-labs/o1js/pull/1938
 
 ## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
 

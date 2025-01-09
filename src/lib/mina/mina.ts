@@ -117,7 +117,7 @@ function Network(
     }
     | string
 ): Mina {
-  let minaNetworkId: NetworkId = 'testnet';
+  let minaNetworkId: NetworkId = 'devnet';
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
