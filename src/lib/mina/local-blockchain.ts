@@ -293,6 +293,8 @@ async function LocalBlockchain({
           status,
           errors,
           transaction: txn.transaction,
+          setFee: txn.setFee,
+          setFeePerWU: txn.setFeePerWU,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,
