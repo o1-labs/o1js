@@ -641,9 +641,11 @@ function sendZkapp(
  * @returns A promise that resolves to an array of objects containing event data, block information and transaction information for the account.
  * @throws If the GraphQL request fails or the response is invalid.
  * @example
+ * ```ts
  * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
  * const events = await fetchEvents(accountInfo);
  * console.log(events);
+ * ```
  */
 async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
@@ -701,9 +703,11 @@ async function fetchEvents(
  * @throws Will throw an error if the GraphQL endpoint is invalid or if the fetch request fails.
  *
  * @example
+ * ```ts
  * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
  * const actionsList = await fetchAccount(accountInfo);
  * console.log(actionsList);
+ * ```
  */
 async function fetchActions(
   accountInfo: ActionsQueryInputs,
