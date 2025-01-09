@@ -95,24 +95,6 @@
               typescript
               nodePackages.typescript-language-server
 
-              #Rustup doesn't allow local toolchains to contain 'nightly' in the name
-              #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
-              #which calls the nix toolchain instead of the nightly one
-              (writeShellApplication
-                { name = "rustup";
-                  text =
-                  ''
-                  if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [ "$2" = 1.72-x86_64-unknowl-linux-gnu ]; }
-                  then
-                    echo using nix toolchain
-                    ${rustup}/bin/rustup run nix "''${@:3}"
-                  else
-                    echo using plain rustup "$@"
-                    ${rustup}/bin/rustup "$@"
-                  fi
-                  '';
-                }
-              )
               rustup
               wasm-pack
               binaryen # provides wasm-opt
@@ -254,7 +236,29 @@
             PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
               "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
             EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
-            buildInputs = bindings-pkgs ++ [ pkgs.bash ];
+            buildInputs = (with pkgs;
+                [
+                #Rustup doesn't allow local toolchains to contain 'nightly' in the name
+                #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
+                #which calls the nix toolchain instead of the nightly one
+                (writeShellApplication
+                  { name = "rustup";
+                    checkPhase = if pkgs.stdenv.isDarwin then "" else null;
+                    text =
+                    ''
+                    if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [ "$2" = 1.72-x86_64-unknowl-linux-gnu ]; }
+                    then
+                      echo using nix toolchain
+                      ${rustup}/bin/rustup run nix "''${@:3}"
+                    else
+                      echo using plain rustup "$@"
+                      ${rustup}/bin/rustup "$@"
+                    fi
+                    '';
+                  }
+                )
+                bash
+                ]) ++ bindings-pkgs;
             SKIP_MINA_COMMIT = true;
             JUST_BINDINGS = true;
             patchPhase = ''
@@ -290,6 +294,7 @@
             type = "app";
             program = "${pkgs.writeShellApplication
               { name = "update-bindings";
+                checkPhase = if pkgs.stdenv.isDarwin then "" else null;
                 text =
                 ''
                 cp -r ${self.packages."${system}".o1js-bindings}/* ./src/bindings
