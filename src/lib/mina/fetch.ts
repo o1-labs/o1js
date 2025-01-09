@@ -702,8 +702,8 @@ async function fetchEvents(
  *
  * @example
  * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
- * const acitonsList = await fetchAccount(accountInfo);
- * console.log(acitonsList);
+ * const actionsList = await fetchAccount(accountInfo);
+ * console.log(actionsList);
  */
 async function fetchActions(
   accountInfo: ActionsQueryInputs,
