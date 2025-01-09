@@ -740,7 +740,7 @@ async function fetchActions(
         actionStates,
         tokenId,
         /* _filterOptions= */ undefined,
-        /* retryWithoutTxInfo= */ true
+        /* _excludeTransactionInfo= */ true
       ),
       graphqlEndpoint,
       networkConfig.archiveFallbackEndpoints
