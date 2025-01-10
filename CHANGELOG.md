@@ -20,6 +20,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 - `setFee` and `setFeePerWU` for `Transaction` and `PendingTransaction`
 
+### Changed
+- Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
+
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
 ### Added
