@@ -92,13 +92,12 @@
         bindings-pkgs = with pkgs;
             [ nodejs
               nodePackages.npm
+              #nodePackages.prettier
               typescript
               nodePackages.typescript-language-server
-
               rustup
               wasm-pack
               binaryen # provides wasm-opt
-
               dune_3
             ] ++ commonOverrides.buildInputs ;
 
@@ -129,7 +128,6 @@
                 command "nix-shell"
               }.
             '';
-
           o1js-npm-deps = pkgs.buildNpmPackage
             { name = "o1js";
               src = with pkgs.lib.fileset;
@@ -140,6 +138,12 @@
                       ./package-lock.json
                     ];
                   });
+              dontNpmBuild = true;
+              installPhase = ''
+              runHook preInstall
+              mkdir -p $out/lib
+              cp -r node_modules $out/lib
+              '';
               # If you see 'ERROR: npmDepsHash is out of date' in ci
               # set this to blank run ``nix build o1js#o1js-bindings`
               # If you don't want to install nix you can also set it to "" and run ci to get the new hash
@@ -152,15 +156,25 @@
 
               npmDepsHash = "sha256-QLnSfX6JwYQXyHGNSxXdzqbhkbFl67sDrmlW/F6D/pw=";
               # The prepack script runs the build script, which we'd rather do in the build phase.
-              npmPackFlags = [ "--ignore-scripts" ];
-              dontNpmBuild = true;
-              installPhase = ''
-                runHook preInstall
+            };
 
-                mkdir -p $out/lib
-                cp -r node_modules $out/lib
-
-                runHook postInstall
+          #Rustup doesn't allow local toolchains to contain 'nightly' in the name
+          #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
+          #which calls the nix toolchain instead of the nightly one
+          rustupWrapper = with pkgs; writeShellApplication
+            { name = "rustup";
+              #shellcheck doesn't build on darwin
+              checkPhase = if pkgs.stdenv.isDarwin then "" else null;
+              text =
+              ''
+              if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [[ "$2" =~ 1.72-x86_64* ]]; }
+              then
+                echo using nix toolchain
+                ${rustup}/bin/rustup run nix "''${@:3}"
+              else
+                echo using plain rustup "$@"
+                ${rustup}/bin/rustup "$@"
+              fi
               '';
             };
           test-vectors = rust-platform.buildRustPackage {
@@ -192,15 +206,15 @@
             export RUSTUP_HOME
             rustup toolchain link nix ${rust-channel}
             '';
-            packages = bindings-pkgs;
+            packages = pkgs.lib.optional (!pkgs.stdenv.isDarwin) rustupWrapper ++ bindings-pkgs;
           });
 
 
         };
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
-          inherit dune-description;
-          o1js-bindings = pkgs.stdenv.mkDerivation {
+          inherit dune-description pkgs;
+          o1js-bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
             name = "o1js_bindings";
             src = with pkgs.lib.fileset;
             (toSource {
@@ -236,31 +250,13 @@
             PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
               "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
             EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
-            buildInputs = (with pkgs;
-                [
-                #Rustup doesn't allow local toolchains to contain 'nightly' in the name
-                #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
-                #which calls the nix toolchain instead of the nightly one
-                (writeShellApplication
-                  { name = "rustup";
-                    checkPhase = if pkgs.stdenv.isDarwin then "" else null;
-                    text =
-                    ''
-                    if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [ "$2" = 1.72-x86_64-unknowl-linux-gnu ]; }
-                    then
-                      echo using nix toolchain
-                      ${rustup}/bin/rustup run nix "''${@:3}"
-                    else
-                      echo using plain rustup "$@"
-                      ${rustup}/bin/rustup "$@"
-                    fi
-                    '';
-                  }
-                )
-                bash
-                ]) ++ bindings-pkgs;
             SKIP_MINA_COMMIT = true;
             JUST_BINDINGS = true;
+            buildInputs = (with pkgs;
+                [
+                rustupWrapper
+                bash
+                ]) ++ bindings-pkgs;
             patchPhase = ''
             patchShebangs ./src/bindings/scripts/
             patchShebangs ./src/bindings/crypto/test-vectors/
@@ -285,7 +281,7 @@
               cp -Lr ./mina-transaction/gen $out/mina-transaction/
             popd
             '';
-          };
+          });
           kimchi = pkgs.kimchi-rust-wasm;
           ocaml-js = prj.pkgs.__ocaml-js__;
         };
