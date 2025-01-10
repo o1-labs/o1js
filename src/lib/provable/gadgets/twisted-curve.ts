@@ -118,14 +118,14 @@ function add(
   return { x: x3, y: y3 };
 }
 
-function double(p1: Point, Curve: { modulus: bigint; d: bigint }) {
+function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
   let { x: x1, y: y1 } = p1;
   let f = Curve.modulus;
   let d = Curve.d;
 
   // constant case
   if (Point.isConstant(p1)) {
-    let p3 = twistedDouble(Point.toBigint(p1), f, Curve.d);
+    let p3 = twistedDouble(Point.toBigint(p1), f, Curve.a, Curve.d);
     return Point.from(p3);
   }
 
