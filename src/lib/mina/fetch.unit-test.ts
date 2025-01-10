@@ -1,6 +1,7 @@
 import { PrivateKey, TokenId } from 'o1js';
 import { createActionsList } from './fetch.js';
-import { mockFetchActionsResponse } from './fixtures/fetch-actions-response.js';
+import { mockFetchActionsResponse as fetchResponseWithTxInfo } from './fixtures/fetch-actions-response-with-transaction-info.js';
+import { mockFetchActionsResponse as fetchResponseNoTxInfo } from './fixtures/fetch-actions-response-without-transaction-info.js';
 import { test, describe } from 'node:test';
 import { removeJsonQuotes } from './graphql.js';
 import { expect } from 'expect';
@@ -123,8 +124,8 @@ expect(actual).toEqual(expected);
 
 console.log('regex tests complete 🎉');
 
-describe('Fetch', async (t) => {
-  describe('#createActionsList with default params', async (t) => {
+describe('Fetch', () => {
+  describe('#createActionsList with default params', () => {
     const defaultPublicKey = PrivateKey.random().toPublicKey().toBase58();
     const defaultActionStates = {
       fromActionState: undefined,
@@ -136,96 +137,50 @@ describe('Fetch', async (t) => {
       tokenId: TokenId.default.toString(),
     };
 
-    const actionsList = createActionsList(
-      defaultAccountInfo,
-      mockFetchActionsResponse.data.actions
-    );
+    describe('with a payload that is missing transaction info', () => {
+      const actionsList = createActionsList(
+        defaultAccountInfo,
+        fetchResponseNoTxInfo.data.actions
+      );
 
-    await test('orders the actions correctly', async () => {
-      expect(actionsList).toEqual([
-        {
-          actions: [
-            [
-              '20374659537065244088703638031937922870146667362923279084491778322749365537089',
-              '1',
-            ],
-          ],
-          hash: '10619825168606131449407092474314250900469658818945385329390497057469974757422',
-        },
-        {
-          actions: [
-            [
-              '20503089751358270987184701275168489753952341816059774976784079526478451099801',
-              '1',
-            ],
-          ],
-          hash: '25525130517416993227046681664758665799110129890808721833148757111140891481208',
-        },
-        {
-          actions: [
-            [
-              '3374074164183544078218789545772953663729921088152354292852793744356608231707',
-              '0',
-            ],
-          ],
-          hash: '290963518424616502946790040851348455652296009700336010663574777600482385855',
-        },
-        {
-          actions: [
-            [
-              '12630758077588166643924428865613845067150916064939816120404808842510620524633',
-              '1',
-            ],
-          ],
-          hash: '20673199655841577810393943638910551364027795297920791498278816237738641857371',
-        },
-        {
-          actions: [
-            [
-              '5643224648393140391519847064914429159616501351124129591669928700148350171602',
-              '0',
-            ],
-          ],
-          hash: '5284016523143033193387918577616839424871122381326995145988133445906503263869',
-        },
-        {
-          actions: [
-            [
-              '15789351988619560045401465240113496854401074115453702466673859303925517061263',
-              '0',
-            ],
-          ],
-          hash: '16944163018367910067334012882171366051616125936127175065464614786387687317044',
-        },
-        {
-          actions: [
-            [
-              '27263309408256888453299195755797013857604561285332380691270111409680109142128',
-              '1',
-            ],
-          ],
-          hash: '23662159967366296714544063539035629952291787828104373633198732070740691309118',
-        },
-        {
-          actions: [
-            [
-              '3378367318331499715304980508337843233019278703665446829424824679144818589558',
-              '1',
-            ],
-          ],
-          hash: '1589729766029695153975344283092689798747741638003354620355672853210932754595',
-        },
-        {
-          actions: [
-            [
-              '17137397755795687855356639427474789131368991089558570411893673365904353943290',
-              '1',
-            ],
-          ],
-          hash: '10964420428484427410756859799314206378989718180435238943573393516522086219419',
-        },
-      ]);
+      test('orders the actions correctly', () => {
+        const correctActionsHashes = [
+          '10619825168606131449407092474314250900469658818945385329390497057469974757422',
+          '25525130517416993227046681664758665799110129890808721833148757111140891481208',
+          '290963518424616502946790040851348455652296009700336010663574777600482385855',
+          '20673199655841577810393943638910551364027795297920791498278816237738641857371',
+          '5284016523143033193387918577616839424871122381326995145988133445906503263869',
+          '16944163018367910067334012882171366051616125936127175065464614786387687317044',
+          '23662159967366296714544063539035629952291787828104373633198732070740691309118',
+          '1589729766029695153975344283092689798747741638003354620355672853210932754595',
+          '10964420428484427410756859799314206378989718180435238943573393516522086219419',
+        ];
+        expect(actionsList.map(({ hash }) => hash)).toEqual(
+          correctActionsHashes
+        );
+      });
+    });
+
+    describe('with a payload that includes transaction info', () => {
+      const actionsList = createActionsList(
+        defaultAccountInfo,
+        fetchResponseWithTxInfo.data.actions
+      );
+
+      test('orders the actions correctly', () => {
+        const correctActionsHashes = [
+          '23562173419146814432140831830018386191372262558717813981702672868292521523493',
+          '17091049856171838105194364005412166905307014398334933913160405653259432088216',
+          '17232885850087529233459756382038742870248640044940153006158312935267918515979',
+          '12636308717155378495657553296284990333618148856424346334743675423201692801125',
+          '17082487567758469425757467457967473265642001333824907522427890208991758759731',
+          '14226491442770650712364681911870921131508915865197379983185088742764625929348',
+          '13552033292375176242184292341671233419412691991179711376625259275814019808194',
+        ];
+        expect(actionsList.map(({ hash }) => hash)).toEqual(
+          correctActionsHashes
+        );
+      });
     });
   });
 });
-``;

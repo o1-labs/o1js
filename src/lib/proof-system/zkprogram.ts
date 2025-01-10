@@ -30,7 +30,6 @@ import {
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
 import {
-  ProvablePure,
   ProvableType,
   ProvableTypePure,
   ToProvable,
@@ -55,7 +54,7 @@ import {
 import { emptyWitness } from '../provable/types/util.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
-import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { mapObject, mapToObject } from '../util/arrays.js';
 
 // public API
 export {
