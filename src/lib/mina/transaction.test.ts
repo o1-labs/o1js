@@ -42,7 +42,10 @@ describe('transactions', () => {
     let promise = await tx.sign([feePayer.key, contractAccount.key]).send();
     let new_fee = promise.setFee(new UInt64(100));
     new_fee.sign([feePayer.key,contractAccount.key]);
-    //expect((async () => await new_fee.send())).toThrowError("Transaction verification failed: Cannot update field 'incrementNonce' because permission for this field is 'Signature', but the required authorization was not provided or is invalid.");
+    // second send is rejected for using the same nonce
+    await expect((new_fee.send()))
+      .rejects
+      .toThrowError("Account_nonce_precondition_unsatisfied");
     // check that tx was applied, by checking nonce was incremented
     expect((await new_fee).transaction.feePayer.body.nonce).toEqual(nonce);
   });
