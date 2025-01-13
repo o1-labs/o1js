@@ -123,6 +123,8 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
   let f = Curve.modulus;
   let d = Curve.d;
 
+  // TODO: check if infinity point is handled correctly
+
   // constant case
   if (Point.isConstant(p1)) {
     let p3 = twistedDouble(Point.toBigint(p1), f, Curve.a, Curve.d);
@@ -140,8 +142,11 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
     let x3Den = inverse(mod(1n + d * x1x1 * y1y1, f), f) ?? 0n;
     let y3Den = inverse(mod(1n - d * x1x1 * y1y1, f), f) ?? 0n;
 
-    let x3 = mod(2n * x1y1 * x3Den, f);
-    let y3 = mod((y1y1 - x1x1) * y3Den, f);
+    let x3Num = mod(2n * x1y1, f);
+    let y3Num = mod(y1y1 - Curve.a * x1x1, f);
+
+    let x3 = mod(x3Num * x3Den, f);
+    let y3 = mod(y3Num * y3Den, f);
 
     return [...split(x3Den), ...split(y3Den), ...split(x3), ...split(y3)];
   });
@@ -154,14 +159,16 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
   ForeignField.assertAlmostReduced([y3Den], f);
 
   // x3 = 2*x1*y1 / (1 + d * x1^2 * y1^2)
-  // y3 = (y1^2 - x1^2) / (1 - d * x1^2 * y1^2)
+  // y3 = (y1^2 - a * x1^2) / (1 - d * x1^2 * y1^2)
 
   let one = Field3.from(1n);
+  let a = Field3.from(Curve.a);
   let x1x1 = ForeignField.mul(x1, x1, f);
   let y1y1 = ForeignField.mul(y1, y1, f);
   let x1y1 = ForeignField.mul(x1, y1, f);
+  let ax1x1 = ForeignField.mul(a, x1x1, f);
   let x3Num = ForeignField.add(x1y1, x1y1, f);
-  let y3Num = ForeignField.sub(y1y1, x1x1, f);
+  let y3Num = ForeignField.sub(y1y1, ax1x1, f);
 
   let x1x1y1y1 = ForeignField.mul(x1x1, y1y1, f);
   let dx1x1y1y1 = ForeignField.mul(Field3.from(d), x1x1y1y1, f);
