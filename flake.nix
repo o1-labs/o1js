@@ -84,11 +84,18 @@
           { targets = ["wasm32-unknown-unknown" "x86_64-unknown-linux-gnu" ];
             extensions = [ "rust-src" ];
           });
+        rust-channel-direct = builtins.fetchTarball {
+          url = "https://static.rust-lang.org/dist/rust-std-1.72.0-wasm32-unknown-unknown.tar.gz";
+          sha256 = "sha256:07nxw3m4jpciaqfxn4b95bkhl58zxh3a0kpf5vprfx4r0zdrmql1";
+        };
+        toolchain = pkgs.symlinkJoin {
+          name = "toolchain";
+          paths = [ rust-channel "${rust-channel-direct}/rust-std-wasm32-unknown-unknown" ];
+        };
         rust-platform = pkgs.makeRustPlatform
             { cargo = rust-channel;
               rustc = rust-channel;
             };
-
         bindings-pkgs = with pkgs;
             [ nodejs
               nodePackages.npm
@@ -200,11 +207,12 @@
           # This seems to work better for macos
           mina-shell = requireSubmodules inputs.mina.devShells."${system}".with-lsp;
           default = requireSubmodules (pkgs.mkShell {
-            shellHook =
+            shellHook = let
+            in
             ''
             RUSTUP_HOME=$(pwd)/.rustup
             export RUSTUP_HOME
-            rustup toolchain link nix ${rust-channel}
+            rustup toolchain link nix ${toolchain}
             '';
             packages = pkgs.lib.optional (!pkgs.stdenv.isDarwin) rustupWrapper ++ bindings-pkgs;
           });
@@ -213,7 +221,7 @@
         };
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
-          inherit dune-description pkgs;
+          inherit dune-description pkgs rust-channel rust-platform rust-channel-direct;
           o1js-bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
             name = "o1js_bindings";
             src = with pkgs.lib.fileset;
@@ -265,7 +273,7 @@
             ''
             RUSTUP_HOME=$(pwd)/.rustup
             export RUSTUP_HOME
-            rustup toolchain link nix ${rust-channel}
+            rustup toolchain link nix ${toolchain}
             cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
             mkdir -p src/bindings/compiled/node_bindings
