@@ -124,7 +124,7 @@ type Transaction<
    * // Waits for some time and decide to resend with a higher fee
    *
    * tx.setFee(newFee);
-   * await tx.sing([privateKey]).prove();
+   * await tx.sign([privateKey]).prove();
    * await tx.send();
    * ```
    */
