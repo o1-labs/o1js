@@ -213,15 +213,20 @@
           # This seems to work better for macos
           mina-shell = requireSubmodules inputs.mina.devShells."${system}".with-lsp;
           default = requireSubmodules (pkgs.mkShell {
-            shellHook = let
-            in
-            ''
-            RUSTUP_HOME=$(pwd)/.rustup
-            export RUSTUP_HOME
-            rustup toolchain link nix ${toolchain}
-            '';
             packages = pkgs.lib.optional (!pkgs.stdenv.isDarwin) rustupWrapper ++ bindings-pkgs;
-          });
+          } // (if pkgs.stdenv.isDarwin
+              then {}
+              else
+                {
+                  shellHook =
+                  ''
+                  RUSTUP_HOME=$(pwd)/.rustup
+                  export RUSTUP_HOME
+                  rustup toolchain link nix ${toolchain}
+                  '';
+                }
+              )
+          );
 
 
         };
