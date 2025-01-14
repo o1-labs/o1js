@@ -36,6 +36,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - Changed an internal type to improve IntelliSense on ZkProgram methods https://github.com/o1-labs/o1js/pull/1933
+- Updated o1js nix devshell to build rust on all executions of `npm run build:update-bindings`
 
 ### Fixed
 
