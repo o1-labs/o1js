@@ -20,13 +20,18 @@ import { exists } from '../core/exists.js';
 import { arrayGetGeneric, point, Point } from './elliptic-curve.js';
 
 // external API
-export { EllipticCurveTwisted };
+export { CurveTwisted };
 
-const EllipticCurveTwisted = {
+// internal API
+export { initialAggregator, simpleMapToCurve, arrayGetGeneric };
+
+const CurveTwisted = {
   add,
   double,
   negate,
   assertOnCurve,
+  scale,
+  multiScalarMul,
 };
 
 function add(
@@ -204,21 +209,24 @@ function assertOnCurve(
 
   let x2 = ForeignField.mul(x, x, f);
   let y2 = ForeignField.mul(y, y, f);
-  ForeignField.assertAlmostReduced([x2, x, y], f);
-  ForeignField.assertAlmostReduced([y2], f);
 
-  let aTimesX2Minus1 = ForeignField.sub(
+  let aTimesX2PlusY2 = ForeignField.add(
     ForeignField.mul(Field3.from(a), x2, f),
-    one,
+    y2,
     f
   );
+
+  let aTimesX2PlusY2Minus1 = ForeignField.sub(aTimesX2PlusY2, one, f);
   let dTimesX2 = ForeignField.mul(Field3.from(d), x2, f);
+
+  ForeignField.assertAlmostReduced([x2, x, y], f);
+  ForeignField.assertAlmostReduced([y2, aTimesX2PlusY2Minus1, dTimesX2], f);
 
   let message: string | undefined;
   if (Point.isConstant(p)) {
     message = `assertOnCurve(): (${x}, ${y}) is not on the curve.`;
   }
-  ForeignField.assertMul(dTimesX2, y2, aTimesX2Minus1, f, message);
+  ForeignField.assertMul(dTimesX2, y2, aTimesX2PlusY2Minus1, f, message);
 }
 
 /**
