@@ -131,7 +131,7 @@ type Transaction<
    */
   setFee(newFee:UInt64) : TransactionPromise<Proven,false>;
   /**
-   * setFeePerSnarkCost behaves identically to {@link setFee} but the fee is given per Account Update in the transaction. This is useful because nodes prioritize transactions by fee per weight unit.
+   * setFeePerSnarkCost behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
   setFeePerSnarkCost(newFeePerSnarkCost:number) : TransactionPromise<Proven,false>;
 } & (Proven extends false
@@ -276,7 +276,7 @@ type PendingTransaction = Pick<
    */
   setFee(newFee:UInt64):TransactionPromise<boolean,false>;
   /**
-   * setFeePerSnarkCost is the same as {@link Transaction.setFeeWU(newFeePerWU)} but for a {@link PendingTransaction}.
+   * setFeePerSnarkCost is the same as {@link Transaction.setFeePerSnarkCost(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
    */
   setFeePerSnarkCost(newFeePerSnarkCost:number):TransactionPromise<boolean,false>;
 };
