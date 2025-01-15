@@ -282,6 +282,8 @@ function Network(
           data: response?.data,
           errors: updatedErrors,
           transaction: txn.transaction,
+          setFee : txn.setFee,
+          setFeePerSnarkCost : txn.setFeePerSnarkCost,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,
