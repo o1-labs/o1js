@@ -294,7 +294,7 @@ async function LocalBlockchain({
           errors,
           transaction: txn.transaction,
           setFee: txn.setFee,
-          setFeePerWU: txn.setFeePerWU,
+          setFeePerSnarkCost: txn.setFeePerSnarkCost,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,

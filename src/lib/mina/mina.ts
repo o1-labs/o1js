@@ -283,7 +283,7 @@ function Network(
           errors: updatedErrors,
           transaction: txn.transaction,
           setFee : txn.setFee,
-          setFeePerWU : txn.setFeePerWU,
+          setFeePerSnarkCost : txn.setFeePerSnarkCost,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,

@@ -40,14 +40,14 @@ describe('transactions', () => {
     });
     let nonce = tx.transaction.feePayer.body.nonce;
     let promise = await tx.sign([feePayer.key, contractAccount.key]).send();
-    let new_fee = promise.setFee(new UInt64(100));
+    let new_fee = await promise.setFee(new UInt64(100));
     new_fee.sign([feePayer.key,contractAccount.key]);
     // second send is rejected for using the same nonce
     await expect((new_fee.send()))
       .rejects
       .toThrowError("Account_nonce_precondition_unsatisfied");
     // check that tx was applied, by checking nonce was incremented
-    expect((await new_fee).transaction.feePayer.body.nonce).toEqual(nonce);
+    expect(new_fee.transaction.feePayer.body.nonce).toEqual(nonce);
   });
 
   it('Second tx should work when first not sent', async () => {
@@ -57,8 +57,8 @@ describe('transactions', () => {
     });
     let nonce = tx.transaction.feePayer.body.nonce;
     let promise = tx.sign([feePayer.key, contractAccount.key]);
-    let new_fee = promise.setFee(new UInt64(100));
-    await new_fee.sign([feePayer.key,contractAccount.key]).prove();
+    let new_fee = promise.setFeePerSnarkCost(42.7);
+    await new_fee.sign([feePayer.key,contractAccount.key]);
     await new_fee.send();
     // check that tx was applied, by checking nonce was incremented
     expect((await new_fee).transaction.feePayer.body.nonce).toEqual(nonce);

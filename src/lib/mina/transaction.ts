@@ -23,6 +23,7 @@ import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
 import { assertPromise } from '../util/assert.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
+import { getTotalTimeRequired } from './transaction-validation.js';
 
 export {
   Transaction,
@@ -124,15 +125,15 @@ type Transaction<
    * // Waits for some time and decide to resend with a higher fee
    *
    * tx.setFee(newFee);
-   * await tx.sign([privateKey]).prove();
+   * await tx.sign([feePayerKey]));
    * await tx.send();
    * ```
    */
-  setFee(newFee:UInt64) : TransactionPromise<false,false>;
+  setFee(newFee:UInt64) : TransactionPromise<Proven,false>;
   /**
-   * setFeePerWU behaves identically to {@link setFee} but the fee is given per Account Update in the transaction. This is useful because nodes prioritize transactions by fee per weight unit.
+   * setFeePerSnarkCost behaves identically to {@link setFee} but the fee is given per Account Update in the transaction. This is useful because nodes prioritize transactions by fee per weight unit.
    */
-  setFeePerWU(newFeePerWU:UInt64) : TransactionPromise<false,false>;
+  setFeePerSnarkCost(newFeePerSnarkCost:number) : TransactionPromise<Proven,false>;
 } & (Proven extends false
     ? {
         /**
@@ -273,11 +274,11 @@ type PendingTransaction = Pick<
   /**
    * setFee is the same as {@link Transaction.setFee(newFee)} but for a {@link PendingTransaction}.
    */
-  setFee(newFee:UInt64):TransactionPromise<false,false>;
+  setFee(newFee:UInt64):TransactionPromise<boolean,false>;
   /**
-   * setFeePerWU is the same as {@link Transaction.setFeeWU(newFeePerWU)} but for a {@link PendingTransaction}.
+   * setFeePerSnarkCost is the same as {@link Transaction.setFeeWU(newFeePerWU)} but for a {@link PendingTransaction}.
    */
-  setFeePerWU(newFeePerWU:UInt64):TransactionPromise<false,false>;
+  setFeePerSnarkCost(newFeePerSnarkCost:number):TransactionPromise<boolean,false>;
 };
 
 /**
@@ -572,20 +573,20 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       }
       return pendingTransaction;
     },
-    setFeePerWU(newFeePerWU:UInt64) {
-      //Currently WU is just the number of accountUpdates + 1
-      //https://github.com/MinaProtocol/mina/blob/a0a2adf6b1dce7af889250ff469a35ae4afa512f/src/lib/mina_base/zkapp_command.ml#L803-L823
-      //The code reads like a placeholder, so ideally we should update this if it changes
-      return this.setFee(newFeePerWU.mul(new UInt64(this.transaction.accountUpdates.length + 1)))
+    setFeePerSnarkCost(newFeePerSnarkCost:number) {
+      let {totalTimeRequired} = getTotalTimeRequired(transaction.accountUpdates);
+      return this.setFee(new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost)));
     },
     setFee(newFee:UInt64) {
       return  toTransactionPromise(async () =>
       {
         self = self as Transaction<false,false>;
         self.transaction.accountUpdates.forEach( au => {
-            au.authorization.proof = undefined;
+          if (au.body.useFullCommitment)
+          {
             au.authorization.signature = undefined;
             au.lazyAuthorization = {kind:'lazy-signature'};
+          }
           });
         self.transaction.feePayer.body.fee = newFee;
         self.transaction.feePayer.lazyAuthorization = {kind : 'lazy-signature'};
