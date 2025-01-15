@@ -134,15 +134,17 @@ function add(
 
   let x1x2y1y2 = ForeignField.mul(x1x2, y1y2, f);
   let dx1x2y1y2 = ForeignField.mul(Field3.from(d), x1x2y1y2, f);
+  // check denominators are correctly computed:
+  // den = 1 / (1 +- d * x1^2 * y1^2)
   Provable.equal(
     Field3,
-    x3Den,
-    ForeignField.add(one, dx1x2y1y2, f)
+    one,
+    ForeignField.mul(x3Den, ForeignField.add(one, dx1x2y1y2, f), f)
   ).assertTrue();
   Provable.equal(
     Field3,
-    y3Den,
-    ForeignField.sub(one, dx1x2y1y2, f)
+    one,
+    ForeignField.mul(y3Den, ForeignField.sub(one, dx1x2y1y2, f), f)
   ).assertTrue();
 
   ForeignField.assertMul(x3Num, x3Den, x3, f);
