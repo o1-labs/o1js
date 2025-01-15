@@ -582,7 +582,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       {
         self = self as Transaction<false,false>;
         self.transaction.accountUpdates.forEach( au => {
-          if (au.body.useFullCommitment)
+          if (au.body.useFullCommitment.toBoolean())
           {
             au.authorization.signature = undefined;
             au.lazyAuthorization = {kind:'lazy-signature'};
