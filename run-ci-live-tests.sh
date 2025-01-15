@@ -23,6 +23,8 @@ DEX_PROC=$!
 FETCH_PROC=$!
 ./run src/tests/transaction-flow.ts --bundle | add_prefix "TRANSACTION_FLOW" &
 TRANSACTION_FLOW_PROC=$!
+./run src/lib/mina/actions/offchain-contract-tests/multi-thread-lightnet.ts --bundle | add_prefix "OFFCHAIN_STATE_PROC" &
+OFFCHAIN_STATE_PROC=$!
 
 # Wait for each process and capture their exit statuses
 FAILURE=0
@@ -58,6 +60,13 @@ wait $REDUCER_FLOW_PROC
 if [ $? -ne 0 ]; then
   echo ""
   echo "REDUCER_FLOW test failed."
+  echo ""
+  FAILURE=1
+fi
+wait $OFFCHAIN_STATE_PROC
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "OFFCHAIN_STATE test failed."
   echo ""
   FAILURE=1
 fi

@@ -364,13 +364,20 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       let address: PublicKey = this._contract.instance.address;
       let tokenId: Field = this._contract.instance.tokenId;
       let account: Account | undefined;
+      let error: {
+        statusCode: number;
+        statusText: string;
+      } | undefined;
       if (networkConfig.minaEndpoint === '') {
         account = Mina.getAccount(address, tokenId);
       } else {
-        ({ account } = await fetchAccount({
+        ({ account, error } = await fetchAccount({
           publicKey: address,
           tokenId: TokenId.toBase58(tokenId),
         }));
+        if (error !== undefined) {
+          console.log(`Error fetching account in state.fetch: ${JSON.stringify(error)}`);
+        }
       }
       if (account === undefined) return undefined;
 
