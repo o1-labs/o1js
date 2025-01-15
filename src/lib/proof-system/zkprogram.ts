@@ -183,41 +183,40 @@ let SideloadedTag = {
   },
 };
 
-function ZkProgram<
-  Config extends {
-    publicInput?: ProvableType;
-    publicOutput?: ProvableType;
-    methods: {
-      [I in string]: {
-        privateInputs: Tuple<PrivateInput>;
-        auxiliaryOutput?: ProvableType;
-      };
+type ConfigBaseType = {
+  publicInput?: ProvableType;
+  publicOutput?: ProvableType;
+  methods: {
+    [I in string]: {
+      privateInputs: Tuple<PrivateInput>;
+      auxiliaryOutput?: ProvableType;
     };
-  },
-  Methods extends {
-    [I in keyof Config['methods']]: Method<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      Config['methods'][I]
-    >;
-  },
-  // derived types for convenience
-  MethodSignatures extends Config['methods'] = Config['methods'],
-  PrivateInputs extends {
-    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
-  } = {
-    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
-  },
-  AuxiliaryOutputs extends {
-    [I in keyof MethodSignatures]: Get<MethodSignatures[I], 'auxiliaryOutput'>;
-  } = {
-    [I in keyof MethodSignatures]: Get<MethodSignatures[I], 'auxiliaryOutput'>;
-  }
->(
+  };
+};
+
+type InferMethodSignatures<Config extends ConfigBaseType> = Config['methods'];
+type InferPrivateInput<Config extends ConfigBaseType> = {
+  [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
+};
+type InferAuxiliaryOutputs<Config extends ConfigBaseType> = {
+  [I in keyof InferMethodSignatures<Config>]: Get<
+    InferMethodSignatures<Config>[I],
+    'auxiliaryOutput'
+  >;
+};
+type InferMethodType<Config extends ConfigBaseType> = {
+  [I in keyof Config['methods']]: Method<
+    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+    Config['methods'][I]
+  >;
+};
+
+function ZkProgram<Config extends ConfigBaseType>(
   config: Config & {
     name: string;
     methods: {
-      [I in keyof Config['methods']]: Methods[I];
+      [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
   }
@@ -247,10 +246,10 @@ function ZkProgram<
 
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
-  privateInputTypes: PrivateInputs;
-  auxiliaryOutputTypes: AuxiliaryOutputs;
+  privateInputTypes: InferPrivateInput<Config>;
+  auxiliaryOutputTypes: InferAuxiliaryOutputs<Config>;
   rawMethods: {
-    [I in keyof Config['methods']]: Methods[I]['method'];
+    [I in keyof Config['methods']]: InferMethodType<Config>[I]['method'];
   };
 
   Proof: typeof Proof<
@@ -264,10 +263,15 @@ function ZkProgram<
   [I in keyof Config['methods']]: Prover<
     InferProvableOrUndefined<Get<Config, 'publicInput'>>,
     InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-    PrivateInputs[I],
-    InferProvableOrUndefined<AuxiliaryOutputs[I]>
+    InferPrivateInput<Config>[I],
+    InferProvableOrUndefined<InferAuxiliaryOutputs<Config>[I]>
   >;
 } {
+  // derived types for convenience
+  type Methods = InferMethodSignatures<Config>;
+  type PrivateInputs = InferPrivateInput<Config>
+  type AuxiliaryOutputs = InferAuxiliaryOutputs<Config>;
+
   let doProving = true;
 
   let methods = config.methods;
@@ -581,15 +585,8 @@ type ZkProgram<
         auxiliaryOutput?: ProvableType;
       };
     };
-  },
-  Methods extends {
-    [I in keyof Config['methods']]: Method<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      Config['methods'][I]
-    >;
   }
-> = ReturnType<typeof ZkProgram<Config, Methods>>;
+> = ReturnType<typeof ZkProgram<Config>>;
 
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
