@@ -4,6 +4,7 @@ import { assert } from './common.js';
 import { Field3, ForeignField, split } from './foreign-field.js';
 import { l2Mask } from './range-check.js';
 import { sha256 } from 'js-sha256';
+import { provable } from '../types/provable-derivers.js';
 import {
   bigIntToBytes,
   bytesToBigInt,
@@ -17,13 +18,13 @@ import {
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { sliceField3 } from './bit-slices.js';
 import { exists } from '../core/exists.js';
-import { arrayGetGeneric, point, Point } from './elliptic-curve.js';
+import { arrayGetGeneric } from './elliptic-curve.js';
 
 // external API
 export { CurveTwisted };
 
 // internal API
-export { initialAggregator, simpleMapToCurve, arrayGetGeneric };
+export { Point, initialAggregator, simpleMapToCurve, arrayGetGeneric };
 
 const CurveTwisted = {
   add,
@@ -32,6 +33,33 @@ const CurveTwisted = {
   assertOnCurve,
   scale,
   multiScalarMul,
+};
+
+/**
+ * Non-zero twisted elliptic curve point.
+ */
+type Point = { x: Field3; y: Field3 };
+type point = { x: bigint; y: bigint };
+
+const Point = {
+  from({ x, y }: point): Point {
+    return { x: Field3.from(x), y: Field3.from(y) };
+  },
+  toBigint({ x, y }: Point) {
+    let x_ = Field3.toBigint(x);
+    let y_ = Field3.toBigint(y);
+    return { x: x_, y: y_, infinity: x_ === 0n && y_ === 1n };
+  },
+  isConstant: (P: Point) => Provable.isConstant(Point, P),
+
+  /**
+   * Random point on the curve.
+   */
+  random(Curve: CurveTwisted) {
+    return Point.from(random(Curve));
+  },
+
+  provable: provable({ x: Field3, y: Field3 }),
 };
 
 function add(
@@ -123,12 +151,13 @@ function add(
   return { x: x3, y: y3 };
 }
 
-function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
+function double(
+  p1: Point,
+  Curve: { modulus: bigint; a: bigint; d: bigint }
+): Point {
   let { x: x1, y: y1 } = p1;
   let f = Curve.modulus;
   let d = Curve.d;
-
-  // TODO: check if infinity point is handled correctly
 
   // constant case
   if (Point.isConstant(p1)) {
@@ -156,6 +185,7 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
     return [...split(x3Den), ...split(y3Den), ...split(x3), ...split(y3)];
   });
   let [dx0, dx1, dx2, dy0, dy1, dy2, x30, x31, x32, y30, y31, y32] = witnesses;
+  // Note denominators are already inversed
   let x3Den: Field3 = [dx0, dx1, dx2];
   let y3Den: Field3 = [dy0, dy1, dy2];
   let x3: Field3 = [x30, x31, x32];
@@ -177,15 +207,17 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
 
   let x1x1y1y1 = ForeignField.mul(x1x1, y1y1, f);
   let dx1x1y1y1 = ForeignField.mul(Field3.from(d), x1x1y1y1, f);
+  // check denominators are correctly computed:
+  // den = 1 / (1 +- d * x1^2 * y1^2)
   Provable.equal(
     Field3,
-    x3Den,
-    ForeignField.add(one, dx1x1y1y1, f)
+    one,
+    ForeignField.mul(x3Den, ForeignField.add(one, dx1x1y1y1, f), f)
   ).assertTrue();
   Provable.equal(
     Field3,
-    y3Den,
-    ForeignField.sub(one, dx1x1y1y1, f)
+    one,
+    ForeignField.mul(y3Den, ForeignField.sub(one, dx1x1y1y1, f), f)
   ).assertTrue();
 
   ForeignField.assertMul(x3Num, x3Den, x3, f);
@@ -467,7 +499,9 @@ function simpleMapToCurve(x: bigint, Curve: CurveTwisted) {
     let y2 = F.div(num, den)!; // guaranteed that den has an inverse
     y = F.sqrt(y2);
   }
-  let p = { x, y, infinity: false };
+
+  // Check if we generated a point at infinity
+  let p = { x, y, infinity: x === 0n && y === 1n };
 
   // clear cofactor
   if (Curve.hasCofactor) {
