@@ -75,7 +75,6 @@ for (let Curve of curves) {
   equivalentProvable({ from: [point, scalar], to: point, verbose: true })(
     (p, s) => {
       let sp = Curve.scale(p, s);
-      assert(!sp.infinity, 'expect nonzero');
       return sp;
     },
     (p, s) => CurveTwisted.scale(s, p, Curve),
