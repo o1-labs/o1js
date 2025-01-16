@@ -34,7 +34,7 @@ type MlArrayOptionalElements<MlArray extends any[]> = {
 
 /**
  * js_of_ocaml representation of a byte array,
- * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/mlBytes.js
+ * see https://github.com/ocsigen/js_of_ocaml/blob/master/runtime/js/mlBytes.js
  */
 type MlBytes = { t: number; c: string; l: number };
 type MlString = MlBytes;
