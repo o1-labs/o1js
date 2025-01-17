@@ -1,8 +1,3 @@
-/**
- * {@link Provable} is
- * - a namespace with tools for writing provable code
- * - the main interface for types that can be used in provable code
- */
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
@@ -30,7 +25,7 @@ import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 
 // external API
-export { Provable };
+export { Provable, ProvableNamespace };
 
 // internal API
 export {
@@ -54,7 +49,7 @@ export {
  */
 type Provable<T, TValue = any> = Provable_<T, TValue>;
 
-const Provable = {
+type ProvableNamespace = {
   /**
    * Create a new witness. A witness, or variable, is a value that is provided as input
    * by the prover. This provides a flexible way to introduce values from outside into the circuit.
@@ -72,19 +67,19 @@ const Provable = {
    * invX.mul(x).assertEquals(1);
    * ```
    */
-  witness,
+  witness: Function;
   /**
    * Witness a tuple of field elements. This works just like {@link Provable.witness},
    * but optimized for witnessing plain field elements, which is especially common
    * in low-level provable code.
    */
-  witnessFields,
+  witnessFields: Function;
   /**
    * Create a new witness from an async callback.
    *
    * See {@link Provable.witness} for more information.
    */
-  witnessAsync,
+  witnessAsync: Function;
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -99,7 +94,7 @@ const Provable = {
    * const result = Provable.if(condition, Field(1), Field(2)); // returns Field(1)
    * ```
    */
-  if: if_,
+  if: Function;
   /**
    * Generalization of {@link Provable.if} for choosing between more than two different cases.
    * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
@@ -110,7 +105,7 @@ const Provable = {
    * x.assertEquals(2);
    * ```
    */
-  switch: switch_,
+  switch: Function;
   /**
    * Asserts that two values are equal.
    * @example
@@ -121,13 +116,13 @@ const Provable = {
    * Provable.assertEqual(MyStruct, a, b);
    * ```
    */
-  assertEqual,
+  assertEqual: Function;
   /**
    * Asserts that two values are equal, if an enabling condition is true.
    *
    * If the condition is false, the assertion is skipped.
    */
-  assertEqualIf,
+  assertEqualIf: Function;
   /**
    * Checks if two elements are equal.
    * @example
@@ -138,7 +133,7 @@ const Provable = {
    * const isEqual = Provable.equal(MyStruct, a, b);
    * ```
    */
-  equal,
+  equal: Function;
   /**
    * Creates a {@link Provable} for a generic array.
    * @example
@@ -146,7 +141,7 @@ const Provable = {
    * const ProvableArray = Provable.Array(Field, 5);
    * ```
    */
-  Array: provableArray,
+  Array: Function;
   /**
    * Check whether a value is constant.
    * See {@link FieldVar} for more information about constants and variables.
@@ -157,7 +152,7 @@ const Provable = {
    * Provable.isConstant(Field, x); // true
    * ```
    */
-  isConstant,
+  isConstant: Function;
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example
@@ -166,7 +161,7 @@ const Provable = {
    * Provable.log(element);
    * ```
    */
-  log,
+  log: Function;
   /**
    * Runs code as a prover.
    * @example
@@ -176,7 +171,7 @@ const Provable = {
    * });
    * ```
    */
-  asProver,
+  asProver: Function;
   /**
    * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example
@@ -186,9 +181,7 @@ const Provable = {
    * });
    * ```
    */
-  async runAndCheck(f: (() => Promise<void>) | (() => void)) {
-    await generateWitness(f, { checkConstraints: true });
-  },
+  runAndCheck: Function;
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example
@@ -198,9 +191,7 @@ const Provable = {
    * });
    * ```
    */
-  async runUnchecked(f: (() => Promise<void>) | (() => void)) {
-    await generateWitness(f, { checkConstraints: false });
-  },
+  runUnchecked: Function;
   /**
    * Returns information about the constraints created by the callback function.
    * @example
@@ -209,7 +200,7 @@ const Provable = {
    * console.log(result);
    * ```
    */
-  constraintSystem,
+  constraintSystem: Function;
   /**
    * Checks if the code is run in prover mode.
    * @example
@@ -219,7 +210,7 @@ const Provable = {
    * }
    * ```
    */
-  inProver,
+  inProver: Function;
   /**
    * Checks if the code is run in checked computation mode.
    * @example
@@ -229,11 +220,48 @@ const Provable = {
    * }
    * ```
    */
-  inCheckedComputation,
+  inCheckedComputation: Function;
 
   /**
    * Returns a constant version of a provable type.
    */
+  toConstant: Function;
+
+  /**
+   * Return a canonical version of a value, where
+   * canonical is defined by the `type`.
+   */
+  toCanonical: Function;
+};
+
+/**
+ * {@link Provable} is
+ * - a namespace with tools for writing provable code
+ * - the main interface for types that can be used in provable code
+ * - see: {@link ProvableNamespace}
+ */
+const Provable = {
+  witness,
+  witnessFields,
+  witnessAsync,
+  if: if_,
+  switch: switch_,
+  assertEqual,
+  assertEqualIf,
+  equal,
+  Array: provableArray,
+  isConstant,
+  log,
+  asProver,
+  async runAndCheck(f: (() => Promise<void>) | (() => void)) {
+    await generateWitness(f, { checkConstraints: true });
+  },
+  async runUnchecked(f: (() => Promise<void>) | (() => void)) {
+    await generateWitness(f, { checkConstraints: false });
+  },
+  constraintSystem,
+  inProver,
+  inCheckedComputation,
   toConstant<T>(type: ProvableType<T>, value: T) {
     type = ProvableType.get(type);
     return type.fromFields(
@@ -241,11 +269,6 @@ const Provable = {
       type.toAuxiliary(value)
     );
   },
-
-  /**
-   * Return a canonical version of a value, where
-   * canonical is defined by the `type`.
-   */
   toCanonical<T>(type: Provable<T>, value: T) {
     return type.toCanonical?.(value) ?? value;
   },

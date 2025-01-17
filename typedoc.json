@@ -12,8 +12,7 @@
     "src/bindings/**/*",
     "src/examples/**/*",
     "src/lib/provable/+(core|test)/**/*",
-    "src/**/*(test|unit-test).ts",
-    "src/lib/provable/provable.ts"
+    "src/**/*(test|unit-test).ts"
   ],
   "entryPoints": [
     "src/index.ts",
@@ -25,6 +24,7 @@
     "src/lib/provable/merkle-list.ts",
     "src/lib/provable/merkle-map.ts",
     "src/lib/provable/merkle-tree.ts",
+    "src/lib/provable/provable.ts",
     "src/lib/provable/types/provable-intf.ts"
   ],
   "entryPointStrategy": "resolve",
