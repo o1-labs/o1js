@@ -29,6 +29,7 @@ import {
 import { witness, witnessAsync, witnessFields } from './types/witness.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { ToProvable } from '../../lib/provable/types/provable-intf.js';
+import { TupleN } from '../util/types.js';
 
 // external API
 export { Provable, ProvableNamespace };
@@ -81,19 +82,19 @@ type ProvableNamespace = {
    * invX.mul(x).assertEquals(1);
    * ```
    */
-  witness: Function;
+  witness: <A, T>(type: A, compute: () => Promise<T>) => Promise<T>;
   /**
    * Witness a tuple of field elements. This works just like {@link Provable.witness},
    * but optimized for witnessing plain field elements, which is especially common
    * in low-level provable code.
    */
-  witnessFields: Function;
+  witnessFields: <C>(size: number, compute: C) => TupleN<Field, number>;
   /**
    * Create a new witness from an async callback.
    *
    * See {@link Provable.witness} for more information.
    */
-  witnessAsync: Function;
+  witnessAsync: <A, T>(type: A, compute: () => Promise<T>) => Promise<T>;
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -108,7 +109,7 @@ type ProvableNamespace = {
    * const result = Provable.if(condition, Field(1), Field(2)); // returns Field(1)
    * ```
    */
-  if: Function;
+  if: <T>(condition: Bool, type: FlexibleProvableType<T>, x: T, y: T) => T;
   /**
    * Generalization of {@link Provable.if} for choosing between more than two different cases.
    * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
@@ -119,7 +120,16 @@ type ProvableNamespace = {
    * x.assertEquals(2);
    * ```
    */
-  switch: Function;
+  switch: <T, A extends FlexibleProvableType<T>>(
+    mask: Bool[],
+    type: A,
+    values: T[],
+    {
+      allowNonExclusive,
+    }?: {
+      allowNonExclusive?: boolean | undefined;
+    }
+  ) => T;
   /**
    * Asserts that two values are equal.
    * @example
@@ -130,13 +140,13 @@ type ProvableNamespace = {
    * Provable.assertEqual(MyStruct, a, b);
    * ```
    */
-  assertEqual: Function;
+  assertEqual: <T>(type: FlexibleProvableType<T>, x: T, y: T) => void;
   /**
    * Asserts that two values are equal, if an enabling condition is true.
    *
    * If the condition is false, the assertion is skipped.
    */
-  assertEqualIf: Function;
+  assertEqualIf: <A, T>(enabled: Bool, type: A, x: T, y: T) => void;
   /**
    * Checks if two elements are equal.
    * @example
@@ -147,7 +157,7 @@ type ProvableNamespace = {
    * const isEqual = Provable.equal(MyStruct, a, b);
    * ```
    */
-  equal: Function;
+  equal: <T>(type: FlexibleProvableType<T>, x: T, y: T) => Bool;
   /**
    * Creates a {@link Provable} for a generic array.
    * @example
@@ -155,7 +165,10 @@ type ProvableNamespace = {
    * const ProvableArray = Provable.Array(Field, 5);
    * ```
    */
-  Array: Function;
+  Array: <A extends FlexibleProvableType<any>>(
+    elementType: A,
+    length: number
+  ) => InferredProvable<ToProvable<A>[]>;
   /**
    * Check whether a value is constant.
    * See {@link FieldVar} for more information about constants and variables.
@@ -166,7 +179,7 @@ type ProvableNamespace = {
    * Provable.isConstant(Field, x); // true
    * ```
    */
-  isConstant: Function;
+  isConstant: <T>(type: ProvableType<T>, x: T) => boolean;
   /**
    * Interface to log elements within a circuit. Similar to `console.log()`.
    * @example
@@ -175,7 +188,7 @@ type ProvableNamespace = {
    * Provable.log(element);
    * ```
    */
-  log: Function;
+  log: (...args: any) => void;
   /**
    * Runs code as a prover.
    * @example
@@ -185,7 +198,7 @@ type ProvableNamespace = {
    * });
    * ```
    */
-  asProver: Function;
+  asProver: (f: () => void) => void;
   /**
    * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
    * @example
@@ -195,7 +208,7 @@ type ProvableNamespace = {
    * });
    * ```
    */
-  runAndCheck: Function;
+  runAndCheck: Promise<void>;
   /**
    * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
    * @example
@@ -205,7 +218,7 @@ type ProvableNamespace = {
    * });
    * ```
    */
-  runUnchecked: Function;
+  runUnchecked: Promise<void>;
   /**
    * Returns information about the constraints created by the callback function.
    * @example
@@ -214,7 +227,7 @@ type ProvableNamespace = {
    * console.log(result);
    * ```
    */
-  constraintSystem: Function;
+  constraintSystem: (f: (() => Promise<void>) | (() => void)) => Promise<{}>;
   /**
    * Checks if the code is run in prover mode.
    * @example
@@ -224,7 +237,7 @@ type ProvableNamespace = {
    * }
    * ```
    */
-  inProver: Function;
+  inProver: () => boolean;
   /**
    * Checks if the code is run in checked computation mode.
    * @example
@@ -234,18 +247,18 @@ type ProvableNamespace = {
    * }
    * ```
    */
-  inCheckedComputation: Function;
+  inCheckedComputation: () => boolean;
 
   /**
    * Returns a constant version of a provable type.
    */
-  toConstant: Function;
+  toConstant: <T>(type: ProvableType<T>, value: T) => T;
 
   /**
    * Return a canonical version of a value, where
    * canonical is defined by the `type`.
    */
-  toCanonical: Function;
+  toCanonical: <T>(type: Provable<T>, value: T) => T;
 };
 
 /**
