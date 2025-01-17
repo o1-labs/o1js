@@ -1,3 +1,9 @@
+/**
+ * {@link Provable} is
+ * - a namespace with tools for writing provable code
+ * - the main interface for types that can be used in provable code
+ */
+
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
@@ -46,9 +52,17 @@ export {
  * All built-in provable types in o1js ({@link Field}, {@link Bool}, etc.) are instances of `Provable<T>` as well.
  *
  * Note: These methods are meant to be used by the library internally and are not directly when writing provable code.
+ *
+ * For documentation about the methods in the `Provable` namespace, see {@link ProvableNamespace}.
  */
 type Provable<T, TValue = any> = Provable_<T, TValue>;
 
+/**
+ * The `Provable` namespace contains methods for writing provable code.
+ *
+ * Access these methods by importing `Provable` from o1js.
+ *
+ */
 type ProvableNamespace = {
   /**
    * Create a new witness. A witness, or variable, is a value that is provided as input
@@ -235,10 +249,7 @@ type ProvableNamespace = {
 };
 
 /**
- * {@link Provable} is
- * - a namespace with tools for writing provable code
- * - the main interface for types that can be used in provable code
- * - see: {@link ProvableNamespace}
+ * For documentation about the methods in the `Provable` namespace, see {@link ProvableNamespace}.
  */
 const Provable = {
   witness,
