@@ -10,6 +10,7 @@ import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
 import type {
   FlexibleProvable,
   FlexibleProvableType,
+  InferProvable,
   ProvableExtended,
 } from './types/struct.js';
 import { Context } from '../util/global-context.js';
@@ -27,7 +28,7 @@ import {
   generateWitness,
 } from './core/provable-context.js';
 import { witness, witnessAsync, witnessFields } from './types/witness.js';
-import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 import { TupleN } from '../util/types.js';
 
@@ -82,19 +83,34 @@ type ProvableNamespace = {
    * invX.mul(x).assertEquals(1);
    * ```
    */
-  witness: <A, T>(type: A, compute: () => Promise<T>) => Promise<T>;
+  witness: <
+    A extends ProvableType<any, any>,
+    T extends From<ToProvable<A>> = From<ToProvable<A>>
+  >(
+    type: A,
+    compute: () => T
+  ) => InferProvable<ToProvable<A>>;
   /**
    * Witness a tuple of field elements. This works just like {@link Provable.witness},
    * but optimized for witnessing plain field elements, which is especially common
    * in low-level provable code.
    */
-  witnessFields: <C>(size: number, compute: C) => TupleN<Field, number>;
+  witnessFields: <N extends number, C extends () => TupleN<bigint | Field, N>>(
+    size: N,
+    compute: C
+  ) => TupleN<Field, N>;
   /**
    * Create a new witness from an async callback.
    *
    * See {@link Provable.witness} for more information.
    */
-  witnessAsync: <A, T>(type: A, compute: () => Promise<T>) => Promise<T>;
+  witnessAsync: <
+    A extends ProvableType<any, any>,
+    T extends From<ToProvable<A>> = From<ToProvable<A>>
+  >(
+    type: A,
+    compute: () => Promise<T>
+  ) => Promise<T>;
   /**
    * Proof-compatible if-statement.
    * This behaves like a ternary conditional statement in JS.
@@ -264,28 +280,206 @@ type ProvableNamespace = {
 /**
  * For documentation about the methods in the `Provable` namespace, see {@link ProvableNamespace}.
  */
+/**
+ * The Provable namespace provides various utility functions and methods
+ * for working with provable computations and constraints.
+ */
 const Provable = {
+  /**
+   * Create a new witness. A witness, or variable, is a value that is provided as input
+   * by the prover. This provides a flexible way to introduce values from outside into the circuit.
+   * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
+   * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
+   * that you want to associate with it.
+   * @example
+   * Example for re-implementing `Field.inv` with the help of `witness`:
+   * ```ts
+   * let invX = Provable.witness(Field, () => {
+   *   // compute the inverse of `x` outside the circuit, however you like!
+   *   return Field.inv(x);
+   * }
+   * // prove that `invX` is really the inverse of `x`:
+   * invX.mul(x).assertEquals(1);
+   * ```
+   */
   witness,
+
+  /**
+   * Witness a tuple of field elements. This works just like {@link Provable.witness},
+   * but optimized for witnessing plain field elements, which is especially common
+   * in low-level provable code.
+   */
   witnessFields,
+
+  /**
+   * Create a new witness from an async callback.
+   *
+   * See {@link Provable.witness} for more information.
+   */
   witnessAsync,
+
+  /**
+   * Proof-compatible if-statement.
+   * This behaves like a ternary conditional statement in JS.
+   *
+   * **Warning**: Since `Provable.if()` is a normal JS function call, both the if and the else branch
+   * are evaluated before calling it. Therefore, you can't use this function
+   * to guard against execution of one of the branches. It only allows you to pick one of two values.
+   *
+   * @example
+   * ```ts
+   * const condition = Bool(true);
+   * const result = Provable.if(condition, Field(1), Field(2)); // returns Field(1)
+   * ```
+   */
   if: if_,
+
+  /**
+   * Generalization of {@link Provable.if} for choosing between more than two different cases.
+   * It takes a "mask", which is an array of `Bool`s that contains only one `true` element, a type/constructor, and an array of values of that type.
+   * The result is that value which corresponds to the true element of the mask.
+   * @example
+   * ```ts
+   * let x = Provable.switch([Bool(false), Bool(true)], Field, [Field(1), Field(2)]);
+   * x.assertEquals(2);
+   * ```
+   */
   switch: switch_,
+
+  /**
+   * Asserts that two values are equal.
+   * @example
+   * ```ts
+   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+   * const a: MyStruct = { a: Field(0), b: Bool(false) };
+   * const b: MyStruct = { a: Field(1), b: Bool(true) };
+   * Provable.assertEqual(MyStruct, a, b);
+   * ```
+   */
   assertEqual,
+
+  /**
+   * Asserts that two values are equal, if an enabling condition is true.
+   *
+   * If the condition is false, the assertion is skipped.
+   */
   assertEqualIf,
+
+  /**
+   * Checks if two elements are equal.
+   * @example
+   * ```ts
+   * class MyStruct extends Struct({ a: Field, b: Bool }) {};
+   * const a: MyStruct = { a: Field(0), b: Bool(false) };
+   * const b: MyStruct = { a: Field(1), b: Bool(true) };
+   * const isEqual = Provable.equal(MyStruct, a, b);
+   * ```
+   */
   equal,
+
+  /**
+   * Creates a {@link Provable} for a generic array.
+   * @example
+   * ```ts
+   * const ProvableArray = Provable.Array(Field, 5);
+   * ```
+   */
   Array: provableArray,
+
+  /**
+   * Check whether a value is constant.
+   * See {@link FieldVar} for more information about constants and variables.
+   *
+   * @example
+   * ```ts
+   * let x = Field(42);
+   * Provable.isConstant(Field, x); // true
+   * ```
+   */
   isConstant,
+
+  /**
+   * Interface to log elements within a circuit. Similar to `console.log()`.
+   * @example
+   * ```ts
+   * const element = Field(42);
+   * Provable.log(element);
+   * ```
+   */
   log,
+
+  /**
+   * Runs code as a prover.
+   * @example
+   * ```ts
+   * Provable.asProver(() => {
+   *   // Your prover code here
+   * });
+   * ```
+   */
   asProver,
+
+  /**
+   * Runs provable code quickly, without creating a proof, but still checking whether constraints are satisfied.
+   * @example
+   * ```ts
+   * await Provable.runAndCheck(() => {
+   *   // Your code to check here
+   * });
+   * ```
+   */
   async runAndCheck(f: (() => Promise<void>) | (() => void)) {
     await generateWitness(f, { checkConstraints: true });
   },
+
+  /**
+   * Runs provable code quickly, without creating a proof, and not checking whether constraints are satisfied.
+   * @example
+   * ```ts
+   * await Provable.runUnchecked(() => {
+   *   // Your code to run here
+   * });
+   * ```
+   */
   async runUnchecked(f: (() => Promise<void>) | (() => void)) {
     await generateWitness(f, { checkConstraints: false });
   },
+
+  /**
+   * Returns information about the constraints created by the callback function.
+   * @example
+   * ```ts
+   * const result = await Provable.constraintSystem(circuit);
+   * console.log(result);
+   * ```
+   */
   constraintSystem,
+
+  /**
+   * Checks if the code is run in prover mode.
+   * @example
+   * ```ts
+   * if (Provable.inProver()) {
+   *   // Prover-specific code
+   * }
+   * ```
+   */
   inProver,
+
+  /**
+   * Checks if the code is run in checked computation mode.
+   * @example
+   * ```ts
+   * if (Provable.inCheckedComputation()) {
+   *   // Checked computation-specific code
+   * }
+   * ```
+   */
   inCheckedComputation,
+
+  /**
+   * Returns a constant version of a provable type.
+   */
   toConstant<T>(type: ProvableType<T>, value: T) {
     type = ProvableType.get(type);
     return type.fromFields(
@@ -293,6 +487,11 @@ const Provable = {
       type.toAuxiliary(value)
     );
   },
+
+  /**
+   * Return a canonical version of a value, where
+   * canonical is defined by the `type`.
+   */
   toCanonical<T>(type: Provable<T>, value: T) {
     return type.toCanonical?.(value) ?? value;
   },
