@@ -1,5 +1,10 @@
 import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
-import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
+import {
+  Base64ProofString,
+  Snarky,
+  initializeBindings,
+  withThreadPool,
+} from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import {
@@ -118,6 +123,13 @@ function createProgramState() {
   };
 }
 
+/**
+ * Initializes {@link Pickles} bindings, serializes the input proof and VK for use in Ocaml, then calls into {@link Pickles.verify} to verify the proof.
+ *
+ * @param proof Either a Proof instance or a JSON proof which gets converted into an {@link MlPair} of {@link FieldConst} arrays for use in the bindings.
+ * @param verificationKey Either a string containing a base64 serialized verification key or a VerificationKey which gets converted into a string for use in the bindings.
+ * @returns A promise that resolves to a boolean indicating whether the proof is valid.
+ */
 async function verify(
   proof: ProofBase<any, any> | JsonProof,
   verificationKey: string | VerificationKey
@@ -155,11 +167,16 @@ async function verify(
   );
 }
 
+/**
+ * Serializeable representation of a Pickles proof, useful for caching compiled proofs.
+ */
 type JsonProof = {
+  /** Array of string, where each string is a {@link Field} in the publicInput of this proof */
   publicInput: string[];
+  /** Array of string, where each string is a {@link Field} in the publicOutput of this proof */
   publicOutput: string[];
   maxProofsVerified: 0 | 1 | 2;
-  proof: string;
+  proof: Base64ProofString;
 };
 type CompiledTag = unknown;
 
@@ -183,6 +200,33 @@ let SideloadedTag = {
   },
 };
 
+/**
+ * Wraps config + provable code into a program capable of producing {@link Proof}s.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Int64,
+ *   methods: {
+ *     // Prove that I know 2 numbers less than 100 each, whose product is greater than 1000
+ *     provableMultiply: {
+ *       privateInputs: [Int64, Int64],
+ *       method: async (n1: Int64, n2: Int64) => {
+ *         n1.assertLessThan(100);
+ *         n2.assertLessThan(100);
+ *         const publicOutput = n1.mul(n2);
+ *         publicOutput.assertGreaterThan(1000);
+ *         return { publicOutput: n1.mul(n2) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param config The configuration of the program, describing the type of the public input and public output, as well as defining the methods which can be executed provably.
+ * @returns an object that can be used to compile, prove, and verify the program.
+ */
 function ZkProgram<
   Config extends {
     publicInput?: ProvableType;
@@ -591,6 +635,33 @@ type ZkProgram<
   }
 > = ReturnType<typeof ZkProgram<Config, Methods>>;
 
+/**
+ * A class representing the type of Proof produced by the {@link ZkProgram} in which it is used.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Field,
+ *   methods: {
+ *     baseCase: {
+ *       privateInputs: [],
+ *       method: async () => {
+ *         return { publicOutput: Field(0) }
+ *       }
+ *     },
+ *     add: {
+ *       privateInputs: [SelfProof, Field],
+ *       // `previous` is the type of proof produced by ExampleProgram
+ *       method: async (previous: SelfProof<undefined, Field>, f: Field) => {
+ *         previous.verify();
+ *         return { publicOutput: previous.publicOutput.add(f) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ */
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput

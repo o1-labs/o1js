@@ -48,9 +48,15 @@ export {
   MlPublicKeyVar,
   MlFeatureFlags,
   areBindingsInitialized,
+  Base64ProofString,
 };
 
 declare let areBindingsInitialized: boolean;
+
+/**
+ * A string representation of a {@link Pickles.Proof} in base64 encoding, used for communication between Ocaml and TypeScript and for JSON serialization.
+ */
+type Base64ProofString = string;
 
 type WasmModule = typeof wasm;
 
@@ -725,7 +731,7 @@ declare const Pickles: {
   encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
   decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
 
-  proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
+  proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => Base64ProofString;
   proofOfBase64: <N extends 0 | 1 | 2>(
     base64: string,
     maxProofsVerified: N
