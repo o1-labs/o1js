@@ -3,12 +3,7 @@ import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import { Field3, ForeignField, split } from './foreign-field.js';
 import { l2Mask } from './range-check.js';
-import { sha256 } from 'js-sha256';
 import { provable } from '../types/provable-derivers.js';
-import {
-  bigIntToBytes,
-  bytesToBigInt,
-} from '../../../bindings/crypto/bigint-helpers.js';
 import {
   CurveTwisted,
   GroupTwisted,
@@ -21,7 +16,7 @@ import { exists } from '../core/exists.js';
 import { arrayGetGeneric } from './elliptic-curve.js';
 
 // external API
-export { CurveTwisted };
+export { CurveTwisted, Eddsa };
 
 // internal API
 export { Point, simpleMapToCurve, arrayGetGeneric };
@@ -449,3 +444,83 @@ function simpleMapToCurve(x: bigint, Curve: CurveTwisted) {
   }
   return p;
 }
+
+/**
+ * On input a compressed representation of a point (32 bytes), return the point.
+ *
+ * @param bytes
+ * @param Curve
+ * @returns
+ */
+function decompressPoint(bytes: string, curve: CurveTwisted): point {
+  const y = BigInt(`0x${bytes}`) & ((BigInt(1) << 255n) - 1n); // y (mask top bit)
+  const signX = (BigInt(`0x${bytes}`) >> 255n) & 1n; // sign bit for x
+
+  // x = sqrt ( (y^2 - 1) / (d * y^2 - a) )
+  const den =
+    inverse(curve.d * y * y - curve.a, curve.modulus) ??
+    (() => {
+      throw new Error(`Invalid y value, no corresponding x value on curve.`);
+    })();
+  let x =
+    curve.Field.sqrt((y * y - 1n) * den) ??
+    (() => {
+      throw new Error(`Invalid y value, no corresponding x value on curve.`);
+    })();
+  x = signX ? curve.Field.negate(x) : x;
+
+  return { x, y };
+}
+
+namespace Eddsa {
+  /**
+   * EdDSA signature consisting of a curve point R and the scalar s.
+   */
+  export type Signature = { R: Point; s: Field3 };
+  export type signature = { R: point; s: bigint };
+}
+
+const EddsaSignature = {
+  from({ R, s }: Eddsa.signature): Eddsa.Signature {
+    return { R: Point.from(R), s: Field3.from(s) };
+  },
+  toBigint({ R, s }: Eddsa.Signature): Eddsa.signature {
+    return { R: Point.toBigint(R), s: Field3.toBigint(s) };
+  },
+  isConstant: (S: Eddsa.Signature) => Provable.isConstant(EddsaSignature, S),
+
+  /**
+   * Parse an EdDSA signature from a raw 130-character hex string (64 bytes + "0x").
+   */
+  fromHex(rawSignature: string, curve: CurveTwisted): Eddsa.Signature {
+    // Validate input format
+    let prefix = rawSignature.slice(0, 2);
+    let signature = rawSignature.slice(2);
+    if (prefix !== '0x' || signature.length !== 128) {
+      throw new Error(
+        `Signature.fromHex(): Invalid signature, expected hex string 0x... of length 130.`
+      );
+    }
+
+    // Split the signature into R and s components
+    const yHex = signature.slice(0, 64); // First 32 bytes (64 hex chars for y)
+    const SHex = signature.slice(64); // Last 32 bytes (64 hex chars for S)
+    const s = BigInt(`0x${SHex}`); // S value as a bigint
+
+    if (s < 0 || s >= curve.order) {
+      throw new Error(`Invalid s value: must be a scalar modulo curve order.`);
+    }
+
+    let R = decompressPoint(yHex, curve);
+
+    return Eddsa.Signature.from({ R, s });
+  },
+
+  provable: provable({ R: Point, s: Field3 }),
+};
+
+const Eddsa = {
+  //sign: signEddsa,
+  //verify: verifyEddsa,
+  Signature: EddsaSignature,
+};
