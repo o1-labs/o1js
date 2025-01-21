@@ -18,8 +18,8 @@ import {
 import { foreignField, throwError } from './test-utils.js';
 
 // provable equivalence tests
-const Ed25519 = createCurveTwisted(TwistedCurveParams.Ed25519);
-let curves = [Ed25519];
+const Edwards25519 = createCurveTwisted(TwistedCurveParams.Edwards25519);
+let curves = [Edwards25519];
 
 for (let Curve of curves) {
   // prepare test inputs
