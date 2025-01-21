@@ -1,3 +1,5 @@
+import { TwistedCurveParams } from '../../../bindings/crypto/elliptic-curve-examples.js';
+import { createCurveTwisted } from '../../../bindings/crypto/elliptic-curve.js';
 import { inverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
@@ -445,29 +447,50 @@ function simpleMapToCurve(x: bigint, Curve: CurveTwisted) {
   return p;
 }
 
+/** EdDSA over Edwards25519 */
+const Curve = createCurveTwisted(TwistedCurveParams.Edwards25519);
+
 /**
- * On input a compressed representation of a point (32 bytes), return the point.
+ * On input a compressed representation of a Edwards25519 point (32 bytes),
+ * return the point.
  *
  * @param bytes
- * @param Curve
  * @returns
  */
-function decompressPoint(bytes: string, curve: CurveTwisted): point {
+function decodePoint(bytes: string): point {
+  let p = Curve.modulus;
   const y = BigInt(`0x${bytes}`) & ((BigInt(1) << 255n) - 1n); // y (mask top bit)
-  const signX = (BigInt(`0x${bytes}`) >> 255n) & 1n; // sign bit for x
+  const x_0 = (BigInt(`0x${bytes}`) >> 255n) & 1n; // parity bit for x
 
-  // x = sqrt ( (y^2 - 1) / (d * y^2 - a) )
-  const den =
-    inverse(curve.d * y * y - curve.a, curve.modulus) ??
-    (() => {
-      throw new Error(`Invalid y value, no corresponding x value on curve.`);
-    })();
+  if (y >= Curve.modulus) {
+    throw new Error(`Invalid y value: ${y} is larger tan the field size.`);
+  }
+
+  // This function uses the trick described in
+  // https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.3
+  // to compute the square root x = sqrt ( (y^2 - 1) / (d * y^2 + 1) )
+  // for the Edwards25519 curve.
+  const u = y * y - 1n;
+  const v = Curve.d * y * y - Curve.a;
+  const candidate_x = (u * v) ^ (3n * ((u * v) ^ 7n)) ^ ((p - 5n) / 8n);
+
+  let aux = mod((v * candidate_x) ^ 2n, p);
+
   let x =
-    curve.Field.sqrt((y * y - 1n) * den) ??
-    (() => {
-      throw new Error(`Invalid y value, no corresponding x value on curve.`);
-    })();
-  x = signX ? curve.Field.negate(x) : x;
+    aux === u
+      ? candidate_x
+      : aux === -u
+      ? (candidate_x * 2n) ^ ((p - 1n) / 4n)
+      : (() => {
+          throw new Error(`No square root exists for decoded y value: ${y}.`);
+        })();
+
+  // Use the parity bit to select the correct sign for x
+  if (x === 0n && x_0 === 1n) {
+    throw new Error(`Invalid x value: x is zero but parity bit is 1.`);
+  } else if (x % 2n !== x_0) {
+    x = p - x;
+  }
 
   return { x, y };
 }
@@ -492,7 +515,7 @@ const EddsaSignature = {
   /**
    * Parse an EdDSA signature from a raw 130-character hex string (64 bytes + "0x").
    */
-  fromHex(rawSignature: string, curve: CurveTwisted): Eddsa.Signature {
+  fromHex(rawSignature: string): Eddsa.Signature {
     // Validate input format
     let prefix = rawSignature.slice(0, 2);
     let signature = rawSignature.slice(2);
@@ -507,11 +530,11 @@ const EddsaSignature = {
     const SHex = signature.slice(64); // Last 32 bytes (64 hex chars for S)
     const s = BigInt(`0x${SHex}`); // S value as a bigint
 
-    if (s < 0 || s >= curve.order) {
+    if (s < 0 || s >= Curve.order) {
       throw new Error(`Invalid s value: must be a scalar modulo curve order.`);
     }
 
-    let R = decompressPoint(yHex, curve);
+    let R = decodePoint(yHex);
 
     return Eddsa.Signature.from({ R, s });
   },
