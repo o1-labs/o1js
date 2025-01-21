@@ -12,6 +12,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-npm-deps:
+    name: check-npm-deps
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: Try to build
+        run: |
+          set -Eeu
+          ./pin.sh
+          nix build o1js#npm-deps
+  update-npm-deps:
+    needs: check-npm-deps
+    if: ${{ failure() }}
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: update-hash
+        run: nix run o1js#update-npm-deps
+      - uses: parkerbxyz/suggest-changes@v1
+        with:
+          comment: 'please update the npm-deps-hash'
+          event: 'REQUEST_CHANGES'
+
+
   nix-build:
     name: build-bindings-ubuntu
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
