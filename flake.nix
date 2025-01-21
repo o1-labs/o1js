@@ -168,7 +168,7 @@
               #    got:    sha256-8EPvXpOgn0nvm/pFKN3h6EMjabOeBqfy5optIfe8E8Q=
               # replace npmDepsHash bellow with the new hash
 
-              npmDepsHash = "";
+              npmDepsHash = "sha256-hFxCHth04vW95DJCTLHKV2N0v9NNQG57DpucsAq3yvs=";
               # The prepack script runs the build script, which we'd rather do in the build phase.
               npmPackFlags = [ "--ignore-scripts" ];
               dontNpmBuild = true;
