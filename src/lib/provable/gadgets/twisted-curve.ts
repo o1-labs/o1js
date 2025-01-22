@@ -1,5 +1,6 @@
 import { TwistedCurveParams } from '../../../bindings/crypto/elliptic-curve-examples.js';
 import { createCurveTwisted } from '../../../bindings/crypto/elliptic-curve.js';
+import { SHA2 } from '../gadgets/sha2.js';
 import { inverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
@@ -16,6 +17,9 @@ import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js'
 import { sliceField3 } from './bit-slices.js';
 import { exists } from '../core/exists.js';
 import { arrayGetGeneric } from './elliptic-curve.js';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { Field } from '../field.js';
+import { UInt8 } from '../int.js';
 
 // external API
 export { CurveTwisted, Eddsa };
@@ -503,6 +507,53 @@ namespace Eddsa {
   export type signature = { R: point; s: bigint };
 }
 
+/**
+ * Generate a new EdDSA key pair from a private key that is a random 32-byte
+ * random seed.
+ *
+ * https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.5
+ *
+ * @returns
+ */
+function keygenEddsa(privateKey: bigint): bigint {
+  // TODO: use arrays instead of bigints?
+  if (privateKey > 2n ** 256n) {
+    throw new Error(`Invalid length of EdDSA private key: ${privateKey}.`);
+  }
+  // hash private key with SHA2-512
+  const h = SHA2.hash(512, [privateKey]);
+  // only need lowest 32 bytes to generate the public key
+  let buffer = h.bytes.slice(0, 32);
+  // prune buffer
+  buffer[0] = UInt8.from(
+    Gadgets.and(buffer[0].value, Field.from(0b11111000), 8)
+  ); // clear lowest 3 bits
+  buffer[31] = UInt8.from(
+    Gadgets.and(buffer[31].value, Field.from(0b01111111), 8)
+  ); // clear highest bit
+  buffer[31] = UInt8.from(
+    Gadgets.or(buffer[31].value, Field.from(0b01000000), 8)
+  ); // set second highest bit
+  // despite clearing the top bit, the scalar can still be larger than a native field element
+
+  // read scalar as little endian from buffer
+  const f = Curve.Field.modulus;
+  const s = buffer
+    .reverse()
+    .map((b) => Field3.from(b))
+    .reduce((acc, byte) =>
+      ForeignField.add(
+        ForeignField.mul(Field3.from(acc), Field3.from(256n), f),
+        Field3.from(byte),
+        f
+      )
+    );
+
+  let mul = Curve.scale(Curve.one, s);
+
+  return encode(mul);
+}
+
 const EddsaSignature = {
   from({ R, s }: Eddsa.signature): Eddsa.Signature {
     return { R: Point.from(R), s: Field3.from(s) };
@@ -543,7 +594,7 @@ const EddsaSignature = {
 };
 
 const Eddsa = {
-  //sign: signEddsa,
+  sign: signEddsa,
   //verify: verifyEddsa,
   Signature: EddsaSignature,
 };
