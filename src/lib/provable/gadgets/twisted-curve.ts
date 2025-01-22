@@ -6,6 +6,7 @@ import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import { Field3, ForeignField, split } from './foreign-field.js';
 import { l2Mask } from './range-check.js';
+import { Bool } from '../bool.js';
 import { provable } from '../types/provable-derivers.js';
 import {
   CurveTwisted,
@@ -568,6 +569,45 @@ namespace Eddsa {
   export type signature = { R: point; s: bigint };
 }
 
+const EddsaSignature = {
+  from({ R, s }: Eddsa.signature): Eddsa.Signature {
+    return { R: Point.from(R), s: Field3.from(s) };
+  },
+  toBigint({ R, s }: Eddsa.Signature): Eddsa.signature {
+    return { R: Point.toBigint(R), s: Field3.toBigint(s) };
+  },
+  isConstant: (S: Eddsa.Signature) => Provable.isConstant(EddsaSignature, S),
+
+  /**
+   * Parse an EdDSA signature from a raw 130-character hex string (64 bytes + "0x").
+   */
+  fromHex(rawSignature: string): Eddsa.Signature {
+    // Validate input format
+    let prefix = rawSignature.slice(0, 2);
+    let signature = rawSignature.slice(2);
+    if (prefix !== '0x' || signature.length !== 128) {
+      throw new Error(
+        `Signature.fromHex(): Invalid signature, expected hex string 0x... of length 130.`
+      );
+    }
+
+    // Split the signature into R and s components
+    const yHex = signature.slice(0, 64); // First 32 bytes (64 hex chars for y)
+    const SHex = signature.slice(64); // Last 32 bytes (64 hex chars for S)
+    const s = BigInt(`0x${SHex}`); // S value as a bigint
+
+    if (s < 0 || s >= Curve.order) {
+      throw new Error(`Invalid s value: must be a scalar modulo curve order.`);
+    }
+
+    let R = decodePoint(yHex);
+
+    return Eddsa.Signature.from({ R, s });
+  },
+
+  provable: provable({ R: Point, s: Field3 }),
+};
+
 /**
  * Generate a new EdDSA key pair from a private key that is a random 32-byte
  * random seed.
@@ -636,47 +676,29 @@ function signEddsa(privateKey: bigint, message: bigint): [Point, Field3] {
   return [R, S];
 }
 
-const EddsaSignature = {
-  from({ R, s }: Eddsa.signature): Eddsa.Signature {
-    return { R: Point.from(R), s: Field3.from(s) };
-  },
-  toBigint({ R, s }: Eddsa.Signature): Eddsa.signature {
-    return { R: Point.toBigint(R), s: Field3.toBigint(s) };
-  },
-  isConstant: (S: Eddsa.Signature) => Provable.isConstant(EddsaSignature, S),
+function verifyEddsa(
+  signature: Eddsa.signature,
+  message: bigint,
+  publicKey: Field3
+): Bool {
+  let { R, s } = signature;
 
-  /**
-   * Parse an EdDSA signature from a raw 130-character hex string (64 bytes + "0x").
-   */
-  fromHex(rawSignature: string): Eddsa.Signature {
-    // Validate input format
-    let prefix = rawSignature.slice(0, 2);
-    let signature = rawSignature.slice(2);
-    if (prefix !== '0x' || signature.length !== 128) {
-      throw new Error(
-        `Signature.fromHex(): Invalid signature, expected hex string 0x... of length 130.`
-      );
-    }
+  let { x, y } = decodePoint(R);
+  let A = decodePoint(publicKey);
 
-    // Split the signature into R and s components
-    const yHex = signature.slice(0, 64); // First 32 bytes (64 hex chars for y)
-    const SHex = signature.slice(64); // Last 32 bytes (64 hex chars for S)
-    const s = BigInt(`0x${SHex}`); // S value as a bigint
+  ForeignField.assertLessThanOrEqual(s, Curve.order);
 
-    if (s < 0 || s >= Curve.order) {
-      throw new Error(`Invalid s value: must be a scalar modulo curve order.`);
-    }
+  let k = SHA2.hash(512, [...R, ...publicKey, message]);
 
-    let R = decodePoint(yHex);
+  scale(Field3.from(8n), scale(s, basePoint, Curve));
+  scale(Field3.from(8n), R, Curve);
+  scale(Field3.from(8n), scale(k, A, Curve), Curve);
 
-    return Eddsa.Signature.from({ R, s });
-  },
-
-  provable: provable({ R: Point, s: Field3 }),
-};
+  return;
+}
 
 const Eddsa = {
   sign: signEddsa,
-  //verify: verifyEddsa,
+  verify: verifyEddsa,
   Signature: EddsaSignature,
 };
