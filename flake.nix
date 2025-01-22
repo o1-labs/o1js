@@ -285,7 +285,7 @@
               { name = "update-npm-deps";
                 text =
                 ''
-                ${pkgs.prefetch-npm-deps} ./package-lock.json
+                ${pkgs.prefetch-npm-deps}/bin/prefetch-npm-deps ./package-lock.json > npmDepsHash
                 '';
               }}/bin/update-npm-deps";
           };
