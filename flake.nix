@@ -158,8 +158,11 @@
                       ./package-lock.json
                     ];
                   });
-              # to update this with nix run `nix run o1js#update-npm-deps`
-              # ci should also suggest the change automaticly
+              # If you get ERROR: npmDepsHash is out of date
+              # you can update the hash with `nix run o1js#update-npm-deps`.
+              # Failing that you can remove the hash from ./npmDepsHash and try again
+              # which should get an error message with the correct hash
+              # You can also just push and CI should suggest a fix which updates the hash
               npmDepsHash = builtins.readFile ./npmDepsHash;
               # The prepack script runs the build script, which we'd rather do in the build phase.
               npmPackFlags = [ "--ignore-scripts" ];

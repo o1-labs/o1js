@@ -40,7 +40,7 @@ jobs:
       - uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'please update the npm-deps-hash'
-          event: 'REQUEST_CHANGES'
+          event: 'COMMENT'
 
 
   nix-build:
