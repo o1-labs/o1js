@@ -81,6 +81,8 @@ const ForeignField = {
 
   equals,
   toCanonical,
+
+  assertEquals,
 };
 
 /**
@@ -808,6 +810,22 @@ function assertLessThanOrEqual(x: Field3, y: bigint | Field3) {
   // provable case
   // we compute z = y - x and check that z \in [0, 2^3l), which implies x <= y
   sum([y_, x], [-1n], 0n);
+}
+
+// Field3 equality
+function assertEquals(x: Field3, y: Field3) {
+  // constant case
+  if (Field3.isConstant(x) && Field3.isConstant(y)) {
+    assert(
+      Field3.toBigint(x) === Field3.toBigint(y),
+      'assertEqual: got x != y'
+    );
+    return;
+  }
+  //provable case
+  x[0].assertEquals(y[0]);
+  x[1].assertEquals(y[1]);
+  x[2].assertEquals(y[2]);
 }
 
 // Field3 from/to bits
