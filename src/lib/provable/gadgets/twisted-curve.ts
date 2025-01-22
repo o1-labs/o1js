@@ -20,6 +20,7 @@ import { arrayGetGeneric } from './elliptic-curve.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { Field } from '../field.js';
 import { UInt8 } from '../int.js';
+import { Bytes } from '../bytes.js';
 
 // external API
 export { CurveTwisted, Eddsa };
@@ -575,7 +576,7 @@ namespace Eddsa {
  *
  * @returns
  */
-function keygenEddsa(privateKey: bigint): Field3 {
+function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
   // TODO: use arrays instead of bigints?
   if (privateKey > 2n ** 256n) {
     throw new Error(`Invalid length of EdDSA private key: ${privateKey}.`);
@@ -611,7 +612,7 @@ function keygenEddsa(privateKey: bigint): Field3 {
       )
     );
 
-  return encodePoint(scale(s, basePoint, Curve));
+  return [encodePoint(scale(s, basePoint, Curve)), h];
 }
 
 /**
@@ -619,7 +620,21 @@ function keygenEddsa(privateKey: bigint): Field3 {
  *
  * https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.6
  */
-function signEddsa(privateKey: bigint, message: bigint) {}
+function signEddsa(privateKey: bigint, message: bigint): [Point, Field3] {
+  const [publicKey, h] = keygenEddsa(privateKey);
+  const prefix = h.bytes.slice(32, 64);
+  let r = SHA2.hash(512, [...prefix, message]);
+  // TODO: Bytes to Field3
+  // reduce r modulo the curve order
+  r = r.mod(Curve.order);
+  let R = scale(r, basePoint, Curve);
+
+  let k = SHA2.hash(512, [...R, ...publicKey, message]);
+  k = k.mod(Curve.order);
+  let S = (r + k * s).mod(Curve.order);
+
+  return [R, S];
+}
 
 const EddsaSignature = {
   from({ R, s }: Eddsa.signature): Eddsa.Signature {
