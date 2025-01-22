@@ -453,6 +453,66 @@ function simpleMapToCurve(x: bigint, Curve: CurveTwisted) {
 
 /** EdDSA over Edwards25519 */
 const Curve = createCurveTwisted(TwistedCurveParams.Edwards25519);
+const basePoint = Point.from(Curve.one);
+
+/**
+ * On input a point of the Edwards25519 curve, return its compressed
+ * representation (32 bytes) as a foreign field element.
+ *
+ * @param bytes
+ * @returns
+ */
+function encodePoint(p: Point): Field3 {
+  let f = Curve.Field.modulus;
+  // https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.2
+  let witnesses = exists(8, () => {
+    let x = Field3.toBigint(p.x);
+    let y = Field3.toBigint(p.y);
+    let x_lsb = x & 1n; // parity bit for x
+    let x_masked = (x >> 1n) * 2n; // x with parity bit removed
+    let y_msb = (y >> 255n) & 1n; // most significant bit of y
+    let y_masked = y & ((1n << 255n) - 1n); // mask most significant bit
+
+    return [x_lsb, ...split(x_masked), y_msb, ...split(y_masked)];
+  });
+
+  let [
+    x_lsb,
+    x_masked0,
+    x_masked1,
+    x_masked2,
+    y_msb,
+    y_masked0,
+    y_masked1,
+    y_masked2,
+  ] = witnesses;
+
+  x_lsb.assertBool('Parity bit of x coordinate is not a bit');
+  y_msb.assertBool('MSB of y coordinate is not a bit');
+
+  let x_masked: Field3 = [x_masked0, x_masked1, x_masked2];
+  let y_masked: Field3 = [y_masked0, y_masked1, y_masked2];
+
+  let x_lsb3: Field3 = [x_lsb, new Field(0n), new Field(0n)];
+  let y_msb3: Field3 = [y_msb, new Field(0n), new Field(0n)];
+
+  ForeignField.assertEquals(p.x, ForeignField.add(x_lsb3, x_masked, f));
+  ForeignField.assertEquals(
+    p.y,
+    ForeignField.add(
+      ForeignField.mul(y_msb3, Field3.from(1n << 255n), f),
+      y_masked,
+      f
+    )
+  );
+
+  let enc = ForeignField.add(
+    ForeignField.mul(x_lsb3, Field3.from(1n << 255n), f),
+    y_masked,
+    f
+  );
+  return enc;
+}
 
 /**
  * On input a compressed representation of a Edwards25519 point (32 bytes),
@@ -515,7 +575,7 @@ namespace Eddsa {
  *
  * @returns
  */
-function keygenEddsa(privateKey: bigint): bigint {
+function keygenEddsa(privateKey: bigint): Field3 {
   // TODO: use arrays instead of bigints?
   if (privateKey > 2n ** 256n) {
     throw new Error(`Invalid length of EdDSA private key: ${privateKey}.`);
@@ -534,9 +594,11 @@ function keygenEddsa(privateKey: bigint): bigint {
   buffer[31] = UInt8.from(
     Gadgets.or(buffer[31].value, Field.from(0b01000000), 8)
   ); // set second highest bit
-  // despite clearing the top bit, the scalar can still be larger than a native field element
 
-  // read scalar as little endian from buffer
+  // NOTE: despite clearing the top bit,
+  //       the scalar could be larger than a native field element
+
+  // read scalar from buffer (initially laid out as little endian)
   const f = Curve.Field.modulus;
   const s = buffer
     .reverse()
@@ -549,10 +611,15 @@ function keygenEddsa(privateKey: bigint): bigint {
       )
     );
 
-  let mul = Curve.scale(Curve.one, s);
-
-  return encode(mul);
+  return encodePoint(scale(s, basePoint, Curve));
 }
+
+/**
+ * Sign a message using Ed25519 (EdDSA over Edwards25519 curve).
+ *
+ * https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.6
+ */
+function signEddsa(privateKey: bigint, message: bigint) {}
 
 const EddsaSignature = {
   from({ R, s }: Eddsa.signature): Eddsa.Signature {
