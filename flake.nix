@@ -158,6 +158,8 @@
                       ./package-lock.json
                     ];
                   });
+              # to update this with nix run `nix run o1js#update-npm-deps`
+              # ci should also suggest the change automaticly
               npmDepsHash = builtins.readFile ./npmDepsHash;
               # The prepack script runs the build script, which we'd rather do in the build phase.
               npmPackFlags = [ "--ignore-scripts" ];
