@@ -7,7 +7,7 @@ import {
 } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
-import type { Field } from '../field.js';
+import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
@@ -30,6 +30,7 @@ import {
 } from '../core/field-constructor.js';
 import type { Bool } from '../bool.js';
 import { ProvablePureExtended } from '../types/struct.js';
+import { UInt8 } from '../int.js';
 
 // external API
 export { ForeignField, Field3 };
@@ -454,11 +455,13 @@ const provableLimb = modifiedField({});
 
 const Field3 = {
   /**
-   * Turn a bigint into a 3-tuple of Fields
+   * Turn a bigint, a UInt8, or a Field into a 3-tuple of Fields
    */
-  from(x: bigint | Field3): Field3 {
+  from(x: bigint | Field3 | UInt8): Field3 {
     if (Array.isArray(x)) return x;
-    return Tuple.map(split(x), createField);
+    if (typeof x === 'bigint') return Tuple.map(split(x), createField);
+    if (x instanceof UInt8) return [x.value, new Field(0n), new Field(0n)];
+    return x;
   },
 
   /**
