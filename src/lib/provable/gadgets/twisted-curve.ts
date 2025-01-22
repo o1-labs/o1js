@@ -661,19 +661,21 @@ function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
  * https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.6
  */
 function signEddsa(privateKey: bigint, message: bigint): [Point, Field3] {
+  const L = Curve.order;
   const [publicKey, h] = keygenEddsa(privateKey);
+  const scalar = h.bytes.slice(0, 32);
   const prefix = h.bytes.slice(32, 64);
   let r = SHA2.hash(512, [...prefix, message]);
   // TODO: Bytes to Field3
   // reduce r modulo the curve order
-  r = r.mod(Curve.order);
+  r = ForeignField.mul(r, Field3.from(1n), L);
   let R = scale(r, basePoint, Curve);
 
   let k = SHA2.hash(512, [...R, ...publicKey, message]);
-  k = k.mod(Curve.order);
-  let S = (r + k * s).mod(Curve.order);
+  k = ForeignField.mul(k, Field3.from(1n), L);
+  let s = ForeignField.add(r, ForeignField.mul(k, scalar, L), L);
 
-  return [R, S];
+  return [R, s];
 }
 
 function verifyEddsa(
