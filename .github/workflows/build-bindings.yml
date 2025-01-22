@@ -33,6 +33,8 @@ jobs:
     if: ${{ failure() }}
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: update-hash
         run: nix run o1js#update-npm-deps
       - uses: parkerbxyz/suggest-changes@v1
