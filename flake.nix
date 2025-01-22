@@ -171,6 +171,12 @@
                   ./package-lock.json
                 ];
               });
+            # If you get ERROR: npmDepsHash is out of date
+            # you can update the hash with `nix run o1js#update-npm-deps`.
+            # Failing that you can remove the hash from ./npmDepsHash and try again
+            # which should get an error message with the correct hash
+            # You can also just push and CI should suggest a fix which updates the hash
+            npmDepsHash = builtins.readFile ./npmDepsHash;
             dontNpmBuild = true;
             installPhase = ''
               runHook preInstall
@@ -178,18 +184,6 @@
               cp -r node_modules $out/lib
               runHook postInstall
             '';
-            # If you see 'ERROR: npmDepsHash is out of date' in ci
-            # set this to blank run ``nix build o1js#o1js-bindings`
-            # If you don't want to install nix you can also set it to "" and run ci to get the new hash
-            # You should get an output like this:
-
-            # error: hash mismatch in fixed-output derivation '/nix/store/a03cg2az0b2cvjsp1wnr89clf31i79c1-o1js-npm-deps.drv':
-            # specified: sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-            #    got:    sha256-8EPvXpOgn0nvm/pFKN3h6EMjabOeBqfy5optIfe8E8Q=
-            # replace npmDepsHash bellow with the new hash
-
-            npmDepsHash = "sha256-QLnSfX6JwYQXyHGNSxXdzqbhkbFl67sDrmlW/F6D/pw=";
-            # The prepack script runs the build script, which we'd rather do in the build phase.
           };
 
         #Rustup doesn't allow local toolchains to contain 'nightly' in the name
@@ -254,6 +248,7 @@
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
           inherit dune-description;
+          npm-deps = o1js-npm-deps;
           o1js-bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
             name = "o1js_bindings";
             src = with pkgs.lib.fileset;
@@ -326,6 +321,16 @@
           ocaml-js = prj.pkgs.__ocaml-js__;
         };
         apps = {
+          update-npm-deps = {
+            type = "app";
+            program = "${pkgs.writeShellApplication
+              { name = "update-npm-deps";
+                text =
+                ''
+                ${pkgs.prefetch-npm-deps}/bin/prefetch-npm-deps ./package-lock.json > npmDepsHash
+                '';
+              }}/bin/update-npm-deps";
+          };
           update-bindings = {
             type = "app";
             program = "${pkgs.writeShellApplication
