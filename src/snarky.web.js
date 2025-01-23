@@ -5,7 +5,7 @@ import {
   wasm,
 } from './bindings/js/web/web-backend.js';
 
-let Snarky, Ledger, Pickles, Test_;
+let Snarky, Ledger, Pickles, Test_, OCamlobject;
 let isInitialized = false;
 
 async function initializeBindings() {
@@ -13,7 +13,7 @@ async function initializeBindings() {
   isInitialized = true;
 
   await init();
-  ({ Snarky, Ledger, Pickles, Test: Test_ } = globalThis.__snarky);
+  ({ Snarky, Ledger, Pickles, Test: Test_, OCamlobject } = globalThis.__snarky);
 }
 
 async function Test() {
@@ -27,6 +27,7 @@ export {
   Pickles,
   Test,
   withThreadPool,
+  OCamlobject,
   wasm,
   initializeBindings,
   isInitialized as areBindingsInitialized,
