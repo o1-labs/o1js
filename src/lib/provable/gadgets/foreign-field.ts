@@ -488,6 +488,19 @@ const Field3 = {
   },
 
   /**
+   * Convert a 3-tuple of Fields to a little-endian array of 32 UInt8s, checking
+   * in provable mode that the result is equal to the input.
+   */
+  toBytes(x: Field3): UInt8[] {
+    const limbBytes = Number(l) / 8;
+    return [
+      x[0].toBytes(limbBytes),
+      x[1].toBytes(limbBytes),
+      x[2].toBytes(limbBytes),
+    ].flat();
+  },
+
+  /**
    * `Provable<T>` interface for `Field3 = [Field, Field, Field]`.
    *
    * Note: Witnessing this creates a plain tuple of field elements without any implicit
