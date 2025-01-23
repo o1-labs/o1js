@@ -49,6 +49,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
 - Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
 - Deprecate `testnet` `networkId` in favor of `devnet` https://github.com/o1-labs/o1js/pull/1938
+- Fix event data type inconsistency between LocalBlockchain and Mina https://github.com/o1-labs/o1js/pull/1975
 
 ## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
 
