@@ -31,6 +31,7 @@ import {
   lessThanOrEqualFull,
 } from './gadgets/comparison.js';
 import { toVar } from './gadgets/common.js';
+import { UInt8 } from './int.js';
 
 // external API
 export { Field };
@@ -795,6 +796,55 @@ class Field {
   }
 
   /**
+   * Returns an array of {@link UInt8} elements representing this field element
+   * as little endian ordered bytes.
+   *
+   * If the optional `bytelength` argument is used, it proves that the field
+   * element fits in `bytelength` bytes. The length has to be between 0 and 32,
+   * and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the
+   * `bitlength` you specify, which by default is 32 bytes. Prefer to pass a
+   * smaller `length` if possible.
+   *
+   *
+   * @param bytelength - the number of bytes to fit the element. If the element
+   *                     does not fit in `length` bits, the functions throws an
+   *                     error.
+   *
+   * @return An array of {@link Bytes} element representing this {@link Field} in
+   *         little endian encoding.
+   */
+  toBytes(bytelength: number = 32): UInt8[] {
+    checkBitLength('Field.toBytes()', bytelength, 32 * 8);
+    if (this.isConstant()) {
+      let bytes = BinableFp.toBytes(this.toBigInt()).map((b) => new UInt8(b));
+      if (bytes.length > bytelength)
+        throw Error(
+          `Field.toBytes(): ${this} does not fit in ${bytelength} bytes`
+        );
+      return bytes.concat(Array(bytelength - bytes.length).fill(UInt8.from(0)));
+    }
+    let bytes = Provable.witness(Provable.Array(UInt8, bytelength), () => {
+      let x = this.toBigInt();
+      return Array.from(
+        { length: bytelength },
+        (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn)
+      );
+    });
+    let field = bytes
+      .reverse()
+      .map((x) => x.value)
+      .reduce((acc, byte) => acc.mul(256).add(byte));
+
+    field.assertEquals(
+      this,
+      `Field.toBytes(): Input does not fit in ${bytelength} bytes`
+    );
+    return bytes;
+  }
+
+  /**
    * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link Field} element.
    *
    * If you use the optional `length` argument, proves that the field element fits in `length` bits.
@@ -808,7 +858,7 @@ class Field {
    * @return An array of {@link Bool} element representing little endian binary representation of this {@link Field}.
    */
   toBits(length: number = 254) {
-    checkBitLength('Field.toBits()', length, 254);
+    checkBitLength('Field.toBytes()', length, 254);
     if (this.isConstant()) {
       let bits = BinableFp.toBits(this.toBigInt());
       if (bits.slice(length).some((bit) => bit))
