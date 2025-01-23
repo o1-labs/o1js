@@ -1,7 +1,7 @@
 import './bindings/crypto/bindings.js';
 import { wasm, withThreadPool } from './bindings/js/node/node-backend.js';
 
-let Snarky, Ledger, Pickles, Test_;
+let Snarky, Ledger, Pickles, Test_, OCamlobject;
 let isInitialized = false;
 
 async function initializeBindings() {
@@ -17,7 +17,8 @@ async function initializeBindings() {
   ESM: snarky = (
     await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')
   ).default;
-  ({ Snarky, Ledger, Pickles, Test: Test_ } = snarky);
+
+  ({ Snarky, Ledger, Pickles, Test: Test_, OCamlobject } = snarky);
 }
 
 async function Test() {
@@ -29,6 +30,7 @@ export {
   Snarky,
   Ledger,
   Pickles,
+  OCamlobject,
   Test,
   withThreadPool,
   wasm,

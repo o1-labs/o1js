@@ -48,6 +48,7 @@ export {
   MlPublicKeyVar,
   MlFeatureFlags,
   areBindingsInitialized,
+  OCamlobject,
 };
 
 declare let areBindingsInitialized: boolean;
@@ -62,6 +63,10 @@ declare namespace Snarky {
   type VerificationKey = unknown;
   type Proof = unknown;
 }
+
+declare const OCamlobject: {
+  runMe: () => void;
+};
 
 /**
  * Internal interface to snarky-ml
