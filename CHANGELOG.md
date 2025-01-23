@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
+- Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
 
 ### Changed
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
