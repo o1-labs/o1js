@@ -49,14 +49,20 @@ export {
   MlFeatureFlags,
   areBindingsInitialized,
   Base64ProofString,
+  Base64VerificationKeyString,
 };
 
 declare let areBindingsInitialized: boolean;
 
 /**
- * A string representation of a {@link Pickles.Proof} in base64 encoding, used for communication between Ocaml and TypeScript and for JSON serialization.
+ * A string representation of a Pickles proof in base64 encoding, used for communication between OCaml and TypeScript and for JSON serialization.
  */
 type Base64ProofString = string;
+
+/**
+ * A string representation of a constraint system's verification key in base64 encoding, used for communication between OCaml and TypeScript and for JSON serialization.
+ */
+type Base64VerificationKeyString = string;
 
 type WasmModule = typeof wasm;
 
@@ -706,13 +712,15 @@ declare const Pickles: {
     /**
      * @returns (base64 vk, hash)
      */
-    getVerificationKey: () => Promise<[_: 0, data: string, hash: FieldConst]>;
+    getVerificationKey: () => Promise<
+      [_: 0, data: Base64VerificationKeyString, hash: FieldConst]
+    >;
   };
 
   verify(
     statement: Pickles.Statement<FieldConst>,
     proof: Pickles.Proof,
-    verificationKey: string
+    verificationKey: Base64VerificationKeyString
   ): Promise<boolean>;
 
   loadSrsFp(): WasmFpSrs;
@@ -726,7 +734,11 @@ declare const Pickles: {
   /**
    * @returns (base64 vk, hash)
    */
-  dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
+  dummyVerificationKey: () => [
+    _: 0,
+    data: Base64VerificationKeyString,
+    hash: FieldConst
+  ];
 
   encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
   decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
@@ -751,7 +763,10 @@ declare const Pickles: {
     // Instantiate the verification key inside the circuit (required).
     inCircuit: (tag: unknown, verificationKey: unknown) => undefined;
     // Instantiate the verification key in prover-only logic (also required).
-    inProver: (tag: unknown, verificationKey: string) => undefined;
+    inProver: (
+      tag: unknown,
+      verificationKey: Base64VerificationKeyString
+    ) => undefined;
     // Create an in-circuit representation of a verification key
     vkToCircuit: (
       verificationKey: () => string

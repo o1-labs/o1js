@@ -1,6 +1,7 @@
 import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
 import {
   Base64ProofString,
+  Base64VerificationKeyString,
   Snarky,
   initializeBindings,
   withThreadPool,
@@ -124,15 +125,15 @@ function createProgramState() {
 }
 
 /**
- * Initializes {@link Pickles} bindings, serializes the input proof and VK for use in Ocaml, then calls into {@link Pickles.verify} to verify the proof.
+ * Initializes Pickles bindings, serializes the input proof and verification key for use in OCaml, then calls into the Pickles verify function and returns the result.
  *
- * @param proof Either a Proof instance or a JSON proof which gets converted into an {@link MlPair} of {@link FieldConst} arrays for use in the bindings.
- * @param verificationKey Either a string containing a base64 serialized verification key or a VerificationKey which gets converted into a string for use in the bindings.
+ * @param proof Either a `Proof` instance or a serialized JSON proof
+ * @param verificationKey Either a base64 serialized verification key or a `VerificationKey` instance which will be base64 serialized for use in the bindings.
  * @returns A promise that resolves to a boolean indicating whether the proof is valid.
  */
 async function verify(
   proof: ProofBase<any, any> | JsonProof,
-  verificationKey: string | VerificationKey
+  verificationKey: Base64VerificationKeyString | VerificationKey
 ) {
   await initializeBindings();
   let picklesProof: Pickles.Proof;
@@ -171,9 +172,9 @@ async function verify(
  * Serializeable representation of a Pickles proof, useful for caching compiled proofs.
  */
 type JsonProof = {
-  /** Array of string, where each string is a {@link Field} in the publicInput of this proof */
+  /** Array of string, where each string is a `Field` in the publicInput of this proof */
   publicInput: string[];
-  /** Array of string, where each string is a {@link Field} in the publicOutput of this proof */
+  /** Array of string, where each string is a `Field` in the publicOutput of this proof */
   publicOutput: string[];
   maxProofsVerified: 0 | 1 | 2;
   proof: Base64ProofString;
