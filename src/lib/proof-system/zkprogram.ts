@@ -169,7 +169,7 @@ async function verify(
 }
 
 /**
- * Serializeable representation of a Pickles proof, useful for caching compiled proofs.
+ * Serializable representation of a Pickles proof, useful for caching compiled proofs.
  */
 type JsonProof = {
   /** Array of string, where each string is a `Field` in the publicInput of this proof */
