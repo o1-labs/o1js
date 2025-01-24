@@ -812,10 +812,10 @@ class Field {
    *                     does not fit in `length` bits, the functions throws an
    *                     error.
    *
-   * @return An array of {@link Bytes} element representing this {@link Field} in
+   * @return An array of {@link UInt8} element representing this {@link Field} in
    *         little endian encoding.
    */
-  toBytes(bytelength: number = 32): UInt8[] {
+  toOctets(bytelength: number = 32): UInt8[] {
     checkBitLength('Field.toBytes()', bytelength, 32 * 8);
     if (this.isConstant()) {
       let bytes = BinableFp.toBytes(this.toBigInt()).map((b) => new UInt8(b));
@@ -842,6 +842,23 @@ class Field {
       `Field.toBytes(): Input does not fit in ${bytelength} bytes`
     );
     return bytes;
+  }
+  /**
+   * Returns {@link Field} element from the little endian representation of an
+   * array of {@link UInt8} elements given as input. It adds necessary checks to
+   * the circuit to ensure that the conversion was done correctly.
+   *
+   * @param x An array of {@link UInt8} element representing this {@link Field}
+   *          in little endian encoding.
+   *
+   * @return The field element will be reduced modulo the native modulus.
+   */
+  static fromOctets(x: UInt8[]): Field {
+    return x
+      .slice()
+      .reverse()
+      .map((b) => b.value)
+      .reduce((acc, byte) => acc.mul(256).add(byte));
   }
 
   /**

@@ -491,13 +491,27 @@ const Field3 = {
    * Convert a 3-tuple of Fields to a little-endian array of 32 UInt8s, checking
    * in provable mode that the result is equal to the input.
    */
-  toBytes(x: Field3): UInt8[] {
+  toOctets(x: Field3): UInt8[] {
     const limbBytes = Number(l) / 8;
     return [
-      x[0].toBytes(limbBytes),
-      x[1].toBytes(limbBytes),
-      x[2].toBytes(limbBytes),
+      x[0].toOctets(limbBytes),
+      x[1].toOctets(limbBytes),
+      x[2].toOctets(limbBytes),
     ].flat();
+  },
+
+  /**
+   * Convert a little-endian array of 32 UInt8s to a 3-tuple of Fields.
+   *
+   * @param x
+   */
+  fromOctets(x: UInt8[]): Field3 {
+    const limbBytes = Number(l) / 8;
+    return [
+      Field.fromOctets(x.slice(0, limbBytes)),
+      Field.fromOctets(x.slice(limbBytes, 2 * limbBytes)),
+      Field.fromOctets(x.slice(2 * limbBytes, 3 * limbBytes)),
+    ];
   },
 
   /**

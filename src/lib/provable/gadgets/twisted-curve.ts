@@ -518,7 +518,7 @@ function encodePoint(p: Point): Field3 {
 
 /**
  * On input a compressed representation of a Edwards25519 point (32 bytes),
- * return the point.
+ * return the point as
  *
  * @param bytes
  * @returns
@@ -563,18 +563,18 @@ function decodePoint(bytes: string): point {
 
 namespace Eddsa {
   /**
-   * EdDSA signature consisting of a curve point R and the scalar s.
+   * EdDSA signature consisting of a compressed curve point R and the scalar s.
    */
-  export type Signature = { R: Point; s: Field3 };
-  export type signature = { R: point; s: bigint };
+  export type Signature = { R: Field3; s: Field3 };
+  export type signature = { R: bigint; s: bigint };
 }
 
 const EddsaSignature = {
   from({ R, s }: Eddsa.signature): Eddsa.Signature {
-    return { R: Point.from(R), s: Field3.from(s) };
+    return { R: Field3.from(R), s: Field3.from(s) };
   },
   toBigint({ R, s }: Eddsa.Signature): Eddsa.signature {
-    return { R: Point.toBigint(R), s: Field3.toBigint(s) };
+    return { R: Field3.toBigint(R), s: Field3.toBigint(s) };
   },
   isConstant: (S: Eddsa.Signature) => Provable.isConstant(EddsaSignature, S),
 
@@ -592,29 +592,54 @@ const EddsaSignature = {
     }
 
     // Split the signature into R and s components
-    const yHex = signature.slice(0, 64); // First 32 bytes (64 hex chars for y)
-    const SHex = signature.slice(64); // Last 32 bytes (64 hex chars for S)
-    const s = BigInt(`0x${SHex}`); // S value as a bigint
+    const Rhex = signature.slice(0, 64); // First 32 bytes (64 hex chars for R)
+    const Shex = signature.slice(64); // Last 32 bytes (64 hex chars for s)
+    const R = BigInt(`0x${Rhex}`); // R value as a bigint
+    const s = BigInt(`0x${Shex}`); // s value as a bigint
 
     if (s < 0 || s >= Curve.order) {
       throw new Error(`Invalid s value: must be a scalar modulo curve order.`);
     }
 
-    let R = decodePoint(yHex);
+    decodePoint(Rhex); // Check that R represents a valid point
 
     return Eddsa.Signature.from({ R, s });
   },
 
-  provable: provable({ R: Point, s: Field3 }),
+  provable: provable({ R: Field3, s: Field3 }),
 };
 
 /**
- * Generate a new EdDSA key pair from a private key that is a random 32-byte
+ * Helper function to obtain a Field3 reduced modulo a bigint from a UInt8[]
+ *  given in little-endian format (first byte is least significant).
+ *
+ * @param bytes
+ * @param mod
+ * @returns
+ */
+function leOctets2Field3Mod(bytes: UInt8[], mod: bigint): Field3 {
+  return bytes
+    .slice() // copy the array to prevent mutation
+    .reverse()
+    .map((b) => Field3.from(b))
+    .reduce((acc, byte) =>
+      ForeignField.add(
+        ForeignField.mul(Field3.from(acc), Field3.from(256n), mod),
+        Field3.from(byte),
+        mod
+      )
+    );
+}
+
+/**
+ * Generate a new EdDSA public key from a private key that is a random 32-byte
  * random seed.
  *
  * https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.5
  *
- * @returns
+ * @param privateKey: 32-byte random seed
+ * @returns the public key as a 32-byte encoded curve point,
+ *          and the full SHA2-512 digest of the private key
  */
 function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
   // TODO: use arrays instead of bigints?
@@ -641,16 +666,7 @@ function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
 
   // read scalar from buffer (initially laid out as little endian)
   const f = Curve.Field.modulus;
-  const s = buffer
-    .reverse()
-    .map((b) => Field3.from(b))
-    .reduce((acc, byte) =>
-      ForeignField.add(
-        ForeignField.mul(Field3.from(acc), Field3.from(256n), f),
-        Field3.from(byte),
-        f
-      )
-    );
+  const s = leOctets2Field3Mod(buffer, f);
 
   return [encodePoint(scale(s, basePoint, Curve)), h];
 }
@@ -659,27 +675,50 @@ function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
  * Sign a message using Ed25519 (EdDSA over Edwards25519 curve).
  *
  * https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.6
+ *
+ * @param privateKey: 32-byte random seed
+ * @param message: arbitrary length message to be signed
+ * @returns the 64-bit signature composed by 32-bytes corresponding to a
+ *          compressed curve point and a 32-byte scalar
  */
-function signEddsa(privateKey: bigint, message: bigint): [Point, Field3] {
+function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
   const L = Curve.order;
   const [publicKey, h] = keygenEddsa(privateKey);
+  // secret scalar obtained from first half of the digest
   const scalar = h.bytes.slice(0, 32);
+  // prefix obtained from second half of the digest
   const prefix = h.bytes.slice(32, 64);
-  let r = SHA2.hash(512, [...prefix, message]);
-  // TODO: Bytes to Field3
-  // reduce r modulo the curve order
-  r = ForeignField.mul(r, Field3.from(1n), L);
-  let R = scale(r, basePoint, Curve);
 
-  let k = SHA2.hash(512, [...R, ...publicKey, message]);
-  k = ForeignField.mul(k, Field3.from(1n), L);
-  let s = ForeignField.add(r, ForeignField.mul(k, scalar, L), L);
+  // Hash the prefix concatenated with the message to obtain 64 bytes, that
+  // need to be interpreted as little endian and reduced modulo the curve order
+  const r = leOctets2Field3Mod(SHA2.hash(512, [...prefix, message]).bytes, L);
 
-  return [R, s];
+  // R is the encoding of the point resulting from [r]B
+  let R = encodePoint(scale(r, basePoint, Curve));
+
+  // Hash the encoding concatenated with the public key and the message to
+  // obtain a 64-byte digest that needs to be interpreted as little endian
+  // and reduced modulo the curve order
+  const k = leOctets2Field3Mod(
+    SHA2.hash(512, [
+      ...Field3.toOctets(R).flat(),
+      ...Field3.toOctets(publicKey).flat(),
+      message,
+    ]).bytes,
+    L
+  );
+
+  let s = ForeignField.add(
+    r,
+    ForeignField.mul(k, Field3.fromOctets(scalar), L),
+    L
+  );
+
+  return { R, s };
 }
 
 function verifyEddsa(
-  signature: Eddsa.signature,
+  signature: Eddsa.Signature,
   message: bigint,
   publicKey: Field3
 ): Bool {
@@ -690,13 +729,17 @@ function verifyEddsa(
 
   ForeignField.assertLessThanOrEqual(s, Curve.order);
 
-  let k = SHA2.hash(512, [...R, ...publicKey, message]);
+  let k = SHA2.hash(512, [
+    ...Field3.toOctets(R).flat(),
+    ...Field3.toOctets(publicKey).flat(),
+    message,
+  ]).bytes;
 
-  scale(Field3.from(8n), scale(s, basePoint, Curve));
-  scale(Field3.from(8n), R, Curve);
-  scale(Field3.from(8n), scale(k, A, Curve), Curve);
-
-  return;
+  // Check [s]B = R + [k]A
+  return equals(
+    scale(s, basePoint, Curve),
+    add(R, scale(Field3.fromOctets(k), A, Curve), Curve)
+  );
 }
 
 const Eddsa = {
