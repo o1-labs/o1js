@@ -33,7 +33,7 @@ function decrypt(
   const sharedSecret = publicKey.scale(privateKey.s);
   const sponge = new Poseidon.Sponge();
   sponge.absorb(sharedSecret.x);
-  const authenticationTag = cipherText.pop();
+  const authenticationTag = cipherText[cipherText.length - 1];
 
   // decryption
   const message = [];
