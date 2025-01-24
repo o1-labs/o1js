@@ -501,17 +501,28 @@ const Field3 = {
   },
 
   /**
-   * Convert a little-endian array of 32 UInt8s to a 3-tuple of Fields.
+   * Convert a little-endian array of {@link UInt8} to a 3-tuple of Fields.
+   * This uses a modulus to reduce the result to fit into the 3 limbs.
    *
-   * @param x
+   * @param bytes - The little-endian array of bytes to convert to a Field3.
+   * @param mod - The modulus to reduce the result to fit into the 3 limbs.
+   *
+   * @returns The Field3 representation of the input bytes, reduced modulo the given modulus.
    */
-  fromOctets(x: UInt8[]): Field3 {
-    const limbBytes = Number(l) / 8;
-    return [
-      Field.fromOctets(x.slice(0, limbBytes)),
-      Field.fromOctets(x.slice(limbBytes, 2 * limbBytes)),
-      Field.fromOctets(x.slice(2 * limbBytes, 3 * limbBytes)),
-    ];
+  fromOctets(bytes: UInt8[], mod: bigint): Field3 {
+    // TODO: more efficient implementation
+    assert(mod < 1n << 259n, 'Foreign modulus must fits in 259 bits');
+    return bytes
+      .slice() // copy the array to prevent mutation
+      .reverse()
+      .map((b) => Field3.from(b))
+      .reduce((acc, byte) =>
+        ForeignField.add(
+          ForeignField.mul(Field3.from(acc), Field3.from(256n), mod),
+          Field3.from(byte),
+          mod
+        )
+      );
   },
 
   /**

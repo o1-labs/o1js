@@ -610,28 +610,6 @@ const EddsaSignature = {
 };
 
 /**
- * Helper function to obtain a Field3 reduced modulo a bigint from a UInt8[]
- *  given in little-endian format (first byte is least significant).
- *
- * @param bytes
- * @param mod
- * @returns
- */
-function leOctets2Field3Mod(bytes: UInt8[], mod: bigint): Field3 {
-  return bytes
-    .slice() // copy the array to prevent mutation
-    .reverse()
-    .map((b) => Field3.from(b))
-    .reduce((acc, byte) =>
-      ForeignField.add(
-        ForeignField.mul(Field3.from(acc), Field3.from(256n), mod),
-        Field3.from(byte),
-        mod
-      )
-    );
-}
-
-/**
  * Generate a new EdDSA public key from a private key that is a random 32-byte
  * random seed.
  *
@@ -666,7 +644,7 @@ function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
 
   // read scalar from buffer (initially laid out as little endian)
   const f = Curve.Field.modulus;
-  const s = leOctets2Field3Mod(buffer, f);
+  const s = Field3.fromOctets(buffer, f);
 
   return [encodePoint(scale(s, basePoint, Curve)), h];
 }
@@ -691,7 +669,7 @@ function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
 
   // Hash the prefix concatenated with the message to obtain 64 bytes, that
   // need to be interpreted as little endian and reduced modulo the curve order
-  const r = leOctets2Field3Mod(SHA2.hash(512, [...prefix, message]).bytes, L);
+  const r = Field3.fromOctets(SHA2.hash(512, [...prefix, message]).bytes, L);
 
   // R is the encoding of the point resulting from [r]B
   let R = encodePoint(scale(r, basePoint, Curve));
@@ -699,7 +677,7 @@ function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
   // Hash the encoding concatenated with the public key and the message to
   // obtain a 64-byte digest that needs to be interpreted as little endian
   // and reduced modulo the curve order
-  const k = leOctets2Field3Mod(
+  const k = Field3.fromOctets(
     SHA2.hash(512, [
       ...Field3.toOctets(R).flat(),
       ...Field3.toOctets(publicKey).flat(),
@@ -710,7 +688,7 @@ function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
 
   let s = ForeignField.add(
     r,
-    ForeignField.mul(k, Field3.fromOctets(scalar), L),
+    ForeignField.mul(k, Field3.fromOctets(scalar, L), L),
     L
   );
 
@@ -736,9 +714,10 @@ function verifyEddsa(
   ]).bytes;
 
   // Check [s]B = R + [k]A
-  return equals(
+  return Provable.equal(
+    Point,
     scale(s, basePoint, Curve),
-    add(R, scale(Field3.fromOctets(k), A, Curve), Curve)
+    add(R, scale(Field3.fromOctets(k, Curve.Field.modulus), A, Curve), Curve)
   );
 }
 
