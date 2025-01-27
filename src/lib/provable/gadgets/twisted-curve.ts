@@ -778,7 +778,7 @@ function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
 
 function verifyEddsa(
   signature: Eddsa.Signature,
-  message: bigint,
+  message: UInt8[],
   publicKey: Field3
 ): Bool {
   let { R, s } = signature;
@@ -791,7 +791,7 @@ function verifyEddsa(
   let k = SHA2.hash(512, [
     ...Field3.toOctets(R).flat(),
     ...Field3.toOctets(publicKey).flat(),
-    message,
+    ...message.flat(),
   ]).bytes;
 
   // Check [s]B = R + [k]A
