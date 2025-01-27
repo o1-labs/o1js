@@ -588,31 +588,32 @@ function decode(input: UInt8[]): Point {
   let witnesses = exists(11, () => {
     let bytes = input.map((byte) => byte.toBigInt());
     // most significant byte of input is the parity bit for x
-    const x_0 = bytes[31] >> 7n;
+    const x_par = bytes[31] >> 7n;
     bytes[31] &= 0b01111111n;
     const y_msb = bytes[31];
 
     const y = bytes.reduce((acc, byte, i) => acc + (byte << BigInt(i * 8)), 0n);
     assert(y < p, 'Decoding failed: y coordinate larger than the field size');
-    const x = recoverX(y, x_0);
+    const x = recoverX(y, x_par);
 
     // to check parity bit of x
-    const aux = (x - x_0) / 2n;
+    const aux = (x - x_par) / 2n;
 
-    return [...split(aux), x_0, ...split(x), y_msb, ...split(y)];
+    return [...split(aux), x_par, ...split(x), y_msb, ...split(y)];
   });
 
-  let [aux0, aux1, aux2, x_0, x0, x1, x2, y_msb, y0, y1, y2] = witnesses;
+  let [aux0, aux1, aux2, x_par, x0, x1, x2, y_msb, y0, y1, y2] = witnesses;
+  let x_0limbs: Field3 = [x_par, Field.from(0n), Field.from(0n)];
   let aux: Field3 = [aux0, aux1, aux2];
   let x: Field3 = [x0, x1, x2];
   let y: Field3 = [y0, y1, y2];
 
   ForeignField.assertLessThan(y, p);
   // check x_0 is a bit
-  x_0.assertBool('Parity bit of x coordinate is not a bit');
+  x_par.assertBool('Parity bit of x coordinate is not a bit');
 
   // check y_msb shape
-  input[31].value.assertEquals(y_msb.add(x_0.mul(128n)));
+  input[31].value.assertEquals(y_msb.add(x_par.mul(128n)));
 
   // check y decomposition
   let input_ = input.slice();
@@ -625,19 +626,19 @@ function decode(input: UInt8[]): Point {
   // check parity/sign of x
   ForeignField.assertEquals(
     ForeignField.add(aux, aux, p),
-    ForeignField.sub(x, Field3.from(x_0.value), p)
+    ForeignField.sub(x, x_0limbs, p)
   );
 
   // if x is zero, x_0 must be 0
   Provable.if(
     ForeignField.equals(x, 0n, p),
     Bool,
-    x_0.equals(1n).not(),
+    x_par.equals(1n).not(),
     new Bool(true)
   );
   // check sign of x
   // if x_0 is 1, x must be odd (negative)
-  Provable.if(x_0.equals(1n), Bool, x[0].equals(1n), new Bool(true));
+  Provable.if(x_par.equals(1n), Bool, x[0].equals(1n), new Bool(true));
 
   return { x, y };
 }
