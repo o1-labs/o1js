@@ -24,6 +24,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
 - Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+- Use the master branch of https://github.com/o1-labs/proof-systems in Mina,
+  stopping using develop/compatible. See
+  https://github.com/MinaProtocol/mina/pull/16464,
+  https://github.com/o1-labs/proof-systems-vendors/pull/3 and
+  https://github.com/o1-labs/proof-systems/pull/2868
 
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
