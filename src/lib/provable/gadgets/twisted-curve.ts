@@ -38,6 +38,39 @@ const CurveTwisted = {
   multiScalarMul,
 };
 
+// Auxiliary function to compute x coordinate from decoded coordinate y and
+// parity bit x_0 using the trick to compute the square root of Edwards25519
+// x = sqrt ( (y^2 - 1) / (d * y^2 + 1) ) as described in
+// https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.3
+function recoverX(y: bigint, x_0: bigint): bigint {
+  const p = Curve.modulus;
+  const u = y * y - 1n;
+  const v = Curve.d * y * y - Curve.a;
+  const candidate_x = (u * v) ^ (3n * ((u * v) ^ 7n)) ^ ((p - 5n) / 8n);
+
+  let aux = mod((v * candidate_x) ^ 2n, p);
+
+  let x =
+    aux === u
+      ? candidate_x
+      : aux === -u
+      ? (candidate_x * 2n) ^ ((p - 1n) / 4n)
+      : (() => {
+          throw new Error(
+            `Decoding failed: no square root x exists for y value: ${y}.`
+          );
+        })();
+
+  // Use the parity bit to select the correct sign for x
+  if (x === 0n && x_0 === 1n) {
+    throw new Error(`Invalid x value: x is zero but parity bit is 1.`);
+  } else if (x % 2n !== x_0) {
+    x = p - x;
+  }
+
+  return x;
+}
+
 /**
  * Non-zero twisted elliptic curve point.
  */
@@ -60,6 +93,26 @@ const Point = {
    */
   random(Curve: CurveTwisted) {
     return Point.from(random(Curve));
+  },
+
+  /**
+   * On input a compressed representation of a Edwards25519 point as 32 bytes of
+   * hexadecimal string, return the point with bigint coordinates.
+   *
+   * @param hex 32 bytes of hexadecimal string
+   * @returns point with bigint coordinates {x, y}
+   */
+  fromHex(hex: string): point {
+    const y = BigInt(`0x${hex}`) & ((BigInt(1) << 255n) - 1n); // y (mask top bit)
+    const x_0 = (BigInt(`0x${hex}`) >> 255n) & 1n; // parity bit for x
+
+    if (y >= Curve.modulus) {
+      throw new Error(`Invalid y value: ${y} is larger tan the field size.`);
+    }
+
+    let x = recoverX(y, x_0);
+
+    return { x, y };
   },
 
   provable: provable({ x: Field3, y: Field3 }),
@@ -458,18 +511,17 @@ const Curve = createCurveTwisted(TwistedCurveParams.Edwards25519);
 const basePoint = Point.from(Curve.one);
 
 /**
- * On input a point of the Edwards25519 curve, return its compressed
- * representation (32 bytes) as a foreign field element.
+ * Encode a point of the Edwards25519 curve into its compressed representation.
  *
- * @param bytes
- * @returns
+ * @param input Point with {@link Field3} coordinates {x, y}
+ * @returns 32-byte compressed representation of the point as {@link Field3}
  */
-function encodePoint(p: Point): Field3 {
-  let f = Curve.Field.modulus;
+function encode(input: Point): Field3 {
+  let p = Curve.Field.modulus;
   // https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.2
   let witnesses = exists(8, () => {
-    let x = Field3.toBigint(p.x);
-    let y = Field3.toBigint(p.y);
+    let x = Field3.toBigint(input.x);
+    let y = Field3.toBigint(input.y);
     let x_lsb = x & 1n; // parity bit for x
     let x_masked = (x >> 1n) * 2n; // x with parity bit removed
     let y_msb = (y >> 255n) & 1n; // most significant bit of y
@@ -498,65 +550,94 @@ function encodePoint(p: Point): Field3 {
   let x_lsb3: Field3 = [x_lsb, new Field(0n), new Field(0n)];
   let y_msb3: Field3 = [y_msb, new Field(0n), new Field(0n)];
 
-  ForeignField.assertEquals(p.x, ForeignField.add(x_lsb3, x_masked, f));
+  ForeignField.assertEquals(input.x, ForeignField.add(x_lsb3, x_masked, p));
   ForeignField.assertEquals(
-    p.y,
+    input.y,
     ForeignField.add(
-      ForeignField.mul(y_msb3, Field3.from(1n << 255n), f),
+      ForeignField.mul(y_msb3, Field3.from(1n << 255n), p),
       y_masked,
-      f
+      p
     )
   );
 
   let enc = ForeignField.add(
-    ForeignField.mul(x_lsb3, Field3.from(1n << 255n), f),
+    ForeignField.mul(x_lsb3, Field3.from(1n << 255n), p),
     y_masked,
-    f
+    p
   );
   return enc;
 }
 
 /**
- * On input a compressed representation of a Edwards25519 point (32 bytes),
- * return the point as
+ * Decode a little-endian 32-byte compressed representation of Edwards25519 as
+ * the point.
  *
- * @param bytes
- * @returns
+ * @param compressed: 32-byte compressed representation of the point as {@link Field3}
+ * @returns Point with {@link Field3} coordinates {x, y}
  */
-function decodePoint(bytes: string): point {
+function decode(input: UInt8[]): Point {
+  if (input.length !== 32) {
+    throw new Error(
+      `Invalid compressed point: expected 32 bytes, got ${input.length}.`
+    );
+  }
+
   let p = Curve.modulus;
-  const y = BigInt(`0x${bytes}`) & ((BigInt(1) << 255n) - 1n); // y (mask top bit)
-  const x_0 = (BigInt(`0x${bytes}`) >> 255n) & 1n; // parity bit for x
 
-  if (y >= Curve.modulus) {
-    throw new Error(`Invalid y value: ${y} is larger tan the field size.`);
-  }
-
-  // This function uses the trick described in
   // https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.3
-  // to compute the square root x = sqrt ( (y^2 - 1) / (d * y^2 + 1) )
-  // for the Edwards25519 curve.
-  const u = y * y - 1n;
-  const v = Curve.d * y * y - Curve.a;
-  const candidate_x = (u * v) ^ (3n * ((u * v) ^ 7n)) ^ ((p - 5n) / 8n);
+  let witnesses = exists(11, () => {
+    let bytes = input.map((byte) => byte.toBigInt());
+    // most significant byte of input is the parity bit for x
+    const x_0 = bytes[31] >> 7n;
+    bytes[31] &= 0b01111111n;
+    const y_msb = bytes[31];
 
-  let aux = mod((v * candidate_x) ^ 2n, p);
+    const y = bytes.reduce((acc, byte, i) => acc + (byte << BigInt(i * 8)), 0n);
+    assert(y < p, 'Decoding failed: y coordinate larger than the field size');
+    const x = recoverX(y, x_0);
 
-  let x =
-    aux === u
-      ? candidate_x
-      : aux === -u
-      ? (candidate_x * 2n) ^ ((p - 1n) / 4n)
-      : (() => {
-          throw new Error(`No square root exists for decoded y value: ${y}.`);
-        })();
+    // to check parity bit of x
+    const aux = (x - x_0) / 2n;
 
-  // Use the parity bit to select the correct sign for x
-  if (x === 0n && x_0 === 1n) {
-    throw new Error(`Invalid x value: x is zero but parity bit is 1.`);
-  } else if (x % 2n !== x_0) {
-    x = p - x;
-  }
+    return [...split(aux), x_0, ...split(x), y_msb, ...split(y)];
+  });
+
+  let [aux0, aux1, aux2, x_0, x0, x1, x2, y_msb, y0, y1, y2] = witnesses;
+  let aux: Field3 = [aux0, aux1, aux2];
+  let x: Field3 = [x0, x1, x2];
+  let y: Field3 = [y0, y1, y2];
+
+  ForeignField.assertLessThan(y, p);
+  // check x_0 is a bit
+  x_0.assertBool('Parity bit of x coordinate is not a bit');
+
+  // check y_msb shape
+  input[31].value.assertEquals(y_msb.add(x_0.mul(128n)));
+
+  // check y decomposition
+  let input_ = input.slice();
+  input_[31] = UInt8.from(y_msb);
+  ForeignField.assertEquals(y, Field3.fromOctets(input_, p));
+
+  // check (x, y) is on the curve
+  assertOnCurve({ x, y }, Curve);
+
+  // check parity/sign of x
+  ForeignField.assertEquals(
+    ForeignField.add(aux, aux, p),
+    ForeignField.sub(x, Field3.from(x_0.value), p)
+  );
+
+  // if x is zero, x_0 must be 0
+  Provable.if(
+    ForeignField.equals(x, 0n, p),
+    Bool,
+    x_0.equals(1n).not(),
+    new Bool(true)
+  );
+  // check sign of x
+  // if x_0 is 1, x must be odd (negative)
+  Provable.if(x_0.equals(1n), Bool, x[0].equals(1n), new Bool(true));
 
   return { x, y };
 }
@@ -601,7 +682,7 @@ const EddsaSignature = {
       throw new Error(`Invalid s value: must be a scalar modulo curve order.`);
     }
 
-    decodePoint(Rhex); // Check that R represents a valid point
+    Point.fromHex(Rhex); // Check that R represents a valid point
 
     return Eddsa.Signature.from({ R, s });
   },
@@ -646,7 +727,7 @@ function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
   const f = Curve.Field.modulus;
   const s = Field3.fromOctets(buffer, f);
 
-  return [encodePoint(scale(s, basePoint, Curve)), h];
+  return [encode(scale(s, basePoint, Curve)), h];
 }
 
 /**
@@ -672,7 +753,7 @@ function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
   const r = Field3.fromOctets(SHA2.hash(512, [...prefix, message]).bytes, L);
 
   // R is the encoding of the point resulting from [r]B
-  let R = encodePoint(scale(r, basePoint, Curve));
+  let R = encode(scale(r, basePoint, Curve));
 
   // Hash the encoding concatenated with the public key and the message to
   // obtain a 64-byte digest that needs to be interpreted as little endian
@@ -702,8 +783,8 @@ function verifyEddsa(
 ): Bool {
   let { R, s } = signature;
 
-  let { x, y } = decodePoint(R);
-  let A = decodePoint(publicKey);
+  let { x, y } = decode(Field3.toOctets(R));
+  let A = decode(Field3.toOctets(publicKey));
 
   ForeignField.assertLessThanOrEqual(s, Curve.order);
 
@@ -717,7 +798,11 @@ function verifyEddsa(
   return Provable.equal(
     Point,
     scale(s, basePoint, Curve),
-    add(R, scale(Field3.fromOctets(k, Curve.Field.modulus), A, Curve), Curve)
+    add(
+      { x, y },
+      scale(Field3.fromOctets(k, Curve.Field.modulus), A, Curve),
+      Curve
+    )
   );
 }
 
