@@ -28,7 +28,7 @@ import {
   createField,
   getField,
 } from '../core/field-constructor.js';
-import type { Bool } from '../bool.js';
+import { Bool } from '../bool.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import { UInt8 } from '../int.js';
 
@@ -459,10 +459,12 @@ const Field3 = {
   /**
    * Turn a bigint, a UInt8, or a Field into a 3-tuple of Fields
    */
-  from(x: bigint | Field3 | UInt8): Field3 {
+  from(x: bigint | Field3 | UInt8 | Bool): Field3 {
     if (Array.isArray(x)) return x;
     if (typeof x === 'bigint') return Tuple.map(split(x), createField);
     if (x instanceof UInt8) return [x.value, new Field(0n), new Field(0n)];
+    if (x instanceof Bool)
+      return [Bool.toField(x), new Field(0n), new Field(0n)];
     return x;
   },
 
