@@ -3,7 +3,7 @@ import {
   initializeBindings,
   withThreadPool,
 } from '../../snarky.js';
-import { Pickles } from '../../snarky.js';
+import { Pickles, Base64ProofString } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import type {
   FlexibleProvable,
@@ -121,7 +121,10 @@ class ProofBase<Input = any, Output = any> {
     return (this.constructor as typeof ProofBase).publicFields(this);
   }
 
-  static _proofFromBase64(proofString: string, maxProofsVerified: 0 | 1 | 2) {
+  static _proofFromBase64(
+    proofString: Base64ProofString,
+    maxProofsVerified: 0 | 1 | 2
+  ) {
     assertBindingsInitialized();
     return Pickles.proofOfBase64(proofString, maxProofsVerified)[1];
   }

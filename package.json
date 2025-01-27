@@ -95,9 +95,9 @@
     "replace-in-file": "^6.3.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.8",
-    "typedoc": "^0.25.8",
-    "typedoc-plugin-markdown": "^4.0.0-next.53",
-    "typedoc-plugin-merge-modules": "^5.1.0",
+    "typedoc": "^0.27",
+    "typedoc-plugin-markdown": "^4.4",
+    "typedoc-plugin-merge-modules": "^6.1",
     "typescript": "^5.4.5"
   },
   "dependencies": {
