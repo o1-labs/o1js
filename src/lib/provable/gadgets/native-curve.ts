@@ -34,22 +34,7 @@ export {
 };
 
 type Point = { x: Field; y: Field };
-/**
- * A 255-bit scalar represented as a low bit and a 254-bit high part.
- *
- * e.g. `s = lowBit + 2*high254`
- */
-type ShiftedScalar = {
-  /** Least-significant bit of the scalar */
-  lowBit: Bool;
-  /** The most-significant 254 bits of the scalar, represented as a Field */
-  high254: Field;
-};
-
-const s: ShiftedScalar = {
-  lowBit: createBool(false),
-  high254: createField(0n),
-};
+type ShiftedScalar = { lowBit: Bool; high254: Field };
 
 /**
  * Dedicated gadget to scale a point by a scalar, where the scalar is represented as a _native_ Field.
