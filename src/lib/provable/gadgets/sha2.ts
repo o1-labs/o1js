@@ -137,7 +137,7 @@ const SHA2Constants = {
     512: [14, 18, 41] as TupleN<number, 3>,
   },
 
-  // Initia hash values
+  // Initial hash values
   H: {
     // SHA2-224 §5.3.2
     224: [
