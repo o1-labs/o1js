@@ -80,4 +80,17 @@ for (let Curve of curves) {
     (p, s) => CurveTwisted.scale(s, p, Curve),
     `${Curve.name} scale`
   );
+
+  // test adding same point equals doubling
+  equivalentProvable({ from: [point], to: point, verbose: true })(
+    (p) => Curve.add(p, p),
+    (p) => CurveTwisted.double(p, Curve),
+    `${Curve.name} adding same point equals doubling`
+  );
+
+  equivalentProvable({ from: [point], to: point, verbose: true })(
+    (p) => Curve.double(p),
+    (p) => CurveTwisted.add(p, p, Curve),
+    `${Curve.name} doubling equals adding same point`
+  );
 }
