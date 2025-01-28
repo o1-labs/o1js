@@ -1,3 +1,4 @@
+export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
@@ -33,6 +34,13 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
+export {
+  From,
+  InferValue,
+  InferJson,
+  IsPure,
+} from './bindings/lib/provable-generic.js';
+export { ProvableType } from './lib/provable/types/provable-intf.js';
 export {
   provable,
   provablePure,
@@ -75,17 +83,19 @@ export { state, State, declareState } from './lib/mina/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
-  type ProofBase,
-  Proof,
-  DynamicProof,
   SelfProof,
   verify,
   Empty,
   Undefined,
   Void,
   VerificationKey,
-  FeatureFlags,
 } from './lib/proof-system/zkprogram.js';
+export {
+  type ProofBase,
+  Proof,
+  DynamicProof,
+} from './lib/proof-system/proof.js';
+export { FeatureFlags } from './lib/proof-system/feature-flags.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
 export { Account } from './lib/mina/account.js';
@@ -100,10 +110,7 @@ export {
 } from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
-export {
-  TokenContract,
-  TokenContractV2,
-} from './lib/mina/token/token-contract.js';
+export { TokenContract } from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/mina/graphql.js';
 export {
@@ -141,6 +148,7 @@ import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
 import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
+import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -154,6 +162,8 @@ const Experimental_ = {
  */
 namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
+
+  export let Recursive = Recursive_;
 
   // indexed merkle map
   export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;

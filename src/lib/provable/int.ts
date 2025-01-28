@@ -6,7 +6,7 @@ import { HashInput } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
-import { addMod32 } from './gadgets/arithmetic.js';
+import { addMod32, addMod64 } from './gadgets/arithmetic.js';
 import type { Gadgets } from './gadgets/gadgets.js';
 import { withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
@@ -18,6 +18,8 @@ import {
   lessThanOrEqualGeneric,
 } from './gadgets/comparison.js';
 import { assert } from '../util/assert.js';
+import { TupleN } from '../util/types.js';
+import { bytesToWord, wordToBytes } from './gadgets/bit-slices.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -153,6 +155,13 @@ class UInt64 extends CircuitValue {
    */
   static MAXINT() {
     return new UInt64((1n << 64n) - 1n);
+  }
+
+  /**
+   * Addition modulo 2^64. Check {@link Gadgets.addMod64} for a detailed description.
+   */
+  addMod64(y: UInt64) {
+    return new UInt64(addMod64(this.value, y.value).value);
   }
 
   /**
@@ -401,6 +410,23 @@ class UInt64 extends CircuitValue {
    */
   and(x: UInt64) {
     return new UInt64(Bitwise.and(this.value, x.value, UInt64.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise OR gadget on {@link UInt64} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * @example
+   * ```typescript
+   * let a = UInt64.from(3);    // ... 000011
+   * let b = UInt64.from(5);    // ... 000101
+   *
+   * let c = a.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(x: UInt64) {
+    return new UInt64(Bitwise.or(this.value, x.value, UInt64.NUM_BITS).value);
   }
 
   /**
@@ -864,6 +890,23 @@ class UInt32 extends CircuitValue {
   }
 
   /**
+   * Bitwise OR gadget on {@link UInt32} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * @example
+   * ```typescript
+   * let a = UInt32.from(3);    // ... 000011
+   * let b = UInt32.from(5);    // ... 000101
+   *
+   * let c = a.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(x: UInt32) {
+    return new UInt32(Bitwise.or(this.value, x.value, UInt32.NUM_BITS).value);
+  }
+
+  /**
    * Checks if a {@link UInt32} is less than or equal to another one.
    */
   lessThanOrEqual(y: UInt32) {
@@ -955,6 +998,35 @@ class UInt32 extends CircuitValue {
     x: bigint | UInt32
   ): InstanceType<T> {
     return UInt32.from(x) as any;
+  }
+
+  /**
+   * Split a UInt32 into 4 UInt8s, in little-endian order.
+   */
+  toBytes() {
+    return TupleN.fromArray(4, wordToBytes(this.value, 4));
+  }
+
+  /**
+   * Split a UInt32 into 4 UInt8s, in big-endian order.
+   */
+  toBytesBE() {
+    return TupleN.fromArray(4, wordToBytes(this.value, 4).reverse());
+  }
+
+  /**
+   * Combine 4 UInt8s into a UInt32, in little-endian order.
+   */
+  static fromBytes(bytes: UInt8[]): UInt32 {
+    assert(bytes.length === 4, '4 bytes needed to create a uint32');
+    return UInt32.Unsafe.fromField(bytesToWord(bytes));
+  }
+
+  /**
+   * Combine 4 UInt8s into a UInt32, in big-endian order.
+   */
+  static fromBytesBE(bytes: UInt8[]): UInt32 {
+    return UInt32.fromBytes([...bytes].reverse());
   }
 }
 
@@ -1398,6 +1470,19 @@ class UInt8 extends Struct({
       return new UInt8(x.value);
     },
   };
+
+  /**
+   * Static method to create a {@link UInt8} with value `0`.
+   */
+  static get zero() {
+    return new UInt8(0);
+  }
+  /**
+   * Static method to create a {@link UInt8} with value `1`.
+   */
+  static get one() {
+    return new UInt8(1);
+  }
 
   /**
    * Add a {@link UInt8} to another {@link UInt8} without allowing overflow.

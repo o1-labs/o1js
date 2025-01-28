@@ -4,11 +4,12 @@ import { UInt64 } from '../provable/int.js';
 import {
   CompiledTag,
   Empty,
-  Proof,
+  Void,
   ZkProgram,
   picklesRuleFromFunction,
   sortMethodArguments,
 } from './zkprogram.js';
+import { Proof } from './proof.js';
 import { expect } from 'expect';
 import { Pickles, Snarky } from '../../snarky.js';
 import { AnyFunction } from '../util/types.js';
@@ -25,7 +26,7 @@ const EmptyProgram = ZkProgram({
   methods: { run: { privateInputs: [], async method(_) {} } },
 });
 
-class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
+class EmptyProof extends EmptyProgram.Proof {}
 
 // unit-test zkprogram creation helpers:
 // -) sortMethodArguments
@@ -52,12 +53,7 @@ it('pickles rule creation', async () => {
 
   expect(methodIntf).toEqual({
     methodName: 'main',
-    witnessArgs: [Bool],
-    proofArgs: [EmptyProof],
-    allArgs: [
-      { type: 'proof', index: 0 },
-      { type: 'witness', index: 0 },
-    ],
+    args: [EmptyProof, Bool],
   });
 
   // store compiled tag
@@ -70,7 +66,8 @@ it('pickles rule creation', async () => {
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
-    []
+    [],
+    [EmptyProof]
   );
 
   await equivalentAsync(
@@ -106,6 +103,88 @@ it('pickles rule creation', async () => {
       return { field: Field(field_), bool: Bool(FieldVar.constant(bool_)) };
     }
   );
+});
+
+class NestedProof extends Struct({ proof: EmptyProof, field: Field }) {}
+const NestedProof2 = Provable.Array(NestedProof, 2);
+
+// type inference
+NestedProof satisfies Provable<{ proof: Proof<Field, void>; field: Field }>;
+
+it('pickles rule creation: nested proof', async () => {
+  function main([first, _second]: [NestedProof, NestedProof]) {
+    // first proof should verify, second should not
+    first.proof.verify();
+
+    // deep type inference
+    first.proof.publicInput satisfies Field;
+    first.proof.publicOutput satisfies void;
+  }
+
+  // collect method interface
+  let methodIntf = sortMethodArguments(
+    'mock',
+    'main',
+    [NestedProof2],
+    undefined,
+    Proof
+  );
+
+  expect(methodIntf).toEqual({
+    methodName: 'main',
+    args: [NestedProof2],
+  });
+
+  // store compiled tag
+  CompiledTag.store(EmptyProgram, 'mock tag');
+
+  // create pickles rule
+  let rule: Pickles.Rule = picklesRuleFromFunction(
+    Empty as ProvablePure<any>,
+    Void as ProvablePure<any>,
+    main as AnyFunction,
+    { name: 'mock' },
+    methodIntf,
+    [],
+    [EmptyProof, EmptyProof]
+  );
+
+  let dummy = await EmptyProof.dummy(Field(0), undefined, 0);
+  let nested1 = new NestedProof({ proof: dummy, field: Field(0) });
+  let nested2 = new NestedProof({ proof: dummy, field: Field(0) });
+  let nested = [nested1, nested2];
+
+  await Provable.runAndCheck(async () => {
+    // put witnesses in snark context
+    snarkContext.get().witnesses = [nested];
+
+    // call pickles rule
+    let {
+      shouldVerify: [, shouldVerify1, shouldVerify2],
+      previousStatements: [, ...previousStatements],
+    } = await rule.main([0]);
+
+    expect(previousStatements.length).toBe(2);
+
+    // `shouldVerify` are as expected
+    expect(Bool(shouldVerify1).isConstant()).toBe(true);
+    expect(Bool(shouldVerify2).isConstant()).toBe(true);
+    // first proof should verify, second should not
+    Bool(shouldVerify1).assertTrue();
+    Bool(shouldVerify2).assertFalse();
+  });
+});
+
+it('fails with more than two (nested) proofs', async () => {
+  expect(() => {
+    sortMethodArguments(
+      'mock',
+      'main',
+      [NestedProof2, NestedProof],
+      undefined,
+      Proof
+    );
+  }).toThrowError('mock.main() has more than two proof arguments');
 });
 
 // compile works with large inputs

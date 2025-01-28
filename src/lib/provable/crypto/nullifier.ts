@@ -97,7 +97,13 @@ class Nullifier extends Struct({
   }
 
   /**
-   * @deprecated This method uses the deprecated {@link MerkleMapWitness.computeRootAndKey} which may be vulnerable to hash collisions in key indices. Use {@link isUnusedV2} instead, which utilizes the safer {@link MerkleMapWitness.computeRootAndKeyV2} method.
+   * Returns the state of the Nullifier.
+   *
+   * @example
+   * ```ts
+   * // returns a Bool based on whether or not the nullifier has been used before
+   * let isUnused = nullifier.isUnused();
+   * ```
    */
   isUnused(witness: MerkleMapWitness, root: Field) {
     let [newRoot, key] = witness.computeRootAndKey(Field(0));
@@ -111,27 +117,13 @@ class Nullifier extends Struct({
   }
 
   /**
-   * Returns the state of the Nullifier.
+   * Checks if the Nullifier has been used before.
    *
    * @example
    * ```ts
-   * // returns a Bool based on whether or not the nullifier has been used before
-   * let isUnused = nullifier.isUnusedV2();
+   * // asserts that the nullifier has not been used before, throws an error otherwise
+   * nullifier.assertUnused();
    * ```
-   */
-  isUnusedV2(witness: MerkleMapWitness, root: Field) {
-    let [newRoot, key] = witness.computeRootAndKeyV2(Field(0));
-    key.assertEquals(this.key());
-    let isUnused = newRoot.equals(root);
-
-    let isUsed = witness.computeRootAndKey(Field(1))[0].equals(root);
-    // prove that our Merkle witness is correct
-    isUsed.or(isUnused).assertTrue();
-    return isUnused; // if this is false, `isUsed` is true because of the check before
-  }
-
-  /**
-   * @deprecated This method uses the deprecated {@link MerkleMapWitness.computeRootAndKey} which may be vulnerable to hash collisions in key indices. Use {@link assertUnusedV2} instead, which utilizes the safer {@link MerkleMapWitness.computeRootAndKeyV2} method.
    */
   assertUnused(witness: MerkleMapWitness, root: Field) {
     let [impliedRoot, key] = witness.computeRootAndKey(Field(0));
@@ -140,40 +132,16 @@ class Nullifier extends Struct({
   }
 
   /**
-   * Checks if the Nullifier has been used before.
-   *
-   * @example
-   * ```ts
-   * // asserts that the nullifier has not been used before, throws an error otherwise
-   * nullifier.assertUnusedV2();
-   * ```
-   */
-  assertUnusedV2(witness: MerkleMapWitness, root: Field) {
-    let [impliedRoot, key] = witness.computeRootAndKeyV2(Field(0));
-    this.key().assertEquals(key);
-    impliedRoot.assertEquals(root);
-  }
-
-  /**
-   * @deprecated This method uses the deprecated {@link MerkleMapWitness.computeRootAndKey} which may be vulnerable to hash collisions in key indices. Use {@link setUsedV2} instead, which utilizes the safer {@link MerkleMapWitness.computeRootAndKeyV2} method.
-   */
-  setUsed(witness: MerkleMapWitness) {
-    let [newRoot, key] = witness.computeRootAndKey(Field(1));
-    key.assertEquals(this.key());
-    return newRoot;
-  }
-
-  /**
    * Sets the Nullifier, returns the new Merkle root.
    *
    * @example
    * ```ts
    * // calculates the new root of the Merkle tree in which the nullifier is set to used
-   * let newRoot = nullifier.setUsedV2(witness);
+   * let newRoot = nullifier.setUsed(witness);
    * ```
    */
-  setUsedV2(witness: MerkleMapWitness) {
-    let [newRoot, key] = witness.computeRootAndKeyV2(Field(1));
+  setUsed(witness: MerkleMapWitness) {
+    let [newRoot, key] = witness.computeRootAndKey(Field(1));
     key.assertEquals(this.key());
     return newRoot;
   }

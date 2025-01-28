@@ -33,12 +33,8 @@ import {
   ClosedInterval,
   getAccountPreconditions,
 } from './precondition.js';
-import {
-  dummyBase64Proof,
-  Empty,
-  Proof,
-  Prover,
-} from '../proof-system/zkprogram.js';
+import { dummyBase64Proof, Empty, Prover } from '../proof-system/zkprogram.js';
+import { Proof } from '../proof-system/proof.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import {
   Events as BaseEvents,
@@ -556,7 +552,7 @@ interface Body extends AccountUpdateBody {
    * Events can be collected by archive nodes.
    *
    * [Check out our documentation about
-   * Events!](https://docs.minaprotocol.com/zkapps/advanced-o1js/events)
+   * Events!](https://docs.minaprotocol.com/zkapps/writing-a-zkapp/feature-overview/events)
    */
   events: Events;
   /**
@@ -565,7 +561,7 @@ interface Body extends AccountUpdateBody {
    * a {@link Reducer}.
    *
    * [Check out our documentation about
-   * Actions!](https://docs.minaprotocol.com/zkapps/advanced-o1js/actions-and-reducer)
+   * Actions!](https://docs.minaprotocol.com/zkapps/writing-a-zkapp/feature-overview/actions-and-reducer)
    */
   actions: Events;
   /**
@@ -659,7 +655,6 @@ type LazyProof = {
   kind: 'lazy-proof';
   methodName: string;
   args: any[];
-  previousProofs: Pickles.Proof[];
   ZkappClass: typeof SmartContract;
   memoized: { fields: Field[]; aux: any[] }[];
   blindingValue: Field;
@@ -752,7 +747,7 @@ class AccountUpdate implements Types.AccountUpdate {
       receiver = to.self;
       receiver.body.tokenId.assertEquals(this.body.tokenId);
     } else {
-      receiver = AccountUpdate.defaultAccountUpdate(to, this.body.tokenId);
+      receiver = AccountUpdate.default(to, this.body.tokenId);
       receiver.label = `${this.label ?? 'Unlabeled'}.send()`;
       this.approve(receiver);
     }
@@ -1033,13 +1028,6 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   /**
-   * @deprecated Use {@link AccountUpdate.default} instead.
-   */
-  static defaultAccountUpdate(address: PublicKey, tokenId?: Field) {
-    return AccountUpdate.default(address, tokenId);
-  }
-
-  /**
    * Create an account update from a public key and an optional token id.
    *
    * **Important**: This method is different from `AccountUpdate.create()`, in that it really just creates the account update object.
@@ -1081,7 +1069,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * becomes part of the proof.
    */
   static create(publicKey: PublicKey, tokenId?: Field) {
-    let accountUpdate = AccountUpdate.defaultAccountUpdate(publicKey, tokenId);
+    let accountUpdate = AccountUpdate.default(publicKey, tokenId);
     let insideContract = smartContractContext.get();
     if (insideContract) {
       let self = insideContract.this.self;
@@ -2127,14 +2115,7 @@ async function addProof(
 
 async function createZkappProof(
   prover: Pickles.Prover,
-  {
-    methodName,
-    args,
-    previousProofs,
-    ZkappClass,
-    memoized,
-    blindingValue,
-  }: LazyProof,
+  { methodName, args, ZkappClass, memoized, blindingValue }: LazyProof,
   { transaction, accountUpdate, index }: ZkappProverData
 ): Promise<Proof<ZkappPublicInput, Empty>> {
   let publicInput = accountUpdate.toPublicInput(transaction);
@@ -2152,7 +2133,7 @@ async function createZkappProof(
         blindingValue,
       });
       try {
-        return await prover(publicInputFields, MlArray.to(previousProofs));
+        return await prover(publicInputFields);
       } catch (err) {
         console.error(`Error when proving ${ZkappClass.name}.${methodName}()`);
         throw err;
@@ -2162,7 +2143,7 @@ async function createZkappProof(
     }
   );
 
-  let maxProofsVerified = ZkappClass._maxProofsVerified!;
+  let maxProofsVerified = await ZkappClass.getMaxProofsVerified();
   const Proof = ZkappClass.Proof();
   return new Proof({
     publicInput,

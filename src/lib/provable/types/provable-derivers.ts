@@ -45,6 +45,7 @@ export {
   InferredProvable,
   IsPure,
   NestedProvable,
+  mapValue,
 };
 
 type ProvableExtension<T, TJson = any> = {
@@ -168,4 +169,45 @@ function provableExtends<
       return base.toInput(value);
     },
   } satisfies ProvableHashable<S, InferValue<A>>;
+}
+
+function mapValue<
+  A extends ProvableHashable<any>,
+  V extends InferValue<A>,
+  W,
+  T extends InferProvable<A>
+>(
+  provable: A,
+  there: (x: V) => W,
+  back: (x: W | T) => V | T
+): ProvableHashable<T, W> {
+  return {
+    sizeInFields() {
+      return provable.sizeInFields();
+    },
+    toFields(value) {
+      return provable.toFields(value);
+    },
+    toAuxiliary(value) {
+      return provable.toAuxiliary(value);
+    },
+    fromFields(fields, aux) {
+      return provable.fromFields(fields, aux);
+    },
+    check(value) {
+      provable.check(value);
+    },
+    toValue(value) {
+      return there(provable.toValue(value));
+    },
+    fromValue(value) {
+      return provable.fromValue(back(value));
+    },
+    empty() {
+      return provable.empty();
+    },
+    toInput(value) {
+      return provable.toInput(value);
+    },
+  };
 }

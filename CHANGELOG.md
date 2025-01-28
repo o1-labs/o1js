@@ -15,19 +15,116 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/450943...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
+
+### Added
+- `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
+- Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
+
+### Changed
+- Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
+- Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+
+## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
+
+### Added
+
+- `ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
+- APIs for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931 https://github.com/o1-labs/o1js/pull/1932
+  - `let recursive = Experimental.Recursive(program);`
+  - `recursive.<methodName>(...args): Promise<PublicOutput>`
+  - `recursive.<methodName>.if(condition, ...args): Promise<PublicOutput>`
+  - This also works within the same program, as long as the return value is type-annotated
+- Add `enforceTransactionLimits` parameter on Network https://github.com/o1-labs/o1js/issues/1910
+- Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
+- Increased maximum supported amount of methods in a `SmartContract` or `ZkProgram` to 30. https://github.com/o1-labs/o1js/pull/1918
+- Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
+- Expore `maxProofsVerified()` and a `Proof` class directly on ZkPrograms https://github.com/o1-labs/o1js/pull/1933
+
+### Changed
+
+- Changed an internal type to improve IntelliSense on ZkProgram methods https://github.com/o1-labs/o1js/pull/1933
+- Updated o1js nix devshell to build rust on all executions of `npm run build:update-bindings`
+
+### Fixed
+
+- Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
+- Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
+- Deprecate `testnet` `networkId` in favor of `devnet` https://github.com/o1-labs/o1js/pull/1938
+- Fix event data type inconsistency between LocalBlockchain and Mina https://github.com/o1-labs/o1js/pull/1975
+
+## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
+
+### Added
+
+- Support secp256r1 in elliptic curve and ECDSA gadgets https://github.com/o1-labs/o1js/pull/1885
+
+### Fixed
+
+- Witness generation error in `Gadgets.arrayGet()` when accessing out-of-bounds indices https://github.com/o1-labs/o1js/pull/1886
+
+## [2.0.0](https://github.com/o1-labs/o1js/compare/7e9394...b04520d)
+
+### Breaking Changes
+
+- The `divMod32()` gadget was modified to accept `nBits` instead of `quotientBits`, and assert it is in the range [0, 2\*\*255) to address an issue previously where the bound on `quotientBits` was too low https://github.com/o1-labs/o1js/pull/1763.
+- `Provable.equal()` now turns both types into canonical form before comparing them https://github.com/o1-labs/o1js/pull/1759
+  - Removed implicit version `Provable.equal(x, y)` where you didn't have to pass in the type
+- The return signature of a zkProgram has changed. https://github.com/o1-labs/o1js/pull/1809
+  - A zkProgram method must now explicitly define the return type of the method when the method has a public or auxiliary output defined.
+  - The return type of a proven method has changed as a result of this.
+- Various breaking constraint changes in internal methods or circuits because of audit fix.
+- Removal of various deprecated methods and functions.
+  - Promotion of various methods and functions to stable as part of change.
+  - A slightly modified encryption and decryption algorithm. https://github.com/o1-labs/o1js/pull/1729
+- Promotion of `TokenContractV2` to `TokenContract` with a correct amount of maximum account updates.
+
+### Added
+
+- `ZkProgram` methods now support `auxiliaryOutput`. https://github.com/o1-labs/o1js/pull/1809
+  - Each program method now accepts an optional property `auxiliaryOutput`
+  - Auxiliary output is additional output that the zkProgram method returns
+- New method `toCanonical()` in the `Provable<T>` interface to protect against incompleteness of certain operations on malicious witness inputs https://github.com/o1-labs/o1js/pull/1759
+- `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
+- `addMod64()` addition modulo 2^64
+- Bitwise OR via `{UInt32, UInt64}.or()`
+- **BLAKE2B hash function** gadget. https://github.com/o1-labs/o1js/pull/1767
+
+## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
+
+### Fixes
+
+- Performance regression when compiling recursive circuits is fixed https://github.com/o1-labs/o1js/pull/1874
+- Decouple offchain state instances from their definitions https://github.com/o1-labs/o1js/pull/1834
+
+## [1.9.0](https://github.com/o1-labs/o1js/compare/450943...f15293a69) - 2024-10-15
+
+### Added
+
+- Added `VerificationKey.dummy()` method to get the dummy value of a verification key https://github.com/o1-labs/o1js/pull/1852 [@rpanic](https://github.com/rpanic)
+
+### Changed
+
+- Make `Proof` a normal provable type, that can be witnessed and composed into Structs https://github.com/o1-labs/o1js/pull/1847, https://github.com/o1-labs/o1js/pull/1851
+  - ZkProgram and SmartContract now also support private inputs that are not proofs themselves, but contain proofs nested within a Struct or array
+  - Only `SelfProof` can still not be nested because it needs special treatment
+
+### Fixes
+
+- Fix verification of serialized proofs done before compiling any circuits https://github.com/o1-labs/o1js/pull/1857
 
 ## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
 
 ### Added
 
-- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard https://github.com/o1-labs/o1js/pull/1815
+- Added `verifyEthers` method to verify Ethereum signatures using the EIP-191 message hashing standard. https://github.com/o1-labs/o1js/pull/1815
   - Added `fromEthers` method for parsing and converting Ethereum public keys into `ForeignCurve` points, supporting both compressed and uncompressed formats.
   - Added `fromHex` method for converting hexadecimal strings into `ForeignCurve` points.
 
 ### Fixes
 
-- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()` https://github.com/o1-labs/o1js/pull/1827
+- Fix incorrect behavior of optional proving for zkPrograms where `myProgram.setProofsEnabled(false)` wouldn't work when called before `myProgram.compile()`. https://github.com/o1-labs/o1js/pull/1827
+- Fix incorrect behavior of `state.fetch()` for custom token contracts. [@rpanic](https://github.com/rpanic) https://github.com/o1-labs/o1js/pull/1853
 
 ## [1.7.0](https://github.com/o1-labs/o1js/compare/d6abf1d97...5006e4f) - 2024-09-04
 
@@ -277,7 +374,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `this.sender.getAndRequireSignature()` which requires a signature from the sender's public key and therefore proves that whoever created the transaction really owns the sender account
 - `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
   - The default value is 1 and should work for most existing contracts
-- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)
    As a replacement, `UInt64.Unsafe.fromField()` was introduced
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
@@ -1052,7 +1149,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Recursive proofs**. RFC: https://github.com/o1-labs/o1js/issues/89, PRs: https://github.com/o1-labs/o1js/pull/245 https://github.com/o1-labs/o1js/pull/250 https://github.com/o1-labs/o1js/pull/261
   - Enable smart contract methods to take previous proofs as arguments, and verify them in the circuit
-  - Add `ZkProgram`, a new primitive which represents a collection of circuits that produce instances of the same proof. So, it's a more general version of `SmartContract`, without any of the Mina-related API.  
+  - Add `ZkProgram`, a new primitive which represents a collection of circuits that produce instances of the same proof. So, it's a more general version of `SmartContract`, without any of the Mina-related API.
     `ZkProgram` is suitable for rollup-type systems and offchain usage of Pickles + Kimchi.
 - **zkApp composability** -- calling other zkApps from inside zkApps. RFC: https://github.com/o1-labs/o1js/issues/303, PRs: https://github.com/o1-labs/o1js/pull/285, https://github.com/o1-labs/o1js/pull/296, https://github.com/o1-labs/o1js/pull/294, https://github.com/o1-labs/o1js/pull/297
 - **Events** support via `SmartContract.events`, `this.emitEvent`. RFC: https://github.com/o1-labs/o1js/issues/248, PR: https://github.com/o1-labs/o1js/pull/272

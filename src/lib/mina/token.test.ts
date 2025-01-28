@@ -35,7 +35,7 @@ class TokenContract extends TokenContractBase {
    */
   @method async deploy_(address: PublicKey, verificationKey: VerificationKey) {
     let tokenId = this.deriveTokenId();
-    let au = AccountUpdate.defaultAccountUpdate(address, tokenId);
+    let au = AccountUpdate.default(address, tokenId);
     this.approve(au);
     au.account.permissions.set(Permissions.default());
     au.account.verificationKey.set(verificationKey);
@@ -111,7 +111,7 @@ class C extends SmartContract {
 
   @method async approveIncorrectLayout(amount: UInt64) {
     this.balance.subInPlace(amount);
-    let update = AccountUpdate.defaultAccountUpdate(this.address);
+    let update = AccountUpdate.default(this.address);
     this.self.approve(update);
   }
 }
