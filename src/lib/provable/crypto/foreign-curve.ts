@@ -428,7 +428,7 @@ class ForeignCurveNotNeeded extends ForeignCurve {
  * `createForeignCurve(params)` takes curve parameters `CurveParams` as input.
  * We support `modulus` and `order` to be prime numbers up to 259 bits.
  *
- * The returned `ForeignCurveNotNeeded` class represents a _non-zero curve point_ and supports standard
+ * The returned {@link ForeignCurveNotNeeded} class represents a _non-zero curve point_ and supports standard
  * elliptic curve operations like point addition and scalar multiplication.
  *
  * {@link ForeignCurveNotNeeded} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
