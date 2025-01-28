@@ -466,9 +466,7 @@ class ForeignFieldWithMul extends ForeignField {
     return new this.Constructor.AlmostReduced(z);
   }
 }
-/**
- * A foreign field element that is not reduced modulo the field modulus.
- */
+
 class UnreducedForeignField extends ForeignField {
   type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
 
