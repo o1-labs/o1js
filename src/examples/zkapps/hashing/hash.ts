@@ -24,19 +24,19 @@ export class HashStorage extends SmartContract {
     this.commitment.set(initialCommitment);
   }
 
-  @method async SHA256(xs: Bytes32) {
+  @method async SHA3_256(xs: Bytes32) {
     const shaHash = Hash.SHA3_256.hash(xs);
     const commitment = Hash.hash(shaHash.toFields());
     this.commitment.set(commitment);
   }
 
-  @method async SHA384(xs: Bytes32) {
+  @method async SHA3_384(xs: Bytes32) {
     const shaHash = Hash.SHA3_384.hash(xs);
     const commitment = Hash.hash(shaHash.toFields());
     this.commitment.set(commitment);
   }
 
-  @method async SHA512(xs: Bytes32) {
+  @method async SHA3_512(xs: Bytes32) {
     const shaHash = Hash.SHA3_512.hash(xs);
     const commitment = Hash.hash(shaHash.toFields());
     this.commitment.set(commitment);

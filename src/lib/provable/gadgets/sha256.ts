@@ -1,4 +1,9 @@
-// https://csrc.nist.gov/pubs/fips/180-4/upd1/final
+/** SHA2
+ *
+ * This module provides a SHA2 provable gadget, including SHA256.
+ *
+ * https://csrc.nist.gov/pubs/fips/180-4/upd1/final
+ */
 import { mod } from '../../../bindings/crypto/finite-field.js';
 import { Field } from '../wrapped.js';
 import { UInt32, UInt8 } from '../int.js';
