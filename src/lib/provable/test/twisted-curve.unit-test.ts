@@ -26,22 +26,13 @@ for (let Curve of curves) {
   let field = foreignField(Curve.Field);
   let scalar = foreignField(Curve.Scalar);
 
-  // point shape, but with independently random components, which will never form a valid point
-  let badPoint = spec({
-    rng: Random.record({
-      x: field.rng,
-      y: field.rng,
-      infinity: Random.constant(false),
-    }),
+  // valid random point
+  let point = spec({
+    rng: Random.map(field.rng, (x) => simpleMapToCurve(x, Curve)),
     there: Point.from,
     back: Point.toBigint,
     provable: Point.provable,
   });
-
-  // valid random point
-  let point = map({ from: field, to: badPoint }, (x) =>
-    simpleMapToCurve(x, Curve)
-  );
 
   // two random points that are not equal, so are a valid input to twisted curve addition
   let unequalPair = onlyIf(array(point, 2), ([p, q]) => !Curve.equal(p, q));
