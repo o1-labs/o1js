@@ -22,10 +22,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Twisted Edwards curves operations https://github.com/o1-labs/o1js/pull/1949
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
+- Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
 
 ### Changed
 
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
+- Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
 
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
@@ -46,12 +48,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - Changed an internal type to improve IntelliSense on ZkProgram methods https://github.com/o1-labs/o1js/pull/1933
+- Updated o1js nix devshell to build rust on all executions of `npm run build:update-bindings`
 
 ### Fixed
 
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
 - Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
 - Deprecate `testnet` `networkId` in favor of `devnet` https://github.com/o1-labs/o1js/pull/1938
+- Fix event data type inconsistency between LocalBlockchain and Mina https://github.com/o1-labs/o1js/pull/1975
 
 ## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
 
