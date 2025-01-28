@@ -43,10 +43,10 @@ for (let Curve of curves) {
     simpleMapToCurve(x, Curve)
   );
 
-  // two random points that are not equal, so are a valid input to EC addition
+  // two random points that are not equal, so are a valid input to twisted curve addition
   let unequalPair = onlyIf(array(point, 2), ([p, q]) => !Curve.equal(p, q));
 
-  // test ec gadgets witness generation
+  // test twisted curve gadgets witness generation
 
   equivalentProvable({ from: [point], to: unit, verbose: true })(
     (p) => Curve.isOnCurve(p) || throwError('expect on curve'),

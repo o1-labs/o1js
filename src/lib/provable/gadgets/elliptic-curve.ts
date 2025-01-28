@@ -73,7 +73,7 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint; a: bigint }) {
 
   assert(
     Curve.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
+    `Base field moduli smaller than ${l2Mask + 1n} are not supported`
   );
 
   // witness and range-check slope, x3, y3
