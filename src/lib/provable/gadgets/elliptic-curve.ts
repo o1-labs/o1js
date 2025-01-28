@@ -32,7 +32,6 @@ export {
   initialAggregator,
   simpleMapToCurve,
   arrayGetGeneric,
-  point,
 };
 
 const EllipticCurve = {
