@@ -202,8 +202,8 @@ class Field {
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
-   * @param value - the "field-like" value to compare & assert with this {@link Field}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param y - the "field-like" value to compare & assert with this {@link Field}.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertEquals(y: Field | bigint | number | string, message?: string) {
     try {
@@ -243,7 +243,7 @@ class Field {
    * sum.sub(Field(-7)).assertEquals(x);
    * ```
    *
-   * @param value - a "field-like" value to add to the {@link Field}.
+   * @param y - a "field-like" value to add to the {@link Field}.
    *
    * @return A {@link Field} element equivalent to the modular addition of the two value.
    */
@@ -307,7 +307,7 @@ class Field {
    * difference.add(Field(2)).assertEquals(x);
    * ```
    *
-   * @param value - a "field-like" value to subtract from the {@link Field}.
+   * @param y - a "field-like" value to subtract from the {@link Field}.
    *
    * @return A {@link Field} element equivalent to the modular difference of the two value.
    */
@@ -351,7 +351,7 @@ class Field {
    * product.assertEquals(Field(15));
    * ```
    *
-   * @param value - a "field-like" value to multiply with the {@link Field}.
+   * @param y - a "field-like" value to multiply with the {@link Field}.
    *
    * @return A {@link Field} element equivalent to the modular difference of the two value.
    */
@@ -435,7 +435,7 @@ class Field {
    * quotient.mul(y).assertEquals(x);
    * ```
    *
-   * @param value - a "field-like" value to divide with the {@link Field}.
+   * @param y - a "field-like" value to divide with the {@link Field}.
    *
    * @return A {@link Field} element equivalent to the modular division of the two value.
    */
@@ -515,7 +515,7 @@ class Field {
    * Field(5).equals(5).assertEquals(Bool(true));
    * ```
    *
-   * @param value - the "field-like" value to compare with this {@link Field}.
+   * @param y - the "field-like" value to compare with this {@link Field}.
    *
    * @return A {@link Bool} representing if this {@link Field} is equal another "field-like" value.
    */
@@ -564,7 +564,7 @@ class Field {
    * let isFalse = Field(1).div(3).lessThan(Field(1).div(2)); // in fact, 1/3 > 1/2
    * ```
    *
-   * @param value - the "field-like" value to compare with this {@link Field}.
+   * @param y - the "field-like" value to compare with this {@link Field}.
    *
    * @return A {@link Bool} representing if this {@link Field} is less than another "field-like" value.
    */
@@ -591,7 +591,7 @@ class Field {
    * let isFalse = Field(1).div(3).lessThanOrEqual(Field(1).div(2)); // in fact, 1/3 > 1/2
    * ```
    *
-   * @param value - the "field-like" value to compare with this {@link Field}.
+   * @param y - the "field-like" value to compare with this {@link Field}.
    *
    * @return A {@link Bool} representing if this {@link Field} is less than or equal another "field-like" value.
    */
@@ -618,7 +618,7 @@ class Field {
    * let isFalse = Field(1).div(2).greaterThan(Field(1).div(3); // in fact, 1/3 > 1/2
    * ```
    *
-   * @param value - the "field-like" value to compare with this {@link Field}.
+   * @param y - the "field-like" value to compare with this {@link Field}.
    *
    * @return A {@link Bool} representing if this {@link Field} is greater than another "field-like" value.
    */
@@ -642,7 +642,7 @@ class Field {
    * let isFalse = Field(1).div(2).greaterThanOrEqual(Field(1).div(3); // in fact, 1/3 > 1/2
    * ```
    *
-   * @param value - the "field-like" value to compare with this {@link Field}.
+   * @param y - the "field-like" value to compare with this {@link Field}.
    *
    * @return A {@link Bool} representing if this {@link Field} is greater than or equal another "field-like" value.
    */
@@ -658,8 +658,8 @@ class Field {
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
-   * @param value - the "field-like" value to compare & assert with this {@link Field}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param y - the "field-like" value to compare & assert with this {@link Field}.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertLessThan(y: Field | bigint | number | string, message?: string) {
     try {
@@ -683,8 +683,8 @@ class Field {
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
-   * @param value - the "field-like" value to compare & assert with this {@link Field}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param y - the "field-like" value to compare & assert with this {@link Field}.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertLessThanOrEqual(y: Field | bigint | number | string, message?: string) {
     try {
@@ -708,8 +708,8 @@ class Field {
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
-   * @param value - the "field-like" value to compare & assert with this {@link Field}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param y - the "field-like" value to compare & assert with this {@link Field}.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertGreaterThan(y: Field | bigint | number | string, message?: string) {
     Field.from(y).assertLessThan(this, message);
@@ -723,8 +723,8 @@ class Field {
    *
    * **Important**: If an assertion fails, the code throws an error.
    *
-   * @param value - the "field-like" value to compare & assert with this {@link Field}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param y - the "field-like" value to compare & assert with this {@link Field}.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertGreaterThanOrEqual(
     y: Field | bigint | number | string,
@@ -737,6 +737,9 @@ class Field {
    * Assert that this {@link Field} does not equal another field-like value.
    *
    * Note: This uses fewer constraints than `x.equals(y).assertFalse()`.
+   *
+   * @param y - the "field-like" value to compare & assert with this {@link Field}.
+   * @param message - a string error message to print if the assertion fails, optional.
    *
    * @example
    * ```ts
@@ -775,7 +778,7 @@ class Field {
    *
    * If the assertion fails, the code throws an error.
    *
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertBool(message?: string) {
     try {
@@ -836,7 +839,7 @@ class Field {
    *
    * **Important**: If the given `bytes` array is an array of `booleans` or {@link Bool} elements that all are `constant`, the resulting {@link Field} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type, the resulting {@link Field} will be a variable as well.
    *
-   * @param bytes - An array of {@link Bool} or `boolean` type.
+   * @param bits - An array of {@link Bool} or `boolean` type.
    *
    * @return A {@link Field} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bytes` array.
    */
@@ -909,16 +912,14 @@ class Field {
    *
    * @return A {@link Field} array of length 1 created from this {@link Field}.
    */
-  static toFields(x: Field) {
-    return [x];
+  static toFields(value: Field) {
+    return [value];
   }
 
   /**
    * This function is the implementation of {@link Provable.toAuxiliary} for the {@link Field} type.
    *
    * As the primitive {@link Field} type has no auxiliary data associated with it, this function will always return an empty array.
-   *
-   * @param value - The {@link Field} element to get the auxiliary data of, optional. If not provided, the function returns an empty array.
    */
   static toAuxiliary(): [] {
     return [];
@@ -960,8 +961,6 @@ class Field {
    * This function is the implementation of {@link Provable.check} in {@link Field} type.
    *
    * As any field element can be a {@link Field}, this function does not create any assertions, so it does nothing.
-   *
-   * @param value - the {@link Field} element to check.
    */
   static check() {}
 
@@ -1044,8 +1043,8 @@ class Field {
    *
    * @return A string equivalent to the JSON representation of the given {@link Field}.
    */
-  static toJSON(x: Field) {
-    return x.toJSON();
+  static toJSON(value: Field) {
+    return value.toJSON();
   }
 
   /**
@@ -1053,7 +1052,7 @@ class Field {
    *
    * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the string representation of the {@link Field}.
    *
-   * @param value - the "field-like" value to coerce the {@link Field} from.
+   * @param json - the "field-like" value to coerce the {@link Field} from.
    *
    * @return A {@link Field} coerced from the given JSON string.
    */
@@ -1071,8 +1070,8 @@ class Field {
    * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
    *
    */
-  static toInput(x: Field) {
-    return { fields: [x] };
+  static toInput(value: Field) {
+    return { fields: [value] };
   }
 
   // Binable<Field>
@@ -1086,8 +1085,8 @@ class Field {
    * @return An array of digits equal to the [little-endian](https://en.wikipedia.org/wiki/Endianness) byte order of the given {@link Field} element.
    *
    */
-  static toBytes(x: Field) {
-    return FieldBinable.toBytes(x);
+  static toBytes(value: Field) {
+    return FieldBinable.toBytes(value);
   }
 
   /**

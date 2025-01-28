@@ -71,6 +71,7 @@ type AnyConstructor = Constructor<any>;
  * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
  * or as event / action types.
  *
+ * @example
  * Here's an example of creating a "Voter" struct, which holds a public key and a collection of votes on 3 different proposals:
  * ```ts
  * let Vote = { hasVoted: Bool, inFavor: Bool };
@@ -131,10 +132,9 @@ type AnyConstructor = Constructor<any>;
  * Again, it's important to note that this doesn't enable you to prove anything about the `fullName` string.
  * From the circuit point of view, it simply doesn't exist!
  *
- * @note Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
+ * **Note**: Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
  *
  * @param type Object specifying the layout of the `Struct`
- * @param options Advanced option which allows you to force a certain order of object keys
  * @returns Class which you can extend
  */
 function Struct<
