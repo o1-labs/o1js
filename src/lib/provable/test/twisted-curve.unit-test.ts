@@ -43,10 +43,10 @@ for (let Curve of curves) {
     simpleMapToCurve(x, Curve)
   );
 
-  // two random points that are not equal, so are a valid input to EC addition
+  // two random points that are not equal, so are a valid input to twisted curve addition
   let unequalPair = onlyIf(array(point, 2), ([p, q]) => !Curve.equal(p, q));
 
-  // test ec gadgets witness generation
+  // test twisted curve gadgets witness generation
 
   equivalentProvable({ from: [point], to: unit, verbose: true })(
     (p) => Curve.isOnCurve(p) || throwError('expect on curve'),
@@ -79,5 +79,18 @@ for (let Curve of curves) {
     },
     (p, s) => CurveTwisted.scale(s, p, Curve),
     `${Curve.name} scale`
+  );
+
+  // test adding same point equals doubling
+  equivalentProvable({ from: [point], to: point, verbose: true })(
+    (p) => Curve.add(p, p),
+    (p) => CurveTwisted.double(p, Curve),
+    `${Curve.name} adding same point equals doubling`
+  );
+
+  equivalentProvable({ from: [point], to: point, verbose: true })(
+    (p) => Curve.double(p),
+    (p) => CurveTwisted.add(p, p, Curve),
+    `${Curve.name} doubling equals adding same point`
   );
 }

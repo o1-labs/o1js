@@ -137,7 +137,7 @@ function add(
 
   assert(
     Curve.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
+    `Base field moduli smaller than ${l2Mask + 1n} are not supported`
   );
 
   // witness and range-check denominators, x3, y3
@@ -320,7 +320,7 @@ function assertOnCurve(
 }
 
 /**
- * EC scalar multiplication, `scalar*point`
+ * Twisted curve scalar multiplication, `scalar*point`
  *
  * The result is constrained to be not zero.
  */
