@@ -19,6 +19,7 @@ export {
 };
 
 /**
+ * @internal
  * Given a Field, collapse its AST to a pure Var. See {@link FieldVar}.
  *
  * This is useful to prevent rogue Generic gates added in the middle of gate chains,

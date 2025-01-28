@@ -439,7 +439,7 @@ const Gadgets = {
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
    * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
    *
-   * It can be checked by a double generic gate that verifies the following relationship between the values 
+   * It can be checked by a double generic gate that verifies the following relationship between the values
    * below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
    *
    * The generic gate verifies:\
@@ -452,7 +452,7 @@ const Gadgets = {
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
    *
    * The `length` parameter lets you define how many bits should be compared. `length` is rounded
-   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values
    * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
@@ -476,8 +476,8 @@ const Gadgets = {
    * Bitwise OR gadget on {@link Field} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
    * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
    *
-   * The `length` parameter lets you define how many bits should be compared. `length` is rounded 
-   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values
    * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
@@ -685,6 +685,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field multiplication: `x * y mod f`
      *
      * The modulus `f` does not need to be prime, but has to be smaller than 2^259.
@@ -722,6 +724,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field inverse: `x^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -733,6 +737,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field division: `x * y^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -746,6 +752,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
      *
      * Note: This is much more efficient than using {@link Gadgets.ForeignField.add} and {@link Gadgets.ForeignField.sub} separately to
@@ -789,6 +797,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
      */
     Sum(x: Field3) {
@@ -796,6 +806,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
      * i.e., satisfies the assumptions required by {@link Gadgets.ForeignField.mul} and other gadgets:
      * - each limb is in the range [0, 2^88)

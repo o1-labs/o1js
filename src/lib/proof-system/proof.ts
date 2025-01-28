@@ -231,7 +231,7 @@ let sideloadedKeysCounter = 0;
  * NOTE: In the case of `DynamicProof`s, the circuit makes no assertions about the verificationKey used on its own.
  * This is the responsibility of the application developer and should always implement appropriate checks.
  * This pattern differs a lot from the usage of normal `Proof`, where the verification key is baked into the compiled circuit.
- * @see {@link src/examples/zkprogram/dynamic-keys-merkletree.ts} for an example of how this can be done using merkle trees
+ * @see `src/examples/zkprogram/dynamic-keys-merkletree.ts` for an example of how this can be done using merkle trees
  *
  * Assertions generally only happen using the vk hash that is part of the `VerificationKey` struct along with the raw vk data as auxiliary data.
  * When using verify() on a `DynamicProof`, Pickles makes sure that the verification key data matches the hash.

@@ -91,11 +91,11 @@ class ForeignField {
    * ```ts
    * let x = new ForeignField(5);
    * ```
-   * 
+   *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
-   * 
+   *
    * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
-   * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
+   * - When constructing from a `Field3` array, ensure all elements are valid Field elements and range checked.
    * - Ensure constants are correctly reduced to the modulus of the field.
    */
   constructor(x: ForeignField | Field3 | bigint | number | string) {
@@ -129,6 +129,7 @@ class ForeignField {
   }
 
   /**
+   * @internal
    * Checks whether this field element is a constant.
    *
    * See {@link FieldVar} to understand constants vs variables.
@@ -138,6 +139,7 @@ class ForeignField {
   }
 
   /**
+   * @internal
    * Convert this field element to a constant.
    *
    * See {@link FieldVar} to understand constants vs variables.
@@ -464,7 +466,9 @@ class ForeignFieldWithMul extends ForeignField {
     return new this.Constructor.AlmostReduced(z);
   }
 }
-
+/**
+ * A foreign field element that is not reduced modulo the field modulus.
+ */
 class UnreducedForeignField extends ForeignField {
   type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
 
