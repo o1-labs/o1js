@@ -25,6 +25,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
 - Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
 
+### Fixed
+
+- Fix behavior of `initializeBindings()` when called concurrently, to improve error messages in common failure scenarios https://github.com/o1-labs/o1js/pull/1996
+
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
 ### Added
