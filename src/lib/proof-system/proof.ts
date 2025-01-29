@@ -1,5 +1,9 @@
-import { initializeBindings, withThreadPool } from '../../snarky.js';
-import { Pickles } from '../../snarky.js';
+import {
+  areBindingsInitialized,
+  initializeBindings,
+  withThreadPool,
+} from '../../snarky.js';
+import { Pickles, Base64ProofString } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import type {
   FlexibleProvable,
@@ -55,8 +59,8 @@ class ProofBase<Input = any, Output = any> {
    */
   declare() {
     if (!ZkProgramContext.has()) return false;
-    const Proof = this.constructor as Subclass<typeof ProofBase>;
-    ZkProgramContext.declareProof({ Proof, proof: this });
+    const ProofClass = this.constructor as Subclass<typeof ProofBase>;
+    ZkProgramContext.declareProof({ ProofClass, proofInstance: this });
     return true;
   }
 
@@ -115,6 +119,18 @@ class ProofBase<Input = any, Output = any> {
   }
   publicFields() {
     return (this.constructor as typeof ProofBase).publicFields(this);
+  }
+
+  static _proofFromBase64(
+    proofString: Base64ProofString,
+    maxProofsVerified: 0 | 1 | 2
+  ) {
+    assertBindingsInitialized();
+    return Pickles.proofOfBase64(proofString, maxProofsVerified)[1];
+  }
+  static _proofToBase64(proof: Pickles.Proof, maxProofsVerified: 0 | 1 | 2) {
+    assertBindingsInitialized();
+    return Pickles.proofToBase64([maxProofsVerified, proof]);
   }
 }
 
@@ -451,4 +467,11 @@ function extractProofTypes(type: ProvableType) {
   let value = ProvableType.synthesize(type);
   let proofValues = extractProofs(value);
   return proofValues.map((proof) => proof.constructor as typeof ProofBase);
+}
+
+function assertBindingsInitialized() {
+  assert(
+    areBindingsInitialized,
+    'Bindings are not initialized. Try calling `await initializeBindings()` first.'
+  );
 }

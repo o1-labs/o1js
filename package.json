@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -64,6 +64,7 @@
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
     "test:e2e": "rimraf ./tests/report && rimraf ./tests/test-artifacts && npx playwright test",
+    "test:all": "./run-all-local-tests.sh",
     "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2e-tests-build-helper.js && cp -rf src/examples/plain-html/index.html src/examples/plain-html/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
     "e2e:run-server": "node dist/web/server.js",
     "e2e:install": "npx playwright install --with-deps",
@@ -94,9 +95,9 @@
     "replace-in-file": "^6.3.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.8",
-    "typedoc": "^0.25.8",
-    "typedoc-plugin-markdown": "^4.0.0-next.53",
-    "typedoc-plugin-merge-modules": "^5.1.0",
+    "typedoc": "^0.27",
+    "typedoc-plugin-markdown": "^4.4",
+    "typedoc-plugin-merge-modules": "^6.1",
     "typescript": "^5.4.5"
   },
   "dependencies": {

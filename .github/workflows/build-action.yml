@@ -301,13 +301,30 @@ jobs:
         run: |
           npm ci
           npm run prepublishOnly
+
       - name: Publish to NPM if version has changed
+        id: publish
         uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
           strategy: upgrade
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Tag new version
+        if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASED_VERSION: ${{ steps.publish.outputs.version }}
+        run: |
+          git tag $RELEASED_VERSION
+          git push origin $RELEASED_VERSION
+
 
   Release-mina-signer-on-NPM:
     if: github.ref == 'refs/heads/main'

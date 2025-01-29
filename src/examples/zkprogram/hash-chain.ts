@@ -7,6 +7,7 @@
 import {
   assert,
   Bool,
+  Experimental,
   Field,
   Poseidon,
   Provable,
@@ -42,10 +43,10 @@ const hashChain = ZkProgram({
         // we have y = hash^k(x)
         // now do z = hash^(n-k)(y) = hash^n(x) by calling this method recursively
         // except if we have k = n, then ignore the output and use y
-        let z: Field = await hashChain.proveRecursivelyIf.chain(
-          reachedN.not(),
-          { x: y, n: n.sub(k) }
-        );
+        let z: Field = await hashChainRecursive.chain.if(reachedN.not(), {
+          x: y,
+          n: n.sub(k),
+        });
         z = Provable.if(reachedN, y, z);
         Provable.log('hashChain (start proving)', n);
         return { publicOutput: z };
@@ -53,6 +54,7 @@ const hashChain = ZkProgram({
     },
   },
 });
+let hashChainRecursive = Experimental.Recursive(hashChain);
 
 await hashChain.compile();
 

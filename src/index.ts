@@ -148,6 +148,7 @@ import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
 import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
+import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -161,6 +162,8 @@ const Experimental_ = {
  */
 namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
+
+  export let Recursive = Recursive_;
 
   // indexed merkle map
   export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;

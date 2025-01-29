@@ -1,5 +1,11 @@
 import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
-import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
+import {
+  Base64ProofString,
+  Base64VerificationKeyString,
+  Snarky,
+  initializeBindings,
+  withThreadPool,
+} from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import {
@@ -30,7 +36,6 @@ import {
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
 import {
-  ProvablePure,
   ProvableType,
   ProvableTypePure,
   ToProvable,
@@ -56,7 +61,6 @@ import { emptyWitness } from '../provable/types/util.js';
 import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
-import { Bool } from '../provable/bool.js';
 
 // public API
 export {
@@ -81,6 +85,9 @@ export {
   Prover,
   dummyBase64Proof,
   computeMaxProofsVerified,
+  RegularProver,
+  TupleToInstances,
+  PrivateInput,
 };
 
 type Undefined = undefined;
@@ -117,9 +124,16 @@ function createProgramState() {
   };
 }
 
+/**
+ * Initializes Pickles bindings, serializes the input proof and verification key for use in OCaml, then calls into the Pickles verify function and returns the result.
+ *
+ * @param proof Either a `Proof` instance or a serialized JSON proof
+ * @param verificationKey Either a base64 serialized verification key or a `VerificationKey` instance which will be base64 serialized for use in the bindings.
+ * @returns A promise that resolves to a boolean indicating whether the proof is valid.
+ */
 async function verify(
   proof: ProofBase<any, any> | JsonProof,
-  verificationKey: string | VerificationKey
+  verificationKey: Base64VerificationKeyString | VerificationKey
 ) {
   await initializeBindings();
   let picklesProof: Pickles.Proof;
@@ -154,11 +168,16 @@ async function verify(
   );
 }
 
+/**
+ * Serializable representation of a Pickles proof, useful for caching compiled proofs.
+ */
 type JsonProof = {
+  /** Array of string, where each string is a `Field` in the publicInput of this proof */
   publicInput: string[];
+  /** Array of string, where each string is a `Field` in the publicOutput of this proof */
   publicOutput: string[];
   maxProofsVerified: 0 | 1 | 2;
-  proof: string;
+  proof: Base64ProofString;
 };
 type CompiledTag = unknown;
 
@@ -182,6 +201,33 @@ let SideloadedTag = {
   },
 };
 
+/**
+ * Wraps config + provable code into a program capable of producing {@link Proof}s.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Int64,
+ *   methods: {
+ *     // Prove that I know 2 numbers less than 100 each, whose product is greater than 1000
+ *     provableMultiply: {
+ *       privateInputs: [Int64, Int64],
+ *       method: async (n1: Int64, n2: Int64) => {
+ *         n1.assertLessThan(100);
+ *         n2.assertLessThan(100);
+ *         const publicOutput = n1.mul(n2);
+ *         publicOutput.assertGreaterThan(1000);
+ *         return { publicOutput: n1.mul(n2) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param config The configuration of the program, describing the type of the public input and public output, as well as defining the methods which can be executed provably.
+ * @returns an object that can be used to compile, prove, and verify the program.
+ */
 function ZkProgram<
   Config extends {
     publicInput?: ProvableType;
@@ -203,9 +249,9 @@ function ZkProgram<
   // derived types for convenience
   MethodSignatures extends Config['methods'] = Config['methods'],
   PrivateInputs extends {
-    [I in keyof MethodSignatures]: MethodSignatures[I]['privateInputs'];
+    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
   } = {
-    [I in keyof MethodSignatures]: MethodSignatures[I]['privateInputs'];
+    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
   },
   AuxiliaryOutputs extends {
     [I in keyof MethodSignatures]: Get<MethodSignatures[I], 'auxiliaryOutput'>;
@@ -250,22 +296,6 @@ function ZkProgram<
   auxiliaryOutputTypes: AuxiliaryOutputs;
   rawMethods: {
     [I in keyof Config['methods']]: Methods[I]['method'];
-  };
-  proveRecursively: {
-    [I in keyof Config['methods']]: RecursiveProver<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      ProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      PrivateInputs[I]
-    >;
-  };
-  proveRecursivelyIf: {
-    [I in keyof Config['methods']]: ConditionalRecursiveProver<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      ProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      PrivateInputs[I]
-    >;
   };
 
   Proof: typeof Proof<
@@ -399,18 +429,21 @@ function ZkProgram<
     }
   }
 
-  type RegularProver<K extends MethodKey> = (
-    publicInput: From<PublicInputType>,
-    ...args: TupleFrom<PrivateInputs[K]>
-  ) => Promise<{
-    proof: Proof<PublicInput, PublicOutput>;
-    auxiliaryOutput: InferProvableOrUndefined<AuxiliaryOutputs[K]>;
-  }>;
+  // for each of the methods, create a prover function.
+  // in the first step, these are "regular" in that they always expect the public input as the first argument,
+  // which is easier to use internally.
+  type RegularProver_<K extends MethodKey> = RegularProver<
+    PublicInput,
+    PublicInputType,
+    PublicOutput,
+    PrivateInputs[K],
+    InferProvableOrUndefined<AuxiliaryOutputs[K]>
+  >;
 
   function toRegularProver<K extends MethodKey>(
     key: K,
     i: number
-  ): RegularProver<K> {
+  ): RegularProver_<K> {
     return async function prove_(inputPublicInput, ...inputArgs) {
       let publicInput = publicInputType.fromValue(inputPublicInput);
       let args = zip(inputArgs, privateInputTypes[i]).map(([arg, type]) =>
@@ -505,6 +538,8 @@ function ZkProgram<
   }
   let regularProvers = mapToObject(methodKeys, toRegularProver);
 
+  // wrap "regular" provers to remove an `undefined` public input argument,
+  // this matches how the method itself was defined in the case of no public input
   type Prover_<K extends MethodKey = MethodKey> = Prover<
     PublicInput,
     PublicInputType,
@@ -538,105 +573,6 @@ function ZkProgram<
     );
     return compileOutput.verify(statement, proof.proof);
   }
-
-  let regularRecursiveProvers = mapObject(regularProvers, (prover, _key, i) => {
-    return async function proveRecursively_(
-      conditionAndConfig: Bool | { condition: Bool; domainLog2?: number },
-      publicInput: PublicInput,
-      ...args: TupleFrom<PrivateInputs[MethodKey]>
-    ) {
-      let condition =
-        conditionAndConfig instanceof Bool
-          ? conditionAndConfig
-          : conditionAndConfig.condition;
-
-      // create the base proof in a witness block
-      let proof = await Provable.witnessAsync(SelfProof, async () => {
-        // move method args to constants
-        let constInput = Provable.toConstant(
-          publicInputType,
-          publicInputType.fromValue(publicInput)
-        );
-
-        let cond = condition.toBoolean();
-        if (!cond) {
-          let publicOutput = ProvableType.synthesize(publicOutputType);
-          let maxProofsVerified = compileOutput?.maxProofsVerified!;
-          return SelfProof.dummy(
-            constInput,
-            publicOutput,
-            maxProofsVerified,
-            conditionAndConfig instanceof Bool
-              ? undefined
-              : conditionAndConfig.domainLog2
-          );
-        }
-
-        let constArgs = zip(args, privateInputTypes[i]).map(([arg, type]) =>
-          Provable.toConstant(type, ProvableType.get(type).fromValue(arg))
-        );
-        let { proof } = await prover(constInput, ...(constArgs as any));
-        return proof;
-      });
-
-      // assert that the witnessed proof has the correct public input (which will be used by Pickles as part of verification)
-      if (hasPublicInput) {
-        Provable.assertEqual(publicInputType, proof.publicInput, publicInput);
-      }
-
-      // declare and verify the proof, and return its public output
-      proof.declare();
-      proof.verifyIf(condition);
-      return proof.publicOutput;
-    };
-  });
-
-  type RecursiveProvers = {
-    [K in MethodKey]: RecursiveProver<
-      PublicInput,
-      PublicInputType,
-      PublicOutput,
-      PrivateInputs[K]
-    >;
-  };
-  type ConditionalRecursiveProvers = {
-    [K in MethodKey]: ConditionalRecursiveProver<
-      PublicInput,
-      PublicInputType,
-      PublicOutput,
-      PrivateInputs[K]
-    >;
-  };
-
-  let proveRecursively: RecursiveProvers = mapObject(
-    regularRecursiveProvers,
-    (prover): RecursiveProvers[MethodKey] => {
-      if (!hasPublicInput) {
-        return ((...args: any) =>
-          prover(new Bool(true), undefined as any, ...args)) as any;
-      } else {
-        return ((pi: PublicInput, ...args: any) =>
-          prover(new Bool(true), pi, ...args)) as any;
-      }
-    }
-  );
-  let proveRecursivelyIf: ConditionalRecursiveProvers = mapObject(
-    regularRecursiveProvers,
-    (prover): ConditionalRecursiveProvers[MethodKey] => {
-      if (!hasPublicInput) {
-        return ((
-          condition: Bool | { condition: Bool; domainLog2?: number },
-          ...args: any
-        ) => prover(condition, undefined as any, ...args)) as any;
-      } else {
-        return ((
-          condition: Bool | { condition: Bool; domainLog2?: number },
-          pi: PublicInput,
-          ...args: any
-        ) => prover(condition, pi, ...args)) as any;
-      }
-    }
-  );
 
   async function digest() {
     let methodsMeta = await analyzeMethods();
@@ -672,8 +608,6 @@ function ZkProgram<
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
-      proveRecursively,
-      proveRecursivelyIf,
 
       Proof: SelfProof,
 
@@ -713,6 +647,33 @@ type ZkProgram<
   }
 > = ReturnType<typeof ZkProgram<Config, Methods>>;
 
+/**
+ * A class representing the type of Proof produced by the {@link ZkProgram} in which it is used.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Field,
+ *   methods: {
+ *     baseCase: {
+ *       privateInputs: [],
+ *       method: async () => {
+ *         return { publicOutput: Field(0) }
+ *       }
+ *     },
+ *     add: {
+ *       privateInputs: [SelfProof, Field],
+ *       // `previous` is the type of proof produced by ExampleProgram
+ *       method: async (previous: SelfProof<undefined, Field>, f: Field) => {
+ *         previous.verify();
+ *         return { publicOutput: previous.publicOutput.add(f) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ */
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput
@@ -955,7 +916,9 @@ async function analyzeMethod(
         return method(...args);
       return method(publicInput, ...args);
     });
-    proofs = ZkProgramContext.getDeclaredProofs().map(({ Proof }) => Proof);
+    proofs = ZkProgramContext.getDeclaredProofs().map(
+      ({ ProofClass }) => ProofClass
+    );
   } finally {
     ZkProgramContext.leave(id);
   }
@@ -1044,8 +1007,8 @@ function picklesRuleFromFunction(
 
     // extract proof statements for Pickles
     let previousStatements = proofs.map(
-      ({ proof }): Pickles.Statement<FieldVar> => {
-        let fields = proof.publicFields();
+      ({ proofInstance }): Pickles.Statement<FieldVar> => {
+        let fields = proofInstance.publicFields();
         let input = MlFieldArray.to(fields.input);
         let output = MlFieldArray.to(fields.output);
         return MlPair(input, output);
@@ -1053,13 +1016,13 @@ function picklesRuleFromFunction(
     );
 
     // handle dynamic proofs
-    proofs.forEach(({ Proof, proof }) => {
-      if (!(proof instanceof DynamicProof)) return;
+    proofs.forEach(({ ProofClass, proofInstance }) => {
+      if (!(proofInstance instanceof DynamicProof)) return;
 
       // Initialize side-loaded verification key
-      const tag = Proof.tag();
+      const tag = ProofClass.tag();
       const computedTag = SideloadedTag.get(tag.name);
-      const vk = proof.usedVerificationKey;
+      const vk = proofInstance.usedVerificationKey;
 
       if (vk === undefined) {
         throw new Error(
@@ -1108,9 +1071,9 @@ function picklesRuleFromFunction(
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
-      previousProofs: MlArray.to(proofs.map(({ proof }) => proof.proof)),
+      previousProofs: MlArray.to(proofs.map((p) => p.proofInstance.proof)),
       shouldVerify: MlArray.to(
-        proofs.map((proof) => proof.proof.shouldVerify.toField().value)
+        proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
       ),
     };
   }
@@ -1313,6 +1276,20 @@ type Method<
       >;
     };
 
+type RegularProver<
+  PublicInput,
+  PublicInputType,
+  PublicOutput,
+  Args extends Tuple<PrivateInput>,
+  AuxiliaryOutput
+> = (
+  publicInput: From<PublicInputType>,
+  ...args: TupleFrom<Args>
+) => Promise<{
+  proof: Proof<PublicInput, PublicOutput>;
+  auxiliaryOutput: AuxiliaryOutput;
+}>;
+
 type Prover<
   PublicInput,
   PublicInputType,
@@ -1331,34 +1308,6 @@ type Prover<
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
     }>;
-
-type RecursiveProver<
-  PublicInput,
-  PublicInputType,
-  PublicOutput,
-  Args extends Tuple<PrivateInput>
-> = PublicInput extends undefined
-  ? (...args: TupleFrom<Args>) => Promise<PublicOutput>
-  : (
-      publicInput: From<PublicInputType>,
-      ...args: TupleFrom<Args>
-    ) => Promise<PublicOutput>;
-
-type ConditionalRecursiveProver<
-  PublicInput,
-  PublicInputType,
-  PublicOutput,
-  Args extends Tuple<PrivateInput>
-> = PublicInput extends undefined
-  ? (
-      condition: Bool | { condition: Bool; domainLog2?: number },
-      ...args: TupleFrom<Args>
-    ) => Promise<PublicOutput>
-  : (
-      condition: Bool | { condition: Bool; domainLog2?: number },
-      publicInput: From<PublicInputType>,
-      ...args: TupleFrom<Args>
-    ) => Promise<PublicOutput>;
 
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
