@@ -18,12 +18,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
 
 ### Added
+
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
 - Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
 
 ### Changed
+
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
 - Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+
+### Fixed
+
+- Fixed mutation of input cipher text. https://github.com/o1-labs/o1js/pull/1981 [@maple3142](https://github.com/maple3142)
 
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
@@ -375,7 +381,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
   - The default value is 1 and should work for most existing contracts
 - `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)
-   As a replacement, `UInt64.Unsafe.fromField()` was introduced
+  As a replacement, `UInt64.Unsafe.fromField()` was introduced
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
 - Fixed vulnerability in `Field.to/fromBits()` outlined in [#1023](https://github.com/o1-labs/o1js/issues/1023) by imposing a limit of 254 bits https://github.com/o1-labs/o1js/pull/1461
