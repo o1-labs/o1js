@@ -117,7 +117,7 @@ function Network(
     }
     | string
 ): Mina {
-  let minaNetworkId: NetworkId = 'testnet';
+  let minaNetworkId: NetworkId = 'devnet';
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
@@ -282,6 +282,8 @@ function Network(
           data: response?.data,
           errors: updatedErrors,
           transaction: txn.transaction,
+          setFee : txn.setFee,
+          setFeePerSnarkCost : txn.setFeePerSnarkCost,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,

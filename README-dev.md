@@ -86,6 +86,20 @@ In addition to building the OCaml and Rust code, the build script also generates
 
 o1js uses these types to ensure that the constants used in the protocol are consistent with the OCaml source files.
 
+### Bindings check in ci
+
+If the bindings check fails in CI it will upload a patch you can use to update the bindings without having to rebuild locally.
+This can also be helpful when the bindings don't build identically, as unfortunately often happens.
+
+To use this patch:
+- Click details on the `Build o1js bindings / build-bindings-ubunutu` job
+- Go to the `patch-upload` job and expand the logs for `Upload patch`
+- Download the file linked in the last line of the logs ie.
+`Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
+- unzip it
+- navigate to `src/bindings`
+- run `git apply path/to/bindings.patch`
+
 ## Development
 
 ### Branching Policy
@@ -227,3 +241,19 @@ To facilitate this process, use the provided script named `run-debug`. To use th
 This script initializes a Node.js process with the `--inspect-brk` flag that starts the Node.js inspector and breaks before the user script starts (i.e., it pauses execution until a debugger is attached). The `--enable-source-maps` flag ensures that source maps are used to allow easy debugging of o1js code directly.
 
 After the Node.js process is running, open the Chrome browser and navigate to `chrome://inspect` to attach the Chrome Debugger to the Node.js process. You can set breakpoints, inspect variables, and profile the performance of your zkApp or o1js. For more information on using the Chrome Debugger, see the [DevTools documentation](https://developer.chrome.com/docs/devtools/).
+
+### Debugging within the SDK
+To debug a call into the SDK, you can link your local copy of the SDK with `npm link`. After that, you'll be able to add log statements, set breakpoints, and make code changes. Within the SDK, run:
+```sh
+npm run link
+``` 
+Then in your zkApp codebase, run:
+```sh
+npm link o1js
+```
+
+#### Logging from OCaml
+If you need to debug a call into the OCaml code, the process is a little more complicated. The OCaml is compiled into JavaScript with js_of_ocaml during `npm run build:update-bindings`, so you'll need to add your logs into the OCaml code and rebuild the bindings to see them. Logging from OCaml in a way that will reflect as JS `console.log`s in the compiled code can be done like this:
+```ocaml
+let () = print_endline "This is a log" in
+```

@@ -106,7 +106,7 @@ async function LocalBlockchain({
   const originalProofsEnabled = proofsEnabled;
 
   return {
-    getNetworkId: () => 'testnet' as NetworkId,
+    getNetworkId: () => 'devnet' as NetworkId,
     proofsEnabled,
     getNetworkConstants() {
       return {
@@ -236,9 +236,9 @@ async function LocalBlockchain({
           events[addr] ??= {};
           if (p.body.events.data.length > 0) {
             events[addr][tokenId] ??= [];
-            let updatedEvents = p.body.events.data.map((data) => {
+            let updatedEvents = p.body.events.data.map((data: Field[]) => {
               return {
-                data,
+                data: data.map(e => e.toString()),
                 transactionInfo: {
                   transactionHash: '',
                   transactionStatus: '',
@@ -293,6 +293,8 @@ async function LocalBlockchain({
           status,
           errors,
           transaction: txn.transaction,
+          setFee: txn.setFee,
+          setFeePerSnarkCost: txn.setFeePerSnarkCost,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,
