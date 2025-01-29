@@ -27,7 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
-- Fix behavior of `initializeBindings()` when called concurrently, to improve error messages in frequent problem scenarios https://github.com/o1-labs/o1js/pull/1996
+- Fix behavior of `initializeBindings()` when called concurrently, to improve error messages in common failure scenarios https://github.com/o1-labs/o1js/pull/1996
 
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
