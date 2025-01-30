@@ -25,6 +25,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
 - Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+- Enable to pass normal JS values (e.g., `bigint` instead of `Field`) to ZkProgram provers https://github.com/o1-labs/o1js/pull/1934
+  - Also improves the supported JS values for a few important types like `Signature` and `UIntX`
 
 ### Fixed
 
