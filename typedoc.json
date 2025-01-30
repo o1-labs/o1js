@@ -19,7 +19,10 @@
   },
   "entryPoints": [
     "src/index.ts",
+    "src/lib/mina/account-update.ts",
+    "src/lib/provable/crypto/foreign-curve.ts",
     "src/lib/provable/field.ts",
+    "src/lib/provable/foreign-field.ts",
     "src/lib/provable/bool.ts",
     "src/lib/provable/group.ts",
     "src/lib/provable/int.ts",

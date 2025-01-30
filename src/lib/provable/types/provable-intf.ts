@@ -49,7 +49,7 @@ type Provable<T, TValue = any> = {
   /**
    * A function that returns an element of type `T` from the given provable and "auxiliary" data.
    *
-   * This function is the reverse operation of calling {@link toFields} and {@link toAuxilary} methods on an element of type `T`.
+   * This function is the reverse operation of calling {@link toFields} and {@link toAuxiliary} methods on an element of type `T`.
    *
    * @param fields - an array of {@link Field} elements describing the provable data of the new `T` element.
    * @param aux - an array of any type describing the "auxiliary" data of the new `T` element, optional.
