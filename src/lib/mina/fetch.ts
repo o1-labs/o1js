@@ -129,7 +129,6 @@ function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
 /**
  * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
  *
- * @param A GraphQL endpoint.
  */
 function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
   if (!checkForValidUrl(graphqlEndpoint)) {
@@ -170,8 +169,9 @@ function setLightnetAccountManagerEndpoint(endpoint: string) {
  * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
  * the data is returned.
  *
- * @param publicKey The specified publicKey to get account information on
- * @param tokenId The specified tokenId to get account information on
+ * @param accountInfo The public key and token id of the account to fetch
+ * @param accountInfo.publicKey The specified publicKey to get account information on
+ * @param accountInfo.tokenId The specified tokenId to get account information on
  * @param graphqlEndpoint The graphql endpoint to fetch from
  * @param config An object that exposes an additional timeout option
  * @returns zkapp information on the specified account or an error is thrown
@@ -632,7 +632,6 @@ function sendZkapp(
 
 /**
  * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
- * @async
  * @param accountInfo - The account information object.
  * @param accountInfo.publicKey - The account public key.
  * @param [accountInfo.tokenId] - The optional token ID for the account.

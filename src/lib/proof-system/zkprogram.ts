@@ -1,5 +1,11 @@
 import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
-import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
+import {
+  Base64ProofString,
+  Base64VerificationKeyString,
+  Snarky,
+  initializeBindings,
+  withThreadPool,
+} from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import {
@@ -118,9 +124,16 @@ function createProgramState() {
   };
 }
 
+/**
+ * Initializes Pickles bindings, serializes the input proof and verification key for use in OCaml, then calls into the Pickles verify function and returns the result.
+ *
+ * @param proof Either a `Proof` instance or a serialized JSON proof
+ * @param verificationKey Either a base64 serialized verification key or a `VerificationKey` instance which will be base64 serialized for use in the bindings.
+ * @returns A promise that resolves to a boolean indicating whether the proof is valid.
+ */
 async function verify(
   proof: ProofBase<any, any> | JsonProof,
-  verificationKey: string | VerificationKey
+  verificationKey: Base64VerificationKeyString | VerificationKey
 ) {
   await initializeBindings();
   let picklesProof: Pickles.Proof;
@@ -155,11 +168,16 @@ async function verify(
   );
 }
 
+/**
+ * Serializable representation of a Pickles proof, useful for caching compiled proofs.
+ */
 type JsonProof = {
+  /** Array of string, where each string is a `Field` in the publicInput of this proof */
   publicInput: string[];
+  /** Array of string, where each string is a `Field` in the publicOutput of this proof */
   publicOutput: string[];
   maxProofsVerified: 0 | 1 | 2;
-  proof: string;
+  proof: Base64ProofString;
 };
 type CompiledTag = unknown;
 
@@ -212,6 +230,33 @@ type InferMethodType<Config extends ConfigBaseType> = {
   >;
 };
 
+/**
+ * Wraps config + provable code into a program capable of producing {@link Proof}s.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Int64,
+ *   methods: {
+ *     // Prove that I know 2 numbers less than 100 each, whose product is greater than 1000
+ *     provableMultiply: {
+ *       privateInputs: [Int64, Int64],
+ *       method: async (n1: Int64, n2: Int64) => {
+ *         n1.assertLessThan(100);
+ *         n2.assertLessThan(100);
+ *         const publicOutput = n1.mul(n2);
+ *         publicOutput.assertGreaterThan(1000);
+ *         return { publicOutput: n1.mul(n2) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param config The configuration of the program, describing the type of the public input and public output, as well as defining the methods which can be executed provably.
+ * @returns an object that can be used to compile, prove, and verify the program.
+ */
 function ZkProgram<Config extends ConfigBaseType>(
   config: Config & {
     name: string;
@@ -269,7 +314,7 @@ function ZkProgram<Config extends ConfigBaseType>(
 } {
   // derived types for convenience
   type Methods = InferMethodSignatures<Config>;
-  type PrivateInputs = InferPrivateInput<Config>
+  type PrivateInputs = InferPrivateInput<Config>;
   type AuxiliaryOutputs = InferAuxiliaryOutputs<Config>;
 
   let doProving = true;
@@ -577,8 +622,8 @@ function ZkProgram<Config extends ConfigBaseType>(
 
 type ZkProgram<
   Config extends {
-    publicInput?: ProvableTypePure;
-    publicOutput?: ProvableTypePure;
+    publicInput?: ProvableType;
+    publicOutput?: ProvableType;
     methods: {
       [I in string]: {
         privateInputs: Tuple<PrivateInput>;
@@ -588,6 +633,33 @@ type ZkProgram<
   }
 > = ReturnType<typeof ZkProgram<Config>>;
 
+/**
+ * A class representing the type of Proof produced by the {@link ZkProgram} in which it is used.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Field,
+ *   methods: {
+ *     baseCase: {
+ *       privateInputs: [],
+ *       method: async () => {
+ *         return { publicOutput: Field(0) }
+ *       }
+ *     },
+ *     add: {
+ *       privateInputs: [SelfProof, Field],
+ *       // `previous` is the type of proof produced by ExampleProgram
+ *       method: async (previous: SelfProof<undefined, Field>, f: Field) => {
+ *         previous.verify();
+ *         return { publicOutput: previous.publicOutput.add(f) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ */
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput
