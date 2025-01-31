@@ -1,5 +1,5 @@
 import type { Field } from '../field.js';
-import type { FlexibleProvable, InferProvable } from './struct.js';
+import type { FlexibleProvable } from './struct.js';
 import { Provable, ProvableType, ToProvable } from './provable-intf.js';
 import {
   inCheckedComputation,
@@ -9,14 +9,15 @@ import { exists, existsAsync } from '../core/exists.js';
 import { From } from '../../../bindings/lib/provable-generic.js';
 import { TupleN } from '../../util/types.js';
 import { createField } from '../core/field-constructor.js';
+import { InferProvable } from './provable-derivers.js';
 
 export { witness, witnessAsync, witnessFields };
 
-function witness<
-  A extends ProvableType<any, any>,
-  T extends From<ToProvable<A>> = From<ToProvable<A>>
->(type: A, compute: () => T): InferProvable<ToProvable<A>> {
-  type S = InferProvable<ToProvable<A>>;
+function witness<A extends ProvableType<any, any>, T extends From<A> = From<A>>(
+  type: A,
+  compute: () => T
+): InferProvable<A> {
+  type S = InferProvable<A>;
   const provable: Provable<S> = ProvableType.get(type);
   let ctx = snarkContext.get();
 

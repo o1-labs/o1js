@@ -5,12 +5,7 @@ import {
   HashInput,
   NonMethods,
 } from './provable-derivers.js';
-import type {
-  InferJson,
-  InferProvable,
-  InferredProvable,
-  IsPure,
-} from './provable-derivers.js';
+import type { InferJson, InferProvable, IsPure } from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { ProvablePure, ProvableType } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
@@ -32,10 +27,7 @@ export {
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
-  InferProvable,
   HashInput,
-  InferJson,
-  InferredProvable,
   StructNoJson,
 };
 

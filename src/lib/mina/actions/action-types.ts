@@ -1,6 +1,6 @@
 import { MerkleList } from '../../provable/merkle-list.js';
 import { Field } from '../../provable/wrapped.js';
-import { InferProvable } from '../../provable/types/struct.js';
+import { InferProvable } from '../../provable/types/provable-derivers.js';
 import { Actionable } from './offchain-state-serialization.js';
 import { Actions } from '../account-update.js';
 import { Hashed } from '../../provable/packed.js';

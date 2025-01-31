@@ -1,6 +1,6 @@
-import { InferProvable } from '../provable/types/struct.js';
 import { Provable } from '../provable/provable.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
+import { InferProvable } from '../provable/types/provable-derivers.js';
 import { Tuple } from '../util/types.js';
 import { Proof } from './proof.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';

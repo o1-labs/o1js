@@ -10,11 +10,13 @@ import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import {
   FlexibleProvable,
-  InferProvable,
   ProvablePureExtended,
   Struct,
 } from '../provable/types/struct.js';
-import { provable } from '../provable/types/provable-derivers.js';
+import {
+  provable,
+  InferProvable,
+} from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import { snarkContext } from '../provable/core/provable-context.js';

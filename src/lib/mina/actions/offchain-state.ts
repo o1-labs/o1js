@@ -1,4 +1,3 @@
-import { InferProvable } from '../../provable/types/struct.js';
 import {
   Actionable,
   fetchMerkleLeaves,
@@ -28,6 +27,7 @@ import { contract } from '../smart-contract-context.js';
 import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 import { assertDefined } from '../../util/assert.js';
 import { ProvableType } from '../../provable/types/provable-intf.js';
+import { InferProvable } from '../../provable/types/provable-derivers.js';
 
 // external API
 export { OffchainState, OffchainStateCommitments };
