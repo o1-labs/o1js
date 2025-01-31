@@ -1,4 +1,8 @@
-import { Provable, ProvableHashable, ProvablePure } from './provable-intf.js';
+import type {
+  Provable,
+  ProvableHashable,
+  ProvablePure,
+} from './provable-intf.js';
 import type { Field } from '../wrapped.js';
 import {
   createDerivers,
@@ -15,8 +19,8 @@ import {
   InferValueNested,
   InferProvableNested,
 } from '../../../bindings/lib/provable-generic.js';
-import { Tuple } from '../../util/types.js';
-import { GenericHashInput } from '../../../bindings/lib/generic.js';
+import type { Tuple } from '../../util/types.js';
+import type { GenericHashInput } from '../../../bindings/lib/generic.js';
 
 // external API
 export {
@@ -27,16 +31,16 @@ export {
   provableTuple,
   provableFromClass,
   provableExtends,
+  type InferProvable,
+  type IsPure,
 };
 
 // internal API
 export {
   NonMethods,
   HashInput,
-  InferProvable,
   InferJson,
   InferredProvable,
-  IsPure,
   NestedProvable,
   mapValue,
 };
