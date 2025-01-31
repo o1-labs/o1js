@@ -24,8 +24,9 @@ import type { GenericHashInput } from '../../../bindings/lib/generic.js';
 
 // external API
 export {
-  ProvableExtended,
-  ProvableInferPureFrom,
+  type ProvableExtended,
+  type ProvablePureExtended,
+  type ProvableInferPureFrom,
   provable,
   provablePure,
   provableTuple,

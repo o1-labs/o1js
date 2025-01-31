@@ -29,7 +29,6 @@ export { assert } from './lib/provable/gadgets/common.js';
 
 export * from './lib/provable/crypto/signature.js';
 export type {
-  ProvableExtended,
   FlexibleProvable,
   FlexibleProvablePure,
 } from './lib/provable/types/struct.js';
@@ -44,6 +43,7 @@ export {
   provable,
   provablePure,
   InferProvable,
+  ProvableExtended,
 } from './lib/provable/types/provable-derivers.js';
 export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';

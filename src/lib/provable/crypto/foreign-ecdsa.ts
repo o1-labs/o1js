@@ -1,6 +1,8 @@
-import { provableFromClass } from '../types/provable-derivers.js';
+import {
+  provableFromClass,
+  ProvablePureExtended,
+} from '../types/provable-derivers.js';
 import { CurveParams } from '../../../bindings/crypto/elliptic-curve.js';
-import { ProvablePureExtended } from '../types/struct.js';
 import {
   FlexiblePoint,
   ForeignCurve,

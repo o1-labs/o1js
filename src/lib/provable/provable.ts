@@ -6,17 +6,14 @@
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
-import type {
-  FlexibleProvable,
-  FlexibleProvableType,
-  ProvableExtended,
-} from './types/struct.js';
+import type { FlexibleProvable, FlexibleProvableType } from './types/struct.js';
 import { Context } from '../util/global-context.js';
 import {
   HashInput,
   InferJson,
   InferProvable,
   InferredProvable,
+  ProvableExtended,
 } from './types/provable-derivers.js';
 import {
   inCheckedComputation,

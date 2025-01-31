@@ -8,14 +8,11 @@ import {
 } from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
-import {
-  FlexibleProvable,
-  ProvablePureExtended,
-  Struct,
-} from '../provable/types/struct.js';
+import { FlexibleProvable, Struct } from '../provable/types/struct.js';
 import {
   provable,
   InferProvable,
+  ProvablePureExtended,
 } from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
