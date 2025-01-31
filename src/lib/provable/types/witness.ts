@@ -1,6 +1,6 @@
 import type { Field } from '../field.js';
 import type { FlexibleProvable } from './struct.js';
-import { Provable, ProvableType, ToProvable } from './provable-intf.js';
+import { Provable, ProvableType } from './provable-intf.js';
 import {
   inCheckedComputation,
   snarkContext,
@@ -52,9 +52,9 @@ function witness<A extends ProvableType<any, any>, T extends From<A> = From<A>>(
 
 async function witnessAsync<
   A extends ProvableType<any, any>,
-  T extends From<ToProvable<A>> = From<ToProvable<A>>
+  T extends From<A> = From<A>
 >(type: A, compute: () => Promise<T>): Promise<T> {
-  type S = InferProvable<ToProvable<A>>;
+  type S = InferProvable<A>;
   const provable: Provable<S> = ProvableType.get(type);
 
   let ctx = snarkContext.get();

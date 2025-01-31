@@ -27,7 +27,6 @@ import {
 } from './core/provable-context.js';
 import { witness, witnessAsync, witnessFields } from './types/witness.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
-import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 
 // external API
 export { Provable };
@@ -507,10 +506,10 @@ function getBlindingValue() {
 function provableArray<A extends FlexibleProvableType<any>>(
   elementType: A,
   length: number
-): InferredProvable<ToProvable<A>[]> {
+): InferredProvable<A[]> {
   type T = InferProvable<A>;
-  type TValue = InferValue<ToProvable<A>>;
-  type TJson = InferJson<ToProvable<A>>;
+  type TValue = InferValue<A>;
+  type TJson = InferJson<A>;
   let type = ProvableType.get(
     elementType as ProvableType<T>
   ) as ProvableExtended<T, TValue, TJson>;

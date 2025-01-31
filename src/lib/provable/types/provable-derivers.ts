@@ -1,10 +1,4 @@
-import {
-  Provable,
-  ProvableHashable,
-  ProvablePure,
-  ProvableType,
-  ToProvable,
-} from './provable-intf.js';
+import { Provable, ProvableHashable, ProvablePure } from './provable-intf.js';
 import type { Field } from '../wrapped.js';
 import {
   createDerivers,
