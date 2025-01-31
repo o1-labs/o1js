@@ -94,6 +94,9 @@ const Undefined: ProvablePureExtended<undefined, undefined, null> =
 type Empty = Undefined;
 const Empty = Undefined;
 type Void = undefined;
+/**
+ * @deprecated Use `Undefined` instead.
+ */
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 
 function createProgramState() {
@@ -219,7 +222,7 @@ type InferAuxiliaryOutputs<Config extends ConfigBaseType> = {
 type InferMethodType<Config extends ConfigBaseType> = {
   [I in keyof Config['methods']]: Method<
     InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-    InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+    InferProvableOrUndefined<Get<Config, 'publicOutput'>>,
     Config['methods'][I]
   >;
 };
@@ -276,7 +279,7 @@ function ZkProgram<
   verify: (
     proof: Proof<
       InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>
+      InferProvableOrUndefined<Get<Config, 'publicOutput'>>
     >
   ) => Promise<boolean>;
   digest: () => Promise<string>;
@@ -287,7 +290,7 @@ function ZkProgram<
   }>;
 
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
-  publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
+  publicOutputType: ProvableOrUndefined<Get<Config, 'publicOutput'>>;
   privateInputTypes: InferPrivateInput<Config>;
   auxiliaryOutputTypes: InferAuxiliaryOutputs<Config>;
   rawMethods: {
@@ -296,7 +299,7 @@ function ZkProgram<
 
   Proof: typeof Proof<
     InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-    InferProvableOrVoid<Get<Config, 'publicOutput'>>
+    InferProvableOrUndefined<Get<Config, 'publicOutput'>>
   >;
 
   proofsEnabled: boolean;
@@ -304,7 +307,7 @@ function ZkProgram<
 } & {
   [I in keyof Config['methods']]: Prover<
     InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-    InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+    InferProvableOrUndefined<Get<Config, 'publicOutput'>>,
     InferPrivateInput<Config>[I],
     InferProvableOrUndefined<InferAuxiliaryOutputs<Config>[I]>
   >;
@@ -319,15 +322,14 @@ function ZkProgram<
   let publicInputType: Provable<any> = ProvableType.get(
     config.publicInput ?? Undefined
   );
-  let hasPublicInput =
-    publicInputType !== Undefined && publicInputType !== Void;
+  let hasPublicInput = publicInputType !== Undefined;
   let publicOutputType: Provable<any> = ProvableType.get(
-    config.publicOutput ?? Void
+    config.publicOutput ?? Undefined
   );
 
   let selfTag = { name: config.name };
   type PublicInput = InferProvableOrUndefined<Get<Config, 'publicInput'>>;
-  type PublicOutput = InferProvableOrVoid<Get<Config, 'publicOutput'>>;
+  type PublicOutput = InferProvableOrUndefined<Get<Config, 'publicOutput'>>;
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
@@ -541,7 +543,7 @@ function ZkProgram<
     [K in MethodKey]: Prover_<K>;
   };
   let provers: Provers = mapObject(regularProvers, (prover): Prover_ => {
-    if (publicInputType === Undefined || publicInputType === Void) {
+    if (publicInputType === Undefined) {
       return ((...args: any) => prover(undefined as any, ...args)) as any;
     } else {
       return prover as any;
@@ -585,7 +587,7 @@ function ZkProgram<
       publicInputType: publicInputType as ProvableOrUndefined<
         Get<Config, 'publicInput'>
       >,
-      publicOutputType: publicOutputType as ProvableOrVoid<
+      publicOutputType: publicOutputType as ProvableOrUndefined<
         Get<Config, 'publicOutput'>
       >,
       privateInputTypes: mapToObject(
@@ -902,8 +904,7 @@ async function analyzeMethod(
 
       let publicInput = emptyWitness(publicInputType);
       // note: returning the method result here makes this handle async methods
-      if (publicInputType === Undefined || publicInputType === Void)
-        return method(...args);
+      if (publicInputType === Undefined) return method(...args);
       return method(publicInput, ...args);
     });
     proofs = ZkProgramContext.getDeclaredProofs().map(
@@ -972,7 +973,7 @@ function picklesRuleFromFunction(
     let proofs: DeclaredProof[];
 
     try {
-      if (publicInputType === Undefined || publicInputType === Void) {
+      if (publicInputType === Undefined) {
         result = (await func(...finalArgs)) as any;
       } else {
         let input = fromFieldVars(publicInputType, publicInput, auxInputData);
@@ -1210,20 +1211,21 @@ type InferTuple<T> = {
   [I in keyof T]: InferProvable<T[I]>;
 };
 
-type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
-  ? AuxiliaryOutput extends undefined
-    ? void
-    : {
-        auxiliaryOutput: AuxiliaryOutput;
+type MethodReturnType<PublicOutput, AuxiliaryOutput> =
+  PublicOutput extends undefined
+    ? AuxiliaryOutput extends undefined
+      ? void
+      : {
+          auxiliaryOutput: AuxiliaryOutput;
+        }
+    : AuxiliaryOutput extends undefined
+    ? {
+        publicOutput: PublicOutput;
       }
-  : AuxiliaryOutput extends undefined
-  ? {
-      publicOutput: PublicOutput;
-    }
-  : {
-      publicOutput: PublicOutput;
-      auxiliaryOutput: AuxiliaryOutput;
-    };
+    : {
+        publicOutput: PublicOutput;
+        auxiliaryOutput: AuxiliaryOutput;
+      };
 
 type Method<
   PublicInput,
@@ -1289,14 +1291,12 @@ type Prover<
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
   : ToProvable<A>;
-type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : A extends ProvableType
   ? InferProvable<A>
   : InferProvable<A> | undefined;
-type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
 
