@@ -210,15 +210,11 @@ type ConfigBaseType = {
   };
 };
 
-type InferMethodSignatures<Config extends ConfigBaseType> = Config['methods'];
 type InferPrivateInput<Config extends ConfigBaseType> = {
   [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
 };
 type InferAuxiliaryOutputs<Config extends ConfigBaseType> = {
-  [I in keyof InferMethodSignatures<Config>]: Get<
-    InferMethodSignatures<Config>[I],
-    'auxiliaryOutput'
-  >;
+  [I in keyof Config['methods']]: Get<Config['methods'][I], 'auxiliaryOutput'>;
 };
 type InferMethodType<Config extends ConfigBaseType> = {
   [I in keyof Config['methods']]: Method<
@@ -314,7 +310,6 @@ function ZkProgram<
   >;
 } {
   // derived types for convenience
-  type Methods = InferMethodSignatures<Config>;
   type PrivateInputs = InferPrivateInput<Config>;
   type AuxiliaryOutputs = InferAuxiliaryOutputs<Config>;
 
@@ -377,7 +372,7 @@ function ZkProgram<
       );
     }
     return methodsMeta as {
-      [I in keyof Methods]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+      [I in MethodKey]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
     };
   }
 
@@ -593,15 +588,23 @@ function ZkProgram<
       publicOutputType: publicOutputType as ProvableOrVoid<
         Get<Config, 'publicOutput'>
       >,
-      privateInputTypes: Object.fromEntries(
-        methodKeys.map((key) => [key, methods[key].privateInputs])
-      ) as any,
-      auxiliaryOutputTypes: Object.fromEntries(
-        methodKeys.map((key) => [key, methods[key].auxiliaryOutput])
-      ) as any,
-      rawMethods: Object.fromEntries(
-        methodKeys.map((key) => [key, methods[key].method])
-      ) as any,
+      privateInputTypes: mapToObject(
+        methodKeys,
+        (key) => methods[key].privateInputs
+      ),
+      auxiliaryOutputTypes: mapToObject(
+        methodKeys,
+        <K extends MethodKey>(key: K) =>
+          methods[key].auxiliaryOutput as Get<
+            Config['methods'][K],
+            'auxiliaryOutput'
+          >
+      ),
+      rawMethods: mapToObject(
+        methodKeys,
+        <K extends MethodKey>(key: K) =>
+          methods[key].method as InferMethodType<Config>[K]['method']
+      ),
 
       Proof: SelfProof,
 
