@@ -15,7 +15,7 @@ import { Context } from '../util/global-context.js';
 import {
   HashInput,
   InferJson,
-  InferProvableType,
+  InferProvable,
   InferredProvable,
 } from './types/provable-derivers.js';
 import {
@@ -399,7 +399,7 @@ function switch_<T, A extends FlexibleProvableType<T>>(
 
 function assertEqualIf<
   A extends ProvableType<any>,
-  T extends InferProvableType<A> = InferProvableType<A>
+  T extends InferProvable<A> = InferProvable<A>
 >(enabled: Bool, type: A, x: T, y: T) {
   // if the condition is disabled, we check the trivial identity x === x instead
   let xOrY = ifExplicit<T>(enabled, type, y, x);
@@ -508,7 +508,7 @@ function provableArray<A extends FlexibleProvableType<any>>(
   elementType: A,
   length: number
 ): InferredProvable<ToProvable<A>[]> {
-  type T = InferProvableType<A>;
+  type T = InferProvable<A>;
   type TValue = InferValue<ToProvable<A>>;
   type TJson = InferJson<ToProvable<A>>;
   let type = ProvableType.get(

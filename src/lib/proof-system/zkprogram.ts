@@ -14,10 +14,7 @@ import {
   ProvablePureExtended,
   Struct,
 } from '../provable/types/struct.js';
-import {
-  InferProvableType,
-  provable,
-} from '../provable/types/provable-derivers.js';
+import { provable } from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import { snarkContext } from '../provable/core/provable-context.js';
