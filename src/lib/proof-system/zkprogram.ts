@@ -86,8 +86,6 @@ export {
   dummyBase64Proof,
   computeMaxProofsVerified,
   RegularProver,
-  TupleToInstances,
-  PrivateInput,
 };
 
 type Undefined = undefined;
@@ -206,7 +204,7 @@ type ConfigBaseType = {
   publicOutput?: ProvableType;
   methods: {
     [I in string]: {
-      privateInputs: Tuple<PrivateInput>;
+      privateInputs: Tuple<ProvableType>;
       auxiliaryOutput?: ProvableType;
     };
   };
@@ -629,7 +627,7 @@ type ZkProgram<
     publicOutput?: ProvableType;
     methods: {
       [I in string]: {
-        privateInputs: Tuple<PrivateInput>;
+        privateInputs: Tuple<ProvableType>;
         auxiliaryOutput?: ProvableType;
       };
     };
@@ -1205,17 +1203,9 @@ function Prover<ProverData>() {
 
 // helper types
 
-type Infer<T> = T extends Subclass<typeof ProofBase>
-  ? InstanceType<T>
-  : T extends ProvableType
-  ? InferProvableType<T>
-  : never;
-
-type TupleToInstances<T> = {
-  [I in keyof T]: Infer<T[I]>;
+type InferTuple<T> = {
+  [I in keyof T]: InferProvable<T[I]>;
 };
-
-type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
 type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
   ? AuxiliaryOutput extends undefined
@@ -1236,13 +1226,13 @@ type Method<
   PublicInput,
   PublicOutput,
   MethodSignature extends {
-    privateInputs: Tuple<PrivateInput>;
+    privateInputs: Tuple<ProvableType>;
     auxiliaryOutput?: ProvableType;
   }
 > = PublicInput extends undefined
   ? {
       method(
-        ...args: TupleToInstances<MethodSignature['privateInputs']>
+        ...args: InferTuple<MethodSignature['privateInputs']>
       ): Promise<
         MethodReturnType<
           PublicOutput,
@@ -1253,7 +1243,7 @@ type Method<
   : {
       method(
         publicInput: PublicInput,
-        ...args: TupleToInstances<MethodSignature['privateInputs']>
+        ...args: InferTuple<MethodSignature['privateInputs']>
       ): Promise<
         MethodReturnType<
           PublicOutput,
@@ -1265,11 +1255,11 @@ type Method<
 type RegularProver<
   PublicInput,
   PublicOutput,
-  Args extends Tuple<PrivateInput>,
+  Args extends Tuple<ProvableType>,
   AuxiliaryOutput
 > = (
   publicInput: PublicInput,
-  ...args: TupleToInstances<Args>
+  ...args: InferTuple<Args>
 ) => Promise<{
   proof: Proof<PublicInput, PublicOutput>;
   auxiliaryOutput: AuxiliaryOutput;
@@ -1278,16 +1268,16 @@ type RegularProver<
 type Prover<
   PublicInput,
   PublicOutput,
-  Args extends Tuple<PrivateInput>,
+  Args extends Tuple<ProvableType>,
   AuxiliaryOutput
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<{
+  ? (...args: InferTuple<Args>) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
     }>
   : (
       publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      ...args: InferTuple<Args>
     ) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;

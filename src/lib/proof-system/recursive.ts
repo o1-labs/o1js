@@ -74,7 +74,7 @@ function Recursive<
     return async function proveRecursively_(
       conditionAndConfig: Bool | { condition: Bool; domainLog2?: number },
       publicInput: PublicInput,
-      ...args: TupleToInstances<PrivateInputs[MethodKey]>
+      ...args: InferTuple<PrivateInputs[MethodKey]>
     ): Promise<PublicOutput> {
       let condition =
         conditionAndConfig instanceof Bool
@@ -173,10 +173,10 @@ type RecursiveProver<
   PublicOutput,
   Args extends Tuple<ProvableType>
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<PublicOutput>
+  ? (...args: InferTuple<Args>) => Promise<PublicOutput>
   : (
       publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      ...args: InferTuple<Args>
     ) => Promise<PublicOutput>;
 
 type ConditionalRecursiveProver<
@@ -186,14 +186,14 @@ type ConditionalRecursiveProver<
 > = PublicInput extends undefined
   ? (
       condition: Bool | { condition: Bool; domainLog2?: number },
-      ...args: TupleToInstances<Args>
+      ...args: InferTuple<Args>
     ) => Promise<PublicOutput>
   : (
       condition: Bool | { condition: Bool; domainLog2?: number },
       publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      ...args: InferTuple<Args>
     ) => Promise<PublicOutput>;
 
-type TupleToInstances<T> = {
+type InferTuple<T> = {
   [I in keyof T]: InferProvable<T[I]>;
 };
