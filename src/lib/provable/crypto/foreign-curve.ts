@@ -4,13 +4,15 @@ import {
   createCurveAffine,
 } from '../../../bindings/crypto/elliptic-curve.js';
 import type { Group } from '../group.js';
-import { ProvablePureExtended } from '../types/struct.js';
 import { AlmostForeignField, createForeignField } from '../foreign-field.js';
 import { EllipticCurve, Point } from '../gadgets/elliptic-curve.js';
 import { Field3 } from '../gadgets/foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
-import { provableFromClass } from '../types/provable-derivers.js';
+import {
+  provableFromClass,
+  ProvablePureExtended,
+} from '../types/provable-derivers.js';
 import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
 import { Bytes } from '../bytes.js';
 

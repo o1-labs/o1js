@@ -5,7 +5,10 @@ import {
   inverse as modInverse,
   mod,
 } from '../../../bindings/crypto/finite-field.js';
-import { provableTuple } from '../types/provable-derivers.js';
+import {
+  provableTuple,
+  ProvablePureExtended,
+} from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
 import type { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
@@ -29,7 +32,6 @@ import {
   getField,
 } from '../core/field-constructor.js';
 import type { Bool } from '../bool.js';
-import { ProvablePureExtended } from '../types/struct.js';
 
 // external API
 export { ForeignField, Field3 };

@@ -1,10 +1,10 @@
 import { Field } from '../../provable/wrapped.js';
 import { Actions } from '../account-update.js';
+import { FlexibleProvablePure } from '../../provable/types/struct.js';
 import {
-  FlexibleProvablePure,
   InferProvable,
-} from '../../provable/types/struct.js';
-import { provable } from '../../provable/types/provable-derivers.js';
+  provable,
+} from '../../provable/types/provable-derivers.js';
 import { Provable } from '../../provable/provable.js';
 import { ProvableHashable } from '../../provable/crypto/poseidon.js';
 import * as Mina from '../mina.js';

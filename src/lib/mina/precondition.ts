@@ -295,7 +295,7 @@ function preconditionClass(
     // range condition
     if (layout.optionType === 'closedInterval') {
       let baseType = getProvableType(layout.inner.entries.lower);
-      return preconditionSubClassWithRange(
+      return preconditionSubClassWithRange<any, any>(
         accountUpdate,
         baseKey,
         baseType,
@@ -305,7 +305,12 @@ function preconditionClass(
     // value condition
     else if (layout.optionType === 'flaggedOption') {
       let baseType = getProvableType(layout.inner);
-      return preconditionSubclass(accountUpdate, baseKey, baseType, context);
+      return preconditionSubclass<any, any>(
+        accountUpdate,
+        baseKey,
+        baseType,
+        context
+      );
     }
   } else if (layout.type === 'array') {
     return {}; // not applicable yet, TODO if we implement state

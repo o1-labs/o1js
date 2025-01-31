@@ -1,6 +1,7 @@
 import type { Field } from '../field.js';
-import type { FlexibleProvable, InferProvable } from './struct.js';
-import { Provable, ProvableType, ToProvable } from './provable-intf.js';
+import type { FlexibleProvable } from './struct.js';
+import type { InferProvable } from './provable-derivers.js';
+import { Provable, ProvableType } from './provable-intf.js';
 import {
   inCheckedComputation,
   snarkContext,
@@ -12,11 +13,11 @@ import { createField } from '../core/field-constructor.js';
 
 export { witness, witnessAsync, witnessFields };
 
-function witness<
-  A extends ProvableType<any, any>,
-  T extends From<ToProvable<A>> = From<ToProvable<A>>
->(type: A, compute: () => T): InferProvable<ToProvable<A>> {
-  type S = InferProvable<ToProvable<A>>;
+function witness<A extends ProvableType<any, any>, T extends From<A> = From<A>>(
+  type: A,
+  compute: () => T
+): InferProvable<A> {
+  type S = InferProvable<A>;
   const provable: Provable<S> = ProvableType.get(type);
   let ctx = snarkContext.get();
 
@@ -51,9 +52,9 @@ function witness<
 
 async function witnessAsync<
   A extends ProvableType<any, any>,
-  T extends From<ToProvable<A>> = From<ToProvable<A>>
->(type: A, compute: () => Promise<T>): Promise<T> {
-  type S = InferProvable<ToProvable<A>>;
+  T extends From<A> = From<A>
+>(type: A, compute: () => Promise<T>): Promise<InferProvable<A>> {
+  type S = InferProvable<A>;
   const provable: Provable<S> = ProvableType.get(type);
 
   let ctx = snarkContext.get();

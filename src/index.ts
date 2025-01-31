@@ -29,10 +29,8 @@ export { assert } from './lib/provable/gadgets/common.js';
 
 export * from './lib/provable/crypto/signature.js';
 export type {
-  ProvableExtended,
   FlexibleProvable,
   FlexibleProvablePure,
-  InferProvable,
 } from './lib/provable/types/struct.js';
 export {
   From,
@@ -44,6 +42,8 @@ export { ProvableType } from './lib/provable/types/provable-intf.js';
 export {
   provable,
   provablePure,
+  InferProvable,
+  ProvableExtended,
 } from './lib/provable/types/provable-derivers.js';
 export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';
@@ -147,7 +147,7 @@ import { memoizeWitness } from './lib/provable/provable.js';
 import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
 import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
-import { InferProvable } from './lib/provable/types/struct.js';
+import { InferProvable } from './lib/provable/types/provable-derivers.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 export { Experimental };
 

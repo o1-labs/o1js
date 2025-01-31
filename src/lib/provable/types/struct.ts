@@ -8,8 +8,9 @@ import {
 import type {
   InferJson,
   InferProvable,
-  InferredProvable,
   IsPure,
+  ProvableExtended,
+  ProvablePureExtended,
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { ProvablePure, ProvableType } from './provable-intf.js';
@@ -17,14 +18,7 @@ import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
 import { DynamicProof, Proof } from '../../proof-system/proof.js';
 
 // external API
-export {
-  ProvableExtended,
-  ProvablePureExtended,
-  Struct,
-  FlexibleProvable,
-  FlexibleProvablePure,
-  FlexibleProvableType,
-};
+export { Struct, FlexibleProvable, FlexibleProvablePure, FlexibleProvableType };
 
 // internal API
 export {
@@ -32,27 +26,9 @@ export {
   AnyConstructor,
   cloneCircuitValue,
   circuitValueEquals,
-  InferProvable,
   HashInput,
-  InferJson,
-  InferredProvable,
   StructNoJson,
 };
-
-type ProvableExtension<T, TJson = any> = {
-  toInput: (x: T) => { fields?: Field[]; packed?: [Field, number][] };
-  toJSON: (x: T) => TJson;
-  fromJSON: (x: TJson) => T;
-  empty: () => T;
-};
-
-type ProvableExtended<T, TValue = any, TJson = any> = Provable<T, TValue> &
-  ProvableExtension<T, TJson>;
-type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
-  T,
-  TValue
-> &
-  ProvableExtension<T, TJson>;
 
 type Struct<T> = ProvableExtended<NonMethods<T>> &
   Constructor<T> & { _isStruct: true };

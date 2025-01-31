@@ -6,17 +6,14 @@
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
-import type {
-  FlexibleProvable,
-  FlexibleProvableType,
-  ProvableExtended,
-} from './types/struct.js';
+import type { FlexibleProvable, FlexibleProvableType } from './types/struct.js';
 import { Context } from '../util/global-context.js';
 import {
   HashInput,
   InferJson,
-  InferProvableType,
+  InferProvable,
   InferredProvable,
+  ProvableExtended,
 } from './types/provable-derivers.js';
 import {
   inCheckedComputation,
@@ -27,7 +24,6 @@ import {
 } from './core/provable-context.js';
 import { witness, witnessAsync, witnessFields } from './types/witness.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
-import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 
 // external API
 export { Provable };
@@ -399,7 +395,7 @@ function switch_<T, A extends FlexibleProvableType<T>>(
 
 function assertEqualIf<
   A extends ProvableType<any>,
-  T extends InferProvableType<A> = InferProvableType<A>
+  T extends InferProvable<A> = InferProvable<A>
 >(enabled: Bool, type: A, x: T, y: T) {
   // if the condition is disabled, we check the trivial identity x === x instead
   let xOrY = ifExplicit<T>(enabled, type, y, x);
@@ -507,10 +503,10 @@ function getBlindingValue() {
 function provableArray<A extends FlexibleProvableType<any>>(
   elementType: A,
   length: number
-): InferredProvable<ToProvable<A>[]> {
-  type T = InferProvableType<A>;
-  type TValue = InferValue<ToProvable<A>>;
-  type TJson = InferJson<ToProvable<A>>;
+): InferredProvable<A[]> {
+  type T = InferProvable<A>;
+  type TValue = InferValue<A>;
+  type TJson = InferJson<A>;
   let type = ProvableType.get(
     elementType as ProvableType<T>
   ) as ProvableExtended<T, TValue, TJson>;

@@ -1,7 +1,11 @@
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { Provable } from './provable.js';
-import { InferProvable, Struct } from './types/struct.js';
-import { provable, ProvableInferPureFrom } from './types/provable-derivers.js';
+import { Struct } from './types/struct.js';
+import {
+  provable,
+  InferProvable,
+  ProvableInferPureFrom,
+} from './types/provable-derivers.js';
 import { Bool } from './wrapped.js';
 import { ProvableType } from './types/provable-intf.js';
 

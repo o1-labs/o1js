@@ -1,5 +1,7 @@
-import { provableFromClass } from './types/provable-derivers.js';
-import type { ProvablePureExtended } from './types/struct.js';
+import {
+  provableFromClass,
+  ProvablePureExtended,
+} from './types/provable-derivers.js';
 import { assert } from './gadgets/common.js';
 import { chunk, chunkString } from '../util/arrays.js';
 import { Provable } from './provable.js';

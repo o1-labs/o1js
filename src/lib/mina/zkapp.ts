@@ -20,7 +20,6 @@ import type { EventActionFilterOptions } from './graphql.js';
 import {
   cloneCircuitValue,
   FlexibleProvablePure,
-  InferProvable,
 } from '../provable/types/struct.js';
 import {
   Provable,
@@ -76,7 +75,10 @@ import {
 import { assertPromise } from '../util/assert.js';
 import { ProvablePure, ProvableType } from '../provable/types/provable-intf.js';
 import { getReducer, Reducer } from './actions/reducer.js';
-import { provable } from '../provable/types/provable-derivers.js';
+import {
+  InferProvable,
+  provable,
+} from '../provable/types/provable-derivers.js';
 
 // external API
 export { SmartContract, method, DeployArgs, declareMethods };
