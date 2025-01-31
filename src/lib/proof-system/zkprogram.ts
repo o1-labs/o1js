@@ -257,7 +257,10 @@ type InferMethodType<Config extends ConfigBaseType> = {
  * @param config The configuration of the program, describing the type of the public input and public output, as well as defining the methods which can be executed provably.
  * @returns an object that can be used to compile, prove, and verify the program.
  */
-function ZkProgram<Config extends ConfigBaseType>(
+function ZkProgram<
+  Config extends ConfigBaseType,
+  _ extends unknown = unknown // weird hack that makes methods infer correctly when their inputs are not annotated
+>(
   config: Config & {
     name: string;
     methods: {
