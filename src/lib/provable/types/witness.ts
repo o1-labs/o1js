@@ -53,7 +53,7 @@ function witness<A extends ProvableType<any, any>, T extends From<A> = From<A>>(
 async function witnessAsync<
   A extends ProvableType<any, any>,
   T extends From<A> = From<A>
->(type: A, compute: () => Promise<T>): Promise<T> {
+>(type: A, compute: () => Promise<T>): Promise<InferProvable<A>> {
   type S = InferProvable<A>;
   const provable: Provable<S> = ProvableType.get(type);
 

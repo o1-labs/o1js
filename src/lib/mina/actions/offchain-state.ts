@@ -320,11 +320,8 @@ function OffchainState<
       let value = await Provable.witnessAsync(optionType, async () => {
         let { valueMap } = await merkleMaps();
         let valueFields = valueMap.get(key.toBigInt());
-        if (valueFields === undefined) {
-          return optionType.none();
-        }
-        let value = fromActionWithoutHashes(valueType, valueFields);
-        return optionType.from(value);
+        if (valueFields === undefined) return undefined;
+        return fromActionWithoutHashes(valueType, valueFields);
       });
 
       // assert that the value hash matches the value, or both are none
