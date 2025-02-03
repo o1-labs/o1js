@@ -99,7 +99,7 @@ npm run build:update-bindings
 ```
 
 If you need to update the underlying `mina` code, you can also do so with Nix,
-but from the corresopnding subdirectory. In particular, you should build Mina
+but from the corresponding subdirectory. In particular, you should build Mina
 from the o1js subdirectory from a Nix shell. That means,
 
 ```console
