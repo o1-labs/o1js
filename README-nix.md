@@ -189,7 +189,7 @@ Alternatively, try this change in the `src/mina/flake.nix` file:
 
 ```
 -        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen ];
-+        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen cargo libiconvI];
++        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen cargo libiconv];
 ```
 
 ### wasm32-unknown-unknown
