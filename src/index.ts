@@ -13,6 +13,10 @@ export {
   ForeignCurve,
 } from './lib/provable/crypto/foreign-curve.js';
 export {
+  createForeignTwisted,
+  ForeignTwisted,
+} from './lib/provable/crypto/foreign-twisted.js';
+export {
   createEcdsa,
   EcdsaSignature,
 } from './lib/provable/crypto/foreign-ecdsa.js';
