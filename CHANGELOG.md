@@ -891,7 +891,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Failing `Mina.transaction` on Berkeley because of unsatisfied constraints caused by dummy data before we fetched account state https://github.com/o1-labs/o1js/pull/807
-  - Previously, you could work around this by calling `fetchAccount()` for every account invovled in a transaction. This is not necessary anymore.
+  - Previously, you could work around this by calling `fetchAccount()` for every account involved in a transaction. This is not necessary anymore.
 - Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/o1js/pull/812
 
 ## [0.9.4](https://github.com/o1-labs/o1js/compare/9acec55...21de489)
