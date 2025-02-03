@@ -13,9 +13,17 @@ export {
   ForeignCurve,
 } from './lib/provable/crypto/foreign-curve.js';
 export {
+  createForeignTwisted,
+  ForeignTwisted,
+} from './lib/provable/crypto/foreign-twisted.js';
+export {
   createEcdsa,
   EcdsaSignature,
 } from './lib/provable/crypto/foreign-ecdsa.js';
+export {
+  createEddsa,
+  EddsaSignature,
+} from './lib/provable/crypto/foreign-eddsa.js';
 export { ScalarField } from './lib/provable/scalar-field.js';
 export {
   Poseidon,

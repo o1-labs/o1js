@@ -27,7 +27,7 @@ import { Bytes } from '../bytes.js';
 export { CurveTwisted, Eddsa };
 
 // internal API
-export { Point, simpleMapToCurve, arrayGetGeneric };
+export { Point, simpleMapToCurve, arrayGetGeneric, encode };
 
 const CurveTwisted = {
   add,
@@ -288,14 +288,13 @@ function negate({ x, y }: Point, Curve: { modulus: bigint }) {
   return { x: ForeignField.negate(x, Curve.modulus), y };
 }
 
+// a * x^2 + y^2 = 1 + d * x^2 * y^2
 function assertOnCurve(
   p: Point,
   { modulus: f, a, d }: { modulus: bigint; a: bigint; d: bigint }
 ) {
   let { x, y } = p;
   let one = Field3.from(1n);
-
-  // a * x^2 + y^2 = 1 + d * x^2 * y^2
 
   let x2 = ForeignField.mul(x, x, f);
   let y2 = ForeignField.mul(y, y, f);
