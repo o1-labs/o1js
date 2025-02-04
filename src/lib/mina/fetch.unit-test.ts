@@ -238,14 +238,18 @@ describe('Fetch', () => {
 
       setGraphqlEndpoint(minaEndpoint);
       setArchiveGraphqlEndpoint(archiveEndpoint);
+      setMinaDefaultHeaders({ Authorization: 'Bearer mina-default-token' });
+      setArchiveDefaultHeaders({
+        Authorization: 'Bearer archive-default-token',
+      });
     });
 
     afterEach(() => {
       global.fetch = originalFetch;
+      lastFetchOptions = null;
     });
 
     test('Mina default headers with per request headers', async () => {
-      setMinaDefaultHeaders({ Authorization: 'Bearer mina-default-token' });
       const perRequestHeaders = { 'X-Custom': 'custom-value' };
       await fetchAccount(
         { publicKey: PrivateKey.random().toPublicKey().toBase58() },
@@ -263,8 +267,6 @@ describe('Fetch', () => {
     });
 
     test('Per request headers overrides default headers', async () => {
-      setMinaDefaultHeaders({ Authorization: 'Bearer mina-default-token' });
-
       const perRequestHeaders = {
         Authorization: 'Bearer override-token',
         'X-Test': 'value',
@@ -285,10 +287,6 @@ describe('Fetch', () => {
     });
 
     test('Archive default headers with per request headers', async () => {
-      setArchiveDefaultHeaders({
-        Authorization: 'Bearer archive-default-token',
-      });
-
       const perRequestHeaders = { 'X-Another': 'another-value' };
       await fetchEvents(
         { publicKey: PrivateKey.random().toPublicKey().toBase58() },
@@ -324,11 +322,11 @@ describe('Fetch', () => {
 
     test('Default and per request headers are used for fetchActions', async () => {
       setMinaDefaultHeaders({
-        'X-Default': 'default-header',
+        Authorization: 'Bearer archive-default-token',
       });
 
       const perRequestHeaders = {
-        Authorization: 'Bearer archive-default-token',
+        'X-Default': 'default-header',
       };
       await fetchActions(
         {
@@ -344,8 +342,8 @@ describe('Fetch', () => {
 
       expect(lastFetchOptions.headers).toMatchObject({
         'Content-Type': 'application/json',
-        'X-Default': 'default-header',
         Authorization: 'Bearer archive-default-token',
+        'X-Default': 'default-header',
       });
     });
 

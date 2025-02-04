@@ -79,6 +79,8 @@ type NetworkConfig = {
   archiveEndpoint: string;
   archiveFallbackEndpoints: string[];
   lightnetAccountManagerEndpoint: string;
+  minaDefaultHeaders: HeadersInit;
+  archiveDefaultHeaders: HeadersInit;
 };
 
 type ActionsQueryInputs = {
@@ -87,16 +89,14 @@ type ActionsQueryInputs = {
   tokenId?: string;
 };
 
-let minaDefaultHeaders: HeadersInit = {};
-
-let archiveDefaultHeaders: HeadersInit = {};
-
 let networkConfig = {
   minaEndpoint: '',
   minaFallbackEndpoints: [] as string[],
   archiveEndpoint: '',
   archiveFallbackEndpoints: [] as string[],
   lightnetAccountManagerEndpoint: '',
+  minaDefaultHeaders: {},
+  archiveDefaultHeaders: {},
 } satisfies NetworkConfig;
 
 function checkForValidUrl(url: string) {
@@ -106,18 +106,6 @@ function checkForValidUrl(url: string) {
   } catch (e) {
     return false;
   }
-}
-
-/**
- * Internal function to classify the URL as an archive node or not.
- * @param url graphql endpoint
- * @returns boolean indicating if the URL is an archive node or not
- */
-function isArchiveUrl(url: string): boolean {
-  return (
-    url === networkConfig.archiveEndpoint ||
-    networkConfig.archiveFallbackEndpoints.includes(url)
-  );
 }
 
 /**
@@ -134,7 +122,7 @@ function isArchiveUrl(url: string): boolean {
  * @param headers Arbitrary sized headers to be used for all Mina node GraphQL requests.
  */
 function setMinaDefaultHeaders(headers: HeadersInit) {
-  minaDefaultHeaders = headers;
+  networkConfig.minaDefaultHeaders = headers;
 }
 
 /**
@@ -151,7 +139,7 @@ function setMinaDefaultHeaders(headers: HeadersInit) {
  * @param headers Arbitrary sized headers to be used for all Mina Archive node GraphQL requests.
  */
 function setArchiveDefaultHeaders(headers: HeadersInit) {
-  archiveDefaultHeaders = headers;
+  networkConfig.archiveDefaultHeaders = headers;
 }
 
 function setGraphqlEndpoints([
@@ -161,13 +149,17 @@ function setGraphqlEndpoints([
   setGraphqlEndpoint(graphqlEndpoint);
   setMinaGraphqlFallbackEndpoints(fallbackEndpoints);
 }
-function setGraphqlEndpoint(graphqlEndpoint: string) {
+function setGraphqlEndpoint(
+  graphqlEndpoint: string,
+  minaDefaultHeaders?: HeadersInit
+) {
   if (!checkForValidUrl(graphqlEndpoint)) {
     throw new Error(
       `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
     );
   }
   networkConfig.minaEndpoint = graphqlEndpoint;
+  if (minaDefaultHeaders) setMinaDefaultHeaders(minaDefaultHeaders);
 }
 function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
   if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
@@ -182,13 +174,17 @@ function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
  * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
  *
  */
-function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
+function setArchiveGraphqlEndpoint(
+  graphqlEndpoint: string,
+  archiveDefaultHeaders?: HeadersInit
+) {
   if (!checkForValidUrl(graphqlEndpoint)) {
     throw new Error(
       `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
     );
   }
   networkConfig.archiveEndpoint = graphqlEndpoint;
+  if (archiveDefaultHeaders) setArchiveDefaultHeaders(archiveDefaultHeaders);
 }
 function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
   if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
@@ -250,7 +246,7 @@ async function fetchAccount(
     graphqlEndpoint,
     {
       timeout,
-      headers,
+      headers: { ...networkConfig.minaDefaultHeaders, ...headers },
     }
   );
 }
@@ -519,7 +515,7 @@ async function fetchLastBlock(
     lastBlockQuery,
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
-    { headers }
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   let lastBlock = resp?.data?.bestChain?.[0];
@@ -549,7 +545,7 @@ async function fetchCurrentSlot(
     currentSlotQuery,
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
-    { headers }
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data?.bestChain;
@@ -671,7 +667,7 @@ async function fetchTransactionStatus(
     transactionStatusQuery(txId),
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
-    { headers }
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   let txStatus = resp?.data?.transactionStatus;
@@ -695,7 +691,7 @@ function sendZkapp(
     networkConfig.minaFallbackEndpoints,
     {
       timeout,
-      headers,
+      headers: { ...networkConfig.minaDefaultHeaders, ...headers },
     }
   );
 }
@@ -736,7 +732,7 @@ async function fetchEvents(
     ),
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints,
-    { headers }
+    { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   let fetchedEvents = response?.data.events;
@@ -807,7 +803,7 @@ async function fetchActions(
     getActionsQuery(publicKey, actionStates, tokenId),
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints,
-    { headers }
+    { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
   );
   // As of 2025-01-07, minascan is running a version of the node which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
   // We could consider removing this fallback since no other nodes are widely used
@@ -823,7 +819,7 @@ async function fetchActions(
       ),
       graphqlEndpoint,
       networkConfig.archiveFallbackEndpoints,
-      { headers } // Should we pass headers to other nodes?
+      { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
     );
     if (error)
       throw Error(
@@ -951,7 +947,7 @@ async function fetchGenesisConstants(
     genesisConstantsQuery,
     graphqlEndpoint,
     networkConfig.minaFallbackEndpoints,
-    { headers }
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   const genesisConstants = resp?.data?.genesisConstants;
@@ -1130,7 +1126,6 @@ async function makeGraphqlRequest<TDataResponse = any>(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(isArchiveUrl(url) ? archiveDefaultHeaders : minaDefaultHeaders),
           ...headers,
         },
         body,
