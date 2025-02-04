@@ -68,7 +68,7 @@ const ecdsaEthers = ZkProgram({
  * We can also use a different hash function with ECDSA, like SHA-256.
  */
 const sha256AndEcdsa = ZkProgram({
-  name: 'ecdsa',
+  name: 'ecdsa-sha256',
   publicInput: Bytes32,
   publicOutput: Bool,
 
