@@ -1,8 +1,17 @@
 import { PrivateKey, TokenId } from 'o1js';
-import { createActionsList } from './fetch.js';
+import {
+  createActionsList,
+  fetchAccount,
+  fetchActions,
+  fetchEvents,
+  setArchiveDefaultHeaders,
+  setArchiveGraphqlEndpoint,
+  setGraphqlEndpoint,
+  setMinaDefaultHeaders,
+} from './fetch.js';
 import { mockFetchActionsResponse as fetchResponseWithTxInfo } from './fixtures/fetch-actions-response-with-transaction-info.js';
 import { mockFetchActionsResponse as fetchResponseNoTxInfo } from './fixtures/fetch-actions-response-without-transaction-info.js';
-import { test, describe } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import { removeJsonQuotes } from './graphql.js';
 import { expect } from 'expect';
 
@@ -180,6 +189,175 @@ describe('Fetch', () => {
         expect(actionsList.map(({ hash }) => hash)).toEqual(
           correctActionsHashes
         );
+      });
+    });
+  });
+
+  const minaEndpoint = 'https://mina.dummy/graphql';
+  const archiveEndpoint = 'https://archive.dummy/graphql';
+
+  describe('Testing fetch headers', () => {
+    let originalFetch: typeof global.fetch;
+    let lastFetchOptions: any = null;
+
+    beforeEach(() => {
+      originalFetch = global.fetch;
+      lastFetchOptions = undefined;
+      global.fetch = ((
+        input: RequestInfo | URL,
+        init?: RequestInit
+      ): Promise<Response> => {
+        lastFetchOptions = init;
+        let url: string;
+        if (typeof input === 'string') {
+          url = input;
+        } else if (input instanceof URL) {
+          url = input.toString();
+        } else {
+          url = input.url;
+        }
+
+        if (url.includes('archive.dummy')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              data: {
+                events: [],
+              },
+            }),
+          } as Response);
+        } else {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              data: {},
+            }),
+          } as Response);
+        }
+      }) as typeof fetch;
+
+      setGraphqlEndpoint(minaEndpoint);
+      setArchiveGraphqlEndpoint(archiveEndpoint);
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    test('Mina default headers with per request headers', async () => {
+      setMinaDefaultHeaders({ Authorization: 'Bearer mina-default-token' });
+      const perRequestHeaders = { 'X-Custom': 'custom-value' };
+      await fetchAccount(
+        { publicKey: PrivateKey.random().toPublicKey().toBase58() },
+        minaEndpoint,
+        {
+          headers: perRequestHeaders,
+        }
+      );
+
+      expect(lastFetchOptions.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mina-default-token',
+        'X-Custom': 'custom-value',
+      });
+    });
+
+    test('Per request headers overrides default headers', async () => {
+      setMinaDefaultHeaders({ Authorization: 'Bearer mina-default-token' });
+
+      const perRequestHeaders = {
+        Authorization: 'Bearer override-token',
+        'X-Test': 'value',
+      };
+      await fetchAccount(
+        { publicKey: PrivateKey.random().toPublicKey().toBase58() },
+        minaEndpoint,
+        {
+          headers: perRequestHeaders,
+        }
+      );
+
+      expect(lastFetchOptions.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer override-token',
+        'X-Test': 'value',
+      });
+    });
+
+    test('Archive default headers with per request headers', async () => {
+      setArchiveDefaultHeaders({
+        Authorization: 'Bearer archive-default-token',
+      });
+
+      const perRequestHeaders = { 'X-Another': 'another-value' };
+      await fetchEvents(
+        { publicKey: PrivateKey.random().toPublicKey().toBase58() },
+        archiveEndpoint,
+        {},
+        perRequestHeaders
+      );
+
+      expect(lastFetchOptions.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer archive-default-token',
+        'X-Another': 'another-value',
+      });
+    });
+
+    test('Only default and base headers are used', async () => {
+      setMinaDefaultHeaders({
+        'X-Default': 'default-header',
+        Authorization: 'Bearer mina-default-token',
+      });
+      await fetchAccount(
+        { publicKey: PrivateKey.random().toPublicKey().toBase58() },
+        minaEndpoint,
+        {}
+      );
+
+      expect(lastFetchOptions.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        'X-Default': 'default-header',
+        Authorization: 'Bearer mina-default-token',
+      });
+    });
+
+    test('Default and per request headers are used for fetchActions', async () => {
+      setMinaDefaultHeaders({
+        'X-Default': 'default-header',
+      });
+
+      const perRequestHeaders = {
+        Authorization: 'Bearer archive-default-token',
+      };
+      await fetchActions(
+        {
+          publicKey: PrivateKey.random().toPublicKey().toBase58(),
+          actionStates: {
+            fromActionState: '',
+            endActionState: '',
+          },
+        },
+        minaEndpoint,
+        perRequestHeaders
+      );
+
+      expect(lastFetchOptions.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        'X-Default': 'default-header',
+        Authorization: 'Bearer archive-default-token',
+      });
+    });
+
+    test('Only base headers are used', async () => {
+      await fetchAccount(
+        { publicKey: PrivateKey.random().toPublicKey().toBase58() },
+        minaEndpoint,
+        {}
+      );
+
+      expect(lastFetchOptions.headers).toMatchObject({
+        'Content-Type': 'application/json',
       });
     });
   });
