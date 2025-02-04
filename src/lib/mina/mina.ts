@@ -409,7 +409,8 @@ function Network(
     async fetchEvents(
       publicKey: PublicKey,
       tokenId: Field = TokenId.default,
-      filterOptions: EventActionFilterOptions = {}
+      filterOptions: EventActionFilterOptions = {},
+      headers?: HeadersInit
     ) {
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
@@ -417,13 +418,15 @@ function Network(
       return Fetch.fetchEvents(
         { publicKey: pubKey, tokenId: token },
         archiveEndpoint,
-        filterOptions
+        filterOptions,
+        headers
       );
     },
     async fetchActions(
       publicKey: PublicKey,
       actionStates?: ActionStates,
-      tokenId: Field = TokenId.default
+      tokenId: Field = TokenId.default,
+      headers?: HeadersInit
     ) {
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
@@ -444,7 +447,8 @@ function Network(
           },
           tokenId: token,
         },
-        archiveEndpoint
+        archiveEndpoint,
+        headers
       );
     },
     getActions(
@@ -509,7 +513,10 @@ function dummyAccount(pubkey?: PublicKey): Account {
   return dummy;
 }
 
-async function waitForFunding(address: string): Promise<void> {
+async function waitForFunding(
+  address: string,
+  headers?: HeadersInit
+): Promise<void> {
   let attempts = 0;
   let maxAttempts = 30;
   let interval = 30000;
@@ -517,7 +524,11 @@ async function waitForFunding(address: string): Promise<void> {
     resolve: () => void,
     reject: (err: Error) => void | Error
   ) => {
-    let { account } = await Fetch.fetchAccount({ publicKey: address });
+    let { account } = await Fetch.fetchAccount(
+      { publicKey: address },
+      undefined,
+      { headers }
+    );
     attempts++;
     if (account) {
       return resolve();
@@ -533,7 +544,11 @@ async function waitForFunding(address: string): Promise<void> {
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
  */
-async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
+async function faucet(
+  pub: PublicKey,
+  network: string = 'berkeley-qanet',
+  headers?: HeadersInit
+) {
   let address = pub.toBase58();
   let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
     method: 'POST',
@@ -549,7 +564,7 @@ async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
       `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
     );
   }
-  await waitForFunding(address);
+  await waitForFunding(address, headers);
 }
 
 function genesisToNetworkConstants(

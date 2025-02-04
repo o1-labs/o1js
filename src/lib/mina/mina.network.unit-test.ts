@@ -299,6 +299,7 @@ describe('Test network with headers', () => {
 
   it('Archive default headers with fetchActions', async () => {
     await Mina.fetchActions(bobAccount);
+
     expect(lastFetchOptions.headers).toMatchObject({
       'Content-Type': 'application/json',
       Authorization: 'Bearer archive-default-token',
@@ -308,10 +309,23 @@ describe('Test network with headers', () => {
 
   it('Archive default headers with fetchEvents', async () => {
     await Mina.fetchEvents(bobAccount, TokenId.empty());
+
     expect(lastFetchOptions.headers).toMatchObject({
       'Content-Type': 'application/json',
       Authorization: 'Bearer archive-default-token',
       'X-Test': 'archive-test',
+    });
+  });
+
+  it('Archive default headers with per request headers in fetchActions', async () => {
+    await Mina.fetchActions(bobAccount, undefined, undefined, {
+      'X-Test': 'per-request-test',
+    });
+
+    expect(lastFetchOptions.headers).toMatchObject({
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer archive-default-token',
+      'X-Test': 'per-request-test',
     });
   });
 });

@@ -565,7 +565,8 @@ async function fetchLatestBlockZkappStatus(
     await makeGraphqlRequest<LastBlockQueryFailureCheckResponse>(
       lastBlockQueryFailureCheck(blockLength),
       graphqlEndpoint,
-      networkConfig.minaFallbackEndpoints
+      networkConfig.minaFallbackEndpoints,
+      { headers: networkConfig.minaDefaultHeaders }
     );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data;
