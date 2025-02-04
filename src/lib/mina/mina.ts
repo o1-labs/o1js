@@ -105,16 +105,20 @@ function Network(options: {
   archive?: string | string[];
   lightnetAccountManager?: string;
   bypassTransactionLimits?: boolean;
+  minaDefaultHeaders?: HeadersInit;
+  archiveDefaultHeaders?: HeadersInit;
 }): Mina;
 function Network(
   options:
     | {
-      networkId?: NetworkId;
-      mina: string | string[];
-      archive?: string | string[];
-      lightnetAccountManager?: string;
-      bypassTransactionLimits?: boolean;
-    }
+        networkId?: NetworkId;
+        mina: string | string[];
+        archive?: string | string[];
+        lightnetAccountManager?: string;
+        bypassTransactionLimits?: boolean;
+        minaDefaultHeaders?: HeadersInit;
+        archiveDefaultHeaders?: HeadersInit;
+      }
     | string
 ): Mina {
   let minaNetworkId: NetworkId = 'devnet';
@@ -136,21 +140,27 @@ function Network(
       );
     if (Array.isArray(options.mina) && options.mina.length !== 0) {
       minaGraphqlEndpoint = options.mina[0];
-      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint, options.minaDefaultHeaders);
       Fetch.setMinaGraphqlFallbackEndpoints(options.mina.slice(1));
     } else if (typeof options.mina === 'string') {
       minaGraphqlEndpoint = options.mina;
-      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint, options.minaDefaultHeaders);
     }
 
     if (options.archive !== undefined) {
       if (Array.isArray(options.archive) && options.archive.length !== 0) {
         archiveEndpoint = options.archive[0];
-        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+        Fetch.setArchiveGraphqlEndpoint(
+          archiveEndpoint,
+          options.archiveDefaultHeaders
+        );
         Fetch.setArchiveGraphqlFallbackEndpoints(options.archive.slice(1));
       } else if (typeof options.archive === 'string') {
         archiveEndpoint = options.archive;
-        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+        Fetch.setArchiveGraphqlEndpoint(
+          archiveEndpoint,
+          options.archiveDefaultHeaders
+        );
       }
     }
 
@@ -162,8 +172,10 @@ function Network(
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
     }
 
-    if (options.bypassTransactionLimits !== undefined &&
-      typeof options.bypassTransactionLimits === 'boolean') {
+    if (
+      options.bypassTransactionLimits !== undefined &&
+      typeof options.bypassTransactionLimits === 'boolean'
+    ) {
       enforceTransactionLimits = !options.bypassTransactionLimits;
     }
   } else {
@@ -282,8 +294,8 @@ function Network(
           data: response?.data,
           errors: updatedErrors,
           transaction: txn.transaction,
-          setFee : txn.setFee,
-          setFeePerSnarkCost : txn.setFeePerSnarkCost,
+          setFee: txn.setFee,
+          setFeePerSnarkCost: txn.setFeePerSnarkCost,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,
