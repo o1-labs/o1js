@@ -10,7 +10,7 @@ import {
   TypeMap,
 } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import { ProvableExtended } from '../provable/types/struct.js';
+import { ProvableExtended } from '../provable/types/provable-derivers.js';
 import { FetchedAccount } from './graphql.js';
 
 export { Account, PartialAccount };

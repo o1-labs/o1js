@@ -1,4 +1,3 @@
-import { InferProvable } from '../../provable/types/struct.js';
 import {
   Actionable,
   fetchMerkleLeaves,
@@ -28,6 +27,7 @@ import { contract } from '../smart-contract-context.js';
 import { IndexedMerkleMap } from '../../provable/merkle-tree-indexed.js';
 import { assertDefined } from '../../util/assert.js';
 import { ProvableType } from '../../provable/types/provable-intf.js';
+import { InferProvable } from '../../provable/types/provable-derivers.js';
 
 // external API
 export { OffchainState, OffchainStateCommitments };
@@ -320,11 +320,8 @@ function OffchainState<
       let value = await Provable.witnessAsync(optionType, async () => {
         let { valueMap } = await merkleMaps();
         let valueFields = valueMap.get(key.toBigInt());
-        if (valueFields === undefined) {
-          return optionType.none();
-        }
-        let value = fromActionWithoutHashes(valueType, valueFields);
-        return optionType.from(value);
+        if (valueFields === undefined) return undefined;
+        return fromActionWithoutHashes(valueType, valueFields);
       });
 
       // assert that the value hash matches the value, or both are none

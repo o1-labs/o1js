@@ -1,9 +1,7 @@
-import {
+import type {
   Provable,
   ProvableHashable,
   ProvablePure,
-  ProvableType,
-  ToProvable,
 } from './provable-intf.js';
 import type { Field } from '../wrapped.js';
 import {
@@ -21,29 +19,29 @@ import {
   InferValueNested,
   InferProvableNested,
 } from '../../../bindings/lib/provable-generic.js';
-import { Tuple } from '../../util/types.js';
-import { GenericHashInput } from '../../../bindings/lib/generic.js';
+import type { Tuple } from '../../util/types.js';
+import type { GenericHashInput } from '../../../bindings/lib/generic.js';
 
 // external API
 export {
-  ProvableExtended,
-  ProvableInferPureFrom,
+  type ProvableExtended,
+  type ProvablePureExtended,
+  type ProvableInferPureFrom,
   provable,
   provablePure,
   provableTuple,
   provableFromClass,
   provableExtends,
+  type InferProvable,
+  type IsPure,
 };
 
 // internal API
 export {
   NonMethods,
   HashInput,
-  InferProvable,
-  InferProvableType,
   InferJson,
   InferredProvable,
-  IsPure,
   NestedProvable,
   mapValue,
 };
@@ -63,7 +61,6 @@ type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
   ProvableExtension<T, TJson>;
 
 type InferProvable<T> = GenericInferProvable<T, Field>;
-type InferProvableType<T extends ProvableType> = InferProvable<ToProvable<T>>;
 type InferredProvable<T> = GenericInferredProvable<T, Field>;
 type IsPure<T> = GenericIsPure<T, Field>;
 type ProvableInferPureFrom<A, T, V> = IsPure<A> extends true
