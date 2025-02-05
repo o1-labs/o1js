@@ -65,7 +65,7 @@ if (withPickles) {
   toc();
 
   tic('prove');
-  let p = await circuit.run();
+  let { proof: p } = await circuit.run();
   toc();
 
   tic('verify');

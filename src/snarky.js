@@ -3,11 +3,17 @@ import { wasm, withThreadPool } from './bindings/js/node/node-backend.js';
 
 let Snarky, Ledger, Pickles, Test_;
 let isInitialized = false;
+let initializingPromise;
 
 async function initializeBindings() {
   if (isInitialized) return;
-  isInitialized = true;
+  if (initializingPromise) {
+    await initializingPromise;
+    return;
+  }
   let snarky;
+  let resolve;
+  initializingPromise = new Promise((r) => (resolve = r));
 
   // this dynamic import makes jest respect the import order
   // otherwise the cjs file gets imported before its implicit esm dependencies and fails
@@ -18,6 +24,9 @@ async function initializeBindings() {
     await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')
   ).default;
   ({ Snarky, Ledger, Pickles, Test: Test_ } = snarky);
+  resolve();
+  initializingPromise = undefined;
+  isInitialized = true;
 }
 
 async function Test() {
@@ -33,4 +42,5 @@ export {
   withThreadPool,
   wasm,
   initializeBindings,
+  isInitialized as areBindingsInitialized,
 };

@@ -28,7 +28,9 @@ const sideloadedProgram = ZkProgram({
     compute: {
       privateInputs: [Field],
       async method(publicInput: Field, privateInput: Field) {
-        return publicInput.add(privateInput);
+        return {
+          publicOutput: publicInput.add(privateInput),
+        };
       },
     },
     assertAndAdd: {
@@ -36,7 +38,7 @@ const sideloadedProgram = ZkProgram({
       async method(publicInput: Field, privateInput: Field) {
         // this uses assert to test range check gates and their feature flags
         publicInput.assertLessThanOrEqual(privateInput);
-        return publicInput.add(privateInput);
+        return { publicOutput: publicInput.add(privateInput) };
       },
     },
   },
@@ -82,10 +84,12 @@ const mainProgram = ZkProgram({
         );
         const newRoot = merkleWitness.calculateRoot(vk.hash);
 
-        return new MainProgramState({
-          state: publicInput.state,
-          treeRoot: newRoot,
-        });
+        return {
+          publicOutput: new MainProgramState({
+            state: publicInput.state,
+            treeRoot: newRoot,
+          }),
+        };
       },
     },
     validateUsingTree: {
@@ -118,10 +122,12 @@ const mainProgram = ZkProgram({
         // Compute new state
         proof.publicInput.assertEquals(publicInput.state);
         const newState = proof.publicOutput;
-        return new MainProgramState({
-          treeRoot: publicInput.treeRoot,
-          state: newState,
-        });
+        return {
+          publicOutput: new MainProgramState({
+            treeRoot: publicInput.treeRoot,
+            state: newState,
+          }),
+        };
       },
     },
   },
@@ -136,7 +142,7 @@ const rootBefore = tree.getRoot();
 tree.setLeaf(1n, programVk.hash);
 const witness = new MerkleTreeWitness(tree.getWitness(1n));
 
-const proof1 = await mainProgram.addSideloadedProgram(
+const { proof: proof1 } = await mainProgram.addSideloadedProgram(
   new MainProgramState({
     treeRoot: rootBefore,
     state: Field(0),
@@ -146,10 +152,13 @@ const proof1 = await mainProgram.addSideloadedProgram(
 );
 
 console.log('Proving child program execution');
-const childProof = await sideloadedProgram.compute(Field(0), Field(10));
+const { proof: childProof } = await sideloadedProgram.compute(
+  Field(0),
+  Field(10)
+);
 
 console.log('Proving verification inside main program');
-const proof2 = await mainProgram.validateUsingTree(
+const { proof: proof2 } = await mainProgram.validateUsingTree(
   proof1.publicOutput,
   proof1,
   programVk,
@@ -161,7 +170,10 @@ const validProof2 = await verify(proof2, mainVk);
 console.log('ok?', validProof2);
 
 console.log('Proving different method of child program');
-const childProof2 = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
+const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(
+  Field(0),
+  Field(10)
+);
 
 console.log('Proving verification inside main program');
 const proof3 = await mainProgram.validateUsingTree(

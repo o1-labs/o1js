@@ -16,7 +16,7 @@ let mlTest = await Test();
 let address = PrivateKey.random().toPublicKey();
 
 function createAccountUpdate() {
-  let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+  let accountUpdate = AccountUpdate.default(address);
   accountUpdate.body.balanceChange = Int64.from(1e9).neg();
   return accountUpdate;
 }
@@ -24,7 +24,7 @@ function createAccountUpdate() {
 function createAccountUpdateWithMayUseToken(
   mayUseToken: AccountUpdate['body']['mayUseToken']
 ) {
-  let accountUpdate = AccountUpdate.defaultAccountUpdate(address);
+  let accountUpdate = AccountUpdate.default(address);
   accountUpdate.body.mayUseToken = mayUseToken;
   return accountUpdate;
 }

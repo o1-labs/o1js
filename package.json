@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "1.8.0",
+  "version": "2.2.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -64,17 +64,19 @@
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
     "test:e2e": "rimraf ./tests/report && rimraf ./tests/test-artifacts && npx playwright test",
+    "test:all": "./run-all-local-tests.sh",
     "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2e-tests-build-helper.js && cp -rf src/examples/plain-html/index.html src/examples/plain-html/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
     "e2e:run-server": "node dist/web/server.js",
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report",
-    "update-changelog": "./update-changelog.sh"
+    "update-changelog": "./update-changelog.sh",
+    "checkCommit": "./src/bindings/scripts/check-commit.sh"
   },
   "author": "O(1) Labs",
   "devDependencies": {
     "@influxdata/influxdb-client": "^1.33.2",
     "@noble/hashes": "^1.3.2",
-    "@playwright/test": "^1.25.2",
+    "@playwright/test": "^1.48.0",
     "@types/isomorphic-fetch": "^0.0.36",
     "@types/jest": "^27.0.0",
     "@types/node": "^18.14.2",
@@ -93,9 +95,9 @@
     "replace-in-file": "^6.3.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.8",
-    "typedoc": "^0.25.8",
-    "typedoc-plugin-markdown": "^4.0.0-next.53",
-    "typedoc-plugin-merge-modules": "^5.1.0",
+    "typedoc": "^0.27",
+    "typedoc-plugin-markdown": "^4.4",
+    "typedoc-plugin-merge-modules": "^6.1",
     "typescript": "^5.4.5"
   },
   "dependencies": {

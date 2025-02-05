@@ -89,7 +89,7 @@ function getApprovedUpdate(
     self.approve(child);
   }
   if (child instanceof PublicKey) {
-    child = AccountUpdate.defaultAccountUpdate(child, tokenId);
+    child = AccountUpdate.default(child, tokenId);
     self.approve(child);
   }
   if (!child.label) child.label = `${self.label ?? 'Unlabeled'}.${label}`;

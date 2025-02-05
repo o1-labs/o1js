@@ -12,9 +12,9 @@ import type {
   IsPure,
 } from './provable-derivers.js';
 import { Provable } from '../provable.js';
-import { DynamicProof, Proof } from '../../proof-system/zkprogram.js';
 import { ProvablePure, ProvableType } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
+import { DynamicProof, Proof } from '../../proof-system/proof.js';
 
 // external API
 export {
@@ -71,6 +71,7 @@ type AnyConstructor = Constructor<any>;
  * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
  * or as event / action types.
  *
+ * @example
  * Here's an example of creating a "Voter" struct, which holds a public key and a collection of votes on 3 different proposals:
  * ```ts
  * let Vote = { hasVoted: Bool, inFavor: Bool };
@@ -131,10 +132,9 @@ type AnyConstructor = Constructor<any>;
  * Again, it's important to note that this doesn't enable you to prove anything about the `fullName` string.
  * From the circuit point of view, it simply doesn't exist!
  *
- * @note Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
+ * **Note**: Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
  *
  * @param type Object specifying the layout of the `Struct`
- * @param options Advanced option which allows you to force a certain order of object keys
  * @returns Class which you can extend
  */
 function Struct<
@@ -159,7 +159,7 @@ function Struct<
   } {
   class Struct_ {
     static type = provable<A>(type);
-    static _isStruct: true;
+    static _isStruct: true = true;
 
     constructor(value: T) {
       Object.assign(this, value);
@@ -229,6 +229,15 @@ function Struct<
      */
     static check(value: T) {
       return this.type.check(value);
+    }
+
+    /**
+     * `Provable<T>.toCanonical()`
+     */
+    static toCanonical(value: T): T {
+      let canonical = this.type.toCanonical?.(value) ?? value;
+      let struct = Object.create(this.prototype);
+      return Object.assign(struct, canonical);
     }
 
     /**

@@ -104,6 +104,9 @@ function Network(options: {
   mina: string | string[];
   archive?: string | string[];
   lightnetAccountManager?: string;
+  bypassTransactionLimits?: boolean;
+  minaDefaultHeaders?: HeadersInit;
+  archiveDefaultHeaders?: HeadersInit;
 }): Mina;
 function Network(
   options:
@@ -112,13 +115,17 @@ function Network(
         mina: string | string[];
         archive?: string | string[];
         lightnetAccountManager?: string;
+        bypassTransactionLimits?: boolean;
+        minaDefaultHeaders?: HeadersInit;
+        archiveDefaultHeaders?: HeadersInit;
       }
     | string
 ): Mina {
-  let minaNetworkId: NetworkId = 'testnet';
+  let minaNetworkId: NetworkId = 'devnet';
   let minaGraphqlEndpoint: string;
   let archiveEndpoint: string;
   let lightnetAccountManagerEndpoint: string;
+  let enforceTransactionLimits: boolean = true;
 
   if (options && typeof options === 'string') {
     minaGraphqlEndpoint = options;
@@ -133,21 +140,27 @@ function Network(
       );
     if (Array.isArray(options.mina) && options.mina.length !== 0) {
       minaGraphqlEndpoint = options.mina[0];
-      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint, options.minaDefaultHeaders);
       Fetch.setMinaGraphqlFallbackEndpoints(options.mina.slice(1));
     } else if (typeof options.mina === 'string') {
       minaGraphqlEndpoint = options.mina;
-      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint);
+      Fetch.setGraphqlEndpoint(minaGraphqlEndpoint, options.minaDefaultHeaders);
     }
 
     if (options.archive !== undefined) {
       if (Array.isArray(options.archive) && options.archive.length !== 0) {
         archiveEndpoint = options.archive[0];
-        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+        Fetch.setArchiveGraphqlEndpoint(
+          archiveEndpoint,
+          options.archiveDefaultHeaders
+        );
         Fetch.setArchiveGraphqlFallbackEndpoints(options.archive.slice(1));
       } else if (typeof options.archive === 'string') {
         archiveEndpoint = options.archive;
-        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint);
+        Fetch.setArchiveGraphqlEndpoint(
+          archiveEndpoint,
+          options.archiveDefaultHeaders
+        );
       }
     }
 
@@ -157,6 +170,13 @@ function Network(
     ) {
       lightnetAccountManagerEndpoint = options.lightnetAccountManager;
       Fetch.setLightnetAccountManagerEndpoint(lightnetAccountManagerEndpoint);
+    }
+
+    if (
+      options.bypassTransactionLimits !== undefined &&
+      typeof options.bypassTransactionLimits === 'boolean'
+    ) {
+      enforceTransactionLimits = !options.bypassTransactionLimits;
     }
   } else {
     throw new Error(
@@ -251,7 +271,7 @@ function Network(
     },
     sendTransaction(txn) {
       return toPendingTransactionPromise(async () => {
-        verifyTransactionLimits(txn.transaction);
+        if (enforceTransactionLimits) verifyTransactionLimits(txn.transaction);
 
         let [response, error] = await Fetch.sendZkapp(txn.toJSON());
         let errors: string[] = [];
@@ -274,6 +294,8 @@ function Network(
           data: response?.data,
           errors: updatedErrors,
           transaction: txn.transaction,
+          setFee: txn.setFee,
+          setFeePerSnarkCost: txn.setFeePerSnarkCost,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,
@@ -387,7 +409,8 @@ function Network(
     async fetchEvents(
       publicKey: PublicKey,
       tokenId: Field = TokenId.default,
-      filterOptions: EventActionFilterOptions = {}
+      filterOptions: EventActionFilterOptions = {},
+      headers?: HeadersInit
     ) {
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
@@ -395,13 +418,15 @@ function Network(
       return Fetch.fetchEvents(
         { publicKey: pubKey, tokenId: token },
         archiveEndpoint,
-        filterOptions
+        filterOptions,
+        headers
       );
     },
     async fetchActions(
       publicKey: PublicKey,
       actionStates?: ActionStates,
-      tokenId: Field = TokenId.default
+      tokenId: Field = TokenId.default,
+      headers?: HeadersInit
     ) {
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
@@ -422,7 +447,8 @@ function Network(
           },
           tokenId: token,
         },
-        archiveEndpoint
+        archiveEndpoint,
+        headers
       );
     },
     getActions(
@@ -487,7 +513,10 @@ function dummyAccount(pubkey?: PublicKey): Account {
   return dummy;
 }
 
-async function waitForFunding(address: string): Promise<void> {
+async function waitForFunding(
+  address: string,
+  headers?: HeadersInit
+): Promise<void> {
   let attempts = 0;
   let maxAttempts = 30;
   let interval = 30000;
@@ -495,7 +524,11 @@ async function waitForFunding(address: string): Promise<void> {
     resolve: () => void,
     reject: (err: Error) => void | Error
   ) => {
-    let { account } = await Fetch.fetchAccount({ publicKey: address });
+    let { account } = await Fetch.fetchAccount(
+      { publicKey: address },
+      undefined,
+      { headers }
+    );
     attempts++;
     if (account) {
       return resolve();
@@ -511,7 +544,11 @@ async function waitForFunding(address: string): Promise<void> {
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
  */
-async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
+async function faucet(
+  pub: PublicKey,
+  network: string = 'berkeley-qanet',
+  headers?: HeadersInit
+) {
   let address = pub.toBase58();
   let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
     method: 'POST',
@@ -527,7 +564,7 @@ async function faucet(pub: PublicKey, network: string = 'berkeley-qanet') {
       `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
     );
   }
-  await waitForFunding(address);
+  await waitForFunding(address, headers);
 }
 
 function genesisToNetworkConstants(

@@ -32,8 +32,8 @@ let MyProgram = ZkProgram({
 // type sanity checks
 MyProgram.publicInputType satisfies typeof Field;
 MyProgram.publicOutputType satisfies Provable<void>;
-
-let MyProof = ZkProgram.Proof(MyProgram);
+MyProgram.privateInputTypes;
+MyProgram.auxiliaryOutputTypes;
 
 console.log('program digest', await MyProgram.digest());
 
@@ -42,8 +42,8 @@ let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
 console.log('proving base case...');
-let proof = await MyProgram.baseCase(Field(0));
-proof = await testJsonRoundtrip(MyProof, proof);
+let { proof } = await MyProgram.baseCase(Field(0));
+proof = await testJsonRoundtrip(MyProgram.Proof, proof);
 
 // type sanity check
 proof satisfies Proof<Field, void>;
@@ -57,25 +57,25 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
-proof = await MyProgram.inductiveCase(Field(1), proof);
-proof = await testJsonRoundtrip(MyProof, proof);
+let { proof: proof1 } = await MyProgram.inductiveCase(Field(1), proof);
+proof1 = await testJsonRoundtrip(MyProgram.Proof, proof1);
 
 console.log('verify...');
-ok = await verify(proof, verificationKey);
+ok = await verify(proof1, verificationKey);
 console.log('ok?', ok);
 
 console.log('verify alternative...');
-ok = await MyProgram.verify(proof);
+ok = await MyProgram.verify(proof1);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
-proof = await MyProgram.inductiveCase(Field(2), proof);
-proof = await testJsonRoundtrip(MyProof, proof);
+let { proof: proof2 } = await MyProgram.inductiveCase(Field(2), proof1);
+proof2 = await testJsonRoundtrip(MyProgram.Proof, proof2);
 
 console.log('verify...');
-ok = await verify(proof.toJSON(), verificationKey);
+ok = await verify(proof2.toJSON(), verificationKey);
 
-console.log('ok?', ok && proof.publicInput.toString() === '2');
+console.log('ok?', ok && proof2.publicInput.toString() === '2');
 
 function testJsonRoundtrip<
   P extends Proof<any, any>,

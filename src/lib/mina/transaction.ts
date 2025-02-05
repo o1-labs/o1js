@@ -11,7 +11,8 @@ import {
 import { Field } from '../provable/wrapped.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { UInt32, UInt64 } from '../provable/int.js';
-import { Empty, Proof } from '../proof-system/zkprogram.js';
+import { Empty } from '../proof-system/zkprogram.js';
+import { Proof } from '../proof-system/proof.js';
 import { currentTransaction } from './transaction-context.js';
 import { Provable } from '../provable/provable.js';
 import { assertPreconditionInvariants } from './precondition.js';
@@ -22,6 +23,7 @@ import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
 import { assertPromise } from '../util/assert.js';
 import { Types } from '../../bindings/mina-transaction/types.js';
+import { getTotalTimeRequired } from './transaction-validation.js';
 
 export {
   Transaction,
@@ -113,6 +115,25 @@ type Transaction<
    * ```
    */
   safeSend(): Promise<PendingTransaction | RejectedTransaction>;
+
+  /**
+   * Modifies a transaction to set the fee to the new fee provided. Because this change invalidates proofs and signatures both are removed. The nonce is not increased so sending both transitions will not risk both being accepted.
+   * @returns {TransactionPromise<false,false>} The same transaction with the new fee and the proofs and signatures removed.
+   * @example
+   * ```ts
+   * tx.send();
+   * // Waits for some time and decide to resend with a higher fee
+   *
+   * tx.setFee(newFee);
+   * await tx.sign([feePayerKey]));
+   * await tx.send();
+   * ```
+   */
+  setFee(newFee:UInt64) : TransactionPromise<Proven,false>;
+  /**
+   * setFeePerSnarkCost behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
+   */
+  setFeePerSnarkCost(newFeePerSnarkCost:number) : TransactionPromise<Proven,false>;
 } & (Proven extends false
     ? {
         /**
@@ -249,6 +270,15 @@ type PendingTransaction = Pick<
    * ```
    */
   errors: string[];
+
+  /**
+   * setFee is the same as {@link Transaction.setFee(newFee)} but for a {@link PendingTransaction}.
+   */
+  setFee(newFee:UInt64):TransactionPromise<boolean,false>;
+  /**
+   * setFeePerSnarkCost is the same as {@link Transaction.setFeePerSnarkCost(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
+   */
+  setFeePerSnarkCost(newFeePerSnarkCost:number):TransactionPromise<boolean,false>;
 };
 
 /**
@@ -542,6 +572,26 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
         );
       }
       return pendingTransaction;
+    },
+    setFeePerSnarkCost(newFeePerSnarkCost:number) {
+      let {totalTimeRequired} = getTotalTimeRequired(transaction.accountUpdates);
+      return this.setFee(new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost)));
+    },
+    setFee(newFee:UInt64) {
+      return  toTransactionPromise(async () =>
+      {
+        self = self as Transaction<false,false>;
+        self.transaction.accountUpdates.forEach( au => {
+          if (au.body.useFullCommitment.toBoolean())
+          {
+            au.authorization.signature = undefined;
+            au.lazyAuthorization = {kind:'lazy-signature'};
+          }
+          });
+        self.transaction.feePayer.body.fee = newFee;
+        self.transaction.feePayer.lazyAuthorization = {kind : 'lazy-signature'};
+        return self
+      });
     },
   };
   return self;
