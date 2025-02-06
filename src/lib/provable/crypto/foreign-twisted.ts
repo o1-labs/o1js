@@ -1,7 +1,7 @@
 import {
   TwistedCurveParams,
-  createCurveTwisted,
-  CurveTwisted,
+  createAffineTwistedCurve,
+  AffineTwistedCurve,
 } from '../../../bindings/crypto/elliptic-curve.js';
 import type { Group } from '../group.js';
 import { ProvablePureExtended } from '../types/struct.js';
@@ -150,7 +150,7 @@ class ForeignTwisted {
    * Convert this curve point to a point with bigint coordinates.
    */
   toBigint() {
-    return this.Constructor.Bigint.fromNonzero({
+    return this.Constructor.Bigint.from({
       x: this.x.toBigInt(),
       y: this.y.toBigInt(),
     });
@@ -231,7 +231,7 @@ class ForeignTwisted {
   get Constructor() {
     return this.constructor as typeof ForeignTwisted;
   }
-  static _Bigint?: CurveTwisted;
+  static _Bigint?: AffineTwistedCurve;
   static _Field?: typeof AlmostForeignField;
   static _Scalar?: typeof AlmostForeignField;
   static _provable?: ProvablePureExtended<
@@ -298,7 +298,7 @@ function createForeignTwisted(
   class Field extends FieldUnreduced.AlmostReduced {}
   class Scalar extends ScalarUnreduced.AlmostReduced {}
 
-  const BigintCurve = createCurveTwisted(params);
+  const BigintCurve = createAffineTwistedCurve(params);
 
   class Curve extends ForeignTwisted {
     static _Bigint = BigintCurve;
