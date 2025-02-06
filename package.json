@@ -59,7 +59,7 @@
     "dump-vks": "npm run build && ./run tests/vk-regression/vk-regression.ts --bundle --dump",
     "format": "prettier --write --ignore-unknown **/*",
     "format:check": "prettier --check --ignore-unknown **/*",
-    "format:husky": "prettier --check --ignore-unknown",
+    "format:husky": "prettier --write --ignore-unknown",
     "clean": "rimraf ./dist && rimraf ./src/bindings/compiled/_node_bindings",
     "clean-all": "npm run clean && rimraf ./tests/report && rimraf ./tests/test-artifacts",
     "lint": "npx oxlint",
