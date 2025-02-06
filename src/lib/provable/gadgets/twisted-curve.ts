@@ -25,12 +25,12 @@ import { Bytes } from '../bytes.js';
 import { Octets } from '../../util/octets.js';
 
 // external API
-export { CurveTwisted, Eddsa };
+export { TwistedCurve, Eddsa };
 
 // internal API
 export { Point, simpleMapToCurve, arrayGetGeneric, encode };
 
-const CurveTwisted = {
+const TwistedCurve = {
   add,
   double,
   negate,
@@ -138,7 +138,7 @@ function add(
 
   assert(
     Curve.modulus > l2Mask + 1n,
-    `Base field moduli smaller than ${l2Mask + 1n} are not supported`
+    'Base field moduli smaller than 2^176 are not supported'
   );
 
   // witness and range-check denominators, x3, y3
@@ -193,17 +193,8 @@ function add(
   let dx1x2y1y2 = ForeignField.mul(Field3.from(d), x1x2y1y2, f);
   // check denominators are correctly computed:
   // den = 1 / (1 +- d * x1^2 * y1^2)
-  Provable.equal(
-    Field3,
-    one,
-    ForeignField.mul(x3Den, ForeignField.add(one, dx1x2y1y2, f), f)
-  ).assertTrue();
-  Provable.equal(
-    Field3,
-    one,
-    ForeignField.mul(y3Den, ForeignField.sub(one, dx1x2y1y2, f), f)
-  ).assertTrue();
-
+  ForeignField.assertMul(x3Den, ForeignField.add(one, dx1x2y1y2, f), one, f);
+  ForeignField.assertMul(y3Den, ForeignField.sub(one, dx1x2y1y2, f), one, f);
   ForeignField.assertMul(x3Num, x3Den, x3, f);
   ForeignField.assertMul(y3Num, y3Den, y3, f);
 
@@ -268,17 +259,8 @@ function double(
   let dx1x1y1y1 = ForeignField.mul(Field3.from(d), x1x1y1y1, f);
   // check denominators are correctly computed:
   // den = 1 / (1 +- d * x1^2 * y1^2)
-  Provable.equal(
-    Field3,
-    one,
-    ForeignField.mul(x3Den, ForeignField.add(one, dx1x1y1y1, f), f)
-  ).assertTrue();
-  Provable.equal(
-    Field3,
-    one,
-    ForeignField.mul(y3Den, ForeignField.sub(one, dx1x1y1y1, f), f)
-  ).assertTrue();
-
+  ForeignField.assertMul(x3Den, ForeignField.add(one, dx1x1y1y1, f), one, f);
+  ForeignField.assertMul(y3Den, ForeignField.sub(one, dx1x1y1y1, f), one, f);
   ForeignField.assertMul(x3Num, x3Den, x3, f);
   ForeignField.assertMul(y3Num, y3Den, y3, f);
 

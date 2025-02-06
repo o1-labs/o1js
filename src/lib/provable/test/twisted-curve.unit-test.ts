@@ -12,7 +12,7 @@ import { Random } from '../../testing/random.js';
 import { assert } from '../gadgets/common.js';
 import {
   Point,
-  CurveTwisted,
+  TwistedCurve,
   simpleMapToCurve,
 } from '../gadgets/twisted-curve.js';
 import { foreignField, throwError } from './test-utils.js';
@@ -41,25 +41,25 @@ for (let Curve of curves) {
 
   equivalentProvable({ from: [point], to: unit, verbose: true })(
     (p) => Curve.isOnCurve(p) || throwError('expect on curve'),
-    (p) => CurveTwisted.assertOnCurve(p, Curve),
+    (p) => TwistedCurve.assertOnCurve(p, Curve),
     `${Curve.name} on curve`
   );
 
   equivalentProvable({ from: [unequalPair], to: point, verbose: true })(
     ([p, q]) => Curve.add(p, q),
-    ([p, q]) => CurveTwisted.add(p, q, Curve),
+    ([p, q]) => TwistedCurve.add(p, q, Curve),
     `${Curve.name} add`
   );
 
   equivalentProvable({ from: [point], to: point, verbose: true })(
     (p) => Curve.double(p),
-    (p) => CurveTwisted.double(p, Curve),
+    (p) => TwistedCurve.double(p, Curve),
     `${Curve.name} double`
   );
 
   equivalentProvable({ from: [point], to: point, verbose: true })(
     Curve.negate,
-    (p) => CurveTwisted.negate(p, Curve),
+    (p) => TwistedCurve.negate(p, Curve),
     `${Curve.name} negate`
   );
 
@@ -68,20 +68,20 @@ for (let Curve of curves) {
       let sp = Curve.scale(p, s);
       return sp;
     },
-    (p, s) => CurveTwisted.scale(s, p, Curve),
+    (p, s) => TwistedCurve.scale(s, p, Curve),
     `${Curve.name} scale`
   );
 
   // test adding same point equals doubling
   equivalentProvable({ from: [point], to: point, verbose: true })(
     (p) => Curve.add(p, p),
-    (p) => CurveTwisted.double(p, Curve),
+    (p) => TwistedCurve.double(p, Curve),
     `${Curve.name} adding same point equals doubling`
   );
 
   equivalentProvable({ from: [point], to: point, verbose: true })(
     (p) => Curve.double(p),
-    (p) => CurveTwisted.add(p, p, Curve),
+    (p) => TwistedCurve.add(p, p, Curve),
     `${Curve.name} doubling equals adding same point`
   );
 }
