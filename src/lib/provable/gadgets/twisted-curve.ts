@@ -210,11 +210,11 @@ function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
 // checks whether the twisted elliptic curve point g is in the subgroup defined by [order]g = 0
 function assertInSubgroup(g: Point, Curve: AffineTwistedCurve) {
   if (!Curve.hasCofactor) return;
-  let cofactor = Curve.cofactor !== undefined ? Curve.cofactor : 1n;
-  let scaled = scale(Field3.from(cofactor), g, Curve);
-  equals(scaled, { x: 0n, y: 1n }, Curve).assertFalse();
-  // note: checking that [cofactor] * g != 0 is equivalent to
-  //       checking that [order] * g = 0 (but faster)
+  equals(
+    scale(Field3.from(Curve.order), g, Curve),
+    { x: 0n, y: 1n },
+    Curve
+  ).assertTrue();
 }
 
 function multiScalarMulConstant(
