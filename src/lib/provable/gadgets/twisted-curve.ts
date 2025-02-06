@@ -27,6 +27,7 @@ const TwistedCurve = {
   assertOnCurve,
   scale,
   multiScalarMul,
+  assertInPrimeSubgroup,
 };
 
 /**
@@ -207,7 +208,7 @@ function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
 }
 
 // checks whether the twisted elliptic curve point g is in the subgroup defined by [order]g = 0
-function assertInSubgroup(g: Point, Curve: AffineTwistedCurve) {
+function assertInPrimeSubgroup(g: Point, Curve: AffineTwistedCurve) {
   if (!Curve.hasCofactor) return;
   let scaled = scale(Field3.from(Curve.order), g, Curve);
   equals(scaled, { x: 0n, y: 1n }, Curve).assertFalse();

@@ -33,13 +33,13 @@ class ForeignTwisted {
   y: AlmostForeignField;
 
   /**
-   * Create a new {@link ForeignTwisted} from an object representing the (twisted) x and y coordinates.
+   * Create a new {@link ForeignTwisted} from an object representing the (affine twisted) x and y coordinates.
    *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Please refer to the {@link ForeignField} constructor comments for more details.
    *
    * @example
    * ```ts
-   * let x = new ForeignTwisted({ x: 1n, y: 1n });
+   * let x = new ForeignTwisted({ x: 0n, y: 1n });
    * ```
    *
    * **Warning**: This fails for a constant input which does not represent an actual point on the curve.
@@ -52,9 +52,10 @@ class ForeignTwisted {
   }) {
     this.x = new this.Constructor.Field(g.x);
     this.y = new this.Constructor.Field(g.y);
-    // don't allow constants that aren't on the curve
+    // don't allow constants that aren't on the curve or in the prime subgroup
     if (this.isConstant()) {
       this.assertOnCurve();
+      this.assertInPrimeSubgroup();
     }
   }
 
@@ -219,12 +220,26 @@ class ForeignTwisted {
     TwistedCurve.assertOnCurve(toPoint(g), this.Bigint);
   }
 
+  static assertInPrimeSubgroup(g: ForeignTwisted) {
+    if (this.Bigint.hasCofactor) {
+      TwistedCurve.assertInPrimeSubgroup(toPoint(g), this.Bigint);
+    }
+  }
+
   /**
    * Assert that this point lies on the elliptic curve, which means it satisfies the equation
    * `a * x^2 + y^2 = 1 + d * x^2 * y^2`
    */
   assertOnCurve() {
     this.Constructor.assertOnCurve(this);
+  }
+
+  /**
+   * Assert that this point lies in the prime subgroup, which means that scaling
+   * the point by the curve order results in a nonzero point.
+   */
+  assertInPrimeSubgroup() {
+    this.Constructor.assertInPrimeSubgroup(this);
   }
 
   // dynamic subclassing infra
