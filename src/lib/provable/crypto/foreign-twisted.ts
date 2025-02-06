@@ -42,7 +42,8 @@ class ForeignTwisted {
    * let x = new ForeignTwisted({ x: 0n, y: 1n });
    * ```
    *
-   * **Warning**: This fails for a constant input which does not represent an actual point on the curve.
+   * **Warning**: This fails for a constant input which does not represent an
+   *              actual point on the curve or not in the subgroup.
    *
    * **Note**: For now, only the edwards25519 curve is supported.
    */
@@ -55,7 +56,7 @@ class ForeignTwisted {
     // don't allow constants that aren't on the curve or in the prime subgroup
     if (this.isConstant()) {
       this.assertOnCurve();
-      this.assertInPrimeSubgroup();
+      this.assertInSubgroup();
     }
   }
 
@@ -220,9 +221,9 @@ class ForeignTwisted {
     TwistedCurve.assertOnCurve(toPoint(g), this.Bigint);
   }
 
-  static assertInPrimeSubgroup(g: ForeignTwisted) {
+  static assertInSubgroup(g: ForeignTwisted) {
     if (this.Bigint.hasCofactor) {
-      TwistedCurve.assertInPrimeSubgroup(toPoint(g), this.Bigint);
+      TwistedCurve.assertInSubgroup(toPoint(g), this.Bigint);
     }
   }
 
@@ -238,8 +239,8 @@ class ForeignTwisted {
    * Assert that this point lies in the prime subgroup, which means that scaling
    * the point by the curve order results in a nonzero point.
    */
-  assertInPrimeSubgroup() {
-    this.Constructor.assertInPrimeSubgroup(this);
+  assertInSubgroup() {
+    this.Constructor.assertInSubgroup(this);
   }
 
   // dynamic subclassing infra
