@@ -302,8 +302,6 @@ class UInt64 extends CircuitValue {
    *
    * ```
    *
-   * @param a - The value to apply NOT to.
-   *
    */
   not() {
     return new UInt64(Bitwise.not(this.value, UInt64.NUM_BITS, false).value);
@@ -776,7 +774,6 @@ class UInt32 extends CircuitValue {
    * // 11111111111111111111111111111010
    * ```
    *
-   * @param a - The value to apply NOT to.
    */
   not() {
     return new UInt32(Bitwise.not(this.value, UInt32.NUM_BITS, false).value);
@@ -1147,7 +1144,7 @@ class Int64 extends CircuitValue implements BalanceChange {
    * This is the recommended way to create Int64 instances.
    *
    * @param magnitude - The magnitude of the integer as a UInt64
-   * @param sgn - The sign of the integer.
+   * @param sign - The sign of the integer.
    * @returns A new Int64 instance with a canonical representation.
    *
    * @example
@@ -1654,7 +1651,7 @@ class UInt8 extends Struct({
    * **Important**: If an assertion fails, the code throws an error.
    *
    * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertLessThan(y: UInt8 | bigint | number, message?: string) {
     let y_ = UInt8.from(y);
@@ -1679,7 +1676,7 @@ class UInt8 extends Struct({
    * **Important**: If an assertion fails, the code throws an error.
    *
    * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertLessThanOrEqual(y: UInt8 | bigint | number, message?: string) {
     let y_ = UInt8.from(y);
@@ -1736,7 +1733,7 @@ class UInt8 extends Struct({
    * **Important**: If an assertion fails, the code throws an error.
    *
    * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertGreaterThan(y: UInt8 | bigint | number, message?: string) {
     UInt8.from(y).assertLessThan(this, message);
@@ -1748,7 +1745,7 @@ class UInt8 extends Struct({
    * **Important**: If an assertion fails, the code throws an error.
    *
    * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertGreaterThanOrEqual(y: UInt8, message?: string) {
     UInt8.from(y).assertLessThanOrEqual(this, message);
@@ -1760,7 +1757,7 @@ class UInt8 extends Struct({
    * **Important**: If an assertion fails, the code throws an error.
    *
    * @param y - the {@link UInt8} value to compare & assert with this {@link UInt8}.
-   * @param message? - a string error message to print if the assertion fails, optional.
+   * @param message - a string error message to print if the assertion fails, optional.
    */
   assertEquals(y: UInt8 | bigint | number, message?: string) {
     let y_ = UInt8.from(y);

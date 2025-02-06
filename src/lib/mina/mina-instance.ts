@@ -89,12 +89,14 @@ type Mina = {
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,
-    filterOptions?: EventActionFilterOptions
+    filterOptions?: EventActionFilterOptions,
+    headers?: HeadersInit
   ) => ReturnType<typeof Fetch.fetchEvents>;
   fetchActions: (
     publicKey: PublicKey,
     actionStates?: ActionStates,
-    tokenId?: Field
+    tokenId?: Field,
+    headers?: HeadersInit
   ) => ReturnType<typeof Fetch.fetchActions>;
   getActions: (
     publicKey: PublicKey,
@@ -186,9 +188,15 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
 async function fetchEvents(
   publicKey: PublicKey,
   tokenId: Field,
-  filterOptions: EventActionFilterOptions = {}
+  filterOptions: EventActionFilterOptions = {},
+  headers?: HeadersInit
 ) {
-  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
+  return await activeInstance.fetchEvents(
+    publicKey,
+    tokenId,
+    filterOptions,
+    headers
+  );
 }
 
 /**
@@ -197,9 +205,15 @@ async function fetchEvents(
 async function fetchActions(
   publicKey: PublicKey,
   actionStates?: ActionStates,
-  tokenId?: Field
+  tokenId?: Field,
+  headers?: HeadersInit
 ) {
-  return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
+  return await activeInstance.fetchActions(
+    publicKey,
+    actionStates,
+    tokenId,
+    headers
+  );
 }
 
 /**
