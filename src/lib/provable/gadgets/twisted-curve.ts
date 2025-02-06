@@ -1,14 +1,8 @@
-import { inverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import { Field3, ForeignField, split } from './foreign-field.js';
 import { l2Mask } from './range-check.js';
-import { sha256 } from 'js-sha256';
 import { provable } from '../types/provable-derivers.js';
-import {
-  bigIntToBytes,
-  bytesToBigInt,
-} from '../../../bindings/crypto/bigint-helpers.js';
 import {
   AffineTwistedCurve,
   GroupAffineTwisted,
@@ -17,8 +11,8 @@ import {
 } from '../../../bindings/crypto/elliptic-curve.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { sliceField3 } from './bit-slices.js';
-import { exists } from '../core/exists.js';
 import { arrayGetGeneric } from './elliptic-curve.js';
+import { Bool } from '../bool.js';
 
 // external API
 export { TwistedCurve };
@@ -190,8 +184,6 @@ function assertOnCurve(
 
 /**
  * Twisted curve scalar multiplication, `scalar*point`
- *
- * The result is constrained to be not zero.
  */
 function scale(
   scalar: Field3,
@@ -208,11 +200,17 @@ function scale(
 }
 
 // check whether a point equals a constant point
-// TODO implement the full case of two vars
 function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
   let xEquals = ForeignField.equals(p1.x, p2.x, Curve.modulus);
   let yEquals = ForeignField.equals(p1.y, p2.y, Curve.modulus);
   return xEquals.and(yEquals);
+}
+
+// checks whether the twisted elliptic curve point g is in the subgroup defined by [order]g = 0
+function assertInSubgroup(g: Point, Curve: AffineTwistedCurve) {
+  if (!Curve.hasCofactor) return;
+  let scaled = scale(Field3.from(Curve.order), g, Curve);
+  equals(scaled, { x: 0n, y: 1n }, Curve).assertFalse();
 }
 
 function multiScalarMulConstant(
