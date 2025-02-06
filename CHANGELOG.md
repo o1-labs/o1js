@@ -19,7 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Added
 
-- Twisted Edwards curves operations https://github.com/o1-labs/o1js/pull/1949
+- Provable operations of twisted Edwards curves with affine coordinates https://github.com/o1-labs/o1js/pull/1949
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
 - Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
 
