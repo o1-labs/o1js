@@ -10,4 +10,4 @@ echo "⚠️ Husky pre-commit hook enabled. Disable it with: git config --unset 
 
 # Filter for diffed (excluding deleted) js and ts files, and format them according to oxlint and prettier rules
 git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run lint:fix
-git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run format:husky
+git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run format
