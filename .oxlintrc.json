@@ -1,0 +1,18 @@
+{
+    "extends": "oxlint/recommended",
+    "rules": {
+        "no-new-array": "off",
+        "no-unsafe-finally": "off"
+    },
+    "ignorePatterns": [
+        "_build/",
+        ".github/",
+        "benchmark/",
+        "dist/",
+        "node_modules/",
+        "o1js-reference/",
+        "src/bindings/",
+        "src/mina/",
+        "**/*.d.ts"
+    ]
+  }
