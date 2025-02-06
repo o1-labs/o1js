@@ -290,7 +290,7 @@ function createForeignTwisted(
 ): typeof ForeignTwisted {
   assert(
     params.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 176 are not supported'
+    'Base field moduli smaller than 2^176 are not supported'
   );
 
   const FieldUnreduced = createForeignField(params.modulus);

@@ -141,62 +141,35 @@ function add(
     'Base field moduli smaller than 2^176 are not supported'
   );
 
-  // witness and range-check denominators, x3, y3
-  let witnesses = exists(12, () => {
-    let [x1_, x2_, y1_, y2_] = Field3.toBigints(x1, x2, y1, y2);
-
-    // TODO: reuse code in twistedAdd to avoid recomputing these
-
-    let x1x2 = mod(x1_ * x2_, f);
-    let y1y2 = mod(y1_ * y2_, f);
-    let x1y2 = mod(x1_ * y2_, f);
-    let y1x2 = mod(y1_ * x2_, f);
-    let ax1x2 = mod(a * x1x2, f);
-
-    let x3Num = mod(x1y2 + y1x2, f);
-    let y3Num = mod(y1y2 - ax1x2, f);
-
-    let dx1x2y1y2 = mod(d * x1x2 * y1y2, f);
-
-    let x3Denom = inverse(mod(1n + dx1x2y1y2, f), f) ?? 0n;
-    let y3Denom = inverse(mod(1n - dx1x2y1y2, f), f) ?? 0n;
-
-    let x3 = mod(x3Num * x3Denom, f);
-    let y3 = mod(y3Num * y3Denom, f);
-
-    return [...split(x3Denom), ...split(y3Denom), ...split(x3), ...split(y3)];
-  });
-  let [dx0, dx1, dx2, dy0, dy1, dy2, x30, x31, x32, y30, y31, y32] = witnesses;
-  let x3Den: Field3 = [dx0, dx1, dx2];
-  let y3Den: Field3 = [dy0, dy1, dy2];
-  let x3: Field3 = [x30, x31, x32];
-  let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostReduced([x3Den, x3, y3], f);
-  ForeignField.assertAlmostReduced([y3Den], f);
-
   // the formula for point addition is well defined for curves in use,
   // so we don't need to check that the denominators are non-zero
 
   // x3 = (x1 * y2 + y1 * x2) / (1 + d * x1 * x2 * y1 * y2)
   // y3 = (y1 * y2 - a * x1 * x2) / (1 - d * x1 * x2 * y1 * y2)
 
-  let one = Field3.from(1n);
+  let x1x2 = ForeignField.mul(x1, x2, f);
+  let y1y2 = ForeignField.mul(y1, y2, f);
   let x1y2 = ForeignField.mul(x1, y2, f);
   let y1x2 = ForeignField.mul(y1, x2, f);
-  let x3Num = ForeignField.add(x1y2, y1x2, f);
-  let y1y2 = ForeignField.mul(y1, y2, f);
-  let x1x2 = ForeignField.mul(x1, x2, f);
   let ax1x2 = ForeignField.mul(Field3.from(a), x1x2, f);
+
+  let x3Num = ForeignField.add(x1y2, y1x2, f);
   let y3Num = ForeignField.sub(y1y2, ax1x2, f);
 
   let x1x2y1y2 = ForeignField.mul(x1x2, y1y2, f);
   let dx1x2y1y2 = ForeignField.mul(Field3.from(d), x1x2y1y2, f);
-  // check denominators are correctly computed:
-  // den = 1 / (1 +- d * x1^2 * y1^2)
-  ForeignField.assertMul(x3Den, ForeignField.add(one, dx1x2y1y2, f), one, f);
-  ForeignField.assertMul(y3Den, ForeignField.sub(one, dx1x2y1y2, f), one, f);
-  ForeignField.assertMul(x3Num, x3Den, x3, f);
-  ForeignField.assertMul(y3Num, y3Den, y3, f);
+
+  let one = Field3.from(1n);
+  let x3Denom = ForeignField.add(one, dx1x2y1y2, f);
+  let y3Denom = ForeignField.sub(one, dx1x2y1y2, f);
+
+  let x3 = ForeignField.div(x3Num, x3Denom, f);
+  let y3 = ForeignField.div(y3Num, y3Denom, f);
+
+  ForeignField.assertAlmostReduced(
+    [x1x2, y1y2, x3Num, y3Num, x1x2y1y2, x3Denom, y3Denom, x3, y3],
+    f
+  );
 
   return { x: x3, y: y3 };
 }
@@ -215,37 +188,8 @@ function double(
     return Point.from(p3);
   }
 
-  // witness and range-check denominators, x3, y3
-  let witnesses = exists(12, () => {
-    let [x1_, y1_] = Field3.toBigints(x1, y1);
-
-    let x1x1 = mod(x1_ * x1_, f);
-    let y1y1 = mod(y1_ * y1_, f);
-    let x1y1 = mod(x1_ * y1_, f);
-
-    let x3Den = inverse(mod(1n + d * x1x1 * y1y1, f), f) ?? 0n;
-    let y3Den = inverse(mod(1n - d * x1x1 * y1y1, f), f) ?? 0n;
-
-    let x3Num = mod(2n * x1y1, f);
-    let y3Num = mod(y1y1 - Curve.a * x1x1, f);
-
-    let x3 = mod(x3Num * x3Den, f);
-    let y3 = mod(y3Num * y3Den, f);
-
-    return [...split(x3Den), ...split(y3Den), ...split(x3), ...split(y3)];
-  });
-  let [dx0, dx1, dx2, dy0, dy1, dy2, x30, x31, x32, y30, y31, y32] = witnesses;
-  // Note denominators are already inversed
-  let x3Den: Field3 = [dx0, dx1, dx2];
-  let y3Den: Field3 = [dy0, dy1, dy2];
-  let x3: Field3 = [x30, x31, x32];
-  let y3: Field3 = [y30, y31, y32];
-  ForeignField.assertAlmostReduced([x3Den, x3, y3], f);
-  ForeignField.assertAlmostReduced([y3Den], f);
-
   // x3 = 2*x1*y1 / (1 + d * x1^2 * y1^2)
   // y3 = (y1^2 - a * x1^2) / (1 - d * x1^2 * y1^2)
-
   let one = Field3.from(1n);
   let a = Field3.from(Curve.a);
   let x1x1 = ForeignField.mul(x1, x1, f);
@@ -254,15 +198,14 @@ function double(
   let ax1x1 = ForeignField.mul(a, x1x1, f);
   let x3Num = ForeignField.add(x1y1, x1y1, f);
   let y3Num = ForeignField.sub(y1y1, ax1x1, f);
-
   let x1x1y1y1 = ForeignField.mul(x1x1, y1y1, f);
   let dx1x1y1y1 = ForeignField.mul(Field3.from(d), x1x1y1y1, f);
-  // check denominators are correctly computed:
-  // den = 1 / (1 +- d * x1^2 * y1^2)
-  ForeignField.assertMul(x3Den, ForeignField.add(one, dx1x1y1y1, f), one, f);
-  ForeignField.assertMul(y3Den, ForeignField.sub(one, dx1x1y1y1, f), one, f);
-  ForeignField.assertMul(x3Num, x3Den, x3, f);
-  ForeignField.assertMul(y3Num, y3Den, y3, f);
+  let x3Den = ForeignField.add(one, dx1x1y1y1, f);
+  let y3Den = ForeignField.sub(one, dx1x1y1y1, f);
+  let x3 = ForeignField.div(x3Num, x3Den, f);
+  let y3 = ForeignField.div(y3Num, y3Den, f);
+
+  ForeignField.assertAlmostReduced([x3Num, y3Num, x3Den, y3Den, x3, y3], f);
 
   return { x: x3, y: y3 };
 }
