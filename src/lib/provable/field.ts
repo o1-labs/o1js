@@ -31,7 +31,6 @@ import {
   lessThanOrEqualFull,
 } from './gadgets/comparison.js';
 import { toVar } from './gadgets/common.js';
-import { UInt8 } from './int.js';
 
 // external API
 export { Field };
@@ -793,72 +792,6 @@ class Field {
     } catch (err) {
       throw withMessage(err, message);
     }
-  }
-
-  /**
-   * Returns an array of {@link UInt8} elements representing this field element
-   * as little endian ordered bytes.
-   *
-   * If the optional `bytelength` argument is used, it proves that the field
-   * element fits in `bytelength` bytes. The length has to be between 0 and 32,
-   * and the method throws if it isn't.
-   *
-   * **Warning**: The cost of this operation in a zk proof depends on the
-   * `bitlength` you specify, which by default is 32 bytes. Prefer to pass a
-   * smaller `length` if possible.
-   *
-   *
-   * @param bytelength - the number of bytes to fit the element. If the element
-   *                     does not fit in `length` bits, the functions throws an
-   *                     error.
-   *
-   * @return An array of {@link UInt8} element representing this {@link Field} in
-   *         little endian encoding.
-   */
-  toOctets(bytelength: number = 32): UInt8[] {
-    checkBitLength('Field.toBytes()', bytelength, 32 * 8);
-    if (this.isConstant()) {
-      let bytes = BinableFp.toBytes(this.toBigInt()).map((b) => new UInt8(b));
-      if (bytes.length > bytelength)
-        throw Error(
-          `Field.toBytes(): ${this} does not fit in ${bytelength} bytes`
-        );
-      return bytes.concat(Array(bytelength - bytes.length).fill(UInt8.from(0)));
-    }
-    let bytes = Provable.witness(Provable.Array(UInt8, bytelength), () => {
-      let x = this.toBigInt();
-      return Array.from(
-        { length: bytelength },
-        (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn)
-      );
-    });
-    let field = bytes
-      .reverse()
-      .map((x) => x.value)
-      .reduce((acc, byte) => acc.mul(256).add(byte));
-
-    field.assertEquals(
-      this,
-      `Field.toBytes(): Input does not fit in ${bytelength} bytes`
-    );
-    return bytes;
-  }
-  /**
-   * Returns {@link Field} element from the little endian representation of an
-   * array of {@link UInt8} elements given as input. It adds necessary checks to
-   * the circuit to ensure that the conversion was done correctly.
-   *
-   * @param x An array of {@link UInt8} element representing this {@link Field}
-   *          in little endian encoding.
-   *
-   * @return The field element will be reduced modulo the native modulus.
-   */
-  static fromOctets(x: UInt8[]): Field {
-    return x
-      .slice()
-      .reverse()
-      .map((b) => b.value)
-      .reduce((acc, byte) => acc.mul(256).add(byte));
   }
 
   /**

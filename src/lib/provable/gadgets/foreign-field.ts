@@ -7,7 +7,7 @@ import {
 } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
-import { Field } from '../field.js';
+import type { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
@@ -30,7 +30,6 @@ import {
 } from '../core/field-constructor.js';
 import { Bool } from '../bool.js';
 import { ProvablePureExtended } from '../types/struct.js';
-import { UInt8 } from '../int.js';
 
 // external API
 export { ForeignField, Field3 };
@@ -459,12 +458,9 @@ const Field3 = {
   /**
    * Turn a bigint, a UInt8, or a Field into a 3-tuple of Fields
    */
-  from(x: bigint | Field3 | UInt8 | Bool): Field3 {
+  from(x: bigint | Field3): Field3 {
     if (Array.isArray(x)) return x;
     if (typeof x === 'bigint') return Tuple.map(split(x), createField);
-    if (x instanceof UInt8) return [x.value, new Field(0n), new Field(0n)];
-    if (x instanceof Bool)
-      return [Bool.toField(x), new Field(0n), new Field(0n)];
     return x;
   },
 
@@ -487,44 +483,6 @@ const Field3 = {
    */
   isConstant(x: Field3) {
     return x.every((x) => x.isConstant());
-  },
-
-  /**
-   * Convert a 3-tuple of Fields to a little-endian array of 32 UInt8s, checking
-   * in provable mode that the result is equal to the input.
-   */
-  toOctets(x: Field3): UInt8[] {
-    const limbBytes = Number(l) / 8;
-    return [
-      x[0].toOctets(limbBytes),
-      x[1].toOctets(limbBytes),
-      x[2].toOctets(limbBytes),
-    ].flat();
-  },
-
-  /**
-   * Convert a little-endian array of {@link UInt8} to a 3-tuple of Fields.
-   * This uses a modulus to reduce the result to fit into the 3 limbs.
-   *
-   * @param bytes - The little-endian array of bytes to convert to a Field3.
-   * @param mod - The modulus to reduce the result to fit into the 3 limbs.
-   *
-   * @returns The Field3 representation of the input bytes, reduced modulo the given modulus.
-   */
-  fromOctets(bytes: UInt8[], mod: bigint): Field3 {
-    // TODO: more efficient implementation
-    assert(mod < 1n << 259n, 'Foreign modulus must fits in 259 bits');
-    return bytes
-      .slice() // copy the array to prevent mutation
-      .reverse()
-      .map((b) => Field3.from(b))
-      .reduce((acc, byte) =>
-        ForeignField.add(
-          ForeignField.mul(Field3.from(acc), Field3.from(256n), mod),
-          Field3.from(byte),
-          mod
-        )
-      );
   },
 
   /**
