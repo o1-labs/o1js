@@ -56,7 +56,7 @@ let Wrapper = ZkProgram({
 
   methods: {
     wrap: {
-      privateInputs: [ZkProgram.Proof(mergeProgram)],
+      privateInputs: [mergeProgram.Proof],
 
       async method(proof: Proof<undefined, Field>) {
         proof.verify();
