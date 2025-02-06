@@ -517,7 +517,7 @@ class UInt64 extends CircuitValue {
   }
 
   static fromValue<T extends AnyConstructor>(
-    x: bigint | UInt64
+    x: number | bigint | UInt64
   ): InstanceType<T> {
     return UInt64.from(x) as any;
   }
@@ -992,7 +992,7 @@ class UInt32 extends CircuitValue {
   }
 
   static fromValue<T extends AnyConstructor>(
-    x: bigint | UInt32
+    x: number | bigint | UInt32
   ): InstanceType<T> {
     return UInt32.from(x) as any;
   }
@@ -1078,7 +1078,7 @@ class Sign extends CircuitValue {
   }
 
   static fromValue<T extends AnyConstructor>(
-    x: bigint | Sign
+    x: number | bigint | Sign
   ): InstanceType<T> {
     if (x instanceof Sign) return x as any;
     return new Sign(Field(x)) as any;
@@ -1837,6 +1837,15 @@ class UInt8 extends Struct({
       return new UInt8(xx.value.value);
     }
     return new UInt8(x);
+  }
+
+  static fromValue(
+    // we need all the { value } inputs to correctly extend the Struct
+    x: number | UInt8 | { value: string | number | bigint | Field }
+  ) {
+    if (typeof x === 'number') return UInt8.from(x);
+    if (x instanceof UInt8) return x;
+    return UInt8.Unsafe.fromField(Field(x.value));
   }
 
   private static checkConstant(x: Field) {
