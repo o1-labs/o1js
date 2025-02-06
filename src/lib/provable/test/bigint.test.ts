@@ -1,114 +1,10 @@
 import { Experimental } from 'o1js';
 
-const { createProvableBigInt, ProvableBigInt } = Experimental;
-
-
-type BigIntParameter = {
-    limb_num: number,
-    limb_size: bigint,
-    mask: bigint,
-    MAX: bigint
-}
-
-
-const BigIntParams: { [key: string]: BigIntParameter } = {
-    "384_12": {
-        limb_num: 12,
-        limb_size: 32n,
-        mask: (1n << 32n) - 1n,
-        MAX: (1n << 384n) - 1n,
-    },
-    "384_9": {
-        limb_num: 9,
-        limb_size: 48n,
-        mask: (1n << 48n) - 1n,
-        MAX: (1n << 384n) - 1n,
-    },
-    "384_6": {
-        limb_num: 6,
-        limb_size: 64n,
-        mask: (1n << 64n) - 1n,
-        MAX: (1n << 384n) - 1n,
-    },
-    "384_3": {
-        limb_num: 3,
-        limb_size: 128n,
-        mask: (1n << 128n) - 1n,
-        MAX: (1n << 384n) - 1n,
-    },
-    "384_2": {
-        limb_num: 2,
-        limb_size: 192n,
-        mask: (1n << 192n) - 1n,
-        MAX: (1n << 384n) - 1n,
-    },
-    "512_16": {
-        limb_num: 16,
-        limb_size: 32n,
-        mask: (1n << 32n) - 1n,
-        MAX: (1n << 512n) - 1n,
-    },
-    "512_8": {
-        limb_num: 8,
-        limb_size: 64n,
-        mask: (1n << 64n) - 1n,
-        MAX: (1n << 512n) - 1n,
-    },
-    "512_4": {
-        limb_num: 4,
-        limb_size: 128n,
-        mask: (1n << 128n) - 1n,
-        MAX: (1n << 512n) - 1n,
-    },
-    "576_9": {
-        limb_num: 9,
-        limb_size: 64n,
-        mask: (1n << 64n) - 1n,
-        MAX: (1n << 576n) - 1n,
-    },
-    "580_5": {
-        limb_num: 5,
-        limb_size: 116n,
-        mask: (1n << 116n) - 1n,
-        MAX: (1n << 580n) - 1n,
-    },
-    "640_5": {
-        limb_num: 5,
-        limb_size: 128n,
-        mask: (1n << 128n) - 1n,
-        MAX: (1n << 640n) - 1n,
-    },
-    "1024_16": {
-        limb_num: 16,
-        limb_size: 64n,
-        mask: (1n << 64n) - 1n,
-        MAX: (1n << 1024n) - 1n,
-    },
-    "1024_8": {
-        limb_num: 8,
-        limb_size: 128n,
-        mask: (1n << 128n) - 1n,
-        MAX: (1n << 1024n) - 1n,
-    },
-    "2048_32": {
-        limb_num: 32,
-        limb_size: 64n,
-        mask: (1n << 64n) - 1n,
-        MAX: (1n << 2048n) - 1n,
-    },
-    "2048_16": {
-        limb_num: 16,
-        limb_size: 128n,
-        mask: (1n << 128n) - 1n,
-        MAX: (1n << 2048n) - 1n,
-    }
-};
-
-const BigIntParamList: string[] = Object.keys(BigIntParams);
-
+const { createProvableBigInt } = Experimental;
 
 describe('BigInt384', () => {
-    const BigInt384 = createProvableBigInt(0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaabn, BigIntParams["384_3"]);
+    const BigInt384 = createProvableBigInt(0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaabn);
+
     describe('Creation and Conversion', () => {
         it('should correctly create a BigInt384 instance from a bigint and convert back to bigint', () => {
             const value = 1234567890123456789012345678901234567890n;
@@ -402,4 +298,3 @@ describe('BigInt384', () => {
         });
     });
 });
-
