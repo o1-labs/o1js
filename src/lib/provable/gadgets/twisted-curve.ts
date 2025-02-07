@@ -12,7 +12,6 @@ import {
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { sliceField3 } from './bit-slices.js';
 import { arrayGetGeneric } from './elliptic-curve.js';
-import { Bool } from '../bool.js';
 
 // external API
 export { TwistedCurve };
@@ -43,7 +42,7 @@ const Point = {
   toBigint({ x, y }: Point) {
     let x_ = Field3.toBigint(x);
     let y_ = Field3.toBigint(y);
-    return { x: x_, y: y_, infinity: x_ === 0n && y_ === 1n };
+    return { x: x_, y: y_ };
   },
   isConstant: (P: Point) => Provable.isConstant(Point, P),
 

@@ -6,13 +6,11 @@ import {
 import {
   array,
   equivalentProvable,
-  map,
   onlyIf,
   spec,
   unit,
 } from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
-import { assert } from '../gadgets/common.js';
 import {
   Point,
   TwistedCurve,
