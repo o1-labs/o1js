@@ -4,15 +4,25 @@
     "es2021": true,
     "node": true
   },
-  "extends": "eslint:recommended",
+  "extends": [
+    "eslint:recommended", 
+    "plugin:@typescript-eslint/recommended",
+    "plugin:jsdoc/recommended-typescript"
+  ],
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 13,
     "sourceType": "module"
   },
+  "plugins": [
+    "@typescript-eslint",
+    "jsdoc"
+  ],
   "rules": {
     "no-unused-vars": "warn",
     "no-constant-condition": "off",
     "no-empty": "off",
-    "no-unused-labels": "off"
+    "no-unused-labels": "off",
+    "jsdoc/require-description": "warn"
   }
 }
