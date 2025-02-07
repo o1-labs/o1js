@@ -25,6 +25,14 @@ jobs:
       - uses: cachix/install-nix-action@v18
         with:
           nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+              substituters = https://cache.nixos.org https://cache.nixos.org/
+              trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+              trusted-substituters = https://cache.nixos.org
+              trusted-users = root nix-serve root bbrian
+              extra-substituters = https://storage.googleapis.com/mina-nix-cache
+              extra-trusted-public-keys = nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10=
+              experimental-features = nix-command flakes ca-derivations recursive-nix
       - name: build devshell
         run: |
           set -Eeu
