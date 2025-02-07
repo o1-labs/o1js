@@ -272,6 +272,10 @@
             echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
               > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
 
+            mkdir -p src/bindings/compiled/native_bindings
+            echo '// this file exists to prevent TS from type-checking `o1js_native.bc.cjs`' \
+            > src/bindings/compiled/native_bindings/o1js_native.bc.d.cts  
+
             npm run build:update-bindings
 
             mkdir -p $out/mina-transaction
