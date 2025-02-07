@@ -29,4 +29,4 @@ jobs:
         run: |
           set -Eeu
           ./pin.sh
-          nix build o1js#devShells.default
+          nix build o1js\#devShells.aarch64-darwin.default
