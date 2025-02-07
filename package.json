@@ -51,6 +51,7 @@
     "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:wasm": "./src/bindings/scripts/update-wasm-and-types.sh",
     "build:web": "rimraf ./dist/web && node src/build/build-web.js",
+    "build:native": "rimraf ./dist/native && node src/build/build-native.js",
     "build:examples": "npm run build && rimraf ./dist/examples && npx tsc -p tsconfig.examples.json && npx tsc -p benchmark/tsconfig.json",
     "build:docs": "npx typedoc",
     "prepublish:web": "NODE_ENV=production node src/build/build-web.js",
