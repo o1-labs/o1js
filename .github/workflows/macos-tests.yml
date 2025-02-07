@@ -19,12 +19,12 @@ jobs:
     steps:
       - name: Disable smudging
         run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
-      - uses: cachix/install-nix-action@v18
-          with:
-            nix_path: nixpkgs=channel:nixos-unstable
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
       - name: build devshell
         run: |
           set -Eeu
