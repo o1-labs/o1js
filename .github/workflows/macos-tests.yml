@@ -1,0 +1,31 @@
+name: Test nix builds for macos
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devshell:
+    name: build-dev-shell-macos
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        node: [18, 20]
+        os: [macos-latest]
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: build devshell
+        run: |
+          set -Eeu
+          ./pin.sh
+          nix build o1js#devShells.default
