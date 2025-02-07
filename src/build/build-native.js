@@ -69,7 +69,7 @@ function makeJsooExternal() {
         path:
           './' +
           path.relative(
-            path.resolve('.', 'dist/node'),
+            path.resolve('.', 'dist/native'),
             path.resolve(resolveDir, filePath)
           ),
         external: true,
