@@ -221,7 +221,7 @@ function accountUpdateFromFeePayer({
 }: FeePayer): AccountUpdate {
   let { body } = AccountUpdate.empty();
   body.publicKey = publicKey;
-  body.balanceChange = { magnitude: fee, sgn: Sign(-1) };
+  body.balanceChange = -fee;
   body.incrementNonce = Bool(true);
   body.preconditions.network.globalSlotSinceGenesis = {
     isSome: Bool(true),

@@ -7,7 +7,7 @@ import {
   BinableBool,
 } from './derivers-bigint.js';
 
-export { Field, Bool, UInt32, UInt64, Sign };
+export { Field, Bool, UInt32, UInt64, Sign, Int64 };
 export { BinableFp, SignableFp };
 export { pseudoClass, sizeInBits, checkRange, checkField };
 
@@ -15,6 +15,7 @@ type Field = bigint;
 type Bool = boolean;
 type UInt32 = bigint;
 type UInt64 = bigint;
+type Int64 = bigint;
 
 const sizeInBits = Fp.sizeInBits;
 
@@ -138,6 +139,69 @@ const Sign = pseudoClass(
     },
   }
 );
+
+function Signed(bitsMinusOne: number) {
+  let checkSigned = checkRange(
+    -(1n << BigInt(bitsMinusOne)),
+    1n << BigInt(bitsMinusOne),
+    `Int${bitsMinusOne}`
+  );
+
+  function toObject(x: bigint) {
+    let magnitude: UInt64 = x < 0n ? -x : x;
+    let sgn: Sign = x < 0n ? minusOne : 1n;
+    return { magnitude, sgn };
+  }
+  function fromObject({ magnitude, sgn }: { magnitude: UInt64; sgn: Sign }) {
+    if (magnitude === 0n && sgn !== 1n)
+      throw Error('Signed: invalid zero representation');
+    return sgn === 1n ? magnitude : -magnitude;
+  }
+
+  return pseudoClass(
+    function Signed(value: bigint | number | string) {
+      let x = BigInt(value);
+      checkSigned(x);
+      return x;
+    },
+    {
+      ...SignableBigint(checkSigned),
+      toInput(x: bigint): HashInput {
+        let { magnitude, sgn } = toObject(x);
+        return {
+          fields: [],
+          packed: [
+            [magnitude, bitsMinusOne],
+            [sgn === 1n ? 1n : 0n, 1],
+          ],
+        };
+      },
+      toJSON(x: bigint): {
+        magnitude: string;
+        sgn: 'Positive' | 'Negative';
+      } {
+        let { magnitude, sgn } = toObject(x);
+        return { magnitude: magnitude.toString(), sgn: Sign.toJSON(sgn) };
+      },
+      fromJSON({
+        magnitude,
+        sgn,
+      }: {
+        magnitude: string;
+        sgn: 'Positive' | 'Negative';
+      }) {
+        return fromObject({
+          magnitude: UInt64.fromJSON(magnitude),
+          sgn: Sign.fromJSON(sgn),
+        });
+      },
+      toObject,
+      fromObject,
+    }
+  );
+}
+
+const Int64 = Signed(64);
 
 // helper
 
