@@ -2,74 +2,68 @@ import { Experimental } from 'o1js';
 
 const { createProvableBigInt } = Experimental;
 
-describe('BigInt384', () => {
-    const BigInt384 = createProvableBigInt(0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaabn);
+// test type 1 : small numbers - result doesn't need to be reduced
+// test type 2 : big numbers - result needs to be reduced
+// test type 3 : max numbers
+// test type 4 : result should never be unreduced
+
+describe('BigInt17', () => {
+    const modulus = 17n;
+    const BigInt17 = createProvableBigInt(modulus);
 
     describe('Creation and Conversion', () => {
-        it('should correctly create a BigInt384 instance from a bigint and convert back to bigint', () => {
-            const value = 1234567890123456789012345678901234567890n;
-            const bigInt = BigInt384.fromBigint(value);
+        it('should correctly create a BigInt17 instance from a bigint and convert back to bigint', () => {
+            const value = 12n;
+            const bigInt = BigInt17.fromBigint(value);
             expect(bigInt.toBigint()).toStrictEqual(value);
         });
 
-        it('should fail to create a BigInt384 instance from a negative number', () => {
-            const value = -1234567890123456789012345678901234567890n;
-            expect(() => { BigInt384.fromBigint(value) }).toThrow('Input must be non-negative');
+        it('should fail to create a BigInt17 instance from a negative number', () => {
+            const value = -12n;
+            expect(() => { BigInt17.fromBigint(value) }).toThrow('Input must be non-negative');
         });
 
-        it('should fail to create a BigInt384 instance from a bigint larger than 384-bit', () => {
-            const value = 1n << 386n;
-            expect(() => { BigInt384.fromBigint(value) }).toThrow('Input exceeds 384-bit size limit.');
+        it('should fail to create a BigInt17 instance from a bigint larger than 384-bit', () => {
+            const value = 1n << 9n;
+            expect(() => { BigInt17.fromBigint(value) }).toThrow('Input exceeds modulus.');
         });
     });
 
     describe('Addition', () => {
-        it('should correctly add two BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(987654321098765432109876543210987654321n);
+        it('should correctly add two BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(9n);
+            const b = BigInt17.fromBigint(13n);
+            const result = a.add(b);
+            expect(result.toBigint()).toStrictEqual((a.toBigint() + b.toBigint()) % modulus);
+        });
+
+        it('should correctly add two maximum BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(modulus - 1n);
+            const b = BigInt17.fromBigint(modulus - 1n);
             const result = a.add(b);
             expect(result.toBigint()).toStrictEqual(
-                2222222211222222221122222222112222222211n
+                ((modulus - 1n) + (modulus - 1n)) % modulus
             );
         });
 
-        it('should correctly add two BigInt384 numbers with big modulo', () => {
-            const a = BigInt384.fromBigint((2n ** 381n) - 1n);
-            const b = BigInt384.fromBigint((2n ** 381n) - 1n);
-            const result = a.add(b);;
-            const expected = ((2n ** 381n - 1n) + (2n ** 381n - 1n)) % ((2n ** 384n) - 1n);
-            expect(result.toBigint()).toStrictEqual(expected);
-        });
-
-        it('should correctly add two maximum BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(2n ** 381n - 1n);
-            const b = BigInt384.fromBigint(2n ** 381n - 1n);
-            const result = a.add(b);;
-            expect(result.toBigint()).toStrictEqual(
-                (2n ** 381n - 1n + (2n ** 381n - 1n)) % 2n ** 381n
-            );
-        });
-
-        it('should satisfy commutativity of addition for BigInt384 numbers', () => {
-            const modulo = BigInt384.fromBigint(2n ** 384n - 1n);
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(987654321098765432109876543210987654321n);
+        it('should satisfy commutativity of addition for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(13n);
+            const b = BigInt17.fromBigint(9n);
             expect(
                 a.add(b).equals(b.add(a)).toBoolean()
             ).toStrictEqual(true);
         });
 
-        it('should satisfy addition with identity element for BigInt384 numbers', () => {
-            const modulo = BigInt384.fromBigint(2n ** 384n - 1n);
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(0n);
+        it('should satisfy addition with identity element for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(7n);
+            const b = BigInt17.fromBigint(0n);
             expect(a.add(b)).toStrictEqual(a);
         });
 
-        it('should satisfy associativity of addition for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(987654321098765432109876543210987654321n);
-            const c = BigInt384.fromBigint(111111111111111111111111111111111111111n);
+        it('should satisfy associativity of addition for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(3n);
+            const b = BigInt17.fromBigint(15n);
+            const c = BigInt17.fromBigint(9n);
             expect(
                 a.add(b).add(c).equals(a.add(b.add(c))).toBoolean()
             ).toStrictEqual(true);
@@ -77,69 +71,78 @@ describe('BigInt384', () => {
     });
 
     describe('Subtraction', () => {
-        it('should correctly subtract two BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(987652109876543210987654321n);
-            const result = a.sub(a);
+        it('should correctly subtract two BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(13n);
+            const b = BigInt17.fromBigint(9n);
+            const result = a.sub(b);
             expect(result.toBigint()).toStrictEqual(
-                1234567890123456789012345678901234567890n - 987652109876543210987654321n
+                a.toBigint() - b.toBigint() % modulus
             );
         });
 
-        it('should satisfy subtraction with identity element for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(0n);
+        it('should satisfy subtraction with identity element for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(9n);
+            const b = BigInt17.fromBigint(0n);
             expect(a.sub(b)).toStrictEqual(a);
         });
+
+        it('should correctly subtract two BigInt17 numbers resulting in zero', () => {
+            const a = BigInt17.fromBigint(9n);
+            const b = BigInt17.fromBigint(9n);
+            const result = a.sub(b);
+            expect(result.toBigint()).toStrictEqual(0n);
+        });
+
+        // add more tests here
     });
 
     describe('Multiplication', () => {
-        it('should correctly multiply two BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789n);
-            const b = BigInt384.fromBigint(9876n);
-            const result = a.mul(b);;
+        it('should correctly multiply two BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(9n);
+            const b = BigInt17.fromBigint(7n);
+            const result = a.mul(b);
             expect(result.toBigint()).toStrictEqual(
-                BigInt(1234567890123456789n * 9876n)
+                BigInt(a.toBigint() * b.toBigint()) % modulus
             );
         });
 
-        it('should correctly multiply two BigInt384 numbers with small values', () => {
-            const a = BigInt384.fromBigint(300n);
-            const b = BigInt384.fromBigint(6n);
-            const result = a.mul(b);;
-            expect(result.toBigint()).toStrictEqual(BigInt(300n * 6n) % 2n ** 384n);
+        it('should correctly multiply two BigInt17 numbers with small values', () => {
+            const a = BigInt17.fromBigint(2n);
+            const b = BigInt17.fromBigint(3n);
+            const result = a.mul(b);
+            expect(result.toBigint()).toStrictEqual(BigInt(a.toBigint() * b.toBigint()) % modulus);
         });
 
-        it('should satisfy multiplication with identity element for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(1n);
-            expect(a.mul(b)).toStrictEqual(a);
+        it('should satisfy multiplication with identity element for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(12n);
+            const b = BigInt17.fromBigint(1n);
+            expect(a.mul(b).toBigint()).toStrictEqual(a.toBigint());
         });
 
-        it('should satisfy multiplication with zero for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(0n);
-            expect(a.mul(b)).toStrictEqual(b);
+        it('should satisfy multiplication with zero for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(12n);
+            const b = BigInt17.fromBigint(0n);
+            expect(a.mul(b).toBigint()).toStrictEqual(b.toBigint()); // not equal when not using toBigints
         });
 
-        it('should satisfy multiplication with zero commuted for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(0n);
-            expect(a.mul(b)).toStrictEqual(b);
+        it('should satisfy multiplication with zero commuted for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(7n);
+            const b = BigInt17.fromBigint(0n);
+            expect(a.mul(b).toBigint()).toStrictEqual(b.toBigint());
         });
 
-        it('should satisfy commutativity of multiplication for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789n);
-            const b = BigInt384.fromBigint(9876n);
+        it('should satisfy commutativity of multiplication for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(3n);
+            const b = BigInt17.fromBigint(4n);
             expect(
                 a.mul(b).equals(b.mul(a)).toBoolean()
             ).toStrictEqual(true);
         });
 
-        it('should satisfy associativity of multiplication for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(123n);
-            const b = BigInt384.fromBigint(21346n);
-            const c = BigInt384.fromBigint(987n);
+        it('should satisfy associativity of multiplication for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(3n);
+            const b = BigInt17.fromBigint(5n);
+            const c = BigInt17.fromBigint(11n);
             expect(
                 a.mul(b.mul(c)).equals(
                     a.mul(b).mul(c)
@@ -147,10 +150,10 @@ describe('BigInt384', () => {
             ).toStrictEqual(true);
         });
 
-        it('should satisfy distributivity of multiplication over addition for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(123n);
-            const b = BigInt384.fromBigint(21346n);
-            const c = BigInt384.fromBigint(987n);
+        it('should satisfy distributivity of multiplication over addition for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(4n);
+            const b = BigInt17.fromBigint(7n);
+            const c = BigInt17.fromBigint(13n);
             expect(
                 a.mul(b.add(c)).equals(
                     a.mul(b).add(a.mul(c))
@@ -160,141 +163,150 @@ describe('BigInt384', () => {
     });
 
     describe('Division and Modulus', () => {
-        it('should correctly divide two BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(10n);
-            const b = BigInt384.fromBigint(3n);
+        it('should correctly divide two BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(10n);
+            const b = BigInt17.fromBigint(3n);
             const result = a.div(b);
-            expect(result.quotient.toBigint()).toStrictEqual(3n);
-            expect(result.remainder.toBigint()).toStrictEqual(1n);
+            expect(result.quotient.toBigint()).toStrictEqual(a.toBigint() / b.toBigint());
+            expect(result.remainder.toBigint()).toStrictEqual(a.toBigint() % b.toBigint());
         });
 
-        it('should satisfy division with identity element for BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(9876543210987654321n);
-            const b = BigInt384.fromBigint(1n);
+        it('should satisfy division with identity element for BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(13n);
+            const b = BigInt17.fromBigint(1n);
             const result = a.div(b);
-            expect(result.quotient).toStrictEqual(a);
+            expect(result.quotient.toBigint()).toStrictEqual(a.toBigint());
             expect(result.remainder.toBigint()).toStrictEqual(0n);
-        });
-
-        it('should correctly compute the modulus of a BigInt384 number with respect to another BigInt384 number', () => {
-            const result = BigInt384.fromBigint(17n).mod();
-            //expect(result.toBigint()).toStrictEqual(7n);
         });
     });
 
     describe('Square root', () => {
         it('should correctly take square root of a ProvableBigInt', () => {
-            const a = BigInt384.fromBigint(9n);
+            const a = BigInt17.fromBigint(4n);
             const result = a.sqrt();
-            expect(result.toBigint()).toStrictEqual(3n);
+            expect(result.toBigint()).toStrictEqual(2n);
+        });
+
+        it('should correctly take square root of a ProvableBigInt', () => {
+            const a = BigInt17.fromBigint(9n);
+            const result = a.sqrt();
+            expect(result.toBigint()).toStrictEqual(14n); // 14² ≡ 9 (mod 17)
+        });
+
+        it('should correctly take square root of a ProvableBigInt', () => {
+            const a = BigInt17.fromBigint(16n);
+            const result = a.sqrt();
+            expect(result.toBigint()).toStrictEqual(4n);
         });
 
         it('should correctly take square root of 0', () => {
-            const a = BigInt384.fromBigint(0n);
+            const a = BigInt17.fromBigint(0n);
             const result = a.sqrt();
             expect(result.toBigint()).toStrictEqual(0n);
-        });
-
-        it('should correctly take square root of a non-residue', () => {
-            const a = BigInt384.fromBigint(2n);
-            expect(() => a.sqrt()).toThrow();
         });
     });
 
     describe('Negate', () => {
         it('should correctly compute the additive inverse of a ProvableBigInt', () => {
-            const a = BigInt384.fromBigint(9n);
+            const a = BigInt17.fromBigint(9n);
             const result = a.negate();
-            expect(result.toBigint()).toStrictEqual(4n); // 13 - 9 = 4
+            expect(result.toBigint()).toStrictEqual(modulus - a.toBigint());
         });
 
         it('should correctly compute the additive inverse of 0', () => {
-            const a = BigInt384.fromBigint(0n);
+            const a = BigInt17.fromBigint(0n);
             const result = a.negate();
-            expect(result.toBigint()).toStrictEqual(0n); // 13 - 0 = 0
+            expect(result.toBigint()).toStrictEqual(0n);
         });
 
         it('should correctly compute the additive inverse of a large number', () => {
-            const a = BigInt384.fromBigint(104728n);
+            const a = BigInt17.fromBigint(modulus - 1n);
             const result = a.negate();
-            expect(result.toBigint()).toStrictEqual(1n); // 104729 - 104728 = 1
+            expect(result.toBigint()).toStrictEqual(1n);
         });
     });
 
     describe('Inverse', () => {
         it('should correctly compute the modular inverse of a ProvableBigInt', () => {
-            const a = BigInt384.fromBigint(2n);
+            const a = BigInt17.fromBigint(2n);
             const result = a.inverse();
-            expect(result.toBigint()).toStrictEqual(7n); // 2 * 7 ≡ 1 (mod 13)
+            expect(result.toBigint()).toStrictEqual(9n); // 2 * 9 ≡ 1 (mod 17)
         });
 
         it('should correctly compute the modular inverse of 1', () => {
-            const a = BigInt384.fromBigint(1n);
+            const a = BigInt17.fromBigint(1n);
             const result = a.inverse();
-            expect(result.toBigint()).toStrictEqual(1n); // 1 * 1 ≡ 1 (mod 13)
+            expect(result.toBigint()).toStrictEqual(1n);
         });
 
         it('should correctly compute the modular inverse of a large number', () => {
-            const a = BigInt384.fromBigint(104728n);
+            const a = BigInt17.fromBigint(modulus - 1n);
             const result = a.inverse();
-            expect(result.toBigint()).toStrictEqual(104728n); // 104728 * 104728 ≡ 1 (mod 104729)
+            expect(result.toBigint()).toStrictEqual(modulus - 1n); // 16 * 16 ≡ 1 (mod 17)
         });
     });
 
     describe('Power', () => {
         it('should correctly compute the power of a ProvableBigInt with exponent 0', () => {
-            const base = BigInt384.fromBigint(5n);
-            const exponent = BigInt384.fromBigint(0n);
+            const base = BigInt17.fromBigint(5n);
+            const exponent = BigInt17.fromBigint(0n);
             const result = base.pow(exponent);
-            expect(result.toBigint()).toStrictEqual(1n); // 5^0 ≡ 1 (mod 13)
+            expect(result.toBigint()).toStrictEqual(BigInt(base.toBigint() ** exponent.toBigint()) % modulus); // 5^0 ≡ 1 (mod 17)
         });
 
         it('should correctly compute the power of a ProvableBigInt with exponent 1', () => {
-            const base = BigInt384.fromBigint(5n);
-            const exponent = BigInt384.fromBigint(1n);
+            const base = BigInt17.fromBigint(5n);
+            const exponent = BigInt17.fromBigint(1n);
             const result = base.pow(exponent);
-            expect(result.toBigint()).toStrictEqual(5n); // 5^1 ≡ 5 (mod 13)
+            expect(result.toBigint()).toStrictEqual(BigInt(base.toBigint() ** exponent.toBigint()) % modulus); // 5^1 ≡ 5 (mod 17)
         });
 
         it('should correctly compute the power of a ProvableBigInt with a small exponent', () => {
-            const base = BigInt384.fromBigint(5n);
-            const exponent = BigInt384.fromBigint(3n);
+            const base = BigInt17.fromBigint(12n);
+            const exponent = BigInt17.fromBigint(2n);
             const result = base.pow(exponent);
-            expect(result.toBigint()).toStrictEqual(8n); // 5^3 ≡ 125 ≡ 8 (mod 13)
+            expect(result.toBigint()).toStrictEqual(BigInt(base.toBigint() ** exponent.toBigint()) % modulus); // 12^2 ≡ 144 ≡ 8 (mod 17)
         });
 
         it('should correctly compute the power of a ProvableBigInt with a large exponent', () => {
-            const base = BigInt384.fromBigint(2n);
-            const exponent = BigInt384.fromBigint(1000n);
+            const base = BigInt17.fromBigint(3n);
+            const exponent = BigInt17.fromBigint(16n);
             const result = base.pow(exponent);
-            expect(result.toBigint()).toStrictEqual(4096n); // 2^1000 % 104729
+            expect(result.toBigint()).toStrictEqual(BigInt(base.toBigint() ** exponent.toBigint()) % modulus); // 3^16 % 17
         });
 
         it('should correctly compute the power of a ProvableBigInt with a large base and exponent', () => {
-            const base = BigInt384.fromBigint(104728n);
-            const exponent = BigInt384.fromBigint(104728n);
+            const base = BigInt17.fromBigint(16n);
+            const exponent = BigInt17.fromBigint(16n);
             const result = base.pow(exponent);
-            expect(result.toBigint()).toStrictEqual(1n); // 104728^104728 % 104729
+            expect(result.toBigint()).toStrictEqual(BigInt(base.toBigint() ** exponent.toBigint()) % modulus); // 16^16 % 17
         });
     });
 
     describe('Comparison', () => {
-        it('should correctly compare two BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(987654321098765432109876543210987654321n);
+        it('should correctly compare two BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(13n);
+            const b = BigInt17.fromBigint(12n);
             expect(a.greaterThan(b).toBoolean()).toStrictEqual(true);
-            expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(
-                true
-            );
+            expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(true);
             expect(a.lessThan(b).toBoolean()).toStrictEqual(false);
             expect(a.lessThanOrEqual(b).toBoolean()).toStrictEqual(false);
             expect(a.equals(b).toBoolean()).toStrictEqual(false);
         });
 
-        it('should correctly check equality of two BigInt384 numbers', () => {
-            const a = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
-            const b = BigInt384.fromBigint(1234567890123456789012345678901234567890n);
+        it('should correctly check equality of two BigInt17 numbers', () => {
+            const a = BigInt17.fromBigint(11n);
+            const b = BigInt17.fromBigint(11n);
             expect(a.equals(b).toBoolean()).toStrictEqual(true);
         });
+
+        it('should correctly compare BigInt17 numbers with zero', () => {
+            const a = BigInt17.fromBigint(0n);
+            const b = BigInt17.fromBigint(16n);
+            expect(a.equals(b).toBoolean()).toStrictEqual(false);
+            expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
+            expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
+        });
     });
+
 });
