@@ -17,6 +17,7 @@ export {
   foreignFieldAdd,
   foreignFieldMul,
   KimchiGateType,
+  addRuntimeTableConfig,
 };
 
 export { fieldVar };
@@ -32,6 +33,7 @@ const Gates = {
   foreignFieldAdd,
   foreignFieldMul,
   raw,
+  addRuntimeTableConfig,
 };
 
 function rangeCheck0(
@@ -286,6 +288,13 @@ function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
     kind,
     MlArray.to(values.concat(padding).map((x) => x.value)),
     MlArray.to(coefficients.map(FieldConst.fromBigint))
+  );
+}
+
+function addRuntimeTableConfig(id: number, first_column: bigint[]) {
+  Snarky.gates.addRuntimeTableConfig(
+    id,
+    MlArray.to(first_column.map((x) => FieldConst.fromBigint(x)))
   );
 }
 
