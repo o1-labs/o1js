@@ -176,53 +176,75 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     /**
      * Adds two ProvableBigInt instances
      * @param a The ProvableBigInt to add
-     * @returns The sum as a ProvableBigInt
+     * @returns The quotient and remainder of the sum as ProvableBigInts
      */
-    add(a: ProvableBigInt_): ProvableBigInt_ {
-      let fields: Field[] = [];
+    add(a: ProvableBigInt_, isDouble = false) {
+      if (isDouble) a = this;
+      // witness q, r so that x+y = q*p + r
+      let { q, r } = Provable.witness(
+        Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }),
+        () => {
+          let xPlusY = this.toBigint() + a.toBigint();
+          let p0 = this.Constructor.modulus.toBigint();
+          let q = xPlusY / p0;
+          let r = xPlusY - q * p0;
+          return {
+            q: ProvableBigInt_.fromBigint(q),
+            r: ProvableBigInt_.fromBigint(r),
+          };
+        }
+      );
+
+      let delta: Field[] = Array.from(
+        { length: this.Constructor.config.limb_num },
+        () => Field.from(0)
+      );
+      let [X, Y, Q, R, P] = [
+        this.fields,
+        a.fields,
+        q.fields,
+        r.fields,
+        this.Constructor.modulus.fields,
+      ];
+
+      // compute X + Y limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+        if (isDouble) delta[i] = X[i].mul(2);
+        else delta[i] = X[i].add(Y[i]);
+      }
+
+      // subtract q*p limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+        for (let j = 0; j < this.Constructor.config.limb_num; j++) {
+          if (i + j < this.Constructor.config.limb_num) {
+            delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
+          }
+        }
+      }
+
+      // subtract r limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+        delta[i] = delta[i].sub(R[i]).seal();
+      }
+
       let carry = Field.from(0);
 
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        let sum = this.fields[i].add(a.fields[i]).add(carry);
-        carry = sum
-          .greaterThan(Field.from(this.Constructor.config.mask))
-          .toField();
-        fields.push(
-          sum.sub(carry.mul(Field.from(this.Constructor.config.mask + 1n)))
+      for (let i = 0; i < this.Constructor.config.limb_num - 1; i++) {
+        let deltaPlusCarry = delta[i].add(carry).seal();
+
+        carry = Provable.witness(Field, () => deltaPlusCarry.div(1n << 116n));
+        rangeCheck128Signed(carry);
+
+        // ensure that after adding the carry, the limb is a multiple of 2^116
+        deltaPlusCarry.assertEquals(
+          carry.mul(1n << this.Constructor.config.limb_size)
         );
-        rangeCheck(fields[i], Number(this.Constructor.config.limb_size));
       }
 
-      let isGreaterOrEqual = new Bool(false);
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        let isGreater = fields[i].greaterThan(
-          this.Constructor.modulus.fields[i]
-        );
-        let isEqual = fields[i].equals(this.Constructor.modulus.fields[i]);
-        isGreaterOrEqual = isGreaterOrEqual
-          .or(isGreater)
-          .or(isEqual.and(isGreaterOrEqual));
-      }
+      // the final limb plus carry should be zero to assert correctness
+      delta[this.Constructor.config.limb_num - 1].add(carry).assertEquals(0n);
 
-      let borrow = Field.from(0);
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        let diff = fields[i]
-          .sub(
-            this.Constructor.modulus.fields[i].mul(isGreaterOrEqual.toField())
-          )
-          .sub(borrow);
-        borrow = diff.lessThan(Field.from(0)).toField();
-        fields[i] = diff.add(
-          borrow.mul(Field.from(this.Constructor.config.mask + 1n))
-        );
-      }
-      return new ProvableBigInt_(
-        fields,
-        Unconstrained.from(
-          (this.value.get() + a.value.get()) %
-            this.Constructor.modulus.toBigint()
-        )
-      );
+      return { quotient: q, remainder: r };
     }
 
     /**
@@ -359,7 +381,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         }
       );
 
-      q.mul(a).add(r).assertEquals(this);
+      q.mul(a).add(r).remainder.assertEquals(this);
 
       return {
         quotient: q,
@@ -666,7 +688,7 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
   abstract toFields(): Field[];
   abstract toBits(): Bool[];
   abstract clone(): T;
-  abstract add(a: T): T;
+  abstract add(a: T, isDouble?: boolean): { quotient: T; remainder: T };
   abstract sub(a: T): T;
   abstract mul(a: T, isSquare?: boolean): T;
   abstract square(): T;

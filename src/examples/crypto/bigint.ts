@@ -6,7 +6,7 @@ const BigInt384 = createProvableBigInt(97n);
 
 let a = BigInt384.fromBigint(1n);
 let b = BigInt384.fromBigint(2n);
-let c = a.add(b);
+let c = a.add(b).remainder;
 
 console.log(a.toBigint());
 console.log(b.toBigint());

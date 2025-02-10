@@ -28,7 +28,7 @@ describe('BigInt17', () => {
     it('should correctly add two BigInt17 numbers', () => {
       const a = BigInt17.fromBigint(9n);
       const b = BigInt17.fromBigint(13n);
-      const result = a.add(b);
+      const result = a.add(b).remainder;
       expect(result.toBigint()).toStrictEqual(
         (a.toBigint() + b.toBigint()) % modulus
       );
@@ -37,7 +37,7 @@ describe('BigInt17', () => {
     it('should correctly add two maximum BigInt17 numbers', () => {
       const a = BigInt17.fromBigint(modulus - 1n);
       const b = BigInt17.fromBigint(modulus - 1n);
-      const result = a.add(b);
+      const result = a.add(b).remainder;
       expect(result.toBigint()).toStrictEqual(
         (modulus - 1n + (modulus - 1n)) % modulus
       );
@@ -46,13 +46,15 @@ describe('BigInt17', () => {
     it('should satisfy commutativity of addition for BigInt17 numbers', () => {
       const a = BigInt17.fromBigint(13n);
       const b = BigInt17.fromBigint(9n);
-      expect(a.add(b).equals(b.add(a)).toBoolean()).toStrictEqual(true);
+      expect(
+        a.add(b).remainder.equals(b.add(a).remainder).toBoolean()
+      ).toStrictEqual(true);
     });
 
     it('should satisfy addition with identity element for BigInt17 numbers', () => {
       const a = BigInt17.fromBigint(7n);
       const b = BigInt17.fromBigint(0n);
-      expect(a.add(b).toBigint()).toStrictEqual(a.toBigint());
+      expect(a.add(b).remainder.toBigint()).toStrictEqual(a.toBigint());
     });
 
     it('should satisfy associativity of addition for BigInt17 numbers', () => {
@@ -62,8 +64,8 @@ describe('BigInt17', () => {
       expect(
         a
           .add(b)
-          .add(c)
-          .equals(a.add(b.add(c)))
+          .remainder.add(c)
+          .remainder.equals(a.add(b.add(c).remainder).remainder)
           .toBoolean()
       ).toStrictEqual(true);
     });
@@ -153,8 +155,8 @@ describe('BigInt17', () => {
       const c = BigInt17.fromBigint(13n);
       expect(
         a
-          .mul(b.add(c))
-          .equals(a.mul(b).add(a.mul(c)))
+          .mul(b.add(c).remainder)
+          .equals(a.mul(b).add(a.mul(c)).remainder)
           .toBoolean()
       ).toStrictEqual(true);
     });
