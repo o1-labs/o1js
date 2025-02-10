@@ -42,24 +42,27 @@ class Character extends Struct({ value: Field }) {
   }
 }
 
+const stringEncoder = new TextEncoder();
+
+const stringDecoder = new TextDecoder('utf-8');
+
 // construct a provable with a `string` js type
 const RawCircuitString = {
   ...provable({ values: Provable.Array(Character, DEFAULT_STRING_LENGTH) }),
 
   toValue({ values }) {
-    return values
-      .map((x) => x.toString())
-      .join('')
-      .replace(/[^ -~]+/g, '');
+    return stringDecoder.decode(
+      new Uint8Array(values.map((x) => parseInt(x.toField().toString(), 10)))
+    );
   },
 
   fromValue(value) {
     if (typeof value === 'object') return value;
+    const utf8Characters = Array.from(stringEncoder.encode(value)).map((x) => {
+      return new Character(x);
+    });
     return {
-      values: fillWithNull(
-        value.split('').map((x) => Character.fromString(x)),
-        DEFAULT_STRING_LENGTH
-      ),
+      values: fillWithNull(utf8Characters, DEFAULT_STRING_LENGTH),
     };
   },
 } satisfies Provable<{ values: Character[] }, string>;
