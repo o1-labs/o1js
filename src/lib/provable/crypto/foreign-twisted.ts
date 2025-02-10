@@ -1,7 +1,7 @@
 import {
   TwistedCurveParams,
-  createCurveTwisted,
-  CurveTwisted,
+  createAffineTwistedCurve,
+  AffineTwistedCurve,
 } from '../../../bindings/crypto/elliptic-curve.js';
 import type { Group } from '../group.js';
 import { ProvablePureExtended } from '../types/struct.js';
@@ -33,16 +33,17 @@ class ForeignTwisted {
   y: AlmostForeignField;
 
   /**
-   * Create a new {@link ForeignTwisted} from an object representing the (twisted) x and y coordinates.
+   * Create a new {@link ForeignTwisted} from an object representing the (affine twisted) x and y coordinates.
    *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Please refer to the {@link ForeignField} constructor comments for more details.
    *
    * @example
    * ```ts
-   * let x = new ForeignTwisted({ x: 1n, y: 1n });
+   * let x = new ForeignTwisted({ x: 0n, y: 1n });
    * ```
    *
-   * **Warning**: This fails for a constant input which does not represent an actual point on the curve.
+   * **Warning**: This fails for a constant input which does not represent an
+   *              actual point on the curve or not in the subgroup.
    *
    * **Note**: For now, only the edwards25519 curve is supported.
    */
@@ -52,9 +53,10 @@ class ForeignTwisted {
   }) {
     this.x = new this.Constructor.Field(g.x);
     this.y = new this.Constructor.Field(g.y);
-    // don't allow constants that aren't on the curve
+    // don't allow constants that aren't on the curve or in the prime subgroup
     if (this.isConstant()) {
       this.assertOnCurve();
+      this.assertInSubgroup();
     }
   }
 
@@ -150,7 +152,7 @@ class ForeignTwisted {
    * Convert this curve point to a point with bigint coordinates.
    */
   toBigint() {
-    return this.Constructor.Bigint.fromNonzero({
+    return this.Constructor.Bigint.from({
       x: this.x.toBigInt(),
       y: this.y.toBigInt(),
     });
@@ -219,6 +221,12 @@ class ForeignTwisted {
     TwistedCurve.assertOnCurve(toPoint(g), this.Bigint);
   }
 
+  static assertInSubgroup(g: ForeignTwisted) {
+    if (this.Bigint.hasCofactor) {
+      TwistedCurve.assertInSubgroup(toPoint(g), this.Bigint);
+    }
+  }
+
   /**
    * Assert that this point lies on the elliptic curve, which means it satisfies the equation
    * `a * x^2 + y^2 = 1 + d * x^2 * y^2`
@@ -227,11 +235,19 @@ class ForeignTwisted {
     this.Constructor.assertOnCurve(this);
   }
 
+  /**
+   * Assert that this point lies in the prime subgroup, which means that scaling
+   * the point by the curve order results in a nonzero point.
+   */
+  assertInSubgroup() {
+    this.Constructor.assertInSubgroup(this);
+  }
+
   // dynamic subclassing infra
   get Constructor() {
     return this.constructor as typeof ForeignTwisted;
   }
-  static _Bigint?: CurveTwisted;
+  static _Bigint?: AffineTwistedCurve;
   static _Field?: typeof AlmostForeignField;
   static _Scalar?: typeof AlmostForeignField;
   static _provable?: ProvablePureExtended<
@@ -298,7 +314,7 @@ function createForeignTwisted(
   class Field extends FieldUnreduced.AlmostReduced {}
   class Scalar extends ScalarUnreduced.AlmostReduced {}
 
-  const BigintCurve = createCurveTwisted(params);
+  const BigintCurve = createAffineTwistedCurve(params);
 
   class Curve extends ForeignTwisted {
     static _Bigint = BigintCurve;

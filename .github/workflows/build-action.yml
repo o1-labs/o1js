@@ -310,7 +310,7 @@ jobs:
           strategy: upgrade
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+
       - name: Configure Git
         run: |
           git config --local user.email "action@github.com"

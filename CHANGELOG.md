@@ -17,18 +17,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
 
-## Added
+### Added
 
 - Verifying and signing Ed25519 signatures (EdDSA for Edwards25519 curve) https://github.com/o1-labs/o1js/pull/1988
 - Provable operations of twisted Edwards curves with affine coordinates https://github.com/o1-labs/o1js/pull/1949
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
+- Provable operations of twisted Edwards curves with affine coordinates https://github.com/o1-labs/o1js/pull/1949
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
 - Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
+- `MerkleList.popOption()` for popping the last element and also learning if there was one https://github.com/o1-labs/o1js/pull/1997
+- Added custom header support for `Fetch` methods such as `fetchEvents`, `fetchActions` etc. and to `Mina` instance. Also added two new methods `setMinaDefaultHeaders` and `setArchiveDefaultHeaders` https://github.com/o1-labs/o1js/pull/2004
 
 ### Changed
 
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
 - Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+- Enable to pass normal JS values (e.g., `bigint` instead of `Field`) to ZkProgram provers https://github.com/o1-labs/o1js/pull/1934
+  - Also improves the supported JS values for a few important types like `Signature` and `UIntX`
+- ECDSA `verifySignedHash()` accepts hash `Bytes` directly for easy use with alternative hash functions https://github.com/o1-labs/o1js/pull/2005
+
+### Fixed
+
+- Fix behavior of `initializeBindings()` when called concurrently, to improve error messages in common failure scenarios https://github.com/o1-labs/o1js/pull/1996
+- Fix `ZkProgram` public input/output types https://github.com/o1-labs/o1js/pull/1998
 
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 

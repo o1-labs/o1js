@@ -1,7 +1,6 @@
 import { TwistedCurveParams } from '../../../bindings/crypto/elliptic-curve-examples.js';
-import { createCurveTwisted } from '../../../bindings/crypto/elliptic-curve.js';
 import { SHA2 } from '../gadgets/sha2.js';
-import { inverse, mod } from '../../../bindings/crypto/finite-field.js';
+import { mod } from '../../../bindings/crypto/finite-field.js';
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
 import { Field3, ForeignField, split } from './foreign-field.js';
@@ -9,20 +8,21 @@ import { l2Mask } from './range-check.js';
 import { Bool } from '../bool.js';
 import { provable } from '../types/provable-derivers.js';
 import {
-  CurveTwisted,
-  GroupTwisted,
-  twistedAdd,
-  twistedDouble,
+  AffineTwistedCurve,
+  GroupAffineTwisted,
+  affineTwistedAdd,
+  createAffineTwistedCurve,
+  affineTwistedDouble,
 } from '../../../bindings/crypto/elliptic-curve.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { sliceField3 } from './bit-slices.js';
-import { exists } from '../core/exists.js';
 import { arrayGetGeneric } from './elliptic-curve.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { Field } from '../field.js';
 import { UInt8 } from '../int.js';
 import { Bytes } from '../bytes.js';
 import { Octets } from '../../util/octets.js';
+import { exists } from '../core/exists.js';
 
 // external API
 export { TwistedCurve, Eddsa };
@@ -37,6 +37,7 @@ const TwistedCurve = {
   assertOnCurve,
   scale,
   multiScalarMul,
+  assertInSubgroup,
 };
 
 // Auxiliary function to compute x coordinate from decoded coordinate y and
@@ -85,14 +86,14 @@ const Point = {
   toBigint({ x, y }: Point) {
     let x_ = Field3.toBigint(x);
     let y_ = Field3.toBigint(y);
-    return { x: x_, y: y_, infinity: x_ === 0n && y_ === 1n };
+    return { x: x_, y: y_ };
   },
   isConstant: (P: Point) => Provable.isConstant(Point, P),
 
   /**
    * Random point on the curve.
    */
-  random(Curve: CurveTwisted) {
+  random(Curve: AffineTwistedCurve) {
     return Point.from(random(Curve));
   },
 
@@ -132,7 +133,7 @@ function add(
 
   // constant case
   if (Point.isConstant(p1) && Point.isConstant(p2)) {
-    let p3 = twistedAdd(Point.toBigint(p1), Point.toBigint(p2), f, a, d);
+    let p3 = affineTwistedAdd(Point.toBigint(p1), Point.toBigint(p2), f, a, d);
     return Point.from(p3);
   }
 
@@ -184,7 +185,7 @@ function double(
 
   // constant case
   if (Point.isConstant(p1)) {
-    let p3 = twistedDouble(Point.toBigint(p1), f, Curve.a, Curve.d);
+    let p3 = affineTwistedDouble(Point.toBigint(p1), f, Curve.a, Curve.d);
     return Point.from(p3);
   }
 
@@ -246,13 +247,11 @@ function assertOnCurve(
 
 /**
  * Twisted curve scalar multiplication, `scalar*point`
- *
- * The result is constrained to be not zero.
  */
 function scale(
   scalar: Field3,
   point: Point,
-  Curve: CurveTwisted,
+  Curve: AffineTwistedCurve,
   config?: {
     windowSize?: number;
     multiples?: Point[];
@@ -264,17 +263,26 @@ function scale(
 }
 
 // check whether a point equals a constant point
-// TODO implement the full case of two vars
 function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
   let xEquals = ForeignField.equals(p1.x, p2.x, Curve.modulus);
   let yEquals = ForeignField.equals(p1.y, p2.y, Curve.modulus);
   return xEquals.and(yEquals);
 }
 
+// checks whether the twisted elliptic curve point g is in the subgroup defined by [order]g = 0
+function assertInSubgroup(g: Point, Curve: AffineTwistedCurve) {
+  if (!Curve.hasCofactor) return;
+  equals(
+    scale(Field3.from(Curve.order), g, Curve),
+    { x: 0n, y: 1n },
+    Curve
+  ).assertTrue();
+}
+
 function multiScalarMulConstant(
   scalars: Field3[],
   points: Point[],
-  Curve: CurveTwisted
+  Curve: AffineTwistedCurve
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
@@ -283,7 +291,7 @@ function multiScalarMulConstant(
   // TODO dedicated MSM
   let s = scalars.map(Field3.toBigint);
   let P = points.map(Point.toBigint);
-  let sum: GroupTwisted = Curve.zero;
+  let sum: GroupAffineTwisted = Curve.zero;
   for (let i = 0; i < n; i++) {
     sum = Curve.add(sum, Curve.scale(P[i], s[i]));
   }
@@ -306,7 +314,7 @@ function multiScalarMulConstant(
 function multiScalarMul(
   scalars: Field3[],
   points: Point[],
-  Curve: CurveTwisted,
+  Curve: AffineTwistedCurve,
   tableConfigs: (
     | { windowSize?: number; multiples?: Point[] }
     | undefined
@@ -371,7 +379,7 @@ function multiScalarMul(
  * This method is provable, but won't create any constraints given a constant point.
  */
 function getPointTable(
-  Curve: CurveTwisted,
+  Curve: AffineTwistedCurve,
   P: Point,
   windowSize: number,
   table?: Point[]
@@ -394,7 +402,7 @@ function getPointTable(
   return table;
 }
 
-function random(Curve: CurveTwisted) {
+function random(Curve: AffineTwistedCurve) {
   let x = Curve.Field.random();
   return simpleMapToCurve(x, Curve);
 }
@@ -405,7 +413,7 @@ function random(Curve: CurveTwisted) {
  *
  * If the curve has a cofactor, multiply by it to get a point in the correct subgroup.
  */
-function simpleMapToCurve(x: bigint, Curve: CurveTwisted) {
+function simpleMapToCurve(x: bigint, Curve: AffineTwistedCurve) {
   const F = Curve.Field;
   let y: bigint | undefined = undefined;
 
@@ -421,8 +429,7 @@ function simpleMapToCurve(x: bigint, Curve: CurveTwisted) {
     y = F.sqrt(y2);
   }
 
-  // Check if we generated a point at infinity
-  let p = { x, y, infinity: x === 0n && y === 1n };
+  let p = { x, y };
 
   // clear cofactor
   if (Curve.hasCofactor) {
@@ -432,7 +439,7 @@ function simpleMapToCurve(x: bigint, Curve: CurveTwisted) {
 }
 
 /** EdDSA over Edwards25519 */
-const Curve = createCurveTwisted(TwistedCurveParams.Edwards25519);
+const Curve = createAffineTwistedCurve(TwistedCurveParams.Edwards25519);
 const basePoint = Point.from(Curve.one);
 
 /**

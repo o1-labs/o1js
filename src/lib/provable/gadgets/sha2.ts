@@ -186,7 +186,7 @@ const SHA2 = {
    * Implementation of [NIST SHA-2](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)
    * hash Function. Supports output lengths of 224, 256, 384, or 512 bits.
    *
-   * Applies the SHA-3 hash function to a list of big-endian byte-sized {@link Field}
+   * Applies the SHA-2 hash function to a list of big-endian byte-sized {@link Field}
    * elements, flexible to handle varying output lengths (224, 256, 384, 512 bits) as specified.
    *
    * The function accepts {@link Bytes} as the input message, which is a type that

@@ -4,9 +4,9 @@ import {
 } from '../../../bindings/crypto/elliptic-curve-examples.js';
 import {
   CurveAffine,
-  CurveTwisted,
+  AffineTwistedCurve,
   createCurveAffine,
-  createCurveTwisted,
+  createAffineTwistedCurve,
 } from '../../../bindings/crypto/elliptic-curve.js';
 
 // crypto namespace
@@ -21,7 +21,7 @@ const Crypto = {
    * Create twisted elliptic curve arithmetic methods in affine coordinates.
    */
   createCurveTwisted(params: Crypto.TwistedCurveParams): Crypto.TwistedCurve {
-    return createCurveTwisted(params);
+    return createAffineTwistedCurve(params);
   },
   /**
    * Parameters defining an elliptic curve in short Weierstraß form
@@ -52,6 +52,6 @@ namespace Crypto {
 
   export type Curve = CurveAffine;
 
-  export type TwistedCurve = CurveTwisted;
+  export type TwistedCurve = AffineTwistedCurve;
 }
 export { Crypto };

@@ -68,8 +68,8 @@ class MerkleTree {
    * @param index Index of the leaf.
    * @returns The data of the leaf.
    */
-  getLeaf(key: bigint) {
-    return this.getNode(0, key);
+  getLeaf(index: bigint) {
+    return this.getNode(0, index);
   }
 
   /**
