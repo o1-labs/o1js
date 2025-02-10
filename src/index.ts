@@ -149,7 +149,10 @@ import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
-import { ProvableBigInt as ProvableBigInt_, createProvableBigInt as createProvableBigInt_ } from './lib/provable/bigint.js';
+import {
+  ProvableBigInt as ProvableBigInt_,
+  createProvableBigInt as createProvableBigInt_,
+} from './lib/provable/bigint.js';
 export { Experimental };
 
 const Experimental_ = {
