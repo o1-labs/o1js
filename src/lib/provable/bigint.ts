@@ -5,6 +5,7 @@ import { ProvablePureExtended, Struct } from './types/struct.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './gadgets/common.js';
 import { provableFromClass } from './types/provable-derivers.js';
+import { Unconstrained } from './types/unconstrained.js';
 
 export { createProvableBigInt, BigIntParams, BigIntParamList, ProvableBigInt };
 
@@ -14,6 +15,7 @@ type BigIntParameter = {
     mask: bigint,
     MAX: bigint
 }
+
 
 const BigIntParams: { [key: string]: BigIntParameter } = {
     464: {
@@ -72,12 +74,12 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     class ProvableBigInt_ extends ProvableBigInt<ProvableBigInt_> {
 
-        constructor(fields: Field[], value: bigint) {
-            super(fields, value);
+        constructor(fields: Field[], value: Unconstrained<bigint> ) {
+            super(fields, Unconstrained.from(value));
         }
 
         static {
-            this._modulus = new ProvableBigInt_(fields, modulus);
+            this._modulus = new ProvableBigInt_(fields, Unconstrained.from(modulus));
             this._config = config_;
             this._provable = provableFromClass(ProvableBigInt_, {
                 fields: Provable.Array(Field, config_.limb_num),
@@ -103,20 +105,22 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         static fromBigint(x: bigint): ProvableBigInt_ {
             let fields = [];
             let value = x;
-            if (x < 0n) {
-                throw new Error('Input must be non-negative.');
+            // SHOULD WE ACCEPT UNREDUCED INPUTS?
+            if (value < 0n) {
+                //throw new Error('Input must be non-negative.');
+                value = ((x % modulus) + modulus) % modulus;
             }
-            if (x > this.config.MAX) {
-                throw new Error(`Input exceeds ${this.config.limb_num * Number(this.config.limb_size)}-bit size limit.`);
+            if (value > ProvableBigInt_.config.MAX) {
+                throw new Error(`Input exceeds ${ProvableBigInt_.config.limb_num * Number(ProvableBigInt_.config.limb_size)}-bit size limit.`);
             }
-            if (x >= this.modulus.toBigint()) {
+            if (value >= ProvableBigInt_.modulus.toBigint()) {
                 throw new Error(`Input exceeds modulus.`);
             }
-            for (let i = 0; i < this.config.limb_num; i++) {
-                fields.push(Field.from(x & this.config.mask)); // fields[i] = x & 2^64 - 1
-                x >>= this.config.limb_size; // x = x >> limb_size
+            for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
+                fields.push(Field.from(value & ProvableBigInt_.config.mask)); // fields[i] = x & 2^64 - 1
+                value >>= ProvableBigInt_.config.limb_size; // x = x >> limb_size
             }
-            return new ProvableBigInt_(fields, value);
+            return new ProvableBigInt_(fields, Unconstrained.from(value));
         }
 
         get Constructor() {
@@ -125,26 +129,26 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
         toBigint(): bigint {
             let result = 0n;
-            for (let i = 0; i < (this.constructor as typeof ProvableBigInt).config.limb_num; i++) {
+            for (let i = 0; i < this.Constructor.config.limb_num; i++) {
                 result |=
                     this.fields[i].toBigInt() <<
-                    ((this.constructor as typeof ProvableBigInt).config.limb_size * BigInt(i)); // result = result | fields[i] << 64 * i
+                    (this.Constructor.config.limb_size * BigInt(i)); // result = result | fields[i] << 64 * i
             }
             return result;
         }
 
         toFields(): Field[] {
-            return this.fields;
+            return this.fields.slice(0, this.Constructor.config.limb_num);
         }
 
         static fromFields(fields: Field[]): ProvableBigInt_ {
             let value = 0n;
-            for (let i = 0; i < (this.constructor as typeof ProvableBigInt).config.limb_num; i++) {
+            for (let i = 0; i < this.config.limb_num; i++) {
                 value |=
                     BigInt(fields[i].toString()) <<
-                    ((this.constructor as typeof ProvableBigInt).config.limb_size * BigInt(i));
+                    (this.config.limb_size * BigInt(i));
             }
-            return new ProvableBigInt_(fields, value);
+            return new ProvableBigInt_(fields, Unconstrained.from(value));
         }
 
         toBits(): Bool[] {
@@ -164,28 +168,27 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
             let fields: Field[] = [];
             let carry = Field.from(0);
 
-            for (let i = 0; i < (this.constructor as typeof ProvableBigInt).config.limb_num; i++) {
+            for (let i = 0; i < this.Constructor.config.limb_num; i++) {
                 let sum = this.fields[i].add(a.fields[i]).add(carry);
-                carry = sum.greaterThan(Field.from((this.constructor as typeof ProvableBigInt).config.mask)).toField();
-                fields.push(sum.sub(carry.mul(Field.from((this.constructor as typeof ProvableBigInt).config.mask + 1n))));
-                rangeCheck(fields[i], Number((this.constructor as typeof ProvableBigInt).config.limb_size));
+                carry = sum.greaterThan(Field.from(this.Constructor.config.mask)).toField();
+                fields.push(sum.sub(carry.mul(Field.from(this.Constructor.config.mask + 1n))));
+                rangeCheck(fields[i], Number(this.Constructor.config.limb_size));
             }
 
             let isGreaterOrEqual = new Bool(false);
-            for (let i = 0; i < (this.constructor as typeof ProvableBigInt).config.limb_num; i++) {
-                let isGreater = fields[i].greaterThan((this.Constructor.modulus as ProvableBigInt_).fields[i]);
-                let isEqual = fields[i].equals((this.Constructor.modulus as ProvableBigInt_).fields[i]);
+            for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+                let isGreater = fields[i].greaterThan(this.Constructor.modulus.fields[i]);
+                let isEqual = fields[i].equals(this.Constructor.modulus.fields[i]);
                 isGreaterOrEqual = isGreaterOrEqual.or(isGreater).or(isEqual.and(isGreaterOrEqual));
             }
 
             let borrow = Field.from(0);
-            for (let i = 0; i < (this.constructor as typeof ProvableBigInt).config.limb_num; i++) {
-                let diff = fields[i].sub((this.Constructor.modulus as ProvableBigInt_).fields[i].mul(isGreaterOrEqual.toField())).sub(borrow);
+            for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+                let diff = fields[i].sub(this.Constructor.modulus.fields[i].mul(isGreaterOrEqual.toField())).sub(borrow);
                 borrow = diff.lessThan(Field.from(0)).toField();
-                fields[i] = diff.add(borrow.mul(Field.from((this.constructor as typeof ProvableBigInt).config.mask + 1n)));
+                fields[i] = diff.add(borrow.mul(Field.from(this.Constructor.config.mask + 1n)));
             }
-
-            return new ProvableBigInt_(fields, (BigInt(this.toBigint()) + BigInt(a.toBigint())) % (this.Constructor.modulus as ProvableBigInt_).toBigint());
+            return new ProvableBigInt_(fields, Unconstrained.from((this.value.get() + a.value.get()) % this.Constructor.modulus.toBigint()));
         }
 
         /**
@@ -203,7 +206,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
                 rangeCheck(fields[i], Number(this.Constructor.config.limb_size));
             }
 
-            return new ProvableBigInt_(fields, (this.value - a.value) % (this.Constructor.modulus as ProvableBigInt_).toBigint());
+            return new ProvableBigInt_(fields, Unconstrained.from((this.value.get() - a.value.get()) % this.Constructor.modulus.toBigint()));
 
         }
 
@@ -219,7 +222,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
                 Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }),
                 () => {
                     let xy = this.toBigint() * a.toBigint();
-                    let p0 = (this.Constructor.modulus as ProvableBigInt_).toBigint();
+                    let p0 = this.Constructor.modulus.toBigint();
                     let q = xy / p0;
                     let r = xy - q * p0;
                     return { q: ProvableBigInt_.fromBigint(q), r: ProvableBigInt_.fromBigint(r) };
@@ -227,7 +230,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
             );
 
             let delta: Field[] = Array.from({ length: 2 * this.Constructor.config.limb_num - 1 }, () => new Field(0));
-            let [X, Y, Q, R, P] = [this.fields, a.fields, q.fields, r.fields, (this.Constructor.modulus as ProvableBigInt_).fields];
+            let [X, Y, Q, R, P] = [this.fields, a.fields, q.fields, r.fields, this.Constructor.modulus.fields];
 
             for (let i = 0; i < this.Constructor.config.limb_num; i++) {
                 if (isSquare) {
@@ -255,9 +258,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
                 let deltaPlusCarry = delta[i].add(carry).seal();
 
                 carry = Provable.witness(Field, () => deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limb_size)));
-                rangeCheck128Signed(carry);
+                rangeCheck(carry, 128, true);
 
-    
+
                 deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limb_num)));
             }
 
@@ -307,7 +310,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
             let { res } = Provable.witness(
                 Struct({ res: ProvableBigInt_ as typeof ProvableBigInt }),
                 () => {
-                    const p = (this.Constructor.modulus as ProvableBigInt_).toBigint();
+                    const p = this.Constructor.modulus.toBigint();
                     let t = 0n;
                     let newT = 1n;
                     let r = p;
@@ -347,7 +350,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
          */
         negate(): ProvableBigInt_ {
             // If a is zero, return zero. Otherwise, return the result of subtracting a from the modulus.
-            return Provable.if(this.equals(ProvableBigInt_.zero()), ProvableBigInt_, ProvableBigInt_.zero(), (this.Constructor.modulus as ProvableBigInt_).sub(this));
+            return Provable.if(this.equals(ProvableBigInt_.zero()), ProvableBigInt_, ProvableBigInt_.zero(), this.Constructor.modulus.sub(this));
         }
 
         /**
@@ -359,23 +362,23 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
             let { r } = Provable.witness(
                 Struct({ r: ProvableBigInt_ as typeof ProvableBigInt }),
                 () => {
-                    const modulo = (this.Constructor.modulus as ProvableBigInt_).toBigint();
+                    const modulo = this.Constructor.modulus.toBigint();
                     const b = this.toBigint();
                     const x = exp.toBigint();
                     const res = b ** x % modulo;
                     return { r: ProvableBigInt_.fromBigint(res) };
                 });
-        
+
             const exponentBits = exp.toBits();
-            const processChunk = function*(bits: Bool[], chunkSize: number) {
+            const processChunk = function* (bits: Bool[], chunkSize: number) {
                 for (let i = 0; i < bits.length; i += chunkSize) {
                     yield bits.slice(i, i + chunkSize);
                 }
             };
-        
+
             let result = ProvableBigInt_.one();
             let base = this.clone();
-        
+
             for (const chunk of processChunk(exponentBits, 100)) {
                 for (const bit of chunk) {
                     result = Provable.if(
@@ -387,7 +390,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
                     base = base.mul(base);
                 }
             }
-        
+
             result.assertEquals(r);
             return r;
         }
@@ -400,7 +403,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
             let r = Provable.witness(
                 ProvableBigInt_,
                 () => {
-                    const p = (this.Constructor.modulus as ProvableBigInt_).toBigint();
+                    const p = this.Constructor.modulus.toBigint();
                     // Special cases
                     // Case 1: If input is 0, square root is 0
                     if (this.toBigint() === 0n) return ProvableBigInt_.fromBigint(0n);
@@ -564,7 +567,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
 abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
     fields: Field[];
-    value: bigint;
+    value: Unconstrained<bigint>;
 
     static _provable?: ProvablePureExtended<
         ProvableBigInt<ProvableBigInt<any>>,
@@ -590,9 +593,9 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
         return this._config;
     }
 
-    constructor(fields: Field[], value: bigint) {
+    constructor(fields: Field[], value: Unconstrained<bigint> ) {
         this.fields = fields;
-        this.value = value;
+        this.value = Unconstrained.from(value);
     }
 
     abstract get Constructor(): typeof ProvableBigInt;
@@ -619,7 +622,7 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
 
 
 
-function rangeCheck(x: Field, bits: number) {
+function rangeCheck(x: Field, bits: number, signed?: boolean) {
     switch (bits) {
         case 32:
             Gadgets.rangeCheck32(x);
@@ -632,6 +635,10 @@ function rangeCheck(x: Field, bits: number) {
             break;
         case 116:
             rangeCheck116(x);
+            break;
+        case 128:
+            if (signed)
+                rangeCheck128Signed(x);
             break;
     }
 }
@@ -660,6 +667,21 @@ function rangeCheck116(x: Field) {
     x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
 
+function rangeCheck128Signed(xSigned: Field) {
+    let x = xSigned.add(1n << 127n);
+
+    let [x0, x1] = Provable.witnessFields(2, () => {
+        const x0 = x.toBigInt() & ((1n << 64n) - 1n);
+        const x1 = x.toBigInt() >> 64n;
+        return [x0, x1];
+    });
+
+    Gadgets.rangeCheck64(x0);
+    Gadgets.rangeCheck64(x1);
+
+    x0.add(x1.mul(1n << 64n)).assertEquals(x);
+}
+
 function findConfig(modulus: bigint): BigIntParameter {
     const filteredParams = BigIntParamList.filter(param => BigIntParams[param].MAX >= modulus);
     if (filteredParams.length === 0) {
@@ -670,19 +692,4 @@ function findConfig(modulus: bigint): BigIntParameter {
     }, filteredParams[0]);
 
     return BigIntParams[index];
-}
-
-function rangeCheck128Signed(xSigned: Field) {
-  let x = xSigned.add(1n << 127n);
-
-  let [x0, x1] = Provable.witnessFields(2, () => {
-    const x0 = x.toBigInt() & ((1n << 64n) - 1n);
-    const x1 = x.toBigInt() >> 64n;
-    return [x0, x1];
-  });
-
-  Gadgets.rangeCheck64(x0);
-  Gadgets.rangeCheck64(x1);
-
-  x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
