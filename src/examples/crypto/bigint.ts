@@ -1,4 +1,4 @@
-import { Experimental } from "o1js";
+import { Experimental } from 'o1js';
 
 const { ProvableBigInt, createProvableBigInt } = Experimental;
 
@@ -11,7 +11,6 @@ let c = a.add(b);
 console.log(a.toBigint());
 console.log(b.toBigint());
 console.log(c.toBigint());
-
 
 a = BigInt384.fromBigint(71n);
 b = BigInt384.fromBigint(31n);
