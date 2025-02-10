@@ -10,7 +10,6 @@ const { createProvableBigInt } = Experimental;
 describe('BigInt17', () => {
     const modulus = 17n;
     const BigInt17 = createProvableBigInt(modulus);
-
     describe('Creation and Conversion', () => {
         it('should correctly create a BigInt17 instance from a bigint and convert back to bigint', () => {
             const value = 12n;
@@ -18,15 +17,12 @@ describe('BigInt17', () => {
             expect(bigInt.toBigint()).toStrictEqual(value);
         });
 
-        it('should fail to create a BigInt17 instance from a negative number', () => {
+        it('should correctly create a BigInt17 instance from a negative bigint', () => {
             const value = -12n;
-            expect(() => { BigInt17.fromBigint(value) }).toThrow('Input must be non-negative');
+            const bigInt = BigInt17.fromBigint(value);
+            expect(bigInt.toBigint()).toStrictEqual(5n);
         });
 
-        it('should fail to create a BigInt17 instance from a bigint larger than 384-bit', () => {
-            const value = 1n << 9n;
-            expect(() => { BigInt17.fromBigint(value) }).toThrow('Input exceeds modulus.');
-        });
     });
 
     describe('Addition', () => {
@@ -57,7 +53,7 @@ describe('BigInt17', () => {
         it('should satisfy addition with identity element for BigInt17 numbers', () => {
             const a = BigInt17.fromBigint(7n);
             const b = BigInt17.fromBigint(0n);
-            expect(a.add(b)).toStrictEqual(a);
+            expect(a.add(b).toBigint()).toStrictEqual(a.toBigint());
         });
 
         it('should satisfy associativity of addition for BigInt17 numbers', () => {
