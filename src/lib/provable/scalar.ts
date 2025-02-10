@@ -244,8 +244,8 @@ class Scalar implements ShiftedScalar {
    * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
    *
    */
-  static toInput(x: Scalar): HashInput {
-    return { fields: [x.high254], packed: [[x.lowBit.toField(), 1]] };
+  static toInput(value: Scalar): HashInput {
+    return { fields: [value.high254], packed: [[value.lowBit.toField(), 1]] };
   }
 
   /**

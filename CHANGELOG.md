@@ -21,10 +21,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
+- Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
+- `MerkleList.popOption()` for popping the last element and also learning if there was one https://github.com/o1-labs/o1js/pull/1997
+- Added custom header support for `Fetch` methods such as `fetchEvents`, `fetchActions` etc. and to `Mina` instance. Also added two new methods `setMinaDefaultHeaders` and `setArchiveDefaultHeaders` https://github.com/o1-labs/o1js/pull/2004
 
 ### Changed
 
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
+- Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+- Enable to pass normal JS values (e.g., `bigint` instead of `Field`) to ZkProgram provers https://github.com/o1-labs/o1js/pull/1934
+  - Also improves the supported JS values for a few important types like `Signature` and `UIntX`
+- ECDSA `verifySignedHash()` accepts hash `Bytes` directly for easy use with alternative hash functions https://github.com/o1-labs/o1js/pull/2005
+
+### Fixed
+
+- Fix behavior of `initializeBindings()` when called concurrently, to improve error messages in common failure scenarios https://github.com/o1-labs/o1js/pull/1996
+- Fix `ZkProgram` public input/output types https://github.com/o1-labs/o1js/pull/1998
 
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
@@ -45,12 +57,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - Changed an internal type to improve IntelliSense on ZkProgram methods https://github.com/o1-labs/o1js/pull/1933
+- Updated o1js nix devshell to build rust on all executions of `npm run build:update-bindings`
 
 ### Fixed
 
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
 - Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
 - Deprecate `testnet` `networkId` in favor of `devnet` https://github.com/o1-labs/o1js/pull/1938
+- Fix event data type inconsistency between LocalBlockchain and Mina https://github.com/o1-labs/o1js/pull/1975
 
 ## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
 

@@ -6,6 +6,7 @@ import { Proof } from './proof.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
 import { Undefined, Void } from './zkprogram.js';
 import { Bool } from '../provable/bool.js';
+import { From } from '../../bindings/lib/provable-generic.js';
 
 export { Recursive };
 
@@ -38,11 +39,13 @@ function Recursive<
 ): {
   [Key in keyof PrivateInputs]: RecursiveProver<
     InferProvable<PublicInputType>,
+    PublicInputType,
     InferProvable<PublicOutputType>,
     PrivateInputs[Key]
   > & {
     if: ConditionalRecursiveProver<
       InferProvable<PublicInputType>,
+      PublicInputType,
       InferProvable<PublicOutputType>,
       PrivateInputs[Key]
     >;
@@ -70,11 +73,11 @@ function Recursive<
 
   let methodKeys: MethodKey[] = Object.keys(methods);
 
-  let regularRecursiveProvers = mapToObject(methodKeys, (key) => {
+  let regularRecursiveProvers = mapToObject(methodKeys, (key, i) => {
     return async function proveRecursively_(
       conditionAndConfig: Bool | { condition: Bool; domainLog2?: number },
       publicInput: PublicInput,
-      ...args: TupleToInstances<PrivateInputs[MethodKey]>
+      ...args: TupleFrom<PrivateInputs[MethodKey]>
     ): Promise<PublicOutput> {
       let condition =
         conditionAndConfig instanceof Bool
@@ -86,10 +89,10 @@ function Recursive<
         // move method args to constants
         let constInput = Provable.toConstant<PublicInput>(
           publicInputType,
-          publicInput
+          publicInputType.fromValue(publicInput)
         );
         let constArgs = zip(args, privateInputs[key]).map(([arg, type]) =>
-          Provable.toConstant(type, arg)
+          Provable.toConstant(type, ProvableType.get(type).fromValue(arg))
         );
 
         if (!condition.toBoolean()) {
@@ -133,9 +136,15 @@ function Recursive<
     regularRecursiveProvers,
     (
       prover
-    ): RecursiveProver<PublicInput, PublicOutput, PrivateInputs[MethodKey]> & {
+    ): RecursiveProver<
+      PublicInput,
+      PublicInputType,
+      PublicOutput,
+      PrivateInputs[MethodKey]
+    > & {
       if: ConditionalRecursiveProver<
         PublicInput,
+        PublicInputType,
         PublicOutput,
         PrivateInputs[MethodKey]
       >;
@@ -170,30 +179,32 @@ function Recursive<
 
 type RecursiveProver<
   PublicInput,
+  PublicInputType,
   PublicOutput,
   Args extends Tuple<ProvableType>
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<PublicOutput>
+  ? (...args: TupleFrom<Args>) => Promise<PublicOutput>
   : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
     ) => Promise<PublicOutput>;
 
 type ConditionalRecursiveProver<
   PublicInput,
+  PublicInputType,
   PublicOutput,
   Args extends Tuple<ProvableType>
 > = PublicInput extends undefined
   ? (
       condition: Bool | { condition: Bool; domainLog2?: number },
-      ...args: TupleToInstances<Args>
+      ...args: TupleFrom<Args>
     ) => Promise<PublicOutput>
   : (
       condition: Bool | { condition: Bool; domainLog2?: number },
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
     ) => Promise<PublicOutput>;
 
-type TupleToInstances<T> = {
-  [I in keyof T]: InferProvable<T[I]>;
+type TupleFrom<T> = {
+  [I in keyof T]: From<T[I]>;
 };
