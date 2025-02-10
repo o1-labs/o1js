@@ -52,7 +52,7 @@ const RawCircuitString = {
 
   toValue({ values }) {
     return stringDecoder.decode(
-      new Uint8Array(values.map((x) => parseInt(x.toField().toString(), 10)))
+      new Uint8Array(values.map((x) => Number(x.toField().toBigInt())))
     );
   },
 
