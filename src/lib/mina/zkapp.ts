@@ -1039,7 +1039,6 @@ super.init();
 
   /**
    * Asynchronously fetches events emitted by this {@link SmartContract} and returns an array of events with their corresponding types.
-   * @async
    * @param [start=UInt32.from(0)] - The start height of the events to fetch.
    * @param end - The end height of the events to fetch. If not provided, fetches events up to the latest height.
    * @returns A promise that resolves to an array of objects, each containing the event type and event data for the specified range.
