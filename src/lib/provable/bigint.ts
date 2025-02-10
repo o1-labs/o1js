@@ -7,7 +7,7 @@ import { assert } from './gadgets/common.js';
 import { provableFromClass } from './types/provable-derivers.js';
 import { Unconstrained } from './types/unconstrained.js';
 
-export { createProvableBigInt, BigIntParams, BigIntParamList, ProvableBigInt };
+export { createProvableBigInt, ProvableBigInt };
 
 type BigIntParameter = {
     limb_num: number,
