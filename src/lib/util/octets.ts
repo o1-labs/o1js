@@ -113,4 +113,23 @@ const Octets = {
         )
       );
   },
+
+  /**
+   * Convert a bigint to a little-endian array of {@link UInt8} elements.
+   *
+   * @param x
+   * @param bytelength by default 32 bytes
+   * @returns
+   */
+  fromBigint(x: bigint, bytelength: number = 32): UInt8[] {
+    assert(
+      x < 1n << BigInt(bytelength * 8),
+      'Input does not fit in bytelength'
+    );
+    let bytes = Array.from(
+      { length: bytelength },
+      (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn)
+    );
+    return bytes;
+  },
 };

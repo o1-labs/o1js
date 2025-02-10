@@ -120,7 +120,10 @@ class EddsaSignature {
    *
    * Note: This method is not provable, and only takes JS bigints as input.
    */
-  static sign(message: bigint, privateKey: bigint): EddsaSignature {
+  static sign(
+    message: (bigint | number)[] | Uint8Array,
+    privateKey: bigint
+  ): EddsaSignature {
     let { R, s } = Eddsa.sign(privateKey, message);
     return new this({ R, s });
   }

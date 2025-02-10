@@ -633,13 +633,13 @@ const EddsaSignature = {
  * @returns the public key as a 32-byte encoded curve point,
  *          and the full SHA2-512 digest of the private key
  */
-function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
+function keygenEddsa(privateKey: UInt8[]): [Field3, Bytes] {
   // TODO: use arrays instead of bigints?
-  if (privateKey > 2n ** 256n) {
+  if (privateKey.length > 32) {
     throw new Error(`Invalid length of EdDSA private key: ${privateKey}.`);
   }
   // hash private key with SHA2-512
-  const h = SHA2.hash(512, [privateKey]);
+  const h = SHA2.hash(512, privateKey);
   // only need lowest 32 bytes to generate the public key
   let buffer = h.bytes.slice(0, 32);
   // prune buffer
@@ -673,9 +673,13 @@ function keygenEddsa(privateKey: bigint): [Field3, Bytes] {
  * @returns the 64-bit signature composed by 32-bytes corresponding to a
  *          compressed curve point and a 32-byte scalar
  */
-function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
+function signEddsa(
+  privateKey: bigint,
+  message: (bigint | number)[] | Uint8Array
+): Eddsa.Signature {
   const L = Curve.order;
-  const [publicKey, h] = keygenEddsa(privateKey);
+  let key = Octets.fromBigint(privateKey);
+  const [publicKey, h] = keygenEddsa(key);
   // secret scalar obtained from first half of the digest
   const scalar = h.bytes.slice(0, 32);
   // prefix obtained from second half of the digest
@@ -683,7 +687,7 @@ function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
 
   // Hash the prefix concatenated with the message to obtain 64 bytes, that
   // need to be interpreted as little endian and reduced modulo the curve order
-  const r = Octets.toField3(SHA2.hash(512, [...prefix, message]).bytes, L);
+  const r = Octets.toField3(SHA2.hash(512, [...prefix, ...message]).bytes, L);
 
   // R is the encoding of the point resulting from [r]B
   let R = encode(scale(r, basePoint, Curve));
@@ -695,7 +699,7 @@ function signEddsa(privateKey: bigint, message: bigint): Eddsa.Signature {
     SHA2.hash(512, [
       ...Octets.fromField3(R).flat(),
       ...Octets.fromField3(publicKey).flat(),
-      message,
+      ...message,
     ]).bytes,
     L
   );
