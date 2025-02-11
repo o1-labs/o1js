@@ -176,7 +176,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     /**
      * Adds two ProvableBigInt instances
      * @param a The ProvableBigInt to add
-     * @returns The quotient and remainder of the sum as ProvableBigInts
+     * @returns The remainder of the sum as a ProvableBigInt
      */
     add(a: ProvableBigInt_, isDouble = false) {
       if (isDouble) a = this;
@@ -244,7 +244,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       // the final limb plus carry should be zero to assert correctness
       delta[this.Constructor.config.limb_num - 1].add(carry).assertEquals(0n);
 
-      return { quotient: q, remainder: r };
+      return r;
     }
 
     /**
@@ -381,7 +381,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         }
       );
 
-      q.mul(a).add(r).remainder.assertEquals(this);
+      q.mul(a).add(r).assertEquals(this);
 
       return {
         quotient: q,
@@ -688,7 +688,7 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
   abstract toFields(): Field[];
   abstract toBits(): Bool[];
   abstract clone(): T;
-  abstract add(a: T, isDouble?: boolean): { quotient: T; remainder: T };
+  abstract add(a: T, isDouble?: boolean): T;
   abstract sub(a: T): T;
   abstract mul(a: T, isSquare?: boolean): T;
   abstract square(): T;
