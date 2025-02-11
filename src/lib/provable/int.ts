@@ -1434,6 +1434,15 @@ class Int64 extends CircuitValue implements BalanceChange {
       .add(sgn.value)
       .assertNotEquals(-1, 'Int64: 0 must have positive sign');
   }
+
+  static toValue(x: Int64) {
+    return x.toBigint();
+  }
+  static fromValue<T extends AnyConstructor>(
+    x: number | bigint | Int64
+  ): InstanceType<T> {
+    return Int64.from(x) as any;
+  }
 }
 
 /**

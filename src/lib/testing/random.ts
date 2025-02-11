@@ -80,7 +80,10 @@ const field = fieldWithInvalid(Field);
 const scalar = fieldWithInvalid(Scalar);
 
 const sign = map(boolean, (b) => Sign(b ? 1 : -1));
-const int64 = record({ magnitude: uint64, sgn: sign });
+const int64 = map(
+  record({ magnitude: uint64, sgn: sign }),
+  ({ magnitude, sgn }) => (sgn === 1n ? magnitude : -magnitude)
+);
 const privateKey = Random_(PrivateKey.random);
 const publicKey = publicKeyWithInvalid();
 const keypair = map(privateKey, (privatekey) => ({
