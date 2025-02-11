@@ -157,6 +157,7 @@ import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
+import { Eddsa as Eddsa_ } from './lib/provable/gadgets/twisted-curve.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -223,6 +224,9 @@ namespace Experimental {
    */
   export let ActionBatch = BatchReducer_.ActionBatch;
   export type ActionBatch<Action> = BatchReducer_.ActionBatch<Action>;
+
+  // EdDSA signature verification gadgets (too inefficient for production use yet)
+  export let Eddsa = Eddsa_;
 }
 
 Error.stackTraceLimit = 100000;
