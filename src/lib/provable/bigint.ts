@@ -252,28 +252,72 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to substract
      * @returns The difference as a ProvableBigInt
      */
-    sub(a: ProvableBigInt_): ProvableBigInt_ {
-      let fields = [];
-      let borrow = Field.from(0);
+    sub(a: ProvableBigInt_) {
+      // witness q, r so that this-a = q*p + r
+      let { q, r } = Provable.witness(
+        Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }),
+        () => {
+          let diff = this.toBigint() - a.toBigint();
+          let p0 = this.Constructor.modulus.toBigint();
+          let q = diff / p0;
+          let r = diff - q * p0;
+          return {
+            q: ProvableBigInt_.fromBigint(q),
+            r: ProvableBigInt_.fromBigint(r),
+          };
+        }
+      );
+
+      let delta: Field[] = Array.from(
+        { length: this.Constructor.config.limb_num },
+        () => Field.from(0)
+      );
+      let [X, Y, Q, R, P] = [
+        this.fields,
+        a.fields,
+        q.fields,
+        r.fields,
+        this.Constructor.modulus.fields,
+      ];
+
+      // compute X - Y limb-by-limb
       for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        let diff = this.fields[i].sub(a.fields[i]).sub(borrow);
-        borrow = diff
-          .lessThan(Field.from(this.Constructor.config.mask + 1n))
-          .not()
-          .toField();
-        fields.push(
-          diff.add(borrow.mul(Field.from(this.Constructor.config.mask + 1n)))
-        );
-        rangeCheck(fields[i], Number(this.Constructor.config.limb_size));
+        delta[i] = X[i].sub(Y[i]);
       }
 
-      return new ProvableBigInt_(
-        fields,
-        Unconstrained.from(
-          (this.value.get() - a.value.get()) %
-            this.Constructor.modulus.toBigint()
-        )
-      );
+      // subtract q*p limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+        for (let j = 0; j < this.Constructor.config.limb_num; j++) {
+          if (i + j < this.Constructor.config.limb_num) {
+            delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
+          }
+        }
+      }
+
+      // subtract r limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+        delta[i] = delta[i].sub(R[i]).seal();
+      }
+
+      let carry = Field.from(0);
+
+      for (let i = 0; i < this.Constructor.config.limb_num - 1; i++) {
+        let deltaPlusCarry = delta[i].add(carry).seal();
+
+        carry = Provable.witness(Field, () =>
+          deltaPlusCarry.div(1n << this.Constructor.config.limb_size)
+        );
+        rangeCheck128Signed(carry);
+
+        // ensure that after adding the carry, the limb is a multiple of 2^limb_size
+        deltaPlusCarry.assertEquals(
+          carry.mul(1n << this.Constructor.config.limb_size)
+        );
+      }
+      // the final limb plus carry should be zero to assert correctness
+      delta[17].add(carry).assertEquals(0n);
+
+      return r;
     }
 
     /**

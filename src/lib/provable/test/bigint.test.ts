@@ -82,7 +82,7 @@ describe('BigInt17', () => {
     it('should satisfy subtraction with identity element for BigInt17 numbers', () => {
       const a = BigInt17.fromBigint(9n);
       const b = BigInt17.fromBigint(0n);
-      expect(a.sub(b)).toStrictEqual(a);
+      expect(a.sub(b).toBigint()).toStrictEqual(a.toBigint());
     });
 
     it('should correctly subtract two BigInt17 numbers resulting in zero', () => {
