@@ -28,6 +28,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
 - Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+- Enable to pass normal JS values (e.g., `bigint` instead of `Field`) to ZkProgram provers https://github.com/o1-labs/o1js/pull/1934
+  - Also improves the supported JS values for a few important types like `Signature` and `UIntX`
 - ECDSA `verifySignedHash()` accepts hash `Bytes` directly for easy use with alternative hash functions https://github.com/o1-labs/o1js/pull/2005
 
 ### Fixed
@@ -122,6 +124,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixes
 
 - Fix verification of serialized proofs done before compiling any circuits https://github.com/o1-labs/o1js/pull/1857
+
+## 2.0.0
+
+### Added
+- Added `.account.permissions.<permission> : PreconditionSubclassType<AuthRequired>` to `SmartContract` class for each permission type
+    this permits setting preconditions on the account permissions ie `let delegatePermission = contract.account.permissions.setDelegate.getAndRequireEquals();`
 
 ## [1.8.0](https://github.com/o1-labs/o1js/compare/5006e4f...450943) - 2024-09-18
 

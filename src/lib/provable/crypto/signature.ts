@@ -323,4 +323,11 @@ class Signature extends CircuitValue {
     let s = this.s.toBigInt();
     return SignatureBigint.toBase58({ r, s });
   }
+
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    { r, s }: { r: Field | bigint; s: Scalar | bigint }
+  ): InstanceType<T> {
+    return Signature.fromObject({ r: Field.from(r), s: Scalar.from(s) }) as any;
+  }
 }

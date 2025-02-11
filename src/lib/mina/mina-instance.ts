@@ -7,7 +7,7 @@ import { PublicKey } from '../provable/crypto/signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
 import type { Account } from './account.js';
-import type { NetworkValue } from './precondition.js';
+import type { NetworkValue, PermissionsValue } from './precondition.js';
 import type * as Fetch from './fetch.js';
 import type {
   TransactionPromise,

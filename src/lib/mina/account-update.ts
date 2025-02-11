@@ -25,6 +25,7 @@ import { UInt64, UInt32, Int64 } from '../provable/int.js';
 import type { SmartContract } from './zkapp.js';
 import {
   Preconditions,
+  PreconditionPermission,
   Account,
   Network,
   CurrentSlot,
@@ -691,6 +692,7 @@ class AccountUpdate implements Types.AccountUpdate {
   lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
     undefined;
   account: Account;
+  // TODO probably alias this type at some point?
   network: Network;
   currentSlot: CurrentSlot;
 
@@ -704,7 +706,7 @@ class AccountUpdate implements Types.AccountUpdate {
     this.id = Math.random();
     this.body = body;
     this.authorization = authorization;
-    let { account, network, currentSlot } = preconditions(this, isSelf);
+    let { account, network, currentSlot} = preconditions(this, isSelf);
     this.account = account;
     this.network = network;
     this.currentSlot = currentSlot;
