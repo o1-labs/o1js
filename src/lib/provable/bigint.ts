@@ -176,7 +176,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     /**
      * Adds two ProvableBigInt instances
      * @param a The ProvableBigInt to add
-     * @returns The remainder of the sum as a ProvableBigInt
+     * @returns The sum as a ProvableBigInt
      */
     add(a: ProvableBigInt_, isDouble = false) {
       if (isDouble) a = this;
