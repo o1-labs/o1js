@@ -228,7 +228,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     /**
      * Subtracts one ProvableBigInt from another
      * @param a The ProvableBigInt to substract
-     * @returns The remainder of the difference as a ProvableBigInt
+     * @returns The difference as a ProvableBigInt
      */
     sub(a: ProvableBigInt_) {
       // witness q, r so that this-a = q*p + r
