@@ -336,35 +336,16 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     }
 
     /**
-     * Divides one ProvableBigInt by another and returns the quotient and remainder
+     * Divides one ProvableBigInt by another.
      * @param a The divisor as a ProvableBigInt
-     * @returns An object containing the quotient and remainder as ProvableBigInt
+     * @returns The remainder as ProvableBigInt
      */
-    div(a: ProvableBigInt_): {
-      quotient: ProvableBigInt_;
-      remainder: ProvableBigInt_;
-    } {
-      let { q, r } = Provable.witness(
-        Struct({
-          q: ProvableBigInt_ as typeof ProvableBigInt,
-          r: ProvableBigInt_ as typeof ProvableBigInt,
-        }),
-        () => {
-          let r = this.toBigint() % a.toBigint();
-          let q = (this.toBigint() - r) / a.toBigint();
-          return {
-            q: ProvableBigInt_.fromBigint(q),
-            r: ProvableBigInt_.fromBigint(r),
-          };
-        }
-      );
+    div(a: ProvableBigInt_) {
+      const inv_a = a.inverse();
 
-      q.mul(a).add(r).assertEquals(this);
+      let res = this.mul(inv_a);
 
-      return {
-        quotient: q,
-        remainder: r,
-      };
+      return res;
     }
 
     /**
@@ -670,7 +651,7 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
   abstract sub(a: T): T;
   abstract mul(a: T, isSquare?: boolean): T;
   abstract square(): T;
-  abstract div(a: T): { quotient: T; remainder: T };
+  abstract div(a: T): T;
   abstract inverse(): T;
   abstract negate(): T;
   abstract pow(exp: T): T;
