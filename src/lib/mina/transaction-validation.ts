@@ -26,6 +26,7 @@ export {
   reportGetAccountError,
   defaultNetworkState,
   verifyTransactionLimits,
+  getTotalTimeRequired,
   verifyAccountUpdate,
   filterGroups,
 };
@@ -58,40 +59,8 @@ function defaultNetworkState(): NetworkValue {
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-  let eventElements = { events: 0, actions: 0 };
 
-  let authKinds = accountUpdates.map((update) => {
-    eventElements.events += countEventElements(update.body.events);
-    eventElements.actions += countEventElements(update.body.actions);
-    let { isSigned, isProved, verificationKeyHash } =
-      update.body.authorizationKind;
-    return {
-      isSigned: isSigned.toBoolean(),
-      isProved: isProved.toBoolean(),
-      verificationKeyHash: verificationKeyHash.toString(),
-    };
-  });
-  // insert entry for the fee payer
-  authKinds.unshift({
-    isSigned: true,
-    isProved: false,
-    verificationKeyHash: '',
-  });
-  let authTypes = filterGroups(authKinds);
-
-  /*
-  np := proof
-  n2 := signedPair
-  n1 := signedSingle
-  
-  formula used to calculate how expensive a zkapp transaction is
-
-  10.26*np + 10.08*n2 + 9.14*n1 < 69.45
-  */
-  let totalTimeRequired =
-    TransactionCost.PROOF_COST * authTypes.proof +
-    TransactionCost.SIGNED_PAIR_COST * authTypes.signedPair +
-    TransactionCost.SIGNED_SINGLE_COST * authTypes.signedSingle;
+  let {totalTimeRequired,eventElements,authTypes} = getTotalTimeRequired(accountUpdates);
 
   let isWithinCostLimit = totalTimeRequired < TransactionCost.COST_LIMIT;
 
@@ -121,6 +90,46 @@ ${JSON.stringify(authTypes)}
   }
 
   if (error) throw Error('Error during transaction sending:\n\n' + error);
+}
+
+
+function getTotalTimeRequired(accountUpdates : AccountUpdate[]){
+  let eventElements = { events: 0, actions: 0 };
+
+  let authKinds = accountUpdates.map((update) => {
+    eventElements.events += countEventElements(update.body.events);
+    eventElements.actions += countEventElements(update.body.actions);
+    let { isSigned, isProved, verificationKeyHash } =
+      update.body.authorizationKind;
+    return {
+      isSigned: isSigned.toBoolean(),
+      isProved: isProved.toBoolean(),
+      verificationKeyHash: verificationKeyHash.toString(),
+    };
+  });
+  // insert entry for the fee payer
+  authKinds.unshift({
+    isSigned: true,
+    isProved: false,
+    verificationKeyHash: '',
+  });
+  let authTypes = filterGroups(authKinds);
+
+  /*
+  np := proof
+  n2 := signedPair
+  n1 := signedSingle
+
+  formula used to calculate how expensive a zkapp transaction is
+
+  10.26*np + 10.08*n2 + 9.14*n1 < 69.45
+  */
+  let totalTimeRequired =
+    TransactionCost.PROOF_COST * authTypes.proof +
+    TransactionCost.SIGNED_PAIR_COST * authTypes.signedPair +
+    TransactionCost.SIGNED_SINGLE_COST * authTypes.signedSingle;
+  // returns totalTimeRequired and additional data used by verifyTransactionLimits
+  return {totalTimeRequired,eventElements,authTypes};
 }
 
 function countEventElements({ data }: Events) {

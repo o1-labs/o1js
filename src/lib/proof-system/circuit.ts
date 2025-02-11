@@ -269,6 +269,10 @@ function provableFromTuple(
       types.forEach((typ, i) => (typ as any).check(xs[i]));
     },
 
+    toCanonical(x) {
+      return types.map((typ, i) => Provable.toCanonical(typ, x[i]));
+    },
+
     toValue(x) {
       return types.map((typ, i) => typ.toValue(x[i]));
     },

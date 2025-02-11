@@ -91,7 +91,7 @@ let strings = [
  * - the 3 strings.
  */
 let signatures: { [k: string]: { field: string; scalar: string }[] } = {
-  testnet: [
+  devnet: [
     {
       field:
         '3925887987173883783388058255268083382298769764463609405200521482763932632383',

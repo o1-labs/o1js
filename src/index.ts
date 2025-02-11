@@ -10,15 +10,11 @@ export {
 } from './lib/provable/foreign-field.js';
 export {
   createForeignCurve,
-  createForeignCurveV2,
   ForeignCurve,
-  ForeignCurveV2,
 } from './lib/provable/crypto/foreign-curve.js';
 export {
   createEcdsa,
-  createEcdsaV2,
   EcdsaSignature,
-  EcdsaSignatureV2,
 } from './lib/provable/crypto/foreign-ecdsa.js';
 export { ScalarField } from './lib/provable/scalar-field.js';
 export {
@@ -114,10 +110,7 @@ export {
 } from './lib/mina/account-update.js';
 
 export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
-export {
-  TokenContract,
-  TokenContractV2,
-} from './lib/mina/token/token-contract.js';
+export { TokenContract } from './lib/mina/token/token-contract.js';
 
 export type { TransactionStatus } from './lib/mina/graphql.js';
 export {
@@ -155,6 +148,7 @@ import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
 import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
+import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -168,6 +162,8 @@ const Experimental_ = {
  */
 namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
+
+  export let Recursive = Recursive_;
 
   // indexed merkle map
   export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;

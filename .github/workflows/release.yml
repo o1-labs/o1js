@@ -58,13 +58,6 @@ jobs:
           git add CHANGELOG.md
           git commit -m "Update CHANGELOG for new version $NEW_VERSION"
 
-      - name: Delete existing release tag
-        run: |
-          if git rev-parse $NEW_VERSION >/dev/null 2>&1; then
-            git tag -d $NEW_VERSION
-            git push origin :refs/tags/$NEW_VERSION
-          fi
-
       - name: Delete existing release branch
         run: |
           if git ls-remote --heads origin release/${NEW_VERSION} | grep release/${NEW_VERSION}; then

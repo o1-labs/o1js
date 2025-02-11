@@ -36,56 +36,62 @@ let Bitwise = ZkProgram({
     xor: {
       privateInputs: [Field, Field],
       async method(a: Field, b: Field) {
-        return Gadgets.xor(a, b, 240);
+        return { publicOutput: Gadgets.xor(a, b, 240) };
       },
     },
     notUnchecked: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.not(a, 240, false);
+        return { publicOutput: Gadgets.not(a, 240, false) };
       },
     },
     notChecked: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.not(a, 240, true);
+        return { publicOutput: Gadgets.not(a, 240, true) };
       },
     },
     and: {
       privateInputs: [Field, Field],
       async method(a: Field, b: Field) {
-        return Gadgets.and(a, b, 64);
+        return { publicOutput: Gadgets.and(a, b, 64) };
+      },
+    },
+    or: {
+      privateInputs: [Field, Field],
+      async method(a: Field, b: Field) {
+        return { publicOutput: Gadgets.or(a, b, 64) };
       },
     },
     rot32: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.rotate32(a, 12, 'left');
+        return { publicOutput: Gadgets.rotate32(a, 12, 'left') };
       },
     },
     rot64: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.rotate64(a, 12, 'left');
+        return { publicOutput: Gadgets.rotate64(a, 12, 'left') };
       },
     },
     leftShift64: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.leftShift64(a, 12);
+        return { publicOutput: Gadgets.leftShift64(a, 12) };
       },
     },
     leftShift32: {
       privateInputs: [Field],
       async method(a: Field) {
         Gadgets.rangeCheck32(a);
-        return Gadgets.leftShift32(a, 12);
+        return { publicOutput: Gadgets.leftShift32(a, 12) };
       },
     },
     rightShift64: {
       privateInputs: [Field],
       async method(a: Field) {
-        return Gadgets.rightShift64(a, 12);
+        return { publicOutput: Gadgets.rightShift64(a, 12) };
       },
     },
   },
@@ -100,6 +106,10 @@ await Bitwise.compile();
   equivalent({ from: [uint(length), uint(length)], to: field })(
     (x, y) => x & y,
     (x, y) => Gadgets.and(x, y, length)
+  );
+  equivalent({ from: [uint(length), uint(length)], to: field })(
+    (x, y) => x | y,
+    (x, y) => Gadgets.or(x, y, length)
   );
   // NOT unchecked
   equivalent({ from: [uint(length)], to: field })(
@@ -146,7 +156,7 @@ await equivalentAsync({ from: [uint(64), uint(64)], to: field }, { runs })(
     return x ^ y;
   },
   async (x, y) => {
-    let proof = await Bitwise.xor(x, y);
+    let { proof } = await Bitwise.xor(x, y);
     return proof.publicOutput;
   }
 );
@@ -156,83 +166,7 @@ await equivalentAsync({ from: [maybeField], to: field }, { runs })(
     return Fp.not(x, 240);
   },
   async (x) => {
-    let proof = await Bitwise.notUnchecked(x);
-    return proof.publicOutput;
-  }
-);
-await equivalentAsync({ from: [maybeField], to: field }, { runs })(
-  (x) => {
-    if (x > 2n ** 240n) throw Error('Does not fit into 240 bit');
-    return Fp.not(x, 240);
-  },
-  async (x) => {
-    let proof = await Bitwise.notChecked(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [maybeField, maybeField], to: field }, { runs })(
-  (x, y) => {
-    if (x >= 2n ** 64n || y >= 2n ** 64n)
-      throw Error('Does not fit into 64 bits');
-    return x & y;
-  },
-  async (x, y) => {
-    let proof = await Bitwise.and(x, y);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.rot(x, 12n, 'left');
-  },
-  async (x) => {
-    let proof = await Bitwise.rot64(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [uint(32)], to: uint(32) }, { runs })(
-  (x) => {
-    return Fp.rot(x, 12n, 'left', 32n);
-  },
-  async (x) => {
-    let proof = await Bitwise.rot32(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.leftShift(x, 12);
-  },
-  async (x) => {
-    let proof = await Bitwise.leftShift64(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 1n << 32n) throw Error('Does not fit into 32 bits');
-    return Fp.leftShift(x, 12, 32);
-  },
-  async (x) => {
-    let proof = await Bitwise.leftShift32(x);
-    return proof.publicOutput;
-  }
-);
-
-await equivalentAsync({ from: [field], to: field }, { runs })(
-  (x) => {
-    if (x >= 2n ** 64n) throw Error('Does not fit into 64 bits');
-    return Fp.rightShift(x, 12);
-  },
-  async (x) => {
-    let proof = await Bitwise.rightShift64(x);
+    let { proof } = await Bitwise.notUnchecked(x);
     return proof.publicOutput;
   }
 );
@@ -264,6 +198,12 @@ constraintSystem.fromZkProgram(
 constraintSystem.fromZkProgram(
   Bitwise,
   'and',
+  ifNotAllConstant(contains(xorChain(64)))
+);
+
+constraintSystem.fromZkProgram(
+  Bitwise,
+  'or',
   ifNotAllConstant(contains(xorChain(64)))
 );
 

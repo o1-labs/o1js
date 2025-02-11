@@ -262,6 +262,10 @@ type FetchedAction = {
   actionData: {
     accountUpdateId: string;
     data: string[];
+    transactionInfo?: {
+      sequenceNumber: number;
+      zkappAccountUpdateIds: number[];
+    };
   }[];
 };
 
@@ -317,7 +321,11 @@ const getActionsQuery = (
   publicKey: string,
   actionStates: ActionStatesStringified,
   tokenId: string,
-  _filterOptions?: EventActionFilterOptions
+  _filterOptions?: EventActionFilterOptions,
+  // As of 2025-01-07 minascan is running a version of the node API which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
+  // In case a user tries to access an older API version, we support making the query without these fields, but can't guarantee action ordering
+  // Transaction sequence info is required to be 100% certain of action order
+  _excludeTransactionInfo: boolean = false
 ) => {
   const { fromActionState, endActionState } = actionStates ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
@@ -339,6 +347,11 @@ const getActionsQuery = (
     actionData {
       accountUpdateId
       data
+      ${
+        _excludeTransactionInfo
+          ? ''
+          : 'transactionInfo { sequenceNumber zkappAccountUpdateIds }'
+      }
     }
   }
 }`;

@@ -41,13 +41,11 @@ const add = ZkProgram({
         proof.verifyIf(vk, multiplyResult.equals(Field(0)).not());
 
         const additionResult = multiplyResult.add(field);
-        return additionResult;
+        return { publicOutput: additionResult };
       },
     },
   },
 });
-
-const AddProof = ZkProgram.Proof(add);
 
 const multiply = ZkProgram({
   name: 'multiply',
@@ -55,11 +53,11 @@ const multiply = ZkProgram({
   publicOutput: Field,
   methods: {
     performMultiplication: {
-      privateInputs: [Field, AddProof],
+      privateInputs: [Field, add.Proof],
       async method(field: Field, addProof: Proof<Undefined, Field>) {
         addProof.verify();
         const multiplicationResult = addProof.publicOutput.mul(field);
-        return multiplicationResult;
+        return { publicOutput: multiplicationResult };
       },
     },
   },
@@ -71,19 +69,26 @@ const multiplyVk = (await multiply.compile()).verificationKey;
 
 console.log('Proving basecase');
 const dummyProof = await DynamicMultiplyProof.dummy(undefined, Field(0), 1);
-const baseCase = await add.performAddition(Field(5), dummyProof, multiplyVk);
+const { proof: baseCase } = await add.performAddition(
+  Field(5),
+  dummyProof,
+  multiplyVk
+);
 
 const validBaseCase = await verify(baseCase, addVk);
 console.log('ok?', validBaseCase);
 
 console.log('Proving first multiplication');
-const multiply1 = await multiply.performMultiplication(Field(3), baseCase);
+const { proof: multiply1 } = await multiply.performMultiplication(
+  Field(3),
+  baseCase
+);
 
 const validMultiplication = await verify(multiply1, multiplyVk);
 console.log('ok?', validMultiplication);
 
 console.log('Proving second (recursive) addition');
-const add2 = await add.performAddition(
+const { proof: add2 } = await add.performAddition(
   Field(4),
   DynamicMultiplyProof.fromProof(multiply1),
   multiplyVk

@@ -18,7 +18,7 @@ let MyProgram = ZkProgram({
     baseCase: {
       privateInputs: [],
       async method(publicInput: Field) {
-        return publicInput.add(4);
+        return { publicOutput: publicInput.add(4) };
       },
     },
   },
@@ -37,7 +37,7 @@ console.log('proofs enabled?', MyProgram.proofsEnabled);
 
 console.log('proving base case... (proofs enabled)');
 console.time('proving');
-let proof = await MyProgram.baseCase(Field(2));
+let { proof } = await MyProgram.baseCase(Field(2));
 console.timeEnd('proving');
 proof.publicOutput.assertEquals(Field(2).add(4));
 
@@ -45,6 +45,6 @@ console.log('disable proofs, generate dummy proof');
 MyProgram.setProofsEnabled(false);
 console.log('proofs enabled?', MyProgram.proofsEnabled);
 console.time('noProving');
-proof = await MyProgram.baseCase(Field(2));
+({ proof } = await MyProgram.baseCase(Field(2)));
 console.timeEnd('noProving');
 proof.publicOutput.assertEquals(Field(2).add(4));

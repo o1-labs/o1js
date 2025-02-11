@@ -15,13 +15,13 @@ describe('int', () => {
   describe('Int64', () => {
     describe('toString', () => {
       it('should be the same as Field(0)', async () => {
-        const int = new Int64(UInt64.zero, Sign.one);
+        const int = Int64.create(UInt64.zero, Sign.one);
         const field = Field(0);
         expect(int.toString()).toEqual(field.toString());
       });
 
       it('should be -1', async () => {
-        const int = new Int64(UInt64.one).neg();
+        const int = Int64.create(UInt64.one).neg();
         expect(int.toString()).toEqual('-1');
       });
 
@@ -40,7 +40,7 @@ describe('int', () => {
 
     describe('fromUnsigned', () => {
       it('should be the same as UInt64.zero', async () => {
-        expect(new Int64(UInt64.zero, Sign.one)).toEqual(
+        expect(Int64.create(UInt64.zero, Sign.one)).toEqual(
           Int64.fromUnsigned(UInt64.zero)
         );
       });
@@ -108,10 +108,10 @@ describe('int', () => {
       // which breaks out current practice of having a dumb constructor that only stores variables
       it.skip('operations should throw on overflow of any input', () => {
         expect(() => {
-          new Int64(new UInt64(1n << 64n)).sub(1);
+          Int64.create(new UInt64(1n << 64n)).sub(1);
         }).toThrow();
         expect(() => {
-          new Int64(new UInt64(-(1n << 64n))).add(5);
+          Int64.create(new UInt64(-(1n << 64n))).add(5);
         }).toThrow();
         expect(() => {
           Int64.from(20).sub(new UInt64((1n << 64n) + 10n));

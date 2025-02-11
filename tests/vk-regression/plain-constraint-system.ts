@@ -100,6 +100,14 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
     Gadgets.and(a, b, 48);
     Gadgets.and(a, b, 64);
   },
+  or() {
+    let a = Provable.witness(Field, () => new Field(5n));
+    let b = Provable.witness(Field, () => new Field(5n));
+    Gadgets.or(a, b, 16);
+    Gadgets.or(a, b, 32);
+    Gadgets.or(a, b, 48);
+    Gadgets.or(a, b, 64);
+  }
 });
 
 const Bytes32 = Bytes(32);
@@ -132,6 +140,11 @@ const HashCS = constraintSystem('Hashes', {
     );
     Hash.Poseidon.hash(xs);
   },
+
+  BLAKE2B() {
+    let xs = Provable.witness(Bytes32, () => bytes32);
+    Hash.BLAKE2B.hash(xs);
+  }
 });
 
 const witness = () => Provable.witness(Field, () => Field(0));

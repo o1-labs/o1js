@@ -127,13 +127,17 @@ const KeccakProgram = ZkProgram({
     nistSha3: {
       privateInputs: [],
       async method(preImage: Bytes) {
-        return Keccak.nistSha3(digestLength, preImage);
+        return {
+          publicOutput: Keccak.nistSha3(digestLength, preImage),
+        };
       },
     },
     preNist: {
       privateInputs: [],
       async method(preImage: Bytes) {
-        return Keccak.preNist(digestLength, preImage);
+        return {
+          publicOutput: Keccak.preNist(digestLength, preImage),
+        };
       },
     },
   },
@@ -149,7 +153,7 @@ await equivalentAsync(
   },
   { runs: RUNS }
 )(testImplementations.sha3[digestLength], async (x) => {
-  const proof = await KeccakProgram.nistSha3(x);
+  const { proof } = await KeccakProgram.nistSha3(x);
   await KeccakProgram.verify(proof);
   return proof.publicOutput;
 });
@@ -162,7 +166,7 @@ await equivalentAsync(
   },
   { runs: RUNS }
 )(testImplementations.preNist[digestLength], async (x) => {
-  const proof = await KeccakProgram.preNist(x);
+  const { proof } = await KeccakProgram.preNist(x);
   await KeccakProgram.verify(proof);
   return proof.publicOutput;
 });

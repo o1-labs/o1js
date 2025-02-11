@@ -44,13 +44,13 @@ import {
 import {
   analyzeMethod,
   compileProgram,
+  computeMaxProofsVerified,
   Empty,
-  getPreviousProofsForProver,
   MethodInterface,
   sortMethodArguments,
   VerificationKey,
 } from '../proof-system/zkprogram.js';
-import { Proof } from '../proof-system/proof.js';
+import { Proof, ProofClass } from '../proof-system/proof.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   InternalStateType,
@@ -134,6 +134,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     paramTypes,
+    undefined,
     SelfProof
   );
   // add witness arguments for the publicKey (address) and tokenId
@@ -141,6 +142,7 @@ function method<K extends string, T extends SmartContract>(
     ZkappClass.name,
     methodName,
     [PublicKey, Field, ...paramTypes],
+    undefined,
     SelfProof
   );
 
@@ -152,11 +154,6 @@ function method<K extends string, T extends SmartContract>(
   // FIXME: overriding a method implies pushing a separate method entry here, yielding two entries with the same name
   // this should only be changed once we no longer share the _methods array with the parent class (otherwise a subclass declaration messes up the parent class)
   ZkappClass._methods.push(methodEntry);
-  ZkappClass._maxProofsVerified ??= 0;
-  ZkappClass._maxProofsVerified = Math.max(
-    ZkappClass._maxProofsVerified,
-    methodEntry.numberOfProofs
-  ) as 0 | 1 | 2;
   let func = descriptor.value as AsyncFunction;
   descriptor.value = wrapMethod(func, ZkappClass, internalMethodEntry);
 }
@@ -339,8 +336,6 @@ function wrapMethod(
               {
                 methodName: methodIntf.methodName,
                 args: clonedArgs,
-                // proofs actually don't have to be cloned
-                previousProofs: getPreviousProofsForProver(actualArgs),
                 ZkappClass,
                 memoized,
                 blindingValue,
@@ -431,7 +426,6 @@ function wrapMethod(
             {
               methodName: methodIntf.methodName,
               args: constantArgs,
-              previousProofs: getPreviousProofsForProver(constantArgs),
               ZkappClass,
               memoized,
               blindingValue: constantBlindingValue,
@@ -591,10 +585,10 @@ class SmartContract extends SmartContractBase {
       rows: number;
       digest: string;
       gates: Gate[];
+      proofs: ProofClass[];
     }
   >; // keyed by method name
   static _provers?: Pickles.Prover[];
-  static _maxProofsVerified?: 0 | 1 | 2;
   static _verificationKey?: { data: string; hash: Field };
 
   /**
@@ -642,6 +636,7 @@ class SmartContract extends SmartContractBase {
     forceRecompile = false,
   } = {}) {
     let methodIntfs = this._methods ?? [];
+    let methodKeys = methodIntfs.map(({ methodName }) => methodName);
     let methods = methodIntfs.map(({ methodName }) => {
       return async (
         publicInput: unknown,
@@ -655,13 +650,15 @@ class SmartContract extends SmartContractBase {
     });
     // run methods once to get information that we need already at compile time
     let methodsMeta = await this.analyzeMethods();
-    let gates = methodIntfs.map((intf) => methodsMeta[intf.methodName].gates);
+    let gates = methodKeys.map((k) => methodsMeta[k].gates);
+    let proofs = methodKeys.map((k) => methodsMeta[k].proofs);
     let { verificationKey, provers, verify } = await compileProgram({
       publicInputType: ZkappPublicInput,
       publicOutputType: Empty,
       methodIntfs,
       methods,
       gates,
+      proofs,
       proofSystemTag: this,
       cache,
       forceRecompile,
@@ -685,6 +682,17 @@ class SmartContract extends SmartContractBase {
       Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
     );
     return hash.toBigInt().toString(16);
+  }
+
+  /**
+   * The maximum number of proofs that are verified by any of the zkApp methods.
+   * This is an internal parameter needed by the proof system.
+   */
+  static async getMaxProofsVerified() {
+    let methodData = await this.analyzeMethods();
+    return computeMaxProofsVerified(
+      Object.values(methodData).map((d) => d.proofs.length)
+    );
   }
 
   /**
@@ -865,11 +873,16 @@ super.init();
 
   sender = {
     self: this as SmartContract,
+
     /**
-     * @deprecated
-     * Deprecated in favor of `this.sender.getUnconstrainedV2()`.
-     * This method is vulnerable because it allows the prover to return a dummy (empty) public key,
-     * which would cause an account update with that public key to not be included.
+     * The public key of the current transaction's sender account.
+     *
+     * Throws an error if not inside a transaction, or the sender wasn't passed in.
+     *
+     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
+     * A malicious prover could use any other public key without affecting the validity of the proof.
+     *
+     * Consider using `this.sender.getAndRequireSignature()` if you need to prove that the sender controls this account.
      */
     getUnconstrained(): PublicKey {
       // TODO this logic now has some overlap with this.self, we should combine them somehow
@@ -880,41 +893,17 @@ super.init();
         );
       }
       let transactionId = Mina.currentTransaction.id();
+      let sender;
       if (this.self.#_senderState?.transactionId === transactionId) {
-        return this.self.#_senderState.sender;
+        sender = this.self.#_senderState.sender;
       } else {
-        let sender = Provable.witness(PublicKey, () => Mina.sender());
+        sender = Provable.witness(PublicKey, () => Mina.sender());
         this.self.#_senderState = { transactionId, sender };
-        return sender;
       }
-    },
 
-    /**
-     * The public key of the current transaction's sender account.
-     *
-     * Throws an error if not inside a transaction, or the sender wasn't passed in.
-     *
-     * **Warning**: The fact that this public key equals the current sender is not part of the proof.
-     * A malicious prover could use any other public key without affecting the validity of the proof.
-     *
-     * Consider using `this.sender.getAndRequireSignatureV2()` if you need to prove that the sender controls this account.
-     */
-    getUnconstrainedV2(): PublicKey {
-      let sender = this.getUnconstrained();
       // we prove that the returned public key is not the empty key, in which case
       // `createSigned()` would skip adding the account update, and nothing is proved
       sender.x.assertNotEquals(0);
-      return sender;
-    },
-
-    /**
-     * @deprecated
-     * Deprecated in favor of `this.sender.getAndRequireSignatureV2()`.
-     * This method is vulnerable because it allows the prover to return a dummy (empty) public key.
-     */
-    getAndRequireSignature(): PublicKey {
-      let sender = this.getUnconstrained();
-      AccountUpdate.createSigned(sender);
       return sender;
     },
 
@@ -924,8 +913,8 @@ super.init();
      * Note: This doesn't prove that the return value is the transaction sender, but it proves that whoever created
      * the transaction controls the private key associated with the returned public key.
      */
-    getAndRequireSignatureV2(): PublicKey {
-      let sender = this.getUnconstrainedV2();
+    getAndRequireSignature(): PublicKey {
+      let sender = this.getUnconstrained();
       AccountUpdate.createSigned(sender);
       return sender;
     },
@@ -1050,7 +1039,6 @@ super.init();
 
   /**
    * Asynchronously fetches events emitted by this {@link SmartContract} and returns an array of events with their corresponding types.
-   * @async
    * @param [start=UInt32.from(0)] - The start height of the events to fetch.
    * @param end - The end height of the events to fetch. If not provided, fetches events up to the latest height.
    * @returns A promise that resolves to an array of objects, each containing the event type and event data for the specified range.
@@ -1206,7 +1194,7 @@ super.init();
       try {
         for (let methodIntf of methodIntfs) {
           let accountUpdate: AccountUpdate;
-          let { rows, digest, gates, summary } = await analyzeMethod(
+          let { rows, digest, gates, summary, proofs } = await analyzeMethod(
             ZkappPublicInput,
             methodIntf,
             async (publicInput, publicKey, tokenId, ...args) => {
@@ -1224,6 +1212,7 @@ super.init();
             rows,
             digest,
             gates,
+            proofs,
           };
           if (printSummary) console.log(methodIntf.methodName, summary());
         }

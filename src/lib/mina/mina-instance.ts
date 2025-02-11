@@ -7,7 +7,7 @@ import { PublicKey } from '../provable/crypto/signature.js';
 import type { EventActionFilterOptions } from '././../mina/graphql.js';
 import type { NetworkId } from '../../mina-signer/src/types.js';
 import type { Account } from './account.js';
-import type { NetworkValue } from './precondition.js';
+import type { NetworkValue, PermissionsValue } from './precondition.js';
 import type * as Fetch from './fetch.js';
 import type {
   TransactionPromise,
@@ -89,12 +89,14 @@ type Mina = {
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,
-    filterOptions?: EventActionFilterOptions
+    filterOptions?: EventActionFilterOptions,
+    headers?: HeadersInit
   ) => ReturnType<typeof Fetch.fetchEvents>;
   fetchActions: (
     publicKey: PublicKey,
     actionStates?: ActionStates,
-    tokenId?: Field
+    tokenId?: Field,
+    headers?: HeadersInit
   ) => ReturnType<typeof Fetch.fetchActions>;
   getActions: (
     publicKey: PublicKey,
@@ -117,7 +119,7 @@ let activeInstance: Mina = {
   fetchActions: noActiveInstance,
   getActions: noActiveInstance,
   proofsEnabled: true,
-  getNetworkId: () => 'testnet',
+  getNetworkId: () => 'devnet',
 };
 
 /**
@@ -186,9 +188,15 @@ function getBalance(publicKey: PublicKey, tokenId?: Field) {
 async function fetchEvents(
   publicKey: PublicKey,
   tokenId: Field,
-  filterOptions: EventActionFilterOptions = {}
+  filterOptions: EventActionFilterOptions = {},
+  headers?: HeadersInit
 ) {
-  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions);
+  return await activeInstance.fetchEvents(
+    publicKey,
+    tokenId,
+    filterOptions,
+    headers
+  );
 }
 
 /**
@@ -197,9 +205,15 @@ async function fetchEvents(
 async function fetchActions(
   publicKey: PublicKey,
   actionStates?: ActionStates,
-  tokenId?: Field
+  tokenId?: Field,
+  headers?: HeadersInit
 ) {
-  return await activeInstance.fetchActions(publicKey, actionStates, tokenId);
+  return await activeInstance.fetchActions(
+    publicKey,
+    actionStates,
+    tokenId,
+    headers
+  );
 }
 
 /**

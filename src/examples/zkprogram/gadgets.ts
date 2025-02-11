@@ -63,16 +63,16 @@ console.timeEnd('compile');
 console.log('proving..');
 
 console.time('rotation prove');
-let rotProof = await BitwiseProver.rot();
+let { proof: rotProof } = await BitwiseProver.rot();
 console.timeEnd('rotation prove');
 if (!(await BitwiseProver.verify(rotProof))) throw Error('rot: Invalid proof');
 
 console.time('xor prove');
-let xorProof = await BitwiseProver.xor();
+let { proof: xorProof } = await BitwiseProver.xor();
 console.timeEnd('xor prove');
 if (!(await BitwiseProver.verify(xorProof))) throw Error('xor: Invalid proof');
 
 console.time('and prove');
-let andProof = await BitwiseProver.and();
+let { proof: andProof } = await BitwiseProver.and();
 console.timeEnd('and prove');
 if (!(await BitwiseProver.verify(andProof))) throw Error('and: Invalid proof');

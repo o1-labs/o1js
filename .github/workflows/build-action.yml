@@ -4,8 +4,14 @@ on:
     branches:
       - main
       - develop
+      - v1
+      - v3
   pull_request:
   workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   Prepare:
@@ -22,7 +28,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Cache dependencies and build
         uses: actions/cache@v4
@@ -34,9 +40,15 @@ jobs:
             dist
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
-      - name: Build o1js
+      - name: Build examples
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          npm ci
+          npm run build:examples
+      - name: Build o1js clean
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          rm -fr dist
           npm ci
           npm run build
 
@@ -52,6 +64,33 @@ jobs:
         with:
           path: .
           key: repo-${{ github.sha }}
+
+  Check-mina-commit:
+    needs: Prepare
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Restore repository
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Check Commit
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            dist
+          key: npm run checkCommit
 
   Build-And-Test-Server:
     needs: Prepare
@@ -81,7 +120,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -125,7 +164,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -204,7 +243,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Restore npm cache
         uses: actions/cache@v4
@@ -256,7 +295,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Build o1js
         run: |
@@ -264,12 +303,28 @@ jobs:
           npm run prepublishOnly
 
       - name: Publish to NPM if version has changed
+        id: publish
         uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
           strategy: upgrade
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Tag new version
+        if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASED_VERSION: ${{ steps.publish.outputs.version }}
+        run: |
+          git tag $RELEASED_VERSION
+          git push origin $RELEASED_VERSION
+
 
   Release-mina-signer-on-NPM:
     if: github.ref == 'refs/heads/main'
@@ -286,7 +341,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Build mina-signer
         run: |

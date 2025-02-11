@@ -16,6 +16,7 @@ import {
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   ActionState,
+  AuthRequired,
   Actions,
   ZkappUri,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
@@ -29,10 +30,14 @@ export {
   Account,
   Network,
   CurrentSlot,
+  Permissions,
+  PermissionsPrecondition,
+  PreconditionPermission,
   assertPreconditionInvariants,
   cleanPreconditionsCache,
   ensureConsistentPrecondition,
   AccountValue,
+  PermissionsValue,
   NetworkValue,
   getAccountPreconditions,
   Preconditions,
@@ -122,6 +127,32 @@ const AccountPrecondition = {
       actionState: ignore(Actions.emptyActionState()),
       provedState: ignore(Bool(false)),
       isNew: ignore(Bool(false)),
+      permissions : PermissionsPrecondition.ignoreAll()
+    };
+  },
+};
+
+type PermissionsPrecondition = Preconditions['account']['permissions'];
+const PermissionsPrecondition = {
+  ignoreAll(): PermissionsPrecondition {
+    let appState: Array<OrIgnore<Field>> = [];
+    for (let i = 0; i < ZkappStateLength; ++i) {
+      appState.push(ignore(Field(0)));
+    }
+    return {
+      editState: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      access: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      send: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      receive: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setDelegate: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setPermissions: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setVerificationKey : ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setZkappUri: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      editActionState: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setTokenSymbol: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      incrementNonce: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setVotingFor: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
+      setTiming: ignore({constant : Bool(true), signatureNecessary : Bool(false), signatureSufficient: Bool(true)}),
     };
   },
 };
@@ -147,6 +178,7 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   initializePreconditions(accountUpdate, isSelf);
   return {
     account: Account(accountUpdate),
+    test: Account(accountUpdate),
     network: Network(accountUpdate),
     currentSlot: CurrentSlot(accountUpdate),
   };
@@ -210,6 +242,10 @@ function Account(accountUpdate: AccountUpdate): Account {
   let layout =
     jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(accountUpdate);
+  let permsLayout =
+    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account.entries.permissions;
+  let permissions: PreconditionPermission =
+    preconditionClass(permsLayout as Layout,'account.permissions',accountUpdate,context);
   let identity = (x: any) => x;
   let update: Update = {
     delegate: {
@@ -231,6 +267,10 @@ function Account(accountUpdate: AccountUpdate): Account {
   return {
     ...preconditionClass(layout as Layout, 'account', accountUpdate, context),
     ...update,
+    permissions :
+    {...permissions,
+    ... updateSubclass(accountUpdate, 'permissions', identity)
+    },
   };
 }
 
@@ -273,7 +313,7 @@ let unimplementedPreconditions: LongKey[] = [
   'network.nextEpochData.seed',
 ];
 
-let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState };
+let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState , AuthRequired };
 
 function getProvableType(layout: { type: string; checkedTypeName?: string }) {
   let typeName = layout.checkedTypeName ?? layout.type;
@@ -476,8 +516,19 @@ function getVariable<K extends LongKey, U extends FlatPreconditionValue[K]>(
     let key = rest.join('.');
     let value: U;
     if (accountOrNetwork === 'account') {
-      let account = getAccountPreconditions(accountUpdate.body);
-      value = account[key as keyof AccountValue] as U;
+      if(rest[0] === 'permissions') {
+        let perms =
+          Mina.getAccount(accountUpdate.body.publicKey,accountUpdate.body?.tokenId)
+              .permissions;
+        if( rest[1] == 'setVerificationKey' ) {
+          value = perms['setVerificationKey']['auth'] as U;
+        }else{
+          value = perms[rest[1] as keyof typeof perms] as U;
+        }
+      } else {
+        let account = getAccountPreconditions(accountUpdate.body);
+        value = account[key as keyof AccountValue] as U;
+      }
     } else if (accountOrNetwork === 'network') {
       let networkState = Mina.getNetworkState();
       value = getPath(networkState, key);
@@ -543,6 +594,21 @@ function getAccountPreconditions(body: {
       delegate: publicKey,
       provedState: Bool(false),
       isNew: Bool(true),
+      permissions :
+        { editState : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , access : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , send : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , receive : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setDelegate : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setPermissions : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setVerificationKey : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setZkappUri : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , editActionState : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setTokenSymbol : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , incrementNonce : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setVotingFor : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        , setTiming : {constant : Bool(true) , signatureNecessary : Bool(false) , signatureSufficient : Bool(true) }
+        }
     };
   }
   let account = Mina.getAccount(publicKey, tokenId);
@@ -554,6 +620,10 @@ function getAccountPreconditions(body: {
     delegate: account.delegate ?? account.publicKey,
     provedState: account.zkapp?.provedState ?? Bool(false),
     isNew: Bool(false),
+    permissions :
+      {...account.permissions
+      , setVerificationKey : account.permissions.setVerificationKey.auth
+      },
   };
 }
 
@@ -644,7 +714,7 @@ function ensureConsistentPrecondition(
     let errorMessage = `
 Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
 '${name}' represents the field or value you're trying to set a precondition for.
-Preconditions must be set only once to avoid overwriting previous assertions. 
+Preconditions must be set only once to avoid overwriting previous assertions.
 For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
 
 Recommendation:
@@ -684,6 +754,10 @@ type Network = RawNetwork & {
 type AccountPreconditionNoState = Omit<Preconditions['account'], 'state'>;
 type AccountValue = PreconditionBaseTypes<AccountPreconditionNoState>;
 type Account = PreconditionClassType<AccountPreconditionNoState> & Update;
+
+type PreconditionPermission = PreconditionClassType<PermissionsPrecondition> & Update;
+type PermissionsValue = PreconditionBaseTypes<AuthRequired>;
+
 
 type CurrentSlotPrecondition = Preconditions['validWhile'];
 type CurrentSlot = {

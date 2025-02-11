@@ -103,6 +103,23 @@ describe('Payment', () => {
       expect(hashedPayment).toBeDefined();
     });
 
+    it('does not verify a signed payment from `devnet`', () => {
+      const payment = client.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const devnetClient = new Client({ network: 'devnet' });
+      const invalidPayment = devnetClient.verifyPayment(payment);
+      expect(invalidPayment).toBeFalsy();
+      expect(devnetClient.verifyTransaction(payment)).toEqual(false);
+    });
+
     it('does not verify a signed payment from `testnet`', () => {
       const payment = client.signPayment(
         {
@@ -121,12 +138,12 @@ describe('Payment', () => {
     });
   });
 
-  describe('Testnet network', () => {
+  describe('Devnet network', () => {
     let client: Client;
     let keypair: Keypair;
 
     beforeAll(async () => {
-      client = new Client({ network: 'testnet' });
+      client = new Client({ network: 'devnet' });
       keypair = client.genKeys();
     });
 
@@ -224,6 +241,193 @@ describe('Payment', () => {
 
     it('does not verify a signed payment from `mainnet`', () => {
       const payment = client.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const mainnetClient = new Client({ network: 'mainnet' });
+      const invalidPayment = mainnetClient.verifyPayment(payment);
+      expect(invalidPayment).toBeFalsy();
+      expect(mainnetClient.verifyTransaction(payment)).toEqual(false);
+    });
+  });
+  describe('Testnet network', () => {
+    let testnetClient: Client;
+    let devnetClient: Client;
+    let keypair: Keypair;
+
+    beforeAll(async () => {
+      testnetClient = new Client({ network: 'testnet' });
+      devnetClient = new Client({ network: 'devnet' });
+      keypair = testnetClient.genKeys();
+    });
+
+    it('generates the same signed payment as devnet', () => {
+      const testnetPayment = testnetClient.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const devnetPayment = devnetClient.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      expect(testnetPayment).toEqual(devnetPayment);
+    });
+
+    it('generates the same signed transaction by using signTransaction as a devnet client', () => {
+      const testnetTransaction = testnetClient.signTransaction(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const devnetTransaction = devnetClient.signTransaction(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      expect(testnetTransaction).toEqual(devnetTransaction);
+    });
+
+    it('devnet client verifies a signed testnet payment and vice versa', () => {
+      const testnetPayment = testnetClient.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const devnetPayment = devnetClient.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const verifiedDevnetPayment = testnetClient.verifyPayment(devnetPayment);
+      expect(verifiedDevnetPayment).toBeTruthy();
+      expect(testnetClient.verifyTransaction(devnetPayment)).toEqual(true);
+
+      const verifiedTestnetPayment = devnetClient.verifyPayment(testnetPayment);
+      expect(verifiedTestnetPayment).toBeTruthy();
+      expect(devnetClient.verifyTransaction(testnetPayment)).toEqual(true);
+    });
+    it('devnet client verifies a signed testnet payment generated with signTransaction and vice versa', () => {
+      const testnetPayment = testnetClient.signTransaction(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const devnetPayment = devnetClient.signTransaction(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const verifiedDevnetPayment = testnetClient.verifyPayment(devnetPayment);
+      expect(verifiedDevnetPayment).toBeTruthy();
+      expect(testnetClient.verifyTransaction(devnetPayment)).toEqual(true);
+
+      const verifiedTestnetPayment = devnetClient.verifyPayment(testnetPayment);
+      expect(verifiedTestnetPayment).toBeTruthy();
+      expect(devnetClient.verifyTransaction(testnetPayment)).toEqual(true);
+    });
+
+    it('generates same signed payment hash as devnet', () => {
+      const testnetPayment = testnetClient.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const hashedTestnetPayment = testnetClient.hashPayment(testnetPayment);
+      const devnetPayment = devnetClient.signPayment(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const hashedDevnetPayment = devnetClient.hashPayment(devnetPayment);
+      expect(hashedTestnetPayment).toEqual(hashedDevnetPayment);
+    });
+
+    it('generates same signed payment hash as devnet for payment generated with signTransaction', () => {
+      const testnetPayment = testnetClient.signTransaction(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const hashedTestnetPayment = testnetClient.hashPayment(testnetPayment);
+      const devnetPayment = devnetClient.signTransaction(
+        {
+          to: keypair.publicKey,
+          from: keypair.publicKey,
+          amount: '1',
+          fee: '1',
+          nonce: '0',
+        },
+        keypair.privateKey
+      );
+      const hashedDevnetPayment = devnetClient.hashPayment(devnetPayment);
+      expect(hashedTestnetPayment).toEqual(hashedDevnetPayment);
+    });
+
+    it('does not verify a signed payment from `mainnet`', () => {
+      const payment = testnetClient.signPayment(
         {
           to: keypair.publicKey,
           from: keypair.publicKey,

@@ -26,7 +26,7 @@ const EmptyProgram = ZkProgram({
   methods: { run: { privateInputs: [], async method(_) {} } },
 });
 
-class EmptyProof extends ZkProgram.Proof(EmptyProgram) {}
+class EmptyProof extends EmptyProgram.Proof {}
 
 // unit-test zkprogram creation helpers:
 // -) sortMethodArguments
@@ -36,17 +36,24 @@ it('pickles rule creation', async () => {
   // a rule that verifies a proof conditionally, and returns the proof's input as output
   function main(proof: EmptyProof, shouldVerify: Bool) {
     proof.verifyIf(shouldVerify);
-    return proof.publicInput;
+    return {
+      publicOutput: proof.publicInput,
+    };
   }
   let privateInputs = [EmptyProof, Bool];
 
   // collect method interface
-  let methodIntf = sortMethodArguments('mock', 'main', privateInputs, Proof);
+  let methodIntf = sortMethodArguments(
+    'mock',
+    'main',
+    privateInputs,
+    undefined,
+    Proof
+  );
 
   expect(methodIntf).toEqual({
     methodName: 'main',
     args: [EmptyProof, Bool],
-    numberOfProofs: 1,
   });
 
   // store compiled tag
@@ -59,7 +66,8 @@ it('pickles rule creation', async () => {
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
-    []
+    [],
+    [EmptyProof]
   );
 
   await equivalentAsync(
@@ -114,12 +122,17 @@ it('pickles rule creation: nested proof', async () => {
   }
 
   // collect method interface
-  let methodIntf = sortMethodArguments('mock', 'main', [NestedProof2], Proof);
+  let methodIntf = sortMethodArguments(
+    'mock',
+    'main',
+    [NestedProof2],
+    undefined,
+    Proof
+  );
 
   expect(methodIntf).toEqual({
     methodName: 'main',
     args: [NestedProof2],
-    numberOfProofs: 2,
   });
 
   // store compiled tag
@@ -132,7 +145,8 @@ it('pickles rule creation: nested proof', async () => {
     main as AnyFunction,
     { name: 'mock' },
     methodIntf,
-    []
+    [],
+    [EmptyProof, EmptyProof]
   );
 
   let dummy = await EmptyProof.dummy(Field(0), undefined, 0);
@@ -163,7 +177,13 @@ it('pickles rule creation: nested proof', async () => {
 
 it('fails with more than two (nested) proofs', async () => {
   expect(() => {
-    sortMethodArguments('mock', 'main', [NestedProof2, NestedProof], Proof);
+    sortMethodArguments(
+      'mock',
+      'main',
+      [NestedProof2, NestedProof],
+      undefined,
+      Proof
+    );
   }).toThrowError('mock.main() has more than two proof arguments');
 });
 

@@ -1,9 +1,15 @@
 import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
-import { Snarky, initializeBindings, withThreadPool } from '../../snarky.js';
+import {
+  Base64ProofString,
+  Base64VerificationKeyString,
+  Snarky,
+  initializeBindings,
+  withThreadPool,
+} from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
 import {
-  FlexibleProvablePure,
+  FlexibleProvable,
   InferProvable,
   ProvablePureExtended,
   Struct,
@@ -30,7 +36,6 @@ import {
   unsetSrsCache,
 } from '../../bindings/crypto/bindings/srs.js';
 import {
-  ProvablePure,
   ProvableType,
   ProvableTypePure,
   ToProvable,
@@ -45,6 +50,7 @@ import {
   extractProofTypes,
   Proof,
   ProofBase,
+  ProofClass,
   ProofValue,
 } from './proof.js';
 import {
@@ -52,7 +58,9 @@ import {
   featureFlagsToMlOption,
 } from './feature-flags.js';
 import { emptyWitness } from '../provable/types/util.js';
-import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
+import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
+import { mapObject, mapToObject, zip } from '../util/arrays.js';
 
 // public API
 export {
@@ -70,13 +78,16 @@ export {
 export {
   CompiledTag,
   sortMethodArguments,
-  getPreviousProofsForProver,
   MethodInterface,
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
   Prover,
   dummyBase64Proof,
+  computeMaxProofsVerified,
+  RegularProver,
+  TupleToInstances,
+  PrivateInput,
 };
 
 type Undefined = undefined;
@@ -87,9 +98,42 @@ const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 
+function createProgramState() {
+  let methodCache: Map<string, unknown> = new Map();
+  return {
+    setNonPureOutput(value: any[]) {
+      methodCache.set('__nonPureOutput__', value);
+    },
+    getNonPureOutput(): any[] {
+      let entry = methodCache.get('__nonPureOutput__');
+      if (entry === undefined) return [];
+      return entry as any[];
+    },
+    setAuxiliaryOutput(value: unknown, methodName: string) {
+      methodCache.set(methodName, value);
+    },
+    getAuxiliaryOutput(methodName: string): unknown {
+      let entry = methodCache.get(methodName);
+      if (entry === undefined)
+        throw Error(`Auxiliary value for method ${methodName} not defined`);
+      return entry;
+    },
+    reset(key: string) {
+      methodCache.delete(key);
+    },
+  };
+}
+
+/**
+ * Initializes Pickles bindings, serializes the input proof and verification key for use in OCaml, then calls into the Pickles verify function and returns the result.
+ *
+ * @param proof Either a `Proof` instance or a serialized JSON proof
+ * @param verificationKey Either a base64 serialized verification key or a `VerificationKey` instance which will be base64 serialized for use in the bindings.
+ * @returns A promise that resolves to a boolean indicating whether the proof is valid.
+ */
 async function verify(
   proof: ProofBase<any, any> | JsonProof,
-  verificationKey: string | VerificationKey
+  verificationKey: Base64VerificationKeyString | VerificationKey
 ) {
   await initializeBindings();
   let picklesProof: Pickles.Proof;
@@ -124,11 +168,16 @@ async function verify(
   );
 }
 
+/**
+ * Serializable representation of a Pickles proof, useful for caching compiled proofs.
+ */
 type JsonProof = {
+  /** Array of string, where each string is a `Field` in the publicInput of this proof */
   publicInput: string[];
+  /** Array of string, where each string is a `Field` in the publicOutput of this proof */
   publicOutput: string[];
   maxProofsVerified: 0 | 1 | 2;
-  proof: string;
+  proof: Base64ProofString;
 };
 type CompiledTag = unknown;
 
@@ -152,30 +201,77 @@ let SideloadedTag = {
   },
 };
 
+type ConfigBaseType = {
+  publicInput?: ProvableType;
+  publicOutput?: ProvableType;
+  methods: {
+    [I in string]: {
+      privateInputs: Tuple<PrivateInput>;
+      auxiliaryOutput?: ProvableType;
+    };
+  };
+};
+
+type InferMethodSignatures<Config extends ConfigBaseType> = Config['methods'];
+type InferPrivateInput<Config extends ConfigBaseType> = {
+  [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
+};
+type InferAuxiliaryOutputs<Config extends ConfigBaseType> = {
+  [I in keyof InferMethodSignatures<Config>]: Get<
+    InferMethodSignatures<Config>[I],
+    'auxiliaryOutput'
+  >;
+};
+type InferMethodType<Config extends ConfigBaseType> = {
+  [I in keyof Config['methods']]: Method<
+    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+    Config['methods'][I]
+  >;
+};
+
+/**
+ * Wraps config + provable code into a program capable of producing {@link Proof}s.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Int64,
+ *   methods: {
+ *     // Prove that I know 2 numbers less than 100 each, whose product is greater than 1000
+ *     provableMultiply: {
+ *       privateInputs: [Int64, Int64],
+ *       method: async (n1: Int64, n2: Int64) => {
+ *         n1.assertLessThan(100);
+ *         n2.assertLessThan(100);
+ *         const publicOutput = n1.mul(n2);
+ *         publicOutput.assertGreaterThan(1000);
+ *         return { publicOutput: n1.mul(n2) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param config The configuration of the program, describing the type of the public input and public output, as well as defining the methods which can be executed provably.
+ * @returns an object that can be used to compile, prove, and verify the program.
+ */
 function ZkProgram<
-  StatementType extends {
-    publicInput?: ProvableTypePure;
-    publicOutput?: ProvableTypePure;
-  },
-  Types extends {
-    // TODO: how to prevent a method called `compile` from type-checking?
-    // TODO: solution: put method calls on a separate namespace! like `await program.prove.myMethod()`
-    [I in string]: Tuple<PrivateInput>;
-  }
+  Config extends ConfigBaseType,
+  _ extends unknown = unknown // weird hack that makes methods infer correctly when their inputs are not annotated
 >(
-  config: StatementType & {
+  config: Config & {
     name: string;
     methods: {
-      [I in keyof Types]: Method<
-        InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
-        InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-        Types[I]
-      >;
+      [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
   }
 ): {
   name: string;
+  maxProofsVerified(): Promise<0 | 1 | 2>;
+
   compile: (options?: {
     cache?: Cache;
     forceRecompile?: boolean;
@@ -185,56 +281,62 @@ function ZkProgram<
   }>;
   verify: (
     proof: Proof<
-      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
-      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>
+      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+      InferProvableOrVoid<Get<Config, 'publicOutput'>>
     >
   ) => Promise<boolean>;
   digest: () => Promise<string>;
   analyzeMethods: () => Promise<{
-    [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+    [I in keyof Config['methods']]: UnwrapPromise<
+      ReturnType<typeof analyzeMethod>
+    >;
   }>;
-  publicInputType: ProvableOrUndefined<Get<StatementType, 'publicInput'>>;
-  publicOutputType: ProvableOrVoid<Get<StatementType, 'publicOutput'>>;
-  privateInputTypes: {
-    [I in keyof Types]: Method<
-      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
-      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-      Types[I]
-    >['privateInputs'];
-  };
+
+  publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
+  publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
+  privateInputTypes: InferPrivateInput<Config>;
+  auxiliaryOutputTypes: InferAuxiliaryOutputs<Config>;
   rawMethods: {
-    [I in keyof Types]: Method<
-      InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
-      InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-      Types[I]
-    >['method'];
+    [I in keyof Config['methods']]: InferMethodType<Config>[I]['method'];
   };
+
+  Proof: typeof Proof<
+    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    InferProvableOrVoid<Get<Config, 'publicOutput'>>
+  >;
+
   proofsEnabled: boolean;
   setProofsEnabled(proofsEnabled: boolean): void;
 } & {
-  [I in keyof Types]: Prover<
-    InferProvableOrUndefined<Get<StatementType, 'publicInput'>>,
-    InferProvableOrVoid<Get<StatementType, 'publicOutput'>>,
-    Types[I]
+  [I in keyof Config['methods']]: Prover<
+    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    ProvableOrUndefined<Get<Config, 'publicInput'>>,
+    InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+    InferPrivateInput<Config>[I],
+    InferProvableOrUndefined<InferAuxiliaryOutputs<Config>[I]>
   >;
 } {
+  type PublicInputType = ProvableOrUndefined<Get<Config, 'publicInput'>>;
+  type PublicInput = InferProvableOrUndefined<Get<Config, 'publicInput'>>;
+  type PublicOutput = InferProvableOrVoid<Get<Config, 'publicOutput'>>;
+  // derived types for convenience
+  type Methods = InferMethodSignatures<Config>;
+  type PrivateInputs = InferPrivateInput<Config>;
+  type AuxiliaryOutputs = InferAuxiliaryOutputs<Config>;
+
   let doProving = true;
 
   let methods = config.methods;
-  let publicInputType: ProvablePure<any> = ProvableType.get(
+  let publicInputType: Provable<any> = ProvableType.get(
     config.publicInput ?? Undefined
   );
-  let publicOutputType: ProvablePure<any> = ProvableType.get(
+  let hasPublicInput =
+    publicInputType !== Undefined && publicInputType !== Void;
+  let publicOutputType: Provable<any> = ProvableType.get(
     config.publicOutput ?? Void
   );
 
-  let selfTag = {
-    name: config.name,
-  };
-  type PublicInput = InferProvableOrUndefined<
-    Get<StatementType, 'publicInput'>
-  >;
-  type PublicOutput = InferProvableOrVoid<Get<StatementType, 'publicOutput'>>;
+  let selfTag = { name: config.name };
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
@@ -242,13 +344,29 @@ function ZkProgram<
     static tag = () => selfTag;
   }
 
+  type MethodKey = keyof Config['methods'];
   // TODO remove sort()! Object.keys() has a deterministic order
-  let methodKeys: (keyof Types & string)[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
+  let methodKeys: MethodKey[] = Object.keys(methods).sort(); // need to have methods in (any) fixed order
   let methodIntfs = methodKeys.map((key) =>
-    sortMethodArguments('program', key, methods[key].privateInputs, SelfProof)
+    sortMethodArguments(
+      'program',
+      key as string,
+      methods[key].privateInputs,
+      ProvableType.get(methods[key].auxiliaryOutput) ?? Undefined,
+      SelfProof
+    )
   );
   let methodFunctions = methodKeys.map((key) => methods[key].method);
-  let maxProofsVerified = getMaxProofsVerified(methodIntfs);
+  let privateInputTypes = methodIntfs.map((m) => m.args);
+  let maxProofsVerified: undefined | 0 | 1 | 2 = undefined;
+
+  async function getMaxProofsVerified() {
+    if (maxProofsVerified !== undefined) return maxProofsVerified;
+    let methodsMeta = await analyzeMethods();
+    let proofs = methodKeys.map((k) => methodsMeta[k].proofs.length);
+    maxProofsVerified = computeMaxProofsVerified(proofs);
+    return maxProofsVerified;
+  }
 
   async function analyzeMethods() {
     let methodsMeta: Record<
@@ -264,13 +382,14 @@ function ZkProgram<
       );
     }
     return methodsMeta as {
-      [I in keyof Types]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+      [I in keyof Methods]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
     };
   }
 
   let compileOutput:
     | {
         provers: Pickles.Prover[];
+        maxProofsVerified: 0 | 1 | 2;
         verify: (
           statement: Pickles.Statement<FieldConst>,
           proof: Pickles.Proof
@@ -278,16 +397,20 @@ function ZkProgram<
       }
     | undefined;
 
+  const programState = createProgramState();
+
   async function compile({
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
-    proofsEnabled = undefined,
+    proofsEnabled = undefined as boolean | undefined,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
     if (doProving) {
       let methodsMeta = await analyzeMethods();
       let gates = methodKeys.map((k) => methodsMeta[k].gates);
+      let proofs = methodKeys.map((k) => methodsMeta[k].proofs);
+      maxProofsVerified = computeMaxProofsVerified(proofs.map((p) => p.length));
 
       let { provers, verify, verificationKey } = await compileProgram({
         publicInputType,
@@ -295,13 +418,15 @@ function ZkProgram<
         methodIntfs,
         methods: methodFunctions,
         gates,
+        proofs,
         proofSystemTag: selfTag,
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        state: programState,
       });
 
-      compileOutput = { provers, verify };
+      compileOutput = { provers, verify, maxProofsVerified };
       return { verificationKey };
     } else {
       return {
@@ -310,74 +435,134 @@ function ZkProgram<
     }
   }
 
-  function toProver<K extends keyof Types & string>(
+  // for each of the methods, create a prover function.
+  // in the first step, these are "regular" in that they always expect the public input as the first argument,
+  // which is easier to use internally.
+  type RegularProver_<K extends MethodKey> = RegularProver<
+    PublicInput,
+    PublicInputType,
+    PublicOutput,
+    PrivateInputs[K],
+    InferProvableOrUndefined<AuxiliaryOutputs[K]>
+  >;
+
+  function toRegularProver<K extends MethodKey>(
     key: K,
     i: number
-  ): [K, Prover<PublicInput, PublicOutput, Types[K]>] {
-    async function prove_(
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Types[typeof key]>
-    ): Promise<Proof<PublicInput, PublicOutput>> {
-      class ProgramProof extends Proof<PublicInput, PublicOutput> {
-        static publicInputType = publicInputType;
-        static publicOutputType = publicOutputType;
-        static tag = () => selfTag;
-      }
-
+  ): RegularProver_<K> {
+    return async function prove_(inputPublicInput, ...inputArgs) {
+      let publicInput = publicInputType.fromValue(inputPublicInput);
+      let args = zip(inputArgs, privateInputTypes[i]).map(([arg, type]) =>
+        ProvableType.get(type).fromValue(arg)
+      );
       if (!doProving) {
-        let previousProofs = MlArray.to(getPreviousProofsForProver(args));
+        // we step into a ZkProgramContext here to match the context nesting
+        // that would happen if proofs were enabled -- otherwise, proofs declared
+        // in an inner program could be counted to the outer program
+        let id = ZkProgramContext.enter();
+        try {
+          let { publicOutput, auxiliaryOutput } =
+            (hasPublicInput
+              ? await (methods[key].method as any)(publicInput, ...args)
+              : await (methods[key].method as any)(...args)) ?? {};
 
-        let publicOutput = await (methods[key].method as any)(
-          publicInput,
-          previousProofs
-        );
-
-        return ProgramProof.dummy(publicInput, publicOutput, maxProofsVerified);
+          let proof = await SelfProof.dummy(
+            publicInput,
+            publicOutput,
+            await getMaxProofsVerified()
+          );
+          return { proof, auxiliaryOutput };
+        } finally {
+          ZkProgramContext.leave(id);
+        }
       }
 
-      let picklesProver = compileOutput?.provers?.[i];
-      if (picklesProver === undefined) {
+      if (compileOutput === undefined) {
         throw Error(
-          `Cannot prove execution of program.${key}(), no prover found. ` +
+          `Cannot prove execution of program.${String(
+            key
+          )}(), no prover found. ` +
             `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
-      let publicInputFields = toFieldConsts(publicInputType, publicInput);
-      let previousProofs = MlArray.to(getPreviousProofsForProver(args));
+      let picklesProver = compileOutput.provers[i];
+      let maxProofsVerified = compileOutput.maxProofsVerified;
 
-      let id = snarkContext.enter({ witnesses: args, inProver: true });
+      let { publicInputFields, publicInputAux } = toFieldAndAuxConsts(
+        publicInputType,
+        publicInput
+      );
+
+      let id = snarkContext.enter({
+        witnesses: args,
+        inProver: true,
+        auxInputData: publicInputAux,
+      });
+
       let result: UnwrapPromise<ReturnType<typeof picklesProver>>;
       try {
-        result = await picklesProver(publicInputFields, previousProofs);
+        result = await picklesProver(publicInputFields);
       } finally {
         snarkContext.leave(id);
       }
+
+      let auxiliaryType = methodIntfs[i].auxiliaryType;
+      let auxiliaryOutputExists =
+        auxiliaryType && auxiliaryType.sizeInFields() !== 0;
+
+      let auxiliaryOutput;
+      if (auxiliaryOutputExists) {
+        auxiliaryOutput = programState.getAuxiliaryOutput(
+          methodIntfs[i].methodName
+        );
+
+        programState.reset(methodIntfs[i].methodName);
+      }
+
       let [publicOutputFields, proof] = MlPair.from(result);
-      let publicOutput = fromFieldConsts(publicOutputType, publicOutputFields);
 
-      return new ProgramProof({
-        publicInput,
-        publicOutput,
-        proof,
-        maxProofsVerified,
-      });
-    }
+      let nonPureOutput = programState.getNonPureOutput();
 
-    let prove: Prover<PublicInput, PublicOutput, Types[K]>;
-    if (
-      (publicInputType as any) === Undefined ||
-      (publicInputType as any) === Void
-    ) {
-      prove = ((...args: any) => prove_(undefined as any, ...args)) as any;
-    } else {
-      prove = prove_ as any;
-    }
-    return [key, prove];
+      let publicOutput = fromFieldConsts(
+        publicOutputType,
+        publicOutputFields,
+        nonPureOutput
+      );
+
+      programState.reset('__nonPureOutput__');
+
+      return {
+        proof: new SelfProof({
+          publicInput,
+          publicOutput,
+          proof,
+          maxProofsVerified,
+        }),
+        auxiliaryOutput,
+      };
+    };
   }
+  let regularProvers = mapToObject(methodKeys, toRegularProver);
 
-  let provers = Object.fromEntries(methodKeys.map(toProver)) as {
-    [I in keyof Types]: Prover<PublicInput, PublicOutput, Types[I]>;
+  // wrap "regular" provers to remove an `undefined` public input argument,
+  // this matches how the method itself was defined in the case of no public input
+  type Prover_<K extends MethodKey = MethodKey> = Prover<
+    PublicInput,
+    PublicInputType,
+    PublicOutput,
+    PrivateInputs[K],
+    InferProvableOrUndefined<AuxiliaryOutputs[K]>
+  >;
+  type Provers = {
+    [K in MethodKey]: Prover_<K>;
   };
+  let provers: Provers = mapObject(regularProvers, (prover): Prover_ => {
+    if (publicInputType === Undefined || publicInputType === Void) {
+      return ((...args: any) => prover(undefined as any, ...args)) as any;
+    } else {
+      return prover as any;
+    }
+  });
 
   function verify(proof: Proof<PublicInput, PublicOutput>) {
     if (!doProving) {
@@ -406,22 +591,33 @@ function ZkProgram<
   const program = Object.assign(
     selfTag,
     {
+      maxProofsVerified: getMaxProofsVerified,
+
       compile,
       verify,
       digest,
       analyzeMethods,
+
       publicInputType: publicInputType as ProvableOrUndefined<
-        Get<StatementType, 'publicInput'>
+        Get<Config, 'publicInput'>
       >,
       publicOutputType: publicOutputType as ProvableOrVoid<
-        Get<StatementType, 'publicOutput'>
+        Get<Config, 'publicOutput'>
       >,
-      privateInputTypes: Object.fromEntries(
-        methodKeys.map((key) => [key, methods[key].privateInputs])
+      privateInputTypes: mapToObject(
+        methodKeys,
+        (_, i) => privateInputTypes[i]
+      ) as any,
+      auxiliaryOutputTypes: Object.fromEntries(
+        methodKeys.map((key) => [key, methods[key].auxiliaryOutput])
       ) as any,
       rawMethods: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].method])
       ) as any,
+
+      Proof: SelfProof,
+
+      proofsEnabled: doProving,
       setProofsEnabled(proofsEnabled: boolean) {
         doProving = proofsEnabled;
       },
@@ -434,19 +630,49 @@ function ZkProgram<
     get: () => doProving,
   });
 
-  return program as ZkProgram<StatementType, Types>;
+  return program;
 }
 
 type ZkProgram<
-  S extends {
-    publicInput?: ProvableTypePure;
-    publicOutput?: ProvableTypePure;
-  },
-  T extends {
-    [I in string]: Tuple<PrivateInput>;
+  Config extends {
+    publicInput?: ProvableType;
+    publicOutput?: ProvableType;
+    methods: {
+      [I in string]: {
+        privateInputs: Tuple<PrivateInput>;
+        auxiliaryOutput?: ProvableType;
+      };
+    };
   }
-> = ReturnType<typeof ZkProgram<S, T>>;
+> = ReturnType<typeof ZkProgram<Config>>;
 
+/**
+ * A class representing the type of Proof produced by the {@link ZkProgram} in which it is used.
+ *
+ * @example
+ * ```ts
+ * const ExampleProgram = ZkProgram({
+ *   name: 'ExampleProgram',
+ *   publicOutput: Field,
+ *   methods: {
+ *     baseCase: {
+ *       privateInputs: [],
+ *       method: async () => {
+ *         return { publicOutput: Field(0) }
+ *       }
+ *     },
+ *     add: {
+ *       privateInputs: [SelfProof, Field],
+ *       // `previous` is the type of proof produced by ExampleProgram
+ *       method: async (previous: SelfProof<undefined, Field>, f: Field) => {
+ *         previous.verify();
+ *         return { publicOutput: previous.publicOutput.add(f) }
+ *       }
+ *     }
+ *   }
+ * });
+ * ```
+ */
 class SelfProof<PublicInput, PublicOutput> extends Proof<
   PublicInput,
   PublicOutput
@@ -472,6 +698,7 @@ function sortMethodArguments(
   programName: string,
   methodName: string,
   privateInputs: unknown[],
+  auxiliaryType: Provable<any> | undefined,
   selfProof: Subclass<typeof Proof>
 ): MethodInterface {
   // replace SelfProof with the actual selfProof
@@ -491,7 +718,8 @@ function sortMethodArguments(
     );
   });
 
-  // extract proofs to count them and for sanity checks
+  // extract input proofs to count them and for sanity checks
+  // WARNING: this doesn't include internally declared proofs!
   let proofs = args.flatMap(extractProofTypes);
   let numberOfProofs = proofs.length;
 
@@ -512,7 +740,7 @@ function sortMethodArguments(
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  return { methodName, args, numberOfProofs };
+  return { methodName, args, auxiliaryType };
 }
 
 function isProvable(type: unknown): type is ProvableType<unknown> {
@@ -532,15 +760,11 @@ function isDynamicProof(
   return typeof type === 'function' && type.prototype instanceof DynamicProof;
 }
 
-function getPreviousProofsForProver(methodArgs: any[]) {
-  return methodArgs.flatMap(extractProofs).map((proof) => proof.proof);
-}
-
 type MethodInterface = {
   methodName: string;
   args: ProvableType<unknown>[];
-  numberOfProofs: number;
   returnType?: Provable<any>;
+  auxiliaryType?: Provable<any>;
 };
 
 // reasonable default choice for `overrideWrapDomain`
@@ -552,20 +776,24 @@ async function compileProgram({
   methodIntfs,
   methods,
   gates,
+  proofs,
   proofSystemTag,
   cache,
   forceRecompile,
   overrideWrapDomain,
+  state,
 }: {
-  publicInputType: ProvablePure<any>;
-  publicOutputType: ProvablePure<any>;
+  publicInputType: Provable<any>;
+  publicOutputType: Provable<any>;
   methodIntfs: MethodInterface[];
   methods: ((...args: any) => unknown)[];
   gates: Gate[][];
+  proofs: ProofClass[][];
   proofSystemTag: { name: string };
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  state?: ReturnType<typeof createProgramState>;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -580,12 +808,14 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       methods[i],
       proofSystemTag,
       methodEntry,
-      gates[i]
+      gates[i],
+      proofs[i],
+      state
     )
   );
-  let maxProofs = getMaxProofsVerified(methodIntfs);
-  overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
 
+  let maxProofs = computeMaxProofsVerified(proofs.map((p) => p.length));
+  overrideWrapDomain ??= maxProofsToWrapDomain[maxProofs];
   let picklesCache: Pickles.Cache = [
     0,
     function read_(mlHeader) {
@@ -641,12 +871,9 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   // wrap provers
   let wrappedProvers = provers.map(
     (prover): Pickles.Prover =>
-      async function picklesProver(
-        publicInput: MlFieldConstArray,
-        previousProofs: MlArray<Pickles.Proof>
-      ) {
+      async function picklesProver(publicInput: MlFieldConstArray) {
         return prettifyStacktracePromise(
-          withThreadPool(() => prover(publicInput, previousProofs))
+          withThreadPool(() => prover(publicInput))
         );
       }
   );
@@ -667,19 +894,34 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   };
 }
 
-function analyzeMethod(
-  publicInputType: ProvablePure<any>,
+async function analyzeMethod(
+  publicInputType: Provable<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => unknown
 ) {
-  return Provable.constraintSystem(() => {
-    let args = methodIntf.args.map(emptyWitness);
-    let publicInput = emptyWitness(publicInputType);
-    // note: returning the method result here makes this handle async methods
-    if (publicInputType === Undefined || publicInputType === Void)
-      return method(...args);
-    return method(publicInput, ...args);
-  });
+  let result: Awaited<ReturnType<typeof Provable.constraintSystem>>;
+  let proofs: ProofClass[];
+  let id = ZkProgramContext.enter();
+  try {
+    result = await Provable.constraintSystem(() => {
+      let args = methodIntf.args.map(emptyWitness);
+      args.forEach((value) =>
+        extractProofs(value).forEach((proof) => proof.declare())
+      );
+
+      let publicInput = emptyWitness(publicInputType);
+      // note: returning the method result here makes this handle async methods
+      if (publicInputType === Undefined || publicInputType === Void)
+        return method(...args);
+      return method(publicInput, ...args);
+    });
+    proofs = ZkProgramContext.getDeclaredProofs().map(
+      ({ ProofClass }) => ProofClass
+    );
+  } finally {
+    ZkProgramContext.leave(id);
+  }
+  return { ...result, proofs };
 }
 
 function inCircuitVkHash(inCircuitVk: unknown): Field {
@@ -696,60 +938,90 @@ function inCircuitVkHash(inCircuitVk: unknown): Field {
 }
 
 function picklesRuleFromFunction(
-  publicInputType: ProvablePure<unknown>,
-  publicOutputType: ProvablePure<unknown>,
+  publicInputType: Provable<unknown>,
+  publicOutputType: Provable<unknown>,
   func: (...args: unknown[]) => unknown,
   proofSystemTag: { name: string },
-  { methodName, args }: MethodInterface,
-  gates: Gate[]
+  { methodName, args, auxiliaryType }: MethodInterface,
+  gates: Gate[],
+  verifiedProofs: ProofClass[],
+  state?: ReturnType<typeof createProgramState>
 ): Pickles.Rule {
   async function main(
     publicInput: MlFieldArray
   ): ReturnType<Pickles.Rule['main']> {
-    let { witnesses: argsWithoutPublicInput, inProver } = snarkContext.get();
+    let {
+      witnesses: argsWithoutPublicInput,
+      inProver,
+      auxInputData,
+    } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
+
+    // witness private inputs and declare input proofs
+    let id = ZkProgramContext.enter();
     let finalArgs = [];
-    let proofs: {
-      Proof: Subclass<typeof ProofBase<any, any>>;
-      proof: ProofBase<any, any>;
-    }[] = [];
-    let previousStatements: Pickles.Statement<FieldVar>[] = [];
     for (let i = 0; i < args.length; i++) {
-      let type = args[i];
       try {
+        let type = args[i];
         let value = Provable.witness(type, () => {
           return argsWithoutPublicInput?.[i] ?? ProvableType.synthesize(type);
         });
         finalArgs[i] = value;
 
-        for (let proof of extractProofs(value)) {
-          let Proof = proof.constructor as Subclass<typeof ProofBase<any, any>>;
-          proofs.push({ Proof, proof });
-          let fields = proof.publicFields();
-          let input = MlFieldArray.to(fields.input);
-          let output = MlFieldArray.to(fields.output);
-          previousStatements.push(MlPair(input, output));
-        }
+        extractProofs(value).forEach((proof) => proof.declare());
       } catch (e: any) {
+        ZkProgramContext.leave(id);
         e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
         throw e;
       }
     }
-    let result: any;
-    if (publicInputType === Undefined || publicInputType === Void) {
-      result = await func(...finalArgs);
-    } else {
-      let input = fromFieldVars(publicInputType, publicInput);
-      result = await func(input, ...finalArgs);
+
+    // run the user circuit
+    let result: { publicOutput?: any; auxiliaryOutput?: any };
+    let proofs: DeclaredProof[];
+
+    try {
+      if (publicInputType === Undefined || publicInputType === Void) {
+        result = (await func(...finalArgs)) as any;
+      } else {
+        let input = fromFieldVars(publicInputType, publicInput, auxInputData);
+        result = (await func(input, ...finalArgs)) as any;
+      }
+      proofs = ZkProgramContext.getDeclaredProofs();
+    } finally {
+      ZkProgramContext.leave(id);
     }
 
-    proofs.forEach(({ Proof, proof }) => {
-      if (!(proof instanceof DynamicProof)) return;
+    if (result?.publicOutput) {
+      // store the nonPure auxiliary data in program state cache if it exists
+      let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
+      state?.setNonPureOutput(nonPureOutput);
+    }
+
+    // now all proofs are declared - check that we got as many as during compile time
+    assert(
+      proofs.length === verifiedProofs.length,
+      `Expected ${verifiedProofs.length} proofs, but got ${proofs.length}`
+    );
+
+    // extract proof statements for Pickles
+    let previousStatements = proofs.map(
+      ({ proofInstance }): Pickles.Statement<FieldVar> => {
+        let fields = proofInstance.publicFields();
+        let input = MlFieldArray.to(fields.input);
+        let output = MlFieldArray.to(fields.output);
+        return MlPair(input, output);
+      }
+    );
+
+    // handle dynamic proofs
+    proofs.forEach(({ ProofClass, proofInstance }) => {
+      if (!(proofInstance instanceof DynamicProof)) return;
 
       // Initialize side-loaded verification key
-      const tag = Proof.tag();
+      const tag = ProofClass.tag();
       const computedTag = SideloadedTag.get(tag.name);
-      const vk = proof.usedVerificationKey;
+      const vk = proofInstance.usedVerificationKey;
 
       if (vk === undefined) {
         throw new Error(
@@ -771,26 +1043,47 @@ function picklesRuleFromFunction(
       Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
     });
 
-    // if the public output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
+    // if the output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
     let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
-    let publicOutput = hasPublicOutput ? publicOutputType.toFields(result) : [];
+    let publicOutput = hasPublicOutput
+      ? publicOutputType.toFields(result.publicOutput)
+      : [];
+
+    if (
+      state !== undefined &&
+      auxiliaryType !== undefined &&
+      auxiliaryType.sizeInFields() !== 0
+    ) {
+      Provable.asProver(() => {
+        let { auxiliaryOutput } = result;
+        assert(
+          auxiliaryOutput !== undefined,
+          `${proofSystemTag.name}.${methodName}(): Auxiliary output is undefined even though the method declares it.`
+        );
+        state.setAuxiliaryOutput(
+          Provable.toConstant(auxiliaryType, auxiliaryOutput),
+          methodName
+        );
+      });
+    }
+
     return {
       publicOutput: MlFieldArray.to(publicOutput),
       previousStatements: MlArray.to(previousStatements),
+      previousProofs: MlArray.to(proofs.map((p) => p.proofInstance.proof)),
       shouldVerify: MlArray.to(
-        proofs.map((proof) => proof.proof.shouldVerify.toField().value)
+        proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
       ),
     };
   }
 
-  let proofs: Subclass<typeof ProofBase>[] = args.flatMap(extractProofTypes);
-  if (proofs.length > 2) {
+  if (verifiedProofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
         `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
-  let proofsToVerify = proofs.map((Proof) => {
+  let proofsToVerify = verifiedProofs.map((Proof) => {
     let tag = Proof.tag();
     if (tag === proofSystemTag) return { isSelf: true as const };
     else if (isDynamicProof(Proof)) {
@@ -831,27 +1124,43 @@ function picklesRuleFromFunction(
   };
 }
 
-function getMaxProofsVerified(methodIntfs: MethodInterface[]) {
-  return methodIntfs.reduce(
-    (acc, { numberOfProofs }) => Math.max(acc, numberOfProofs),
-    0
-  ) as any as 0 | 1 | 2;
+function computeMaxProofsVerified(proofs: number[]) {
+  return proofs.reduce((acc: number, n) => {
+    assert(n <= 2, 'Too many proofs');
+    return Math.max(acc, n);
+  }, 0) as 0 | 1 | 2;
 }
 
-function fromFieldVars<T>(type: ProvablePure<T>, fields: MlFieldArray) {
-  return type.fromFields(MlFieldArray.from(fields));
+function fromFieldVars<T>(
+  type: Provable<T>,
+  fields: MlFieldArray,
+  auxData: any[] = []
+) {
+  return type.fromFields(MlFieldArray.from(fields), auxData);
 }
 
-function fromFieldConsts<T>(type: ProvablePure<T>, fields: MlFieldConstArray) {
-  return type.fromFields(MlFieldConstArray.from(fields));
+function fromFieldConsts<T>(
+  type: Provable<T>,
+  fields: MlFieldConstArray,
+  aux: any[] = []
+) {
+  return type.fromFields(MlFieldConstArray.from(fields), aux);
 }
-function toFieldConsts<T>(type: ProvablePure<T>, value: T) {
+
+function toFieldConsts<T>(type: Provable<T>, value: T) {
   return MlFieldConstArray.to(type.toFields(value));
 }
 
+function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
+  return {
+    publicInputFields: MlFieldConstArray.to(type.toFields(value)),
+    publicInputAux: type.toAuxiliary(value),
+  };
+}
+
 ZkProgram.Proof = function <
-  PublicInputType extends FlexibleProvablePure<any>,
-  PublicOutputType extends FlexibleProvablePure<any>
+  PublicInputType extends FlexibleProvable<any>,
+  PublicOutputType extends FlexibleProvable<any>
 >(program: {
   name: string;
   publicInputType: PublicInputType;
@@ -914,39 +1223,90 @@ type Infer<T> = T extends Subclass<typeof ProofBase>
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
-} & any[];
+};
+type TupleFrom<T> = {
+  [I in keyof T]: From<T[I]>;
+};
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
+
+type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
+  ? AuxiliaryOutput extends undefined
+    ? void
+    : {
+        auxiliaryOutput: AuxiliaryOutput;
+      }
+  : AuxiliaryOutput extends undefined
+  ? {
+      publicOutput: PublicOutput;
+    }
+  : {
+      publicOutput: PublicOutput;
+      auxiliaryOutput: AuxiliaryOutput;
+    };
 
 type Method<
   PublicInput,
   PublicOutput,
-  Args extends Tuple<PrivateInput>
+  MethodSignature extends {
+    privateInputs: Tuple<PrivateInput>;
+    auxiliaryOutput?: ProvableType;
+  }
 > = PublicInput extends undefined
   ? {
-      privateInputs: Args;
-      method(...args: TupleToInstances<Args>): Promise<PublicOutput>;
+      method(
+        ...args: TupleToInstances<MethodSignature['privateInputs']>
+      ): Promise<
+        MethodReturnType<
+          PublicOutput,
+          InferProvableOrUndefined<Get<MethodSignature, 'auxiliaryOutput'>>
+        >
+      >;
     }
   : {
-      privateInputs: Args;
       method(
         publicInput: PublicInput,
-        ...args: TupleToInstances<Args>
-      ): Promise<PublicOutput>;
+        ...args: TupleToInstances<MethodSignature['privateInputs']>
+      ): Promise<
+        MethodReturnType<
+          PublicOutput,
+          InferProvableOrUndefined<Get<MethodSignature, 'auxiliaryOutput'>>
+        >
+      >;
     };
+
+type RegularProver<
+  PublicInput,
+  PublicInputType,
+  PublicOutput,
+  Args extends Tuple<PrivateInput>,
+  AuxiliaryOutput
+> = (
+  publicInput: From<PublicInputType>,
+  ...args: TupleFrom<Args>
+) => Promise<{
+  proof: Proof<PublicInput, PublicOutput>;
+  auxiliaryOutput: AuxiliaryOutput;
+}>;
 
 type Prover<
   PublicInput,
+  PublicInputType,
   PublicOutput,
-  Args extends Tuple<PrivateInput>
+  Args extends Tuple<PrivateInput>,
+  AuxiliaryOutput
 > = PublicInput extends undefined
-  ? (
-      ...args: TupleToInstances<Args>
-    ) => Promise<Proof<PublicInput, PublicOutput>>
+  ? (...args: TupleFrom<Args>) => Promise<{
+      proof: Proof<PublicInput, PublicOutput>;
+      auxiliaryOutput: AuxiliaryOutput;
+    }>
   : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
-    ) => Promise<Proof<PublicInput, PublicOutput>>;
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
+    ) => Promise<{
+      proof: Proof<PublicInput, PublicOutput>;
+      auxiliaryOutput: AuxiliaryOutput;
+    }>;
 
 type ProvableOrUndefined<A> = A extends undefined
   ? typeof Undefined
@@ -955,7 +1315,9 @@ type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
-  : InferProvable<A>;
+  : A extends ProvableType
+  ? InferProvable<A>
+  : InferProvable<A> | undefined;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;

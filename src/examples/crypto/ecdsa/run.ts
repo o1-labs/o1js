@@ -36,7 +36,7 @@ await keccakAndEcdsa.compile();
 console.timeEnd('keccak + ecdsa verify (compile)');
 
 console.time('keccak + ecdsa verify (prove)');
-let proof = await keccakAndEcdsa.verifyEcdsa(message, signature, publicKey);
+let { proof } = await keccakAndEcdsa.verifyEcdsa(message, signature, publicKey);
 console.timeEnd('keccak + ecdsa verify (prove)');
 
 proof.publicOutput.assertTrue('signature verifies');
@@ -75,7 +75,11 @@ await ecdsaEthers.compile();
 console.timeEnd('ecdsa / ethers verify (compile)');
 
 console.time('ecdsa / ethers verify (prove)');
-let proofE = await ecdsaEthers.verifyEthers(msgBytes, signatureE, publicKeyE);
+let { proof: proofE } = await ecdsaEthers.verifyEthers(
+  msgBytes,
+  signatureE,
+  publicKeyE
+);
 console.timeEnd('ecdsa / ethers verify (prove)');
 
 proofE.publicOutput.assertTrue('signature verifies');

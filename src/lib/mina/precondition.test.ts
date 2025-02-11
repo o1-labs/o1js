@@ -95,6 +95,63 @@ describe('preconditions', () => {
     expect(contract.account.nonce.get()).toEqual(nonce.add(1));
   });
 
+  it('get + require recieve default permissions should not throw', async () => {
+    let nonce = contract.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, async () => {
+      contract.account.permissions.receive.requireEquals(
+        { constant : Bool(true),
+          signatureNecessary : Bool(false),
+          signatureSufficient : Bool(true)
+        }
+      );
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    });
+    await tx.sign([feePayer.key, contractAccount.key]).send();
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('getAndrequireEquals all perms should not throw', async () => {
+    let nonce = contract.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, async () => {
+      contract.account.permissions.editState.get();
+      contract.account.permissions.editState.getAndRequireEquals();
+      contract.account.permissions.access.getAndRequireEquals();
+      contract.account.permissions.send.getAndRequireEquals();
+      contract.account.permissions.receive.getAndRequireEquals();
+      contract.account.permissions.setDelegate.getAndRequireEquals();
+      contract.account.permissions.setPermissions.getAndRequireEquals();
+      contract.account.permissions.setVerificationKey.getAndRequireEquals();
+      contract.account.permissions.setZkappUri.getAndRequireEquals();
+      contract.account.permissions.editActionState.getAndRequireEquals();
+      contract.account.permissions.setTokenSymbol.getAndRequireEquals();
+      contract.account.permissions.incrementNonce.getAndRequireEquals();
+      contract.account.permissions.setVotingFor.getAndRequireEquals();
+      contract.account.permissions.setTiming.getAndRequireEquals();
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    });
+    await tx.sign([feePayer.key, contractAccount.key]).send();
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('get + require recieve signatureNecessary should throw', async () => {
+    let tx = await Mina.transaction(feePayer, async () => {
+      contract.account.permissions.receive.requireEquals(
+        { constant : Bool(true),
+          signatureNecessary : Bool(true),
+          signatureSufficient : Bool(false)
+        }
+      );
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    });
+    await expect(tx.sign([feePayer.key, contractAccount.key]).send()).rejects.toThrow(
+      /unsatisfied/
+    );
+  });
+
+
   it('satisfied currentSlot.requireBetween should not throw', async () => {
     let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {

@@ -14,13 +14,17 @@ const exampleProgram = ZkProgram({
     init: {
       privateInputs: [],
       async method() {
-        return new Field(0);
+        return {
+          publicOutput: new Field(0),
+        };
       },
     },
     run: {
       privateInputs: [SelfProof],
       async method(p: SelfProof<undefined, Field>) {
-        return p.publicOutput.add(new Field(1));
+        return {
+          publicOutput: p.publicOutput.add(new Field(1)),
+        };
       },
     },
   },

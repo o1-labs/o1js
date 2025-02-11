@@ -56,6 +56,8 @@ export {
   getCachedGenesisConstants,
   addCachedAccount,
   networkConfig,
+  setMinaDefaultHeaders,
+  setArchiveDefaultHeaders,
   setGraphqlEndpoint,
   setGraphqlEndpoints,
   setMinaGraphqlFallbackEndpoints,
@@ -77,6 +79,8 @@ type NetworkConfig = {
   archiveEndpoint: string;
   archiveFallbackEndpoints: string[];
   lightnetAccountManagerEndpoint: string;
+  minaDefaultHeaders: HeadersInit;
+  archiveDefaultHeaders: HeadersInit;
 };
 
 type ActionsQueryInputs = {
@@ -91,6 +95,8 @@ let networkConfig = {
   archiveEndpoint: '',
   archiveFallbackEndpoints: [] as string[],
   lightnetAccountManagerEndpoint: '',
+  minaDefaultHeaders: {},
+  archiveDefaultHeaders: {},
 } satisfies NetworkConfig;
 
 function checkForValidUrl(url: string) {
@@ -102,6 +108,40 @@ function checkForValidUrl(url: string) {
   }
 }
 
+/**
+ * Sets up the default headers to be used for all Mina node GraphQL requests, example usage:
+ * ```typescript
+ * setMinaDefaultHeaders({ Authorization: 'Bearer example-token' });
+ * ```
+ *
+ * It can be overridden by passing headers to the individual fetch functions, example usage:
+ * ```typescript
+ * setMinaDefaultHeaders({ Authorization: 'Bearer default-token' });
+ * await fetchAccount({publicKey}, minaEndpoint, { headers: { Authorization: 'Bearer override-token' } });
+ * ```
+ * @param headers Arbitrary sized headers to be used for all Mina node GraphQL requests.
+ */
+function setMinaDefaultHeaders(headers: HeadersInit) {
+  networkConfig.minaDefaultHeaders = headers;
+}
+
+/**
+ * Sets up the default headers to be used for all Archive node GraphQL requests, example usage:
+ * ```typescript
+ * setArchiveDefaultHeaders({ Authorization: 'Bearer example-token' });
+ * ```
+ *
+ * It can be overridden by passing headers to the individual fetch functions, example usage:
+ * ```typescript
+ * setArchiveDefaultHeaders({ Authorization: 'Bearer default-token' });
+ * await fetchEvents({publicKey}, archiveEndpoint, { headers: { Authorization: 'Bearer override-token' } });
+ * ```
+ * @param headers Arbitrary sized headers to be used for all Mina Archive node GraphQL requests.
+ */
+function setArchiveDefaultHeaders(headers: HeadersInit) {
+  networkConfig.archiveDefaultHeaders = headers;
+}
+
 function setGraphqlEndpoints([
   graphqlEndpoint,
   ...fallbackEndpoints
@@ -109,13 +149,17 @@ function setGraphqlEndpoints([
   setGraphqlEndpoint(graphqlEndpoint);
   setMinaGraphqlFallbackEndpoints(fallbackEndpoints);
 }
-function setGraphqlEndpoint(graphqlEndpoint: string) {
+function setGraphqlEndpoint(
+  graphqlEndpoint: string,
+  minaDefaultHeaders?: HeadersInit
+) {
   if (!checkForValidUrl(graphqlEndpoint)) {
     throw new Error(
       `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
     );
   }
   networkConfig.minaEndpoint = graphqlEndpoint;
+  if (minaDefaultHeaders) setMinaDefaultHeaders(minaDefaultHeaders);
 }
 function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
   if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
@@ -129,15 +173,18 @@ function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
 /**
  * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
  *
- * @param A GraphQL endpoint.
  */
-function setArchiveGraphqlEndpoint(graphqlEndpoint: string) {
+function setArchiveGraphqlEndpoint(
+  graphqlEndpoint: string,
+  archiveDefaultHeaders?: HeadersInit
+) {
   if (!checkForValidUrl(graphqlEndpoint)) {
     throw new Error(
       `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
     );
   }
   networkConfig.archiveEndpoint = graphqlEndpoint;
+  if (archiveDefaultHeaders) setArchiveDefaultHeaders(archiveDefaultHeaders);
 }
 function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
   if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
@@ -170,16 +217,17 @@ function setLightnetAccountManagerEndpoint(endpoint: string) {
  * If an error is returned by the specified endpoint, an error is thrown. Otherwise,
  * the data is returned.
  *
- * @param publicKey The specified publicKey to get account information on
- * @param tokenId The specified tokenId to get account information on
+ * @param accountInfo The public key and token id of the account to fetch
+ * @param accountInfo.publicKey The specified publicKey to get account information on
+ * @param accountInfo.tokenId The specified tokenId to get account information on
  * @param graphqlEndpoint The graphql endpoint to fetch from
- * @param config An object that exposes an additional timeout option
+ * @param config An object that exposes an additional timeout and header options
  * @returns zkapp information on the specified account or an error is thrown
  */
 async function fetchAccount(
   accountInfo: { publicKey: string | PublicKey; tokenId?: string | Field },
   graphqlEndpoint = networkConfig.minaEndpoint,
-  { timeout = defaultTimeout } = {}
+  { timeout = defaultTimeout, headers }: FetchConfig = {}
 ): Promise<
   | { account: Types.Account; error: undefined }
   | { account: undefined; error: FetchError }
@@ -198,6 +246,7 @@ async function fetchAccount(
     graphqlEndpoint,
     {
       timeout,
+      headers: { ...networkConfig.minaDefaultHeaders, ...headers },
     }
   );
 }
@@ -236,7 +285,7 @@ async function fetchAccountInternal(
   };
 }
 
-type FetchConfig = { timeout?: number };
+type FetchConfig = { timeout?: number; headers?: HeadersInit };
 type FetchResponse<TDataResponse = any> = { data: TDataResponse; errors?: any };
 type FetchError = {
   statusCode: number;
@@ -458,11 +507,15 @@ function accountCacheKey(
 /**
  * Fetches the last block on the Mina network.
  */
-async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint) {
+async function fetchLastBlock(
+  graphqlEndpoint = networkConfig.minaEndpoint,
+  headers?: HeadersInit
+) {
   let [resp, error] = await makeGraphqlRequest<LastBlockQueryResponse>(
     lastBlockQuery,
     graphqlEndpoint,
-    networkConfig.minaFallbackEndpoints
+    networkConfig.minaFallbackEndpoints,
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   let lastBlock = resp?.data?.bestChain?.[0];
@@ -478,11 +531,21 @@ async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint) {
   return network;
 }
 
-async function fetchCurrentSlot(graphqlEndpoint = networkConfig.minaEndpoint) {
+/**
+ * Fetches the current slot number of the Mina network.
+ * @param graphqlEndpoint GraphQL endpoint to fetch from
+ * @param headers optional headers to pass to the fetch request
+ * @returns The current slot number
+ */
+async function fetchCurrentSlot(
+  graphqlEndpoint = networkConfig.minaEndpoint,
+  headers?: HeadersInit
+) {
   let [resp, error] = await makeGraphqlRequest<CurrentSlotResponse>(
     currentSlotQuery,
     graphqlEndpoint,
-    networkConfig.minaFallbackEndpoints
+    networkConfig.minaFallbackEndpoints,
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data?.bestChain;
@@ -502,7 +565,8 @@ async function fetchLatestBlockZkappStatus(
     await makeGraphqlRequest<LastBlockQueryFailureCheckResponse>(
       lastBlockQueryFailureCheck(blockLength),
       graphqlEndpoint,
-      networkConfig.minaFallbackEndpoints
+      networkConfig.minaFallbackEndpoints,
+      { headers: networkConfig.minaDefaultHeaders }
     );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data;
@@ -597,12 +661,14 @@ function parseEpochData({
  */
 async function fetchTransactionStatus(
   txId: string,
-  graphqlEndpoint = networkConfig.minaEndpoint
+  graphqlEndpoint = networkConfig.minaEndpoint,
+  headers?: HeadersInit
 ): Promise<TransactionStatus> {
   let [resp, error] = await makeGraphqlRequest<TransactionStatusQueryResponse>(
     transactionStatusQuery(txId),
     graphqlEndpoint,
-    networkConfig.minaFallbackEndpoints
+    networkConfig.minaFallbackEndpoints,
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   let txStatus = resp?.data?.transactionStatus;
@@ -618,7 +684,7 @@ async function fetchTransactionStatus(
 function sendZkapp(
   json: string,
   graphqlEndpoint = networkConfig.minaEndpoint,
-  { timeout = defaultTimeout } = {}
+  { timeout = defaultTimeout, headers }: FetchConfig = {}
 ) {
   return makeGraphqlRequest<SendZkAppResponse>(
     sendZkappQuery(json),
@@ -626,29 +692,33 @@ function sendZkapp(
     networkConfig.minaFallbackEndpoints,
     {
       timeout,
+      headers: { ...networkConfig.minaDefaultHeaders, ...headers },
     }
   );
 }
 
 /**
  * Asynchronously fetches event data for an account from the Mina Archive Node GraphQL API.
- * @async
  * @param accountInfo - The account information object.
  * @param accountInfo.publicKey - The account public key.
  * @param [accountInfo.tokenId] - The optional token ID for the account.
  * @param [graphqlEndpoint=networkConfig.archiveEndpoint] - The GraphQL endpoint to query. Defaults to the Archive Node GraphQL API.
  * @param [filterOptions={}] - The optional filter options object.
+ * @param headers - Optional headers to pass to the fetch request
  * @returns A promise that resolves to an array of objects containing event data, block information and transaction information for the account.
  * @throws If the GraphQL request fails or the response is invalid.
  * @example
+ * ```ts
  * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
  * const events = await fetchEvents(accountInfo);
  * console.log(events);
+ * ```
  */
 async function fetchEvents(
   accountInfo: { publicKey: string; tokenId?: string },
   graphqlEndpoint = networkConfig.archiveEndpoint,
-  filterOptions: EventActionFilterOptions = {}
+  filterOptions: EventActionFilterOptions = {},
+  headers?: HeadersInit
 ) {
   if (!graphqlEndpoint)
     throw Error(
@@ -662,7 +732,8 @@ async function fetchEvents(
       filterOptions
     ),
     graphqlEndpoint,
-    networkConfig.archiveFallbackEndpoints
+    networkConfig.archiveFallbackEndpoints,
+    { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   let fetchedEvents = response?.data.events;
@@ -691,10 +762,34 @@ async function fetchEvents(
   });
 }
 
+/**
+ * Fetches account actions for a specified public key and token ID by performing a GraphQL query.
+ *
+ * @param accountInfo - An {@link ActionsQueryInputs} containing the public key, and optional query parameters for the actions query
+ * @param graphqlEndpoint - The GraphQL endpoint to fetch from. Defaults to the configured Mina endpoint.
+ * @param headers - Optional headers to pass to the fetch request
+ *
+ * @returns A promise that resolves to an object containing the final actions hash for the account, and a list of actions
+ * @throws Will throw an error if the GraphQL endpoint is invalid or if the fetch request fails.
+ *
+ * @example
+ * ```ts
+ * const accountInfo = { publicKey: 'B62qiwmXrWn7Cok5VhhB3KvCwyZ7NHHstFGbiU5n7m8s2RqqNW1p1wF' };
+ * const actionsList = await fetchAccount(accountInfo);
+ * console.log(actionsList);
+ * ```
+ */
 async function fetchActions(
   accountInfo: ActionsQueryInputs,
-  graphqlEndpoint = networkConfig.archiveEndpoint
-) {
+  graphqlEndpoint = networkConfig.archiveEndpoint,
+  headers?: HeadersInit
+): Promise<
+  | {
+      actions: string[][];
+      hash: string;
+    }[]
+  | { error: FetchError }
+> {
   if (!graphqlEndpoint)
     throw Error(
       'fetchActions: Specified GraphQL endpoint is undefined. When using actions, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
@@ -708,9 +803,30 @@ async function fetchActions(
   let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
     getActionsQuery(publicKey, actionStates, tokenId),
     graphqlEndpoint,
-    networkConfig.archiveFallbackEndpoints
+    networkConfig.archiveFallbackEndpoints,
+    { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
   );
-  if (error) throw Error(error.statusText);
+  // As of 2025-01-07, minascan is running a version of the node which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
+  // We could consider removing this fallback since no other nodes are widely used
+  if (error) {
+    const originalError = error;
+    [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
+      getActionsQuery(
+        publicKey,
+        actionStates,
+        tokenId,
+        /* _filterOptions= */ undefined,
+        /* _excludeTransactionInfo= */ true
+      ),
+      graphqlEndpoint,
+      networkConfig.archiveFallbackEndpoints,
+      { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
+    );
+    if (error)
+      throw Error(
+        `ORIGINAL ERROR: ${originalError.statusText} \n\nRETRY ERROR: ${error.statusText}`
+      );
+  }
   let fetchedActions = response?.data.actions;
   if (fetchedActions === undefined) {
     return {
@@ -757,9 +873,33 @@ export function createActionsList(
         `No action data was found for the account ${publicKey} with the latest action state ${actionState}`
       );
 
-    actionData = actionData.sort((a1, a2) => {
-      return Number(a1.accountUpdateId) < Number(a2.accountUpdateId) ? -1 : 1;
-    });
+    // DEPRECATED: In case the archive node is running an out-of-date version, best guess is to sort by the account update id
+    // As of 2025-01-07, minascan is running a version of the node which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
+    // We could consider removing this fallback since no other nodes are widely used
+    if (!actionData[0].transactionInfo) {
+      actionData = actionData.sort((a1, a2) => {
+        return Number(a1.accountUpdateId) - Number(a2.accountUpdateId);
+      });
+    } else {
+      // sort actions within one block by transaction sequence number and account update sequence
+      actionData = actionData.sort((a1, a2) => {
+        const a1TxSequence = a1.transactionInfo!.sequenceNumber;
+        const a2TxSequence = a2.transactionInfo!.sequenceNumber;
+        if (a1TxSequence === a2TxSequence) {
+          const a1AuSequence =
+            a1.transactionInfo!.zkappAccountUpdateIds.indexOf(
+              Number(a1.accountUpdateId)
+            );
+          const a2AuSequence =
+            a2.transactionInfo!.zkappAccountUpdateIds.indexOf(
+              Number(a2.accountUpdateId)
+            );
+          return a1AuSequence - a2AuSequence;
+        } else {
+          return a1TxSequence - a2TxSequence;
+        }
+      });
+    }
 
     // split actions by account update
     let actionsByAccountUpdate: string[][][] = [];
@@ -801,12 +941,14 @@ export function createActionsList(
  * Fetches genesis constants.
  */
 async function fetchGenesisConstants(
-  graphqlEndpoint = networkConfig.minaEndpoint
+  graphqlEndpoint = networkConfig.minaEndpoint,
+  headers?: HeadersInit
 ): Promise<GenesisConstants> {
   let [resp, error] = await makeGraphqlRequest<GenesisConstantsResponse>(
     genesisConstantsQuery,
     graphqlEndpoint,
-    networkConfig.minaFallbackEndpoints
+    networkConfig.minaFallbackEndpoints,
+    { headers: { ...networkConfig.minaDefaultHeaders, ...headers } }
   );
   if (error) throw Error(error.statusText);
   const genesisConstants = resp?.data?.genesisConstants;
@@ -963,7 +1105,7 @@ async function makeGraphqlRequest<TDataResponse = any>(
   query: string,
   graphqlEndpoint = networkConfig.minaEndpoint,
   fallbackEndpoints: string[],
-  { timeout = defaultTimeout } = {} as FetchConfig
+  { timeout = defaultTimeout, headers } = {} as FetchConfig
 ) {
   if (graphqlEndpoint === 'none')
     throw Error(
@@ -983,7 +1125,10 @@ async function makeGraphqlRequest<TDataResponse = any>(
     try {
       let response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
         body,
         signal: controller.signal,
       });

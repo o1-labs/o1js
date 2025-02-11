@@ -6,6 +6,7 @@ import { provableFromClass } from './types/provable-derivers.js';
 import { Poseidon, packToFields, ProvableHashable } from './crypto/poseidon.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { ProvableType, WithProvable } from './types/provable-intf.js';
+import { Option } from './option.js';
 
 export {
   MerkleListBase,
@@ -164,6 +165,27 @@ class MerkleList<T> implements MerkleListBase<T> {
     this.hash = Provable.if(isEmpty, emptyHash, previousHash);
     let provable = this.innerProvable;
     return Provable.if(isEmpty, provable, provable.empty(), element);
+  }
+
+  /**
+   * Remove the last element from the list and return it as an option:
+   * Some(element) if the list is non-empty, None if the list is empty.
+   *
+   * **Warning**: If the list is empty, the the option's .value is entirely unconstrained.
+   */
+  popOption(): Option<T> {
+    let { previousHash, element } = this.popWitness();
+    let isEmpty = this.isEmpty();
+    let emptyHash = this.Constructor.emptyHash;
+
+    let currentHash = this.nextHash(previousHash, element);
+    currentHash = Provable.if(isEmpty, emptyHash, currentHash);
+    this.hash.assertEquals(currentHash);
+
+    this.hash = Provable.if(isEmpty, emptyHash, previousHash);
+    let provable = this.innerProvable;
+    const OptionT = Option(provable);
+    return new OptionT({ isSome: isEmpty.not(), value: element });
   }
 
   /**
