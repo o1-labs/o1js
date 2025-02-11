@@ -22,7 +22,6 @@ import { Field } from '../field.js';
 import { UInt8 } from '../int.js';
 import { Bytes } from '../bytes.js';
 import { Octets } from '../../util/octets.js';
-import { exists } from '../core/exists.js';
 
 // external API
 export { TwistedCurve, Eddsa };
@@ -451,7 +450,7 @@ const basePoint = Point.from(Curve.one);
 function encode(input: Point): Field3 {
   let p = Curve.Field.modulus;
   // https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.2
-  let witnesses = exists(8, () => {
+  let witnesses = Provable.witnessFields(8, () => {
     let x = Field3.toBigint(input.x);
     let y = Field3.toBigint(input.y);
     let x_lsb = x & 1n; // parity bit for x
@@ -517,7 +516,7 @@ function decode(input: UInt8[]): Point {
   let p = Curve.modulus;
 
   // https://www.rfc-editor.org/rfc/pdfrfc/rfc8032.txt.pdf Section 5.1.3
-  let witnesses = exists(11, () => {
+  let witnesses = Provable.witnessFields(11, () => {
     let bytes = input.map((byte) => byte.toBigInt());
     // most significant byte of input is the parity bit for x
     const x_par = bytes[31] >> 7n;

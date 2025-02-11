@@ -1,5 +1,8 @@
 import { Edwards25519, Eddsa, eddsa, Bytes32 } from './eddsa.js';
+import { initializeBindings } from 'o1js';
 import assert from 'assert';
+
+await initializeBindings();
 
 // create an example eddsa signature
 
@@ -15,6 +18,8 @@ console.time('eddsa verify only (build constraint system)');
 let csEddsa = await eddsa.analyzeMethods();
 console.timeEnd('eddsa verify only (build constraint system)');
 console.log(csEddsa.verifyEddsa.summary());
+
+await eddsa.compile();
 
 console.time('eddsa verify (prove)');
 let { proof } = await eddsa.verifyEddsa(message, signature, publicKey);
