@@ -263,7 +263,7 @@ After the Node.js process is running, open the Chrome browser and navigate to `c
 To debug a call into the SDK, you can link your local copy of the SDK with `npm link`. After that, you'll be able to add log statements, set breakpoints, and make code changes. Within the SDK, run:
 ```sh
 npm run link
-``` 
+```
 Then in your zkApp codebase, run:
 ```sh
 npm link o1js
