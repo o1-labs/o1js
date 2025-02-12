@@ -247,6 +247,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return r;
     }
 
+    double(): ProvableBigInt_ {
+      return this.add(this, true);
+    }
+
     /**
      * Subtracts one ProvableBigInt from another
      * @param a The ProvableBigInt to substract
@@ -733,6 +737,7 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
   abstract toBits(): Bool[];
   abstract clone(): T;
   abstract add(a: T, isDouble?: boolean): T;
+  abstract double(): T;
   abstract sub(a: T): T;
   abstract mul(a: T, isSquare?: boolean): T;
   abstract square(): T;
