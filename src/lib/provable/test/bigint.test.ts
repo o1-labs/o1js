@@ -177,6 +177,12 @@ describe('BigInt17', () => {
       const result = a.div(b);
       expect(result.toBigint()).toStrictEqual(a.toBigint());
     });
+
+    it('should throw a division by zero error ', () => {
+      const a = BigInt17.fromBigint(13n);
+      const b = BigInt17.fromBigint(0n);
+      expect(() => a.div(b)).toThrowError();
+    });
   });
 
   describe('Square root', () => {
