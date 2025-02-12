@@ -58,9 +58,9 @@ import {
   featureFlagsToMlOption,
 } from './feature-flags.js';
 import { emptyWitness } from '../provable/types/util.js';
-import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
-import { mapObject, mapToObject } from '../util/arrays.js';
+import { mapObject, mapToObject, zip } from '../util/arrays.js';
 
 // public API
 export {
@@ -202,6 +202,35 @@ let SideloadedTag = {
   },
 };
 
+type ConfigBaseType = {
+  publicInput?: ProvableType;
+  publicOutput?: ProvableType;
+  methods: {
+    [I in string]: {
+      privateInputs: Tuple<PrivateInput>;
+      auxiliaryOutput?: ProvableType;
+    };
+  };
+};
+
+type InferMethodSignatures<Config extends ConfigBaseType> = Config['methods'];
+type InferPrivateInput<Config extends ConfigBaseType> = {
+  [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
+};
+type InferAuxiliaryOutputs<Config extends ConfigBaseType> = {
+  [I in keyof InferMethodSignatures<Config>]: Get<
+    InferMethodSignatures<Config>[I],
+    'auxiliaryOutput'
+  >;
+};
+type InferMethodType<Config extends ConfigBaseType> = {
+  [I in keyof Config['methods']]: Method<
+    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+    Config['methods'][I]
+  >;
+};
+
 /**
  * Wraps config + provable code into a program capable of producing {@link Proof}s.
  *
@@ -230,40 +259,13 @@ let SideloadedTag = {
  * @returns an object that can be used to compile, prove, and verify the program.
  */
 function ZkProgram<
-  Config extends {
-    publicInput?: ProvableType;
-    publicOutput?: ProvableType;
-    methods: {
-      [I in string]: {
-        privateInputs: Tuple<PrivateInput>;
-        auxiliaryOutput?: ProvableType;
-      };
-    };
-  },
-  Methods extends {
-    [I in keyof Config['methods']]: Method<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      Config['methods'][I]
-    >;
-  },
-  // derived types for convenience
-  MethodSignatures extends Config['methods'] = Config['methods'],
-  PrivateInputs extends {
-    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
-  } = {
-    [I in keyof Config['methods']]: Config['methods'][I]['privateInputs'];
-  },
-  AuxiliaryOutputs extends {
-    [I in keyof MethodSignatures]: Get<MethodSignatures[I], 'auxiliaryOutput'>;
-  } = {
-    [I in keyof MethodSignatures]: Get<MethodSignatures[I], 'auxiliaryOutput'>;
-  }
+  Config extends ConfigBaseType,
+  _ extends unknown = unknown // weird hack that makes methods infer correctly when their inputs are not annotated
 >(
   config: Config & {
     name: string;
     methods: {
-      [I in keyof Config['methods']]: Methods[I];
+      [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
   }
@@ -293,10 +295,10 @@ function ZkProgram<
 
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
-  privateInputTypes: PrivateInputs;
-  auxiliaryOutputTypes: AuxiliaryOutputs;
+  privateInputTypes: InferPrivateInput<Config>;
+  auxiliaryOutputTypes: InferAuxiliaryOutputs<Config>;
   rawMethods: {
-    [I in keyof Config['methods']]: Methods[I]['method'];
+    [I in keyof Config['methods']]: InferMethodType<Config>[I]['method'];
   };
 
   Proof: typeof Proof<
@@ -309,11 +311,20 @@ function ZkProgram<
 } & {
   [I in keyof Config['methods']]: Prover<
     InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+    ProvableOrUndefined<Get<Config, 'publicInput'>>,
     InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-    PrivateInputs[I],
-    InferProvableOrUndefined<AuxiliaryOutputs[I]>
+    InferPrivateInput<Config>[I],
+    InferProvableOrUndefined<InferAuxiliaryOutputs<Config>[I]>
   >;
 } {
+  type PublicInputType = ProvableOrUndefined<Get<Config, 'publicInput'>>;
+  type PublicInput = InferProvableOrUndefined<Get<Config, 'publicInput'>>;
+  type PublicOutput = InferProvableOrVoid<Get<Config, 'publicOutput'>>;
+  // derived types for convenience
+  type Methods = InferMethodSignatures<Config>;
+  type PrivateInputs = InferPrivateInput<Config>;
+  type AuxiliaryOutputs = InferAuxiliaryOutputs<Config>;
+
   let doProving = true;
 
   let methods = config.methods;
@@ -327,8 +338,6 @@ function ZkProgram<
   );
 
   let selfTag = { name: config.name };
-  type PublicInput = InferProvableOrUndefined<Get<Config, 'publicInput'>>;
-  type PublicOutput = InferProvableOrVoid<Get<Config, 'publicOutput'>>;
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
@@ -349,6 +358,7 @@ function ZkProgram<
     )
   );
   let methodFunctions = methodKeys.map((key) => methods[key].method);
+  let privateInputTypes = methodIntfs.map((m) => m.args);
   let maxProofsVerified: undefined | 0 | 1 | 2 = undefined;
 
   async function getMaxProofsVerified() {
@@ -431,6 +441,7 @@ function ZkProgram<
   // which is easier to use internally.
   type RegularProver_<K extends MethodKey> = RegularProver<
     PublicInput,
+    PublicInputType,
     PublicOutput,
     PrivateInputs[K],
     InferProvableOrUndefined<AuxiliaryOutputs[K]>
@@ -440,7 +451,11 @@ function ZkProgram<
     key: K,
     i: number
   ): RegularProver_<K> {
-    return async function prove_(publicInput, ...args) {
+    return async function prove_(inputPublicInput, ...inputArgs) {
+      let publicInput = publicInputType.fromValue(inputPublicInput);
+      let args = zip(inputArgs, privateInputTypes[i]).map(([arg, type]) =>
+        ProvableType.get(type).fromValue(arg)
+      );
       if (!doProving) {
         // we step into a ZkProgramContext here to match the context nesting
         // that would happen if proofs were enabled -- otherwise, proofs declared
@@ -534,6 +549,7 @@ function ZkProgram<
   // this matches how the method itself was defined in the case of no public input
   type Prover_<K extends MethodKey = MethodKey> = Prover<
     PublicInput,
+    PublicInputType,
     PublicOutput,
     PrivateInputs[K],
     InferProvableOrUndefined<AuxiliaryOutputs[K]>
@@ -589,8 +605,9 @@ function ZkProgram<
       publicOutputType: publicOutputType as ProvableOrVoid<
         Get<Config, 'publicOutput'>
       >,
-      privateInputTypes: Object.fromEntries(
-        methodKeys.map((key) => [key, methods[key].privateInputs])
+      privateInputTypes: mapToObject(
+        methodKeys,
+        (_, i) => privateInputTypes[i]
       ) as any,
       auxiliaryOutputTypes: Object.fromEntries(
         methodKeys.map((key) => [key, methods[key].auxiliaryOutput])
@@ -619,23 +636,16 @@ function ZkProgram<
 
 type ZkProgram<
   Config extends {
-    publicInput?: ProvableTypePure;
-    publicOutput?: ProvableTypePure;
+    publicInput?: ProvableType;
+    publicOutput?: ProvableType;
     methods: {
       [I in string]: {
         privateInputs: Tuple<PrivateInput>;
         auxiliaryOutput?: ProvableType;
       };
     };
-  },
-  Methods extends {
-    [I in keyof Config['methods']]: Method<
-      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-      Config['methods'][I]
-    >;
   }
-> = ReturnType<typeof ZkProgram<Config, Methods>>;
+> = ReturnType<typeof ZkProgram<Config>>;
 
 /**
  * A class representing the type of Proof produced by the {@link ZkProgram} in which it is used.
@@ -1215,6 +1225,9 @@ type Infer<T> = T extends Subclass<typeof ProofBase>
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
 };
+type TupleFrom<T> = {
+  [I in keyof T]: From<T[I]>;
+};
 
 type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
@@ -1265,12 +1278,13 @@ type Method<
 
 type RegularProver<
   PublicInput,
+  PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
   AuxiliaryOutput
 > = (
-  publicInput: PublicInput,
-  ...args: TupleToInstances<Args>
+  publicInput: From<PublicInputType>,
+  ...args: TupleFrom<Args>
 ) => Promise<{
   proof: Proof<PublicInput, PublicOutput>;
   auxiliaryOutput: AuxiliaryOutput;
@@ -1278,17 +1292,18 @@ type RegularProver<
 
 type Prover<
   PublicInput,
+  PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
   AuxiliaryOutput
 > = PublicInput extends undefined
-  ? (...args: TupleToInstances<Args>) => Promise<{
+  ? (...args: TupleFrom<Args>) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
     }>
   : (
-      publicInput: PublicInput,
-      ...args: TupleToInstances<Args>
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
     ) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
       auxiliaryOutput: AuxiliaryOutput;
