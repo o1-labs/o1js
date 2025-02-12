@@ -1,9 +1,4 @@
-import {
-  Crypto,
-  Provable,
-  createForeignCurve,
-  createForeignTwisted,
-} from 'o1js';
+import { Crypto, Provable, createForeignCurve, createForeignTwisted } from 'o1js';
 
 const TwistedCurveParams = Crypto.TwistedCurveParams;
 const Edwards25519 = createForeignTwisted(TwistedCurveParams.Edwards25519);
@@ -11,14 +6,7 @@ const Edwards25519 = createForeignTwisted(TwistedCurveParams.Edwards25519);
 const Secp256k1Params = Crypto.CurveParams.Secp256k1;
 const Secp256k1 = createForeignCurve(Secp256k1Params);
 
-const TestFunctions = [
-  scale,
-  add,
-  double,
-  negate,
-  assertOnCurve,
-  assertInSubgroup,
-];
+const TestFunctions = [scale, add, double, negate, assertOnCurve, assertInSubgroup];
 // async for loop
 
 for (const fn of TestFunctions) {
@@ -45,12 +33,8 @@ async function scale(Curve: any) {
 // Weierstrass add: 203
 async function add(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
-    let g1 = Provable.witness(Curve, () =>
-      Curve.generator.scale(Curve.Scalar.random())
-    );
-    let g2 = Provable.witness(Curve, () =>
-      Curve.generator.scale(Curve.Scalar.random())
-    );
+    let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
+    let g2 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
 
     let g3 = g1.add(g2);
   });
@@ -61,9 +45,7 @@ async function add(Curve: any) {
 // Weierstrass double: 145
 async function double(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
-    let g1 = Provable.witness(Curve, () =>
-      Curve.generator.scale(Curve.Scalar.random())
-    );
+    let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
 
     let g3 = g1.double();
   });
@@ -74,9 +56,7 @@ async function double(Curve: any) {
 // Weierstrass negate: 73
 async function negate(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
-    let g1 = Provable.witness(Curve, () =>
-      Curve.generator.scale(Curve.Scalar.random())
-    );
+    let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
 
     let g3 = g1.negate();
   });
@@ -87,9 +67,7 @@ async function negate(Curve: any) {
 // Weierstrass assertOnCurve: 125
 async function assertOnCurve(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
-    let g1 = Provable.witness(Curve, () =>
-      Curve.generator.scale(Curve.Scalar.random())
-    );
+    let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
 
     Curve.assertOnCurve(g1);
   });
@@ -100,9 +78,7 @@ async function assertOnCurve(Curve: any) {
 // Weierstrass assertInSubgroup: 67 (secp256k1, no cofactor -> no msm)
 async function assertInSubgroup(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
-    let g1 = Provable.witness(Curve, () =>
-      Curve.generator.scale(Curve.Scalar.random())
-    );
+    let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
 
     Curve.assertInSubgroup(g1);
   });

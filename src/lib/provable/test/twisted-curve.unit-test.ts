@@ -3,19 +3,9 @@ import {
   createAffineTwistedCurve,
   affineTwistedZero,
 } from '../../../bindings/crypto/elliptic-curve.js';
-import {
-  array,
-  equivalentProvable,
-  onlyIf,
-  spec,
-  unit,
-} from '../../testing/equivalent.js';
+import { array, equivalentProvable, onlyIf, spec, unit } from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
-import {
-  Point,
-  TwistedCurve,
-  simpleMapToCurve,
-} from '../gadgets/twisted-curve.js';
+import { Point, TwistedCurve, simpleMapToCurve } from '../gadgets/twisted-curve.js';
 import { foreignField, throwError } from './test-utils.js';
 import { Field3 } from '../gadgets/foreign-field.js';
 
@@ -41,8 +31,7 @@ for (let Curve of curves) {
 
   let unequalTriple = onlyIf(
     array(point, 3),
-    ([p, q, r]) =>
-      !Curve.equal(p, q) && !Curve.equal(p, r) && !Curve.equal(q, r)
+    ([p, q, r]) => !Curve.equal(p, q) && !Curve.equal(p, r) && !Curve.equal(q, r)
   );
 
   // test twisted curve gadgets witness generation

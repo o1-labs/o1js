@@ -332,13 +332,8 @@ class ForeignTwistedNotNeeded extends ForeignTwisted {
  * {@link ForeignTwistedNotNeeded} also includes to associated foreign fields:
  * `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
-function createForeignTwisted(
-  params: TwistedCurveParams
-): typeof ForeignTwisted {
-  assert(
-    params.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
-  );
+function createForeignTwisted(params: TwistedCurveParams): typeof ForeignTwisted {
+  assert(params.modulus > l2Mask + 1n, 'Base field moduli smaller than 2^176 are not supported');
 
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);
