@@ -8,6 +8,7 @@ import {
   GroupAffineTwisted,
   affineTwistedAdd,
   affineTwistedDouble,
+  affineTwistedZero,
 } from '../../../bindings/crypto/elliptic-curve.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { sliceField3 } from './bit-slices.js';
@@ -190,13 +191,14 @@ function scale(
   point: Point,
   Curve: AffineTwistedCurve,
   config?: {
+    mode?: 'assert-zero' | 'assert-nonzero';
     windowSize?: number;
     multiples?: Point[];
   }
 ) {
   config = config ?? {};
   config.windowSize ??= Point.isConstant(point) ? 4 : 3;
-  return multiScalarMul([scalar], [point], Curve, [config]);
+  return multiScalarMul([scalar], [point], Curve, [config], config.mode);
 }
 
 // check whether a point equals a constant point
@@ -209,11 +211,7 @@ function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
 // checks whether the twisted elliptic curve point g is in the subgroup defined by [order]g = 0
 function assertInSubgroup(g: Point, Curve: AffineTwistedCurve) {
   if (!Curve.hasCofactor) return;
-  equals(
-    scale(Field3.from(Curve.order), g, Curve),
-    { x: 0n, y: 1n },
-    Curve
-  ).assertTrue();
+  scale(Field3.from(Curve.order), g, Curve, { mode: 'assert-zero' });
 }
 
 function multiScalarMulConstant(
@@ -255,7 +253,8 @@ function multiScalarMul(
   tableConfigs: (
     | { windowSize?: number; multiples?: Point[] }
     | undefined
-  )[] = []
+  )[] = [],
+  mode?: 'assert-zero' | 'assert-nonzero'
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
@@ -306,6 +305,13 @@ function multiScalarMul(
     // (note: the highest couple of bits will not create any constraints because
     // sum is constant; no need to handle that explicitly)
     sum = double(sum, Curve);
+  }
+
+  let isZero = equals(sum, affineTwistedZero, Curve);
+  if (mode == 'assert-nonzero') {
+    isZero.assertFalse();
+  } else if (mode == 'assert-zero') {
+    isZero.assertTrue();
   }
 
   return sum;
