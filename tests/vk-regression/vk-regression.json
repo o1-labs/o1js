@@ -215,6 +215,22 @@
   "Hashes": {
     "digest": "Hashes",
     "methods": {
+      "SHA2_256": {
+        "rows": 5190,
+        "digest": "2e340a67bb8fbfda59af5cb40e2a6823"
+      },
+      "SHA2_224": {
+        "rows": 5190,
+        "digest": "4d5f3228c58edad2958d1ac422765493"
+      },
+      "SHA2_512": {
+        "rows": 7508,
+        "digest": "08838c02a27f88502070800784b0a5fe"
+      },
+      "SHA2_384": {
+        "rows": 7508,
+        "digest": "aa4b65b7c3ebcae1e127e1b518229371"
+      },
       "SHA3_256": {
         "rows": 14494,
         "digest": "949539824d56622702d9ac048e8111e9"
