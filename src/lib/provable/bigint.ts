@@ -338,7 +338,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     /**
      * Divides one ProvableBigInt by another.
      * @param a The divisor as a ProvableBigInt
-     * @returns The remainder as ProvableBigInt
+     * @returns The quotient as ProvableBigInt
      */
     div(a: ProvableBigInt_) {
       const inv_a = a.inverse();
