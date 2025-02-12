@@ -81,7 +81,9 @@ function padding(data: FlexibleBytes): UInt32[][] {
   // SHA256 expects n-blocks of 512bit each, 16*32bit = 512bit
   return chunk(chunks, 16);
 }
-
+/**
+ * @deprecated {@link SHA256} is deprecated in favor of {@link SHA2}, which supports more variants of the hash function.
+ */
 const SHA256 = {
   hash(data: FlexibleBytes) {
     // preprocessing §6.2

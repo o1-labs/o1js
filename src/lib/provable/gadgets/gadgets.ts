@@ -955,6 +955,7 @@ const Gadgets = {
   addMod64,
 
   /**
+   *
    * Implementation of the [SHA256 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function with 256bit output.
    *
    * Applies the SHA2-256 hash function to a list of byte-sized elements.
@@ -970,7 +971,7 @@ const Gadgets = {
    * let preimage = Bytes.fromString("hello world");
    * let digest = Gadgets.SHA256.hash(preimage);
    * ```
-   *
+   * @deprecated {@link SHA256} is deprecated in favor of {@link SHA2}, which supports more variants of the hash function.
    */
   SHA256: SHA256,
 
