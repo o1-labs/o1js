@@ -130,6 +130,23 @@ Where:
 
 - `develop`: This branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
 
+### Style Guide
+
+This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and [prettier](https://prettier.io/docs/) configs to stay tidy.  Here are some tips to comply with the style:
+
+1. Check for style violations by running the npm commands `npm run lint path/to/file` and `npm run format:check path/to/file`
+  - To attempt to fix all style violations in all changed filed, you can run:
+    - `git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run format`
+    - and `git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run lint:fix`
+2. Integrate prettier into your dev environment
+  - For instance the [VS Code](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) plugin allows for format on save
+3. Enable pre-commit hooks
+  - There is an opt-in pre-commit hook avaibale that will attempt to fix styling for all diffed files.  Enable it by running `git config husky.optin true`
+
+> [!NOTE]  
+> You can opt-out of linting in a PR by tagging it with skip-lint, in case the linting script is legitimately blocking an important PR
+
+
 ### Running Tests
 
 To ensure your changes don't break existing functionality, run the test suite:
@@ -246,7 +263,7 @@ After the Node.js process is running, open the Chrome browser and navigate to `c
 To debug a call into the SDK, you can link your local copy of the SDK with `npm link`. After that, you'll be able to add log statements, set breakpoints, and make code changes. Within the SDK, run:
 ```sh
 npm run link
-``` 
+```
 Then in your zkApp codebase, run:
 ```sh
 npm link o1js
