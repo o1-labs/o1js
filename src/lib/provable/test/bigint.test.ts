@@ -160,25 +160,28 @@ describe('BigInt17', () => {
     });
   });
 
+  //! We should test (a * y^-1) % p
+  // The inverse logic is included in the witness and can't be used here
+  // as a utility for testing
   describe('Division and Modulus', () => {
     it('should correctly divide two BigInt17 numbers', () => {
       const a = BigInt17.fromBigint(10n);
       const b = BigInt17.fromBigint(3n);
       const result = a.div(b);
-      expect(result.quotient.toBigint()).toStrictEqual(
-        a.toBigint() / b.toBigint()
-      );
-      expect(result.remainder.toBigint()).toStrictEqual(
-        a.toBigint() % b.toBigint()
-      );
+      expect(result.mul(b).toBigint()).toStrictEqual(a.toBigint());
     });
 
     it('should satisfy division with identity element for BigInt17 numbers', () => {
       const a = BigInt17.fromBigint(13n);
       const b = BigInt17.fromBigint(1n);
       const result = a.div(b);
-      expect(result.quotient.toBigint()).toStrictEqual(a.toBigint());
-      expect(result.remainder.toBigint()).toStrictEqual(0n);
+      expect(result.toBigint()).toStrictEqual(a.toBigint());
+    });
+
+    it('should throw a division by zero error ', () => {
+      const a = BigInt17.fromBigint(13n);
+      const b = BigInt17.fromBigint(0n);
+      expect(() => a.div(b)).toThrowError();
     });
   });
 
