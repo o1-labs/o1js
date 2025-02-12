@@ -605,6 +605,64 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return r;
     }
 
+    mod() {
+      // witness q, r so that this = q*p + r
+      let { q, r } = Provable.witness(
+        Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }),
+        () => {
+          let this_big = this.toBigint();
+          let p0 = this.Constructor.modulus.toBigint();
+          let q = this_big / p0;
+          let r = this_big - q * p0;
+          return {
+            q: ProvableBigInt_.fromBigint(q),
+            r: ProvableBigInt_.fromBigint(r),
+          };
+        }
+      );
+
+      let [X, Q, R, P] = [
+        this.fields,
+        q.fields,
+        r.fields,
+        this.Constructor.modulus.fields,
+      ];
+      let delta: Field[] = X;
+
+      // subtract q*p limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+        for (let j = 0; j < this.Constructor.config.limb_num; j++) {
+          if (i + j < this.Constructor.config.limb_num) {
+            delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
+          }
+        }
+      }
+
+      // subtract r limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+        delta[i] = delta[i].sub(R[i]).seal();
+      }
+
+      let carry = Field.from(0);
+
+      for (let i = 0; i < this.Constructor.config.limb_num - 1; i++) {
+        let deltaPlusCarry = delta[i].add(carry).seal();
+
+        carry = Provable.witness(Field, () =>
+          deltaPlusCarry.div(1n << this.Constructor.config.limb_size)
+        );
+        rangeCheck(carry, 128, true);
+
+        deltaPlusCarry.assertEquals(
+          carry.mul(1n << this.Constructor.config.limb_size)
+        );
+      }
+
+      delta[17].add(carry).assertEquals(0n);
+
+      return r;
+    }
+
     /**
      * Checks if one ProvableBigInt is greater than another
      * @param a The ProvableBigInt to compare
@@ -746,6 +804,7 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
   abstract negate(): T;
   abstract pow(exp: T): T;
   abstract sqrt(): T;
+  abstract mod(): T;
   abstract greaterThan(a: T): Bool;
   abstract greaterThanOrEqual(a: T): Bool;
   abstract lessThan(a: T): Bool;
