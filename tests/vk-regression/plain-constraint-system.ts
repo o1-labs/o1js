@@ -199,10 +199,7 @@ const CryptoCS = constraintSystem('Crypto', {
 
 // mock ZkProgram API for testing
 
-function constraintSystem(
-  name: string,
-  obj: { [K: string]: (...args: any) => void }
-) {
+function constraintSystem(name: string, obj: { [K: string]: (...args: any) => void }) {
   let methodKeys = Object.keys(obj);
 
   return {
