@@ -13,6 +13,7 @@ import {
   affineTwistedAdd,
   createAffineTwistedCurve,
   affineTwistedDouble,
+  affineTwistedZero,
 } from '../../../bindings/crypto/elliptic-curve.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
 import { sliceField3 } from './bit-slices.js';
@@ -119,11 +120,7 @@ const Point = {
   provable: provable({ x: Field3, y: Field3 }),
 };
 
-function add(
-  p1: Point,
-  p2: Point,
-  Curve: { modulus: bigint; a: bigint; d: bigint }
-) {
+function add(p1: Point, p2: Point, Curve: { modulus: bigint; a: bigint; d: bigint }) {
   let { x: x1, y: y1 } = p1;
   let { x: x2, y: y2 } = p2;
   let f = Curve.modulus;
@@ -136,10 +133,7 @@ function add(
     return Point.from(p3);
   }
 
-  assert(
-    Curve.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
-  );
+  assert(Curve.modulus > l2Mask + 1n, 'Base field moduli smaller than 2^176 are not supported');
 
   // the formula for point addition is well defined for curves in use,
   // so we don't need to check that the denominators are non-zero
@@ -174,10 +168,7 @@ function add(
   return { x: x3, y: y3 };
 }
 
-function double(
-  p1: Point,
-  Curve: { modulus: bigint; a: bigint; d: bigint }
-): Point {
+function double(p1: Point, Curve: { modulus: bigint; a: bigint; d: bigint }): Point {
   let { x: x1, y: y1 } = p1;
   let f = Curve.modulus;
   let d = Curve.d;
@@ -214,22 +205,14 @@ function negate({ x, y }: Point, Curve: { modulus: bigint }) {
   return { x: ForeignField.negate(x, Curve.modulus), y };
 }
 
-// a * x^2 + y^2 = 1 + d * x^2 * y^2
-function assertOnCurve(
-  p: Point,
-  { modulus: f, a, d }: { modulus: bigint; a: bigint; d: bigint }
-) {
+function assertOnCurve(p: Point, { modulus: f, a, d }: { modulus: bigint; a: bigint; d: bigint }) {
   let { x, y } = p;
   let one = Field3.from(1n);
 
   let x2 = ForeignField.mul(x, x, f);
   let y2 = ForeignField.mul(y, y, f);
 
-  let aTimesX2PlusY2 = ForeignField.add(
-    ForeignField.mul(Field3.from(a), x2, f),
-    y2,
-    f
-  );
+  let aTimesX2PlusY2 = ForeignField.add(ForeignField.mul(Field3.from(a), x2, f), y2, f);
 
   let aTimesX2PlusY2Minus1 = ForeignField.sub(aTimesX2PlusY2, one, f);
   let dTimesX2 = ForeignField.mul(Field3.from(d), x2, f);
@@ -252,13 +235,14 @@ function scale(
   point: Point,
   Curve: AffineTwistedCurve,
   config?: {
+    mode?: 'assert-zero' | 'assert-nonzero';
     windowSize?: number;
     multiples?: Point[];
   }
 ) {
   config = config ?? {};
   config.windowSize ??= Point.isConstant(point) ? 4 : 3;
-  return multiScalarMul([scalar], [point], Curve, [config]);
+  return multiScalarMul([scalar], [point], Curve, [config], config.mode);
 }
 
 // check whether a point equals a constant point
@@ -271,11 +255,7 @@ function equals(p1: Point, p2: point, Curve: { modulus: bigint }) {
 // checks whether the twisted elliptic curve point g is in the subgroup defined by [order]g = 0
 function assertInSubgroup(g: Point, Curve: AffineTwistedCurve) {
   if (!Curve.hasCofactor) return;
-  equals(
-    scale(Field3.from(Curve.order), g, Curve),
-    { x: 0n, y: 1n },
-    Curve
-  ).assertTrue();
+  scale(Field3.from(Curve.order), g, Curve, { mode: 'assert-zero' });
 }
 
 function multiScalarMulConstant(
@@ -314,10 +294,8 @@ function multiScalarMul(
   scalars: Field3[],
   points: Point[],
   Curve: AffineTwistedCurve,
-  tableConfigs: (
-    | { windowSize?: number; multiples?: Point[] }
-    | undefined
-  )[] = []
+  tableConfigs: ({ windowSize?: number; multiples?: Point[] } | undefined)[] = [],
+  mode?: 'assert-zero' | 'assert-nonzero'
 ): Point {
   let n = points.length;
   assert(scalars.length === n, 'Points and scalars lengths must match');
@@ -337,9 +315,7 @@ function multiScalarMul(
   let maxBits = Curve.Scalar.sizeInBits;
 
   // slice scalars
-  let scalarChunks = scalars.map((s, i) =>
-    sliceField3(s, { maxBits, chunkSize: windowSizes[i] })
-  );
+  let scalarChunks = scalars.map((s, i) => sliceField3(s, { maxBits, chunkSize: windowSizes[i] }));
 
   // soundness follows because add() and double() are sound, on all inputs that
   // are valid non-zero curve points
@@ -352,10 +328,7 @@ function multiScalarMul(
       if (i % windowSize === 0) {
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
-        let sjP =
-          windowSize === 1
-            ? points[j]
-            : arrayGetGeneric(Point.provable, tables[j], sj);
+        let sjP = windowSize === 1 ? points[j] : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
         sum = add(sum, sjP, Curve);
@@ -368,6 +341,13 @@ function multiScalarMul(
     // (note: the highest couple of bits will not create any constraints because
     // sum is constant; no need to handle that explicitly)
     sum = double(sum, Curve);
+  }
+
+  let isZero = equals(sum, affineTwistedZero, Curve);
+  if (mode == 'assert-nonzero') {
+    isZero.assertFalse();
+  } else if (mode == 'assert-zero') {
+    isZero.assertTrue();
   }
 
   return sum;

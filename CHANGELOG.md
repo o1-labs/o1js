@@ -22,11 +22,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Verifying and signing Ed25519 signatures (EdDSA for Edwards25519 curve) https://github.com/o1-labs/o1js/pull/1988
 - Provable operations of twisted Edwards curves with affine coordinates https://github.com/o1-labs/o1js/pull/1949
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
-- Provable operations of twisted Edwards curves with affine coordinates https://github.com/o1-labs/o1js/pull/1949
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
 - Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
 - `MerkleList.popOption()` for popping the last element and also learning if there was one https://github.com/o1-labs/o1js/pull/1997
 - Added custom header support for `Fetch` methods such as `fetchEvents`, `fetchActions` etc. and to `Mina` instance. Also added two new methods `setMinaDefaultHeaders` and `setArchiveDefaultHeaders` https://github.com/o1-labs/o1js/pull/2004
+- Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
 
 ### Changed
 

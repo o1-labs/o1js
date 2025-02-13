@@ -1,5 +1,5 @@
 import { HashStorage } from './hash.js';
-import { Mina, PrivateKey, AccountUpdate, Bytes } from 'o1js';
+import { Mina, AccountUpdate, Bytes } from 'o1js';
 
 let txn;
 let proofsEnabled = true;
@@ -29,8 +29,7 @@ txn = await Mina.transaction(feePayer, async () => {
 });
 await txn.sign([feePayer.key, contractAccount.key]).send();
 
-const initialState =
-  Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
+const initialState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 let currentState;
 console.log('Initial State', initialState);

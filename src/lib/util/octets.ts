@@ -44,20 +44,14 @@ const Octets = {
     }
     let bytes = Provable.witness(Provable.Array(UInt8, bytelength), () => {
       let x = input.toBigInt();
-      return Array.from(
-        { length: bytelength },
-        (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn)
-      );
+      return Array.from({ length: bytelength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
     });
     let field = bytes
       .reverse()
       .map((x) => x.value)
       .reduce((acc, byte) => acc.mul(256).add(byte));
 
-    field.assertEquals(
-      input,
-      `toOctets(): incorrect decomposition into ${bytelength} bytes`
-    );
+    field.assertEquals(input, `toOctets(): incorrect decomposition into ${bytelength} bytes`);
     return bytes;
   },
   /**
@@ -106,9 +100,7 @@ const Octets = {
     return bytes
       .slice() // copy the array to prevent mutation
       .reverse()
-      .map(
-        (b) => [Field.from(b.value), Field.from(0n), Field.from(0n)] as Field3
-      )
+      .map((b) => [Field.from(b.value), Field.from(0n), Field.from(0n)] as Field3)
       .reduce((acc, byte) =>
         ForeignField.add(
           ForeignField.mul(Field3.from(acc), Field3.from(256n), mod),

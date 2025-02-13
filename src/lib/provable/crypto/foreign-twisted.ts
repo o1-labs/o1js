@@ -3,7 +3,6 @@ import {
   createAffineTwistedCurve,
   AffineTwistedCurve,
 } from '../../../bindings/crypto/elliptic-curve.js';
-import type { Group } from '../group.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import { AlmostForeignField, createForeignField } from '../foreign-field.js';
 import { TwistedCurve, Point } from '../gadgets/twisted-curve.js';
@@ -11,7 +10,7 @@ import { Field3 } from '../gadgets/foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
-import { l2Mask } from '../gadgets/range-check.js';
+import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
 import { Bytes } from '../bytes.js';
 
 // external API
@@ -33,9 +32,12 @@ class ForeignTwisted {
   y: AlmostForeignField;
 
   /**
-   * Create a new {@link ForeignTwisted} from an object representing the (affine twisted) x and y coordinates.
+   * Create a new {@link ForeignTwisted} from an object representing the (affine
+   * twisted) x and y coordinates.
    *
-   * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants. Please refer to the {@link ForeignField} constructor comments for more details.
+   * Note: Inputs must be range checked if they originate from a different field
+   * with a different modulus or if they are not constants. Please refer to the
+   * {@link ForeignField} constructor comments for more details.
    *
    * @example
    * ```ts
@@ -201,10 +203,6 @@ class ForeignTwisted {
   /**
    * Twisted elliptic curve scalar multiplication, where the scalar is represented as a {@link ForeignField} element.
    *
-   * **Important**: this proves that the result of the scalar multiplication is not the zero point.
-   *
-   * @throws if the scalar multiplication results in the zero point; for example, if the scalar is zero.
-   *
    * @example
    * ```ts
    * let r = p.scale(s); // r = s * p
@@ -221,12 +219,6 @@ class ForeignTwisted {
     TwistedCurve.assertOnCurve(toPoint(g), this.Bigint);
   }
 
-  static assertInSubgroup(g: ForeignTwisted) {
-    if (this.Bigint.hasCofactor) {
-      TwistedCurve.assertInSubgroup(toPoint(g), this.Bigint);
-    }
-  }
-
   /**
    * Assert that this point lies on the elliptic curve, which means it satisfies the equation
    * `a * x^2 + y^2 = 1 + d * x^2 * y^2`
@@ -235,12 +227,31 @@ class ForeignTwisted {
     this.Constructor.assertOnCurve(this);
   }
 
+  static assertInSubgroup(g: ForeignTwisted) {
+    if (this.Bigint.hasCofactor) {
+      TwistedCurve.assertInSubgroup(toPoint(g), this.Bigint);
+    }
+  }
+
   /**
    * Assert that this point lies in the prime subgroup, which means that scaling
    * the point by the curve order results in a nonzero point.
    */
   assertInSubgroup() {
     this.Constructor.assertInSubgroup(this);
+  }
+
+  /**
+   * Check that this is a valid element of the target subgroup of the curve:
+   * - Check that the coordinates are valid field elements
+   * - Use {@link assertOnCurve()} to check that the point lies on the curve
+   * - If the curve has cofactor unequal to 1, use {@link assertInSubgroup()}.
+   */
+  static check(g: ForeignTwistedNotNeeded) {
+    multiRangeCheck(g.x.value);
+    multiRangeCheck(g.y.value);
+    this.assertOnCurve(g);
+    this.assertInSubgroup(g);
   }
 
   // dynamic subclassing infra
@@ -286,8 +297,25 @@ class ForeignTwisted {
   }
 }
 
+class ForeignTwistedNotNeeded extends ForeignTwisted {
+  constructor(g: {
+    x: AlmostForeignField | Field3 | bigint | number;
+    y: AlmostForeignField | Field3 | bigint | number;
+  }) {
+    super(g);
+  }
+
+  static check(g: ForeignTwistedNotNeeded) {
+    multiRangeCheck(g.x.value);
+    multiRangeCheck(g.y.value);
+    this.assertOnCurve(g);
+    this.assertInSubgroup(g);
+  }
+}
+
 /**
- * Create a class representing a twisted elliptic curve group, which is different from the native {@link Group}.
+ * Create a class representing a twisted elliptic curve group, which is different
+ * from the native {@link Group}.
  *
  * ```ts
  * const Curve = createForeignTwisted(Crypto.TwistedCurveParams.Edwards25519);
@@ -296,18 +324,15 @@ class ForeignTwisted {
  * `createForeignTwisted(params)` takes curve parameters {@link TwistedCurveParams} as input.
  * We support `modulus` and `order` to be prime numbers up to 259 bits.
  *
- * The returned {@link ForeignCurveNotNeeded} class represents a _non-zero curve point_ and supports standard
- * elliptic curve operations like point addition and scalar multiplication.
+ * The returned {@link ForeignTwistedNotNeeded} class represents a curve point
+ * (including zero) and supports standard elliptic curve operations like point
+ * addition and scalar multiplication.
  *
- * {@link ForeignCurveNotNeeded} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
+ * {@link ForeignTwistedNotNeeded} also includes to associated foreign fields:
+ * `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
-function createForeignTwisted(
-  params: TwistedCurveParams
-): typeof ForeignTwisted {
-  assert(
-    params.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
-  );
+function createForeignTwisted(params: TwistedCurveParams): typeof ForeignTwisted {
+  assert(params.modulus > l2Mask + 1n, 'Base field moduli smaller than 2^176 are not supported');
 
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);

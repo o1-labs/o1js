@@ -14,17 +14,14 @@ export { SHA2 };
 
 // constants for SHA2-224 and SHA2-256 §4.2.2
 const K224_256 = [
-  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
-  0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
-  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-  0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ];
 
 // constants for SHA2-384 and SHA2-512 §4.2.3
@@ -141,13 +138,13 @@ const SHA2Constants = {
   H: {
     // SHA2-224 §5.3.2
     224: [
-      0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511,
-      0x64f98fa7, 0xbefa4fa4,
+      0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511, 0x64f98fa7,
+      0xbefa4fa4,
     ],
     // SHA-256 §5.3.3
     256: [
-      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
-      0x1f83d9ab, 0x5be0cd19,
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+      0x5be0cd19,
     ],
     // SHA2-384 §5.3.4
     384: [
@@ -242,14 +239,9 @@ const SHA2 = {
   messageSchedule,
   padding,
   initialState<T extends UInt32 | UInt64>(length: Length): T[] {
-    switch (length) {
-      case 224:
-      case 256:
-        return SHA2Constants.H[length].map((x) => UInt32.from(x) as T);
-      case 384:
-      case 512:
-        return SHA2Constants.H[length].map((x) => UInt64.from(x) as T);
-    }
+    return SHA2Constants.H[length].map((x) =>
+      isUInt32(length) ? (UInt32.from(x) as T) : (UInt64.from(x) as T)
+    );
   },
 };
 
@@ -263,10 +255,7 @@ const SHA2 = {
 // The only difference between the padding used in SHA2-224/256 and SHA2-384/512
 // is the size of the word (32bit vs 64bit). In the first case, UInt32[][] is
 // returned, in the second case UInt64[][] is returned.
-function padding<T extends UInt32 | UInt64>(
-  length: Length,
-  data: FlexibleBytes
-): T[][] {
+function padding<T extends UInt32 | UInt64>(length: Length, data: FlexibleBytes): T[][] {
   // create a provable Bytes instance from the input data
   // the Bytes class will be static sized according to the length of the input data
   let message = Bytes.from(data);
@@ -302,7 +291,7 @@ function padding<T extends UInt32 | UInt64>(
 
   // Create chunks based on whether we are dealing with SHA2-224/256 or SHA2-384/512
   // split the message into (32 | 64)-bit chunks
-  let chunks = isShort(length)
+  let chunks = isUInt32(length)
     ? createChunks(paddedMessage, 4, UInt32.fromBytesBE)
     : createChunks(paddedMessage, 8, UInt64.fromBytesBE);
 
@@ -319,10 +308,7 @@ function padding<T extends UInt32 | UInt64>(
  *            or the 1024-bit message block (16-element array of UInt64).
  * @returns The message schedule (64-element array of UInt32 or 80-element array of UInt64).
  */
-function messageSchedule<T extends UInt32 | UInt64>(
-  length: Length,
-  M: T[]
-): T[] {
+function messageSchedule<T extends UInt32 | UInt64>(length: Length, M: T[]): T[] {
   // §6.2.2.1 and §6.4.2.1
 
   // Declare W as an empty array of type T[] (generic array)
@@ -357,11 +343,7 @@ function messageSchedule<T extends UInt32 | UInt64>(
  *
  * @returns The updated intermediate hash values after compression.
  */
-function compression<T extends UInt32 | UInt64>(
-  length: Length,
-  [...H]: T[],
-  W: T[]
-) {
+function compression<T extends UInt32 | UInt64>(length: Length, [...H]: T[], W: T[]) {
   let numWords = SHA2Constants.NUM_WORDS[length];
 
   let k = SHA2Constants.K[length];
@@ -390,9 +372,7 @@ function compression<T extends UInt32 | UInt64>(
       .seal();
 
     // T2 is also unreduced
-    const unreducedT2 = SigmaZero(length, a).value.add(
-      Maj(length, a, b, c).value
-    );
+    const unreducedT2 = SigmaZero(length, a).value.add(Maj(length, a, b, c).value);
 
     h = g;
     g = f;
@@ -415,18 +395,16 @@ function compression<T extends UInt32 | UInt64>(
 
 // Helper functions
 
-// Helper function to check if it is a short SHA2 (SHA2-224 or SHA2-256) or not
-function isShort(length: Length): boolean {
+// Helper function to check if the hash uses words of 32 or 64 bits
+function isUInt32(length: Length): length is 224 | 256 {
   return length === 224 || length === 256;
 }
 
 // Shorthand to reduce a field element modulo 32 or 64 bits depending on T
 function reduceMod<T extends UInt32 | UInt64>(length: Length, x: Field): T {
-  if (isShort(length)) {
-    return UInt32.Unsafe.fromField(divMod32(x, 32 + 16).remainder) as T;
-  } else {
-    return UInt64.Unsafe.fromField(divMod64(x, 64 + 16).remainder) as T;
-  }
+  return isUInt32(length)
+    ? (UInt32.Unsafe.fromField(divMod32(x, 32 + 16).remainder) as T)
+    : (UInt64.Unsafe.fromField(divMod64(x, 64 + 16).remainder) as T);
 }
 
 // Helper function to create chunks based on the size and type (UInt32 or UInt64)
@@ -444,19 +422,12 @@ function createChunks<T extends UInt32 | UInt64>(
   return chunks;
 }
 
-function intermediateHash<T extends UInt32 | UInt64>(
-  length: Length,
-  variables: T[],
-  H: T[]
-) {
-  if (isShort(length)) {
-    for (let i = 0; i < 8; i++) {
-      H[i] = (variables[i] as UInt32).addMod32(H[i] as UInt32) as T;
-    }
-  } else {
-    for (let i = 0; i < 8; i++) {
-      H[i] = (variables[i] as UInt64).addMod64(H[i] as UInt64) as T;
-    }
+function intermediateHash<T extends UInt32 | UInt64>(length: Length, variables: T[], H: T[]) {
+  const addMod = isUInt32(length)
+    ? (x: UInt32, y: UInt32) => x.addMod32(y)
+    : (x: UInt64, y: UInt64) => x.addMod64(y);
+  for (let i = 0; i < 8; i++) {
+    H[i] = addMod(variables[i] as any, H[i] as any) as T;
   }
 }
 
@@ -465,7 +436,7 @@ function intermediateHash<T extends UInt32 | UInt64>(
 function Ch<T extends UInt32 | UInt64>(length: Length, x: T, y: T, z: T): T {
   // ch(x, y, z) = (x & y) ^ (~x & z)
   //             = (x & y) + (~x & z) (since x & ~x = 0)
-  if (isShort(length)) {
+  if (isUInt32(length)) {
     let xAndY = (x as UInt32).and(y as UInt32).value;
     let xNotAndZ = (x as UInt32).not().and(z as UInt32).value;
     let ch = xAndY.add(xNotAndZ).seal();
@@ -481,7 +452,7 @@ function Ch<T extends UInt32 | UInt64>(length: Length, x: T, y: T, z: T): T {
 function Maj<T extends UInt32 | UInt64>(length: Length, x: T, y: T, z: T): T {
   // maj(x, y, z) = (x & y) ^ (x & z) ^ (y & z)
   //              = (x + y + z - (x ^ y ^ z)) / 2
-  if (isShort(length)) {
+  if (isUInt32(length)) {
     let sum = (x as UInt32).value.add(y.value).add(z.value).seal();
     let xor = (x as UInt32).xor(y as UInt32).xor(z as UInt32).value;
     let maj = sum.sub(xor).div(2).seal();
@@ -527,7 +498,7 @@ function sigmaSimple<T extends UInt32 | UInt64>(
   firstShifted = false
 ): T {
   let [r0, r1, r2] = bits;
-  if (isShort(length)) {
+  if (isUInt32(length)) {
     let rot0 = firstShifted ? (SHR(r0, u) as UInt32) : (ROTR(r0, u) as UInt32);
     let rot1 = ROTR(r1, u) as UInt32;
     let rot2 = ROTR(r2, u) as UInt32;
@@ -546,8 +517,7 @@ function sigma<T extends UInt32 | UInt64>(
   bits: TupleN<number, 3>,
   firstShifted = false
 ): T {
-  if (u.isConstant() || !isShort(length))
-    return sigmaSimple(length, u, bits, firstShifted);
+  if (u.isConstant() || !isUInt32(length)) return sigmaSimple(length, u, bits, firstShifted);
 
   // When T is UInt64, 64-bit rotation is natively supported in the gadgets.
   // However, 32-bit rotation is not natively supported, thus the following:
@@ -563,12 +533,7 @@ function sigma<T extends UInt32 | UInt64>(
   // decompose x into 4 chunks of size d0, d1, d2, d3
   let [x0, x1, x2, x3] = exists(4, () => {
     let xx = x.toBigInt();
-    return [
-      bitSlice(xx, 0, d0),
-      bitSlice(xx, r0, d1),
-      bitSlice(xx, r1, d2),
-      bitSlice(xx, r2, d3),
-    ];
+    return [bitSlice(xx, 0, d0), bitSlice(xx, r0, d1), bitSlice(xx, r1, d2), bitSlice(xx, r2, d3)];
   });
 
   // range check each chunk

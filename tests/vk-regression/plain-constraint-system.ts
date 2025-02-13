@@ -114,6 +114,26 @@ const Bytes32 = Bytes(32);
 const bytes32 = Bytes32.from([]);
 
 const HashCS = constraintSystem('Hashes', {
+  SHA2_256() {
+    let xs = Provable.witness(Bytes32, () => bytes32);
+    Hash.SHA2.hash(256, xs);
+  },
+
+  SHA2_224() {
+    let xs = Provable.witness(Bytes32, () => bytes32);
+    Hash.SHA2.hash(224, xs);
+  },
+
+  SHA2_512() {
+    let xs = Provable.witness(Bytes32, () => bytes32);
+    Hash.SHA2.hash(512, xs);
+  },
+
+  SHA2_384() {
+    let xs = Provable.witness(Bytes32, () => bytes32);
+    Hash.SHA2.hash(384, xs);
+  },
+
   SHA3_256() {
     let xs = Provable.witness(Bytes32, () => bytes32);
     Hash.SHA3_256.hash(xs);
@@ -199,10 +219,7 @@ const CryptoCS = constraintSystem('Crypto', {
 
 // mock ZkProgram API for testing
 
-function constraintSystem(
-  name: string,
-  obj: { [K: string]: (...args: any) => void }
-) {
+function constraintSystem(name: string, obj: { [K: string]: (...args: any) => void }) {
   let methodKeys = Object.keys(obj);
 
   return {
