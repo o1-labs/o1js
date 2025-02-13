@@ -1,23 +1,23 @@
-import { SelfProof } from '../../proof-system/zkprogram.js';
-import { Proof } from '../../proof-system/proof.js';
-import { Bool, Field } from '../../provable/wrapped.js';
+import { SelfProof } from '../../../proof-system/zkprogram.js';
+import { Proof } from '../../../proof-system/proof.js';
+import { Bool, Field } from '../../../provable/wrapped.js';
 import { SmartContract } from '../zkapp.js';
-import { assert, assertDefined } from '../../util/assert.js';
-import { Constructor, From } from '../../../bindings/lib/provable-generic.js';
-import { Struct, InferProvable } from '../../provable/types/struct.js';
-import { Provable } from '../../provable/provable.js';
+import { assert, assertDefined } from '../../../util/assert.js';
+import { Constructor, From } from '../../../../bindings/lib/provable-generic.js';
+import { Struct, InferProvable } from '../../../provable/types/struct.js';
+import { Provable } from '../../../provable/provable.js';
 import { Actionable } from './offchain-state-serialization.js';
-import { prefixes } from '../../../bindings/crypto/constants.js';
+import { prefixes } from '../../../../bindings/crypto/constants.js';
 import { Actions } from '../account-update.js';
 import { contract } from '../smart-contract-context.js';
 import { State } from '../state.js';
-import { Option } from '../../provable/option.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
+import { Option } from '../../../provable/option.js';
+import { PublicKey } from '../../../provable/crypto/signature.js';
 import { fetchActions, getProofsEnabled } from '../mina-instance.js';
-import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Unconstrained } from '../../provable/types/unconstrained.js';
-import { hashWithPrefix as hashWithPrefixBigint } from '../../../mina-signer/src/poseidon-bigint.js';
-import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { ZkProgram } from '../../../proof-system/zkprogram.js';
+import { Unconstrained } from '../../../provable/types/unconstrained.js';
+import { hashWithPrefix as hashWithPrefixBigint } from '../../../../mina-signer/src/poseidon-bigint.js';
+import { Actions as ActionsBigint } from '../../../../bindings/mina-transaction/transaction-leaves-bigint.js';
 import {
   FlatActions,
   HashedAction,
@@ -29,7 +29,7 @@ import {
   ProvableHashable,
   ProvablePure,
   ProvableType,
-} from '../../provable/types/provable-intf.js';
+} from '../../../provable/types/provable-intf.js';
 
 // external API
 export { BatchReducer, ActionBatch };
@@ -201,10 +201,7 @@ class BatchReducer<
    */
   dispatch(action: From<ActionType>) {
     let update = this.contract().self;
-    let canonical = Provable.toCanonical(
-      this.actionType,
-      this.actionType.fromValue(action)
-    );
+    let canonical = Provable.toCanonical(this.actionType, this.actionType.fromValue(action));
     let fields = this.actionType.toFields(canonical);
     update.body.actions = Actions.pushEvent(update.body.actions, fields);
   }
@@ -214,18 +211,10 @@ class BatchReducer<
    */
   dispatchIf(condition: Bool, action: From<ActionType>) {
     let update = this.contract().self;
-    let canonical = Provable.toCanonical(
-      this.actionType,
-      this.actionType.fromValue(action)
-    );
+    let canonical = Provable.toCanonical(this.actionType, this.actionType.fromValue(action));
     let fields = this.actionType.toFields(canonical);
     let newActions = Actions.pushEvent(update.body.actions, fields);
-    update.body.actions = Provable.if(
-      condition,
-      Actions,
-      newActions,
-      update.body.actions
-    );
+    update.body.actions = Provable.if(condition, Actions, newActions, update.body.actions);
   }
 
   /**
@@ -265,12 +254,7 @@ class BatchReducer<
 
     // step 0. validate onchain states
 
-    let {
-      useOnchainStack,
-      processedActionState,
-      onchainActionState,
-      onchainStack,
-    } = batch;
+    let { useOnchainStack, processedActionState, onchainActionState, onchainStack } = batch;
     let useNewStack = useOnchainStack.not();
 
     // we definitely need to know the processed action state, because we will update it
@@ -280,10 +264,7 @@ class BatchReducer<
     contract.actionStack.requireEqualsIf(useOnchainStack, onchainStack);
 
     // only require the onchain action state if we are recomputing the stack (otherwise, the onchain stack is known to be valid)
-    contract.account.actionState.requireEqualsIf(
-      useNewStack,
-      onchainActionState
-    );
+    contract.account.actionState.requireEqualsIf(useNewStack, onchainActionState);
 
     // step 1. continue the proof that pops pending onchain actions to build up the final stack
 
@@ -291,46 +272,23 @@ class BatchReducer<
     proof.verifyIf(isRecursive);
 
     // if the proof is valid, it has to start from onchain action state
-    Provable.assertEqualIf(
-      isRecursive,
-      Field,
-      proof.publicInput,
-      onchainActionState
-    );
+    Provable.assertEqualIf(isRecursive, Field, proof.publicInput, onchainActionState);
 
     // the final piece of the proof either starts from the onchain action state + an empty stack,
     // or from the previous proof output
     let initialState = { actions: onchainActionState, stack: emptyActionState };
-    let startState = Provable.if(
-      isRecursive,
-      ActionStackState,
-      proof.publicOutput,
-      initialState
-    );
+    let startState = Provable.if(isRecursive, ActionStackState, proof.publicOutput, initialState);
 
     // finish creating the new stack
-    let stackingResult = actionStackChunk(
-      this.maxUpdatesFinalProof,
-      startState,
-      batch.witnesses
-    );
+    let stackingResult = actionStackChunk(this.maxUpdatesFinalProof, startState, batch.witnesses);
 
     // step 2. pick the correct stack of actions to process
 
     // if we use the new stack, make sure it's correct: it has to go all the way back
     // from `onchainActionState` to `processedActionState`
-    Provable.assertEqualIf(
-      useNewStack,
-      Field,
-      stackingResult.actions,
-      processedActionState
-    );
+    Provable.assertEqualIf(useNewStack, Field, stackingResult.actions, processedActionState);
 
-    let stackToUse = Provable.if(
-      useOnchainStack,
-      onchainStack,
-      stackingResult.stack
-    );
+    let stackToUse = Provable.if(useOnchainStack, onchainStack, stackingResult.stack);
 
     // our input hint gives us the actual actions contained in this stack
     let { stack } = batch;
@@ -380,15 +338,8 @@ class BatchReducer<
       });
 
       // if we pop, we also update the processed action state
-      let nextActionState = Actions.updateSequenceState(
-        processedActionState,
-        actionList.hash
-      );
-      processedActionState = Provable.if(
-        shouldPop,
-        nextActionState,
-        processedActionState
-      );
+      let nextActionState = Actions.updateSequenceState(processedActionState, actionList.hash);
+      processedActionState = Provable.if(shouldPop, nextActionState, processedActionState);
     }
 
     // step 4. run user logic on the actions
@@ -398,12 +349,7 @@ class BatchReducer<
 
     flatActions.forEach(batchSize, (hashedAction, isDummy, i) => {
       // we make it easier to write the reducer code by making sure dummy actions have dummy values
-      hashedAction = Provable.if(
-        isDummy,
-        HashedActionT,
-        emptyHashedAction,
-        hashedAction
-      );
+      hashedAction = Provable.if(isDummy, HashedActionT, emptyHashedAction, hashedAction);
 
       // note: only here, we do the work of unhashing the action
       callback(hashedAction.unhash(), isDummy, i);
@@ -425,9 +371,7 @@ class BatchReducer<
   /**
    * Create a proof which returns the next actions batch(es) to process and helps guarantee their correctness.
    */
-  async prepareBatches(): Promise<
-    { proof: ActionStackProof; batch: ActionBatch<Action> }[]
-  > {
+  async prepareBatches(): Promise<{ proof: ActionStackProof; batch: ActionBatch<Action> }[]> {
     let { batchSize, actionType } = this;
     let contract = assertDefined(
       this._contract,
@@ -456,9 +400,7 @@ class BatchReducer<
     );
 
     // create the stack from full actions
-    let stack = MerkleActions(actionType).fromReverse(
-      actions.toArrayUnconstrained().get()
-    );
+    let stack = MerkleActions(actionType).fromReverse(actions.toArrayUnconstrained().get());
 
     let batches: ActionBatch<Action>[] = [];
     let baseHint = {
@@ -491,10 +433,7 @@ class BatchReducer<
         currentBatchSize += stackArray[i].lengthUnconstrained().get();
         if (currentBatchSize > batchSize) break;
         let actionList = stack.pop();
-        processedActionState = Actions.updateSequenceState(
-          processedActionState,
-          actionList.hash
-        );
+        processedActionState = Actions.updateSequenceState(processedActionState, actionList.hash);
         i--;
       }
       onchainStack = stack.hash;
@@ -513,8 +452,7 @@ type BatchReducerContract = SmartContract & {
   actionState: State<Field>;
   actionStack: State<Field>;
 };
-type BatchReducerContractClass = typeof SmartContract &
-  Constructor<BatchReducerContract>;
+type BatchReducerContractClass = typeof SmartContract & Constructor<BatchReducerContract>;
 
 // hints for the batch reducer
 
@@ -587,11 +525,7 @@ async function fetchActionWitnesses<T>(
   let actionFields = result.map(({ actions }) =>
     actions.map((action) => action.map(BigInt)).reverse()
   );
-  let actions = MerkleActions.fromFields(
-    actionType,
-    actionFields,
-    fromActionState
-  );
+  let actions = MerkleActions.fromFields(actionType, actionFields, fromActionState);
 
   let actionState = fromActionState;
   let witnesses: ActionWitnesses = [];
@@ -630,11 +564,7 @@ async function provePartialActionStack(
   let finalActionsChunk = witnesses.slice(0, finalChunkSize);
   let remainingActions = witnesses.slice(finalChunkSize);
 
-  let { isEmpty, proof } = await proveActionStack(
-    endActionState,
-    remainingActions,
-    program
-  );
+  let { isEmpty, proof } = await proveActionStack(endActionState, remainingActions, program);
   return {
     proof,
     isRecursive: isEmpty.not(),
@@ -698,12 +628,7 @@ async function proveActionStack(
 
   for (let i = nChunks - 1; i >= 0; i--) {
     let isRecursive = Bool(i < nChunks - 1);
-    ({ proof } = await program.proveChunk(
-      endActionState,
-      proof,
-      isRecursive,
-      chunks[i]
-    ));
+    ({ proof } = await program.proveChunk(endActionState, proof, isRecursive, chunks[i]));
   }
   // sanity check
   proof.publicOutput.stack.assertEquals(stack.hash, 'Stack hash mismatch');
@@ -722,9 +647,7 @@ class ActionStackState extends Struct({
 type ActionStackProof = Proof<Field, ActionStackState>;
 type ActionWitnesses = ({ hash: bigint; stateBefore: bigint } | undefined)[];
 
-class OptionActionWitness extends Option(
-  Struct({ hash: Field, stateBefore: Field })
-) {}
+class OptionActionWitness extends Option(Struct({ hash: Field, stateBefore: Field })) {}
 
 type ActionStackProgram = {
   name: string;
@@ -781,11 +704,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
 
     methods: {
       proveChunk: {
-        privateInputs: [
-          SelfProof,
-          Bool,
-          Unconstrained.withEmpty<ActionWitnesses>([]),
-        ],
+        privateInputs: [SelfProof, Bool, Unconstrained.withEmpty<ActionWitnesses>([])],
 
         async method(
           input: Field,
@@ -795,12 +714,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
         ) {
           // make this proof extend proofSoFar
           proofSoFar.verifyIf(isRecursive);
-          Provable.assertEqualIf(
-            isRecursive,
-            Field,
-            input,
-            proofSoFar.publicInput
-          );
+          Provable.assertEqualIf(isRecursive, Field, input, proofSoFar.publicInput);
           let initialState = { actions: input, stack: emptyActionState };
           let startState = Provable.if(
             isRecursive,
@@ -808,11 +722,7 @@ function actionStackProgram(maxUpdatesPerProof: number) {
             proofSoFar.publicOutput,
             initialState
           );
-          let publicOutput = actionStackChunk(
-            maxUpdatesPerProof,
-            startState,
-            witnesses
-          );
+          let publicOutput = actionStackChunk(maxUpdatesPerProof, startState, witnesses);
           return { publicOutput };
         },
       },
@@ -831,14 +741,8 @@ function pop(
   i: number,
   witnesses: Unconstrained<ActionWitnesses>
 ): { didPop: Bool; state: Field; hash: Field } {
-  let { isSome, value: witness } = Provable.witness(
-    OptionActionWitness,
-    () => witnesses.get()[i]
-  );
-  let impliedState = Actions.updateSequenceState(
-    witness.stateBefore,
-    witness.hash
-  );
+  let { isSome, value: witness } = Provable.witness(OptionActionWitness, () => witnesses.get()[i]);
+  let impliedState = Actions.updateSequenceState(witness.stateBefore, witness.hash);
   Provable.assertEqualIf(isSome, Field, impliedState, state);
   return {
     didPop: isSome,

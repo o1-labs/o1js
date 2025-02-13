@@ -5,7 +5,7 @@ import {
   PublicKey,
   UInt64,
   Experimental,
-} from '../../../../index.js';
+} from '../../../../../index.js';
 
 export { offchainState, StateProof, ExampleContract };
 
@@ -23,8 +23,7 @@ class StateProof extends offchainState.Proof {}
 
 // example contract that interacts with offchain state
 class ExampleContract extends SmartContract {
-  @state(OffchainState.Commitments) offchainStateCommitments =
-    offchainState.emptyCommitments();
+  @state(OffchainState.Commitments) offchainStateCommitments = offchainState.emptyCommitments();
 
   // o1js memoizes the offchain state by contract address so that this pattern works
   offchainState = offchainState.init(this);

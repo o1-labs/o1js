@@ -1,4 +1,4 @@
-import { Types } from '../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/types.js';
 import { TokenId } from './account-update.js';
 
 export { humanizeErrors, invalidTransactionError };
@@ -25,9 +25,7 @@ Here's the list of balance changes:
 ${balances
   .map((balance, i) => {
     return `Account update #${i + 1}) ${
-      balance === undefined
-        ? 'not a MINA account'
-        : `${balance.toFixed(2)} MINA`
+      balance === undefined ? 'not a MINA account' : `${balance.toFixed(2)} MINA`
     }`;
   })
   .join(`\n`)}
@@ -39,9 +37,7 @@ If you are creating new accounts -- by updating accounts that didn't exist yet -
 then keep in mind the ${(Number(accountCreationFee) * 1e-9).toFixed(
       2
     )} MINA account creation fee, and make sure that the sum equals
-${(-Number(accountCreationFee) * 1e-9).toFixed(
-  2
-)} times the number of newly created accounts.`;
+${(-Number(accountCreationFee) * 1e-9).toFixed(2)} times the number of newly created accounts.`;
   },
 };
 const defaultErrorReplacementRules: ErrorReplacementRule[] = [

@@ -1,18 +1,13 @@
 import 'isomorphic-fetch';
-import { Field } from '../provable/wrapped.js';
-import { UInt32, UInt64 } from '../provable/int.js';
+import { Field } from '../../provable/wrapped.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
 import { Actions, TokenId } from './account-update.js';
-import { PublicKey, PrivateKey } from '../provable/crypto/signature.js';
+import { PublicKey, PrivateKey } from '../../provable/crypto/signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/types.js';
 import { ActionStates } from './mina.js';
 import { LedgerHash, EpochSeed, StateHash } from './base58-encodings.js';
-import {
-  Account,
-  fillPartialAccount,
-  parseFetchedAccount,
-  PartialAccount,
-} from './account.js';
+import { Account, fillPartialAccount, parseFetchedAccount, PartialAccount } from './account.js';
 import {
   type LastBlockQueryResponse,
   type GenesisConstantsResponse,
@@ -142,30 +137,20 @@ function setArchiveDefaultHeaders(headers: HeadersInit) {
   networkConfig.archiveDefaultHeaders = headers;
 }
 
-function setGraphqlEndpoints([
-  graphqlEndpoint,
-  ...fallbackEndpoints
-]: string[]) {
+function setGraphqlEndpoints([graphqlEndpoint, ...fallbackEndpoints]: string[]) {
   setGraphqlEndpoint(graphqlEndpoint);
   setMinaGraphqlFallbackEndpoints(fallbackEndpoints);
 }
-function setGraphqlEndpoint(
-  graphqlEndpoint: string,
-  minaDefaultHeaders?: HeadersInit
-) {
+function setGraphqlEndpoint(graphqlEndpoint: string, minaDefaultHeaders?: HeadersInit) {
   if (!checkForValidUrl(graphqlEndpoint)) {
-    throw new Error(
-      `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
-    );
+    throw new Error(`Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`);
   }
   networkConfig.minaEndpoint = graphqlEndpoint;
   if (minaDefaultHeaders) setMinaDefaultHeaders(minaDefaultHeaders);
 }
 function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
   if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
-    throw new Error(
-      `Invalid GraphQL endpoint: ${graphqlEndpoints}. Please specify a valid URL.`
-    );
+    throw new Error(`Invalid GraphQL endpoint: ${graphqlEndpoints}. Please specify a valid URL.`);
   }
   networkConfig.minaFallbackEndpoints = graphqlEndpoints;
 }
@@ -174,23 +159,16 @@ function setMinaGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
  * Sets up a GraphQL endpoint to be used for fetching information from an Archive Node.
  *
  */
-function setArchiveGraphqlEndpoint(
-  graphqlEndpoint: string,
-  archiveDefaultHeaders?: HeadersInit
-) {
+function setArchiveGraphqlEndpoint(graphqlEndpoint: string, archiveDefaultHeaders?: HeadersInit) {
   if (!checkForValidUrl(graphqlEndpoint)) {
-    throw new Error(
-      `Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`
-    );
+    throw new Error(`Invalid GraphQL endpoint: ${graphqlEndpoint}. Please specify a valid URL.`);
   }
   networkConfig.archiveEndpoint = graphqlEndpoint;
   if (archiveDefaultHeaders) setArchiveDefaultHeaders(archiveDefaultHeaders);
 }
 function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
   if (graphqlEndpoints.some((endpoint) => !checkForValidUrl(endpoint))) {
-    throw new Error(
-      `Invalid GraphQL endpoint: ${graphqlEndpoints}. Please specify a valid URL.`
-    );
+    throw new Error(`Invalid GraphQL endpoint: ${graphqlEndpoints}. Please specify a valid URL.`);
   }
   networkConfig.archiveFallbackEndpoints = graphqlEndpoints;
 }
@@ -202,9 +180,7 @@ function setArchiveGraphqlFallbackEndpoints(graphqlEndpoints: string[]) {
  */
 function setLightnetAccountManagerEndpoint(endpoint: string) {
   if (!checkForValidUrl(endpoint)) {
-    throw new Error(
-      `Invalid account manager endpoint: ${endpoint}. Please specify a valid URL.`
-    );
+    throw new Error(`Invalid account manager endpoint: ${endpoint}. Please specify a valid URL.`);
   }
   networkConfig.lightnetAccountManagerEndpoint = endpoint;
 }
@@ -229,8 +205,7 @@ async function fetchAccount(
   graphqlEndpoint = networkConfig.minaEndpoint,
   { timeout = defaultTimeout, headers }: FetchConfig = {}
 ): Promise<
-  | { account: Types.Account; error: undefined }
-  | { account: undefined; error: FetchError }
+  { account: Types.Account; error: undefined } | { account: undefined; error: FetchError }
 > {
   let publicKeyBase58 =
     accountInfo.publicKey instanceof PublicKey
@@ -348,11 +323,7 @@ let genesisConstantsCache = {} as Record<string, GenesisConstants>;
 
 const emptyKey = PublicKey.empty().toBase58();
 
-function markAccountToBeFetched(
-  publicKey: PublicKey,
-  tokenId: Field,
-  graphqlEndpoint: string
-) {
+function markAccountToBeFetched(publicKey: PublicKey, tokenId: Field, graphqlEndpoint: string) {
   let publicKeyBase58 = publicKey.toBase58();
   if (publicKeyBase58 === emptyKey) return;
   let tokenBase58 = TokenId.toBase58(tokenId);
@@ -374,12 +345,8 @@ function markActionsToBeFetched(
   let publicKeyBase58 = publicKey.toBase58();
   let tokenBase58 = TokenId.toBase58(tokenId);
   let { fromActionState, endActionState } = actionStates;
-  let fromActionStateBase58 = fromActionState
-    ? fromActionState.toString()
-    : undefined;
-  let endActionStateBase58 = endActionState
-    ? endActionState.toString()
-    : undefined;
+  let fromActionStateBase58 = fromActionState ? fromActionState.toString() : undefined;
+  let endActionStateBase58 = endActionState ? endActionState.toString() : undefined;
 
   actionsToFetch[`${publicKeyBase58};${tokenBase58};${graphqlEndpoint}`] = {
     publicKey: publicKeyBase58,
@@ -392,27 +359,15 @@ function markActionsToBeFetched(
   };
 }
 
-async function fetchMissingData(
-  graphqlEndpoint: string,
-  archiveEndpoint?: string
-) {
-  let promises = Object.entries(accountsToFetch).map(
-    async ([key, { publicKey, tokenId }]) => {
-      let response = await fetchAccountInternal(
-        { publicKey, tokenId },
-        graphqlEndpoint
-      );
-      if (response.error === undefined) delete accountsToFetch[key];
-    }
-  );
+async function fetchMissingData(graphqlEndpoint: string, archiveEndpoint?: string) {
+  let promises = Object.entries(accountsToFetch).map(async ([key, { publicKey, tokenId }]) => {
+    let response = await fetchAccountInternal({ publicKey, tokenId }, graphqlEndpoint);
+    if (response.error === undefined) delete accountsToFetch[key];
+  });
   let actionPromises = Object.entries(actionsToFetch).map(
     async ([key, { publicKey, actionStates, tokenId }]) => {
-      let response = await fetchActions(
-        { publicKey, actionStates, tokenId },
-        archiveEndpoint
-      );
-      if (!('error' in response) || response.error === undefined)
-        delete actionsToFetch[key];
+      let response = await fetchActions({ publicKey, actionStates, tokenId }, archiveEndpoint);
+      if (!('error' in response) || response.error === undefined) delete actionsToFetch[key];
     }
   );
   promises.push(...actionPromises);
@@ -438,8 +393,7 @@ function getCachedAccount(
   tokenId: Field,
   graphqlEndpoint = networkConfig.minaEndpoint
 ): Account | undefined {
-  return accountCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
-    ?.account;
+  return accountCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]?.account;
 }
 
 function getCachedNetwork(graphqlEndpoint = networkConfig.minaEndpoint) {
@@ -451,13 +405,10 @@ function getCachedActions(
   tokenId: Field,
   graphqlEndpoint = networkConfig.archiveEndpoint
 ) {
-  return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]
-    ?.actions;
+  return actionsCache[accountCacheKey(publicKey, tokenId, graphqlEndpoint)]?.actions;
 }
 
-function getCachedGenesisConstants(
-  graphqlEndpoint = networkConfig.minaEndpoint
-): GenesisConstants {
+function getCachedGenesisConstants(graphqlEndpoint = networkConfig.minaEndpoint): GenesisConstants {
   return genesisConstantsCache[graphqlEndpoint];
 }
 
@@ -473,9 +424,7 @@ function addCachedAccount(
 }
 
 function addCachedAccountInternal(account: Account, graphqlEndpoint: string) {
-  accountCache[
-    accountCacheKey(account.publicKey, account.tokenId, graphqlEndpoint)
-  ] = {
+  accountCache[accountCacheKey(account.publicKey, account.tokenId, graphqlEndpoint)] = {
     account,
     graphqlEndpoint,
     timestamp: Date.now(),
@@ -494,23 +443,14 @@ function addCachedActions(
   };
 }
 
-function accountCacheKey(
-  publicKey: PublicKey,
-  tokenId: Field,
-  graphqlEndpoint: string
-) {
-  return `${publicKey.toBase58()};${TokenId.toBase58(
-    tokenId
-  )};${graphqlEndpoint}`;
+function accountCacheKey(publicKey: PublicKey, tokenId: Field, graphqlEndpoint: string) {
+  return `${publicKey.toBase58()};${TokenId.toBase58(tokenId)};${graphqlEndpoint}`;
 }
 
 /**
  * Fetches the last block on the Mina network.
  */
-async function fetchLastBlock(
-  graphqlEndpoint = networkConfig.minaEndpoint,
-  headers?: HeadersInit
-) {
+async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint, headers?: HeadersInit) {
   let [resp, error] = await makeGraphqlRequest<LastBlockQueryResponse>(
     lastBlockQuery,
     graphqlEndpoint,
@@ -550,9 +490,7 @@ async function fetchCurrentSlot(
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data?.bestChain;
   if (!bestChain || bestChain.length === 0) {
-    throw Error(
-      'Failed to fetch the current slot. The response data is undefined.'
-    );
+    throw Error('Failed to fetch the current slot. The response data is undefined.');
   }
   return bestChain[0].protocolState.consensusState.slot;
 }
@@ -561,13 +499,12 @@ async function fetchLatestBlockZkappStatus(
   blockLength: number,
   graphqlEndpoint = networkConfig.minaEndpoint
 ) {
-  let [resp, error] =
-    await makeGraphqlRequest<LastBlockQueryFailureCheckResponse>(
-      lastBlockQueryFailureCheck(blockLength),
-      graphqlEndpoint,
-      networkConfig.minaFallbackEndpoints,
-      { headers: networkConfig.minaDefaultHeaders }
-    );
+  let [resp, error] = await makeGraphqlRequest<LastBlockQueryFailureCheckResponse>(
+    lastBlockQueryFailureCheck(blockLength),
+    graphqlEndpoint,
+    networkConfig.minaFallbackEndpoints,
+    { headers: networkConfig.minaDefaultHeaders }
+  );
   if (error) throw Error(`Error making GraphQL request: ${error.statusText}`);
   let bestChain = resp?.data;
   if (bestChain === undefined) {
@@ -578,20 +515,15 @@ async function fetchLatestBlockZkappStatus(
   return bestChain;
 }
 
-async function checkZkappTransaction(
-  transactionHash: string,
-  blockLength = 20
-) {
+async function checkZkappTransaction(transactionHash: string, blockLength = 20) {
   let bestChainBlocks = await fetchLatestBlockZkappStatus(blockLength);
   for (let block of bestChainBlocks.bestChain) {
     for (let zkappCommand of block.transactions.zkappCommands) {
       if (zkappCommand.hash === transactionHash) {
         if (zkappCommand.failureReason !== null) {
-          let failureReason = zkappCommand.failureReason
-            .reverse()
-            .map((failure) => {
-              return [failure.failures.map((failureItem) => failureItem)];
-            });
+          let failureReason = zkappCommand.failureReason.reverse().map((failure) => {
+            return [failure.failures.map((failureItem) => failureItem)];
+          });
           return {
             success: false,
             failureReason,
@@ -726,11 +658,7 @@ async function fetchEvents(
     );
   const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest<EventQueryResponse>(
-    getEventsQuery(
-      publicKey,
-      tokenId ?? TokenId.toBase58(TokenId.default),
-      filterOptions
-    ),
+    getEventsQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default), filterOptions),
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints,
     { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
@@ -738,9 +666,7 @@ async function fetchEvents(
   if (error) throw Error(error.statusText);
   let fetchedEvents = response?.data.events;
   if (fetchedEvents === undefined) {
-    throw Error(
-      `Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`
-    );
+    throw Error(`Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`);
   }
 
   return fetchedEvents.map((event) => {
@@ -794,11 +720,7 @@ async function fetchActions(
     throw Error(
       'fetchActions: Specified GraphQL endpoint is undefined. When using actions, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
     );
-  const {
-    publicKey,
-    actionStates,
-    tokenId = TokenId.toBase58(TokenId.default),
-  } = accountInfo;
+  const { publicKey, actionStates, tokenId = TokenId.toBase58(TokenId.default) } = accountInfo;
 
   let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
     getActionsQuery(publicKey, actionStates, tokenId),
@@ -857,8 +779,7 @@ export function createActionsList(
   // correct for archive node sending one block too many
   if (
     fetchedActions.length !== 0 &&
-    fetchedActions[0].actionState.actionStateOne ===
-      actionStates.fromActionState
+    fetchedActions[0].actionState.actionStateOne === actionStates.fromActionState
   ) {
     fetchedActions = fetchedActions.slice(1);
   }
@@ -886,14 +807,12 @@ export function createActionsList(
         const a1TxSequence = a1.transactionInfo!.sequenceNumber;
         const a2TxSequence = a2.transactionInfo!.sequenceNumber;
         if (a1TxSequence === a2TxSequence) {
-          const a1AuSequence =
-            a1.transactionInfo!.zkappAccountUpdateIds.indexOf(
-              Number(a1.accountUpdateId)
-            );
-          const a2AuSequence =
-            a2.transactionInfo!.zkappAccountUpdateIds.indexOf(
-              Number(a2.accountUpdateId)
-            );
+          const a1AuSequence = a1.transactionInfo!.zkappAccountUpdateIds.indexOf(
+            Number(a1.accountUpdateId)
+          );
+          const a2AuSequence = a2.transactionInfo!.zkappAccountUpdateIds.indexOf(
+            Number(a2.accountUpdateId)
+          );
           return a1AuSequence - a2AuSequence;
         } else {
           return a1TxSequence - a2TxSequence;
@@ -952,8 +871,7 @@ async function fetchGenesisConstants(
   );
   if (error) throw Error(error.statusText);
   const genesisConstants = resp?.data?.genesisConstants;
-  const consensusConfiguration =
-    resp?.data?.daemonStatus?.consensusConfiguration;
+  const consensusConfiguration = resp?.data?.daemonStatus?.consensusConfiguration;
   if (genesisConstants === undefined || consensusConfiguration === undefined) {
     throw Error('Failed to fetch genesis constants.');
   }
@@ -1033,18 +951,15 @@ namespace Lightnet {
       publicKey,
       lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
     } = options;
-    const response = await fetch(
-      `${lightnetAccountManagerEndpoint}/release-account`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pk: publicKey,
-        }),
-      }
-    );
+    const response = await fetch(`${lightnetAccountManagerEndpoint}/release-account`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        pk: publicKey,
+      }),
+    });
 
     if (response.ok) {
       const data = await response.json();
@@ -1068,18 +983,14 @@ namespace Lightnet {
     publicKey: PublicKey;
     privateKey: PrivateKey;
   }> | null> {
-    const {
-      lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint,
-    } = options;
-    const response = await fetch(
-      `${lightnetAccountManagerEndpoint}/list-acquired-accounts`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const { lightnetAccountManagerEndpoint = networkConfig.lightnetAccountManagerEndpoint } =
+      options;
+    const response = await fetch(`${lightnetAccountManagerEndpoint}/list-acquired-accounts`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (response.ok) {
       const data = await response.json();
@@ -1164,22 +1075,14 @@ async function makeGraphqlRequest<TDataResponse = any>(
     }
   }
   const statusText = timeoutErrors
-    .map(
-      ({ url1, url2, error }) =>
-        `Request to ${url1} and ${url2} timed out. Error: ${error}`
-    )
+    .map(({ url1, url2, error }) => `Request to ${url1} and ${url2} timed out. Error: ${error}`)
     .join('\n');
-  return [undefined, { statusCode: 408, statusText }] as [
-    undefined,
-    FetchError
-  ];
+  return [undefined, { statusCode: 408, statusText }] as [undefined, FetchError];
 }
 
 async function checkResponseStatus<TDataResponse>(
   response: Response
-): Promise<
-  [FetchResponse<TDataResponse>, undefined] | [undefined, FetchError]
-> {
+): Promise<[FetchResponse<TDataResponse>, undefined] | [undefined, FetchError]> {
   if (response.ok) {
     let jsonResponse = await response.json();
     if (jsonResponse.errors && jsonResponse.errors.length > 0) {
@@ -1187,9 +1090,7 @@ async function checkResponseStatus<TDataResponse>(
         undefined,
         {
           statusCode: response.status,
-          statusText: jsonResponse.errors
-            .map((error: any) => error.message)
-            .join('\n'),
+          statusText: jsonResponse.errors.map((error: any) => error.message).join('\n'),
         } as FetchError,
       ];
     } else if (jsonResponse.data === undefined) {

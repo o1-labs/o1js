@@ -1,29 +1,24 @@
-import { FlexibleProvablePure } from '../provable/types/struct.js';
+import { FlexibleProvablePure } from '../../provable/types/struct.js';
 import { AccountUpdate, TokenId } from './account-update.js';
-import { PublicKey } from '../provable/crypto/signature.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 import * as Mina from './mina.js';
 import { fetchAccount, networkConfig } from './fetch.js';
 import { SmartContract } from './zkapp.js';
 import { Account } from './account.js';
-import { Provable } from '../provable/provable.js';
-import { Field } from '../provable/wrapped.js';
+import { Provable } from '../../provable/provable.js';
+import { Field } from '../../provable/wrapped.js';
 import {
   ProvablePure,
   ProvableType,
   ProvableTypePure,
-} from '../provable/types/provable-intf.js';
+} from '../../provable/types/provable-intf.js';
 import { ensureConsistentPrecondition } from './precondition.js';
-import { Bool } from '../provable/wrapped.js';
+import { Bool } from '../../provable/wrapped.js';
 
 // external API
 export { State, state, declareState };
 // internal API
-export {
-  assertStatePrecondition,
-  cleanStatePrecondition,
-  getLayout,
-  InternalStateType,
-};
+export { assertStatePrecondition, cleanStatePrecondition, getLayout, InternalStateType };
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -127,9 +122,7 @@ function state<A>(type: ProvableTypePure<A> | FlexibleProvablePure<A>) {
       },
       set(this, v: InternalStateType<A>) {
         if (v._contract !== undefined)
-          throw Error(
-            'A State should only be assigned once to a SmartContract'
-          );
+          throw Error('A State should only be assigned once to a SmartContract');
         if (this._?.[key]) throw Error('A @state should only be assigned once');
         v._contract = {
           key,
@@ -213,15 +206,12 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
 
     set(state: T) {
       if (this._contract === undefined)
-        throw Error(
-          'set can only be called when the State is assigned to a SmartContract @state.'
-        );
+        throw Error('set can only be called when the State is assigned to a SmartContract @state.');
       let layout = getLayoutPosition(this._contract);
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        let appStateSlot =
-          accountUpdate.body.update.appState[layout.offset + i];
+        let appStateSlot = accountUpdate.body.update.appState[layout.offset + i];
         AccountUpdate.setValue(appStateSlot, x);
       });
     },
@@ -235,14 +225,8 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       let stateAsFields = this._contract.stateType.toFields(state);
       let accountUpdate = this._contract.instance.self;
       stateAsFields.forEach((x, i) => {
-        let precondition =
-          accountUpdate.body.preconditions.account.state[layout.offset + i];
-        ensureConsistentPrecondition(
-          precondition,
-          Bool(true),
-          x,
-          this._contract?.key
-        );
+        let precondition = accountUpdate.body.preconditions.account.state[layout.offset + i];
+        ensureConsistentPrecondition(precondition, Bool(true), x, this._contract?.key);
         AccountUpdate.assertEquals(precondition, x);
       });
       this._contract.wasConstrained = true;
@@ -264,8 +248,7 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
           value,
           this._contract?.key
         );
-        let state =
-          accountUpdate.body.preconditions.account.state[layout.offset + i];
+        let state = accountUpdate.body.preconditions.account.state[layout.offset + i];
         state.isSome = condition;
         state.value = value;
       });
@@ -284,9 +267,7 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
 
     get() {
       if (this._contract === undefined)
-        throw Error(
-          'get can only be called when the State is assigned to a SmartContract @state.'
-        );
+        throw Error('get can only be called when the State is assigned to a SmartContract @state.');
       // inside the circuit, we have to cache variables, so there's only one unique variable per on-chain state.
       // if we'd return a fresh variable everytime, developers could easily end up linking just *one* of them to the precondition,
       // while using an unconstrained variable elsewhere, which would create a loophole in the proof.
@@ -306,10 +287,7 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       let stateAsFields = Provable.witness(stateFieldsType, () => {
         let account: Account;
         try {
-          account = Mina.getAccount(
-            contract.instance.address,
-            contract.instance.self.body.tokenId
-          );
+          account = Mina.getAccount(contract.instance.address, contract.instance.self.body.tokenId);
         } catch (err: any) {
           // TODO: there should also be a reasonable error here
           if (inProver_) {
@@ -341,8 +319,7 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       });
 
       let state = this._contract.stateType.fromFields(stateAsFields);
-      if (Provable.inCheckedComputation())
-        this._contract.stateType.check?.(state);
+      if (Provable.inCheckedComputation()) this._contract.stateType.check?.(state);
       this._contract.wasRead = true;
       this._contract.cachedVariable = state;
       return state;
@@ -401,10 +378,7 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
   };
 }
 
-function getLayoutPosition<A>({
-  key,
-  class: contractClass,
-}: StateAttachedContract<A>) {
+function getLayoutPosition<A>({ key, class: contractClass }: StateAttachedContract<A>) {
   let layout = getLayout(contractClass);
   let stateLayout = layout.get(key);
   if (stateLayout === undefined) {

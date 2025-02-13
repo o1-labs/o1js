@@ -1,20 +1,15 @@
 import { SimpleLedger } from './transaction-logic/ledger.js';
-import { Ml } from '../ml/conversion.js';
-import { transactionCommitments } from '../../mina-signer/src/sign-zkapp-command.js';
-import { Ledger, Test, initializeBindings } from '../../snarky.js';
-import { Field } from '../provable/wrapped.js';
-import { UInt32, UInt64 } from '../provable/int.js';
-import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
+import { Ml } from '../../ml/conversion.js';
+import { transactionCommitments } from '../../../mina-signer/src/sign-zkapp-command.js';
+import { Ledger, Test, initializeBindings } from '../../../snarky.js';
+import { Field } from '../../provable/wrapped.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
+import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 import { Account } from './account.js';
-import {
-  ZkappCommand,
-  TokenId,
-  Authorization,
-  Actions,
-} from './account-update.js';
-import { NetworkId } from '../../mina-signer/src/types.js';
-import { TupleN } from '../util/types.js';
-import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
+import { ZkappCommand, TokenId, Authorization, Actions } from './account-update.js';
+import { NetworkId } from '../../../mina-signer/src/types.js';
+import { TupleN } from '../../util/types.js';
+import { Types, TypesBigint } from '../../../bindings/mina-transaction/types.js';
 import { invalidTransactionError } from './errors.js';
 import {
   Transaction,
@@ -41,7 +36,7 @@ import {
   verifyTransactionLimits,
   verifyAccountUpdate,
 } from './transaction-validation.js';
-import { prettifyStacktrace } from '../util/errors.js';
+import { prettifyStacktrace } from '../../util/errors.js';
 
 export { LocalBlockchain, TestPublicKey };
 
@@ -69,10 +64,7 @@ namespace TestPublicKey {
 /**
  * A mock Mina blockchain running locally and useful for testing.
  */
-async function LocalBlockchain({
-  proofsEnabled = true,
-  enforceTransactionLimits = true,
-} = {}) {
+async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits = true } = {}) {
   await initializeBindings();
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
@@ -99,10 +91,7 @@ async function LocalBlockchain({
   }
 
   const events: Record<string, any> = {};
-  const actions: Record<
-    string,
-    Record<string, { actions: string[][]; hash: string }[]>
-  > = {};
+  const actions: Record<string, Record<string, { actions: string[][]; hash: string }[]>> = {};
   const originalProofsEnabled = proofsEnabled;
 
   return {
@@ -115,37 +104,22 @@ async function LocalBlockchain({
       };
     },
     currentSlot() {
-      return UInt32.from(
-        Math.ceil((new Date().valueOf() - startTime) / slotTime)
-      );
+      return UInt32.from(Math.ceil((new Date().valueOf() - startTime) / slotTime));
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      return !!ledger.getAccount(
-        Ml.fromPublicKey(publicKey),
-        Ml.constFromField(tokenId)
-      );
+      return !!ledger.getAccount(Ml.fromPublicKey(publicKey), Ml.constFromField(tokenId));
     },
-    getAccount(
-      publicKey: PublicKey,
-      tokenId: Field = TokenId.default
-    ): Account {
-      let accountJson = ledger.getAccount(
-        Ml.fromPublicKey(publicKey),
-        Ml.constFromField(tokenId)
-      );
+    getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default): Account {
+      let accountJson = ledger.getAccount(Ml.fromPublicKey(publicKey), Ml.constFromField(tokenId));
       if (accountJson === undefined) {
-        throw new Error(
-          reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId))
-        );
+        throw new Error(reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId)));
       }
       return Types.Account.fromJSON(accountJson);
     },
     getNetworkState() {
       return networkState;
     },
-    sendTransaction(
-      txn: Transaction<boolean, boolean>
-    ): PendingTransactionPromise {
+    sendTransaction(txn: Transaction<boolean, boolean>): PendingTransactionPromise {
       return toPendingTransactionPromise(async () => {
         let zkappCommandJson = ZkappCommand.toJSON(txn.transaction);
         let commitments = transactionCommitments(
@@ -211,14 +185,9 @@ async function LocalBlockchain({
           status = 'rejected';
           try {
             const errorMessages = JSON.parse(err.message);
-            const formattedError = invalidTransactionError(
-              txn.transaction,
-              errorMessages,
-              {
-                accountCreationFee:
-                  defaultNetworkConstants.accountCreationFee.toString(),
-              }
-            );
+            const formattedError = invalidTransactionError(txn.transaction, errorMessages, {
+              accountCreationFee: defaultNetworkConstants.accountCreationFee.toString(),
+            });
             errors.push(formattedError);
           } catch (parseError: any) {
             const fallbackErrorMessage =
@@ -238,7 +207,7 @@ async function LocalBlockchain({
             events[addr][tokenId] ??= [];
             let updatedEvents = p.body.events.data.map((data: Field[]) => {
               return {
-                data: data.map(e => e.toString()),
+                data: data.map((e) => e.toString()),
                 transactionInfo: {
                   transactionHash: '',
                   transactionStatus: '',
@@ -262,8 +231,7 @@ async function LocalBlockchain({
 
           // most recent action state
           let storedActions = actions[addr]?.[tokenId];
-          let latestActionState_ =
-            storedActions?.[storedActions.length - 1]?.hash;
+          let latestActionState_ = storedActions?.[storedActions.length - 1]?.hash;
           // if there exists no hash, this means we initialize our latest hash with the empty state
           let latestActionState =
             latestActionState_ !== undefined
@@ -286,10 +254,7 @@ async function LocalBlockchain({
 
         let test = await Test();
         const hash = test.transactionHash.hashZkAppCommand(txn.toJSON());
-        const pendingTransaction: Omit<
-          PendingTransaction,
-          'wait' | 'safeWait'
-        > = {
+        const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> = {
           status,
           errors,
           transaction: txn.transaction,
@@ -306,11 +271,7 @@ async function LocalBlockchain({
         }): Promise<IncludedTransaction> => {
           const pendingTransaction = await safeWait(_options);
           if (pendingTransaction.status === 'rejected') {
-            throw Error(
-              `Transaction failed with errors:\n${pendingTransaction.errors.join(
-                '\n'
-              )}`
-            );
+            throw Error(`Transaction failed with errors:\n${pendingTransaction.errors.join('\n')}`);
           }
           return pendingTransaction;
         };
@@ -320,10 +281,7 @@ async function LocalBlockchain({
           interval?: number;
         }): Promise<IncludedTransaction | RejectedTransaction> => {
           if (status === 'rejected') {
-            return createRejectedTransaction(
-              pendingTransaction,
-              pendingTransaction.errors
-            );
+            return createRejectedTransaction(pendingTransaction, pendingTransaction.errors);
           }
           return createIncludedTransaction(pendingTransaction);
         };
@@ -343,9 +301,7 @@ async function LocalBlockchain({
           proofsEnabled: this.proofsEnabled,
           fetchMode: 'test',
         });
-        let hasProofs = tx.transaction.accountUpdates.some(
-          Authorization.hasLazyProof
-        );
+        let hasProofs = tx.transaction.accountUpdates.some(Authorization.hasLazyProof);
         return await createTransaction(sender, f, 1, {
           isFinalRunOutsideCircuit: !hasProofs,
           proofsEnabled: this.proofsEnabled,
@@ -378,8 +334,7 @@ async function LocalBlockchain({
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default
     ): { hash: string; actions: string[][] }[] {
-      let currentActions =
-        actions?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
+      let currentActions = actions?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? [];
       let { fromActionState, endActionState } = actionStates ?? {};
 
       let emptyState = Actions.emptyActionState();
@@ -414,8 +369,7 @@ async function LocalBlockchain({
       networkState.globalSlotSinceGenesis = UInt32.from(slot);
     },
     incrementGlobalSlot(increment: UInt32 | number) {
-      networkState.globalSlotSinceGenesis =
-        networkState.globalSlotSinceGenesis.add(increment);
+      networkState.globalSlotSinceGenesis = networkState.globalSlotSinceGenesis.add(increment);
     },
     setBlockchainLength(height: UInt32) {
       networkState.blockchainLength = height;

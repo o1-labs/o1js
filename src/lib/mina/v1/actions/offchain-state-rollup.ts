@@ -1,16 +1,13 @@
-import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Proof } from '../../proof-system/proof.js';
-import { Bool, Field } from '../../provable/wrapped.js';
-import { MerkleList, MerkleListIterator } from '../../provable/merkle-list.js';
-import { Actions } from '../../../bindings/mina-transaction/transaction-leaves.js';
-import {
-  IndexedMerkleMap,
-  IndexedMerkleMapBase,
-} from '../../provable/merkle-tree-indexed.js';
-import { Struct } from '../../provable/types/struct.js';
-import { SelfProof } from '../../proof-system/zkprogram.js';
-import { Provable } from '../../provable/provable.js';
-import { assert } from '../../provable/gadgets/common.js';
+import { ZkProgram } from '../../../proof-system/zkprogram.js';
+import { Proof } from '../../../proof-system/proof.js';
+import { Bool, Field } from '../../../provable/wrapped.js';
+import { MerkleList, MerkleListIterator } from '../../../provable/merkle-list.js';
+import { Actions } from '../../../../bindings/mina-transaction/transaction-leaves.js';
+import { IndexedMerkleMap, IndexedMerkleMapBase } from '../../../provable/merkle-tree-indexed.js';
+import { Struct } from '../../../provable/types/struct.js';
+import { SelfProof } from '../../../proof-system/zkprogram.js';
+import { Provable } from '../../../provable/provable.js';
+import { assert } from '../../../provable/gadgets/common.js';
 import {
   ActionList,
   LinearizedAction,
@@ -19,14 +16,13 @@ import {
   updateMerkleMap,
 } from './offchain-state-serialization.js';
 import { getProofsEnabled } from '../mina.js';
-import { Cache } from '../../../lib/proof-system/cache.js';
+import { Cache } from '../../../../lib/proof-system/cache.js';
 
 export { OffchainStateRollup, OffchainStateCommitments };
 
 class ActionIterator extends MerkleListIterator.create(
   ActionList,
-  (hash: Field, actions: ActionList) =>
-    Actions.updateSequenceState(hash, actions.hash),
+  (hash: Field, actions: ActionList) => Actions.updateSequenceState(hash, actions.hash),
   // we don't have to care about the initial hash here because we will just step forward
   Actions.emptyActionState()
 ) {}
@@ -87,18 +83,10 @@ function merkleUpdateBatch(
     for (let i = 0; i < maxActionsPerUpdate; i++) {
       let { element: action, isDummy } = inner.Unsafe.next();
       let isCheckPoint = inner.isAtEnd();
-      [isAtEnd, isCheckPoint] = [
-        isAtEnd.or(isCheckPoint),
-        isCheckPoint.and(isAtEnd.not()),
-      ];
-      linearActions.pushIf(
-        isDummy.not(),
-        new LinearizedAction({ action, isCheckPoint })
-      );
+      [isAtEnd, isCheckPoint] = [isAtEnd.or(isCheckPoint), isCheckPoint.and(isAtEnd.not())];
+      linearActions.pushIf(isDummy.not(), new LinearizedAction({ action, isCheckPoint }));
     }
-    inner.assertAtEnd(
-      `Expected at most ${maxActionsPerUpdate} actions per account update.`
-    );
+    inner.assertAtEnd(`Expected at most ${maxActionsPerUpdate} actions per account update.`);
   }
   actions.assertAtEnd();
 
@@ -119,9 +107,7 @@ function merkleUpdateBatch(
 
     // if an expected previous value was provided, check whether it matches the actual previous value
     // otherwise, the entire update in invalidated
-    let matchesPreviousValue = actualPreviousValue
-      .orElse(0n)
-      .equals(previousValue);
+    let matchesPreviousValue = actualPreviousValue.orElse(0n).equals(previousValue);
     let isValidAction = usesPreviousValue.implies(matchesPreviousValue);
     isValidUpdate = isValidUpdate.and(isValidAction);
 
@@ -207,19 +193,12 @@ function OffchainStateRollup({
           stateA: OffchainStateCommitments,
           actions: ActionIterator,
           tree: IndexedMerkleMapN,
-          recursiveProof: Proof<
-            OffchainStateCommitments,
-            OffchainStateCommitments
-          >
+          recursiveProof: Proof<OffchainStateCommitments, OffchainStateCommitments>
         ) {
           recursiveProof.verify();
 
           // in the recursive case, the recursive proof's initial state has to match this proof's initial state
-          Provable.assertEqual(
-            OffchainStateCommitments,
-            recursiveProof.publicInput,
-            stateA
-          );
+          Provable.assertEqual(OffchainStateCommitments, recursiveProof.publicInput, stateA);
 
           // the state we start with
           let stateB = recursiveProof.publicOutput;
@@ -247,21 +226,14 @@ function OffchainStateRollup({
     Proof: RollupProof,
     program: offchainStateRollup,
 
-    async compile(options?: {
-      cache?: Cache;
-      forceRecompile?: boolean;
-      proofsEnabled?: boolean;
-    }) {
+    async compile(options?: { cache?: Cache; forceRecompile?: boolean; proofsEnabled?: boolean }) {
       if (isCompiled) return;
       let result = await offchainStateRollup.compile(options);
       isCompiled = true;
       return result;
     },
 
-    async prove(
-      tree: IndexedMerkleMapN,
-      actions: MerkleList<MerkleList<MerkleLeaf>>
-    ) {
+    async prove(tree: IndexedMerkleMapN, actions: MerkleList<MerkleList<MerkleLeaf>>) {
       assert(tree.height === logTotalCapacity + 1, 'Tree height must match');
       if (getProofsEnabled()) await this.compile();
       // clone the tree so we don't modify the input
@@ -340,8 +312,7 @@ function OffchainStateRollup({
 function sliceActions(actions: ActionIterator, batchSize: number) {
   class ActionListsList extends MerkleList.create(
     ActionList,
-    (hash: Field, actions: ActionList) =>
-      Actions.updateSequenceState(hash, actions.hash),
+    (hash: Field, actions: ActionList) => Actions.updateSequenceState(hash, actions.hash),
     actions.currentHash
   ) {}
 
@@ -354,10 +325,7 @@ function sliceActions(actions: ActionIterator, batchSize: number) {
 
     let nextList = actions.data.get()[actions._index('next')].element;
     let nextSize = nextList.data.get().length;
-    assert(
-      nextSize <= batchSize,
-      'Actions in one update exceed maximum batch size'
-    );
+    assert(nextSize <= batchSize, 'Actions in one update exceed maximum batch size');
     if (totalSize + nextSize > batchSize) break;
 
     let nextMerkleList = actions.next();

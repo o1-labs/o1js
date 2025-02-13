@@ -1,12 +1,12 @@
 /**
  * A ledger of accounts - simple model of a local blockchain.
  */
-import { PublicKey } from '../../provable/crypto/signature.js';
+import { PublicKey } from '../../../provable/crypto/signature.js';
 import type { AccountUpdate } from '../account-update.js';
 import { Account, newAccount } from '../account.js';
-import { Field } from '../../provable/field.js';
+import { Field } from '../../../provable/field.js';
 import { applyAccountUpdate } from './apply.js';
-import { Types } from '../../../bindings/mina-transaction/types.js';
+import { Types } from '../../../../bindings/mina-transaction/types.js';
 
 export { SimpleLedger };
 
@@ -21,10 +21,7 @@ class SimpleLedger {
     return new SimpleLedger();
   }
 
-  exists({
-    publicKey,
-    tokenId = Types.TokenId.empty(),
-  }: InputAccountId): boolean {
+  exists({ publicKey, tokenId = Types.TokenId.empty() }: InputAccountId): boolean {
     return this.accounts.has(accountId({ publicKey, tokenId }));
   }
 
@@ -32,10 +29,7 @@ class SimpleLedger {
     this.accounts.set(accountId(account), account);
   }
 
-  load({
-    publicKey,
-    tokenId = Types.TokenId.empty(),
-  }: InputAccountId): Account | undefined {
+  load({ publicKey, tokenId = Types.TokenId.empty() }: InputAccountId): Account | undefined {
     let id = accountId({ publicKey, tokenId });
     let account = this.accounts.get(id);
     return account;
