@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Gate, Pickles, initializeBindings } from '../../../snarky.js';
+import { Gate, Pickles } from '../../../snarky.js';
 import { Field, Bool } from '../../provable/wrapped.js';
 import {
   AccountUpdate,
@@ -474,7 +474,7 @@ function computeCallData(
     if (isHashable(type)) {
       input = HashInput.append(input, type.toInput(value));
     } else {
-      input.fields!.push(...[Field(type.sizeInFields()), ...type.toFields(value)]);
+      input.fields!.push(Field(type.sizeInFields()), ...type.toFields(value));
     }
   }
   const totalArgFields = packToFields(input);
@@ -1022,7 +1022,7 @@ super.init();
     let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions))
       .map((event) => {
         return event.events.map((eventData) => {
-          let { events, ...rest } = event;
+          let { events: _events, ...rest } = event;
           return {
             ...rest,
             event: eventData,

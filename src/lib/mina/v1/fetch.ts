@@ -98,7 +98,7 @@ function checkForValidUrl(url: string) {
   try {
     new URL(url);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -545,12 +545,11 @@ async function checkZkappTransaction(transactionHash: string, blockLength = 20) 
 
 function parseFetchedBlock({
   protocolState: {
-    blockchainState: { snarkedLedgerHash, utcDate },
+    blockchainState: { snarkedLedgerHash },
     consensusState: {
       blockHeight,
       minWindowDensity,
       totalCurrency,
-      slot,
       slotSinceGenesis,
       nextEpochData,
       stakingEpochData,
