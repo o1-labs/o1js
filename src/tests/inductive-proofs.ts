@@ -32,10 +32,7 @@ let MaxProofsVerifiedOne = ZkProgram({
     mergeOne: {
       privateInputs: [SelfProof],
 
-      async method(
-        publicInput: Field,
-        earlierProof: SelfProof<Field, undefined>
-      ) {
+      async method(publicInput: Field, earlierProof: SelfProof<Field, undefined>) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(publicInput);
       },
@@ -59,10 +56,7 @@ let MaxProofsVerifiedTwo = ZkProgram({
     mergeOne: {
       privateInputs: [SelfProof],
 
-      async method(
-        publicInput: Field,
-        earlierProof: SelfProof<Field, undefined>
-      ) {
+      async method(publicInput: Field, earlierProof: SelfProof<Field, undefined>) {
         earlierProof.verify();
         earlierProof.publicInput.add(1).assertEquals(publicInput);
       },
@@ -94,10 +88,7 @@ await testRecursion(MaxProofsVerifiedZero as any, 0);
 await testRecursion(MaxProofsVerifiedOne as any, 1);
 await testRecursion(MaxProofsVerifiedTwo, 2);
 
-async function testRecursion(
-  Program: typeof MaxProofsVerifiedTwo,
-  maxProofsVerified: number
-) {
+async function testRecursion(Program: typeof MaxProofsVerifiedTwo, maxProofsVerified: number) {
   console.log(`testing maxProofsVerified = ${maxProofsVerified}`);
 
   class ProofClass extends Program.Proof {}

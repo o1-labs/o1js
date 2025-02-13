@@ -1,21 +1,8 @@
 import { expect } from 'expect';
-import {
-  AccountUpdate,
-  Lightnet,
-  Mina,
-  PrivateKey,
-  UInt64,
-  fetchAccount,
-} from 'o1js';
+import { AccountUpdate, Lightnet, Mina, PrivateKey, UInt64, fetchAccount } from 'o1js';
 import os from 'os';
 import { tic, toc } from '../../utils/tic-toc.node.js';
-import {
-  Dex,
-  DexTokenHolder,
-  addresses,
-  keys,
-  tokenIds,
-} from './dex-with-actions.js';
+import { Dex, DexTokenHolder, addresses, keys, tokenIds } from './dex-with-actions.js';
 import { TrivialCoin as TokenContract } from './erc20.js';
 
 const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
@@ -125,16 +112,8 @@ if (successfulTransactions <= 2) {
     // pay fees for creating 3 user accounts
     let feePayer = AccountUpdate.fundNewAccount(sender, 3);
     feePayer.send({ to: addresses.user, amount: 8e9 }); // give users MINA to pay fees
-    await tokenX.transfer(
-      addresses.tokenX,
-      addresses.user,
-      UInt64.from(USER_DX)
-    );
-    await tokenY.transfer(
-      addresses.tokenY,
-      addresses.user,
-      UInt64.from(USER_DX)
-    );
+    await tokenX.transfer(addresses.tokenX, addresses.user, UInt64.from(USER_DX));
+    await tokenY.transfer(addresses.tokenY, addresses.user, UInt64.from(USER_DX));
   });
   await tx.prove();
   pendingTx = await tx.sign([senderKey, keys.tokenX, keys.tokenY]).send();
@@ -325,15 +304,11 @@ async function getTokenBalances() {
   };
   let user = 'user' as const;
   try {
-    balances.user.MINA =
-      Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
+    balances.user.MINA = Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
   } catch {}
   for (let token of ['X', 'Y', 'lqXY'] as const) {
     try {
-      balances[user][token] = Mina.getBalance(
-        addresses[user],
-        tokenIds[token]
-      ).toBigInt();
+      balances[user][token] = Mina.getBalance(addresses[user], tokenIds[token]).toBigInt();
     } catch {}
   }
   try {

@@ -1,19 +1,11 @@
-import {
-  fetchAccount,
-  setGraphqlEndpoints,
-  fetchLastBlock,
-  PublicKey,
-  Types,
-} from 'o1js';
+import { fetchAccount, setGraphqlEndpoints, fetchLastBlock, PublicKey, Types } from 'o1js';
 
 setGraphqlEndpoints([
   'https://proxy.berkeley.minaexplorer.com/graphql',
   'https://berkeley.minascan.io/graphql',
 ]);
 
-let zkappAddress = PublicKey.fromBase58(
-  'B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan'
-);
+let zkappAddress = PublicKey.fromBase58('B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan');
 let { account, error } = await fetchAccount({
   publicKey: zkappAddress,
 });

@@ -103,9 +103,7 @@ class TokenAccountUpdateIterator {
       update.body.mayUseToken,
       this.currentLayer.mayUseToken
     );
-    let isSelf = TokenId.derive(update.publicKey, update.tokenId).equals(
-      this.selfToken
-    );
+    let isSelf = TokenId.derive(update.publicKey, update.tokenId).equals(this.selfToken);
 
     // if we don't have to check the children, ignore the forest by jumping to its end
     let skipSubtree = canAccessThisToken.not().or(isSelf);
@@ -120,19 +118,10 @@ class TokenAccountUpdateIterator {
     let currentLayerFinished = currentForest.isAtStart();
     let childLayerFinished = childForest.isAtStart();
 
-    this.unfinishedParentLayers.pushIf(
-      currentLayerFinished.not(),
-      this.currentLayer
-    );
-    let currentOrParentLayer =
-      this.unfinishedParentLayers.popIf(childLayerFinished);
+    this.unfinishedParentLayers.pushIf(currentLayerFinished.not(), this.currentLayer);
+    let currentOrParentLayer = this.unfinishedParentLayers.popIf(childLayerFinished);
 
-    this.currentLayer = Provable.if(
-      childLayerFinished,
-      Layer,
-      currentOrParentLayer,
-      childLayer
-    );
+    this.currentLayer = Provable.if(childLayerFinished, Layer, currentOrParentLayer, childLayer);
 
     return { accountUpdate: update, usesThisToken };
   }

@@ -1,12 +1,7 @@
 import { provableFromClass } from '../types/provable-derivers.js';
 import { CurveParams } from '../../../bindings/crypto/elliptic-curve.js';
 import { ProvablePureExtended } from '../types/struct.js';
-import {
-  FlexiblePoint,
-  ForeignCurve,
-  createForeignCurve,
-  toPoint,
-} from './foreign-curve.js';
+import { FlexiblePoint, ForeignCurve, createForeignCurve, toPoint } from './foreign-curve.js';
 import { AlmostForeignField } from '../foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Field3 } from '../gadgets/foreign-field.js';
@@ -164,10 +159,7 @@ class EcdsaSignature {
    * In contrast, this method just takes the message hash (a curve scalar, or the output bytes of a hash function)
    * as input, giving you flexibility in choosing the hashing algorithm.
    */
-  verifySignedHash(
-    msgHash: AlmostForeignField | bigint | Bytes,
-    publicKey: FlexiblePoint
-  ): Bool {
+  verifySignedHash(msgHash: AlmostForeignField | bigint | Bytes, publicKey: FlexiblePoint): Bool {
     if (msgHash instanceof Bytes.Base)
       msgHash = keccakOutputToScalar(msgHash, this.Constructor.Curve);
 
@@ -246,11 +238,8 @@ class EcdsaSignature {
 /**
  * Create a class {@link EcdsaSignature} for verifying ECDSA signatures on the given curve.
  */
-function createEcdsa(
-  curve: CurveParams | typeof ForeignCurve
-): typeof EcdsaSignature {
-  let Curve0: typeof ForeignCurve =
-    'b' in curve ? createForeignCurve(curve) : curve;
+function createEcdsa(curve: CurveParams | typeof ForeignCurve): typeof EcdsaSignature {
+  let Curve0: typeof ForeignCurve = 'b' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}
 
   class Signature extends EcdsaSignature {

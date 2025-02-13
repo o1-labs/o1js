@@ -130,9 +130,7 @@ class CircuitString extends Struct(RawCircuitString) {
     let possibleResults = [];
     for (let length = 0; length < n + 1; length++) {
       // if the first string has this `length`, then this is the result:
-      possibleResults[length] = chars
-        .slice(0, length)
-        .concat(otherChars.slice(0, n - length));
+      possibleResults[length] = chars.slice(0, length).concat(otherChars.slice(0, n - length));
     }
     // compute the actual result, by always picking the char which corresponds to the actual length
     let result: Character[] = [];

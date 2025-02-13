@@ -19,9 +19,7 @@ function rsaSign(message: bigint, privateKey: bigint, modulus: bigint): bigint {
  */
 async function sha256Bigint(message: string) {
   let messageBytes = new TextEncoder().encode(message);
-  let digestBytes = new Uint8Array(
-    await crypto.subtle.digest('SHA-256', messageBytes)
-  );
+  let digestBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', messageBytes));
   return bytesToBigint(digestBytes);
 }
 

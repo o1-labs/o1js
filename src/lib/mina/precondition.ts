@@ -1,18 +1,12 @@
 import { Bool, Field } from '../provable/wrapped.js';
-import {
-  circuitValueEquals,
-  cloneCircuitValue,
-} from '../provable/types/struct.js';
+import { circuitValueEquals, cloneCircuitValue } from '../provable/types/struct.js';
 import { Provable } from '../provable/provable.js';
 import { activeInstance as Mina } from './mina-instance.js';
 import type { AccountUpdate } from './account-update.js';
 import { Int64, UInt32, UInt64 } from '../provable/int.js';
 import { Layout } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import {
-  emptyReceiptChainHash,
-  TokenSymbol,
-} from '../provable/crypto/poseidon.js';
+import { emptyReceiptChainHash, TokenSymbol } from '../provable/crypto/poseidon.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import {
   ActionState,
@@ -156,15 +150,9 @@ function preconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
 // so we can add customized fields easily
 
 function Network(accountUpdate: AccountUpdate): Network {
-  let layout =
-    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network;
+  let layout = jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.network;
   let context = getPreconditionContextExn(accountUpdate);
-  let network: RawNetwork = preconditionClass(
-    layout as Layout,
-    'network',
-    accountUpdate,
-    context
-  );
+  let network: RawNetwork = preconditionClass(layout as Layout, 'network', accountUpdate, context);
   let timestamp = {
     get() {
       let slot = network.globalSlotSinceGenesis.get();
@@ -194,10 +182,7 @@ function Network(accountUpdate: AccountUpdate): Network {
     },
     requireBetween(lower: UInt64, upper: UInt64) {
       let [slotLower, slotUpper] = timestampToGlobalSlotRange(lower, upper);
-      return network.globalSlotSinceGenesis.requireBetween(
-        slotLower,
-        slotUpper
-      );
+      return network.globalSlotSinceGenesis.requireBetween(slotLower, slotUpper);
     },
     requireNothing() {
       return network.globalSlotSinceGenesis.requireNothing();
@@ -207,18 +192,12 @@ function Network(accountUpdate: AccountUpdate): Network {
 }
 
 function Account(accountUpdate: AccountUpdate): Account {
-  let layout =
-    jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account;
+  let layout = jsLayout.AccountUpdate.entries.body.entries.preconditions.entries.account;
   let context = getPreconditionContextExn(accountUpdate);
   let identity = (x: any) => x;
   let update: Update = {
     delegate: {
-      ...preconditionSubclass(
-        accountUpdate,
-        'account.delegate',
-        PublicKey,
-        context
-      ),
+      ...preconditionSubclass(accountUpdate, 'account.delegate', PublicKey, context),
       ...updateSubclass(accountUpdate, 'delegate', identity),
     },
     verificationKey: updateSubclass(accountUpdate, 'verificationKey', identity),
@@ -252,14 +231,8 @@ function CurrentSlot(accountUpdate: AccountUpdate): CurrentSlot {
   return {
     requireBetween(lower: UInt32, upper: UInt32) {
       context.constrained.add('validWhile');
-      let property: RangeCondition<UInt32> =
-        accountUpdate.body.preconditions.validWhile;
-      ensureConsistentPrecondition(
-        property,
-        Bool(true),
-        { lower, upper },
-        'validWhile'
-      );
+      let property: RangeCondition<UInt32> = accountUpdate.body.preconditions.validWhile;
+      ensureConsistentPrecondition(property, Bool(true), { lower, upper }, 'validWhile');
       property.isSome = Bool(true);
       property.value.lower = lower;
       property.value.upper = upper;
@@ -278,10 +251,7 @@ let baseMap = { UInt64, UInt32, Field, Bool, PublicKey, ActionState };
 function getProvableType(layout: { type: string; checkedTypeName?: string }) {
   let typeName = layout.checkedTypeName ?? layout.type;
   let type = baseMap[typeName as keyof typeof baseMap];
-  assertInternal(
-    type !== undefined,
-    `Unknown precondition base type ${typeName}`
-  );
+  assertInternal(type !== undefined, `Unknown precondition base type ${typeName}`);
   return type;
 }
 
@@ -295,12 +265,7 @@ function preconditionClass(
     // range condition
     if (layout.optionType === 'closedInterval') {
       let baseType = getProvableType(layout.inner.entries.lower);
-      return preconditionSubClassWithRange(
-        accountUpdate,
-        baseKey,
-        baseType,
-        context
-      );
+      return preconditionSubClassWithRange(accountUpdate, baseKey, baseType, context);
     }
     // value condition
     else if (layout.optionType === 'flaggedOption') {
@@ -314,19 +279,13 @@ function preconditionClass(
     return Object.fromEntries(
       layout.keys.map((key) => {
         let value = layout.entries[key];
-        return [
-          key,
-          preconditionClass(value, `${baseKey}.${key}`, accountUpdate, context),
-        ];
+        return [key, preconditionClass(value, `${baseKey}.${key}`, accountUpdate, context)];
       })
     );
   } else throw Error('bug');
 }
 
-function preconditionSubClassWithRange<
-  K extends LongKey,
-  U extends FlatPreconditionValue[K]
->(
+function preconditionSubClassWithRange<K extends LongKey, U extends FlatPreconditionValue[K]>(
   accountUpdate: AccountUpdate,
   longKey: K,
   fieldType: Provable<U>,
@@ -336,10 +295,7 @@ function preconditionSubClassWithRange<
     ...preconditionSubclass(accountUpdate, longKey, fieldType as any, context),
     requireBetween(lower: any, upper: any) {
       context.constrained.add(longKey);
-      let property: RangeCondition<any> = getPath(
-        accountUpdate.body.preconditions,
-        longKey
-      );
+      let property: RangeCondition<any> = getPath(accountUpdate.body.preconditions, longKey);
       let newValue = { lower, upper };
       ensureConsistentPrecondition(property, Bool(true), newValue, longKey);
       property.isSome = Bool(true);
@@ -357,10 +313,7 @@ function defaultUpper(fieldType: any) {
   return (fieldType as typeof UInt32 | typeof UInt64).MAXINT();
 }
 
-function preconditionSubclass<
-  K extends LongKey,
-  U extends FlatPreconditionValue[K]
->(
+function preconditionSubclass<K extends LongKey, U extends FlatPreconditionValue[K]>(
   accountUpdate: AccountUpdate,
   longKey: K,
   fieldType: Provable<U> & { empty(): U },
@@ -378,11 +331,7 @@ function preconditionSubclass<
       }
       let { read, vars } = context;
       read.add(longKey);
-      return (vars[longKey] ??= getVariable(
-        accountUpdate,
-        longKey,
-        fieldType
-      )) as U;
+      return (vars[longKey] ??= getVariable(accountUpdate, longKey, fieldType)) as U;
     },
     getAndRequireEquals() {
       let value = obj.get();
@@ -391,10 +340,7 @@ function preconditionSubclass<
     },
     requireEquals(value: U) {
       context.constrained.add(longKey);
-      let property = getPath(
-        accountUpdate.body.preconditions,
-        longKey
-      ) as AnyCondition<U>;
+      let property = getPath(accountUpdate.body.preconditions, longKey) as AnyCondition<U>;
       if ('isSome' in property) {
         let isInterval = 'lower' in property.value && 'upper' in property.value;
         let newValue = isInterval ? { lower: value, upper: value } : value;
@@ -407,50 +353,24 @@ function preconditionSubclass<
     },
     requireEqualsIf(condition: Bool, value: U) {
       context.constrained.add(longKey);
-      let property = getPath(
-        accountUpdate.body.preconditions,
-        longKey
-      ) as AnyCondition<U>;
+      let property = getPath(accountUpdate.body.preconditions, longKey) as AnyCondition<U>;
       assertInternal('isSome' in property);
       if ('lower' in property.value && 'upper' in property.value) {
-        let lower = Provable.if(
-          condition,
-          fieldType,
-          value,
-          defaultLower(fieldType) as U
-        );
-        let upper = Provable.if(
-          condition,
-          fieldType,
-          value,
-          defaultUpper(fieldType) as U
-        );
-        ensureConsistentPrecondition(
-          property,
-          condition,
-          { lower, upper },
-          longKey
-        );
+        let lower = Provable.if(condition, fieldType, value, defaultLower(fieldType) as U);
+        let upper = Provable.if(condition, fieldType, value, defaultUpper(fieldType) as U);
+        ensureConsistentPrecondition(property, condition, { lower, upper }, longKey);
         property.isSome = condition;
         property.value.lower = lower;
         property.value.upper = upper;
       } else {
-        let newValue = Provable.if(
-          condition,
-          fieldType,
-          value,
-          fieldType.empty()
-        );
+        let newValue = Provable.if(condition, fieldType, value, fieldType.empty());
         ensureConsistentPrecondition(property, condition, newValue, longKey);
         property.isSome = condition;
         property.value = newValue;
       }
     },
     requireNothing() {
-      let property = getPath(
-        accountUpdate.body.preconditions,
-        longKey
-      ) as AnyCondition<U>;
+      let property = getPath(accountUpdate.body.preconditions, longKey) as AnyCondition<U>;
       if ('isSome' in property) {
         property.isSome = Bool(false);
         if ('lower' in property.value && 'upper' in property.value) {
@@ -497,9 +417,7 @@ function globalSlotToTimestamp(slot: UInt32) {
 }
 function timestampToGlobalSlot(timestamp: UInt64, message: string) {
   let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
-  let { quotient: slot, rest } = timestamp
-    .sub(genesisTimestamp)
-    .divMod(slotTime);
+  let { quotient: slot, rest } = timestamp.sub(genesisTimestamp).divMod(slotTime);
   rest.value.assertEquals(Field(0), message);
   return slot.toUInt32();
 }
@@ -512,10 +430,7 @@ function timestampToGlobalSlotRange(
   // so we have to make the range smaller -- round up `tsLower` and round down `tsUpper`
   // also, we should clamp to the UInt32 max range [0, 2**32-1]
   let { genesisTimestamp, slotTime } = Mina.getNetworkConstants();
-  let tsLowerInt = Int64.from(tsLower)
-    .sub(genesisTimestamp)
-    .add(slotTime)
-    .sub(1);
+  let tsLowerInt = Int64.from(tsLower).sub(genesisTimestamp).add(slotTime).sub(1);
   let lowerCapped = Provable.if<UInt64>(
     tsLowerInt.isPositive(),
     UInt64,
@@ -528,10 +443,7 @@ function timestampToGlobalSlotRange(
   return [slotLower, slotUpper];
 }
 
-function getAccountPreconditions(body: {
-  publicKey: PublicKey;
-  tokenId?: Field;
-}): AccountValue {
+function getAccountPreconditions(body: { publicKey: PublicKey; tokenId?: Field }): AccountValue {
   let { publicKey, tokenId } = body;
   let hasAccount = Mina.hasAccount(publicKey, tokenId);
   if (!hasAccount) {
@@ -565,10 +477,7 @@ type PreconditionContext = {
   constrained: Set<LongKey>;
 };
 
-function initializePreconditions(
-  accountUpdate: AccountUpdate,
-  isSelf: boolean
-) {
+function initializePreconditions(accountUpdate: AccountUpdate, isSelf: boolean) {
   preconditionContexts.set(accountUpdate, {
     read: new Set(),
     constrained: new Set(),
@@ -591,10 +500,7 @@ function assertPreconditionInvariants(accountUpdate: AccountUpdate) {
     if (context.constrained.has(preconditionPath)) continue;
 
     // check if the precondition was modified manually, which is also a valid way of avoiding an error
-    let precondition = getPath(
-      accountUpdate.body.preconditions,
-      preconditionPath
-    );
+    let precondition = getPath(accountUpdate.body.preconditions, preconditionPath);
     let dummy = getPath(dummyPreconditions, preconditionPath);
     if (!circuitValueEquals(precondition, dummy)) continue;
 
@@ -634,12 +540,7 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
  * @throws {Error} Throws an error with a detailed message if attempting to set an inconsistent precondition.
  * @todo It would be nice to have the input parameter types more specific, but it's hard to do with the current implementation.
  */
-function ensureConsistentPrecondition(
-  property: any,
-  newIsSome: any,
-  value: any,
-  name: any
-) {
+function ensureConsistentPrecondition(property: any, newIsSome: any, value: any, name: any) {
   if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
     let errorMessage = `
 Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.

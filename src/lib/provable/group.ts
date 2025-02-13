@@ -2,11 +2,7 @@ import { Field } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { Scalar } from './scalar.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
-import {
-  GroupAffine,
-  Pallas,
-  PallasAffine,
-} from '../../bindings/crypto/elliptic-curve.js';
+import { GroupAffine, Pallas, PallasAffine } from '../../bindings/crypto/elliptic-curve.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/assert.js';
@@ -66,14 +62,10 @@ class Group {
       let x_bigint = this.x.toBigInt();
       let y_bigint = this.y.toBigInt();
 
-      let onCurve =
-        add(mul(x_bigint, mul(x_bigint, x_bigint)), Pallas.b) ===
-        square(y_bigint);
+      let onCurve = add(mul(x_bigint, mul(x_bigint, x_bigint)), Pallas.b) === square(y_bigint);
 
       if (!onCurve) {
-        throw Error(
-          `(x: ${x_bigint}, y: ${y_bigint}) is not a valid group element`
-        );
+        throw Error(`(x: ${x_bigint}, y: ${y_bigint}) is not a valid group element`);
       }
     }
   }
@@ -136,10 +128,7 @@ class Group {
   addNonZero(g2: Group, allowZeroOutput = false): Group {
     if (isConstant(this) && isConstant(g2)) {
       let { x, y, infinity } = PallasAffine.add(toAffine(this), toAffine(g2));
-      assert(
-        !infinity || allowZeroOutput,
-        'Group.addNonzero(): Result is zero'
-      );
+      assert(!infinity || allowZeroOutput, 'Group.addNonzero(): Result is zero');
       return fromAffine({ x, y, infinity });
     }
     let { result, isInfinity } = add(this, g2);
@@ -224,9 +213,7 @@ class Group {
     return { x: x.toBigInt(), y: y.toBigInt() };
   }
 
-  static fromValue(
-    g: { x: bigint | number | Field; y: bigint | number | Field } | Group
-  ) {
+  static fromValue(g: { x: bigint | number | Field; y: bigint | number | Field } | Group) {
     return new Group(g);
   }
 
@@ -341,9 +328,7 @@ class Group {
       isZero.or(x3.add(ax).add(Pallas.b).equals(y.square())).assertTrue();
     } catch (error) {
       if (!(error instanceof Error)) return error;
-      throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${
-        error.message
-      }`;
+      throw `${`Element (x: ${g.x}, y: ${g.y}) is not an element of the group.`}\n${error.message}`;
     }
   }
 

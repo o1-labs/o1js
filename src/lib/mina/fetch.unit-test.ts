@@ -147,10 +147,7 @@ describe('Fetch', () => {
     };
 
     describe('with a payload that is missing transaction info', () => {
-      const actionsList = createActionsList(
-        defaultAccountInfo,
-        fetchResponseNoTxInfo.data.actions
-      );
+      const actionsList = createActionsList(defaultAccountInfo, fetchResponseNoTxInfo.data.actions);
 
       test('orders the actions correctly', () => {
         const correctActionsHashes = [
@@ -164,9 +161,7 @@ describe('Fetch', () => {
           '1589729766029695153975344283092689798747741638003354620355672853210932754595',
           '10964420428484427410756859799314206378989718180435238943573393516522086219419',
         ];
-        expect(actionsList.map(({ hash }) => hash)).toEqual(
-          correctActionsHashes
-        );
+        expect(actionsList.map(({ hash }) => hash)).toEqual(correctActionsHashes);
       });
     });
 
@@ -186,9 +181,7 @@ describe('Fetch', () => {
           '14226491442770650712364681911870921131508915865197379983185088742764625929348',
           '13552033292375176242184292341671233419412691991179711376625259275814019808194',
         ];
-        expect(actionsList.map(({ hash }) => hash)).toEqual(
-          correctActionsHashes
-        );
+        expect(actionsList.map(({ hash }) => hash)).toEqual(correctActionsHashes);
       });
     });
   });
@@ -203,10 +196,7 @@ describe('Fetch', () => {
     beforeEach(() => {
       originalFetch = global.fetch;
       lastFetchOptions = undefined;
-      global.fetch = ((
-        input: RequestInfo | URL,
-        init?: RequestInit
-      ): Promise<Response> => {
+      global.fetch = ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
         lastFetchOptions = init;
         let url: string;
         if (typeof input === 'string') {

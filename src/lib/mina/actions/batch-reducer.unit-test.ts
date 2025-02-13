@@ -16,12 +16,7 @@ import {
   UInt64,
   assert,
 } from '../../../index.js';
-import {
-  TestInstruction,
-  expectBalance,
-  testLocal,
-  transaction,
-} from '../test/test-contract.js';
+import { TestInstruction, expectBalance, testLocal, transaction } from '../test/test-contract.js';
 const { IndexedMerkleMap, BatchReducer } = Experimental;
 
 const MINA = 1_000_000_000n;
@@ -145,9 +140,7 @@ await testLocal(
 
     // for every eligible account, we store 1 in the map, representing TRUE
     // eve is not eligible, the others are
-    [alice, bob, charlie, danny].forEach((address) =>
-      eligible.insert(key(address), 1n)
-    );
+    [alice, bob, charlie, danny].forEach((address) => eligible.insert(key(address), 1n));
     let newEligible = eligible; // for tracking updates to the eligible map
 
     return [
@@ -184,10 +177,7 @@ await testLocal(
         assert(batches.length === 2, 'two batches');
 
         // should not cause a recursive proof because onchain action processing was set to handle 4 actions
-        assert(
-          batches[0].batch.isRecursive.toBoolean() === false,
-          'not recursive'
-        );
+        assert(batches[0].batch.isRecursive.toBoolean() === false, 'not recursive');
 
         return batches.flatMap(({ batch, proof }, i) => [
           // we create one transaction for each batch
@@ -224,10 +214,7 @@ await testLocal(
         assert(batches.length === 3, 'three batches');
 
         // should have caused a recursive proof (2 actually) because ceil(9/4) = 3 proofs are needed (one of them done as part of the zkApp)
-        assert(
-          batches[0].batch.isRecursive.toBoolean() === true,
-          'is recursive'
-        );
+        assert(batches[0].batch.isRecursive.toBoolean() === true, 'is recursive');
 
         return batches.flatMap(({ batch, proof }, i) => [
           // we create one transaction for each batch

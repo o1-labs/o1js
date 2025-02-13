@@ -1,11 +1,5 @@
 import assert from 'assert';
-import {
-  Bytes,
-  PrivateKey,
-  initializeBindings,
-  Encryption,
-  Encoding,
-} from 'o1js';
+import { Bytes, PrivateKey, initializeBindings, Encryption, Encoding } from 'o1js';
 
 await initializeBindings();
 

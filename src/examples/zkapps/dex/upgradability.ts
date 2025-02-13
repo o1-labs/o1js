@@ -62,11 +62,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   tx.sign([feePayer.key, keys.tokenX, keys.tokenY]);
   await tx.send();
   balances = getTokenBalances();
-  console.log(
-    'Token contract tokens (X, Y):',
-    balances.tokenContract.X,
-    balances.tokenContract.Y
-  );
+  console.log('Token contract tokens (X, Y):', balances.tokenContract.X, balances.tokenContract.Y);
 
   /**
    * # Atomic Actions 1
@@ -104,9 +100,7 @@ async function atomicActionsTest({ withVesting }: { withVesting: boolean }) {
   tx.sign([feePayer.key, keys.dex]);
   await tx.send();
 
-  console.log(
-    'trying to change delegate (setDelegate=impossible, should fail)'
-  );
+  console.log('trying to change delegate (setDelegate=impossible, should fail)');
   tx = await Mina.transaction(feePayer, async () => {
     // setting the delegate field to something, although permissions forbid it
     let dexAccount = AccountUpdate.create(addresses.dex);
@@ -231,13 +225,8 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   let tx, balances, oldBalances;
 
   let options = withVesting ? { lockedLiquiditySlots: 2 } : undefined;
-  let {
-    Dex,
-    DexTokenHolder,
-    ModifiedDexTokenHolder,
-    ModifiedDex,
-    getTokenBalances,
-  } = createDex(options);
+  let { Dex, DexTokenHolder, ModifiedDexTokenHolder, ModifiedDex, getTokenBalances } =
+    createDex(options);
 
   // analyze methods for quick error feedback
   await DexTokenHolder.analyzeMethods();
@@ -272,11 +261,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   tx.sign([feePayer.key, keys.tokenX, keys.tokenY]);
   await tx.send();
   balances = getTokenBalances();
-  console.log(
-    'Token contract tokens (X, Y):',
-    balances.tokenContract.X,
-    balances.tokenContract.Y
-  );
+  console.log('Token contract tokens (X, Y):', balances.tokenContract.X, balances.tokenContract.Y);
 
   /**
    * # Upgradeability 1 - Happy Path
@@ -318,9 +303,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     },
     async () => {
       let au = AccountUpdate.createSigned(feePayer);
-      au.balance.subInPlace(
-        Mina.getNetworkConstants().accountCreationFee.mul(4)
-      );
+      au.balance.subInPlace(Mina.getNetworkConstants().accountCreationFee.mul(4));
       au.send({ to: addresses.user, amount: 20e9 }); // give users MINA to pay fees
       au.send({ to: addresses.user2, amount: 20e9 });
       // transfer to fee payer so they can provide initial liquidity
@@ -348,14 +331,8 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   console.log('compiling modified Dex contract...');
   await ModifiedDex.compile();
   let modifiedDex = new ModifiedDex(addresses.dex);
-  let modifiedDexTokenHolderX = new ModifiedDexTokenHolder(
-    addresses.dex,
-    tokenIds.X
-  );
-  let modifiedDexTokenHolderY = new ModifiedDexTokenHolder(
-    addresses.dex,
-    tokenIds.Y
-  );
+  let modifiedDexTokenHolderX = new ModifiedDexTokenHolder(addresses.dex, tokenIds.X);
+  let modifiedDexTokenHolderY = new ModifiedDexTokenHolder(addresses.dex, tokenIds.Y);
 
   tx = await Mina.transaction(feePayer, async () => {
     await modifiedDex.deploy();
@@ -370,13 +347,11 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
 
   // Making sure that both token holder accounts have been updated with the new modified verification key
   expect(
-    Mina.getAccount(addresses.dex, tokenX.deriveTokenId()).zkapp
-      ?.verificationKey?.data
+    Mina.getAccount(addresses.dex, tokenX.deriveTokenId()).zkapp?.verificationKey?.data
   ).toEqual(ModifiedDexTokenHolder._verificationKey?.data);
 
   expect(
-    Mina.getAccount(addresses.dex, tokenY.deriveTokenId()).zkapp
-      ?.verificationKey?.data
+    Mina.getAccount(addresses.dex, tokenY.deriveTokenId()).zkapp?.verificationKey?.data
   ).toEqual(ModifiedDexTokenHolder._verificationKey?.data);
 
   // this is important; we have to re-enable proof production (and verification) to make sure the proofs are valid against the newly deployed VK
@@ -390,10 +365,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     },
     async () => {
       AccountUpdate.fundNewAccount(feePayer);
-      await modifiedDex.supplyLiquidityBase(
-        UInt64.from(10_000),
-        UInt64.from(10_000)
-      );
+      await modifiedDex.supplyLiquidityBase(UInt64.from(10_000), UInt64.from(10_000));
     }
   );
   await tx.prove();
@@ -439,8 +411,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
     let update = AccountUpdate.createSigned(addresses.dex);
     update.account.permissions.set({
       ...Permissions.initial(),
-      setVerificationKey:
-        Permissions.VerificationKey.impossibleDuringCurrentVersion(),
+      setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),
     });
   });
   await tx.prove();

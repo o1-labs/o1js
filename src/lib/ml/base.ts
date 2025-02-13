@@ -146,10 +146,7 @@ const MlTuple = {
     return [0, ...mlTuple.map(f)] as any;
   },
 
-  mapFrom<T, N extends number, B>(
-    [, ...mlTuple]: MlTuple<T, N>,
-    f: (a: T) => B
-  ): B[] {
+  mapFrom<T, N extends number, B>([, ...mlTuple]: MlTuple<T, N>, f: (a: T) => B): B[] {
     return mlTuple.map(f);
   },
 

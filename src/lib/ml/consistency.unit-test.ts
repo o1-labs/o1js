@@ -81,10 +81,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
 
   let js = TokenId.derive(tokenOwner, parentTokenId);
   let ml = Field(
-    mlTest.tokenId.derive(
-      Ml.fromPublicKey(tokenOwner),
-      Ml.constFromField(parentTokenId)
-    )
+    mlTest.tokenId.derive(Ml.fromPublicKey(tokenOwner), Ml.constFromField(parentTokenId))
   );
   expect(js).toEqual(ml);
 });
@@ -104,10 +101,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
 
     let js = TokenId.derive(tokenOwner, parentTokenId);
     let ml = Field(
-      mlTest.tokenId.deriveChecked(
-        Ml.fromPublicKeyVar(tokenOwner),
-        Ml.varFromField(parentTokenId)
-      )
+      mlTest.tokenId.deriveChecked(Ml.fromPublicKeyVar(tokenOwner), Ml.varFromField(parentTokenId))
     );
 
     expect(js.isConstant()).toEqual(false);

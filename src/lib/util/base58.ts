@@ -3,18 +3,9 @@ import { Binable, withVersionNumber } from '../../bindings/lib/binable.js';
 import { sha256 } from 'js-sha256';
 import { changeBase } from '../../bindings/crypto/bigint-helpers.js';
 
-export {
-  toBase58Check,
-  fromBase58Check,
-  base58,
-  withBase58,
-  fieldEncodings,
-  Base58,
-  alphabet,
-};
+export { toBase58Check, fromBase58Check, base58, withBase58, fieldEncodings, Base58, alphabet };
 
-const alphabet =
-  '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.split('');
+const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.split('');
 let inverseAlphabet: Record<string, number> = {};
 alphabet.forEach((c, i) => {
   inverseAlphabet[c] = i;
@@ -34,8 +25,7 @@ function fromBase58Check(base58: string, versionByte: number) {
   let checksum = bytes.slice(-4);
   let originalBytes = bytes.slice(0, -4);
   let actualChecksum = computeChecksum(originalBytes);
-  if (!arrayEqual(checksum, actualChecksum))
-    throw Error('fromBase58Check: invalid checksum');
+  if (!arrayEqual(checksum, actualChecksum)) throw Error('fromBase58Check: invalid checksum');
   // check version byte
   if (originalBytes[0] !== versionByte)
     throw Error(
@@ -97,24 +87,14 @@ function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
   };
 }
 
-function withBase58<T>(
-  binable: Binable<T>,
-  versionByte: number
-): Binable<T> & Base58<T> {
+function withBase58<T>(binable: Binable<T>, versionByte: number): Binable<T> & Base58<T> {
   return { ...binable, ...base58(binable, versionByte) };
 }
 
 // encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)
 
-function customEncoding<Field>(
-  Field: Binable<Field>,
-  versionByte: number,
-  versionNumber?: number
-) {
-  let customField =
-    versionNumber !== undefined
-      ? withVersionNumber(Field, versionNumber)
-      : Field;
+function customEncoding<Field>(Field: Binable<Field>, versionByte: number, versionNumber?: number) {
+  let customField = versionNumber !== undefined ? withVersionNumber(Field, versionNumber) : Field;
   return base58(customField, versionByte);
 }
 
@@ -130,21 +110,9 @@ function fieldEncodings<Field>(Field: Binable<Field>) {
     versionBytes.receiptChainHash,
     RECEIPT_CHAIN_HASH_VERSION
   );
-  const LedgerHash = customEncoding(
-    Field,
-    versionBytes.ledgerHash,
-    LEDGER_HASH_VERSION
-  );
-  const EpochSeed = customEncoding(
-    Field,
-    versionBytes.epochSeed,
-    EPOCH_SEED_VERSION
-  );
-  const StateHash = customEncoding(
-    Field,
-    versionBytes.stateHash,
-    STATE_HASH_VERSION
-  );
+  const LedgerHash = customEncoding(Field, versionBytes.ledgerHash, LEDGER_HASH_VERSION);
+  const EpochSeed = customEncoding(Field, versionBytes.epochSeed, EPOCH_SEED_VERSION);
+  const StateHash = customEncoding(Field, versionBytes.stateHash, STATE_HASH_VERSION);
   return { TokenId, ReceiptChainHash, LedgerHash, EpochSeed, StateHash };
 }
 

@@ -347,11 +347,7 @@ const getActionsQuery = (
     actionData {
       accountUpdateId
       data
-      ${
-        _excludeTransactionInfo
-          ? ''
-          : 'transactionInfo { sequenceNumber zkappAccountUpdateIds }'
-      }
+      ${_excludeTransactionInfo ? '' : 'transactionInfo { sequenceNumber zkappAccountUpdateIds }'}
     }
   }
 }`;

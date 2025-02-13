@@ -1,13 +1,4 @@
-import {
-  Provable,
-  Int64,
-  UInt64,
-  UInt32,
-  UInt8,
-  Field,
-  Bool,
-  Sign,
-} from 'o1js';
+import { Provable, Int64, UInt64, UInt32, UInt8, Field, Bool, Sign } from 'o1js';
 
 describe('int', () => {
   const NUMBERMAX = 2 ** 53 - 1; //  JavaScript numbers can only safely store integers in the range -(2^53 − 1) to 2^53 − 1
@@ -40,15 +31,11 @@ describe('int', () => {
 
     describe('fromUnsigned', () => {
       it('should be the same as UInt64.zero', async () => {
-        expect(Int64.create(UInt64.zero, Sign.one)).toEqual(
-          Int64.fromUnsigned(UInt64.zero)
-        );
+        expect(Int64.create(UInt64.zero, Sign.one)).toEqual(Int64.fromUnsigned(UInt64.zero));
       });
 
       it('should be the same as UInt64.MAXINT', async () => {
-        expect(Int64.from((1n << 64n) - 1n)).toEqual(
-          Int64.fromUnsigned(UInt64.MAXINT())
-        );
+        expect(Int64.from((1n << 64n) - 1n)).toEqual(Int64.fromUnsigned(UInt64.MAXINT()));
       });
     });
 
@@ -78,9 +65,9 @@ describe('int', () => {
 
       it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
         const value = ((1n << 64n) - 2n) / 2n;
-        expect(
-          Int64.from(value).add(Int64.from(value)).add(Int64.one).toString()
-        ).toEqual(UInt64.MAXINT().toString());
+        expect(Int64.from(value).add(Int64.from(value)).add(Int64.one).toString()).toEqual(
+          UInt64.MAXINT().toString()
+        );
       });
 
       it('should throw on overflow', () => {
@@ -142,9 +129,7 @@ describe('int', () => {
       });
 
       it('10000-5000=5000', () => {
-        expect(
-          Int64.fromField(Field(10000)).sub(Int64.from('5000')).toString()
-        ).toEqual('5000');
+        expect(Int64.fromField(Field(10000)).sub(Int64.from('5000')).toString()).toEqual('5000');
       });
 
       it('0-1=-1', () => {
@@ -164,10 +149,7 @@ describe('int', () => {
       });
 
       it('toFields(2^53-1) should be the same as Field(2^53-1)', () => {
-        expect(Int64.toFields(Int64.from(NUMBERMAX))).toEqual([
-          Field(String(NUMBERMAX)),
-          Field(1),
-        ]);
+        expect(Int64.toFields(Int64.from(NUMBERMAX))).toEqual([Field(String(NUMBERMAX)), Field(1)]);
       });
     });
     describe('fromFields', () => {
@@ -620,10 +602,7 @@ describe('int', () => {
           it('should be the same as 2^53-1', async () => {
             await Provable.runAndCheck(async () => {
               const x = Provable.witness(UInt64, () => UInt64.from(NUMBERMAX));
-              const y = Provable.witness(
-                UInt64,
-                () => new UInt64(String(NUMBERMAX))
-              );
+              const y = Provable.witness(UInt64, () => new UInt64(String(NUMBERMAX)));
               x.assertEquals(y);
             });
           });
@@ -639,13 +618,8 @@ describe('int', () => {
 
           it('should be the same as 2^53-1', async () => {
             await Provable.runAndCheck(async () => {
-              const x = Provable.witness(UInt64, () =>
-                UInt64.from(String(NUMBERMAX))
-              );
-              const y = Provable.witness(
-                UInt64,
-                () => new UInt64(String(NUMBERMAX))
-              );
+              const x = Provable.witness(UInt64, () => UInt64.from(String(NUMBERMAX)));
+              const y = Provable.witness(UInt64, () => new UInt64(String(NUMBERMAX)));
               x.assertEquals(y);
             });
           });
@@ -665,12 +639,9 @@ describe('int', () => {
 
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const value = ((1n << 64n) - 2n) / 2n;
-          expect(
-            new UInt64(value)
-              .add(new UInt64(value))
-              .add(new UInt64(1))
-              .toString()
-          ).toEqual(UInt64.MAXINT().toString());
+          expect(new UInt64(value).add(new UInt64(value)).add(new UInt64(1)).toString()).toEqual(
+            UInt64.MAXINT().toString()
+          );
         });
 
         it('should throw on overflow addition', () => {
@@ -710,9 +681,7 @@ describe('int', () => {
         });
 
         it('MAXINTx1=MAXINT', () => {
-          expect(UInt64.MAXINT().mul(1).toString()).toEqual(
-            UInt64.MAXINT().toString()
-          );
+          expect(UInt64.MAXINT().mul(1).toString()).toEqual(UInt64.MAXINT().toString());
         });
 
         it('should throw on overflow multiplication', () => {
@@ -736,9 +705,7 @@ describe('int', () => {
         });
 
         it('MAXINT/1=MAXINT', () => {
-          expect(UInt64.MAXINT().div(1).toString()).toEqual(
-            UInt64.MAXINT().toString()
-          );
+          expect(UInt64.MAXINT().div(1).toString()).toEqual(UInt64.MAXINT().toString());
         });
 
         it('should throw on division by zero', () => {
@@ -782,53 +749,37 @@ describe('int', () => {
         });
 
         it('1000<100000=true', () => {
-          expect(new UInt64(1000).lessThan(new UInt64(100000))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt64(1000).lessThan(new UInt64(100000))).toEqual(Bool(true));
         });
 
         it('100000<1000=false', () => {
-          expect(new UInt64(100000).lessThan(new UInt64(1000))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt64(100000).lessThan(new UInt64(1000))).toEqual(Bool(false));
         });
 
         it('MAXINT<MAXINT=false', () => {
-          expect(UInt64.MAXINT().lessThan(UInt64.MAXINT())).toEqual(
-            Bool(false)
-          );
+          expect(UInt64.MAXINT().lessThan(UInt64.MAXINT())).toEqual(Bool(false));
         });
       });
 
       describe('lte', () => {
         it('1<=1=true', () => {
-          expect(new UInt64(1).lessThanOrEqual(new UInt64(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt64(1).lessThanOrEqual(new UInt64(1))).toEqual(Bool(true));
         });
 
         it('2<=1=false', () => {
-          expect(new UInt64(2).lessThanOrEqual(new UInt64(1))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt64(2).lessThanOrEqual(new UInt64(1))).toEqual(Bool(false));
         });
 
         it('1000<=100000=true', () => {
-          expect(new UInt64(1000).lessThanOrEqual(new UInt64(100000))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt64(1000).lessThanOrEqual(new UInt64(100000))).toEqual(Bool(true));
         });
 
         it('100000<=1000=false', () => {
-          expect(new UInt64(100000).lessThanOrEqual(new UInt64(1000))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt64(100000).lessThanOrEqual(new UInt64(1000))).toEqual(Bool(false));
         });
 
         it('MAXINT<=MAXINT=true', () => {
-          expect(UInt64.MAXINT().lessThanOrEqual(UInt64.MAXINT())).toEqual(
-            Bool(true)
-          );
+          expect(UInt64.MAXINT().lessThanOrEqual(UInt64.MAXINT())).toEqual(Bool(true));
         });
       });
 
@@ -878,59 +829,41 @@ describe('int', () => {
         });
 
         it('100000>1000=true', () => {
-          expect(new UInt64(100000).greaterThan(new UInt64(1000))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt64(100000).greaterThan(new UInt64(1000))).toEqual(Bool(true));
         });
 
         it('1000>100000=false', () => {
-          expect(new UInt64(1000).greaterThan(new UInt64(100000))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt64(1000).greaterThan(new UInt64(100000))).toEqual(Bool(false));
         });
 
         it('MAXINT>MAXINT=false', () => {
-          expect(UInt64.MAXINT().greaterThan(UInt64.MAXINT())).toEqual(
-            Bool(false)
-          );
+          expect(UInt64.MAXINT().greaterThan(UInt64.MAXINT())).toEqual(Bool(false));
         });
       });
 
       describe('greaterThanOrEqual', () => {
         it('2>=1=true', () => {
-          expect(new UInt64(2).greaterThanOrEqual(new UInt64(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt64(2).greaterThanOrEqual(new UInt64(1))).toEqual(Bool(true));
         });
 
         it('1>=1=true', () => {
-          expect(new UInt64(1).greaterThanOrEqual(new UInt64(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt64(1).greaterThanOrEqual(new UInt64(1))).toEqual(Bool(true));
         });
 
         it('1>=2=false', () => {
-          expect(new UInt64(1).greaterThanOrEqual(new UInt64(2))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt64(1).greaterThanOrEqual(new UInt64(2))).toEqual(Bool(false));
         });
 
         it('100000>=1000=true', () => {
-          expect(
-            new UInt64(100000).greaterThanOrEqual(new UInt64(1000))
-          ).toEqual(Bool(true));
+          expect(new UInt64(100000).greaterThanOrEqual(new UInt64(1000))).toEqual(Bool(true));
         });
 
         it('1000>=100000=false', () => {
-          expect(
-            new UInt64(1000).greaterThanOrEqual(new UInt64(100000))
-          ).toEqual(Bool(false));
+          expect(new UInt64(1000).greaterThanOrEqual(new UInt64(100000))).toEqual(Bool(false));
         });
 
         it('MAXINT>=MAXINT=true', () => {
-          expect(UInt64.MAXINT().greaterThanOrEqual(UInt64.MAXINT())).toEqual(
-            Bool(true)
-          );
+          expect(UInt64.MAXINT().greaterThanOrEqual(UInt64.MAXINT())).toEqual(Bool(true));
         });
       });
 
@@ -1460,10 +1393,7 @@ describe('int', () => {
           it('should be the same as 2^53-1', async () => {
             await Provable.runAndCheck(async () => {
               const x = Provable.witness(UInt32, () => UInt32.from(NUMBERMAX));
-              const y = Provable.witness(
-                UInt32,
-                () => new UInt32(String(NUMBERMAX))
-              );
+              const y = Provable.witness(UInt32, () => new UInt32(String(NUMBERMAX)));
               x.assertEquals(y);
             });
           });
@@ -1479,13 +1409,8 @@ describe('int', () => {
 
           it('should be the same as 2^53-1', async () => {
             await Provable.runAndCheck(async () => {
-              const x = Provable.witness(UInt32, () =>
-                UInt32.from(String(NUMBERMAX))
-              );
-              const y = Provable.witness(
-                UInt32,
-                () => new UInt32(String(NUMBERMAX))
-              );
+              const x = Provable.witness(UInt32, () => UInt32.from(String(NUMBERMAX)));
+              const y = Provable.witness(UInt32, () => new UInt32(String(NUMBERMAX)));
               x.assertEquals(y);
             });
           });
@@ -1505,12 +1430,9 @@ describe('int', () => {
 
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const value = ((1n << 32n) - 2n) / 2n;
-          expect(
-            new UInt32(value)
-              .add(new UInt32(value))
-              .add(new UInt32(1))
-              .toString()
-          ).toEqual(UInt32.MAXINT().toString());
+          expect(new UInt32(value).add(new UInt32(value)).add(new UInt32(1)).toString()).toEqual(
+            UInt32.MAXINT().toString()
+          );
         });
 
         it('should throw on overflow addition', () => {
@@ -1550,9 +1472,7 @@ describe('int', () => {
         });
 
         it('MAXINTx1=MAXINT', () => {
-          expect(UInt32.MAXINT().mul(1).toString()).toEqual(
-            UInt32.MAXINT().toString()
-          );
+          expect(UInt32.MAXINT().mul(1).toString()).toEqual(UInt32.MAXINT().toString());
         });
 
         it('should throw on overflow multiplication', () => {
@@ -1576,9 +1496,7 @@ describe('int', () => {
         });
 
         it('MAXINT/1=MAXINT', () => {
-          expect(UInt32.MAXINT().div(1).toString()).toEqual(
-            UInt32.MAXINT().toString()
-          );
+          expect(UInt32.MAXINT().div(1).toString()).toEqual(UInt32.MAXINT().toString());
         });
 
         it('should throw on division by zero', () => {
@@ -1622,53 +1540,37 @@ describe('int', () => {
         });
 
         it('1000<100000=true', () => {
-          expect(new UInt32(1000).lessThan(new UInt32(100000))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt32(1000).lessThan(new UInt32(100000))).toEqual(Bool(true));
         });
 
         it('100000<1000=false', () => {
-          expect(new UInt32(100000).lessThan(new UInt32(1000))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt32(100000).lessThan(new UInt32(1000))).toEqual(Bool(false));
         });
 
         it('MAXINT<MAXINT=false', () => {
-          expect(UInt32.MAXINT().lessThan(UInt32.MAXINT())).toEqual(
-            Bool(false)
-          );
+          expect(UInt32.MAXINT().lessThan(UInt32.MAXINT())).toEqual(Bool(false));
         });
       });
 
       describe('lessThanOrEqual', () => {
         it('1<=1=true', () => {
-          expect(new UInt32(1).lessThanOrEqual(new UInt32(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt32(1).lessThanOrEqual(new UInt32(1))).toEqual(Bool(true));
         });
 
         it('2<=1=false', () => {
-          expect(new UInt32(2).lessThanOrEqual(new UInt32(1))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt32(2).lessThanOrEqual(new UInt32(1))).toEqual(Bool(false));
         });
 
         it('1000<=100000=true', () => {
-          expect(new UInt32(1000).lessThanOrEqual(new UInt32(100000))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt32(1000).lessThanOrEqual(new UInt32(100000))).toEqual(Bool(true));
         });
 
         it('100000<=1000=false', () => {
-          expect(new UInt32(100000).lessThanOrEqual(new UInt32(1000))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt32(100000).lessThanOrEqual(new UInt32(1000))).toEqual(Bool(false));
         });
 
         it('MAXINT<=MAXINT=true', () => {
-          expect(UInt32.MAXINT().lessThanOrEqual(UInt32.MAXINT())).toEqual(
-            Bool(true)
-          );
+          expect(UInt32.MAXINT().lessThanOrEqual(UInt32.MAXINT())).toEqual(Bool(true));
         });
       });
 
@@ -1718,21 +1620,15 @@ describe('int', () => {
         });
 
         it('100000>1000=true', () => {
-          expect(new UInt32(100000).greaterThan(new UInt32(1000))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt32(100000).greaterThan(new UInt32(1000))).toEqual(Bool(true));
         });
 
         it('1000>100000=false', () => {
-          expect(new UInt32(1000).greaterThan(new UInt32(100000))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt32(1000).greaterThan(new UInt32(100000))).toEqual(Bool(false));
         });
 
         it('MAXINT>MAXINT=false', () => {
-          expect(UInt32.MAXINT().greaterThan(UInt32.MAXINT())).toEqual(
-            Bool(false)
-          );
+          expect(UInt32.MAXINT().greaterThan(UInt32.MAXINT())).toEqual(Bool(false));
         });
       });
 
@@ -1770,39 +1666,27 @@ describe('int', () => {
 
       describe('greaterThanOrEqual', () => {
         it('2>=1=true', () => {
-          expect(new UInt32(2).greaterThanOrEqual(new UInt32(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt32(2).greaterThanOrEqual(new UInt32(1))).toEqual(Bool(true));
         });
 
         it('1>=1=true', () => {
-          expect(new UInt32(1).greaterThanOrEqual(new UInt32(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt32(1).greaterThanOrEqual(new UInt32(1))).toEqual(Bool(true));
         });
 
         it('1>=2=false', () => {
-          expect(new UInt32(1).greaterThanOrEqual(new UInt32(2))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt32(1).greaterThanOrEqual(new UInt32(2))).toEqual(Bool(false));
         });
 
         it('100000>=1000=true', () => {
-          expect(
-            new UInt32(100000).greaterThanOrEqual(new UInt32(1000))
-          ).toEqual(Bool(true));
+          expect(new UInt32(100000).greaterThanOrEqual(new UInt32(1000))).toEqual(Bool(true));
         });
 
         it('1000>=100000=false', () => {
-          expect(
-            new UInt32(1000).greaterThanOrEqual(new UInt32(100000))
-          ).toEqual(Bool(false));
+          expect(new UInt32(1000).greaterThanOrEqual(new UInt32(100000))).toEqual(Bool(false));
         });
 
         it('MAXINT>=MAXINT=true', () => {
-          expect(UInt32.MAXINT().greaterThanOrEqual(UInt32.MAXINT())).toEqual(
-            Bool(true)
-          );
+          expect(UInt32.MAXINT().greaterThanOrEqual(UInt32.MAXINT())).toEqual(Bool(true));
         });
       });
 
@@ -2320,9 +2204,9 @@ describe('int', () => {
 
         it('(MAXINT/2+MAXINT/2) adds to MAXINT', () => {
           const value = ((1n << 8n) - 2n) / 2n;
-          expect(
-            new UInt8(value).add(new UInt8(value)).add(new UInt8(1)).toString()
-          ).toEqual(UInt8.MAXINT().toString());
+          expect(new UInt8(value).add(new UInt8(value)).add(new UInt8(1)).toString()).toEqual(
+            UInt8.MAXINT().toString()
+          );
         });
 
         it('should throw on overflow addition', () => {
@@ -2362,9 +2246,7 @@ describe('int', () => {
         });
 
         it('MAXINTx1=MAXINT', () => {
-          expect(UInt8.MAXINT().mul(1).toString()).toEqual(
-            UInt8.MAXINT().toString()
-          );
+          expect(UInt8.MAXINT().mul(1).toString()).toEqual(UInt8.MAXINT().toString());
         });
 
         it('should throw on overflow multiplication', () => {
@@ -2388,9 +2270,7 @@ describe('int', () => {
         });
 
         it('MAXINT/1=MAXINT', () => {
-          expect(UInt8.MAXINT().div(1).toString()).toEqual(
-            UInt8.MAXINT().toString()
-          );
+          expect(UInt8.MAXINT().div(1).toString()).toEqual(UInt8.MAXINT().toString());
         });
 
         it('should throw on division by zero', () => {
@@ -2448,33 +2328,23 @@ describe('int', () => {
 
       describe('lessThanOrEqual', () => {
         it('1<=1=true', () => {
-          expect(new UInt8(1).lessThanOrEqual(new UInt8(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt8(1).lessThanOrEqual(new UInt8(1))).toEqual(Bool(true));
         });
 
         it('2<=1=false', () => {
-          expect(new UInt8(2).lessThanOrEqual(new UInt8(1))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt8(2).lessThanOrEqual(new UInt8(1))).toEqual(Bool(false));
         });
 
         it('10<=100=true', () => {
-          expect(new UInt8(10).lessThanOrEqual(new UInt8(100))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt8(10).lessThanOrEqual(new UInt8(100))).toEqual(Bool(true));
         });
 
         it('100<=10=false', () => {
-          expect(new UInt8(100).lessThanOrEqual(new UInt8(10))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt8(100).lessThanOrEqual(new UInt8(10))).toEqual(Bool(false));
         });
 
         it('MAXINT<=MAXINT=true', () => {
-          expect(UInt8.MAXINT().lessThanOrEqual(UInt8.MAXINT())).toEqual(
-            Bool(true)
-          );
+          expect(UInt8.MAXINT().lessThanOrEqual(UInt8.MAXINT())).toEqual(Bool(true));
         });
       });
 
@@ -2528,15 +2398,11 @@ describe('int', () => {
         });
 
         it('10>100=false', () => {
-          expect(new UInt8(10).greaterThan(new UInt8(100))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt8(10).greaterThan(new UInt8(100))).toEqual(Bool(false));
         });
 
         it('MAXINT>MAXINT=false', () => {
-          expect(UInt8.MAXINT().greaterThan(UInt8.MAXINT())).toEqual(
-            Bool(false)
-          );
+          expect(UInt8.MAXINT().greaterThan(UInt8.MAXINT())).toEqual(Bool(false));
         });
       });
 
@@ -2574,39 +2440,27 @@ describe('int', () => {
 
       describe('greaterThanOrEqual', () => {
         it('2>=1=true', () => {
-          expect(new UInt8(2).greaterThanOrEqual(new UInt8(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt8(2).greaterThanOrEqual(new UInt8(1))).toEqual(Bool(true));
         });
 
         it('1>=1=true', () => {
-          expect(new UInt8(1).greaterThanOrEqual(new UInt8(1))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt8(1).greaterThanOrEqual(new UInt8(1))).toEqual(Bool(true));
         });
 
         it('1>=2=false', () => {
-          expect(new UInt8(1).greaterThanOrEqual(new UInt8(2))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt8(1).greaterThanOrEqual(new UInt8(2))).toEqual(Bool(false));
         });
 
         it('100>=10=true', () => {
-          expect(new UInt8(100).greaterThanOrEqual(new UInt8(10))).toEqual(
-            Bool(true)
-          );
+          expect(new UInt8(100).greaterThanOrEqual(new UInt8(10))).toEqual(Bool(true));
         });
 
         it('10>=100=false', () => {
-          expect(new UInt8(10).greaterThanOrEqual(new UInt8(100))).toEqual(
-            Bool(false)
-          );
+          expect(new UInt8(10).greaterThanOrEqual(new UInt8(100))).toEqual(Bool(false));
         });
 
         it('MAXINT>=MAXINT=true', () => {
-          expect(UInt8.MAXINT().greaterThanOrEqual(UInt8.MAXINT())).toEqual(
-            Bool(true)
-          );
+          expect(UInt8.MAXINT().greaterThanOrEqual(UInt8.MAXINT())).toEqual(Bool(true));
         });
       });
 

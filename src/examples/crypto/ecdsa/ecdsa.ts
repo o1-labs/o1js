@@ -1,12 +1,4 @@
-import {
-  ZkProgram,
-  Crypto,
-  createEcdsa,
-  createForeignCurve,
-  Bool,
-  Bytes,
-  Hash,
-} from 'o1js';
+import { ZkProgram, Crypto, createEcdsa, createForeignCurve, Bool, Bytes, Hash } from 'o1js';
 
 export { keccakAndEcdsa, ecdsa, Secp256k1, Ecdsa, Bytes32, ecdsaEthers };
 

@@ -1,14 +1,7 @@
 import { Fq, mod } from '../../bindings/crypto/finite-field.js';
-import {
-  GroupProjective,
-  Pallas,
-} from '../../bindings/crypto/elliptic-curve.js';
+import { GroupProjective, Pallas } from '../../bindings/crypto/elliptic-curve.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
-import {
-  record,
-  withCheck,
-  withVersionNumber,
-} from '../../bindings/lib/binable.js';
+import { record, withCheck, withVersionNumber } from '../../bindings/lib/binable.js';
 import { base58, withBase58 } from '../../lib/util/base58.js';
 import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
 import { BinableBigint, SignableBigint, signable } from './derivers-bigint.js';
@@ -49,9 +42,7 @@ const Group = {
     return Group.fromProjective(Pallas.one);
   },
   scale(point: Group, scalar: Scalar): Group {
-    return Group.fromProjective(
-      Pallas.scale(Group.toProjective(point), scalar)
-    );
+    return Group.fromProjective(Pallas.scale(Group.toProjective(point), scalar));
   },
   b: Pallas.b,
   toFields({ x, y }: Group) {
@@ -61,16 +52,13 @@ const Group = {
 
 let FieldWithVersion = withVersionNumber(Field, versionNumbers.field);
 let BinablePublicKey = withVersionNumber(
-  withCheck(
-    record({ x: FieldWithVersion, isOdd: Bool }, ['x', 'isOdd']),
-    ({ x }) => {
-      let { mul, add } = Field;
-      let ySquared = add(mul(x, mul(x, x)), Pallas.b);
-      if (!Field.isSquare(ySquared)) {
-        throw Error('PublicKey: not a valid group element');
-      }
+  withCheck(record({ x: FieldWithVersion, isOdd: Bool }, ['x', 'isOdd']), ({ x }) => {
+    let { mul, add } = Field;
+    let ySquared = add(mul(x, mul(x, x)), Pallas.b);
+    if (!Field.isSquare(ySquared)) {
+      throw Error('PublicKey: not a valid group element');
     }
-  ),
+  }),
   versionNumbers.publicKey
 );
 

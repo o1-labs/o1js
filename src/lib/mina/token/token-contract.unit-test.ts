@@ -37,8 +37,7 @@ Mina.setActiveInstance(Local);
 
 let [sender, other] = Local.testAccounts;
 
-let { publicKey: tokenAddress, privateKey: tokenKey } =
-  PrivateKey.randomKeypair();
+let { publicKey: tokenAddress, privateKey: tokenKey } = PrivateKey.randomKeypair();
 let token = new ExampleTokenContract(tokenAddress);
 let tokenId = token.deriveTokenId();
 
@@ -91,12 +90,7 @@ update4.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
 update4.balanceChange = Int64.minusOne;
 update4.body.callDepth = 2;
 
-forest = AccountUpdateForest.fromFlatArray([
-  update1,
-  update2,
-  update3,
-  update4,
-]);
+forest = AccountUpdateForest.fromFlatArray([update1, update2, update3, update4]);
 
 let approveTx = await Mina.transaction(sender, () => token.approveBase(forest));
 await approveTx.prove();

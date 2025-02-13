@@ -22,11 +22,7 @@ import {
   FlexibleProvablePure,
   InferProvable,
 } from '../provable/types/struct.js';
-import {
-  Provable,
-  getBlindingValue,
-  memoizationContext,
-} from '../provable/provable.js';
+import { Provable, getBlindingValue, memoizationContext } from '../provable/provable.js';
 import * as Encoding from '../../bindings/lib/encoding.js';
 import {
   HashInput,
@@ -37,10 +33,7 @@ import {
 } from '../provable/crypto/poseidon.js';
 import { UInt32, UInt64 } from '../provable/int.js';
 import * as Mina from './mina.js';
-import {
-  assertPreconditionInvariants,
-  cleanPreconditionsCache,
-} from './precondition.js';
+import { assertPreconditionInvariants, cleanPreconditionsCache } from './precondition.js';
 import {
   analyzeMethod,
   compileProgram,
@@ -115,15 +108,9 @@ function method<K extends string, T extends SmartContract>(
     throw Error(`Property name ${methodName} is reserved.`);
   }
   if (typeof target[methodName] !== 'function') {
-    throw Error(
-      `@method decorator was applied to \`${methodName}\`, which is not a function.`
-    );
+    throw Error(`@method decorator was applied to \`${methodName}\`, which is not a function.`);
   }
-  let paramTypes: Provable<any>[] = Reflect.getMetadata(
-    'design:paramtypes',
-    target,
-    methodName
-  );
+  let paramTypes: Provable<any>[] = Reflect.getMetadata('design:paramtypes', target, methodName);
 
   class SelfProof extends Proof<ZkappPublicInput, Empty> {
     static publicInputType = ZkappPublicInput;
@@ -168,11 +155,9 @@ function method<K extends string, T extends SmartContract>(
  * }
  * ```
  */
-method.returns = function <
-  K extends string,
-  T extends SmartContract,
-  R extends ProvableType
->(returnType: R) {
+method.returns = function <K extends string, T extends SmartContract, R extends ProvableType>(
+  returnType: R
+) {
   return function decorateMethod(
     target: T & {
       [k in K]: (...args: any) => Promise<InferProvable<R>>;
@@ -180,12 +165,7 @@ method.returns = function <
     methodName: K & string & keyof T,
     descriptor: PropertyDescriptor
   ) {
-    return method(
-      target as any,
-      methodName,
-      descriptor,
-      ProvableType.get(returnType)
-    );
+    return method(target as any, methodName, descriptor, ProvableType.get(returnType));
   };
 };
 
@@ -197,10 +177,7 @@ function wrapMethod(
 ) {
   let methodName = methodIntf.methodName;
   let noPromiseError = `Expected \`${ZkappClass.name}.${methodName}()\` to return a promise.`;
-  return async function wrappedMethod(
-    this: SmartContract,
-    ...actualArgs: any[]
-  ) {
+  return async function wrappedMethod(this: SmartContract, ...actualArgs: any[]) {
     cleanStatePrecondition(this);
     // special case: any AccountUpdate that is passed as an argument to a method
     // is unlinked from its current location, to allow the method to link it to itself
@@ -212,10 +189,7 @@ function wrapMethod(
 
     let insideContract = smartContractContext.get();
     if (!insideContract) {
-      const { id, context } = SmartContractContext.enter(
-        this,
-        selfAccountUpdate(this, methodName)
-      );
+      const { id, context } = SmartContractContext.enter(this, selfAccountUpdate(this, methodName));
       try {
         if (inCompile() || inProver() || inAnalyze()) {
           // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
@@ -247,21 +221,13 @@ function wrapMethod(
             let result: unknown;
             try {
               let clonedArgs = actualArgs.map(cloneCircuitValue);
-              result = await assertPromise(
-                method.apply(this, clonedArgs),
-                noPromiseError
-              );
+              result = await assertPromise(method.apply(this, clonedArgs), noPromiseError);
             } finally {
               memoizationContext.leave(id);
             }
 
             // connects our input + result with callData, so this method can be called
-            let callDataFields = computeCallData(
-              methodIntf,
-              actualArgs,
-              result,
-              blindingValue
-            );
+            let callDataFields = computeCallData(methodIntf, actualArgs, result, blindingValue);
             accountUpdate.body.callData = Poseidon.hash(callDataFields);
             ProofAuthorization.setKind(accountUpdate);
 
@@ -280,10 +246,7 @@ function wrapMethod(
           }
         } else if (!Mina.currentTransaction.has()) {
           // outside a transaction, just call the method, but check precondition invariants
-          let result = await assertPromise(
-            method.apply(this, actualArgs),
-            noPromiseError
-          );
+          let result = await assertPromise(method.apply(this, actualArgs), noPromiseError);
           // check the self accountUpdate right after calling the method
           // TODO: this needs to be done in a unified way for all account updates that are created
           assertPreconditionInvariants(this.self);
@@ -322,12 +285,7 @@ function wrapMethod(
           assertStatePrecondition(this);
 
           // connect our input + result with callData, so this method can be called
-          let callDataFields = computeCallData(
-            methodIntf,
-            clonedArgs,
-            result,
-            blindingValue
-          );
+          let callDataFields = computeCallData(methodIntf, clonedArgs, result, blindingValue);
           accountUpdate.body.callData = Poseidon.hash(callDataFields);
 
           if (!Authorization.hasAny(accountUpdate)) {
@@ -353,10 +311,7 @@ function wrapMethod(
           }
           let txLayout = Mina.currentTransaction.get().layout;
           txLayout.pushTopLevel(accountUpdate);
-          txLayout.setChildren(
-            accountUpdate,
-            context.selfLayout.finalizeChildren()
-          );
+          txLayout.setChildren(accountUpdate, context.selfLayout.finalizeChildren());
 
           return result;
         }
@@ -479,12 +434,7 @@ function wrapMethod(
       assert(accountUpdate.body.authorizationKind.isProved, 'callee is proved');
 
       // assert that the inputs & outputs we have match what the callee put on its callData
-      let callDataFields = computeCallData(
-        methodIntf,
-        actualArgs,
-        result,
-        blindingValue
-      );
+      let callDataFields = computeCallData(methodIntf, actualArgs, result, blindingValue);
       let callData = Poseidon.hash(callDataFields);
       accountUpdate.body.callData.assertEquals(callData);
       return result;
@@ -524,15 +474,11 @@ function computeCallData(
     if (isHashable(type)) {
       input = HashInput.append(input, type.toInput(value));
     } else {
-      input.fields!.push(
-        ...[Field(type.sizeInFields()), ...type.toFields(value)]
-      );
+      input.fields!.push(...[Field(type.sizeInFields()), ...type.toFields(value)]);
     }
   }
   const totalArgFields = packToFields(input);
-  let totalArgSize = Field(
-    args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t, 0)
-  );
+  let totalArgSize = Field(args.map(({ type }) => type.sizeInFields()).reduce((s, t) => s + t, 0));
 
   let returnSize = Field(returnType?.sizeInFields() ?? 0);
   input = { fields: [], packed: [] };
@@ -631,10 +577,7 @@ class SmartContract extends SmartContractBase {
    * it so that proofs end up in the original finite field). These are fairly expensive operations, so **expect compiling to take at least 20 seconds**,
    * up to several minutes if your circuit is large or your hardware is not optimal for these operations.
    */
-  static async compile({
-    cache = Cache.FileSystemDefault,
-    forceRecompile = false,
-  } = {}) {
+  static async compile({ cache = Cache.FileSystemDefault, forceRecompile = false } = {}) {
     let methodIntfs = this._methods ?? [];
     let methodKeys = methodIntfs.map(({ methodName }) => methodName);
     let methods = methodIntfs.map(({ methodName }) => {
@@ -678,9 +621,7 @@ class SmartContract extends SmartContractBase {
   static async digest() {
     // TODO: this should use the method digests in a deterministic order!
     let methodData = await this.analyzeMethods();
-    let hash = hashConstant(
-      Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest)))
-    );
+    let hash = hashConstant(Object.values(methodData).map((d) => Field(BigInt('0x' + d.digest))));
     return hash.toBigInt().toString(16);
   }
 
@@ -690,9 +631,7 @@ class SmartContract extends SmartContractBase {
    */
   static async getMaxProofsVerified() {
     let methodData = await this.analyzeMethods();
-    return computeMaxProofsVerified(
-      Object.values(methodData).map((d) => d.proofs.length)
-    );
+    return computeMaxProofsVerified(Object.values(methodData).map((d) => d.proofs.length));
   }
 
   /**
@@ -712,8 +651,7 @@ class SmartContract extends SmartContractBase {
     verificationKey?: { data: string; hash: Field | string };
   } = {}) {
     let accountUpdate = this.newSelf('deploy');
-    verificationKey ??= (this.constructor as typeof SmartContract)
-      ._verificationKey;
+    verificationKey ??= (this.constructor as typeof SmartContract)._verificationKey;
     if (verificationKey === undefined) {
       if (!Mina.getProofsEnabled()) {
         verificationKey = await VerificationKey.dummy();
@@ -747,9 +685,7 @@ class SmartContract extends SmartContractBase {
     let isFirstRun = Mina.currentTransaction()?.numberOfRuns === 0;
     if (!isFirstRun) return;
     Provable.asProver(() => {
-      if (
-        initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())
-      ) {
+      if (initUpdate.update.appState.some(({ isSome }) => !isSome.toBoolean())) {
         console.warn(
           `WARNING: the \`init()\` method was called without overwriting the entire state. This means that your zkApp will lack
 the \`provedState === true\` status which certifies that the current state was verifiably produced by proofs (and not arbitrarily set by the zkApp developer).
@@ -845,10 +781,7 @@ super.init();
       return accountUpdate;
     }
     let executionState = this.#executionState;
-    if (
-      executionState !== undefined &&
-      executionState.transactionId === transactionId
-    ) {
+    if (executionState !== undefined && executionState.transactionId === transactionId) {
       return executionState.accountUpdate;
     }
     // if in a transaction, but outside a @method call, we implicitly create an account update
@@ -966,10 +899,7 @@ super.init();
     this.self.approve(update);
   }
 
-  send(args: {
-    to: PublicKey | AccountUpdate | SmartContract;
-    amount: number | bigint | UInt64;
-  }) {
+  send(args: { to: PublicKey | AccountUpdate | SmartContract; amount: number | bigint | UInt64 }) {
     return this.self.send(args);
   }
 
@@ -990,11 +920,7 @@ super.init();
    *
    * Events will be emitted as a part of the transaction and can be collected by archive nodes.
    */
-  emitEventIf<K extends keyof this['events']>(
-    condition: Bool,
-    type: K,
-    event: any
-  ) {
+  emitEventIf<K extends keyof this['events']>(condition: Bool, type: K, event: any) {
     let accountUpdate = this.self;
     let eventTypes: (keyof this['events'])[] = Object.keys(this.events);
     if (eventTypes.length === 0)
@@ -1093,13 +1019,7 @@ super.init();
     }
     // filters all elements so that they are within the given range
     // only returns { type: "", event: [] } in a flat format
-    let events = (
-      await Mina.fetchEvents(
-        this.address,
-        this.self.body.tokenId,
-        queryFilterOptions
-      )
-    )
+    let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions))
       .map((event) => {
         return event.events.map((eventData) => {
           let { events, ...rest } = event;
@@ -1115,9 +1035,7 @@ super.init();
       // if there is only one event type, the event structure has no index and can directly be matched to the event type
       if (sortedEventTypes.length === 1) {
         let type = sortedEventTypes[0];
-        let event = this.events[type].fromFields(
-          eventData.event.data.map((f: string) => Field(f))
-        );
+        let event = this.events[type].fromFields(eventData.event.data.map((f: string) => Field(f)));
         return {
           ...eventData,
           type,
@@ -1136,9 +1054,7 @@ super.init();
         let type = sortedEventTypes[eventObjectIndex];
         // all other elements of the array are values used to construct the original object, we can drop the first value since its just an index
         let eventProps = eventData.event.data.slice(1);
-        let event = this.events[type].fromFields(
-          eventProps.map((f: string) => Field(f))
-        );
+        let event = this.events[type].fromFields(eventProps.map((f: string) => Field(f)));
         return {
           ...eventData,
           type,
@@ -1156,8 +1072,7 @@ super.init();
   }
 
   static runOutsideCircuit(run: () => void) {
-    if (Mina.currentTransaction()?.isFinalRunOutsideCircuit || inProver())
-      Provable.asProver(run);
+    if (Mina.currentTransaction()?.isFinalRunOutsideCircuit || inProver()) Provable.asProver(run);
   }
 
   // TODO: this could also be used to quickly perform any invariant checks on account updates construction
@@ -1184,10 +1099,7 @@ super.init();
     let ZkappClass = this as typeof SmartContract;
     let methodMetadata = (ZkappClass._methodMetadata ??= {});
     let methodIntfs = ZkappClass._methods ?? [];
-    if (
-      !methodIntfs.every((m) => m.methodName in methodMetadata) &&
-      !inAnalyze()
-    ) {
+    if (!methodIntfs.every((m) => m.methodName in methodMetadata) && !inAnalyze()) {
       let id: number;
       let insideSmartContract = !!smartContractContext.get();
       if (insideSmartContract) id = smartContractContext.enter(null);
@@ -1199,10 +1111,7 @@ super.init();
             methodIntf,
             async (publicInput, publicKey, tokenId, ...args) => {
               let instance: SmartContract = new ZkappClass(publicKey, tokenId);
-              let result = await (instance as any)[methodIntf.methodName](
-                publicInput,
-                ...args
-              );
+              let result = await (instance as any)[methodIntf.methodName](publicInput, ...args);
               accountUpdate = instance.#executionState!.accountUpdate;
               return result;
             }
@@ -1251,9 +1160,7 @@ const SmartContractContext = {
   },
 };
 
-type DeployArgs =
-  | { verificationKey?: { data: string; hash: string | Field } }
-  | undefined;
+type DeployArgs = { verificationKey?: { data: string; hash: string | Field } } | undefined;
 
 // alternative API which can replace decorators, works in pure JS
 
@@ -1288,10 +1195,7 @@ function declareMethods<T extends typeof SmartContract>(
 }
 
 const ProofAuthorization = {
-  setKind(
-    { body, id }: AccountUpdate,
-    priorAccountUpdates?: AccountUpdateLayout
-  ) {
+  setKind({ body, id }: AccountUpdate, priorAccountUpdates?: AccountUpdateLayout) {
     body.authorizationKind.isSigned = Bool(false);
     body.authorizationKind.isProved = Bool(true);
     let hash = Provable.witness(Field, () => {
@@ -1306,9 +1210,7 @@ const ProofAuthorization = {
         mutate: false,
       });
       priorAccountUpdatesFlat ??= proverData.transaction.accountUpdates;
-      priorAccountUpdatesFlat = priorAccountUpdatesFlat.filter(
-        (a) => a.id !== myAccountUpdateId
-      );
+      priorAccountUpdatesFlat = priorAccountUpdatesFlat.filter((a) => a.id !== myAccountUpdateId);
       let accountUpdate = [...priorAccountUpdatesFlat]
         .reverse()
         .find((body_) =>
@@ -1395,12 +1297,7 @@ function diffRecursive(
 
 // TODO: print a nice diff string instead of the two objects
 // something like `expect` or `json-diff`, but web-compatible
-function diff(
-  transaction: ZkappCommand,
-  index: number,
-  prover: any,
-  input: any
-) {
+function diff(transaction: ZkappCommand, index: number, prover: any, input: any) {
   delete prover.id;
   delete prover.callDepth;
   delete input.id;

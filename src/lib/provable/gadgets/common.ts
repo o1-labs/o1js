@@ -6,17 +6,7 @@ import { fieldVar } from '../gates.js';
 import { existsOne } from '../core/exists.js';
 import { createField, isBool } from '../core/field-constructor.js';
 
-export {
-  toVars,
-  toVar,
-  isVar,
-  assert,
-  bitSlice,
-  bit,
-  divideWithRemainder,
-  packBits,
-  isConstant,
-};
+export { toVars, toVar, isVar, assert, bitSlice, bit, divideWithRemainder, packBits, isConstant };
 
 /**
  * Given a Field, collapse its AST to a pure Var. See {@link FieldVar}.
@@ -44,9 +34,7 @@ function isVar(x: Field | FieldVar | bigint) {
 /**
  * Apply {@link toVar} to each element of a tuple.
  */
-function toVars<T extends Tuple<Field | bigint>>(
-  fields: T
-): { [k in keyof T]: VarField } {
+function toVars<T extends Tuple<Field | bigint>>(fields: T): { [k in keyof T]: VarField } {
   return Tuple.map(fields, toVar);
 }
 

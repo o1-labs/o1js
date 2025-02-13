@@ -31,17 +31,12 @@ console.log(
 
 console.log(
   'sparse merkle map (get)',
-  constraintSystem.size(
-    { from: [field, field, field, field] },
-    (root, key, value) => {
-      let mapWitness = Provable.witness(MerkleMapWitness, () =>
-        throwError('unused')
-      );
-      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(value);
-      key.assertEquals(actualKey);
-      root.assertEquals(actualRoot);
-    }
-  )
+  constraintSystem.size({ from: [field, field, field, field] }, (root, key, value) => {
+    let mapWitness = Provable.witness(MerkleMapWitness, () => throwError('unused'));
+    let [actualRoot, actualKey] = mapWitness.computeRootAndKey(value);
+    key.assertEquals(actualKey);
+    root.assertEquals(actualRoot);
+  })
 );
 
 console.log(
@@ -65,19 +60,14 @@ console.log(
 
 console.log(
   'sparse merkle map (set)',
-  constraintSystem.size(
-    { from: [field, field, field, field] },
-    (root, key, oldValue, value) => {
-      let mapWitness = Provable.witness(MerkleMapWitness, () =>
-        throwError('unused')
-      );
-      let [actualRoot, actualKey] = mapWitness.computeRootAndKey(oldValue);
-      key.assertEquals(actualKey);
-      root.assertEquals(actualRoot);
+  constraintSystem.size({ from: [field, field, field, field] }, (root, key, oldValue, value) => {
+    let mapWitness = Provable.witness(MerkleMapWitness, () => throwError('unused'));
+    let [actualRoot, actualKey] = mapWitness.computeRootAndKey(oldValue);
+    key.assertEquals(actualKey);
+    root.assertEquals(actualRoot);
 
-      let [_newRoot] = mapWitness.computeRootAndKey(value);
-    }
-  )
+    let [_newRoot] = mapWitness.computeRootAndKey(value);
+  })
 );
 
 console.log(
@@ -216,19 +206,14 @@ test(
 
       for (let i = 0; i < n; i++) {
         // confirm we still have the same keys and values
-        map
-          .getOption(initialKeysF[i])
-          .assertSome()
-          .assertEquals(initialValues[i]);
+        map.getOption(initialKeysF[i]).assertSome().assertEquals(initialValues[i]);
 
         // new keys are not in the map
         map.getOption(keysF[i]).isSome.assertFalse();
       }
 
       // can't update a non-existent key
-      expect(() => map.update(keysF[i0], valuesF[i0])).toThrow(
-        'Key does not exist'
-      );
+      expect(() => map.update(keysF[i0], valuesF[i0])).toThrow('Key does not exist');
 
       // set initial values at new keys, and values at initial keys
       for (let i = 0; i < n; i++) {
@@ -256,9 +241,7 @@ test(
     // check that the map is still the same
     for (let i = 0; i < n; i++) {
       expect(map.getOption(keys[i]).assertSome()).toEqual(Field(values[i]));
-      expect(map.getOption(initialKeys[i]).assertSome()).toEqual(
-        Field(values[i])
-      );
+      expect(map.getOption(initialKeys[i]).assertSome()).toEqual(Field(values[i]));
     }
     // random element is not in the map
     expect(map.getOption(Field.random()).isSome).toEqual(Bool(false));

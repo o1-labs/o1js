@@ -9,15 +9,9 @@ import {
 } from './offchain-state-serialization.js';
 import { Field } from '../../provable/wrapped.js';
 import { Proof } from '../../proof-system/proof.js';
-import {
-  OffchainStateCommitments,
-  OffchainStateRollup,
-} from './offchain-state-rollup.js';
+import { OffchainStateCommitments, OffchainStateRollup } from './offchain-state-rollup.js';
 import { Option, OptionOrValue } from '../../provable/option.js';
-import {
-  Constructor,
-  InferValue,
-} from '../../../bindings/lib/provable-generic.js';
+import { Constructor, InferValue } from '../../../bindings/lib/provable-generic.js';
 import { SmartContract } from '../zkapp.js';
 import { assert } from '../../provable/gadgets/common.js';
 import { State } from '../state.js';
@@ -35,9 +29,7 @@ export { OffchainState, OffchainStateCommitments };
 // internal API
 export { OffchainField, OffchainMap, OffchainStateInstance };
 
-type OffchainStateInstance<
-  Config extends { [key: string]: OffchainStateKind }
-> = {
+type OffchainStateInstance<Config extends { [key: string]: OffchainStateKind }> = {
   /**
    * The individual fields of the offchain state.
    *
@@ -71,9 +63,7 @@ type OffchainStateInstance<
   /**
    * Create a proof that updates the commitments to offchain state: Merkle root and action state.
    */
-  createSettlementProof(): Promise<
-    Proof<OffchainStateCommitments, OffchainStateCommitments>
-  >;
+  createSettlementProof(): Promise<Proof<OffchainStateCommitments, OffchainStateCommitments>>;
 
   /**
    * Settle the offchain state.
@@ -96,9 +86,7 @@ type OffchainStateInstance<
    *   \@method
    *   async settle(proof: StateProof) {
    */
-  settle(
-    proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
-  ): Promise<void>;
+  settle(proof: Proof<OffchainStateCommitments, OffchainStateCommitments>): Promise<void>;
 
   /**
    * Commitments to the offchain state, to use in your onchain state.
@@ -126,20 +114,15 @@ type OffchainState<Config extends { [key: string]: OffchainStateKind }> = {
    * Initialize an offchain state instance for a specific contract, or
    * return a memoized instance if one already exists for the contract.
    */
-  init(
-    contractInstance: OffchainStateContract<Config>
-  ): OffchainStateInstance<Config>;
+  init(contractInstance: OffchainStateContract<Config>): OffchainStateInstance<Config>;
 };
 
-type OffchainStateContract<
-  Config extends { [key: string]: OffchainStateKind }
-> = SmartContract & {
+type OffchainStateContract<Config extends { [key: string]: OffchainStateKind }> = SmartContract & {
   offchainStateCommitments: State<OffchainStateCommitments>;
   offchainState: OffchainStateInstance<Config>;
 };
-type OffchainStateContractClass<
-  Config extends { [key: string]: OffchainStateKind }
-> = typeof SmartContract & Constructor<OffchainStateContract<Config>>;
+type OffchainStateContractClass<Config extends { [key: string]: OffchainStateKind }> =
+  typeof SmartContract & Constructor<OffchainStateContract<Config>>;
 
 /**
  * Offchain state for a `SmartContract`.
@@ -170,9 +153,7 @@ type OffchainStateContractClass<
  *
  * See the individual methods on `offchainState` for more information on usage.
  */
-function OffchainState<
-  const Config extends { [key: string]: OffchainStateKind }
->(
+function OffchainState<const Config extends { [key: string]: OffchainStateKind }>(
   config: Config,
   options?: {
     /**
@@ -203,11 +184,7 @@ function OffchainState<
   }
 ): OffchainState<Config> {
   // read options
-  let {
-    logTotalCapacity = 30,
-    maxActionsPerUpdate = 4,
-    maxActionsPerProof,
-  } = options ?? {};
+  let { logTotalCapacity = 30, maxActionsPerUpdate = 4, maxActionsPerProof } = options ?? {};
   const height = logTotalCapacity + 1;
   class IndexedMerkleMapN extends IndexedMerkleMap(height) {}
 
@@ -237,10 +214,7 @@ function OffchainState<
         valueMap: new Map(),
 
         get contract() {
-          return assertDefined(
-            internal._contract,
-            'Must call `setContractInstance()` first'
-          );
+          return assertDefined(internal._contract, 'Must call `setContractInstance()` first');
         },
 
         get contractClass() {
@@ -256,9 +230,7 @@ function OffchainState<
     let internal = defaultInternalState();
 
     const onchainActionState = async () => {
-      let actionState = (
-        await internal.contract.offchainStateCommitments.fetch()
-      )?.actionState;
+      let actionState = (await internal.contract.offchainStateCommitments.fetch())?.actionState;
       assert(actionState !== undefined, 'Could not fetch action state');
       return actionState;
     };
@@ -271,11 +243,7 @@ function OffchainState<
         return { merkleMap: internal.merkleMap, valueMap: internal.valueMap };
       }
       let actionState = await onchainActionState();
-      let { merkleMap, valueMap } = await fetchMerkleMap(
-        height,
-        internal.contract,
-        actionState
-      );
+      let { merkleMap, valueMap } = await fetchMerkleMap(height, internal.contract, actionState);
       internal.merkleMap = merkleMap;
       internal.valueMap = valueMap;
       return { merkleMap, valueMap };
@@ -296,13 +264,9 @@ function OffchainState<
     /**
      * generic get which works for both fields and maps
      */
-    async function get<V, VValue>(
-      key: Field,
-      valueType: Actionable<V, VValue>
-    ) {
+    async function get<V, VValue>(key: Field, valueType: Actionable<V, VValue>) {
       // get onchain merkle root
-      let state =
-        maybeContract().offchainStateCommitments.getAndRequireEquals();
+      let state = maybeContract().offchainStateCommitments.getAndRequireEquals();
 
       // witness the merkle map & anchor against the onchain root
       let map = await Provable.witnessAsync(
@@ -328,9 +292,7 @@ function OffchainState<
       });
 
       // assert that the value hash matches the value, or both are none
-      let hashMatches = Poseidon.hashPacked(valueType, value.value).equals(
-        valueHash.value
-      );
+      let hashMatches = Poseidon.hashPacked(valueType, value.value).equals(valueHash.value);
       let bothNone = value.isSome.or(valueHash.isSome).not();
       assert(hashMatches.or(bothNone), 'value hash mismatch');
 
@@ -462,33 +424,26 @@ function OffchainState<
         // TODO make this not insanely recompute everything
         // - take new tree from `result`
         // - update value map in `prove()`, or separately based on `actions`
-        let { merkleMap: newMerkleMap, valueMap: newValueMap } =
-          await fetchMerkleMap(height, internal.contract);
+        let { merkleMap: newMerkleMap, valueMap: newValueMap } = await fetchMerkleMap(
+          height,
+          internal.contract
+        );
         internal.merkleMap = newMerkleMap;
         internal.valueMap = newValueMap;
 
         return result.proof;
       },
 
-      async settle(
-        proof: Proof<OffchainStateCommitments, OffchainStateCommitments>
-      ) {
+      async settle(proof: Proof<OffchainStateCommitments, OffchainStateCommitments>) {
         // verify the proof
         proof.verify();
 
         // check that proof moves state forward from the one currently stored
-        let state =
-          getContract().offchainStateCommitments.getAndRequireEquals();
-        Provable.assertEqual(
-          OffchainStateCommitments,
-          state,
-          proof.publicInput
-        );
+        let state = getContract().offchainStateCommitments.getAndRequireEquals();
+        Provable.assertEqual(OffchainStateCommitments, state, proof.publicInput);
 
         // require that proof uses the correct pending actions
-        getContract().account.actionState.requireEquals(
-          proof.publicOutput.actionState
-        );
+        getContract().account.actionState.requireEquals(proof.publicOutput.actionState);
 
         // update the state
         getContract().offchainStateCommitments.set(proof.publicOutput);
@@ -603,10 +558,7 @@ type OffchainMap<K, V, VValue> = {
    *
    * Note that the previous value is an option: to require that the field was not set before, use `Option(type).none()` or `undefined`.
    */
-  update(
-    key: K,
-    update: { from: OptionOrValue<V, VValue>; to: V | VValue }
-  ): void;
+  update(key: K, update: { from: OptionOrValue<V, VValue>; to: V | VValue }): void;
 
   /**
    * Set the value for this key to the given value, without taking into account the previous value.
