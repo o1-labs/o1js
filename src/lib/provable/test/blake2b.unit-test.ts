@@ -3,10 +3,7 @@ import { Bytes } from '../wrapped-classes.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { blake2b as nobleBlake2b } from '@noble/hashes/blake2b';
 import { bytes } from './test-utils.js';
-import {
-  equivalentAsync,
-  equivalentProvable,
-} from '../../testing/equivalent.js';
+import { equivalentAsync, equivalentProvable } from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
 import { expect } from 'expect';
 
@@ -59,7 +56,6 @@ await equivalentAsync(
   await BLAKE2BProgram.verify(proof);
   return proof.publicOutput;
 });
-
 
 function testVectors() {
   return [

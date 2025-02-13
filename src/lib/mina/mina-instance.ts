@@ -9,11 +9,7 @@ import type { NetworkId } from '../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
 import type * as Fetch from './fetch.js';
-import type {
-  TransactionPromise,
-  PendingTransactionPromise,
-  Transaction,
-} from './transaction.js';
+import type { TransactionPromise, PendingTransactionPromise, Transaction } from './transaction.js';
 
 export {
   Mina,
@@ -74,18 +70,13 @@ type NetworkConstants = {
 };
 
 type Mina = {
-  transaction(
-    sender: FeePayerSpec,
-    f: () => Promise<void>
-  ): TransactionPromise<false, false>;
+  transaction(sender: FeePayerSpec, f: () => Promise<void>): TransactionPromise<false, false>;
   currentSlot(): UInt32;
   hasAccount(publicKey: PublicKey, tokenId?: Field): boolean;
   getAccount(publicKey: PublicKey, tokenId?: Field): Account;
   getNetworkState(): NetworkValue;
   getNetworkConstants(): NetworkConstants;
-  sendTransaction(
-    transaction: Transaction<boolean, boolean>
-  ): PendingTransactionPromise;
+  sendTransaction(transaction: Transaction<boolean, boolean>): PendingTransactionPromise;
   fetchEvents: (
     publicKey: PublicKey,
     tokenId?: Field,
@@ -191,12 +182,7 @@ async function fetchEvents(
   filterOptions: EventActionFilterOptions = {},
   headers?: HeadersInit
 ) {
-  return await activeInstance.fetchEvents(
-    publicKey,
-    tokenId,
-    filterOptions,
-    headers
-  );
+  return await activeInstance.fetchEvents(publicKey, tokenId, filterOptions, headers);
 }
 
 /**
@@ -208,22 +194,13 @@ async function fetchActions(
   tokenId?: Field,
   headers?: HeadersInit
 ) {
-  return await activeInstance.fetchActions(
-    publicKey,
-    actionStates,
-    tokenId,
-    headers
-  );
+  return await activeInstance.fetchActions(publicKey, actionStates, tokenId, headers);
 }
 
 /**
  * @return A list of emitted sequencing actions associated to the given public key.
  */
-function getActions(
-  publicKey: PublicKey,
-  actionStates?: ActionStates,
-  tokenId?: Field
-) {
+function getActions(publicKey: PublicKey, actionStates?: ActionStates, tokenId?: Field) {
   return activeInstance.getActions(publicKey, actionStates, tokenId);
 }
 

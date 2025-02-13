@@ -19,14 +19,10 @@ const emptyActionState = Actions.emptyActionState();
  */
 type MerkleActions<T> = MerkleList<MerkleList<Hashed<T>>>;
 
-function MerkleActions<A extends Actionable<any>>(
-  actionType: A,
-  fromActionState?: Field
-) {
+function MerkleActions<A extends Actionable<any>>(actionType: A, fromActionState?: Field) {
   return MerkleList.create(
     MerkleActionList(actionType),
-    (hash, actions) =>
-      hashWithPrefix(prefixes.sequenceEvents, [hash, actions.hash]),
+    (hash, actions) => hashWithPrefix(prefixes.sequenceEvents, [hash, actions.hash]),
     fromActionState ?? emptyActionState
   );
 }
@@ -37,8 +33,7 @@ type MerkleActionList<T> = MerkleList<Hashed<T>>;
 function MerkleActionList<A extends Actionable<any>>(actionType: A) {
   return MerkleList.create(
     HashedAction(actionType),
-    (hash, action) =>
-      hashWithPrefix(prefixes.sequenceEvents, [hash, action.hash]),
+    (hash, action) => hashWithPrefix(prefixes.sequenceEvents, [hash, action.hash]),
     emptyActionsHash
   );
 }
@@ -47,9 +42,7 @@ type HashedAction<T> = Hashed<T>;
 
 function HashedAction<A extends Actionable<any>>(actionType: A) {
   let type = ProvableType.get(actionType as Actionable<InferProvable<A>>);
-  return Hashed.create(type, (action) =>
-    hashWithPrefix(prefixes.event, type.toFields(action))
-  );
+  return Hashed.create(type, (action) => hashWithPrefix(prefixes.event, type.toFields(action)));
 }
 
 function actionFieldsToMerkleList<T>(
@@ -60,13 +53,8 @@ function actionFieldsToMerkleList<T>(
   let type = ProvableType.get(actionType);
   const HashedActionT = HashedAction(type);
   const MerkleActionListT = MerkleActionList(type);
-  const MerkleActionsT = MerkleActions(
-    type,
-    fromActionState ? Field(fromActionState) : undefined
-  );
-  let actions = fields.map((event) =>
-    event.map((action) => type.fromFields(action.map(Field)))
-  );
+  const MerkleActionsT = MerkleActions(type, fromActionState ? Field(fromActionState) : undefined);
+  let actions = fields.map((event) => event.map((action) => type.fromFields(action.map(Field))));
   let hashes = actions.map((as) => as.map((a) => HashedActionT.hash(a)));
   return MerkleActionsT.from(hashes.map((h) => MerkleActionListT.from(h)));
 }
@@ -80,8 +68,7 @@ type MerkleActionHashes = MerkleList<Field>;
 function MerkleActionHashes(fromActionState?: Field) {
   return MerkleList.create(
     Field,
-    (hash, actionsHash) =>
-      hashWithPrefix(prefixes.sequenceEvents, [hash, actionsHash]),
+    (hash, actionsHash) => hashWithPrefix(prefixes.sequenceEvents, [hash, actionsHash]),
     fromActionState ?? emptyActionState
   );
 }

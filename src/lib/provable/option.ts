@@ -13,11 +13,7 @@ type Option<T, V = any> = { isSome: Bool; value: T } & {
   orElse(defaultValue: T | V): T;
 };
 
-type OptionOrValue<T, V> =
-  | { isSome: boolean | Bool; value: T | V }
-  | T
-  | V
-  | undefined;
+type OptionOrValue<T, V> = { isSome: boolean | Bool; value: T | V } | T | V | undefined;
 
 /**
  * Define an optional version of a provable type.
@@ -37,11 +33,7 @@ type OptionOrValue<T, V> =
  */
 function Option<A extends ProvableType>(
   type: A
-): ProvableInferPureFrom<
-  A,
-  Option<InferProvable<A>, InferValue<A>>,
-  InferValue<A> | undefined
-> &
+): ProvableInferPureFrom<A, Option<InferProvable<A>, InferValue<A>>, InferValue<A> | undefined> &
   (new (option: { isSome: Bool; value: InferProvable<A> }) => Option<
     InferProvable<A>,
     InferValue<A>
@@ -53,9 +45,7 @@ function Option<A extends ProvableType>(
         | InferValue<A>
         | undefined
     ): Option<InferProvable<A>, InferValue<A>>;
-    from(
-      value?: InferProvable<A> | InferValue<A>
-    ): Option<InferProvable<A>, InferValue<A>>;
+    from(value?: InferProvable<A> | InferValue<A>): Option<InferProvable<A>, InferValue<A>>;
     none(): Option<InferProvable<A>, InferValue<A>>;
   } {
   type T = InferProvable<A>;
@@ -64,10 +54,9 @@ function Option<A extends ProvableType>(
 
   // construct a provable with a JS type of `T | undefined`
   type PlainOption = { isSome: Bool; value: T };
-  const PlainOption: Provable<
-    { isSome: Bool; value: T },
-    { isSome: boolean; value: V }
-  > = provable({ isSome: Bool, value: strictType });
+  const PlainOption: Provable<{ isSome: Bool; value: T }, { isSome: boolean; value: V }> = provable(
+    { isSome: Bool, value: strictType }
+  );
 
   const RawOption = {
     ...PlainOption,
@@ -92,12 +81,7 @@ function Option<A extends ProvableType>(
   const Super = Struct(RawOption);
   return class Option_ extends Super {
     orElse(defaultValue: T | V): T {
-      return Provable.if(
-        this.isSome,
-        strictType,
-        this.value,
-        strictType.fromValue(defaultValue)
-      );
+      return Provable.if(this.isSome, strictType, this.value, strictType.fromValue(defaultValue));
     }
 
     assertSome(message?: string): T {

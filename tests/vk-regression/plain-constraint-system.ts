@@ -107,7 +107,7 @@ const BitwiseCS = constraintSystem('Bitwise Primitive', {
     Gadgets.or(a, b, 32);
     Gadgets.or(a, b, 48);
     Gadgets.or(a, b, 64);
-  }
+  },
 });
 
 const Bytes32 = Bytes(32);
@@ -144,7 +144,7 @@ const HashCS = constraintSystem('Hashes', {
   BLAKE2B() {
     let xs = Provable.witness(Bytes32, () => bytes32);
     Hash.BLAKE2B.hash(xs);
-  }
+  },
 });
 
 const witness = () => Provable.witness(Field, () => Field(0));
@@ -199,10 +199,7 @@ const CryptoCS = constraintSystem('Crypto', {
 
 // mock ZkProgram API for testing
 
-function constraintSystem(
-  name: string,
-  obj: { [K: string]: (...args: any) => void }
-) {
+function constraintSystem(name: string, obj: { [K: string]: (...args: any) => void }) {
   let methodKeys = Object.keys(obj);
 
   return {
