@@ -78,6 +78,12 @@ function makeJsooExternal() {
     },
   };
 }
+
+// copy over over files to dist
+await copy({
+  './src/bindings/compiled/node_bindings/': './dist/node/node_bindings/native',
+});
+
 async function copy(copyMap) {
   let promises = [];
   for (let [source, target] of Object.entries(copyMap)) {
