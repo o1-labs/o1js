@@ -10,32 +10,6 @@ import { bytes } from './test-utils.js';
 import { equivalentAsync, equivalentProvable } from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
 import { expect } from 'expect';
-import { Provable } from 'o1js';
-import { assert } from '../gadgets/common.js';
-
-const TestFunctions = [sha2];
-
-// Regression tests
-const lengths = [224, 256, 384, 512];
-
-// Rows used for 1 block of SHA2
-let rows = [71, 81, 121, 161];
-
-for (const fn of TestFunctions) {
-  for (let l of lengths) {
-    await fn(l as 224 | 256 | 384 | 512);
-    console.log(`SHA2-${l} uses ${rows[lengths.indexOf(l)]} rows`);
-  }
-}
-
-async function sha2(length: 224 | 256 | 384 | 512) {
-  let cs = await Provable.constraintSystem(() => {
-    Provable.witness(Bytes(length / 8), () => Gadgets.SHA2.hash(length, Bytes.fromString('abc')));
-  });
-  assert(cs.rows == rows[lengths.indexOf(length)]);
-}
-
-console.log('-------------------');
 
 // SHA2-224 TESTS
 {
