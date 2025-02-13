@@ -265,10 +265,10 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1737983679,
-        "narHash": "sha256-s4VJixbZFxTYvwH2uZ8yg2VQKJTzQdIxpZ4v7KmJ0rg=",
-        "rev": "f73d164e4abba8c21ac4ba1c1e3005aae9fea0b7",
-        "revCount": 33799,
+        "lastModified": 1739362437,
+        "narHash": "sha256-mNhXDfFudz9InOywYJgHOYjparEjkWMpdReTpym3QGg=",
+        "rev": "eee83369b794b4a4481df4980d5311b3db10a9ad",
+        "revCount": 34033,
         "submodules": true,
         "type": "git",
         "url": "file:./src/mina"
