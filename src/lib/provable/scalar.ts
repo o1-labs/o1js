@@ -52,6 +52,7 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
+   * @internal
    * Provable method to convert a {@link ShiftedScalar} to a {@link Scalar}.
    */
   static fromShiftedScalar(s: ShiftedScalar) {
@@ -78,6 +79,7 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
+   * @internal
    * Convert this {@link Scalar} into a constant if it isn't already.
    *
    * If the scalar is a variable, this only works inside `asProver` or `witness` blocks.
