@@ -503,6 +503,28 @@ class UInt64 extends CircuitValue {
   static fromValue<T extends AnyConstructor>(x: number | bigint | UInt64): InstanceType<T> {
     return UInt64.from(x) as any;
   }
+
+  /**
+   * Split a UInt64 into 8 UInt8s, in big-endian order.
+   */
+  toBytesBE() {
+    return TupleN.fromArray(8, wordToBytes(this.value, 8).reverse());
+  }
+
+  /**
+   * Combine 8 UInt8s into a UInt64, in little-endian order.
+   */
+  static fromBytes(bytes: UInt8[]): UInt64 {
+    assert(bytes.length === 8, '8 bytes needed to create a uint64');
+    return UInt64.Unsafe.fromField(bytesToWord(bytes));
+  }
+
+  /**
+   * Combine 8 UInt8s into a UInt64, in big-endian order.
+   */
+  static fromBytesBE(bytes: UInt8[]): UInt64 {
+    return UInt64.fromBytes([...bytes].reverse());
+  }
 }
 /**
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
