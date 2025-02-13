@@ -19,8 +19,8 @@ const Octets = {
    * and the method throws if it isn't.
    *
    * **Warning**: The cost of this operation in a zk proof depends on the
-   * `bitlength` you specify, which by default is 32 bytes. Prefer to pass a
-   * smaller `length` if possible.
+   * `bytelength` you specify, which by default is 32 bytes. Prefer to pass a
+   * smaller `bytelength` if possible.
    *
    * @param input - the field element to convert to bytes.
    * @param bytelength - the number of bytes to fit the element. If the element
@@ -33,10 +33,11 @@ const Octets = {
   fromField(input: Field, bytelength: number = 32): UInt8[] {
     checkBitLength('Field.toBytes()', bytelength, 32 * 8);
     if (input.isConstant()) {
-      let bytes = BinableFp.toBytes(input.toBigInt()).map((b) => new UInt8(b));
-      if (bytes.length > bytelength)
+      if (input.toBigInt() >= 1n << (BigInt(bytelength) * 8n)) {
         throw Error(`toOctets(): ${input} does not fit in ${bytelength} bytes`);
-      return bytes.concat(Array(bytelength - bytes.length).fill(UInt8.from(0)));
+      }
+      let x = input.toBigInt();
+      return Array.from({ length: bytelength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
     }
     let bytes = Provable.witness(Provable.Array(UInt8, bytelength), () => {
       let x = input.toBigInt();
@@ -47,7 +48,7 @@ const Octets = {
       .map((x) => x.value)
       .reduce((acc, byte) => acc.mul(256).add(byte));
 
-    field.assertEquals(input, `toOctets(): Input does not fit in ${bytelength} bytes`);
+    field.assertEquals(input, `toOctets(): incorrect decomposition into ${bytelength} bytes`);
     return bytes;
   },
   /**
@@ -77,7 +78,7 @@ const Octets = {
     return [
       this.fromField(x[0], limbBytes),
       this.fromField(x[1], limbBytes),
-      this.fromField(x[2], limbBytes),
+      this.fromField(x[2], limbBytes - 1), // only 256 bits
     ].flat();
   },
 
@@ -104,5 +105,21 @@ const Octets = {
           mod
         )
       );
+  },
+
+  /**
+   * Convert a bigint to a little-endian array of {@link UInt8} elements.
+   *
+   * @param x
+   * @param bytelength by default 32 bytes
+   * @returns
+   */
+  fromBigint(x: bigint, bytelength: number = 32): UInt8[] {
+    assert(x < 1n << BigInt(bytelength * 8), 'Input does not fit in bytelength');
+    let bytes = Array.from(
+      { length: bytelength },
+      (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn)
+    );
+    return bytes;
   },
 };
