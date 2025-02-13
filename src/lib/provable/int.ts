@@ -7,7 +7,7 @@ import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
 import { addMod32, addMod64 } from './gadgets/arithmetic.js';
-import type { Gadgets } from './gadgets/gadgets.js';
+
 import { withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { CircuitValue, prop } from './types/circuit-value.js';

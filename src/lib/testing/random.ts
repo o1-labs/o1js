@@ -187,7 +187,7 @@ const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const invalidUint8Json = toString(oneOf(uint8.invalid, nonInteger, nonNumericString));
+
 const invalidUint32Json = toString(oneOf(uint32.invalid, nonInteger, nonNumericString));
 const invalidUint64Json = toString(oneOf(uint64.invalid, nonInteger, nonNumericString));
 

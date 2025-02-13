@@ -44,7 +44,7 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
     };
     typeData = typeData.checkedType;
   }
-  let { type, inner, entries, keys, optionType, docEntries } = typeData;
+  let { type, inner, entries, keys, optionType, } = typeData;
   if (type === 'array') {
     let { output, dependencies, converters: j } = writeType(inner, isValue, isJson, withTypeMap);
     mergeObject(converters, j);

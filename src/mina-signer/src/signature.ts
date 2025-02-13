@@ -6,7 +6,6 @@ import {
   hashWithPrefix,
   packToFields,
   prefixes,
-  Poseidon,
   HashInputLegacy,
   packToFieldsLegacy,
   inputToBitsLegacy,

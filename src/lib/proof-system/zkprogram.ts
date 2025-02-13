@@ -25,7 +25,7 @@ import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
 import { Cache, readCache, writeCache } from './cache.js';
 import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
-import { ProvableType, ProvableTypePure, ToProvable } from '../provable/types/provable-intf.js';
+import { ProvableType, ToProvable } from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { Subclass, Tuple } from '../util/types.js';

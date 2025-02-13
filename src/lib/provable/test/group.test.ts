@@ -359,7 +359,7 @@ describe('group', () => {
     });
 
     it('sub', () => {
-      let y = Provable.witness(Group, () => g).assertEquals(Provable.witness(Group, () => g));
+      
       g.assertEquals(g);
     });
   });

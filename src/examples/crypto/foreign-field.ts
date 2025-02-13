@@ -99,10 +99,10 @@ class MyContract extends SmartContract {
 await MyContract.analyzeMethods(); // works
 
 // btw - we support any finite field up to 259 bits. for example, the seqp256k1 base field:
-let Fseqp256k1 = createForeignField((1n << 256n) - (1n << 32n) - 0b1111010001n);
+
 
 // or the Pallas scalar field, to do arithmetic on scalars:
-let Fq = createForeignField(Scalar.ORDER);
+
 
 // also, you can use a number that's not a prime.
 // for example, you might want to create a UInt256 type:

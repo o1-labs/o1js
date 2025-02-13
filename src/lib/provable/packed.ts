@@ -1,5 +1,5 @@
 import { mapValue, provableFromClass } from './types/provable-derivers.js';
-import { HashInput, ProvableExtended } from './types/struct.js';
+import { HashInput, } from './types/struct.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { Field } from './field.js';
 import { assert } from './gadgets/common.js';

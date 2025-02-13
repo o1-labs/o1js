@@ -4,7 +4,7 @@ import { Scalar } from './scalar.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
 import { GroupAffine, Pallas, PallasAffine } from '../../bindings/crypto/elliptic-curve.js';
 import { Provable } from './provable.js';
-import { Bool } from './bool.js';
+
 import { assert } from '../util/assert.js';
 import { add, scaleField, scaleShifted } from './gadgets/native-curve.js';
 

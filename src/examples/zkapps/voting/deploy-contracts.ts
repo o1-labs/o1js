@@ -1,5 +1,4 @@
 import {
-  DeployArgs,
   Field,
   Permissions,
   Mina,

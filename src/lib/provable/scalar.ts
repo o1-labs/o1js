@@ -1,7 +1,7 @@
 import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
 import { Field, checkBitLength } from './field.js';
-import { FieldVar } from './core/fieldvar.js';
+
 import { Bool } from './bool.js';
 import {
   ShiftedScalar,

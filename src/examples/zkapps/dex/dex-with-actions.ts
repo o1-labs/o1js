@@ -8,7 +8,6 @@
  * in progress to mitigate this limitation.
  */
 import {
-  Account,
   AccountUpdate,
   AccountUpdateForest,
   Field,
