@@ -78,3 +78,16 @@ function makeJsooExternal() {
     },
   };
 }
+async function copy(copyMap) {
+  let promises = [];
+  for (let [source, target] of Object.entries(copyMap)) {
+    promises.push(
+      fse.copy(source, target, {
+        recursive: true,
+        overwrite: true,
+        dereference: true,
+      })
+    );
+  }
+  await Promise.all(promises);
+}
