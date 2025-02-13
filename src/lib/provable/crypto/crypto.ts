@@ -1,31 +1,57 @@
-import { CurveParams as CurveParams_ } from '../../../bindings/crypto/elliptic-curve-examples.js';
+import {
+  CurveParams as CurveParams_,
+  TwistedCurveParams as TwistedCurveParams_,
+} from '../../../bindings/crypto/elliptic-curve-examples.js';
 import {
   CurveAffine,
+  AffineTwistedCurve,
   createCurveAffine,
+  createAffineTwistedCurve,
 } from '../../../bindings/crypto/elliptic-curve.js';
 
 // crypto namespace
 const Crypto = {
   /**
-   * Create elliptic curve arithmetic methods.
+   * Create elliptic curve arithmetic methods in affine coordinates.
    */
   createCurve(params: Crypto.CurveParams): Crypto.Curve {
     return createCurveAffine(params);
+  },
+  /**
+   * Create twisted elliptic curve arithmetic methods in affine coordinates.
+   */
+  createCurveTwisted(params: Crypto.TwistedCurveParams): Crypto.TwistedCurve {
+    return createAffineTwistedCurve(params);
   },
   /**
    * Parameters defining an elliptic curve in short Weierstraß form
    * y^2 = x^3 + ax + b
    */
   CurveParams: CurveParams_,
+  /**
+   * Parameters defining an elliptic curve in twisted Edwards form
+   * a * x^2 + y^2 = 1 + d * x^2 * y^2
+   */
+  TwistedCurveParams: TwistedCurveParams_,
 };
 
 namespace Crypto {
   /**
    * Parameters defining an elliptic curve in short Weierstraß form
+   * and affine coordinates
    * y^2 = x^3 + ax + b
    */
   export type CurveParams = CurveParams_;
 
+  /**
+   * Parameters defining an elliptic curve in twisted Edwards form
+   * and affine coordinates
+   * a * x^2 + y^2 = 1 + d * x^2 * y^2
+   */
+  export type TwistedCurveParams = TwistedCurveParams_;
+
   export type Curve = CurveAffine;
+
+  export type TwistedCurve = AffineTwistedCurve;
 }
 export { Crypto };

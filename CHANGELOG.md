@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- Provable operations of twisted Edwards curves with affine coordinates https://github.com/o1-labs/o1js/pull/1949
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
 - Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
