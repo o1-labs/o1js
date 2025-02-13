@@ -1,4 +1,4 @@
-import { PublicKey, UInt64 } from '../../../../index.js';
+import { PublicKey, UInt64 } from '../../../../../index.js';
 import * as Mina from '../../mina.js';
 
 import { ExampleContract } from './ExampleContract.js';

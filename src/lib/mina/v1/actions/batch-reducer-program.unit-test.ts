@@ -1,12 +1,8 @@
-import {
-  BatchReducer,
-  actionStackProgram,
-  proveActionStack,
-} from './batch-reducer.js';
-import { Field } from '../../../index.js';
+import { BatchReducer, actionStackProgram, proveActionStack } from './batch-reducer.js';
+import { Field } from '../../../../index.js';
 import { expect } from 'expect';
 import { describe, it } from 'node:test';
-import { Actions as ActionsBigint } from '../../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { Actions as ActionsBigint } from '../../../../bindings/mina-transaction/transaction-leaves-bigint.js';
 
 // analyze program with different number of actions
 for (let actionsPerProof of [10, 30, 100, 300, 1000]) {
@@ -49,11 +45,7 @@ await describe('action stack prover', async () => {
     let { witnesses, endActionState } = randomActionWitnesses(1);
 
     console.time('prove');
-    let { isEmpty, proof } = await proveActionStack(
-      endActionState,
-      witnesses,
-      stackProgram
-    );
+    let { isEmpty, proof } = await proveActionStack(endActionState, witnesses, stackProgram);
     console.timeEnd('prove');
 
     expect(isEmpty.toBoolean()).toBe(false);
@@ -64,11 +56,7 @@ await describe('action stack prover', async () => {
   await it('does 250 actions', async () => {
     let { witnesses, endActionState } = randomActionWitnesses(250);
     console.time('prove');
-    let { isEmpty, proof } = await proveActionStack(
-      endActionState,
-      witnesses,
-      stackProgram
-    );
+    let { isEmpty, proof } = await proveActionStack(endActionState, witnesses, stackProgram);
     console.timeEnd('prove');
 
     expect(isEmpty.toBoolean()).toBe(false);

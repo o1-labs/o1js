@@ -3,24 +3,13 @@
  */
 import { SmartContract } from '../zkapp.js';
 import * as Mina from '../mina.js';
-import {
-  OffchainField,
-  OffchainMap,
-  OffchainState,
-} from '../actions/offchain-state.js';
+import { OffchainField, OffchainMap, OffchainState } from '../actions/offchain-state.js';
 import assert from 'assert';
-import { Option } from '../../provable/option.js';
+import { Option } from '../../../provable/option.js';
 import { BatchReducer } from '../actions/batch-reducer.js';
-import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
+import { PrivateKey, PublicKey } from '../../../provable/crypto/signature.js';
 
-export {
-  testLocal,
-  transaction,
-  deploy,
-  expectState,
-  expectBalance,
-  TestInstruction,
-};
+export { testLocal, transaction, deploy, expectState, expectBalance, TestInstruction };
 
 type LocalBlockchain = Awaited<ReturnType<typeof Mina.LocalBlockchain>>;
 
@@ -78,18 +67,15 @@ async function testLocal<S extends SmartContract>(
       contractAccount,
     };
     let i = 2;
-    let accounts: Record<string, Mina.TestPublicKey> = new Proxy(
-      originalAccounts,
-      {
-        get(accounts, name: string) {
-          if (name in accounts) return accounts[name];
-          let account = Local.testAccounts[i++];
-          assert(account !== undefined, 'ran out of test accounts');
-          accounts[name] = account;
-          return account;
-        },
-      }
-    );
+    let accounts: Record<string, Mina.TestPublicKey> = new Proxy(originalAccounts, {
+      get(accounts, name: string) {
+        if (name in accounts) return accounts[name];
+        let account = Local.testAccounts[i++];
+        assert(account !== undefined, 'ran out of test accounts');
+        accounts[name] = account;
+        return account;
+      },
+    });
 
     let newAccounts: Record<string, Mina.TestPublicKey> = new Proxy(
       {},
@@ -181,8 +167,7 @@ async function runInstruction(
     let { options, trace } = instruction;
     let account = options?.account ?? contractAccount;
     let contract = options?.contract ?? Contract;
-    let instance =
-      contract instanceof SmartContract ? contract : new contract(account);
+    let instance = contract instanceof SmartContract ? contract : new contract(account);
 
     await runInstruction(spec, {
       type: 'transaction',
@@ -249,10 +234,7 @@ type TestInstruction =
 
 // transaction-like instructions
 
-function transaction(
-  label: string,
-  callback: () => Promise<void>
-): TestInstruction {
+function transaction(label: string, callback: () => Promise<void>): TestInstruction {
   let trace = Error().stack?.slice(5);
   return { type: 'transaction', label, callback, trace };
 }
@@ -290,8 +272,7 @@ function expectBalance(
   let trace = Error().stack?.slice(5);
   return {
     type: 'expect-balance',
-    address:
-      typeof address === 'string' ? PublicKey.fromBase58(address) : address,
+    address: typeof address === 'string' ? PublicKey.fromBase58(address) : address,
     expected,
     trace,
     label: message,
@@ -315,16 +296,11 @@ async function assertionWithTrace(trace: string | undefined, fn: () => any) {
     if (trace === undefined) throw err;
 
     let message = err.message;
-    throw Error(
-      `${message}\n\nAssertion was created here:${trace}\n\nError was thrown from here:`
-    );
+    throw Error(`${message}\n\nAssertion was created here:${trace}\n\nError was thrown from here:`);
   }
 }
 
-async function assertionWithTracePreferInner(
-  trace: string | undefined,
-  fn: () => any
-) {
+async function assertionWithTracePreferInner(trace: string | undefined, fn: () => any) {
   try {
     await fn();
   } catch (err: any) {

@@ -9,16 +9,16 @@ import {
   AccountUpdate,
   dummySignature,
 } from './account-update.js';
-import { Field } from '../provable/wrapped.js';
-import { UInt64, UInt32 } from '../provable/int.js';
-import { PublicKey } from '../provable/crypto/signature.js';
-import { JsonProof, verify } from '../proof-system/zkprogram.js';
-import { verifyAccountUpdateSignature } from '../../mina-signer/src/sign-zkapp-command.js';
+import { Field } from '../../provable/wrapped.js';
+import { UInt64, UInt32 } from '../../provable/int.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { JsonProof, verify } from '../../proof-system/zkprogram.js';
+import { verifyAccountUpdateSignature } from '../../../mina-signer/src/sign-zkapp-command.js';
 import { TransactionCost, TransactionLimits } from './constants.js';
-import { cloneCircuitValue } from '../provable/types/struct.js';
-import { assert } from '../provable/gadgets/common.js';
-import { Types, TypesBigint } from '../../bindings/mina-transaction/types.js';
-import type { NetworkId } from '../../mina-signer/src/types.js';
+import { cloneCircuitValue } from '../../provable/types/struct.js';
+import { assert } from '../../provable/gadgets/common.js';
+import { Types, TypesBigint } from '../../../bindings/mina-transaction/types.js';
+import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
 
@@ -59,15 +59,12 @@ function defaultNetworkState(): NetworkValue {
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-
-  let {totalTimeRequired,eventElements,authTypes} = getTotalTimeRequired(accountUpdates);
+  let { totalTimeRequired, eventElements, authTypes } = getTotalTimeRequired(accountUpdates);
 
   let isWithinCostLimit = totalTimeRequired < TransactionCost.COST_LIMIT;
 
-  let isWithinEventsLimit =
-    eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
-  let isWithinActionsLimit =
-    eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
+  let isWithinEventsLimit = eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
+  let isWithinActionsLimit = eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
 
   let error = '';
 
@@ -92,15 +89,13 @@ ${JSON.stringify(authTypes)}
   if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
 
-
-function getTotalTimeRequired(accountUpdates : AccountUpdate[]){
+function getTotalTimeRequired(accountUpdates: AccountUpdate[]) {
   let eventElements = { events: 0, actions: 0 };
 
   let authKinds = accountUpdates.map((update) => {
     eventElements.events += countEventElements(update.body.events);
     eventElements.actions += countEventElements(update.body.actions);
-    let { isSigned, isProved, verificationKeyHash } =
-      update.body.authorizationKind;
+    let { isSigned, isProved, verificationKeyHash } = update.body.authorizationKind;
     return {
       isSigned: isSigned.toBoolean(),
       isProved: isProved.toBoolean(),
@@ -129,7 +124,7 @@ function getTotalTimeRequired(accountUpdates : AccountUpdate[]){
     TransactionCost.SIGNED_PAIR_COST * authTypes.signedPair +
     TransactionCost.SIGNED_SINGLE_COST * authTypes.signedSingle;
   // returns totalTimeRequired and additional data used by verifyTransactionLimits
-  return {totalTimeRequired,eventElements,authTypes};
+  return { totalTimeRequired, eventElements, authTypes };
 }
 
 function countEventElements({ data }: Events) {
@@ -186,9 +181,7 @@ async function verifyAccountUpdate(
     );
   }
   // we are essentially only checking if the update is empty or an actual update
-  function includesChange<T extends {}>(
-    val: T | string | null | (string | null)[]
-  ): boolean {
+  function includesChange<T extends {}>(val: T | string | null | (string | null)[]): boolean {
     if (Array.isArray(val)) {
       return !val.every((v) => v === null);
     } else {
@@ -250,16 +243,11 @@ async function verifyAccountUpdate(
       };
 
       let verificationKey = account.zkapp?.verificationKey?.data;
-      assert(
-        verificationKey !== undefined,
-        'Account does not have a verification key'
-      );
+      assert(verificationKey !== undefined, 'Account does not have a verification key');
 
       isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
-        throw Error(
-          `Invalid proof for account update\n${JSON.stringify(update)}`
-        );
+        throw Error(`Invalid proof for account update\n${JSON.stringify(update)}`);
       }
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).stack;
@@ -341,8 +329,7 @@ async function verifyAccountUpdate(
 
 type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
-const isPair = (a: AuthorizationKind, b: AuthorizationKind) =>
-  !a.isProved && !b.isProved;
+const isPair = (a: AuthorizationKind, b: AuthorizationKind) => !a.isProved && !b.isProved;
 
 function filterPairs(xs: AuthorizationKind[]): {
   xs: { isProved: boolean; isSigned: boolean }[];

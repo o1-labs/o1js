@@ -1,13 +1,13 @@
-import { Test } from '../../snarky.js';
-import { Field } from '../provable/wrapped.js';
-import { UInt64 } from '../provable/int.js';
-import { PublicKey } from '../provable/crypto/signature.js';
+import { Test } from '../../../snarky.js';
+import { Field } from '../../provable/wrapped.js';
+import { UInt64 } from '../../provable/int.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 import { TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
 import { humanizeErrors, invalidTransactionError } from './errors.js';
-import { Types } from '../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/types.js';
 import { Account } from './account.js';
-import { NetworkId } from '../../mina-signer/src/types.js';
+import { NetworkId } from '../../../mina-signer/src/types.js';
 import { currentTransaction } from './transaction-context.js';
 import {
   type FeePayerSpec,
@@ -135,9 +135,7 @@ function Network(
       minaNetworkId = options.networkId;
     }
     if (!options.mina)
-      throw new Error(
-        "Network: malformed input. Please provide an object with 'mina' endpoint."
-      );
+      throw new Error("Network: malformed input. Please provide an object with 'mina' endpoint.");
     if (Array.isArray(options.mina) && options.mina.length !== 0) {
       minaGraphqlEndpoint = options.mina[0];
       Fetch.setGraphqlEndpoint(minaGraphqlEndpoint, options.minaDefaultHeaders);
@@ -150,17 +148,11 @@ function Network(
     if (options.archive !== undefined) {
       if (Array.isArray(options.archive) && options.archive.length !== 0) {
         archiveEndpoint = options.archive[0];
-        Fetch.setArchiveGraphqlEndpoint(
-          archiveEndpoint,
-          options.archiveDefaultHeaders
-        );
+        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint, options.archiveDefaultHeaders);
         Fetch.setArchiveGraphqlFallbackEndpoints(options.archive.slice(1));
       } else if (typeof options.archive === 'string') {
         archiveEndpoint = options.archive;
-        Fetch.setArchiveGraphqlEndpoint(
-          archiveEndpoint,
-          options.archiveDefaultHeaders
-        );
+        Fetch.setArchiveGraphqlEndpoint(archiveEndpoint, options.archiveDefaultHeaders);
       }
     }
 
@@ -189,60 +181,34 @@ function Network(
     getNetworkConstants() {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
-        const genesisConstants =
-          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        const genesisConstants = Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
         return genesisConstants !== undefined
           ? genesisToNetworkConstants(genesisConstants)
           : defaultNetworkConstants;
       }
-      if (
-        !currentTransaction.has() ||
-        currentTransaction.get().fetchMode === 'cached'
-      ) {
-        const genesisConstants =
-          Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
-        if (genesisConstants !== undefined)
-          return genesisToNetworkConstants(genesisConstants);
+      if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
+        const genesisConstants = Fetch.getCachedGenesisConstants(minaGraphqlEndpoint);
+        if (genesisConstants !== undefined) return genesisToNetworkConstants(genesisConstants);
       }
       return defaultNetworkConstants;
     },
     currentSlot() {
-      throw Error(
-        'currentSlot() is not implemented yet for remote blockchains.'
-      );
+      throw Error('currentSlot() is not implemented yet for remote blockchains.');
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      if (
-        !currentTransaction.has() ||
-        currentTransaction.get().fetchMode === 'cached'
-      ) {
-        return !!Fetch.getCachedAccount(
-          publicKey,
-          tokenId,
-          minaGraphqlEndpoint
-        );
+      if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
+        return !!Fetch.getCachedAccount(publicKey, tokenId, minaGraphqlEndpoint);
       }
       return false;
     },
     getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markAccountToBeFetched(publicKey, tokenId, minaGraphqlEndpoint);
-        let account = Fetch.getCachedAccount(
-          publicKey,
-          tokenId,
-          minaGraphqlEndpoint
-        );
+        let account = Fetch.getCachedAccount(publicKey, tokenId, minaGraphqlEndpoint);
         return account ?? dummyAccount(publicKey);
       }
-      if (
-        !currentTransaction.has() ||
-        currentTransaction.get().fetchMode === 'cached'
-      ) {
-        let account = Fetch.getCachedAccount(
-          publicKey,
-          tokenId,
-          minaGraphqlEndpoint
-        );
+      if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
+        let account = Fetch.getCachedAccount(publicKey, tokenId, minaGraphqlEndpoint);
         if (account !== undefined) return account;
       }
       throw Error(
@@ -258,10 +224,7 @@ function Network(
         let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
         return network ?? defaultNetworkState();
       }
-      if (
-        !currentTransaction.has() ||
-        currentTransaction.get().fetchMode === 'cached'
-      ) {
+      if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
         let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
         if (network !== undefined) return network;
       }
@@ -282,14 +245,10 @@ function Network(
         }
         const updatedErrors = humanizeErrors(errors);
 
-        const status: PendingTransactionStatus =
-          errors.length === 0 ? 'pending' : 'rejected';
+        const status: PendingTransactionStatus = errors.length === 0 ? 'pending' : 'rejected';
         let mlTest = await Test();
         const hash = mlTest.transactionHash.hashZkAppCommand(txn.toJSON());
-        const pendingTransaction: Omit<
-          PendingTransaction,
-          'wait' | 'safeWait'
-        > = {
+        const pendingTransaction: Omit<PendingTransaction, 'wait' | 'safeWait'> = {
           status,
           data: response?.data,
           errors: updatedErrors,
@@ -313,20 +272,13 @@ function Network(
             if (res.success) {
               return createIncludedTransaction(pendingTransaction);
             } else if (res.failureReason) {
-              const error = invalidTransactionError(
-                txn.transaction,
-                res.failureReason,
-                {
-                  accountCreationFee:
-                    defaultNetworkConstants.accountCreationFee.toString(),
-                }
-              );
+              const error = invalidTransactionError(txn.transaction, res.failureReason, {
+                accountCreationFee: defaultNetworkConstants.accountCreationFee.toString(),
+              });
               return createRejectedTransaction(pendingTransaction, [error]);
             }
           } catch (error) {
-            return createRejectedTransaction(pendingTransaction, [
-              (error as Error).message,
-            ]);
+            return createRejectedTransaction(pendingTransaction, [(error as Error).message]);
           }
 
           if (maxAttempts && attempts >= maxAttempts) {
@@ -336,12 +288,7 @@ function Network(
           }
 
           await new Promise((resolve) => setTimeout(resolve, interval));
-          return pollTransactionStatus(
-            transactionHash,
-            maxAttempts,
-            interval,
-            attempts + 1
-          );
+          return pollTransactionStatus(transactionHash, maxAttempts, interval, attempts + 1);
         };
 
         // default is 45 attempts * 20s each = 15min
@@ -360,11 +307,7 @@ function Network(
         }): Promise<IncludedTransaction> => {
           const pendingTransaction = await safeWait(options);
           if (pendingTransaction.status === 'rejected') {
-            throw Error(
-              `Transaction failed with errors:\n${pendingTransaction.errors.join(
-                '\n'
-              )}`
-            );
+            throw Error(`Transaction failed with errors:\n${pendingTransaction.errors.join('\n')}`);
           }
           return pendingTransaction;
         };
@@ -374,10 +317,7 @@ function Network(
           interval?: number;
         }): Promise<IncludedTransaction | RejectedTransaction> => {
           if (status === 'rejected') {
-            return createRejectedTransaction(
-              pendingTransaction,
-              pendingTransaction.errors
-            );
+            return createRejectedTransaction(pendingTransaction, pendingTransaction.errors);
           }
           return await poll(options?.maxAttempts, options?.interval);
         };
@@ -397,9 +337,7 @@ function Network(
           isFinalRunOutsideCircuit: false,
         });
         await Fetch.fetchMissingData(minaGraphqlEndpoint, archiveEndpoint);
-        let hasProofs = tx.transaction.accountUpdates.some(
-          Authorization.hasLazyProof
-        );
+        let hasProofs = tx.transaction.accountUpdates.some(Authorization.hasLazyProof);
         return await createTransaction(sender, f, 1, {
           fetchMode: 'cached',
           isFinalRunOutsideCircuit: !hasProofs,
@@ -431,12 +369,8 @@ function Network(
       let pubKey = publicKey.toBase58();
       let token = TokenId.toBase58(tokenId);
       let { fromActionState, endActionState } = actionStates ?? {};
-      let fromActionStateBase58 = fromActionState
-        ? fromActionState.toString()
-        : undefined;
-      let endActionStateBase58 = endActionState
-        ? endActionState.toString()
-        : undefined;
+      let fromActionStateBase58 = fromActionState ? fromActionState.toString() : undefined;
+      let endActionStateBase58 = endActionState ? endActionState.toString() : undefined;
 
       return Fetch.fetchActions(
         {
@@ -457,25 +391,15 @@ function Network(
       tokenId: Field = TokenId.default
     ) {
       if (currentTransaction()?.fetchMode === 'test') {
-        Fetch.markActionsToBeFetched(
-          publicKey,
-          tokenId,
-          archiveEndpoint,
-          actionStates
-        );
+        Fetch.markActionsToBeFetched(publicKey, tokenId, archiveEndpoint, actionStates);
         let actions = Fetch.getCachedActions(publicKey, tokenId);
         return actions ?? [];
       }
-      if (
-        !currentTransaction.has() ||
-        currentTransaction.get().fetchMode === 'cached'
-      ) {
+      if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
         let actions = Fetch.getCachedActions(publicKey, tokenId);
         if (actions !== undefined) return actions;
       }
-      throw Error(
-        `getActions: Could not find actions for the public key ${publicKey.toBase58()}`
-      );
+      throw Error(`getActions: Could not find actions for the public key ${publicKey.toBase58()}`);
     },
     proofsEnabled: true,
   };
@@ -513,22 +437,12 @@ function dummyAccount(pubkey?: PublicKey): Account {
   return dummy;
 }
 
-async function waitForFunding(
-  address: string,
-  headers?: HeadersInit
-): Promise<void> {
+async function waitForFunding(address: string, headers?: HeadersInit): Promise<void> {
   let attempts = 0;
   let maxAttempts = 30;
   let interval = 30000;
-  const executePoll = async (
-    resolve: () => void,
-    reject: (err: Error) => void | Error
-  ) => {
-    let { account } = await Fetch.fetchAccount(
-      { publicKey: address },
-      undefined,
-      { headers }
-    );
+  const executePoll = async (resolve: () => void, reject: (err: Error) => void | Error) => {
+    let { account } = await Fetch.fetchAccount({ publicKey: address }, undefined, { headers });
     attempts++;
     if (account) {
       return resolve();
@@ -544,11 +458,7 @@ async function waitForFunding(
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
  */
-async function faucet(
-  pub: PublicKey,
-  network: string = 'berkeley-qanet',
-  headers?: HeadersInit
-) {
+async function faucet(pub: PublicKey, network: string = 'berkeley-qanet', headers?: HeadersInit) {
   let address = pub.toBase58();
   let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
     method: 'POST',
@@ -567,13 +477,9 @@ async function faucet(
   await waitForFunding(address, headers);
 }
 
-function genesisToNetworkConstants(
-  genesisConstants: Fetch.GenesisConstants
-): NetworkConstants {
+function genesisToNetworkConstants(genesisConstants: Fetch.GenesisConstants): NetworkConstants {
   return {
-    genesisTimestamp: UInt64.from(
-      Date.parse(genesisConstants.genesisTimestamp)
-    ),
+    genesisTimestamp: UInt64.from(Date.parse(genesisConstants.genesisTimestamp)),
     slotTime: UInt64.from(genesisConstants.slotDuration),
     accountCreationFee: UInt64.from(genesisConstants.accountCreationFee),
   };

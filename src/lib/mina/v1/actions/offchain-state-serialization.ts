@@ -6,33 +6,26 @@
  * if we only need to prove that (key, value) are part of it.
  */
 
-import {
-  ProvablePure,
-  ProvableType,
-  WithProvable,
-} from '../../provable/types/provable-intf.js';
+import { ProvablePure, ProvableType, WithProvable } from '../../../provable/types/provable-intf.js';
 import {
   Poseidon,
   ProvableHashable,
   hashWithPrefix,
   packToFields,
   salt,
-} from '../../provable/crypto/poseidon.js';
-import { Field, Bool } from '../../provable/wrapped.js';
-import { assert } from '../../provable/gadgets/common.js';
-import { prefixes } from '../../../bindings/crypto/constants.js';
-import { Struct } from '../../provable/types/struct.js';
-import { Unconstrained } from '../../provable/types/unconstrained.js';
-import { MerkleList } from '../../provable/merkle-list.js';
+} from '../../../provable/crypto/poseidon.js';
+import { Field, Bool } from '../../../provable/wrapped.js';
+import { assert } from '../../../provable/gadgets/common.js';
+import { prefixes } from '../../../../bindings/crypto/constants.js';
+import { Struct } from '../../../provable/types/struct.js';
+import { Unconstrained } from '../../../provable/types/unconstrained.js';
+import { MerkleList } from '../../../provable/merkle-list.js';
 import * as Mina from '../mina.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
-import { Provable } from '../../provable/provable.js';
+import { PublicKey } from '../../../provable/crypto/signature.js';
+import { Provable } from '../../../provable/provable.js';
 import { Actions } from '../account-update.js';
-import { Option } from '../../provable/option.js';
-import {
-  IndexedMerkleMap,
-  IndexedMerkleMapBase,
-} from '../../provable/merkle-tree-indexed.js';
+import { Option } from '../../../provable/option.js';
+import { IndexedMerkleMap, IndexedMerkleMapBase } from '../../../provable/merkle-tree-indexed.js';
 
 export {
   toKeyHash,
@@ -49,9 +42,7 @@ export {
 };
 
 type Action = [...Field[], Field, Field];
-type Actionable<T, V = any> = WithProvable<
-  ProvableHashable<T, V> & ProvablePure<T, V>
->;
+type Actionable<T, V = any> = WithProvable<ProvableHashable<T, V> & ProvablePure<T, V>>;
 
 function toKeyHash<K, KeyType extends Actionable<K> | undefined>(
   prefix: Field,
@@ -103,10 +94,7 @@ function toAction<K, V, KeyType extends Actionable<K> | undefined>({
   ];
 }
 
-function fromActionWithoutHashes<V>(
-  valueType: Actionable<V>,
-  action: Field[]
-): V {
+function fromActionWithoutHashes<V>(valueType: Actionable<V>, action: Field[]): V {
   valueType = ProvableType.get(valueType);
   let valueSize = valueType.sizeInFields();
   let paddingSize = valueSize % 2 === 0 ? 0 : 1;
@@ -182,17 +170,10 @@ class MerkleLeaf extends Struct({
 }
 
 function pushAction(actionsHash: Field, action: MerkleLeaf) {
-  return hashWithPrefix(prefixes.sequenceEvents, [
-    actionsHash,
-    MerkleLeaf.hash(action),
-  ]);
+  return hashWithPrefix(prefixes.sequenceEvents, [actionsHash, MerkleLeaf.hash(action)]);
 }
 
-class ActionList extends MerkleList.create(
-  MerkleLeaf,
-  pushAction,
-  Actions.empty().hash
-) {}
+class ActionList extends MerkleList.create(MerkleLeaf, pushAction, Actions.empty().hash) {}
 
 class LinearizedAction extends Struct({
   action: MerkleLeaf,
@@ -225,8 +206,7 @@ class LinearizedAction extends Struct({
 
 class LinearizedActionList extends MerkleList.create(
   LinearizedAction,
-  (hash: Field, action: LinearizedAction) =>
-    Poseidon.hash([hash, LinearizedAction.hash(action)]),
+  (hash: Field, action: LinearizedAction) => Poseidon.hash([hash, LinearizedAction.hash(action)]),
   Actions.empty().hash
 ) {}
 
@@ -239,18 +219,13 @@ async function fetchMerkleLeaves(
 ): Promise<MerkleList<MerkleList<MerkleLeaf>>> {
   class MerkleActions extends MerkleList.create(
     ActionList,
-    (hash: Field, actions: ActionList) =>
-      Actions.updateSequenceState(hash, actions.hash),
+    (hash: Field, actions: ActionList) => Actions.updateSequenceState(hash, actions.hash),
     // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
     // otherwise we are only fetching a part of the history, which starts at `fromActionState`
     config?.fromActionState ?? Actions.emptyActionState()
   ) {}
 
-  let result = await Mina.fetchActions(
-    contract.address,
-    config,
-    contract.tokenId
-  );
+  let result = await Mina.fetchActions(contract.address, config, contract.tokenId);
   if ('error' in result) throw Error(JSON.stringify(result));
 
   // convert string-Fields back into the original action type
@@ -274,17 +249,11 @@ async function fetchMerkleMap(
   merkleMap: IndexedMerkleMapBase;
   valueMap: Map<bigint, Field[]>;
 }> {
-  let result = await Mina.fetchActions(
-    contract.address,
-    { endActionState },
-    contract.tokenId
-  );
+  let result = await Mina.fetchActions(contract.address, { endActionState }, contract.tokenId);
   if ('error' in result) throw Error(JSON.stringify(result));
 
   let leaves = result.map((event) =>
-    event.actions
-      .map((action) => MerkleLeaf.fromAction(action.map(Field)))
-      .reverse()
+    event.actions.map((action) => MerkleLeaf.fromAction(action.map(Field))).reverse()
   );
 
   let merkleMap = new (IndexedMerkleMap(height))();
@@ -307,13 +276,11 @@ function updateMerkleMap(
     let updates: { key: bigint; fullValue: Field[] }[] = [];
 
     for (let leaf of leaves) {
-      let { key, value, usesPreviousValue, previousValue, prefix } =
-        MerkleLeaf.toValue(leaf);
+      let { key, value, usesPreviousValue, previousValue, prefix } = MerkleLeaf.toValue(leaf);
 
       // the update is invalid if there is an unsatisfied precondition
       let previous = intermediateTree.getOption(key).orElse(0n);
-      let isValidAction =
-        !usesPreviousValue || previous.toBigInt() === previousValue;
+      let isValidAction = !usesPreviousValue || previous.toBigInt() === previousValue;
 
       if (!isValidAction) {
         isValidUpdate = false;

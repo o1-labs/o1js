@@ -1,15 +1,12 @@
-import { Field } from '../../provable/wrapped.js';
+import { Field } from '../../../provable/wrapped.js';
 import { Actions } from '../account-update.js';
-import {
-  FlexibleProvablePure,
-  InferProvable,
-} from '../../provable/types/struct.js';
-import { provable } from '../../provable/types/provable-derivers.js';
-import { Provable } from '../../provable/provable.js';
-import { ProvableHashable } from '../../provable/crypto/poseidon.js';
+import { FlexibleProvablePure, InferProvable } from '../../../provable/types/struct.js';
+import { provable } from '../../../provable/types/provable-derivers.js';
+import { Provable } from '../../../provable/provable.js';
+import { ProvableHashable } from '../../../provable/crypto/poseidon.js';
 import * as Mina from '../mina.js';
-import { ProvablePure } from '../../provable/types/provable-intf.js';
-import { MerkleList } from '../../provable/merkle-list.js';
+import { ProvablePure } from '../../../provable/types/provable-intf.js';
+import { MerkleList } from '../../../provable/merkle-list.js';
 import type { SmartContract } from '../zkapp.js';
 
 export { Reducer, getReducer };
@@ -147,15 +144,9 @@ class ${contract.constructor.name} extends SmartContract {
   return {
     dispatch(action: A) {
       let accountUpdate = contract.self;
-      let canonical = Provable.toCanonical(
-        reducer.actionType as Provable<A>,
-        action
-      );
+      let canonical = Provable.toCanonical(reducer.actionType as Provable<A>, action);
       let eventFields = reducer.actionType.toFields(canonical);
-      accountUpdate.body.actions = Actions.pushEvent(
-        accountUpdate.body.actions,
-        eventFields
-      );
+      accountUpdate.body.actions = Actions.pushEvent(accountUpdate.body.actions, eventFields);
     },
 
     reduce<S>(
@@ -195,9 +186,7 @@ class ${contract.constructor.name} extends SmartContract {
           // special case with less work, because the only action is a dummy iff merkleActions is a dummy
           let action = Provable.witness(
             reducer.actionType,
-            () =>
-              actionIter.data.get()[0]?.element ??
-              actionIter.innerProvable.empty()
+            () => actionIter.data.get()[0]?.element ?? actionIter.innerProvable.empty()
           );
           let emptyHash = actionIter.Constructor.emptyHash;
           let finalHash = actionIter.nextHash(emptyHash, action);
@@ -211,12 +200,7 @@ class ${contract.constructor.name} extends SmartContract {
         } else {
           for (let j = 0; j < maxActionsPerUpdate; j++) {
             let { element: action, isDummy } = actionIter.Unsafe.next();
-            newState = Provable.if(
-              isDummy,
-              stateType,
-              newState,
-              reduce(newState, action)
-            );
+            newState = Provable.if(isDummy, stateType, newState, reduce(newState, action));
           }
           // note: this asserts nothing about the iterated actions if `MerkleActions` is a dummy
           // which doesn't matter because we're also skipping all state and action state updates in that case
@@ -232,11 +216,7 @@ class ${contract.constructor.name} extends SmartContract {
       return state;
     },
 
-    forEach(
-      actionLists: MerkleList<MerkleList<A>>,
-      callback: (action: A) => void,
-      config
-    ) {
+    forEach(actionLists: MerkleList<MerkleList<A>>, callback: (action: A) => void, config) {
       const stateType = provable(null);
       this.reduce(
         actionLists,
@@ -267,8 +247,7 @@ class ${contract.constructor.name} extends SmartContract {
 
       class MerkleActions extends MerkleList.create(
         ActionList,
-        (hash: Field, actions: ActionList) =>
-          Actions.updateSequenceState(hash, actions.hash),
+        (hash: Field, actions: ActionList) => Actions.updateSequenceState(hash, actions.hash),
         // if no "start" action hash was specified, this means we are fetching the entire history of actions, which started from the empty action state hash
         // otherwise we are only fetching a part of the history, which starts at `fromActionState`
         // TODO does this show that `emptyHash` should be part of the instance, not the class? that would make the provable representation bigger though
@@ -276,22 +255,14 @@ class ${contract.constructor.name} extends SmartContract {
       ) {}
 
       let actions = Provable.witness(MerkleActions, () => {
-        let actionFields = Mina.getActions(
-          contract.address,
-          config,
-          contract.tokenId
-        );
+        let actionFields = Mina.getActions(contract.address, config, contract.tokenId);
         // convert string-Fields back into the original action type
         let actions = actionFields.map((event) =>
           event.actions.map((action) =>
-            (reducer.actionType as ProvablePure<A>).fromFields(
-              action.map(Field)
-            )
+            (reducer.actionType as ProvablePure<A>).fromFields(action.map(Field))
           )
         );
-        return MerkleActions.from(
-          actions.map((a) => ActionList.fromReverse(a))
-        );
+        return MerkleActions.from(actions.map((a) => ActionList.fromReverse(a)));
       });
       // note that we don't have to assert anything about the initial action state here,
       // because it is taken directly and not witnessed
@@ -305,11 +276,7 @@ class ${contract.constructor.name} extends SmartContract {
       fromActionState?: Field;
       endActionState?: Field;
     }): Promise<A[][]> {
-      let result = await Mina.fetchActions(
-        contract.address,
-        config,
-        contract.tokenId
-      );
+      let result = await Mina.fetchActions(contract.address, config, contract.tokenId);
       if ('error' in result) {
         throw Error(JSON.stringify(result));
       }
