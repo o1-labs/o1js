@@ -48,7 +48,9 @@ function testCustom({
   negative = false,
   logFailures = true,
 } = {}) {
-  return function <T extends readonly Random<any>[]>(...args: ArrayTestArgs<T>) {
+  return function <T extends readonly Random<any>[]>(
+    ...args: ArrayTestArgs<T>
+  ) {
     let run: (...args: ArrayRunArgs<Nexts<T>>) => void;
     let arg = args.pop();
     if (typeof arg !== 'function') {
@@ -86,7 +88,9 @@ function testN<T extends readonly (() => any)[]>(
     count++;
     if (!ok) {
       fail = true;
-      errorMessages.push(`Failed: ${message ? `"${message}"` : `assertion #${count}`}`);
+      errorMessages.push(
+        `Failed: ${message ? `"${message}"` : `assertion #${count}`}`
+      );
     }
   }
   for (let i = 0; i < N; i++) {

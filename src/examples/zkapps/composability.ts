@@ -1,7 +1,15 @@
 /**
  * zkApps composability
  */
-import { Field, method, Mina, AccountUpdate, SmartContract, state, State } from 'o1js';
+import {
+  Field,
+  method,
+  Mina,
+  AccountUpdate,
+  SmartContract,
+  state,
+  State,
+} from 'o1js';
 import { getProfiler } from '../utils/profiler.js';
 
 const doProofs = true;
@@ -73,7 +81,14 @@ let tx = await Mina.transaction(feePayer, async () => {
   await adder.deploy();
   await incrementer.deploy();
 });
-await tx.sign([feePayer.key, callerAccount.key, adderAccount.key, incrementerAccount.key]).send();
+await tx
+  .sign([
+    feePayer.key,
+    callerAccount.key,
+    adderAccount.key,
+    incrementerAccount.key,
+  ])
+  .send();
 
 console.log('call interaction');
 tx = await Mina.transaction(feePayer, async () => {

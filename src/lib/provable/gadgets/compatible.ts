@@ -22,7 +22,11 @@ let { isVar, getVar, isConst, getConst } = ScaledVar;
 /**
  * Assert multiplication constraint, `x * y === z`
  */
-function assertMulCompatible(x: Field | FieldVar, y: Field | FieldVar, z: Field | FieldVar) {
+function assertMulCompatible(
+  x: Field | FieldVar,
+  y: Field | FieldVar,
+  z: Field | FieldVar
+) {
   // this faithfully implements snarky's `assert_r1cs`,
   // see `R1CS_constraint_system.add_constraint` -> `Snarky_backendless.Constraint.R1CS`
 
@@ -111,7 +115,10 @@ function assertMulCompatible(x: Field | FieldVar, y: Field | FieldVar, z: Field 
   if (isConst(xv) && isConst(yv) && isConst(zv)) {
     let [sx, sy, sz] = [getConst(xv), getConst(yv), getConst(zv)];
 
-    assert(Fp.equal(Fp.mul(sx, sy), sz), `assertMul(): ${sx} * ${sy} !== ${sz}`);
+    assert(
+      Fp.equal(Fp.mul(sx, sy), sz),
+      `assertMul(): ${sx} * ${sy} !== ${sz}`
+    );
     return;
   }
 
@@ -215,14 +222,20 @@ function assertEqualCompatible(x: Field | FieldVar, y: Field | FieldVar) {
     let [[sx, x], sy] = [getVar(xv), getConst(yv)];
 
     // x === sy / sx, call into snarky to use its constants table
-    return Snarky.field.assertEqual(FieldVar.scale(sx, x), FieldVar.constant(sy));
+    return Snarky.field.assertEqual(
+      FieldVar.scale(sx, x),
+      FieldVar.constant(sy)
+    );
   }
 
   if (isConst(xv) && isVar(yv)) {
     let [sx, [sy, y]] = [getConst(xv), getVar(yv)];
 
     // sx / sy === y, call into snarky to use its constants table
-    return Snarky.field.assertEqual(FieldVar.constant(sx), FieldVar.scale(sy, y));
+    return Snarky.field.assertEqual(
+      FieldVar.constant(sx),
+      FieldVar.scale(sy, y)
+    );
   }
 
   if (isConst(xv) && isConst(yv)) {

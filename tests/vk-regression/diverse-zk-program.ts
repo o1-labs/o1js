@@ -33,7 +33,11 @@ const diverse = ZkProgram({
     // foreign field / curve ops, multi-range checks
     ecdsa: {
       privateInputs: [Secp256k1Scalar, Secp256k1Signature, Secp256k1],
-      async method(message: Secp256k1Scalar, signature: Secp256k1Signature, publicKey: Secp256k1) {
+      async method(
+        message: Secp256k1Scalar,
+        signature: Secp256k1Signature,
+        publicKey: Secp256k1
+      ) {
         assert(signature.verifySignedHash(message, publicKey));
       },
     },

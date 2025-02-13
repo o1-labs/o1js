@@ -1,4 +1,12 @@
-import { Bool, Provable, Int64, Struct, Field, PrivateKey, PublicKey } from 'o1js';
+import {
+  Bool,
+  Provable,
+  Int64,
+  Struct,
+  Field,
+  PrivateKey,
+  PublicKey,
+} from 'o1js';
 
 describe('Provable', () => {
   it('Provable.if out of snark', () => {
@@ -79,12 +87,20 @@ describe('Provable', () => {
 
       // positive
       Provable.assertEqual(b, Bool(true));
-      Provable.assertEqual(FieldAndBool, { x, b }, { x: Field(1), b: Bool(true) });
+      Provable.assertEqual(
+        FieldAndBool,
+        { x, b },
+        { x: Field(1), b: Bool(true) }
+      );
 
       //negative
       expect(() => Provable.assertEqual(b, Bool(false))).toThrow();
       expect(() =>
-        Provable.assertEqual(FieldAndBool, { x, b }, { x: Field(5), b: Bool(true) })
+        Provable.assertEqual(
+          FieldAndBool,
+          { x, b },
+          { x: Field(5), b: Bool(true) }
+        )
       ).toThrow();
       expect(() => Provable.assertEqual(b, PrivateKey.random() as any)).toThrow(
         'must contain the same number of field elements'
@@ -94,8 +110,12 @@ describe('Provable', () => {
 
   it('Provable.equal', async () => {
     const FieldAndBool = Struct({ x: Field, b: Bool });
-    let pk1 = PublicKey.fromBase58('B62qoCHJ1dcGjKhdMTMuAytzRkLxRFUgq6YC5XSgmmxAt8r7FVi1DhT');
-    let pk2 = PublicKey.fromBase58('B62qnDjh7J27q6CoG6hkQzP6J6t1USA6bCoKsBFhxNughNHQgVwEtT9');
+    let pk1 = PublicKey.fromBase58(
+      'B62qoCHJ1dcGjKhdMTMuAytzRkLxRFUgq6YC5XSgmmxAt8r7FVi1DhT'
+    );
+    let pk2 = PublicKey.fromBase58(
+      'B62qnDjh7J27q6CoG6hkQzP6J6t1USA6bCoKsBFhxNughNHQgVwEtT9'
+    );
 
     function expectBoolean(b: Bool, expected: boolean) {
       Provable.asProver(() => {
@@ -109,10 +129,16 @@ describe('Provable', () => {
       let pk = Provable.witness(PublicKey, () => pk1);
 
       expectBoolean(Provable.equal(PublicKey, pk, pk1), true);
-      expectBoolean(Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(true) }), true);
+      expectBoolean(
+        Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(true) }),
+        true
+      );
 
       expectBoolean(Provable.equal(PublicKey, pk, pk2), false);
-      expectBoolean(Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(false) }), false);
+      expectBoolean(
+        Provable.equal(FieldAndBool, { x, b }, { x: Field(1), b: Bool(false) }),
+        false
+      );
     });
   });
 

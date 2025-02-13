@@ -68,7 +68,8 @@ const FeatureFlags = {
    * Given a ZkProgram, return the feature flag configuration that fits the given program.
    * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
    */
-  fromZkProgram: async (program: AnalysableProgram) => await fromZkProgramList([program]),
+  fromZkProgram: async (program: AnalysableProgram) =>
+    await fromZkProgramList([program]),
 
   /**
    * Given a list of ZkPrograms, return the feature flag configuration that fits the given set of programs.
@@ -160,7 +161,9 @@ function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
   return flags;
 }
 
-function featureFlagsToMlOption(flags: FeatureFlags): MlArrayOptionalElements<MlFeatureFlags> {
+function featureFlagsToMlOption(
+  flags: FeatureFlags
+): MlArrayOptionalElements<MlFeatureFlags> {
   const {
     rangeCheck0,
     rangeCheck1,

@@ -1,5 +1,12 @@
 // Live integration test against real Mina network.
-import { AccountUpdate, Field, Lightnet, Mina, PrivateKey, fetchAccount } from 'o1js';
+import {
+  AccountUpdate,
+  Field,
+  Lightnet,
+  Mina,
+  PrivateKey,
+  fetchAccount,
+} from 'o1js';
 import { HelloWorld, adminPrivateKey } from './hello-world.js';
 
 const useCustomLocalNetwork = process.env.USE_CUSTOM_LOCAL_NETWORK === 'true';
@@ -42,10 +49,13 @@ console.log('');
 
 // zkApp deployment
 console.log(`Deploying zkApp for public key ${zkAppAddress.toBase58()}.`);
-let transaction = await Mina.transaction({ sender, fee: transactionFee }, async () => {
-  AccountUpdate.fundNewAccount(sender);
-  await zkApp.deploy({ verificationKey });
-});
+let transaction = await Mina.transaction(
+  { sender, fee: transactionFee },
+  async () => {
+    AccountUpdate.fundNewAccount(sender);
+    await zkApp.deploy({ verificationKey });
+  }
+);
 transaction.sign([senderKey, zkAppKey]);
 console.log('Sending the transaction.');
 let pendingTx = await transaction.send();
@@ -61,9 +71,12 @@ console.log('');
 
 // zkApp state update
 console.log('Trying to update deployed zkApp state.');
-transaction = await Mina.transaction({ sender, fee: transactionFee }, async () => {
-  await zkApp.update(Field(4), adminPrivateKey);
-});
+transaction = await Mina.transaction(
+  { sender, fee: transactionFee },
+  async () => {
+    await zkApp.update(Field(4), adminPrivateKey);
+  }
+);
 await transaction.sign([senderKey]).prove();
 console.log('Sending the transaction.');
 pendingTx = await transaction.send();
@@ -82,7 +95,9 @@ console.log('Validating zkApp state update.');
 try {
   (await zkApp.x.fetch())?.assertEquals(Field(4));
 } catch (error) {
-  throw new Error(`On-chain zkApp account state doesn't match the expected state. ${error}`);
+  throw new Error(
+    `On-chain zkApp account state doesn't match the expected state. ${error}`
+  );
 }
 console.log('Success!');
 

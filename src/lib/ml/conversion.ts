@@ -43,7 +43,9 @@ const MlHashInput = {
     return [
       0,
       MlFieldConstArray.to(fields),
-      MlArray.to(packed.map(([field, size]) => [0, Ml.constFromField(field), size])),
+      MlArray.to(
+        packed.map(([field, size]) => [0, Ml.constFromField(field), size])
+      ),
     ];
   },
   from([, fields, packed]: MlHashInput): HashInput {

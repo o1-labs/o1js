@@ -45,7 +45,8 @@ let accountUpdateExample: Json.AccountUpdate = {
     incrementNonce: true,
     events: [['0'], ['1']],
     actions: [['0'], ['1']],
-    callData: '6743900749438632952963252074409706338210982229126682817949490928992849119219',
+    callData:
+      '6743900749438632952963252074409706338210982229126682817949490928992849119219',
     callDepth: 0,
     preconditions: {
       network: {

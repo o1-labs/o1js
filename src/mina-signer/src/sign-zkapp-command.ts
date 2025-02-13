@@ -7,7 +7,12 @@ import {
 } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
-import { Signature, signFieldElement, verifyFieldElement, zkAppBodyPrefix } from './signature.js';
+import {
+  Signature,
+  signFieldElement,
+  verifyFieldElement,
+  zkAppBodyPrefix,
+} from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 import { NetworkId } from './types.js';
 
@@ -36,7 +41,10 @@ function signZkappCommand(
 ): Json.ZkappCommand {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
-  let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId);
+  let { commitment, fullCommitment } = transactionCommitments(
+    zkappCommand,
+    networkId
+  );
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let publicKey = zkappCommand.feePayer.body.publicKey;
 
@@ -63,7 +71,10 @@ function verifyZkappCommandSignature(
 ) {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
-  let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId);
+  let { commitment, fullCommitment } = transactionCommitments(
+    zkappCommand,
+    networkId
+  );
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
 
   // verify fee payer signature
@@ -100,7 +111,10 @@ function verifyAccountUpdateSignature(
   return verifyFieldElement(signature, usedCommitment, publicKey, networkId);
 }
 
-function transactionCommitments(zkappCommand: ZkappCommand, networkId: NetworkId) {
+function transactionCommitments(
+  zkappCommand: ZkappCommand,
+  networkId: NetworkId
+) {
   if (!isCallDepthValid(zkappCommand)) {
     throw Error('zkapp command: invalid call depth');
   }
@@ -149,8 +163,17 @@ function accountUpdateHash(update: AccountUpdate, networkId: NetworkId) {
   return hashWithPrefix(zkAppBodyPrefix(networkId), fields);
 }
 
-function callForestHash(forest: CallForest<AccountUpdate>, networkId: NetworkId): bigint {
-  return callForestHashGeneric(forest, accountUpdateHash, hashWithPrefix, 0n, networkId);
+function callForestHash(
+  forest: CallForest<AccountUpdate>,
+  networkId: NetworkId
+): bigint {
+  return callForestHashGeneric(
+    forest,
+    accountUpdateHash,
+    hashWithPrefix,
+    0n,
+    networkId
+  );
 }
 
 function callForestHashGeneric<A, F>(
@@ -170,8 +193,14 @@ function callForestHashGeneric<A, F>(
       networkId
     );
     let treeHash = hash(callTree.accountUpdate, networkId);
-    let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [treeHash, calls]);
-    stackHash = hashWithPrefix(prefixes.accountUpdateCons, [nodeHash, stackHash]);
+    let nodeHash = hashWithPrefix(prefixes.accountUpdateNode, [
+      treeHash,
+      calls,
+    ]);
+    stackHash = hashWithPrefix(prefixes.accountUpdateCons, [
+      nodeHash,
+      stackHash,
+    ]);
   }
   return stackHash;
 }
@@ -225,10 +254,16 @@ function isCallDepthValid(zkappCommand: ZkappCommand) {
 }
 
 function assertAuthorizationKindValid(accountUpdate: AccountUpdate) {
-  let { isSigned, isProved, verificationKeyHash } = accountUpdate.body.authorizationKind;
+  let { isSigned, isProved, verificationKeyHash } =
+    accountUpdate.body.authorizationKind;
   if (isProved && isSigned)
-    throw Error('Invalid authorization kind: Only one of `isProved` and `isSigned` may be true.');
-  if (!isProved && verificationKeyHash !== Field(mocks.dummyVerificationKeyHash))
+    throw Error(
+      'Invalid authorization kind: Only one of `isProved` and `isSigned` may be true.'
+    );
+  if (
+    !isProved &&
+    verificationKeyHash !== Field(mocks.dummyVerificationKeyHash)
+  )
     throw Error(
       `Invalid authorization kind: If \`isProved\` is false, verification key hash must be ${mocks.dummyVerificationKeyHash}, got ${verificationKeyHash}`
     );

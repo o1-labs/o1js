@@ -1,6 +1,8 @@
 import { PrivateKey, PublicKey } from 'o1js';
 
-export { randomAccounts };
+export {
+  randomAccounts
+}
 
 /**
  * Predefined accounts keys, labeled by the input strings. Useful for testing/debugging with consistent keys.

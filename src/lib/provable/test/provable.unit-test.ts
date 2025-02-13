@@ -13,7 +13,9 @@ await it('can witness large field array', async () => {
     let fields = exists(N, () => arr);
 
     // with Provable.witness
-    let fields2 = Provable.witness(Provable.Array(Field, N), () => arr.map(Field.from));
+    let fields2 = Provable.witness(Provable.Array(Field, N), () =>
+      arr.map(Field.from)
+    );
 
     expect(fields.length).toEqual(N);
     expect(fields2.length).toEqual(N);

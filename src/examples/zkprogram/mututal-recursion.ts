@@ -1,4 +1,12 @@
-import { ZkProgram, Field, DynamicProof, Proof, VerificationKey, Undefined, verify } from 'o1js';
+import {
+  ZkProgram,
+  Field,
+  DynamicProof,
+  Proof,
+  VerificationKey,
+  Undefined,
+  verify,
+} from 'o1js';
 
 /**
  * This example showcases mutual recursion (A -> B -> A) through two circuits that respectively
@@ -19,7 +27,11 @@ const add = ZkProgram({
   methods: {
     performAddition: {
       privateInputs: [Field, DynamicMultiplyProof, VerificationKey],
-      async method(field: Field, proof: DynamicMultiplyProof, vk: VerificationKey) {
+      async method(
+        field: Field,
+        proof: DynamicMultiplyProof,
+        vk: VerificationKey
+      ) {
         // TODO The incoming verification key isn't constrained in any way, therefore a malicious prover
         // can inject any vk they like which could lead to security issues. In practice, there would always
         // be some sort of access control to limit the set of possible vks used.
@@ -57,13 +69,20 @@ const multiplyVk = (await multiply.compile()).verificationKey;
 
 console.log('Proving basecase');
 const dummyProof = await DynamicMultiplyProof.dummy(undefined, Field(0), 1);
-const { proof: baseCase } = await add.performAddition(Field(5), dummyProof, multiplyVk);
+const { proof: baseCase } = await add.performAddition(
+  Field(5),
+  dummyProof,
+  multiplyVk
+);
 
 const validBaseCase = await verify(baseCase, addVk);
 console.log('ok?', validBaseCase);
 
 console.log('Proving first multiplication');
-const { proof: multiply1 } = await multiply.performMultiplication(Field(3), baseCase);
+const { proof: multiply1 } = await multiply.performMultiplication(
+  Field(3),
+  baseCase
+);
 
 const validMultiplication = await verify(multiply1, multiplyVk);
 console.log('ok?', validMultiplication);

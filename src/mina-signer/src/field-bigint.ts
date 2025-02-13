@@ -1,6 +1,11 @@
 import { randomBytes } from '../../bindings/crypto/random.js';
 import { Fp, mod } from '../../bindings/crypto/finite-field.js';
-import { BinableBigint, HashInput, SignableBigint, BinableBool } from './derivers-bigint.js';
+import {
+  BinableBigint,
+  HashInput,
+  SignableBigint,
+  BinableBool,
+} from './derivers-bigint.js';
 
 export { Field, Bool, UInt32, UInt64, Sign };
 export { BinableFp, SignableFp };
@@ -13,8 +18,10 @@ type UInt64 = bigint;
 
 const sizeInBits = Fp.sizeInBits;
 
-type minusOne = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
-const minusOne: minusOne = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
+type minusOne =
+  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
+const minusOne: minusOne =
+  0x40000000000000000000000000000000224698fc094cf91b992d30ed00000000n;
 type Sign = 1n | minusOne;
 
 const checkField = checkRange(0n, Fp.modulus, 'Field');
@@ -103,7 +110,8 @@ const UInt64 = Unsigned(64);
 
 const Sign = pseudoClass(
   function Sign(value: 1 | -1): Sign {
-    if (value !== 1 && value !== -1) throw Error('Sign: input must be 1 or -1.');
+    if (value !== 1 && value !== -1)
+      throw Error('Sign: input must be 1 or -1.');
     return mod(BigInt(value), Fp.modulus) as Sign;
   },
   {
@@ -124,7 +132,8 @@ const Sign = pseudoClass(
       return x === 1n ? 'Positive' : 'Negative';
     },
     fromJSON(x: 'Positive' | 'Negative'): Sign {
-      if (x !== 'Positive' && x !== 'Negative') throw Error('Sign: invalid input');
+      if (x !== 'Positive' && x !== 'Negative')
+        throw Error('Sign: invalid input');
       return x === 'Positive' ? 1n : minusOne;
     },
   }
@@ -144,16 +153,23 @@ function pseudoClass<
 
 function checkRange(lower: bigint, upper: bigint, name: string) {
   return (x: bigint) => {
-    if (x < lower) throw Error(`${name}: inputs smaller than ${lower} are not allowed, got ${x}`);
+    if (x < lower)
+      throw Error(
+        `${name}: inputs smaller than ${lower} are not allowed, got ${x}`
+      );
     if (x >= upper)
-      throw Error(`${name}: inputs larger than ${upper - 1n} are not allowed, got ${x}`);
+      throw Error(
+        `${name}: inputs larger than ${upper - 1n} are not allowed, got ${x}`
+      );
   };
 }
 
 function checkAllowList<T>(valid: Set<T>, name: string) {
   return (x: T) => {
     if (!valid.has(x)) {
-      throw Error(`${name}: input must be one of ${[...valid].join(', ')}, got ${x}`);
+      throw Error(
+        `${name}: input must be one of ${[...valid].join(', ')}, got ${x}`
+      );
     }
   };
 }

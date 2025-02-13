@@ -8,7 +8,15 @@
  * - Outside the zkapp, we pass the zkapp account update to `token.approveAccountUpdate()`
  *   - see how we call `token.approveAccountUpdate(escrow.self)` in the test below
  */
-import { SmartContract, method, UInt64, AccountUpdate, PrivateKey, Mina, Bool } from 'o1js';
+import {
+  SmartContract,
+  method,
+  UInt64,
+  AccountUpdate,
+  PrivateKey,
+  Mina,
+  Bool,
+} from 'o1js';
 import { TrivialCoin } from '../dex/erc20.js';
 
 const admin = Mina.TestPublicKey(

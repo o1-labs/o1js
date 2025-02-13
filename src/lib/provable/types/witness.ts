@@ -1,7 +1,10 @@
 import type { Field } from '../field.js';
 import type { FlexibleProvable, InferProvable } from './struct.js';
 import { Provable, ProvableType, ToProvable } from './provable-intf.js';
-import { inCheckedComputation, snarkContext } from '../core/provable-context.js';
+import {
+  inCheckedComputation,
+  snarkContext,
+} from '../core/provable-context.js';
 import { exists, existsAsync } from '../core/exists.js';
 import { From } from '../../../bindings/lib/provable-generic.js';
 import { TupleN } from '../../util/types.js';
@@ -86,10 +89,10 @@ async function witnessAsync<
   return value;
 }
 
-function witnessFields<N extends number, C extends () => TupleN<bigint | Field, N>>(
-  size: N,
-  compute: C
-): TupleN<Field, N> {
+function witnessFields<
+  N extends number,
+  C extends () => TupleN<bigint | Field, N>
+>(size: N, compute: C): TupleN<Field, N> {
   // outside provable code, we just call the callback and return its cloned result
   if (!inCheckedComputation() || snarkContext.get().inWitnessBlock) {
     let fields = compute().map((x) => createField(x));
@@ -98,7 +101,9 @@ function witnessFields<N extends number, C extends () => TupleN<bigint | Field, 
 
   // call into `exists` to witness the field elements
   return exists(size, () => {
-    let fields = compute().map((x) => (typeof x === 'bigint' ? x : x.toBigInt()));
+    let fields = compute().map((x) =>
+      typeof x === 'bigint' ? x : x.toBigInt()
+    );
     return TupleN.fromArray(size, fields);
   });
 }

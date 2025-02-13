@@ -25,14 +25,17 @@ txn = await Mina.transaction(feePayer1, async () => {
 });
 await txn.sign([feePayer1.key, contractAccount.key]).send();
 
-const initialState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
+const initialState =
+  Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 let currentState;
 
 console.log('Initial State', initialState);
 
 // update state with value that satisfies preconditions and correct admin private key
-console.log(`Updating state from ${initialState} to 4 with Admin Private Key ...`);
+console.log(
+  `Updating state from ${initialState} to 4 with Admin Private Key ...`
+);
 
 txn = await Mina.transaction(feePayer1, async () => {
   await contract.update(Field(4), adminPrivateKey);
@@ -43,7 +46,9 @@ await txn.sign([feePayer1.key]).send();
 currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 if (currentState !== '4') {
-  throw Error(`Current state of ${currentState} does not match 4 after calling update with 4`);
+  throw Error(
+    `Current state of ${currentState} does not match 4 after calling update with 4`
+  );
 }
 
 console.log(`Current state successfully updated to ${currentState}`);
@@ -88,7 +93,9 @@ try {
 }
 
 if (!correctlyFails) {
-  throw Error('We could update the state to a value that violates the precondition');
+  throw Error(
+    'We could update the state to a value that violates the precondition'
+  );
 }
 
 // attempt simultaneous “Update” method invocation by different users
@@ -110,7 +117,9 @@ try {
 }
 
 if (!correctlyFails) {
-  throw Error('We could update the state with input that fails the precondition');
+  throw Error(
+    'We could update the state with input that fails the precondition'
+  );
 }
 
 // expected to succeed and update state to 16
@@ -123,7 +132,9 @@ await txn2.sign([feePayer2.key]).send();
 currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 if (currentState !== '16') {
-  throw Error(`Current state of ${currentState} does not match 16 after calling update with 16`);
+  throw Error(
+    `Current state of ${currentState} does not match 16 after calling update with 16`
+  );
 }
 
 console.log(`Update successful. Current state is ${currentState}.`);
@@ -138,7 +149,9 @@ await txn3.sign([feePayer3.key]).send();
 currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 if (currentState !== '256') {
-  throw Error(`Current state of ${currentState} does not match 256 after calling update with 256`);
+  throw Error(
+    `Current state of ${currentState} does not match 256 after calling update with 256`
+  );
 }
 
 console.log(`Update successful. Current state is ${currentState}.`);
@@ -157,7 +170,9 @@ try {
 }
 
 if (!correctlyFails) {
-  throw Error('We could update the state with input that fails the precondition');
+  throw Error(
+    'We could update the state with input that fails the precondition'
+  );
 }
 
 /**
@@ -167,7 +182,8 @@ if (!correctlyFails) {
  */
 
 function handleError(error: any, errorMessage: string) {
-  currentState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
+  currentState =
+    Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
   if (error.message.includes(errorMessage)) {
     correctlyFails = true;

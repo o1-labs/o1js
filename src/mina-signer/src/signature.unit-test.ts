@@ -1,6 +1,12 @@
 // unit tests dedicated to testing consistency of the signature algorithm
 import { expect } from 'expect';
-import { sign, Signature, signFieldElement, verify, verifyFieldElement } from './signature.js';
+import {
+  sign,
+  Signature,
+  signFieldElement,
+  verify,
+  verifyFieldElement,
+} from './signature.js';
 import { Test } from '../../snarky.js';
 import { Field } from './field-bigint.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
@@ -28,17 +34,31 @@ function checkConsistentSingle(
   expect(verifyFieldElement(sig, msg, pk, networkId)).toEqual(true);
 
   // if the signature was generated with networkId=mainnet, the signature should not verify against testnet or devnet
-  expect(verifyFieldElement(sig, msg, pk, networkId === 'mainnet' ? 'testnet' : 'mainnet')).toEqual(
-    false
-  );
-  expect(verifyFieldElement(sig, msg, pk, networkId === 'mainnet' ? 'devnet' : 'mainnet')).toEqual(
-    false
-  );
+  expect(
+    verifyFieldElement(
+      sig,
+      msg,
+      pk,
+      networkId === 'mainnet' ? 'testnet' : 'mainnet'
+    )
+  ).toEqual(false);
+  expect(
+    verifyFieldElement(
+      sig,
+      msg,
+      pk,
+      networkId === 'mainnet' ? 'devnet' : 'mainnet'
+    )
+  ).toEqual(false);
 
   // consistent with OCaml
   let msgMl = FieldConst.fromBigint(msg);
   let keyMl = Ml.fromPrivateKey(keySnarky);
-  let actualTest = mlTest.signature.signFieldElement(msgMl, keyMl, NetworkId.toString(networkId));
+  let actualTest = mlTest.signature.signFieldElement(
+    msgMl,
+    keyMl,
+    NetworkId.toString(networkId)
+  );
   expect(Signature.toBase58(sig)).toEqual(actualTest);
 }
 
@@ -137,4 +157,6 @@ for (let i = 0; i < 10; i++) {
   }
 }
 
-console.log("signatures are consistent or verify / don't verify as expected! 🎉");
+console.log(
+  "signatures are consistent or verify / don't verify as expected! 🎉"
+);

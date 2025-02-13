@@ -14,7 +14,10 @@ function assertPromise<T>(value: Promise<T>, message?: string): Promise<T> {
 /**
  * Assert that the value is not undefined, return the value.
  */
-function assertDefined<T>(value: T | undefined, message = 'Input value is undefined.'): T {
+function assertDefined<T>(
+  value: T | undefined,
+  message = 'Input value is undefined.'
+): T {
   if (value === undefined) throw Error(message);
   return value as T;
 }

@@ -44,7 +44,9 @@ await main({ withVesting: true });
 console.log('all dex tests were successful! 🎉');
 
 async function main({ withVesting }: { withVesting: boolean }) {
-  const DexProfiler = getProfiler(`DEX testing ${withVesting ? 'with vesting' : ''}`);
+  const DexProfiler = getProfiler(
+    `DEX testing ${withVesting ? 'with vesting' : ''}`
+  );
   DexProfiler.start('DEX test flow');
   if (withVesting) console.log('\nWITH VESTING');
   else console.log('\nNO VESTING');
@@ -85,7 +87,11 @@ async function main({ withVesting }: { withVesting: boolean }) {
   tx.sign([feePayer.key, keys.tokenX, keys.tokenY]);
   await tx.send();
   balances = getTokenBalances();
-  console.log('Token contract tokens (X, Y):', balances.tokenContract.X, balances.tokenContract.Y);
+  console.log(
+    'Token contract tokens (X, Y):',
+    balances.tokenContract.X,
+    balances.tokenContract.Y
+  );
 
   console.log('deploy dex contracts...');
   tx = await Mina.transaction(feePayer, async () => {
@@ -196,7 +202,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     oldBalances.user.Y - (USER_DX * oldBalances.dex.Y) / oldBalances.dex.X
   );
   expect(balances.user.MINA).toEqual(oldBalances.user.MINA - 1n);
-  expect(balances.user.lqXY).toEqual((USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X);
+  expect(balances.user.lqXY).toEqual(
+    (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
+  );
 
   /**
    * Happy path (lqXY token exists for users account)
@@ -223,7 +231,8 @@ async function main({ withVesting }: { withVesting: boolean }) {
     );
     expect(balances.user.MINA).toEqual(oldBalances.user.MINA);
     expect(balances.user.lqXY).toEqual(
-      oldBalances.user.lqXY + (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
+      oldBalances.user.lqXY +
+        (USER_DX * oldBalances.total.lqXY) / oldBalances.dex.X
     );
   } else {
     await expect(tx.send()).rejects.toThrow(/Update_not_permitted_timing/);
@@ -260,14 +269,21 @@ async function main({ withVesting }: { withVesting: boolean }) {
   console.log('prepare supplying overflowing liquidity');
   tx = await Mina.transaction(feePayer, async () => {
     AccountUpdate.fundNewAccount(feePayer);
-    await tokenY.transfer(addresses.tokenY, addresses.tokenX, UInt64.MAXINT().sub(200_000));
+    await tokenY.transfer(
+      addresses.tokenY,
+      addresses.tokenX,
+      UInt64.MAXINT().sub(200_000)
+    );
   });
   await tx.prove();
   await tx.sign([feePayer.key, keys.tokenY]).send();
   console.log('supply overflowing liquidity');
   await expect(async () => {
     tx = await Mina.transaction(addresses.tokenX, async () => {
-      await dex.supplyLiquidityBase(UInt64.MAXINT().sub(200_000), UInt64.MAXINT().sub(200_000));
+      await dex.supplyLiquidityBase(
+        UInt64.MAXINT().sub(200_000),
+        UInt64.MAXINT().sub(200_000)
+      );
     });
     await tx.prove();
     tx.sign([keys.tokenX]);
@@ -298,7 +314,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
     await dex.supplyLiquidity(UInt64.from(10));
   });
   await tx.prove();
-  await expect(tx.sign([keys.tokenX]).send()).rejects.toThrow(/Update_not_permitted_balance/);
+  await expect(tx.sign([keys.tokenX]).send()).rejects.toThrow(
+    /Update_not_permitted_balance/
+  );
 
   [oldBalances, balances] = [balances, getTokenBalances()];
 
@@ -432,7 +450,9 @@ async function main({ withVesting }: { withVesting: boolean }) {
   });
   await tx.prove();
   tx.sign([keys.user, keys.user2]);
-  await expect(tx.send()).rejects.toThrow(/Account_balance_precondition_unsatisfied/);
+  await expect(tx.send()).rejects.toThrow(
+    /Account_balance_precondition_unsatisfied/
+  );
 
   console.log('user2 redeem liquidity');
   tx = await Mina.transaction(addresses.user2, async () => {

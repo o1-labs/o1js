@@ -18,7 +18,9 @@ function hasCommonProperties(data: SignableData | ZkappCommand) {
   );
 }
 
-export function isZkappCommand(p: SignableData | ZkappCommand): p is ZkappCommand {
+export function isZkappCommand(
+  p: SignableData | ZkappCommand
+): p is ZkappCommand {
   return p.hasOwnProperty('zkappCommand') && p.hasOwnProperty('feePayer');
 }
 
@@ -26,7 +28,9 @@ export function isPayment(p: SignableData | ZkappCommand): p is Payment {
   return hasCommonProperties(p) && p.hasOwnProperty('amount');
 }
 
-export function isStakeDelegation(p: SignableData | ZkappCommand): p is StakeDelegation {
+export function isStakeDelegation(
+  p: SignableData | ZkappCommand
+): p is StakeDelegation {
   return hasCommonProperties(p) && !p.hasOwnProperty('amount');
 }
 
@@ -44,11 +48,15 @@ export function isSignedZkappCommand(p: SignedAny): p is Signed<ZkappCommand> {
 
 export function isSignedPayment(p: SignedAny): p is SignedLegacy<Payment> {
   return (
-    hasCommonProperties(p.data) && isLegacySignature(p.signature) && p.data.hasOwnProperty('amount')
+    hasCommonProperties(p.data) &&
+    isLegacySignature(p.signature) &&
+    p.data.hasOwnProperty('amount')
   );
 }
 
-export function isSignedDelegation(p: SignedAny): p is SignedLegacy<StakeDelegation> {
+export function isSignedDelegation(
+  p: SignedAny
+): p is SignedLegacy<StakeDelegation> {
   return (
     hasCommonProperties(p.data) &&
     isLegacySignature(p.signature) &&

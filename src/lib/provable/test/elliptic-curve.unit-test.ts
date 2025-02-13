@@ -1,9 +1,20 @@
 import { CurveParams } from '../../../bindings/crypto/elliptic-curve-examples.js';
 import { createCurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
-import { array, equivalentProvable, map, onlyIf, spec, unit } from '../../testing/equivalent.js';
+import {
+  array,
+  equivalentProvable,
+  map,
+  onlyIf,
+  spec,
+  unit,
+} from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
 import { assert } from '../gadgets/common.js';
-import { EllipticCurve, Point, simpleMapToCurve } from '../gadgets/elliptic-curve.js';
+import {
+  EllipticCurve,
+  Point,
+  simpleMapToCurve,
+} from '../gadgets/elliptic-curve.js';
 import { foreignField, throwError } from './test-utils.js';
 
 // provable equivalence tests
@@ -31,7 +42,9 @@ for (let Curve of curves) {
   });
 
   // valid random point
-  let point = map({ from: field, to: badPoint }, (x) => simpleMapToCurve(x, Curve));
+  let point = map({ from: field, to: badPoint }, (x) =>
+    simpleMapToCurve(x, Curve)
+  );
 
   // two random points that are not equal, so are a valid input to EC addition
   let unequalPair = onlyIf(array(point, 2), ([p, q]) => !Curve.equal(p, q));

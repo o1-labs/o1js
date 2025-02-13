@@ -29,7 +29,8 @@ txn = await Mina.transaction(feePayer, async () => {
 });
 await txn.sign([feePayer.key, contractAccount.key]).send();
 
-const initialState = Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
+const initialState =
+  Mina.getAccount(contractAccount).zkapp?.appState?.[0].toString();
 
 let currentState;
 console.log('Initial State', initialState);

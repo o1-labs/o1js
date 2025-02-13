@@ -20,7 +20,15 @@
  * 2. Then, `A.updateWithB()` is applied.
  * 3. Finally, `B.assertInsideUpdate()` is applied. It checks that `insideBUpdate = true` and sets it back to false.
  */
-import { Bool, Field, PrivateKey, SmartContract, State, method, state } from 'o1js';
+import {
+  Bool,
+  Field,
+  PrivateKey,
+  SmartContract,
+  State,
+  method,
+  state,
+} from 'o1js';
 
 const aPubKey = PrivateKey.randomKeypair().publicKey;
 const bPubKey = PrivateKey.randomKeypair().publicKey;

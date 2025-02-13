@@ -14,7 +14,10 @@ type TupleMap<T extends Tuple<any>, B> = [
 ];
 
 const Tuple = {
-  map<T extends Tuple<any>, B>(tuple: T, f: (a: T[number]) => B): TupleMap<T, B> {
+  map<T extends Tuple<any>, B>(
+    tuple: T,
+    f: (a: T[number]) => B
+  ): TupleMap<T, B> {
     return tuple.map(f) as any;
   },
 };
@@ -29,12 +32,18 @@ type TupleN<T, N extends number> = N extends N
   : never;
 
 const TupleN = {
-  map<T extends Tuple<any>, B>(tuple: T, f: (a: T[number]) => B): TupleMap<T, B> {
+  map<T extends Tuple<any>, B>(
+    tuple: T,
+    f: (a: T[number]) => B
+  ): TupleMap<T, B> {
     return tuple.map(f) as any;
   },
 
   fromArray<T, N extends number>(n: N, arr: T[]): TupleN<T, N> {
-    assert(arr.length === n, `Expected array of length ${n}, got ${arr.length}`);
+    assert(
+      arr.length === n,
+      `Expected array of length ${n}, got ${arr.length}`
+    );
     return arr as any;
   },
 

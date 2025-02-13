@@ -3,8 +3,14 @@ import { Snarky, initializeBindings } from '../../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { withThreadPool } from '../../snarky.js';
 import { Provable } from '../provable/provable.js';
-import { snarkContext, gatesFromJson } from '../provable/core/provable-context.js';
-import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
+import {
+  snarkContext,
+  gatesFromJson,
+} from '../provable/core/provable-context.js';
+import {
+  prettifyStacktrace,
+  prettifyStacktracePromise,
+} from '../util/errors.js';
 import { ProvablePure } from '../provable/types/provable-intf.js';
 
 // external API
@@ -42,7 +48,11 @@ class Circuit {
    * const proof = await MyCircuit.prove(privateInput, publicInput, keypair);
    * ```
    */
-  static async prove(privateInput: any[], publicInput: any[], keypair: Keypair) {
+  static async prove(
+    privateInput: any[],
+    publicInput: any[],
+    keypair: Keypair
+  ) {
     let main = mainFromCircuitData(this._main, privateInput);
     let publicInputSize = this._main.publicInputType.sizeInFields();
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
@@ -69,7 +79,11 @@ class Circuit {
    * const isValid = await MyCircuit.verify(publicInput, keypair.vk, proof);
    * ```
    */
-  static async verify(publicInput: any[], verificationKey: VerificationKey, proof: Proof) {
+  static async verify(
+    publicInput: any[],
+    verificationKey: VerificationKey,
+    proof: Proof
+  ) {
     let publicInputFields = this._main.publicInputType.toFields(publicInput);
     await initializeBindings();
     return prettifyStacktracePromise(
@@ -92,7 +106,9 @@ class Keypair {
   }
 
   verificationKey() {
-    return new VerificationKey(Snarky.circuit.keypair.getVerificationKey(this.value));
+    return new VerificationKey(
+      Snarky.circuit.keypair.getVerificationKey(this.value)
+    );
   }
 
   /**
@@ -106,7 +122,9 @@ class Keypair {
    */
   constraintSystem() {
     try {
-      return gatesFromJson(Snarky.circuit.keypair.getConstraintSystemJSON(this.value)).gates;
+      return gatesFromJson(
+        Snarky.circuit.keypair.getConstraintSystemJSON(this.value)
+      ).gates;
     } catch (error) {
       throw prettifyStacktrace(error);
     }
@@ -150,12 +168,20 @@ type CircuitData<P, W> = {
   privateInputType: ProvablePure<W>;
 };
 
-function mainFromCircuitData<P, W>(data: CircuitData<P, W>, privateInput?: W): Snarky.Main {
+function mainFromCircuitData<P, W>(
+  data: CircuitData<P, W>,
+  privateInput?: W
+): Snarky.Main {
   return function main(publicInputFields: MlFieldArray) {
     let id = snarkContext.enter({ inCheckedComputation: true });
     try {
-      let publicInput = data.publicInputType.fromFields(MlFieldArray.from(publicInputFields));
-      let privateInput_ = Provable.witness(data.privateInputType, () => privateInput as W);
+      let publicInput = data.publicInputType.fromFields(
+        MlFieldArray.from(publicInputFields)
+      );
+      let privateInput_ = Provable.witness(
+        data.privateInputType,
+        () => privateInput as W
+      );
       data.main(publicInput, privateInput_);
     } finally {
       snarkContext.leave(id);
@@ -168,7 +194,11 @@ function circuitMain(
   propertyName: string,
   _descriptor?: PropertyDescriptor
 ): any {
-  const paramTypes = Reflect.getMetadata('design:paramtypes', target, propertyName);
+  const paramTypes = Reflect.getMetadata(
+    'design:paramtypes',
+    target,
+    propertyName
+  );
   const numArgs = paramTypes.length;
 
   const publicIndexSet: Set<number> = new Set((target as any)._public);
@@ -186,15 +216,21 @@ function circuitMain(
       }
       return (target as any)[propertyName].apply(target, args);
     },
-    publicInputType: provableFromTuple(Array.from(publicIndexSet).map((i) => paramTypes[i])),
-    privateInputType: provableFromTuple(Array.from(witnessIndexSet).map((i) => paramTypes[i])),
+    publicInputType: provableFromTuple(
+      Array.from(publicIndexSet).map((i) => paramTypes[i])
+    ),
+    privateInputType: provableFromTuple(
+      Array.from(witnessIndexSet).map((i) => paramTypes[i])
+    ),
   };
 }
 
 type ProvableInputPure<T> = ProvablePure<T> | { provable: ProvablePure<T> };
 
 // TODO support auxiliary data
-function provableFromTuple(inputTypes: ProvableInputPure<any>[]): ProvablePure<any> {
+function provableFromTuple(
+  inputTypes: ProvableInputPure<any>[]
+): ProvablePure<any> {
   let types = inputTypes.map((t) => ('provable' in t ? t.provable : t));
   return {
     sizeInFields: () => {
@@ -203,7 +239,9 @@ function provableFromTuple(inputTypes: ProvableInputPure<any>[]): ProvablePure<a
 
     toFields: (t: Array<any>) => {
       if (t.length !== types.length) {
-        throw new Error(`typOfArray: Expected ${types.length}, got ${t.length}`);
+        throw new Error(
+          `typOfArray: Expected ${types.length}, got ${t.length}`
+        );
       }
       let res = [];
       for (let i = 0; i < t.length; ++i) {

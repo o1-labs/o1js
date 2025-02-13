@@ -1,4 +1,12 @@
-import { SelfProof, Field, ZkProgram, verify, Proof, JsonProof, Provable } from 'o1js';
+import {
+  SelfProof,
+  Field,
+  ZkProgram,
+  verify,
+  Proof,
+  JsonProof,
+  Provable,
+} from 'o1js';
 
 let MyProgram = ZkProgram({
   name: 'example-with-input',

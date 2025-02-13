@@ -16,7 +16,13 @@ import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from './cache.js';
 import type { MethodInterface } from './zkprogram.js';
 
-export { parseHeader, encodeProverKey, decodeProverKey, SnarkKeyHeader, SnarkKey };
+export {
+  parseHeader,
+  encodeProverKey,
+  decodeProverKey,
+  SnarkKeyHeader,
+  SnarkKey,
+};
 export type { MlWrapVerificationKey };
 
 // there are 4 types of snark keys in Pickles which we all handle at once
@@ -55,7 +61,9 @@ function parseHeader(
       let methodIndex = header[1][3];
       let methodName = methods[methodIndex].methodName;
       let persistentId = sanitize(`${kind}-${programName}-${methodName}`);
-      let uniqueId = sanitize(`${kind}-${programName}-${methodIndex}-${methodName}-${hash}`);
+      let uniqueId = sanitize(
+        `${kind}-${programName}-${methodIndex}-${methodName}-${hash}`
+      );
       return {
         version: cacheHeaderVersion,
         uniqueId,
@@ -134,7 +142,10 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
     case KeyType.StepVerificationKey: {
       let srs = Pickles.loadSrsFp();
       let string = new TextDecoder().decode(bytes);
-      let vkWasm = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(srs, string);
+      let vkWasm = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(
+        srs,
+        string
+      );
       const rustConversion = getRustConversion(wasm);
       let vkMl = rustConversion.fp.verifierIndexFromRust(vkWasm);
       return [KeyType.StepVerificationKey, vkMl];
@@ -187,7 +198,11 @@ class MlConstraintSystem {
 
 // Dlog_plonk_based_keypair.Make().t
 
-type MlBackendKeyPair<WasmIndex> = [_: 0, index: WasmIndex, cs: MlConstraintSystem];
+type MlBackendKeyPair<WasmIndex> = [
+  _: 0,
+  index: WasmIndex,
+  cs: MlConstraintSystem
+];
 
 // Snarky_keys_header.t
 

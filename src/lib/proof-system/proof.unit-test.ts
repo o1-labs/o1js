@@ -14,7 +14,9 @@ test('Proof provable', async () => {
   expect(MyProof.provable.sizeInFields()).toEqual(1);
 
   // can't call this before bindings are initialized
-  expect(() => MyProof._proofFromBase64('', 0)).toThrow('Bindings are not initialized');
+  expect(() => MyProof._proofFromBase64('', 0)).toThrow(
+    'Bindings are not initialized'
+  );
 
   let proof = await MyProof.dummy(Field(1n), undefined, 0);
 
@@ -25,7 +27,11 @@ test('Proof provable', async () => {
   expect(proofBase64).toEqual(proofBase64_2);
 
   expect(MyProof.provable.toFields(proof)).toEqual([Field(1n)]);
-  expect(MyProof.provable.toAuxiliary(proof)).toEqual([[], [], [proof.proof, 0]]);
+  expect(MyProof.provable.toAuxiliary(proof)).toEqual([
+    [],
+    [],
+    [proof.proof, 0],
+  ]);
 
   async function circuit() {
     let publicInput = Provable.witness(Field, () => 5n);

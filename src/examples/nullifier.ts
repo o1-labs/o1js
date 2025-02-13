@@ -80,11 +80,16 @@ let tx = await Mina.transaction(sender, async () => {
 await tx.prove();
 await tx.sign([sender.key, contractAccount.key]).send();
 
-console.log(`contract balance: ${contract.account.balance.get().div(1e9)} MINA`);
+console.log(
+  `contract balance: ${contract.account.balance.get().div(1e9)} MINA`
+);
 
 console.log('generating nullifier');
 
-let jsonNullifier = Nullifier.createTestNullifier([nullifierMessage], privileged.key);
+let jsonNullifier = Nullifier.createTestNullifier(
+  [nullifierMessage],
+  privileged.key
+);
 console.log(jsonNullifier);
 
 console.log('pay out');
@@ -96,7 +101,9 @@ await tx.prove();
 await tx.sign([sender.key]).send();
 
 console.log(`zkapp balance: ${contract.account.balance.get().div(1e9)} MINA`);
-console.log(`user balance: ${Mina.getAccount(privileged).balance.div(1e9)} MINA`);
+console.log(
+  `user balance: ${Mina.getAccount(privileged).balance.div(1e9)} MINA`
+);
 
 console.log('trying second pay out');
 
@@ -108,6 +115,8 @@ try {
   await tx.prove();
   await tx.sign([sender.key]).send();
 } catch (error: any) {
-  console.log('transaction failed, as expected! received the following error message:');
+  console.log(
+    'transaction failed, as expected! received the following error message:'
+  );
   console.log(error.message);
 }

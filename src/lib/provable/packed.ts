@@ -77,7 +77,8 @@ class Packed<T> {
           packed: packedFields,
           value: Unconstrained,
         }),
-        ({ value }: { value: Unconstrained<T> }) => provable.toValue(value.get()),
+        ({ value }: { value: Unconstrained<T> }) =>
+          provable.toValue(value.get()),
         (x) => {
           if (x instanceof Packed) return x;
           let { packed, value } = Packed_.pack(provable.fromValue(x));
@@ -86,12 +87,17 @@ class Packed<T> {
             value: Unconstrained.from(value),
           };
         }
-      ) satisfies ProvableHashable<Packed<T>, V> as ProvableHashable<Packed<T>, V>;
+      ) satisfies ProvableHashable<Packed<T>, V> as ProvableHashable<
+        Packed<T>,
+        V
+      >;
 
       static pack(x: T): Packed<T> {
         let input = provable.toInput(x);
         let packed = packToFields(input);
-        let unconstrained = Unconstrained.witness(() => Provable.toConstant(provable, x));
+        let unconstrained = Unconstrained.witness(() =>
+          Provable.toConstant(provable, x)
+        );
         return new Packed_(packed, unconstrained);
       }
 
@@ -115,7 +121,9 @@ class Packed<T> {
    * Unpack a value.
    */
   unpack(): T {
-    let value = Provable.witness(this.Constructor.innerProvable, () => this.value.get());
+    let value = Provable.witness(this.Constructor.innerProvable, () =>
+      this.value.get()
+    );
 
     // prove that the value packs to the packed fields
     let input = this.Constructor.innerProvable.toInput(value);
@@ -250,7 +258,9 @@ class Hashed<T> {
    */
   static hash<T>(value: T, hash?: Field): Hashed<T> {
     hash ??= this._hash(value);
-    let unconstrained = Unconstrained.witness(() => Provable.toConstant(this.innerProvable, value));
+    let unconstrained = Unconstrained.witness(() =>
+      Provable.toConstant(this.innerProvable, value)
+    );
     return new this(hash, unconstrained);
   }
 
@@ -258,7 +268,9 @@ class Hashed<T> {
    * Unwrap a value from its hashed variant.
    */
   unhash(): T {
-    let value = Provable.witness(this.Constructor.innerProvable, () => this.value.get());
+    let value = Provable.witness(this.Constructor.innerProvable, () =>
+      this.value.get()
+    );
 
     // prove that the value hashes to the hash
     let hash = this.Constructor._hash(value);

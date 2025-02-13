@@ -31,7 +31,10 @@ const config: PlaywrightTestConfig = {
   /* Opt out of parallel tests (on CI and locally for now). */
   workers: process.env.CI ? 1 : 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [['list'], ['html', { outputFolder: 'tests/report', open: 'never' }]],
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'tests/report', open: 'never' }],
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     browserName: 'chromium',

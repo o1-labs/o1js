@@ -29,7 +29,9 @@ function exists<N extends number, C extends () => TupleN<bigint, N>>(
   // run the callback to get values to witness
   let values = compute();
   if (values.length !== size)
-    throw Error(`Expected witnessed values of length ${size}, got ${values.length}.`);
+    throw Error(
+      `Expected witnessed values of length ${size}, got ${values.length}.`
+    );
 
   // note: here, we deliberately reduce the bigint values modulo the field size
   // this makes it easier to use normal arithmetic in low-level gadgets,
@@ -52,10 +54,10 @@ function existsOne(compute: () => bigint): VarField {
 /**
  * Async variant of {@link exists}, which allows an async callback.
  */
-async function existsAsync<N extends number, C extends () => Promise<TupleN<bigint, N>>>(
-  size: N,
-  compute: C
-): Promise<TupleN<VarField, N>> {
+async function existsAsync<
+  N extends number,
+  C extends () => Promise<TupleN<bigint, N>>
+>(size: N, compute: C): Promise<TupleN<VarField, N>> {
   // enter prover block
   let finish = Snarky.run.enterAsProver(size);
 
@@ -67,7 +69,9 @@ async function existsAsync<N extends number, C extends () => Promise<TupleN<bigi
   // run the async callback to get values to witness
   let values = await compute();
   if (values.length !== size)
-    throw Error(`Expected witnessed values of length ${size}, got ${values.length}.`);
+    throw Error(
+      `Expected witnessed values of length ${size}, got ${values.length}.`
+    );
 
   // note: here, we deliberately reduce the bigint values modulo the field size
   // this makes it easier to use normal arithmetic in low-level gadgets,

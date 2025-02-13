@@ -3,7 +3,8 @@ import { Field, MerkleList, Poseidon } from 'o1js';
 describe('Merkle List and Iterator', () => {
   describe('primitive data structures', () => {
     const emptyHash = Poseidon.hash([Field(0)]);
-    const nextHash = (hash: Field, value: Field) => Poseidon.hash([hash, value]);
+    const nextHash = (hash: Field, value: Field) =>
+      Poseidon.hash([hash, value]);
     class List extends MerkleList.create(Field, nextHash, emptyHash) {}
 
     describe('should initialize same hash', () => {

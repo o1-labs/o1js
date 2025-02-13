@@ -3,7 +3,13 @@
  * complex type: `AccountUpdate`.
  */
 import assert from 'assert/strict';
-import { AccountUpdate, PrivateKey, Provable, Empty, ProvableExtended } from 'o1js';
+import {
+  AccountUpdate,
+  PrivateKey,
+  Provable,
+  Empty,
+  ProvableExtended,
+} from 'o1js';
 import { expect } from 'expect';
 
 /**
@@ -27,7 +33,9 @@ let fields = AccountUpdate.toFields(accountUpdate);
 let aux = AccountUpdate.toAuxiliary(accountUpdate);
 let accountUpdateRecovered = AccountUpdate.fromFields(fields, aux);
 expect(accountUpdateRecovered.body).toEqual(accountUpdate.body);
-expect(accountUpdateRecovered.lazyAuthorization).toEqual(accountUpdate.lazyAuthorization);
+expect(accountUpdateRecovered.lazyAuthorization).toEqual(
+  accountUpdate.lazyAuthorization
+);
 
 /**
  * Provable types which implement `ProvableExtended` can also be serialized to/from JSON.
@@ -40,7 +48,9 @@ AccountUpdate satisfies ProvableExtended<AccountUpdate>;
 let json = AccountUpdate.toJSON(accountUpdate);
 accountUpdateRecovered = AccountUpdate.fromJSON(json);
 expect(accountUpdateRecovered.body).toEqual(accountUpdate.body);
-expect(accountUpdateRecovered.lazyAuthorization).not.toEqual(accountUpdate.lazyAuthorization);
+expect(accountUpdateRecovered.lazyAuthorization).not.toEqual(
+  accountUpdate.lazyAuthorization
+);
 
 /**
  * Provable.runAndCheck() can be used to run a circuit in "prover mode".
@@ -54,7 +64,10 @@ await Provable.runAndCheck(() => {
    *
    * Under the hood, it disassembles and reassembles the provable type with toFields(), toAuxiliary() and fromFields().
    */
-  let accountUpdateWitness = Provable.witness(AccountUpdate, () => accountUpdate);
+  let accountUpdateWitness = Provable.witness(
+    AccountUpdate,
+    () => accountUpdate
+  );
 
   /**
    * The witness is "provably equal" to the original.
@@ -89,9 +102,12 @@ let result = await Provable.constraintSystem(() => {
    * - abstract variables without values for fields
    * - dummy data for auxiliary
    */
-  let accountUpdateWitness = Provable.witness(AccountUpdate, (): AccountUpdate => {
-    throw 'not executed anyway';
-  });
+  let accountUpdateWitness = Provable.witness(
+    AccountUpdate,
+    (): AccountUpdate => {
+      throw 'not executed anyway';
+    }
+  );
 
   /**
    * Dummy data can take a different form depending on the provable type,

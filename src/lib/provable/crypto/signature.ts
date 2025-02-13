@@ -118,7 +118,10 @@ class PrivateKey extends CircuitValue {
   static toValue(v: PrivateKey) {
     return v.toBigInt();
   }
-  static fromValue<T extends AnyConstructor>(this: T, v: bigint | PrivateKey): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    v: bigint | PrivateKey
+  ): InstanceType<T> {
     if (v instanceof PrivateKey) return v as any;
     return PrivateKey.fromBigInt(v) as any;
   }
@@ -277,7 +280,10 @@ class Signature extends CircuitValue {
 
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     let k = ry.isOdd().toBoolean() ? kPrime.neg() : kPrime;
-    let h = hashWithPrefix(signaturePrefix('devnet'), msg.concat([publicKey.x, publicKey.y, r]));
+    let h = hashWithPrefix(
+      signaturePrefix('devnet'),
+      msg.concat([publicKey.x, publicKey.y, r])
+    );
     let e = Scalar.fromField(h);
     let s = e.mul(d).add(k);
     return new Signature(r, s);
@@ -293,7 +299,10 @@ class Signature extends CircuitValue {
     // we chose an arbitrary prefix for the signature
     // there's no consequences in practice and the signatures can be used with any network
     // if there needs to be a custom nonce, include it in the message itself
-    let h = hashWithPrefix(signaturePrefix('devnet'), msg.concat([point.x, point.y, this.r]));
+    let h = hashWithPrefix(
+      signaturePrefix('devnet'),
+      msg.concat([point.x, point.y, this.r])
+    );
 
     let r = point.scale(h).neg().add(Group.generator.scale(this.s));
     return r.x.equals(this.r).and(r.y.isEven());

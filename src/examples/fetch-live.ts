@@ -78,11 +78,15 @@ async function tearDown() {
   if (keyPairReleaseMessage) console.info('\n' + keyPairReleaseMessage);
 }
 
-function logNetworkConstants(networkConstants: Mina.NetworkConstants | undefined) {
+function logNetworkConstants(
+  networkConstants: Mina.NetworkConstants | undefined
+) {
   console.log(`Account creation fee: ${networkConstants?.accountCreationFee}`);
   console.log(`Slot time: ${networkConstants?.slotTime}`);
   console.log(`Genesis timestamp: ${networkConstants?.genesisTimestamp}`);
   console.log(
-    `Genesis date: ${new Date(Number(networkConstants?.genesisTimestamp.toString() ?? '0'))}`
+    `Genesis date: ${new Date(
+      Number(networkConstants?.genesisTimestamp.toString() ?? '0')
+    )}`
   );
 }

@@ -87,7 +87,11 @@ const FieldVar = {
       return FieldVar.constant(Fp.mul(c0[1], x[1][1]));
     }
     if (FieldVar.isScale(x)) {
-      return [FieldType.Scale, FieldConst.fromBigint(Fp.mul(c0[1], x[1][1])), x[2]];
+      return [
+        FieldType.Scale,
+        FieldConst.fromBigint(Fp.mul(c0[1], x[1][1])),
+        x[2],
+      ];
     }
     return [FieldType.Scale, c0, x];
   },

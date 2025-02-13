@@ -16,7 +16,8 @@ class SelfUpdater extends SmartContract {
     super.init();
     this.account.permissions.set({
       ...Permissions.default(),
-      setVerificationKey: Permissions.VerificationKey.proofDuringCurrentVersion(),
+      setVerificationKey:
+        Permissions.VerificationKey.proofDuringCurrentVersion(),
     });
   }
 
@@ -52,7 +53,8 @@ const tx = await Mina.transaction(deployer, async () => {
 await tx.prove();
 await tx.sign([deployer.key, contractAccount.key]).send();
 
-const fooVerificationKey = Mina.getAccount(contractAccount).zkapp?.verificationKey;
+const fooVerificationKey =
+  Mina.getAccount(contractAccount).zkapp?.verificationKey;
 Provable.log('original verification key', fooVerificationKey);
 
 // update verification key
@@ -65,7 +67,8 @@ const tx2 = await Mina.transaction(deployer, async () => {
 await tx2.prove();
 await tx2.sign([deployer.key]).send();
 
-const updatedVerificationKey = Mina.getAccount(contractAccount).zkapp?.verificationKey;
+const updatedVerificationKey =
+  Mina.getAccount(contractAccount).zkapp?.verificationKey;
 
 // should be different from Foo
 Provable.log('updated verification key', updatedVerificationKey);

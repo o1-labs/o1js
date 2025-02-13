@@ -1,11 +1,20 @@
-import { Field, PublicKey, UInt64, Poseidon, MerkleWitness, Struct } from 'o1js';
+import {
+  Field,
+  PublicKey,
+  UInt64,
+  Poseidon,
+  MerkleWitness,
+  Struct,
+} from 'o1js';
 
 export class MyMerkleWitness extends MerkleWitness(3) {}
 let w = {
   isLeft: false,
   sibling: Field(0),
 };
-let dummyWitness = Array.from(Array(MyMerkleWitness.height - 1).keys()).map(() => w);
+let dummyWitness = Array.from(Array(MyMerkleWitness.height - 1).keys()).map(
+  () => w
+);
 
 export class Member extends Struct({
   publicKey: PublicKey,
@@ -29,7 +38,10 @@ export class Member extends Struct({
 
   getHash(): Field {
     return Poseidon.hash(
-      this.publicKey.toFields().concat(this.balance.toFields()).concat(this.votes.toFields())
+      this.publicKey
+        .toFields()
+        .concat(this.balance.toFields())
+        .concat(this.votes.toFields())
     );
   }
 

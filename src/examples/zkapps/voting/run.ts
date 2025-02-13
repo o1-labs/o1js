@@ -1,6 +1,9 @@
 import { Bool, PrivateKey, UInt32, UInt64 } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
-import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
+import {
+  ElectionPreconditions,
+  ParticipantPreconditions,
+} from './preconditions.js';
 
 import { OffchainStorage } from './off-chain-storage.js';
 import { Member } from './member.js';
@@ -19,9 +22,19 @@ console.log('Running Voting script...');
 console.log('Starting set 1...');
 
 let params_set1: VotingAppParams = {
-  candidatePreconditions: new ParticipantPreconditions(UInt64.from(10), UInt64.from(5000)),
-  voterPreconditions: new ParticipantPreconditions(UInt64.from(10), UInt64.from(50)),
-  electionPreconditions: new ElectionPreconditions(UInt32.from(5), UInt32.from(15), Bool(true)),
+  candidatePreconditions: new ParticipantPreconditions(
+    UInt64.from(10),
+    UInt64.from(5000)
+  ),
+  voterPreconditions: new ParticipantPreconditions(
+    UInt64.from(10),
+    UInt64.from(50)
+  ),
+  electionPreconditions: new ElectionPreconditions(
+    UInt32.from(5),
+    UInt32.from(15),
+    Bool(true)
+  ),
   voterKey: PrivateKey.random(),
   candidateKey: PrivateKey.random(),
   votingKey: PrivateKey.random(),

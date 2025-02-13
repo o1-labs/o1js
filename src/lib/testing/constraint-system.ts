@@ -72,7 +72,9 @@ function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
     // compute the constraint system
     let { gates } = constraintSystemSync(() => {
       // each random input "layout" has to be instantiated into vars in this circuit
-      let values = types.map((type, i) => instantiate(type, layouts[i])) as CsParams<Input>;
+      let values = types.map((type, i) =>
+        instantiate(type, layouts[i])
+      ) as CsParams<Input>;
       main(...values);
     });
 
@@ -86,7 +88,9 @@ function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
       printGates(gates);
 
       throw Error(
-        `Constraint system test: ${label}\n\n${failures.map((f) => `FAIL: ${f}`).join('\n')}\n`
+        `Constraint system test: ${label}\n\n${failures
+          .map((f) => `FAIL: ${f}`)
+          .join('\n')}\n`
       );
     }
   });
@@ -102,7 +106,10 @@ function constraintSystem<Input extends Tuple<CsVarSpec<any>>>(
  * constraintSystem.fromZkProgram(program, 'myMethod', contains('Rot64'));
  * ```
  */
-constraintSystem.fromZkProgram = function fromZkProgram<T, K extends keyof T & string>(
+constraintSystem.fromZkProgram = function fromZkProgram<
+  T,
+  K extends keyof T & string
+>(
   program: { privateInputTypes: T },
   methodName: K,
   test: ConstraintSystemTest
@@ -134,7 +141,11 @@ type ConstraintSystemTest = Base | Not | And | Or;
 
 type Result = { ok: boolean; failures: string[] };
 
-function run(test: ConstraintSystemTest, cs: Gate[], inputs: TypeAndValue<any>[]): Result {
+function run(
+  test: ConstraintSystemTest,
+  cs: Gate[],
+  inputs: TypeAndValue<any>[]
+): Result {
   switch (test.kind) {
     case undefined: {
       let ok = test.run(cs, inputs);
@@ -255,7 +266,9 @@ function contains(
  */
 const allConstant: ConstraintSystemTest = {
   run(cs, inputs) {
-    return inputs.every(({ type, value }) => type.toFields(value).every((x) => x.isConstant()));
+    return inputs.every(({ type, value }) =>
+      type.toFields(value).every((x) => x.isConstant())
+    );
   },
   label: 'all inputs constant',
 };
@@ -344,12 +357,17 @@ constraintSystem.print = map(printGates);
  */
 constraintSystem.summary = map(summarizeGates);
 
-function repeat(n: number, gates: GateType | readonly GateType[]): readonly GateType[] {
+function repeat(
+  n: number,
+  gates: GateType | readonly GateType[]
+): readonly GateType[] {
   gates = Array.isArray(gates) ? gates : [gates];
   return Array<readonly GateType[]>(n).fill(gates).flat();
 }
 
-function toGatess(gateTypes: GateType | readonly GateType[] | readonly GateType[][]): GateType[][] {
+function toGatess(
+  gateTypes: GateType | readonly GateType[] | readonly GateType[][]
+): GateType[][] {
   if (typeof gateTypes === 'string') return [[gateTypes]];
   if (Array.isArray(gateTypes[0])) return gateTypes as GateType[][];
   return [gateTypes as GateType[]];

@@ -1,4 +1,10 @@
-import { UInt64, SmartContract, Mina, AccountUpdate, method } from 'o1js';
+import {
+  UInt64,
+  SmartContract,
+  Mina,
+  AccountUpdate,
+  method,
+} from 'o1js';
 
 class MyContract extends SmartContract {
   @method async shouldMakeCompileThrow() {
@@ -35,9 +41,11 @@ describe('transactions', () => {
     let nonce = tx.transaction.feePayer.body.nonce;
     let promise = await tx.sign([feePayer.key, contractAccount.key]).send();
     let new_fee = await promise.setFee(new UInt64(100));
-    new_fee.sign([feePayer.key, contractAccount.key]);
+    new_fee.sign([feePayer.key,contractAccount.key]);
     // second send is rejected for using the same nonce
-    await expect(new_fee.send()).rejects.toThrowError('Account_nonce_precondition_unsatisfied');
+    await expect((new_fee.send()))
+      .rejects
+      .toThrowError("Account_nonce_precondition_unsatisfied");
     // check that tx was applied, by checking nonce was incremented
     expect(new_fee.transaction.feePayer.body.nonce).toEqual(nonce);
   });
@@ -50,7 +58,7 @@ describe('transactions', () => {
     let nonce = tx.transaction.feePayer.body.nonce;
     let promise = tx.sign([feePayer.key, contractAccount.key]);
     let new_fee = promise.setFeePerSnarkCost(42.7);
-    await new_fee.sign([feePayer.key, contractAccount.key]);
+    await new_fee.sign([feePayer.key,contractAccount.key]);
     await new_fee.send();
     // check that tx was applied, by checking nonce was incremented
     expect((await new_fee).transaction.feePayer.body.nonce).toEqual(nonce);

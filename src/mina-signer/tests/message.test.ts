@@ -115,6 +115,7 @@ describe('Message', () => {
       expect(testnetMessage).toEqual(devnetMessage);
     });
 
+
     it('generates the same signatures as devnet using signTransaction', () => {
       const testnetMessage = testnetClient.signTransaction('hello', privateKey);
       const devnetMessage = devnetClient.signTransaction('hello', privateKey);

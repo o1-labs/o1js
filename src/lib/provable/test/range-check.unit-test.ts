@@ -1,7 +1,12 @@
 import { mod } from '../../../bindings/crypto/finite-field.js';
 import { Field } from '../wrapped.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
+import {
+  Spec,
+  boolean,
+  equivalentAsync,
+  fieldWithRng,
+} from '../../testing/equivalent.js';
 import { Random } from '../../testing/property.js';
 import { assert } from '../gadgets/common.js';
 import { Gadgets } from '../gadgets/gadgets.js';
@@ -21,7 +26,9 @@ let uint = (n: number | bigint): Spec<bigint, Field> => {
 
 let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
   let uint = Random.bignat((1n << BigInt(n)) - 1n);
-  return fieldWithRng(Random.map(Random.oneOf(uint, uint.invalid), (x) => mod(x, Field.ORDER)));
+  return fieldWithRng(
+    Random.map(Random.oneOf(uint, uint.invalid), (x) => mod(x, Field.ORDER))
+  );
 };
 
 // constraint system sanity check
@@ -44,14 +51,18 @@ constraintSystem(
   'multi-range check',
   { from: [Field, Field, Field] },
   (x, y, z) => Gadgets.multiRangeCheck([x, y, z]),
-  ifNotAllConstant(contains(['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero']))
+  ifNotAllConstant(
+    contains(['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'])
+  )
 );
 
 constraintSystem(
   'compact multi-range check',
   { from: [Field, Field] },
   Gadgets.compactMultiRangeCheck,
-  ifNotAllConstant(contains(['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero']))
+  ifNotAllConstant(
+    contains(['RangeCheck0', 'RangeCheck0', 'RangeCheck1', 'Zero'])
+  )
 );
 
 // TODO: make a ZkFunction or something that doesn't go through Pickles
@@ -117,7 +128,10 @@ await equivalentAsync({ from: [maybeUint(8)], to: boolean }, { runs })(
   }
 );
 
-await equivalentAsync({ from: [maybeUint(l), uint(l), uint(l)], to: boolean }, { runs })(
+await equivalentAsync(
+  { from: [maybeUint(l), uint(l), uint(l)], to: boolean },
+  { runs }
+)(
   (x, y, z) => {
     assert(!(x >> l) && !(y >> l) && !(z >> l), 'multi: not out of range');
     return true;
@@ -128,7 +142,10 @@ await equivalentAsync({ from: [maybeUint(l), uint(l), uint(l)], to: boolean }, {
   }
 );
 
-await equivalentAsync({ from: [maybeUint(2n * l), uint(l)], to: boolean }, { runs })(
+await equivalentAsync(
+  { from: [maybeUint(2n * l), uint(l)], to: boolean },
+  { runs }
+)(
   (xy, z) => {
     assert(!(xy >> (2n * l)) && !(z >> l), 'compact: not out of range');
     return true;

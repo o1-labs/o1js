@@ -1,4 +1,9 @@
-import { mod, Fp, FiniteField, createField } from '../../bindings/crypto/finite-field.js';
+import {
+  mod,
+  Fp,
+  FiniteField,
+  createField,
+} from '../../bindings/crypto/finite-field.js';
 import { Field, checkBitLength, withMessage } from './field.js';
 import { Provable } from './provable.js';
 import { Bool } from './bool.js';
@@ -11,7 +16,12 @@ import { ProvablePureExtended } from './types/struct.js';
 
 // external API
 export { createForeignField };
-export type { ForeignField, UnreducedForeignField, AlmostForeignField, CanonicalForeignField };
+export type {
+  ForeignField,
+  UnreducedForeignField,
+  AlmostForeignField,
+  CanonicalForeignField,
+};
 
 class ForeignField {
   static _Bigint: FiniteField | undefined = undefined;
@@ -81,9 +91,9 @@ class ForeignField {
    * ```ts
    * let x = new ForeignField(5);
    * ```
-   *
+   * 
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
-   *
+   * 
    * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
    * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
    * - Ensure constants are correctly reduced to the modulus of the field.
@@ -283,10 +293,16 @@ class ForeignField {
    * xChecked satisfies CanonicalForeignField;
    * ```
    */
-  assertEquals(y: bigint | number | CanonicalForeignField, message?: string): CanonicalForeignField;
+  assertEquals(
+    y: bigint | number | CanonicalForeignField,
+    message?: string
+  ): CanonicalForeignField;
   assertEquals(y: AlmostForeignField, message?: string): AlmostForeignField;
   assertEquals(y: ForeignField, message?: string): ForeignField;
-  assertEquals(y: ForeignField | bigint | number, message?: string): ForeignField {
+  assertEquals(
+    y: ForeignField | bigint | number,
+    message?: string
+  ): ForeignField {
     const p = this.modulus;
     try {
       if (this.isConstant() && isConstant(y)) {
@@ -452,8 +468,9 @@ class ForeignFieldWithMul extends ForeignField {
 class UnreducedForeignField extends ForeignField {
   type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced' = 'Unreduced';
 
-  static _provable: ProvablePureExtended<UnreducedForeignField, bigint, string> | undefined =
-    undefined;
+  static _provable:
+    | ProvablePureExtended<UnreducedForeignField, bigint, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -471,8 +488,9 @@ class AlmostForeignField extends ForeignFieldWithMul {
     super(x);
   }
 
-  static _provable: ProvablePureExtended<AlmostForeignField, bigint, string> | undefined =
-    undefined;
+  static _provable:
+    | ProvablePureExtended<AlmostForeignField, bigint, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -512,8 +530,9 @@ class CanonicalForeignField extends ForeignFieldWithMul {
     super(x);
   }
 
-  static _provable: ProvablePureExtended<CanonicalForeignField, bigint, string> | undefined =
-    undefined;
+  static _provable:
+    | ProvablePureExtended<CanonicalForeignField, bigint, string>
+    | undefined = undefined;
   static get provable() {
     assert(this._provable !== undefined, 'ForeignField class not initialized.');
     return this._provable;
@@ -553,7 +572,10 @@ class CanonicalForeignField extends ForeignFieldWithMul {
   }
 }
 
-function toLimbs(x: bigint | number | string | ForeignField, p: bigint): Field3 {
+function toLimbs(
+  x: bigint | number | string | ForeignField,
+  p: bigint
+): Field3 {
   if (x instanceof ForeignField) return x.value;
   return Field3.from(mod(BigInt(x), p));
 }
@@ -618,7 +640,10 @@ function isConstant(x: bigint | number | string | ForeignField) {
  * @param modulus the modulus of the finite field you are instantiating
  */
 function createForeignField(modulus: bigint): typeof UnreducedForeignField {
-  assert(modulus > 0n, `ForeignField: modulus must be positive, got ${modulus}`);
+  assert(
+    modulus > 0n,
+    `ForeignField: modulus must be positive, got ${modulus}`
+  );
   assert(
     modulus < foreignFieldMax,
     `ForeignField: modulus exceeds the max supported size of 2^${foreignFieldMaxBits}`

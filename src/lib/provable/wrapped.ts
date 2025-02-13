@@ -87,4 +87,6 @@ function toFunctionConstructor<Class extends new (...args: any) => any>(
 }
 
 type InferArgs<T> = T extends new (...args: infer Args) => any ? Args : never;
-type InferReturn<T> = T extends new (...args: any) => infer Return ? Return : never;
+type InferReturn<T> = T extends new (...args: any) => infer Return
+  ? Return
+  : never;

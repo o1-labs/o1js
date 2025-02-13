@@ -7,7 +7,14 @@ import { Bytes } from '../bytes.js';
 import { UInt8 } from '../int.js';
 import { chunk } from '../../util/arrays.js';
 
-export { encrypt, decrypt, encryptBytes, decryptBytes, CipherTextBytes, CipherText };
+export {
+  encrypt,
+  decrypt,
+  encryptBytes,
+  decryptBytes,
+  CipherTextBytes,
+  CipherText,
+};
 
 type CipherText = {
   publicKey: Group;
@@ -18,7 +25,10 @@ type CipherTextBytes = CipherText & { messageLength: number };
 /**
  * Decrypts a {@link CipherText} using a {@link PrivateKey}.
  */
-function decrypt({ publicKey, cipherText }: CipherText, privateKey: PrivateKey) {
+function decrypt(
+  { publicKey, cipherText }: CipherText,
+  privateKey: PrivateKey
+) {
   // key exchange
   const sharedSecret = publicKey.scale(privateKey.s);
   const sponge = new Poseidon.Sponge();
@@ -84,7 +94,10 @@ function encrypt(message: Field[], otherPublicKey: PublicKey): CipherText {
 /**
  * Public Key Encryption, encrypts Bytes using a {@link PublicKey}.
  */
-function encryptBytes(message: Bytes, otherPublicKey: PublicKey): CipherTextBytes {
+function encryptBytes(
+  message: Bytes,
+  otherPublicKey: PublicKey
+): CipherTextBytes {
   const bytes = message.bytes;
   const messageLength = bytes.length;
 
@@ -93,7 +106,9 @@ function encryptBytes(message: Bytes, otherPublicKey: PublicKey): CipherTextByte
   const n = Math.ceil(messageLength / multipleOf) * multipleOf;
 
   // create the padding
-  const padding = Array.from({ length: n - messageLength }, () => UInt8.from(0));
+  const padding = Array.from({ length: n - messageLength }, () =>
+    UInt8.from(0)
+  );
 
   // convert message into chunks of 31 bytes
   const chunks = chunk(bytes.concat(padding), 31);

@@ -2,7 +2,12 @@ import { UInt32, UInt64 } from './field-bigint.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
-import { SignatureJson, Signature, signLegacy, verifyLegacy } from './signature.js';
+import {
+  SignatureJson,
+  Signature,
+  signLegacy,
+  verifyLegacy,
+} from './signature.js';
 import { Json } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { bytesToBits, stringToBytes } from '../../bindings/lib/binable.js';
 import { NetworkId } from './types.js';
@@ -31,7 +36,11 @@ export {
   Common,
 };
 
-function signPayment(payment: PaymentJson, privateKeyBase58: string, networkId: NetworkId) {
+function signPayment(
+  payment: PaymentJson,
+  privateKeyBase58: string,
+  networkId: NetworkId
+) {
   let command = paymentFromJson(payment);
   return signUserCommand(command, privateKeyBase58, networkId);
 }
@@ -44,7 +53,11 @@ function signStakeDelegation(
   return signUserCommand(command, privateKeyBase58, networkId);
 }
 
-function signUserCommand(command: UserCommand, privateKeyBase58: string, networkId: NetworkId) {
+function signUserCommand(
+  command: UserCommand,
+  privateKeyBase58: string,
+  networkId: NetworkId
+) {
   let input = toInputLegacy(command);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let signature = signLegacy(input, privateKey, networkId);
@@ -58,7 +71,12 @@ function verifyPayment(
   networkId: NetworkId
 ) {
   try {
-    return verifyUserCommand(paymentFromJson(payment), signatureJson, publicKeyBase58, networkId);
+    return verifyUserCommand(
+      paymentFromJson(payment),
+      signatureJson,
+      publicKeyBase58,
+      networkId
+    );
   } catch {
     return false;
   }
@@ -94,11 +112,19 @@ function verifyUserCommand(
 }
 
 function toInputLegacy({ common, body }: UserCommand) {
-  return HashInputLegacy.append(commonToInputLegacy(common), bodyToInputLegacy(body));
+  return HashInputLegacy.append(
+    commonToInputLegacy(common),
+    bodyToInputLegacy(body)
+  );
 }
 
 // Mina_base.Transaction_union_payload.Body.to_input_legacy
-function bodyToInputLegacy({ tag, source, receiver, amount }: UserCommand['body']) {
+function bodyToInputLegacy({
+  tag,
+  source,
+  receiver,
+  amount,
+}: UserCommand['body']) {
   return [
     tagToInput(tag),
     PublicKey.toInputLegacy(source),
@@ -110,7 +136,13 @@ function bodyToInputLegacy({ tag, source, receiver, amount }: UserCommand['body'
 }
 
 // Mina_base.Signed_command_payload.Common.to_input_legacy
-function commonToInputLegacy({ fee, feePayer, nonce, validUntil, memo }: UserCommand['common']) {
+function commonToInputLegacy({
+  fee,
+  feePayer,
+  nonce,
+  validUntil,
+  memo,
+}: UserCommand['common']) {
   return [
     HashInputLegacy.bits(UInt64.toBits(fee)),
     HashInputLegacy.bits(legacyTokenId),
@@ -128,7 +160,10 @@ function tagToInput(tag: Tag) {
 }
 const legacyTokenId = [true, ...Array<boolean>(63).fill(false)];
 
-function paymentFromJson({ common, body: { receiver, amount } }: PaymentJson): UserCommand {
+function paymentFromJson({
+  common,
+  body: { receiver, amount },
+}: PaymentJson): UserCommand {
   return {
     common: commonFromJson(common),
     body: {
@@ -140,7 +175,10 @@ function paymentFromJson({ common, body: { receiver, amount } }: PaymentJson): U
   };
 }
 
-function delegationFromJson({ common, body: { newDelegate } }: DelegationJson): UserCommand {
+function delegationFromJson({
+  common,
+  body: { newDelegate },
+}: DelegationJson): UserCommand {
   return {
     common: commonFromJson(common),
     body: {
@@ -163,7 +201,11 @@ function commonFromJson(c: CommonJson): Common {
   };
 }
 
-function signString(string: string, privateKeyBase58: string, networkId: NetworkId) {
+function signString(
+  string: string,
+  privateKeyBase58: string,
+  networkId: NetworkId
+) {
   let input = stringToInput(string);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let signature = signLegacy(input, privateKey, networkId);

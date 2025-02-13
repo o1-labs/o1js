@@ -39,7 +39,10 @@ abstract class CircuitValue {
     return fields.reduce((acc, [_, typ]) => acc + typ.sizeInFields(), 0);
   }
 
-  static toFields<T extends AnyConstructor>(this: T, v: InstanceType<T>): Field[] {
+  static toFields<T extends AnyConstructor>(
+    this: T,
+    v: InstanceType<T>
+  ): Field[] {
     const res: Field[] = [];
     const fields = this.prototype._fields;
     if (fields === undefined || fields === null) {
@@ -57,7 +60,10 @@ abstract class CircuitValue {
     return [];
   }
 
-  static toInput<T extends AnyConstructor>(this: T, v: InstanceType<T>): HashInput {
+  static toInput<T extends AnyConstructor>(
+    this: T,
+    v: InstanceType<T>
+  ): HashInput {
     let input: HashInput = { fields: [], packed: [] };
     let fields = this.prototype._fields;
     if (fields === undefined) return input;
@@ -89,7 +95,10 @@ abstract class CircuitValue {
     return res;
   }
 
-  static fromValue<T extends AnyConstructor>(this: T, value: any): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    value: any
+  ): InstanceType<T> {
     let props: any = {};
     let fields: [string, any][] = (this as any).prototype._fields ?? [];
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -126,7 +135,10 @@ abstract class CircuitValue {
     return this.toFields().every((x) => x.isConstant());
   }
 
-  static fromFields<T extends AnyConstructor>(this: T, xs: Field[]): InstanceType<T> {
+  static fromFields<T extends AnyConstructor>(
+    this: T,
+    xs: Field[]
+  ): InstanceType<T> {
     const fields: [string, any][] = (this as any).prototype._fields;
     if (xs.length < fields.length) {
       throw Error(
@@ -138,7 +150,10 @@ abstract class CircuitValue {
     for (let i = 0; i < fields.length; ++i) {
       const [key, propType] = fields[i];
       const propSize = propType.sizeInFields();
-      const propVal = propType.fromFields(xs.slice(offset, offset + propSize), []);
+      const propVal = propType.fromFields(
+        xs.slice(offset, offset + propSize),
+        []
+      );
       props[key] = propVal;
       offset += propSize;
     }
@@ -153,12 +168,16 @@ abstract class CircuitValue {
     for (let i = 0; i < fields.length; ++i) {
       const [key, propType] = fields[i];
       const value = (v as any)[key];
-      if (propType.check === undefined) throw Error('bug: CircuitValue without .check()');
+      if (propType.check === undefined)
+        throw Error('bug: CircuitValue without .check()');
       propType.check(value);
     }
   }
 
-  static toCanonical<T extends AnyConstructor>(this: T, value: InstanceType<T>): InstanceType<T> {
+  static toCanonical<T extends AnyConstructor>(
+    this: T,
+    value: InstanceType<T>
+  ): InstanceType<T> {
     let canonical: any = {};
     let fields: [string, any][] = (this as any).prototype._fields ?? [];
     fields.forEach(([key, type]) => {
@@ -167,7 +186,10 @@ abstract class CircuitValue {
     return canonical;
   }
 
-  static toConstant<T extends AnyConstructor>(this: T, t: InstanceType<T>): InstanceType<T> {
+  static toConstant<T extends AnyConstructor>(
+    this: T,
+    t: InstanceType<T>
+  ): InstanceType<T> {
     const xs: Field[] = (this as any).toFields(t);
     return (this as any).fromFields(xs.map((x) => x.toConstant()));
   }
@@ -183,7 +205,10 @@ abstract class CircuitValue {
     return res;
   }
 
-  static fromJSON<T extends AnyConstructor>(this: T, value: any): InstanceType<T> {
+  static fromJSON<T extends AnyConstructor>(
+    this: T,
+    value: any
+  ): InstanceType<T> {
     let props: any = {};
     let fields: [string, any][] = (this as any).prototype._fields;
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -221,7 +246,9 @@ function prop(this: any, target: any, key: string) {
   } else if (fieldType.toFields && fieldType.fromFields) {
     target._fields.push([key, fieldType]);
   } else {
-    console.log(`warning: property ${key} missing field element conversion methods`);
+    console.log(
+      `warning: property ${key} missing field element conversion methods`
+    );
   }
 }
 

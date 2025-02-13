@@ -27,5 +27,7 @@ function nMethods(i: number) {
 try {
   await MyProgram.compile();
 } catch (error) {
-  throw Error(`Could not compile zkProgram with ${methodCount} branches: ${error}`);
+  throw Error(
+    `Could not compile zkProgram with ${methodCount} branches: ${error}`
+  );
 }

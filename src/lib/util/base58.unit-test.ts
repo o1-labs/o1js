@@ -37,4 +37,6 @@ expect(() => fromBase58Check('@hgX24Hr3v', 1)).toThrow('invalid character');
 expect(() => fromBase58Check('AhgX24Hr3u', 1)).toThrow('invalid checksum');
 
 // throws on invalid version byte
-expect(() => fromBase58Check('AhgX24Hr3v', 2)).toThrow('2 does not match encoded version byte 1');
+expect(() => fromBase58Check('AhgX24Hr3v', 2)).toThrow(
+  '2 does not match encoded version byte 1'
+);

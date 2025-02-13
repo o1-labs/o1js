@@ -3,7 +3,10 @@ import { Bytes } from '../wrapped-classes.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { sha256 as nobleSha256 } from '@noble/hashes/sha256';
 import { bytes } from './test-utils.js';
-import { equivalentAsync, equivalentProvable } from '../../testing/equivalent.js';
+import {
+  equivalentAsync,
+  equivalentProvable,
+} from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
 import { expect } from 'expect';
 

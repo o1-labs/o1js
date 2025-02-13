@@ -1,11 +1,23 @@
-import { writeFileSync, readFileSync, mkdirSync, resolve, cacheDir } from '../util/fs.js';
+import {
+  writeFileSync,
+  readFileSync,
+  mkdirSync,
+  resolve,
+  cacheDir,
+} from '../util/fs.js';
 import { jsEnvironment } from '../../bindings/crypto/bindings/env.js';
 
 // external API
 export { Cache, CacheHeader };
 
 // internal API
-export { readCache, writeCache, withVersion, cacheHeaderVersion, LAGRANGE_BASIS_PREFIX };
+export {
+  readCache,
+  writeCache,
+  withVersion,
+  cacheHeaderVersion,
+  LAGRANGE_BASIS_PREFIX,
+};
 
 /**
  * Interface for storing and retrieving values, for caching.
@@ -162,7 +174,10 @@ const FileSystem = (cacheDirectory: string, debug?: boolean): Cache => ({
     if (jsEnvironment !== 'node') throw Error('file system not available');
 
     // read current uniqueId, return data if it matches
-    let currentId = readFileSync(resolve(cacheDirectory, `${persistentId}.header`), 'utf8');
+    let currentId = readFileSync(
+      resolve(cacheDirectory, `${persistentId}.header`),
+      'utf8'
+    );
     if (currentId !== uniqueId) return undefined;
 
     if (dataType === 'string') {

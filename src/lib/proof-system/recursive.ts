@@ -30,7 +30,10 @@ function Recursive<
     maxProofsVerified: () => Promise<0 | 1 | 2>;
   } & {
     [Key in keyof PrivateInputs]: (...args: any) => Promise<{
-      proof: Proof<InferProvable<PublicInputType>, InferProvable<PublicOutputType>>;
+      proof: Proof<
+        InferProvable<PublicInputType>,
+        InferProvable<PublicOutputType>
+      >;
     }>;
   }
 ): {
@@ -59,7 +62,8 @@ function Recursive<
     rawMethods: methods,
   } = zkprogram;
 
-  let hasPublicInput = publicInputType !== Undefined && publicInputType !== Void;
+  let hasPublicInput =
+    publicInputType !== Undefined && publicInputType !== Void;
 
   class SelfProof extends Proof<PublicInput, PublicOutput> {
     static publicInputType = publicInputType;
@@ -76,7 +80,9 @@ function Recursive<
       ...args: TupleFrom<PrivateInputs[MethodKey]>
     ): Promise<PublicOutput> {
       let condition =
-        conditionAndConfig instanceof Bool ? conditionAndConfig : conditionAndConfig.condition;
+        conditionAndConfig instanceof Bool
+          ? conditionAndConfig
+          : conditionAndConfig.condition;
 
       // create the base proof in a witness block
       let proof = await Provable.witnessAsync(SelfProof, async () => {
@@ -90,13 +96,16 @@ function Recursive<
         );
 
         if (!condition.toBoolean()) {
-          let publicOutput: PublicOutput = ProvableType.synthesize(publicOutputType);
+          let publicOutput: PublicOutput =
+            ProvableType.synthesize(publicOutputType);
           let maxProofsVerified = await zkprogram.maxProofsVerified();
           return SelfProof.dummy(
             publicInput,
             publicOutput,
             maxProofsVerified,
-            conditionAndConfig instanceof Bool ? undefined : conditionAndConfig.domainLog2
+            conditionAndConfig instanceof Bool
+              ? undefined
+              : conditionAndConfig.domainLog2
           );
         }
 
@@ -127,7 +136,12 @@ function Recursive<
     regularRecursiveProvers,
     (
       prover
-    ): RecursiveProver<PublicInput, PublicInputType, PublicOutput, PrivateInputs[MethodKey]> & {
+    ): RecursiveProver<
+      PublicInput,
+      PublicInputType,
+      PublicOutput,
+      PrivateInputs[MethodKey]
+    > & {
       if: ConditionalRecursiveProver<
         PublicInput,
         PublicInputType,
@@ -137,15 +151,19 @@ function Recursive<
     } => {
       if (!hasPublicInput) {
         return Object.assign(
-          ((...args: any) => prover(new Bool(true), undefined as any, ...args)) as any,
+          ((...args: any) =>
+            prover(new Bool(true), undefined as any, ...args)) as any,
           {
-            if: (condition: Bool | { condition: Bool; domainLog2?: number }, ...args: any) =>
-              prover(condition, undefined as any, ...args),
+            if: (
+              condition: Bool | { condition: Bool; domainLog2?: number },
+              ...args: any
+            ) => prover(condition, undefined as any, ...args),
           }
         );
       } else {
         return Object.assign(
-          ((pi: PublicInput, ...args: any) => prover(new Bool(true), pi, ...args)) as any,
+          ((pi: PublicInput, ...args: any) =>
+            prover(new Bool(true), pi, ...args)) as any,
           {
             if: (
               condition: Bool | { condition: Bool; domainLog2?: number },
@@ -166,7 +184,10 @@ type RecursiveProver<
   Args extends Tuple<ProvableType>
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<PublicOutput>
-  : (publicInput: From<PublicInputType>, ...args: TupleFrom<Args>) => Promise<PublicOutput>;
+  : (
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
+    ) => Promise<PublicOutput>;
 
 type ConditionalRecursiveProver<
   PublicInput,

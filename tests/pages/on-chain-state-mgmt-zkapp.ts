@@ -48,7 +48,9 @@ export class OnChainStateMgmtZkAppPage {
 
   async checkZkProgramCompilation() {
     await expect(this.eventsContainer).toContainText('Compiling ZkProgram');
-    await expect(this.eventsContainer).toContainText('ZkProgram compiled successfully!');
+    await expect(this.eventsContainer).toContainText(
+      'ZkProgram compiled successfully!'
+    );
   }
 
   async checkDeployedZkApp() {
@@ -76,7 +78,9 @@ export class OnChainStateMgmtZkAppPage {
 
   async checkZkAppStateUpdateFailureByUnknownAccount() {
     await expect(this.eventsContainer).toContainText('State update failure');
-    await expect(this.eventsContainer).toContainText('Could not find account for public key');
+    await expect(this.eventsContainer).toContainText(
+      'Could not find account for public key'
+    );
     await expect(this.zkAppStateContainer).toHaveText('No data available yet.');
   }
 

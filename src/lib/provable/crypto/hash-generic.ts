@@ -10,7 +10,10 @@ type Hash<Field> = {
 
 type HashHelpers<Field> = ReturnType<typeof createHashHelpers<Field>>;
 
-function createHashHelpers<Field>(Field: GenericSignableField<Field>, Hash: Hash<Field>) {
+function createHashHelpers<Field>(
+  Field: GenericSignableField<Field>,
+  Hash: Hash<Field>
+) {
   function salt(prefix: string) {
     return Hash.update(Hash.initialState(), [prefixToField(Field, prefix)]);
   }

@@ -30,7 +30,9 @@ function modifiedField(
 
 let id = <T>(t: T) => t;
 
-function fields(length: number): ProvablePureExtended<Field[], bigint[], string[]> {
+function fields(
+  length: number
+): ProvablePureExtended<Field[], bigint[], string[]> {
   return {
     sizeInFields: () => length,
     toFields: id,

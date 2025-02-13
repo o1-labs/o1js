@@ -48,7 +48,12 @@ class Bigint2048 extends Struct({
 /**
  * x*y mod p
  */
-function multiply(x: Bigint2048, y: Bigint2048, p: Bigint2048, { isSquare = false } = {}) {
+function multiply(
+  x: Bigint2048,
+  y: Bigint2048,
+  p: Bigint2048,
+  { isSquare = false } = {}
+) {
   if (isSquare) y = x;
 
   // witness q, r so that x*y = q*p + r
@@ -117,7 +122,11 @@ function multiply(x: Bigint2048, y: Bigint2048, p: Bigint2048, { isSquare = fals
  * TODO this is a bit simplistic; according to RSA spec, message must be 256 bits
  * and the remaining bits must follow a specific pattern.
  */
-function rsaVerify65537(message: Bigint2048, signature: Bigint2048, modulus: Bigint2048) {
+function rsaVerify65537(
+  message: Bigint2048,
+  signature: Bigint2048,
+  modulus: Bigint2048
+) {
   // compute signature^(2^16 + 1) mod modulus
   // square 16 times
   let x = signature;

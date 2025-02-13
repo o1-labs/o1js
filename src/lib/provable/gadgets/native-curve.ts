@@ -6,8 +6,18 @@ import { isOddAndHigh } from './comparison.js';
 import { Field3, ForeignField } from './foreign-field.js';
 import { exists } from '../core/exists.js';
 import { assert, bit, bitSlice, isConstant } from './common.js';
-import { l, multiRangeCheck, rangeCheck64, rangeCheckLessThan64 } from './range-check.js';
-import { createBool, createBoolUnsafe, createField, getField } from '../core/field-constructor.js';
+import {
+  l,
+  multiRangeCheck,
+  rangeCheck64,
+  rangeCheckLessThan64,
+} from './range-check.js';
+import {
+  createBool,
+  createBoolUnsafe,
+  createField,
+  getField,
+} from '../core/field-constructor.js';
 import { Snarky } from '../../../snarky.js';
 import { Provable } from '../provable.js';
 import { MlPair } from '../../ml/base.js';
@@ -293,7 +303,11 @@ function shiftedScalarToField3(t: ShiftedScalar): Field3 {
   // we add an extra 0 so that the prover has the opportunity to subtract q twice.
   // for the maximum input t = 2^255 this is enough to get a reduced result:
   // 2^255 + (2^255 - q) - 2q = 2^254 - 3*(q - 2^254) < q
-  return ForeignField.sum([tBig, Field3.from(shift), Field3.from(0n)], [1n, 1n], Fq.modulus);
+  return ForeignField.sum(
+    [tBig, Field3.from(shift), Field3.from(0n)],
+    [1n, 1n],
+    Fq.modulus
+  );
 }
 
 /**

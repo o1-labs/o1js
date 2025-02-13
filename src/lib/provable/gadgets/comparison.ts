@@ -1,6 +1,10 @@
 import type { Field } from '../field.js';
 import type { Bool } from '../bool.js';
-import { createBool, createBoolUnsafe, createField } from '../core/field-constructor.js';
+import {
+  createBool,
+  createBoolUnsafe,
+  createField,
+} from '../core/field-constructor.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { assert } from '../../../lib/util/assert.js';
 import { exists, existsOne } from '../core/exists.js';
@@ -43,7 +47,11 @@ export {
  * **Warning:** The gadget does not prove x <= y if either 2c > p or x or y are not in [0, c).
  * Neither of these conditions are enforced by the gadget.
  */
-function assertLessThanOrEqualGeneric(x: Field, y: Field, rangeCheck: (v: Field) => void) {
+function assertLessThanOrEqualGeneric(
+  x: Field,
+  y: Field,
+  rangeCheck: (v: Field) => void
+) {
   // since 0 <= x, y < c, we have y - x in [0, c) u (p-c, p)
   // because of c <= p-c, the two ranges are disjoint. therefore,
   // y - x in [0, p-c) is equivalent to x <= y
@@ -55,7 +63,11 @@ function assertLessThanOrEqualGeneric(x: Field, y: Field, rangeCheck: (v: Field)
  *
  * Assumptions are the same as in {@link assertLessThanOrEqualGeneric}.
  */
-function assertLessThanGeneric(x: Field, y: Field, rangeCheck: (v: Field) => void) {
+function assertLessThanGeneric(
+  x: Field,
+  y: Field,
+  rangeCheck: (v: Field) => void
+) {
   // since 0 <= x, y < c, we have y - 1 - x in [0, c) u [p-c, p)
   // because of c <= p-c, the two ranges are disjoint. therefore,
   // y - 1 - x in [0, p-c) is equivalent to x <= y - 1 which is equivalent to x < y
@@ -69,7 +81,12 @@ function assertLessThanGeneric(x: Field, y: Field, rangeCheck: (v: Field) => voi
  * - c is a required input
  * - the `rangeCheck` function must fully prove that its input is in [0, c)
  */
-function lessThanGeneric(x: Field, y: Field, c: bigint, rangeCheck: (v: Field) => void) {
+function lessThanGeneric(
+  x: Field,
+  y: Field,
+  c: bigint,
+  rangeCheck: (v: Field) => void
+) {
   // we prove that there exists b such that b*c + x - y is in [0, c)
   // if b = 0, this implies x - y is in [0, c), and so x >= y
   // if b = 1, this implies x - y is in [p-c, p), and so x < y because p-c >= c
@@ -89,7 +106,12 @@ function lessThanGeneric(x: Field, y: Field, c: bigint, rangeCheck: (v: Field) =
  * - c is a required input
  * - the `rangeCheck` function must fully prove that its input is in [0, c)
  */
-function lessThanOrEqualGeneric(x: Field, y: Field, c: bigint, rangeCheck: (v: Field) => void) {
+function lessThanOrEqualGeneric(
+  x: Field,
+  y: Field,
+  c: bigint,
+  rangeCheck: (v: Field) => void
+) {
   // we prove that there exists b such that b*c + x - y - 1 is in [0, c)
   // if b = 0, this implies x - y - 1 is in [0, c), and so x > y
   // if b = 1, this implies x - y - 1 is in [p-c, p), and so x <= y because p-c >= c
@@ -197,7 +219,9 @@ function isOddAndHigh(x: Field) {
 
   // prevent overflow case when x = 0
   // we witness x' such that b == x * x', which makes it impossible to have x = 0 and b = 1
-  let x_ = existsOne(() => (b.toBigInt() === 0n ? 0n : Fp.inverse(x.toBigInt()) ?? 0n));
+  let x_ = existsOne(() =>
+    b.toBigInt() === 0n ? 0n : Fp.inverse(x.toBigInt()) ?? 0n
+  );
   x.mul(x_).assertEquals(b);
 
   return { isOdd, high: z };
@@ -262,7 +286,10 @@ function unpack(x: Field, length: number) {
     return Array.from({ length }, (_, k) => (x0 >> BigInt(k)) & 1n);
   });
   bits.forEach((b) => b.assertBool());
-  let lc = bits.reduce((acc, b, i) => acc.add(b.mul(1n << BigInt(i))), createField(0));
+  let lc = bits.reduce(
+    (acc, b, i) => acc.add(b.mul(1n << BigInt(i))),
+    createField(0)
+  );
   assertMul(lc, createField(1), x);
   return bits.map((b) => createBoolUnsafe(b));
 }

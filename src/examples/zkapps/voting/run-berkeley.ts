@@ -13,7 +13,10 @@ import {
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
-import { ParticipantPreconditions, ElectionPreconditions } from './preconditions.js';
+import {
+  ParticipantPreconditions,
+  ElectionPreconditions,
+} from './preconditions.js';
 import { getResults, vote } from './voting-lib.js';
 
 const Berkeley = Mina.Network({
@@ -44,8 +47,15 @@ let params: VotingAppParams = {
     UInt64.from(0),
     UInt64.from(100_000_000_000)
   ),
-  voterPreconditions: new ParticipantPreconditions(UInt64.from(0), UInt64.from(100_000_000_000)),
-  electionPreconditions: new ElectionPreconditions(UInt32.from(0), UInt32.MAXINT(), Bool(false)),
+  voterPreconditions: new ParticipantPreconditions(
+    UInt64.from(0),
+    UInt64.from(100_000_000_000)
+  ),
+  electionPreconditions: new ElectionPreconditions(
+    UInt32.from(0),
+    UInt32.MAXINT(),
+    Bool(false)
+  ),
   voterKey,
   candidateKey,
   votingKey,
@@ -54,8 +64,12 @@ let params: VotingAppParams = {
 
 // we are using pre-funded voters here
 const members = [
-  PublicKey.fromBase58('B62qqzhd5U54JafhR4CB8NLWQM8PRfiCZ4TuoTT5UQHzGwdR2f5RLnK'),
-  PublicKey.fromBase58('B62qnScMYfgSUWwtzB1r6fB8i23YFXgA25rzcSXVCtYVfUxLHkMLr3G'),
+  PublicKey.fromBase58(
+    'B62qqzhd5U54JafhR4CB8NLWQM8PRfiCZ4TuoTT5UQHzGwdR2f5RLnK'
+  ),
+  PublicKey.fromBase58(
+    'B62qnScMYfgSUWwtzB1r6fB8i23YFXgA25rzcSXVCtYVfUxLHkMLr3G'
+  ),
 ];
 
 let storage = {
@@ -82,8 +96,12 @@ let tx = await Mina.transaction(
     contracts.voting.accumulatedVotes.set(Reducer.initialActionState);
 
     await contracts.candidateContract.deploy();
-    contracts.candidateContract.committedMembers.set(storage.candidatesStore.getRoot());
-    contracts.candidateContract.accumulatedMembers.set(Reducer.initialActionState);
+    contracts.candidateContract.committedMembers.set(
+      storage.candidatesStore.getRoot()
+    );
+    contracts.candidateContract.accumulatedMembers.set(
+      Reducer.initialActionState
+    );
 
     await contracts.voterContract.deploy();
     contracts.voterContract.committedMembers.set(storage.votersStore.getRoot());
@@ -92,7 +110,9 @@ let tx = await Mina.transaction(
 );
 await tx.prove();
 await (
-  await tx.sign([feePayerKey, params.votingKey, params.candidateKey, params.voterKey]).send()
+  await tx
+    .sign([feePayerKey, params.votingKey, params.candidateKey, params.voterKey])
+    .send()
 ).wait();
 
 console.log('successfully deployed contracts');
@@ -107,7 +127,11 @@ tx = await Mina.transaction(
     memo: 'Registering a voter',
   },
   async () => {
-    let m = registerMember(0n, Member.from(members[0], UInt64.from(150)), storage.votersStore);
+    let m = registerMember(
+      0n,
+      Member.from(members[0], UInt64.from(150)),
+      storage.votersStore
+    );
     await contracts.voting.voterRegistration(m);
   }
 );
@@ -125,7 +149,11 @@ tx = await Mina.transaction(
     memo: 'Registering a candidate',
   },
   async () => {
-    let m = registerMember(0n, Member.from(members[1], UInt64.from(150)), storage.candidatesStore);
+    let m = registerMember(
+      0n,
+      Member.from(members[1], UInt64.from(150)),
+      storage.candidatesStore
+    );
     await contracts.voting.candidateRegistration(m);
   }
 );
@@ -160,8 +188,12 @@ tx = await Mina.transaction(
   async () => {
     let currentCandidate = storage.candidatesStore.get(0n)!;
 
-    currentCandidate.witness = new MyMerkleWitness(storage.candidatesStore.getWitness(0n));
-    currentCandidate.votesWitness = new MyMerkleWitness(storage.votesStore.getWitness(0n));
+    currentCandidate.witness = new MyMerkleWitness(
+      storage.candidatesStore.getWitness(0n)
+    );
+    currentCandidate.votesWitness = new MyMerkleWitness(
+      storage.votesStore.getWitness(0n)
+    );
 
     let v = storage.votersStore.get(0n)!;
     v.witness = new MyMerkleWitness(storage.votersStore.getWitness(0n));
@@ -230,7 +262,11 @@ async function fetchAllAccounts() {
   );
 }
 
-function registerMember(i: bigint, m: Member, store: OffchainStorage<Member>): Member {
+function registerMember(
+  i: bigint,
+  m: Member,
+  store: OffchainStorage<Member>
+): Member {
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree
   store.set(i, m); // setting voter 0n
   // setting the merkle witness

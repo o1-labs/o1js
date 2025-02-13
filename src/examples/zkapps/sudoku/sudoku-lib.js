@@ -83,7 +83,9 @@ function solveSudokuInternal(sudoku, deterministic, possible) {
 // possible[i][j][x] contains a 1 if entry x \in {1,...,9} is possible in sudoku[i][j], 0 otherwise
 // => allows us to quickly determine cells where few values are possible
 function possibleFromSudoku(sudoku) {
-  let possible = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => Array(9).fill(1)));
+  let possible = Array.from({ length: 9 }, () =>
+    Array.from({ length: 9 }, () => Array(9).fill(1))
+  );
   for (let i = 0; i < 9; i++) {
     for (let j = 0; j < 9; j++) {
       let x = sudoku[i][j];
@@ -108,7 +110,9 @@ function chooseFirstPossible(i, j, possible) {
 }
 
 function chooseRandomPossible(i, j, possible) {
-  let possibleValues = possible[i][j].map((b, m) => b && m + 1).filter((b) => b);
+  let possibleValues = possible[i][j]
+    .map((b, m) => b && m + 1)
+    .filter((b) => b);
   let n = possibleValues.length;
   if (n === 0) return 0;
   let k = Math.floor(Math.random() * n);

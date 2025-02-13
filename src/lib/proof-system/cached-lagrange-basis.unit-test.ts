@@ -31,7 +31,8 @@ const exampleProgram = ZkProgram({
 });
 
 describe('Compiling a program with a cache', () => {
-  const cache: Cache & { lagrangeBasisReadCount?: number } = Cache.FileSystem(__cacheDirname);
+  const cache: Cache & { lagrangeBasisReadCount?: number } =
+    Cache.FileSystem(__cacheDirname);
   const originalRead = cache.read;
   cache.lagrangeBasisReadCount = 0;
   cache.read = ({ persistentId, uniqueId, dataType }) => {

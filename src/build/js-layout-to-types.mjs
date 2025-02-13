@@ -11,7 +11,13 @@ let jsLayout = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
 
 console.log(`js-layout-to-types.mjs: generating TS types from ${jsonPath}`);
 
-let builtinLeafTypes = new Set(['number', 'string', 'null', 'undefined', 'bigint']);
+let builtinLeafTypes = new Set([
+  'number',
+  'string',
+  'null',
+  'undefined',
+  'bigint',
+]);
 let indent = '';
 
 function leafTypes(typeData) {
@@ -46,7 +52,11 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
   }
   let { type, inner, entries, keys, optionType, docEntries } = typeData;
   if (type === 'array') {
-    let { output, dependencies, converters: j } = writeType(inner, isValue, isJson, withTypeMap);
+    let {
+      output,
+      dependencies,
+      converters: j,
+    } = writeType(inner, isValue, isJson, withTypeMap);
     mergeObject(converters, j);
     return {
       output: `${output}[]`,
@@ -55,7 +65,11 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
     };
   }
   if (type === 'option') {
-    let { output, dependencies, converters: j } = writeType(inner, isValue, isJson, withTypeMap);
+    let {
+      output,
+      dependencies,
+      converters: j,
+    } = writeType(inner, isValue, isJson, withTypeMap);
     if (optionType === 'flaggedOption' || optionType === 'closedInterval') {
       dependencies ??= new Set();
       dependencies.add('Bool');
@@ -81,7 +95,11 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
     for (let key of keys) {
       let value = entries[key];
       let questionMark = '';
-      if (!isJson && value.type === 'option' && value.optionType === 'orUndefined') {
+      if (
+        !isJson &&
+        value.type === 'option' &&
+        value.optionType === 'orUndefined'
+      ) {
         value = value.inner;
         questionMark = '?';
       }
@@ -107,7 +125,12 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
   };
 }
 
-function writeTsContent({ jsLayout: types, isJson, isProvable, leavesRelPath }) {
+function writeTsContent({
+  jsLayout: types,
+  isJson,
+  isProvable,
+  leavesRelPath,
+}) {
   let output = '';
   let dependencies = new Set();
   let converters = {};
@@ -158,7 +181,9 @@ ${
     ? `import { ${GenericType} } from '../../lib/generic.js';\n` +
       `import { ${FromLayout}, GenericLayout } from '../../lib/from-layout.js';\n` +
       "import * as Json from './transaction-json.js';\n" +
-      (isProvable ? "import * as Value from './transaction-bigint.js';\n" : '') +
+      (isProvable
+        ? "import * as Value from './transaction-bigint.js';\n"
+        : '') +
       "import { jsLayout } from './js-layout.js';\n"
     : ''
 }
@@ -179,7 +204,12 @@ ${
   (!isJson || '') &&
   `
 const TypeMap: {
-  [K in keyof TypeMap]: ${Type(GeneratedType, 'TypeMap[K]', 'Value.TypeMap[K]', 'Json.TypeMap[K]')};
+  [K in keyof TypeMap]: ${Type(
+    GeneratedType,
+    'TypeMap[K]',
+    'Value.TypeMap[K]',
+    'Json.TypeMap[K]'
+  )};
 } = {
   ${[...typeMapKeys].join(', ')}
 }
@@ -199,7 +229,15 @@ type ${Type(GeneratedType, 'T', 'TValue', 'TJson')} = ${Type(
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = { ${customTypes
-    .map((c) => `${c.typeName}: ${Type(GeneratedType, c.type, c.valueType, c.jsonType)};`)
+    .map(
+      (c) =>
+        `${c.typeName}: ${Type(
+          GeneratedType,
+          c.type,
+          c.valueType,
+          c.jsonType
+        )};`
+    )
     .join(' ')} }
 let customTypes: CustomTypes = { ${customTypeNames.join(', ')} };
 let { ${fromLayout}, toJSONEssential, empty } = ${Type(

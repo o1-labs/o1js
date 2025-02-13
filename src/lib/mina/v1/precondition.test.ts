@@ -98,7 +98,10 @@ describe('preconditions', () => {
   it('satisfied currentSlot.requireBetween should not throw', async () => {
     let nonce = contract.account.nonce.get();
     let tx = await Mina.transaction(feePayer, async () => {
-      contract.currentSlot.requireBetween(UInt32.from(0), UInt32.from(UInt32.MAXINT()));
+      contract.currentSlot.requireBetween(
+        UInt32.from(0),
+        UInt32.from(UInt32.MAXINT())
+      );
       contract.requireSignature();
       AccountUpdate.attachToTransaction(contract.self);
     });
@@ -127,15 +130,20 @@ describe('preconditions', () => {
     let tx = await Mina.transaction(feePayer, async () => {
       contract.account.balance.get();
       contract.self.body.preconditions.account.balance.isSome = Bool(true);
-      contract.self.body.preconditions.account.balance.value.upper = UInt64.from(10e9);
+      contract.self.body.preconditions.account.balance.value.upper =
+        UInt64.from(10e9);
 
       contract.network.blockchainLength.get();
-      contract.self.body.preconditions.network.blockchainLength.isSome = Bool(true);
-      contract.self.body.preconditions.network.blockchainLength.value.upper = UInt32.from(1000);
+      contract.self.body.preconditions.network.blockchainLength.isSome =
+        Bool(true);
+      contract.self.body.preconditions.network.blockchainLength.value.upper =
+        UInt32.from(1000);
 
       contract.network.totalCurrency.get();
-      contract.self.body.preconditions.network.totalCurrency.isSome = Bool(true);
-      contract.self.body.preconditions.network.totalCurrency.value.upper = UInt64.from(1e9 * 1e9);
+      contract.self.body.preconditions.network.totalCurrency.isSome =
+        Bool(true);
+      contract.self.body.preconditions.network.totalCurrency.value.upper =
+        UInt64.from(1e9 * 1e9);
       contract.requireSignature();
       AccountUpdate.attachToTransaction(contract.self);
     });
@@ -164,7 +172,9 @@ describe('preconditions', () => {
         precondition().requireEquals(p.not());
         AccountUpdate.attachToTransaction(contract.self);
       });
-      await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/unsatisfied/);
+      await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
+        /unsatisfied/
+      );
     }
   });
 
@@ -184,7 +194,9 @@ describe('preconditions', () => {
         precondition().requireBetween(p.add(20), p.add(30));
         AccountUpdate.attachToTransaction(contract.self);
       });
-      await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/unsatisfied/);
+      await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
+        /unsatisfied/
+      );
     }
   });
 
@@ -275,7 +287,10 @@ let implementedNumber = [
   // () => zkapp.network.nextEpochData.seed,
   () => contract.network.nextEpochData.ledger.hash,
 ];
-let implementedBool = [() => contract.account.isNew, () => contract.account.provedState];
+let implementedBool = [
+  () => contract.account.isNew,
+  () => contract.account.provedState,
+];
 let implemented = [
   ...implementedNumber,
   ...implementedBool,

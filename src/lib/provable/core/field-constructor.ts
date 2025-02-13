@@ -29,7 +29,9 @@ function setBoolConstructor(constructor: typeof Bool) {
   boolConstructor = constructor;
 }
 
-function createField(value: string | number | bigint | Field | FieldVar | FieldConst): Field {
+function createField(
+  value: string | number | bigint | Field | FieldVar | FieldConst
+): Field {
   if (fieldConstructor === undefined)
     throw Error('Cannot construct a Field before the class was defined.');
   return new fieldConstructor(value);
@@ -47,18 +49,23 @@ function createBoolUnsafe(value: Field): Bool {
 
 function isField(x: unknown): x is Field {
   if (fieldConstructor === undefined)
-    throw Error('Cannot check for instance of Field before the class was defined.');
+    throw Error(
+      'Cannot check for instance of Field before the class was defined.'
+    );
   return x instanceof fieldConstructor;
 }
 
 function isBool(x: unknown): x is Bool {
   if (boolConstructor === undefined)
-    throw Error('Cannot check for instance of Bool before the class was defined.');
+    throw Error(
+      'Cannot check for instance of Bool before the class was defined.'
+    );
   return x instanceof boolConstructor;
 }
 
 function getField(): typeof Field {
-  if (fieldConstructor === undefined) throw Error('Field class not defined yet.');
+  if (fieldConstructor === undefined)
+    throw Error('Field class not defined yet.');
   return fieldConstructor;
 }
 

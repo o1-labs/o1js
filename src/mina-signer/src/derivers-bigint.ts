@@ -1,9 +1,23 @@
 import { bigIntToBytes } from '../../bindings/crypto/bigint-helpers.js';
 import { createDerivers } from '../../bindings/lib/provable-generic.js';
-import { GenericHashInput, GenericSignable } from '../../bindings/lib/generic.js';
-import { BinableWithBits, defineBinable, withBits } from '../../bindings/lib/binable.js';
+import {
+  GenericHashInput,
+  GenericSignable,
+} from '../../bindings/lib/generic.js';
+import {
+  BinableWithBits,
+  defineBinable,
+  withBits,
+} from '../../bindings/lib/binable.js';
 
-export { signable, SignableBigint, BinableBigint, BinableBool, HashInput, Signable };
+export {
+  signable,
+  SignableBigint,
+  BinableBigint,
+  BinableBool,
+  HashInput,
+  Signable,
+};
 
 type Field = bigint;
 
@@ -12,9 +26,10 @@ let { signable } = createDerivers<Field>();
 type Signable<T, J> = GenericSignable<T, J, Field>;
 type HashInput = GenericHashInput<Field>;
 
-function SignableBigint<T extends bigint = bigint, TJSON extends string = string>(
-  check: (x: bigint) => void
-): Signable<T, TJSON> {
+function SignableBigint<
+  T extends bigint = bigint,
+  TJSON extends string = string
+>(check: (x: bigint) => void): Signable<T, TJSON> {
   return {
     toInput(x) {
       return { fields: [x], packed: [] };

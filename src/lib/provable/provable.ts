@@ -6,7 +6,11 @@
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
-import type { FlexibleProvable, FlexibleProvableType, ProvableExtended } from './types/struct.js';
+import type {
+  FlexibleProvable,
+  FlexibleProvableType,
+  ProvableExtended,
+} from './types/struct.js';
 import { Context } from '../util/global-context.js';
 import {
   HashInput,
@@ -29,7 +33,12 @@ import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 export { Provable };
 
 // internal API
-export { memoizationContext, MemoizationContext, memoizeWitness, getBlindingValue };
+export {
+  memoizationContext,
+  MemoizationContext,
+  memoizeWitness,
+  getBlindingValue,
+};
 
 /**
  * `Provable<T>` is the general interface for provable types in o1js.
@@ -363,7 +372,9 @@ function switch_<T, A extends FlexibleProvableType<T>>(
     if (allowNonExclusive) return;
     let nTrue = mask.filter((b) => b.toBoolean()).length;
     if (nTrue > 1) {
-      throw Error(`Provable.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`);
+      throw Error(
+        `Provable.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
+      );
     }
   };
   if (mask.every((b) => b.toField().isConstant())) checkMask();
@@ -476,7 +487,10 @@ function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    return (type as Provable<T>).fromFields(currentValue.fields, currentValue.aux);
+    return (type as Provable<T>).fromFields(
+      currentValue.fields,
+      currentValue.aux
+    );
   });
 }
 
@@ -497,7 +511,9 @@ function provableArray<A extends FlexibleProvableType<any>>(
   type T = InferProvableType<A>;
   type TValue = InferValue<ToProvable<A>>;
   type TJson = InferJson<ToProvable<A>>;
-  let type = ProvableType.get(elementType as ProvableType<T>) as ProvableExtended<T, TValue, TJson>;
+  let type = ProvableType.get(
+    elementType as ProvableType<T>
+  ) as ProvableExtended<T, TValue, TJson>;
   return {
     /**
      * Returns the size of this structure in {@link Field} elements.
@@ -531,7 +547,10 @@ function provableArray<A extends FlexibleProvableType<any>>(
       let size = type.sizeInFields();
       let n = length;
       for (let i = 0, offset = 0; i < n; i++, offset += size) {
-        array[i] = type.fromFields(fields.slice(offset, offset + size), aux?.[i]);
+        array[i] = type.fromFields(
+          fields.slice(offset, offset + size),
+          aux?.[i]
+        );
       }
       return array;
     },
@@ -567,7 +586,9 @@ function provableArray<A extends FlexibleProvableType<any>>(
      */
     fromJSON(json) {
       if (!('fromJSON' in type)) {
-        throw Error('circuitArray.fromJSON: element type has no fromJSON method');
+        throw Error(
+          'circuitArray.fromJSON: element type has no fromJSON method'
+        );
       }
       return json.map((a) => type.fromJSON(a));
     },

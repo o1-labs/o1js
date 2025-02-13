@@ -62,7 +62,9 @@ const RecursiveProgram = ZkProgram({
       },
     },
     verifyInternal: {
-      privateInputs: [Unconstrained.withEmpty<RealProof | undefined>(undefined)],
+      privateInputs: [
+        Unconstrained.withEmpty<RealProof | undefined>(undefined),
+      ],
       async method(fakeProof: Unconstrained<RealProof | undefined>) {
         // witness either fake proof from input, or real proof
         let proof = await Provable.witnessAsync(RealProof, async () => {
@@ -117,12 +119,18 @@ const { proof: realProof } = await RealProgram.make(34);
 
 // zkprogram accepts proof
 const { proof: recursiveProof } = await RecursiveProgram.verifyReal(realProof);
-assert(await verify(recursiveProof, programVk), 'recursive program accepts real proof');
+assert(
+  await verify(recursiveProof, programVk),
+  'recursive program accepts real proof'
+);
 
 // contract accepts proof
 let tx = await Mina.transaction(() => zkApp.verifyReal(realProof));
 let [contractProof] = (await tx.prove()).proofs;
-assert(await verify(contractProof!, contractVk), 'recursive contract accepts real proof');
+assert(
+  await verify(contractProof!, contractVk),
+  'recursive contract accepts real proof'
+);
 
 console.log('fake proof test passed 🎉');
 
@@ -156,7 +164,12 @@ for (let proof of [fakeProof, dummyProof]) {
 }
 
 // zkprogram accepts proof (internal)
-const { proof: internalProof } = await RecursiveProgram.verifyInternal(undefined);
-assert(await verify(internalProof, programVk), 'recursive program accepts internal proof');
+const { proof: internalProof } = await RecursiveProgram.verifyInternal(
+  undefined
+);
+assert(
+  await verify(internalProof, programVk),
+  'recursive program accepts internal proof'
+);
 
 console.log('fake proof test passed for internal proofs 🎉');

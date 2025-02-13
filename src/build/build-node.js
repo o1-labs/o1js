@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import esbuild from 'esbuild';
 import minimist from 'minimist';
 
-let { bindings = './src/bindings/compiled/node_bindings/' } = minimist(process.argv.slice(2));
+let { bindings = './src/bindings/compiled/node_bindings/' } = minimist(
+  process.argv.slice(2)
+);
 
 export { buildNode };
 
@@ -24,7 +26,10 @@ if (isMain) {
 
 async function buildNode({ production }) {
   // bundle the index.js file with esbuild and create a new index.cjs file which conforms to CJS
-  let jsEntry = path.resolve('dist/node', path.basename(entry).replace('.ts', '.js'));
+  let jsEntry = path.resolve(
+    'dist/node',
+    path.basename(entry).replace('.ts', '.js')
+  );
   let outfile = jsEntry.replace('.js', '.cjs');
   await esbuild.build({
     entryPoints: [jsEntry],
@@ -61,7 +66,11 @@ function makeJsooExternal() {
     setup(build) {
       build.onResolve({ filter: isJsoo }, ({ path: filePath, resolveDir }) => ({
         path:
-          './' + path.relative(path.resolve('.', 'dist/node'), path.resolve(resolveDir, filePath)),
+          './' +
+          path.relative(
+            path.resolve('.', 'dist/node'),
+            path.resolve(resolveDir, filePath)
+          ),
         external: true,
       }));
     },

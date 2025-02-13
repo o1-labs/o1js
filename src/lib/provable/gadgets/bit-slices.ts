@@ -32,7 +32,9 @@ function bytesToWord(wordBytes: UInt8[]): Field {
 function wordToBytes(word: Field, bytesPerWord = 8): UInt8[] {
   let bytes = Provable.witness(Provable.Array(UInt8, bytesPerWord), () => {
     let w = word.toBigInt();
-    return Array.from({ length: bytesPerWord }, (_, k) => UInt8.from((w >> BigInt(8 * k)) & 0xffn));
+    return Array.from({ length: bytesPerWord }, (_, k) =>
+      UInt8.from((w >> BigInt(8 * k)) & 0xffn)
+    );
   });
 
   // check decomposition
@@ -107,7 +109,8 @@ function sliceField(
     let bits = bigIntToBits(x.toBigInt());
     // normalize length
     if (bits.length > maxBits) bits = bits.slice(0, maxBits);
-    if (bits.length < maxBits) bits = bits.concat(Array(maxBits - bits.length).fill(false));
+    if (bits.length < maxBits)
+      bits = bits.concat(Array(maxBits - bits.length).fill(false));
     return bits.map(BigInt);
   });
 
@@ -125,7 +128,9 @@ function sliceField(
     }
     sum = remainingChunk = remainingChunk.seal();
     let chunk = previous[previous.length - 1];
-    previous[previous.length - 1] = chunk.add(remainingChunk.mul(1n << BigInt(chunkSize - size)));
+    previous[previous.length - 1] = chunk.add(
+      remainingChunk.mul(1n << BigInt(chunkSize - size))
+    );
   }
 
   let i = leftover?.leftoverSize ?? 0;

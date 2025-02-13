@@ -57,5 +57,7 @@ try {
   console.log(JSON.stringify(nullifier3));
   process.exit(1);
 } catch {
-  console.log('invalid nullifier correctly throws an error (manipulated message)');
+  console.log(
+    'invalid nullifier correctly throws an error (manipulated message)'
+  );
 }

@@ -24,7 +24,9 @@ describe('Merkle Map', () => {
 
     const emptyMap = new MerkleMap();
 
-    const [emptyLeafWitnessRoot, witnessKey] = witness.computeRootAndKey(Field(0));
+    const [emptyLeafWitnessRoot, witnessKey] = witness.computeRootAndKey(
+      Field(0)
+    );
     const [witnessRoot, _] = witness.computeRootAndKey(value);
 
     expect(

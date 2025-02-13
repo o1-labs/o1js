@@ -1,4 +1,13 @@
-import { Field, PrivateKey, Provable, SmartContract, State, assert, method, state } from 'o1js';
+import {
+  Field,
+  PrivateKey,
+  Provable,
+  SmartContract,
+  State,
+  assert,
+  method,
+  state,
+} from 'o1js';
 
 export const adminPrivateKey = PrivateKey.fromBase58(
   'EKFcef5HKXAn7V2rQntLiXtJr15dkxrsrQ1G4pnYemhMEAWYbkZW'

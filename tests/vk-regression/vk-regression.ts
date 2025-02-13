@@ -3,10 +3,20 @@ import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
 import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
 import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
-import { ecdsa, keccakAndEcdsa, ecdsaEthers } from '../../src/examples/crypto/ecdsa/ecdsa.js';
+import {
+  ecdsa,
+  keccakAndEcdsa,
+  ecdsaEthers,
+} from '../../src/examples/crypto/ecdsa/ecdsa.js';
 import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
-import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js';
-import { GroupCS, BitwiseCS, HashCS, BasicCS, CryptoCS } from './plain-constraint-system.js';
+import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js'
+import {
+  GroupCS,
+  BitwiseCS,
+  HashCS,
+  BasicCS,
+  CryptoCS,
+} from './plain-constraint-system.js';
 import { diverse } from './diverse-zk-program.js';
 
 // toggle this for quick iteration when debugging vk regressions
@@ -99,7 +109,9 @@ async function checkVk(contracts: typeof ConstraintSystems) {
   for await (const c of contracts) {
     let ref = RegressionJson[c.name];
     if (!ref)
-      throw Error(`Verification key for contract ${c.name} was not found, try dumping it first.`);
+      throw Error(
+        `Verification key for contract ${c.name} was not found, try dumping it first.`
+      );
     let vk = ref.verificationKey;
 
     let {
@@ -115,10 +127,18 @@ async function checkVk(contracts: typeof ConstraintSystems) {
       if (actualMethod.digest !== expectedMethod.digest) {
         errorStack += `\n\nMethod digest mismatch for ${c.name}.${methodKey}()
   Actual
-    ${JSON.stringify({ digest: actualMethod.digest, rows: actualMethod.rows }, undefined, 2)}
+    ${JSON.stringify(
+      { digest: actualMethod.digest, rows: actualMethod.rows },
+      undefined,
+      2
+    )}
   \n
   Expected
-    ${JSON.stringify({ digest: expectedMethod.digest, rows: expectedMethod.rows }, undefined, 2)}`;
+    ${JSON.stringify(
+      { digest: expectedMethod.digest, rows: expectedMethod.rows },
+      undefined,
+      2
+    )}`;
       }
     }
 
@@ -144,12 +164,18 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
   for await (const c of contracts) {
     let data = await c.analyzeMethods();
     let digest = await c.digest();
-    let verificationKey: { data: string; hash: { toString(): string } } | undefined;
-    if (!skipVerificationKeys) ({ verificationKey } = await c.compile({ forceRecompile }));
+    let verificationKey:
+      | { data: string; hash: { toString(): string } }
+      | undefined;
+    if (!skipVerificationKeys)
+      ({ verificationKey } = await c.compile({ forceRecompile }));
     newEntries[c.name] = {
       digest,
       methods: Object.fromEntries(
-        Object.entries(data).map(([key, { rows, digest }]) => [key, { rows, digest }])
+        Object.entries(data).map(([key, { rows, digest }]) => [
+          key,
+          { rows, digest },
+        ])
       ),
       verificationKey: {
         data: verificationKey?.data ?? '',

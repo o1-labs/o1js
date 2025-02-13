@@ -10,7 +10,9 @@ describe('Merkle Tree', () => {
     const tree = new MerkleTree(2);
     tree.setLeaf(0n, Field(1));
     tree.setLeaf(1n, Field(2));
-    expect(tree.getRoot().toString()).toEqual(Poseidon.hash([Field(1), Field(2)]).toString());
+    expect(tree.getRoot().toString()).toEqual(
+      Poseidon.hash([Field(1), Field(2)]).toString()
+    );
   });
 
   it('builds correct tree', () => {

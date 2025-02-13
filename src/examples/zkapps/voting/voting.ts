@@ -1,8 +1,8 @@
 /*
- * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()`
- * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
  * in progress to mitigate this limitation.
- */
+ */ 
 import {
   Field,
   SmartContract,
@@ -19,7 +19,10 @@ import {
 } from 'o1js';
 
 import { Member } from './member.js';
-import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
+import {
+  ElectionPreconditions,
+  ParticipantPreconditions,
+} from './preconditions.js';
 import { Membership_ } from './membership.js';
 
 /**
@@ -117,7 +120,10 @@ export class Voting_ extends SmartContract {
   @method
   async voterRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.requireBetween(currentSlot, currentSlot.add(10));
+    this.network.globalSlotSinceGenesis.requireBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // can only register voters before the election has started
     Provable.if(
@@ -131,12 +137,20 @@ export class Voting_ extends SmartContract {
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
 
-    accountUpdate.account.balance.requireEquals(accountUpdate.account.balance.get());
+    accountUpdate.account.balance.requireEquals(
+      accountUpdate.account.balance.get()
+    );
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGreaterThanOrEqual(voterPreconditions.minMina, 'Balance not high enough!');
-    balance.assertLessThanOrEqual(voterPreconditions.maxMina, 'Balance too high!');
+    balance.assertGreaterThanOrEqual(
+      voterPreconditions.minMina,
+      'Balance not high enough!'
+    );
+    balance.assertLessThanOrEqual(
+      voterPreconditions.maxMina,
+      'Balance too high!'
+    );
 
     let VoterContract: Membership_ = new Membership_(voterAddress);
     let exists = await VoterContract.addEntry(member);
@@ -155,7 +169,10 @@ export class Voting_ extends SmartContract {
   @method
   async candidateRegistration(member: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.requireBetween(currentSlot, currentSlot.add(10));
+    this.network.globalSlotSinceGenesis.requireBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // can only register candidates before the election has started
     Provable.if(
@@ -169,12 +186,20 @@ export class Voting_ extends SmartContract {
     // this snippet pulls the account data of an address from the network
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
-    accountUpdate.account.balance.requireEquals(accountUpdate.account.balance.get());
+    accountUpdate.account.balance.requireEquals(
+      accountUpdate.account.balance.get()
+    );
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGreaterThanOrEqual(candidatePreconditions.minMina, 'Balance not high enough!');
-    balance.assertLessThanOrEqual(candidatePreconditions.maxMina, 'Balance too high!');
+    balance.assertGreaterThanOrEqual(
+      candidatePreconditions.minMina,
+      'Balance not high enough!'
+    );
+    balance.assertLessThanOrEqual(
+      candidatePreconditions.maxMina,
+      'Balance too high!'
+    );
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
     let exists = await CandidateContract.addEntry(member);
@@ -208,7 +233,10 @@ export class Voting_ extends SmartContract {
   @method
   async vote(candidate: Member, voter: Member) {
     let currentSlot = this.network.globalSlotSinceGenesis.get();
-    this.network.globalSlotSinceGenesis.requireBetween(currentSlot, currentSlot.add(10));
+    this.network.globalSlotSinceGenesis.requireBetween(
+      currentSlot,
+      currentSlot.add(10)
+    );
 
     // we can only vote in the election period time frame
     Provable.if(
@@ -225,7 +253,9 @@ export class Voting_ extends SmartContract {
     (await VoterContract.isMember(voter)).assertTrue('Member is not a voter!');
 
     let CandidateContract: Membership_ = new Membership_(candidateAddress);
-    (await CandidateContract.isMember(candidate)).assertTrue('Member is not a candidate!');
+    (await CandidateContract.isMember(candidate)).assertTrue(
+      'Member is not a candidate!'
+    );
 
     // emits a sequence event with the information about the candidate
     this.reducer.dispatch(candidate);

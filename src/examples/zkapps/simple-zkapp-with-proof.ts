@@ -45,7 +45,8 @@ Mina.setActiveInstance(Local);
 
 let [feePayer] = Local.testAccounts;
 
-const [trivialContractAccount, notSoSimpleContractAccount] = Mina.TestPublicKey.random(2);
+const [trivialContractAccount, notSoSimpleContractAccount] =
+  Mina.TestPublicKey.random(2);
 
 // compile and prove trivial zkapp
 console.log('compile (trivial zkapp)');
@@ -60,7 +61,11 @@ let [trivialProof] = await Mina.transaction(feePayer, async () => {
   .prove()
   .proofs();
 
-trivialProof = await testJsonRoundtripAndVerify(TrivialProof, trivialProof, trivialVerificationKey);
+trivialProof = await testJsonRoundtripAndVerify(
+  TrivialProof,
+  trivialProof,
+  trivialVerificationKey
+);
 
 console.log('compile');
 let { verificationKey } = await NotSoSimpleZkapp.compile();
@@ -85,7 +90,11 @@ let tx = await Mina.transaction(feePayer, async () => {
 let [proof] = tx.proofs;
 await tx.send();
 
-proof = await testJsonRoundtripAndVerify(NotSoSimpleZkapp.Proof(), proof, verificationKey);
+proof = await testJsonRoundtripAndVerify(
+  NotSoSimpleZkapp.Proof(),
+  proof,
+  verificationKey
+);
 
 console.log('initial state: ' + zkapp.x.get());
 
@@ -98,7 +107,11 @@ tx = await Mina.transaction(feePayer, async () => {
 [proof] = tx.proofs;
 await tx.send();
 
-proof = await testJsonRoundtripAndVerify(NotSoSimpleZkapp.Proof(), proof, verificationKey);
+proof = await testJsonRoundtripAndVerify(
+  NotSoSimpleZkapp.Proof(),
+  proof,
+  verificationKey
+);
 
 console.log('state 2: ' + zkapp.x.get());
 
@@ -111,7 +124,11 @@ tx = await Mina.transaction(feePayer, async () => {
 [proof] = tx.proofs;
 await tx.send();
 
-proof = await testJsonRoundtripAndVerify(NotSoSimpleZkapp.Proof(), proof, verificationKey);
+proof = await testJsonRoundtripAndVerify(
+  NotSoSimpleZkapp.Proof(),
+  proof,
+  verificationKey
+);
 
 console.log('final state: ' + zkapp.x.get());
 

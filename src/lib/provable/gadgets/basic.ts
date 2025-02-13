@@ -3,7 +3,12 @@
  */
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import type { Field, VarField } from '../field.js';
-import { FieldType, FieldVar, FieldConst, VarFieldVar } from '../core/fieldvar.js';
+import {
+  FieldType,
+  FieldVar,
+  FieldConst,
+  VarFieldVar,
+} from '../core/fieldvar.js';
 import { toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../../util/types.js';
@@ -11,15 +16,33 @@ import { exists, existsOne } from '../core/exists.js';
 import { createField } from '../core/field-constructor.js';
 import { assert } from '../../util/assert.js';
 
-export { assertMul, assertBilinear, arrayGet, assertOneOf, assertNotVectorEquals };
+export {
+  assertMul,
+  assertBilinear,
+  arrayGet,
+  assertOneOf,
+  assertNotVectorEquals,
+};
 
 // internal
-export { reduceToScaledVar, toLinearCombination, emptyCell, linear, bilinear, ScaledVar, Constant };
+export {
+  reduceToScaledVar,
+  toLinearCombination,
+  emptyCell,
+  linear,
+  bilinear,
+  ScaledVar,
+  Constant,
+};
 
 /**
  * Assert multiplication constraint, `x * y === z`
  */
-function assertMul(x: Field | FieldVar, y: Field | FieldVar, z: Field | FieldVar) {
+function assertMul(
+  x: Field | FieldVar,
+  y: Field | FieldVar,
+  z: Field | FieldVar
+) {
   // simpler version of assertMulCompatible that currently uses the same amount of constraints but is not compatible
   // also, doesn't handle all-constant case (handled by calling gadgets already)
 
@@ -200,7 +223,10 @@ function bilinear(
     return a * x0 * y0 + b * x0 + c * y0 + d;
   });
   // b*x + c*y - z + a*x*y + d === 0
-  Gates.generic({ left: b, right: c, out: -1n, mul: a, const: d }, { left: x, right: y, out: z });
+  Gates.generic(
+    { left: b, right: c, out: -1n, mul: a, const: d },
+    { left: x, right: y, out: z }
+  );
   return z;
 }
 
