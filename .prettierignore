@@ -1,4 +1,9 @@
-src/bindings/compiled/web_bindings/**/plonk_wasm*
-src/bindings/compiled/web_bindings/**/*.bc.js
-src/bindings/compiled/node_bindings/*
-dist/**/*
+_build/
+.github/
+benchmark/
+dist/
+node_modules/
+o1js-reference/
+src/bindings/
+src/mina/
+**/*.d.ts
