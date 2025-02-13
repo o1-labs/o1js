@@ -83,5 +83,4 @@ async function assertInSubgroup(Curve: any) {
     Curve.assertInSubgroup(g1);
   });
   console.log('assertInSubgroup', cs.rows);
-  console.log('methods', cs.analyzeMethods);
 }
