@@ -45,6 +45,10 @@
     "node": ">=18.14.0"
   },
   "scripts": {
+    "runner": "npm run build && node /Users/hattington/code/o1labs/o1js/dist/node/lib/mina/actions/offchain-contract-tests/multi-thread-lightnet.js",
+    "demoSettle": "npm run build && node dist/node/lib/mina/actions/offchain-contract-tests/actionStateErrorDemo.js",
+    "demoFetch": "npm run build &&  node dist/node/lib/mina/actions/offchain-contract-tests/actionStateErrorDemo.js",
+
     "dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",
     "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/build-node.js",
     "build:bindings": "./src/bindings/scripts/build-o1js-node.sh",

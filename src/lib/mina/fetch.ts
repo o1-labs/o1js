@@ -1147,6 +1147,7 @@ async function makeGraphqlRequest<TDataResponse = any>(
       try {
         return await makeRequest(url1);
       } catch (error) {
+        console.log("Caught error in makeRequest: ", JSON.stringify(error));
         return [undefined, inferError(error)] as [undefined, FetchError];
       }
     }
@@ -1154,6 +1155,8 @@ async function makeGraphqlRequest<TDataResponse = any>(
       return await Promise.race([makeRequest(url1), makeRequest(url2)]);
     } catch (unknownError) {
       let error = inferError(unknownError);
+      console.log("Caught error in makeRequest 2: ", JSON.stringify(error));
+
       if (error.statusCode === 408) {
         // If the request timed out, try the next 2 endpoints
         timeoutErrors.push({ url1, url2, error });

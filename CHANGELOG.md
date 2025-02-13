@@ -53,7 +53,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
 - Increased maximum supported amount of methods in a `SmartContract` or `ZkProgram` to 30. https://github.com/o1-labs/o1js/pull/1918
 - Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
-- Expore `maxProofsVerified()` and a `Proof` class directly on ZkPrograms https://github.com/o1-labs/o1js/pull/1933
+- Add `fetchInternalState` method on `OffchainStateInstance` which fetches settled actions from the archive node and rebuilds the internal state trees. https://github.com/o1-labs/o1js/pull/1953
+- Expose `maxProofsVerified()` and a `Proof` class directly on ZkPrograms https://github.com/o1-labs/o1js/pull/1933
 
 ### Changed
 
