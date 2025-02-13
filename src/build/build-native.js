@@ -1,3 +1,4 @@
+import fse, { move } from 'fs-extra';
 import path from 'node:path';
 import { platform } from 'node:process';
 import { fileURLToPath } from 'node:url';
