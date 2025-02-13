@@ -1,11 +1,4 @@
-import {
-  method,
-  Mina,
-  AccountUpdate,
-  SmartContract,
-  UInt64,
-  Permissions,
-} from 'o1js';
+import { method, Mina, AccountUpdate, SmartContract, UInt64, Permissions } from 'o1js';
 
 class PaymentContainer extends SmartContract {
   init() {
@@ -40,9 +33,7 @@ const [feePayer] = Local.testAccounts;
 const [contractAccount, account1, account2] = Mina.TestPublicKey.random(3);
 
 function printBalances() {
-  console.log(
-    `zkApp balance:    ${Mina.getBalance(contractAccount).div(1e9)} MINA`
-  );
+  console.log(`zkApp balance:    ${Mina.getBalance(contractAccount).div(1e9)} MINA`);
   console.log(`account1 balance: ${Mina.getBalance(account1).div(1e9)} MINA`);
   console.log(`account2 balance: ${Mina.getBalance(account2).div(1e9)} MINA\n`);
 }
@@ -76,9 +67,7 @@ await tx.prove();
 await tx.sign([account1.key]).send();
 printBalances();
 
-console.log(
-  '---------- send MINA between accounts (with signature) ----------'
-);
+console.log('---------- send MINA between accounts (with signature) ----------');
 tx = await Mina.transaction(account1, async () => {
   let account1Update = AccountUpdate.createSigned(account1);
   account1Update.send({ to: account2, amount: 1e9 });

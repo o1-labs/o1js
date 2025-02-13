@@ -190,10 +190,7 @@ class Dex extends TokenContract {
    * Helper for `DexTokenHolder.redeemFinalize()` which adds preconditions on
    * the current action state and token supply
    */
-  @method async assertActionsAndSupply(
-    actionState: Field,
-    totalSupply: UInt64
-  ) {
+  @method async assertActionsAndSupply(actionState: Field, totalSupply: UInt64) {
     this.account.actionState.requireEquals(actionState);
     this.totalSupply.requireEquals(totalSupply);
   }
@@ -306,11 +303,7 @@ class DexTokenHolder extends SmartContract {
 
   // this works for both directions (in our case where both tokens use the same contract)
   @method.returns(UInt64)
-  async swap(
-    user: PublicKey,
-    otherTokenAmount: UInt64,
-    otherTokenAddress: PublicKey
-  ) {
+  async swap(user: PublicKey, otherTokenAmount: UInt64, otherTokenAddress: PublicKey) {
     // we're writing this as if our token === y and other token === x
     let dx = otherTokenAmount;
     let tokenX = new TrivialCoin(otherTokenAddress);
@@ -358,15 +351,11 @@ function getTokenBalances() {
   };
   for (let user of ['user'] as const) {
     try {
-      balances[user].MINA =
-        Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
+      balances[user].MINA = Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
     } catch {}
     for (let token of ['X', 'Y', 'lqXY'] as const) {
       try {
-        balances[user][token] = Mina.getBalance(
-          addresses[user],
-          tokenIds[token]
-        ).toBigInt();
+        balances[user][token] = Mina.getBalance(addresses[user], tokenIds[token]).toBigInt();
       } catch {}
     }
   }

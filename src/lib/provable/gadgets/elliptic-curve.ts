@@ -5,10 +5,7 @@ import { assert } from './common.js';
 import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
 import { l, l2, l2Mask, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
-import {
-  bigIntToBytes,
-  bytesToBigInt,
-} from '../../../bindings/crypto/bigint-helpers.js';
+import { bigIntToBytes, bytesToBigInt } from '../../../bindings/crypto/bigint-helpers.js';
 import {
   CurveAffine,
   GroupAffine,
@@ -66,10 +63,7 @@ function add(p1: Point, p2: Point, Curve: { modulus: bigint; a: bigint }) {
     return Point.from(p3);
   }
 
-  assert(
-    Curve.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
-  );
+  assert(Curve.modulus > l2Mask + 1n, 'Base field moduli smaller than 2^176 are not supported');
 
   // witness and range-check slope, x3, y3
   let witnesses = exists(9, () => {
@@ -146,8 +140,7 @@ function double(p1: Point, Curve: { modulus: bigint; a: bigint }) {
   // 2*y1*m = 3*x1x1 + a
   let y1Times2 = ForeignField.Sum(y1).add(y1);
   let x1x1Times3PlusA = ForeignField.Sum(x1x1).add(x1x1).add(x1x1);
-  if (Curve.a !== 0n)
-    x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(Curve.a));
+  if (Curve.a !== 0n) x1x1Times3PlusA = x1x1Times3PlusA.add(Field3.from(Curve.a));
   ForeignField.assertMul(y1Times2, m, x1x1Times3PlusA, f);
 
   // m^2 = 2*x1 + x3
@@ -166,10 +159,7 @@ function negate({ x, y }: Point, Curve: { modulus: bigint }) {
   return { x, y: ForeignField.negate(y, Curve.modulus) };
 }
 
-function assertOnCurve(
-  p: Point,
-  { modulus: f, a, b }: { modulus: bigint; b: bigint; a: bigint }
-) {
+function assertOnCurve(p: Point, { modulus: f, a, b }: { modulus: bigint; b: bigint; a: bigint }) {
   let { x, y } = p;
   let x2 = ForeignField.mul(x, x, f);
 
@@ -420,10 +410,7 @@ function multiScalarMul(
   scalars: Field3[],
   points: Point[],
   Curve: CurveAffine,
-  tableConfigs: (
-    | { windowSize?: number; multiples?: Point[] }
-    | undefined
-  )[] = [],
+  tableConfigs: ({ windowSize?: number; multiples?: Point[] } | undefined)[] = [],
   mode: 'assert-nonzero' | 'assert-zero' = 'assert-nonzero',
   ia?: point
 ): Point {
@@ -468,12 +455,8 @@ function multiScalarMul(
         mrcStack.push(betaXBound);
         return phiP;
       });
-      tables2[2 * i] = table.map((P) =>
-        negateIf(s0.isNegative, P, Curve.modulus)
-      );
-      tables2[2 * i + 1] = endoTable.map((P) =>
-        negateIf(s1.isNegative, P, Curve.modulus)
-      );
+      tables2[2 * i] = table.map((P) => negateIf(s0.isNegative, P, Curve.modulus));
+      tables2[2 * i + 1] = endoTable.map((P) => negateIf(s1.isNegative, P, Curve.modulus));
       points2[2 * i] = tables2[2 * i][1];
       points2[2 * i + 1] = tables2[2 * i + 1][1];
 
@@ -489,9 +472,7 @@ function multiScalarMul(
   }
 
   // slice scalars
-  let scalarChunks = scalars.map((s, i) =>
-    sliceField3(s, { maxBits, chunkSize: windowSizes[i] })
-  );
+  let scalarChunks = scalars.map((s, i) => sliceField3(s, { maxBits, chunkSize: windowSizes[i] }));
 
   // initialize sum to the initial aggregator, which is expected to be unrelated to any point that this gadget is used with
   // note: this is a trick to ensure _completeness_ of the gadget
@@ -506,10 +487,7 @@ function multiScalarMul(
       if (i % windowSize === 0) {
         // pick point to add based on the scalar chunk
         let sj = scalarChunks[j][i / windowSize];
-        let sjP =
-          windowSize === 1
-            ? points[j]
-            : arrayGetGeneric(Point.provable, tables[j], sj);
+        let sjP = windowSize === 1 ? points[j] : arrayGetGeneric(Point.provable, tables[j], sj);
 
         // ec addition
         let added = add(sum, sjP, Curve);
@@ -544,12 +522,7 @@ function multiScalarMul(
 }
 
 function negateIf(condition: Field, P: Point, f: bigint) {
-  let y = Provable.if(
-    Bool.Unsafe.fromField(condition),
-    Field3,
-    ForeignField.negate(P.y, f),
-    P.y
-  );
+  let y = Provable.if(Bool.Unsafe.fromField(condition), Field3, ForeignField.negate(P.y, f), P.y);
   return { x: P.x, y };
 }
 
@@ -565,10 +538,7 @@ function endomorphism(Curve: CurveAffine, P: Point) {
  * Note: This assumes that s0 and s1 are range-checked externally; in scalar multiplication this happens because they are split into chunks.
  */
 function decomposeNoRangeCheck(Curve: CurveAffine, s: Field3) {
-  assert(
-    Curve.Endo.decomposeMaxBits < l2,
-    'decomposed scalars assumed to be < 2*88 bits'
-  );
+  assert(Curve.Endo.decomposeMaxBits < l2, 'decomposed scalars assumed to be < 2*88 bits');
   // witness s0, s1
   let witnesses = exists(6, () => {
     let [s0, s1] = Curve.Endo.decompose(Field3.toBigint(s));
@@ -627,12 +597,7 @@ function signEcdsa(Curve: CurveAffine, msgHash: bigint, privateKey: bigint) {
  * Given a point P, create the list of multiples [0, P, 2P, 3P, ..., (2^windowSize-1) * P].
  * This method is provable, but won't create any constraints given a constant point.
  */
-function getPointTable(
-  Curve: CurveAffine,
-  P: Point,
-  windowSize: number,
-  table?: Point[]
-): Point[] {
+function getPointTable(Curve: CurveAffine, P: Point, windowSize: number, table?: Point[]): Point[] {
   assertPositiveInteger(windowSize, 'invalid window size');
   let n = 1 << windowSize; // n >= 2
 

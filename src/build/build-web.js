@@ -25,10 +25,7 @@ async function buildWeb({ production }) {
   let minify = !!production;
 
   // prepare plonk_wasm.js with bundled wasm in function-wrapped form
-  let bindings = await readFile(
-    './src/bindings/compiled/web_bindings/plonk_wasm.js',
-    'utf8'
-  );
+  let bindings = await readFile('./src/bindings/compiled/web_bindings/plonk_wasm.js', 'utf8');
   bindings = rewriteWasmBindings(bindings);
   let tmpBindingsPath = 'src/bindings/compiled/web_bindings/plonk_wasm.tmp.js';
   await writeFile(tmpBindingsPath, bindings);
@@ -74,9 +71,7 @@ async function buildWeb({ production }) {
   // move all .web.js files to their .js counterparts
   let webFiles = glob.sync('./dist/web/**/*.web.js');
   await Promise.all(
-    webFiles.map((file) =>
-      move(file, file.replace('.web.js', '.js'), { overwrite: true })
-    )
+    webFiles.map((file) => move(file, file.replace('.web.js', '.js'), { overwrite: true }))
   );
 
   // run esbuild on the js entrypoint
@@ -168,29 +163,20 @@ function srcStringPlugin() {
   return {
     name: 'src-string-plugin',
     setup(build) {
-      build.onResolve(
-        { filter: /^string:/ },
-        async ({ path: importPath, resolveDir }) => {
-          let absPath = path.resolve(
-            resolveDir,
-            importPath.replace('string:', '')
-          );
-          return {
-            path: absPath,
-            namespace: 'src-string',
-          };
-        }
-      );
+      build.onResolve({ filter: /^string:/ }, async ({ path: importPath, resolveDir }) => {
+        let absPath = path.resolve(resolveDir, importPath.replace('string:', ''));
+        return {
+          path: absPath,
+          namespace: 'src-string',
+        };
+      });
 
-      build.onLoad(
-        { filter: /.*/, namespace: 'src-string' },
-        async ({ path }) => {
-          return {
-            contents: await readFile(path, 'utf8'),
-            loader: 'text',
-          };
-        }
-      );
+      build.onLoad({ filter: /.*/, namespace: 'src-string' }, async ({ path }) => {
+        return {
+          contents: await readFile(path, 'utf8'),
+          loader: 'text',
+        };
+      });
     },
   };
 }
@@ -199,43 +185,28 @@ function deferExecutionPlugin() {
   return {
     name: 'defer-execution-plugin',
     setup(build) {
-      build.onResolve(
-        { filter: /^defer:/ },
-        async ({ path: importPath, resolveDir }) => {
-          let absPath = path.resolve(
-            resolveDir,
-            importPath.replace('defer:', '')
-          );
-          return {
-            path: absPath,
-            namespace: 'defer-execution',
-          };
-        }
-      );
+      build.onResolve({ filter: /^defer:/ }, async ({ path: importPath, resolveDir }) => {
+        let absPath = path.resolve(resolveDir, importPath.replace('defer:', ''));
+        return {
+          path: absPath,
+          namespace: 'defer-execution',
+        };
+      });
 
-      build.onLoad(
-        { filter: /.*/, namespace: 'defer-execution' },
-        async ({ path }) => {
-          let code = await readFile(path, 'utf8');
-          // replace direct eval, because esbuild refuses to bundle it
-          // code = code.replace(/eval\(/g, '(0, eval)(');
-          code = code.replace(
-            /function\(\)\s*\{\s*return this\s*\}\(\)/g,
-            'window'
-          );
-          code = code.replace(
-            /function\(\)\s*\{\s*return this;\s*\}\(\)/g,
-            'window'
-          );
-          let deferedCode = `
+      build.onLoad({ filter: /.*/, namespace: 'defer-execution' }, async ({ path }) => {
+        let code = await readFile(path, 'utf8');
+        // replace direct eval, because esbuild refuses to bundle it
+        // code = code.replace(/eval\(/g, '(0, eval)(');
+        code = code.replace(/function\(\)\s*\{\s*return this\s*\}\(\)/g, 'window');
+        code = code.replace(/function\(\)\s*\{\s*return this;\s*\}\(\)/g, 'window');
+        let deferedCode = `
           let require = () => {};
           export default () => {\n${code}\n};`;
-          return {
-            contents: deferedCode,
-            loader: 'js',
-          };
-        }
-      );
+        return {
+          contents: deferedCode,
+          loader: 'js',
+        };
+      });
     },
   };
 }

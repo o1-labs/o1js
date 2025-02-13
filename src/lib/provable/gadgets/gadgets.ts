@@ -23,11 +23,7 @@ import {
   leftShift32,
 } from './bitwise.js';
 import { Field } from '../wrapped.js';
-import {
-  ForeignField,
-  Field3,
-  Sum as ForeignFieldSum,
-} from './foreign-field.js';
+import { ForeignField, Field3, Sum as ForeignFieldSum } from './foreign-field.js';
 import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA256 } from './sha256.js';
 import { BLAKE2B } from './blake2b.js';
@@ -439,7 +435,7 @@ const Gadgets = {
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
    * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
    *
-   * It can be checked by a double generic gate that verifies the following relationship between the values 
+   * It can be checked by a double generic gate that verifies the following relationship between the values
    * below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
    *
    * The generic gate verifies:\
@@ -452,7 +448,7 @@ const Gadgets = {
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
    *
    * The `length` parameter lets you define how many bits should be compared. `length` is rounded
-   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values
    * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
@@ -476,8 +472,8 @@ const Gadgets = {
    * Bitwise OR gadget on {@link Field} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
    * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
    *
-   * The `length` parameter lets you define how many bits should be compared. `length` is rounded 
-   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values
    * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.

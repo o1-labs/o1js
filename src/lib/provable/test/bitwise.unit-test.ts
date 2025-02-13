@@ -22,9 +22,7 @@ import { GateType } from '../../../snarky.js';
 
 const maybeField = {
   ...field,
-  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) =>
-    mod(x, Field.ORDER)
-  ),
+  rng: Random.map(Random.oneOf(Random.field, Random.field.invalid), (x) => mod(x, Field.ORDER)),
 };
 
 let uint = (length: number) => fieldWithRng(Random.biguint(length));
@@ -177,40 +175,18 @@ function xorChain(bits: number) {
   return repeat(Math.ceil(bits / 16), 'Xor16').concat('Zero');
 }
 
-constraintSystem.fromZkProgram(
-  Bitwise,
-  'xor',
-  ifNotAllConstant(contains(xorChain(240)))
-);
+constraintSystem.fromZkProgram(Bitwise, 'xor', ifNotAllConstant(contains(xorChain(240))));
 
-constraintSystem.fromZkProgram(
-  Bitwise,
-  'notChecked',
-  ifNotAllConstant(contains(xorChain(240)))
-);
+constraintSystem.fromZkProgram(Bitwise, 'notChecked', ifNotAllConstant(contains(xorChain(240))));
 
-constraintSystem.fromZkProgram(
-  Bitwise,
-  'notUnchecked',
-  ifNotAllConstant(contains('Generic'))
-);
+constraintSystem.fromZkProgram(Bitwise, 'notUnchecked', ifNotAllConstant(contains('Generic')));
 
-constraintSystem.fromZkProgram(
-  Bitwise,
-  'and',
-  ifNotAllConstant(contains(xorChain(64)))
-);
+constraintSystem.fromZkProgram(Bitwise, 'and', ifNotAllConstant(contains(xorChain(64))));
 
-constraintSystem.fromZkProgram(
-  Bitwise,
-  'or',
-  ifNotAllConstant(contains(xorChain(64)))
-);
+constraintSystem.fromZkProgram(Bitwise, 'or', ifNotAllConstant(contains(xorChain(64))));
 
 let rotChain: GateType[] = ['Rot64', 'RangeCheck0'];
-let isJustRotate = ifNotAllConstant(
-  and(contains(rotChain), withoutGenerics(equals(rotChain)))
-);
+let isJustRotate = ifNotAllConstant(and(contains(rotChain), withoutGenerics(equals(rotChain))));
 
 constraintSystem.fromZkProgram(Bitwise, 'rot64', isJustRotate);
 constraintSystem.fromZkProgram(Bitwise, 'leftShift64', isJustRotate);
