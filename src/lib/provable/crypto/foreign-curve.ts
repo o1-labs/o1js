@@ -3,7 +3,7 @@ import {
   CurveAffine,
   createCurveAffine,
 } from '../../../bindings/crypto/elliptic-curve.js';
-
+import type { Group } from '../group.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import { AlmostForeignField, createForeignField } from '../foreign-field.js';
 import { EllipticCurve, Point } from '../gadgets/elliptic-curve.js';

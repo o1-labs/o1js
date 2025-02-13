@@ -1,4 +1,4 @@
-import { UInt64 } from '../../../../index.js';
+import { SmartContract, method, state, PublicKey, UInt64 } from '../../../../index.js';
 import * as Mina from '../../mina.js';
 import assert from 'assert';
 import { ExampleContract } from './ExampleContract.js';

@@ -3,6 +3,7 @@ import {
   UInt32,
   SmartContract,
   Mina,
+  PrivateKey,
   AccountUpdate,
   method,
   PublicKey,
@@ -294,7 +295,7 @@ let implementedWithRange = [
   () => contract.network.nextEpochData.epochLength,
   () => contract.network.nextEpochData.ledger.totalCurrency,
 ];
-
+let implementedWithRangeOnly = [() => contract.currentSlot];
 let unimplemented = [
   () => contract.network.stakingEpochData.seed,
   () => contract.network.nextEpochData.seed,

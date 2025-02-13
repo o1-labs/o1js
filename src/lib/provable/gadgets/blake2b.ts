@@ -4,7 +4,7 @@ import { FlexibleBytes } from '../bytes.js';
 import { Bytes } from '../wrapped-classes.js';
 import { Gadgets } from './gadgets.js';
 import { assert } from '../../util/errors.js';
-
+import { Provable } from '../provable.js';
 import { wordToBytes } from './bit-slices.js';
 
 export { BLAKE2B };

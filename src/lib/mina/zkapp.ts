@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Gate, Pickles, } from '../../snarky.js';
+import { Gate, Pickles, initializeBindings } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import {
   AccountUpdate,
@@ -1022,7 +1022,7 @@ super.init();
     let events = (await Mina.fetchEvents(this.address, this.self.body.tokenId, queryFilterOptions))
       .map((event) => {
         return event.events.map((eventData) => {
-          let { ...rest } = event;
+          let { events, ...rest } = event;
           return {
             ...rest,
             event: eventData,

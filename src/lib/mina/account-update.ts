@@ -29,7 +29,7 @@ import {
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields, Poseidon } from '../provable/crypto/poseidon.js';
 import { mocks, prefixes, protocolVersions } from '../../bindings/crypto/constants.js';
-
+import { MlArray } from '../ml/base.js';
 import { Signature, signFieldElement, zkAppBodyPrefix } from '../../mina-signer/src/signature.js';
 import { MlFieldConstArray } from '../ml/fields.js';
 import {

@@ -16,7 +16,7 @@ import {
 import assert from 'assert';
 import { Field, Bool } from '../../provable/wrapped.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-
+import { NetworkId } from '../../../mina-signer/index.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 
