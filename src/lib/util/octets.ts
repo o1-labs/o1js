@@ -37,10 +37,7 @@ const Octets = {
         throw Error(`toOctets(): ${input} does not fit in ${bytelength} bytes`);
       }
       let x = input.toBigInt();
-      return Array.from(
-        { length: bytelength },
-        (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn)
-      );
+      return Array.from({ length: bytelength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
     }
     let bytes = Provable.witness(Provable.Array(UInt8, bytelength), () => {
       let x = input.toBigInt();
@@ -118,10 +115,7 @@ const Octets = {
    * @returns
    */
   fromBigint(x: bigint, bytelength: number = 32): UInt8[] {
-    assert(
-      x < 1n << BigInt(bytelength * 8),
-      'Input does not fit in bytelength'
-    );
+    assert(x < 1n << BigInt(bytelength * 8), 'Input does not fit in bytelength');
     let bytes = Array.from(
       { length: bytelength },
       (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn)

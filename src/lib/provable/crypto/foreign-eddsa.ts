@@ -1,12 +1,7 @@
 import { provableFromClass } from '../types/provable-derivers.js';
 import { TwistedCurveParams } from '../../../bindings/crypto/elliptic-curve.js';
 import { ProvablePureExtended } from '../types/struct.js';
-import {
-  FlexiblePoint,
-  ForeignTwisted,
-  createForeignTwisted,
-  toPoint,
-} from './foreign-twisted.js';
+import { FlexiblePoint, ForeignTwisted, createForeignTwisted, toPoint } from './foreign-twisted.js';
 import { AlmostForeignField } from '../foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Field3 } from '../gadgets/foreign-field.js';
@@ -108,11 +103,7 @@ class EddsaSignature {
    */
   verify(message: Bytes, publicKey: FlexiblePoint): Bool {
     let publicKey_ = this.Constructor.Curve.from(publicKey);
-    return Eddsa.verify(
-      toObject(this),
-      message.bytes,
-      encode(toPoint(publicKey_))
-    );
+    return Eddsa.verify(toObject(this), message.bytes, encode(toPoint(publicKey_)));
   }
 
   /**
@@ -120,10 +111,7 @@ class EddsaSignature {
    *
    * Note: This method is not provable, and only takes JS bigints as input.
    */
-  static sign(
-    message: (bigint | number)[] | Uint8Array,
-    privateKey: bigint
-  ): EddsaSignature {
+  static sign(message: (bigint | number)[] | Uint8Array, privateKey: bigint): EddsaSignature {
     let { R, s } = Eddsa.sign(privateKey, message);
     return new this({ R, s });
   }
@@ -165,11 +153,8 @@ class EddsaSignature {
 /**
  * Create a class {@link EddsaSignature} for verifying EdDSA signatures on the given curve.
  */
-function createEddsa(
-  curve: TwistedCurveParams | typeof ForeignTwisted
-): typeof EddsaSignature {
-  let Curve0: typeof ForeignTwisted =
-    'd' in curve ? createForeignTwisted(curve) : curve;
+function createEddsa(curve: TwistedCurveParams | typeof ForeignTwisted): typeof EddsaSignature {
+  let Curve0: typeof ForeignTwisted = 'd' in curve ? createForeignTwisted(curve) : curve;
   class Curve extends Curve0 {}
 
   class Signature extends EddsaSignature {

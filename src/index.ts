@@ -180,7 +180,7 @@ namespace Experimental {
   export class BatchReducer<
     ActionType extends Actionable<any>,
     BatchSize extends number = number,
-    Action = InferProvable<ActionType>
+    Action = InferProvable<ActionType>,
   > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
 
   /**

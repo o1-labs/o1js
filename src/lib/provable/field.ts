@@ -7,20 +7,9 @@ import { inCheckedComputation } from './core/provable-context.js';
 import { Bool } from './bool.js';
 import { assert } from '../util/errors.js';
 import { Provable } from './provable.js';
-import {
-  assertEqual,
-  assertMul,
-  assertSquare,
-  assertBoolean,
-} from './gadgets/compatible.js';
+import { assertEqual, assertMul, assertSquare, assertBoolean } from './gadgets/compatible.js';
 import { assertBilinear, toLinearCombination } from './gadgets/basic.js';
-import {
-  FieldType,
-  FieldVar,
-  FieldConst,
-  VarFieldVar,
-  ConstantFieldVar,
-} from './core/fieldvar.js';
+import { FieldType, FieldVar, FieldConst, VarFieldVar, ConstantFieldVar } from './core/fieldvar.js';
 import { exists, existsOne } from './core/exists.js';
 import { setFieldConstructor } from './core/field-constructor.js';
 import {
@@ -493,9 +482,7 @@ class Field {
     if (this.isConstant()) {
       let z = Fp.sqrt(this.toBigInt());
       if (z === undefined)
-        throw Error(
-          `Field.sqrt(): input ${this} has no square root in the field.`
-        );
+        throw Error(`Field.sqrt(): input ${this} has no square root in the field.`);
       return new Field(z);
     }
     // create a witness for sqrt(x)
@@ -726,10 +713,7 @@ class Field {
    * @param y - the "field-like" value to compare & assert with this {@link Field}.
    * @param message - a string error message to print if the assertion fails, optional.
    */
-  assertGreaterThanOrEqual(
-    y: Field | bigint | number | string,
-    message?: string
-  ) {
+  assertGreaterThanOrEqual(y: Field | bigint | number | string, message?: string) {
     Field.from(y).assertLessThanOrEqual(this, message);
   }
 
@@ -784,10 +768,7 @@ class Field {
     try {
       if (this.isConstant()) {
         let x = this.toBigInt();
-        assert(
-          x === 0n || x === 1n,
-          `Field.assertBool(): expected ${x} to be 0 or 1`
-        );
+        assert(x === 0n || x === 1n, `Field.assertBool(): expected ${x} to be 0 or 1`);
         return new Bool(x === 1n);
       }
       assertBoolean(this);
@@ -820,15 +801,9 @@ class Field {
     }
     let bits = Provable.witness(Provable.Array(Bool, length), () => {
       let f = this.toBigInt();
-      return Array.from(
-        { length },
-        (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n))
-      );
+      return Array.from({ length }, (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n)));
     });
-    Field.fromBits(bits).assertEquals(
-      this,
-      `Field.toBits(): Input does not fit in ${length} bits`
-    );
+    Field.fromBits(bits).assertEquals(this, `Field.toBits(): Input does not fit in ${length} bits`);
     return bits;
   }
 
@@ -1094,10 +1069,7 @@ class Field {
    *
    * **Warning**: This function is for internal use. It is not intended to be used by a zkApp developer.
    */
-  static readBytes<N extends number>(
-    bytes: number[],
-    offset: NonNegativeInteger<N>
-  ) {
+  static readBytes<N extends number>(bytes: number[], offset: NonNegativeInteger<N>) {
     return FieldBinable.readBytes(bytes, offset);
   }
 
@@ -1176,17 +1148,10 @@ function withMessage(error: unknown, message?: string) {
   return error;
 }
 
-function checkBitLength(
-  name: string,
-  length: number,
-  maxLength = Fp.sizeInBits
-) {
+function checkBitLength(name: string, length: number, maxLength = Fp.sizeInBits) {
   if (length > maxLength)
-    throw Error(
-      `${name}: bit length must be ${maxLength} or less, got ${length}`
-    );
-  if (length < 0)
-    throw Error(`${name}: bit length must be non-negative, got ${length}`);
+    throw Error(`${name}: bit length must be ${maxLength} or less, got ${length}`);
+  if (length < 0) throw Error(`${name}: bit length must be non-negative, got ${length}`);
 }
 
 function toConstant(x: Field, name: string): ConstantField {
@@ -1203,10 +1168,7 @@ function toConstantField(
   if (x.isConstant()) return x;
 
   // a non-constant can only appear inside a checked computation. everything else is a bug.
-  assert(
-    inCheckedComputation(),
-    'variables only exist inside checked computations'
-  );
+  assert(inCheckedComputation(), 'variables only exist inside checked computations');
 
   // if we are inside an asProver or witness block, read the variable's value and return it as constant
   if (Snarky.run.inProverBlock()) {
@@ -1218,11 +1180,7 @@ function toConstantField(
   throw Error(readVarMessage(methodName, varName, varDescription));
 }
 
-function readVarMessage(
-  methodName: string,
-  varName: string,
-  varDescription: string
-) {
+function readVarMessage(methodName: string, varName: string, varDescription: string) {
   return `${varName}.${methodName}() was called on a variable ${varDescription} \`${varName}\` in provable code.
 This is not supported, because variables represent an abstract computation, 
 which only carries actual values during proving, but not during compiling.

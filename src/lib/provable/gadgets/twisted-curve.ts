@@ -56,12 +56,10 @@ function recoverX(y: bigint, x_0: bigint): bigint {
     aux === u
       ? candidate_x
       : aux === -u
-      ? (candidate_x * 2n) ^ ((p - 1n) / 4n)
-      : (() => {
-          throw new Error(
-            `Decoding failed: no square root x exists for y value: ${y}.`
-          );
-        })();
+        ? (candidate_x * 2n) ^ ((p - 1n) / 4n)
+        : (() => {
+            throw new Error(`Decoding failed: no square root x exists for y value: ${y}.`);
+          })();
 
   // Use the parity bit to select the correct sign for x
   if (x === 0n && x_0 === 1n) {
@@ -441,16 +439,7 @@ function encode(input: Point): Field3 {
     return [x_lsb, ...split(x_masked), y_msb, ...split(y_masked)];
   });
 
-  let [
-    x_lsb,
-    x_masked0,
-    x_masked1,
-    x_masked2,
-    y_msb,
-    y_masked0,
-    y_masked1,
-    y_masked2,
-  ] = witnesses;
+  let [x_lsb, x_masked0, x_masked1, x_masked2, y_msb, y_masked0, y_masked1, y_masked2] = witnesses;
 
   x_lsb.assertBool('Parity bit of x coordinate is not a bit');
   y_msb.assertBool('MSB of y coordinate is not a bit');
@@ -464,18 +453,10 @@ function encode(input: Point): Field3 {
   ForeignField.assertEquals(input.x, ForeignField.add(x_lsb3, x_masked, p));
   ForeignField.assertEquals(
     input.y,
-    ForeignField.add(
-      ForeignField.mul(y_msb3, Field3.from(1n << 255n), p),
-      y_masked,
-      p
-    )
+    ForeignField.add(ForeignField.mul(y_msb3, Field3.from(1n << 255n), p), y_masked, p)
   );
 
-  let enc = ForeignField.add(
-    ForeignField.mul(x_lsb3, Field3.from(1n << 255n), p),
-    y_masked,
-    p
-  );
+  let enc = ForeignField.add(ForeignField.mul(x_lsb3, Field3.from(1n << 255n), p), y_masked, p);
   return enc;
 }
 
@@ -488,9 +469,7 @@ function encode(input: Point): Field3 {
  */
 function decode(input: UInt8[]): Point {
   if (input.length !== 32) {
-    throw new Error(
-      `Invalid compressed point: expected 32 bytes, got ${input.length}.`
-    );
+    throw new Error(`Invalid compressed point: expected 32 bytes, got ${input.length}.`);
   }
 
   let p = Curve.modulus;
@@ -535,18 +514,10 @@ function decode(input: UInt8[]): Point {
   assertOnCurve({ x, y }, Curve);
 
   // check parity/sign of x
-  ForeignField.assertEquals(
-    ForeignField.add(aux, aux, p),
-    ForeignField.sub(x, x_0limbs, p)
-  );
+  ForeignField.assertEquals(ForeignField.add(aux, aux, p), ForeignField.sub(x, x_0limbs, p));
 
   // if x is zero, x_0 must be 0
-  Provable.if(
-    ForeignField.equals(x, 0n, p),
-    Bool,
-    x_par.equals(1n).not(),
-    new Bool(true)
-  );
+  Provable.if(ForeignField.equals(x, 0n, p), Bool, x_par.equals(1n).not(), new Bool(true));
   // check sign of x
   // if x_0 is 1, x must be odd (negative)
   Provable.if(x_par.equals(1n), Bool, x[0].equals(1n), new Bool(true));
@@ -622,15 +593,9 @@ function keygenEddsa(privateKey: UInt8[]): [Field3, Bytes] {
   // only need lowest 32 bytes to generate the public key
   let buffer = h.bytes.slice(0, 32);
   // prune buffer
-  buffer[0] = UInt8.from(
-    Gadgets.and(buffer[0].value, Field.from(0b11111000), 8)
-  ); // clear lowest 3 bits
-  buffer[31] = UInt8.from(
-    Gadgets.and(buffer[31].value, Field.from(0b01111111), 8)
-  ); // clear highest bit
-  buffer[31] = UInt8.from(
-    Gadgets.or(buffer[31].value, Field.from(0b01000000), 8)
-  ); // set second highest bit
+  buffer[0] = UInt8.from(Gadgets.and(buffer[0].value, Field.from(0b11111000), 8)); // clear lowest 3 bits
+  buffer[31] = UInt8.from(Gadgets.and(buffer[31].value, Field.from(0b01111111), 8)); // clear highest bit
+  buffer[31] = UInt8.from(Gadgets.or(buffer[31].value, Field.from(0b01000000), 8)); // set second highest bit
 
   // NOTE: despite clearing the top bit,
   //       the scalar could be larger than a native field element
@@ -652,10 +617,7 @@ function keygenEddsa(privateKey: UInt8[]): [Field3, Bytes] {
  * @returns the 64-bit signature composed by 32-bytes corresponding to a
  *          compressed curve point and a 32-byte scalar
  */
-function signEddsa(
-  privateKey: bigint,
-  message: (bigint | number)[] | Uint8Array
-): Eddsa.Signature {
+function signEddsa(privateKey: bigint, message: (bigint | number)[] | Uint8Array): Eddsa.Signature {
   const L = Curve.order;
   let key = Octets.fromBigint(privateKey);
   const [publicKey, h] = keygenEddsa(key);
@@ -683,20 +645,12 @@ function signEddsa(
     L
   );
 
-  let s = ForeignField.add(
-    r,
-    ForeignField.mul(k, Octets.toField3(scalar, L), L),
-    L
-  );
+  let s = ForeignField.add(r, ForeignField.mul(k, Octets.toField3(scalar, L), L), L);
 
   return { R, s };
 }
 
-function verifyEddsa(
-  signature: Eddsa.Signature,
-  message: UInt8[],
-  publicKey: Field3
-): Bool {
+function verifyEddsa(signature: Eddsa.Signature, message: UInt8[], publicKey: Field3): Bool {
   let { R, s } = signature;
 
   let { x, y } = decode(Octets.fromField3(R));
@@ -714,11 +668,7 @@ function verifyEddsa(
   return Provable.equal(
     Point,
     scale(s, basePoint, Curve),
-    add(
-      { x, y },
-      scale(Octets.toField3(k, Curve.Field.modulus), A, Curve),
-      Curve
-    )
+    add({ x, y }, scale(Octets.toField3(k, Curve.Field.modulus), A, Curve), Curve)
   );
 }
 
