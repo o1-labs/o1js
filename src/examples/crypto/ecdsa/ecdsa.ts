@@ -59,4 +59,20 @@ const ecdsaEthers = ZkProgram({
 /**
  * We can also use a different hash function with ECDSA, like SHA-256.
  */
+const sha256AndEcdsa = ZkProgram({
+  name: 'ecdsa-sha256',
+  publicInput: Bytes32,
+  publicOutput: Bool,
 
+  methods: {
+    verifyEcdsa: {
+      privateInputs: [Ecdsa, Secp256k1],
+      async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
+        let messageHash = Hash.SHA2_256.hash(message);
+        return {
+          publicOutput: signature.verifySignedHash(messageHash, publicKey),
+        };
+      },
+    },
+  },
+});

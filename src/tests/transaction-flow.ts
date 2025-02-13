@@ -1,5 +1,6 @@
 import {
   AccountUpdate,
+  Provable,
   Field,
   Lightnet,
   Mina,

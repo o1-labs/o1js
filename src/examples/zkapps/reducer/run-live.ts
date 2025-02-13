@@ -1,4 +1,4 @@
-import { AccountUpdate, Lightnet, Mina, } from 'o1js';
+import { AccountUpdate, Lightnet, Mina, PrivateKey } from 'o1js';
 import { DEFAULT_LIGHTNET_CONFIG } from '../../utils/network-configuration.js';
 import { randomAccounts } from '../../utils/random-accounts.js';
 import { tic, toc } from '../../utils/tic-toc.node.js';

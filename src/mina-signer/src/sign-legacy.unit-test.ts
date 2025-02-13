@@ -6,6 +6,7 @@ import {
   signatures,
 } from './test-vectors/legacySignatures.js';
 import {
+  PaymentJson,
   signPayment,
   signStakeDelegation,
   signString,
@@ -15,7 +16,7 @@ import {
 } from './sign-legacy.js';
 import { Signature, SignatureJson } from './signature.js';
 import { expect } from 'expect';
-import { Scalar } from './curve-bigint.js';
+import { PublicKey, Scalar } from './curve-bigint.js';
 import { Field } from './field-bigint.js';
 import { Random, test } from '../../lib/testing/property.js';
 import { RandomTransaction } from './random-transaction.js';

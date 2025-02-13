@@ -38,7 +38,7 @@ const b = Field(1);
 const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(0);
 
 /* Field elements can be converted to their full, little endian binary representation. */
-
+let bits: Bool[] = z.toBits();
 
 /* If you know (or want to assert) that a field element fits in fewer bits, you can
    also unpack to a sequence of bits of a specified length. This is useful for doing
@@ -71,7 +71,7 @@ const b0 = Bool(false);
 const b1 = Bool(true);
 
 /* There are a number of methods available on Bool, like `and`, `or`, and `not`. */
-
+const b3: Bool = b0.and(b1.not()).or(b1);
 
 /* The most important thing you can do with a Bool is use the `Provable.if` function
    to conditionally select a value.
@@ -161,4 +161,4 @@ let g3 = g0.add(g1).neg().sub(g2);
 /* Points can also be scaled by scalar field elements. Note that Field and Scalar
    are distinct and represent elements of distinct fields. */
 let s0: Scalar = Scalar.random();
-
+let g4: Group = g3.scale(s0);

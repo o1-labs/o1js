@@ -13,9 +13,9 @@ let xConst = Field.random();
 
 function main(nMuls: number) {
   let x = Provable.witness(Field, () => xConst);
-  let _z = x;
+  let z = x;
   for (let i = 0; i < nMuls; i++) {
-    _z = _z.mul(x);
+    z = z.mul(x);
   }
 }
 
