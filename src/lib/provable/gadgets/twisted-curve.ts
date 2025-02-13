@@ -1,6 +1,6 @@
 import { Provable } from '../provable.js';
 import { assert } from './common.js';
-import { Field3, ForeignField, split } from './foreign-field.js';
+import { Field3, ForeignField } from './foreign-field.js';
 import { l2Mask } from './range-check.js';
 import { provable } from '../types/provable-derivers.js';
 import {

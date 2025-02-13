@@ -23,8 +23,7 @@ async function scale(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
     let r = Provable.witness(Curve.Scalar, () => Curve.Scalar.random());
     let g = Provable.witness(Curve, () => Curve.generator);
-
-    let gr = g.scale(r);
+    g.scale(r);
   });
   console.log('scale', cs.rows);
 }
@@ -35,8 +34,7 @@ async function add(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
     let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
     let g2 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
-
-    let g3 = g1.add(g2);
+    g1.add(g2);
   });
   console.log('add', cs.rows);
 }
@@ -46,8 +44,7 @@ async function add(Curve: any) {
 async function double(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
     let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
-
-    let g3 = g1.double();
+    g1.double();
   });
   console.log('double', cs.rows);
 }
@@ -57,8 +54,7 @@ async function double(Curve: any) {
 async function negate(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
     let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
-
-    let g3 = g1.negate();
+    g1.negate();
   });
   console.log('negate', cs.rows);
 }
@@ -68,7 +64,6 @@ async function negate(Curve: any) {
 async function assertOnCurve(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
     let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
-
     Curve.assertOnCurve(g1);
   });
   console.log('assertOnCurve', cs.rows);
@@ -79,7 +74,6 @@ async function assertOnCurve(Curve: any) {
 async function assertInSubgroup(Curve: any) {
   let cs = await Provable.constraintSystem(() => {
     let g1 = Provable.witness(Curve, () => Curve.generator.scale(Curve.Scalar.random()));
-
     Curve.assertInSubgroup(g1);
   });
   console.log('assertInSubgroup', cs.rows);
