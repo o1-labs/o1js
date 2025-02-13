@@ -17,6 +17,12 @@ type BigIntParameter = {
 };
 
 const BigIntParams: { [key: string]: BigIntParameter } = {
+  348: {
+    limb_num: 3,
+    limb_size: 116n,
+    mask: (1n << 116n) - 1n,
+    MAX: (1n << 348n) - 1n,
+  },
   464: {
     limb_num: 4,
     limb_size: 116n,
@@ -49,8 +55,71 @@ const BigIntParams: { [key: string]: BigIntParameter } = {
   },
 };
 
-const BigIntParamList: string[] = Object.keys(BigIntParams);
-
+/**
+ * Creates a class representing a ProvableBigInt with modular arithmetic capabilities.
+ * This is particularly useful for implementing prime fields that doesn't fit into the native field.
+ * 
+ * ```ts
+ * const BigInt521 = createProvableBigInt(2n ** 521n - 1n); // creates a class for 521-bit integers
+ * ```
+ * 
+ * `createProvableBigInt(modulus, config?)` takes two parameters:
+ * - `modulus`: The modulus of the field (must be a prime)
+ * - `config`: Optional configuration for custom limb size and numbers
+ * 
+ * The returned class supports comprehensive arithmetic operations including:
+ * - Basic operations: addition, double, subtraction, multiplication, square, division
+ * - Advanced operations: inverse, negate, sqrt, power
+ * - Comparison operations: equals, assertEquals, greaterThan, lessthan, greaterThanOrEqual, lessThanOrEqual
+ * - Conversion methods: fromBigInt, toBigint, fromFields, toFields, fromBits, toBits
+ * 
+ * Implementation details:
+ * 
+ * Internally, a ProvableBigInt is represented as an array of Field elements (limbs),
+ * where each limb holds 116 bits as default. The total size is determined by the configuration,
+ * with preset options supporting different bit lengths:
+ * - 348 bits (3 limbs)
+ * - 464 bits (4 limbs)
+ * - 580 bits (5 limbs)
+ * - 1044 bits (9 limbs)
+ * - 2088 bits (18 limbs)
+ * - 4176 bits (36 limbs)
+ * 
+ * Each arithmetic operation ensures the result is a valid element of the prime field.
+ * 
+ * Example usage:
+ * ```ts
+ * // Create a big integer type with modulus 2^521 - 1
+ * const BigInt521 = createProvableBigInt(2n ** 521n - 1n);
+ * 
+ * // Create instances
+ * const a = BigInt521.fromBigint(123n);
+ * const b = BigInt521.fromBigint(456n);
+ * const c = BigInt521.fromBigint(1024n);
+ * 
+ * // Perform operations
+ * const sum = a.add(b);
+ * const double = a.add(b);
+ * const diff = a.sub(b);
+ * const product = a.mul(b);
+ * const square = a.square();
+ * const quotient = a.div(b);
+ * const inverse = a.inverse();
+ * const negation = a.negate();
+ * const power = a.pow(b);
+ * const sqrt = c.sqrt();
+ * 
+ * ```
+ * 
+ * The class automatically handles modular reduction after
+ * arithmetic operations to maintain valid representations. All operations are
+ * designed to be provable and optimised for less constraints.
+ * 
+ * @param modulus The modulus for the big integer arithmetic (must be prime)
+ * @param config Optional configuration specifying a custom limb size and number
+ * @returns A class representing ProvableBigInts with the specified modulus
+ * @throws If the modulus is zero, negative, or exceeds the maximum supported size
+ */
 function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
   const config_ = config ?? findConfig(modulus);
   assert(
@@ -79,7 +148,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
   }
 
   for (let i = 0; i < config_.limb_num; i++) {
-    fields.push(Field.from(x & config_.mask)); // fields[i] = x & 2^64 - 1
+    fields.push(Field.from(x & config_.mask)); // fields[i] = x & mask
     x >>= config_.limb_size; // x = x >> limb_size
   }
 
@@ -158,15 +227,45 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     static fromFields(fields: Field[]): ProvableBigInt_ {
       let value = 0n;
-      for (let i = 0; i < this.config.limb_num; i++) {
+      for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
         value |=
-          BigInt(fields[i].toString()) << (this.config.limb_size * BigInt(i));
+          BigInt(fields[i].toBigInt()) << (ProvableBigInt_.config.limb_size * BigInt(i));
       }
       return new ProvableBigInt_(fields, Unconstrained.from(value));
     }
 
     toBits(): Bool[] {
-      return this.fields.flatMap((field) => field.toBits());
+      // Calculate total needed bits based on modulus
+      const totalBits = this.Constructor.modulus.toBigint().toString(2).length;
+      const limbBits = Number(this.Constructor.config.limb_size);
+      
+      // Convert each field to bits with proper size
+      let allBits = this.fields.flatMap((field, index) => {
+          const bits = field.toBits();
+          // For all limbs except the last one, ensure proper bit length
+          if (index < this.Constructor.config.limb_num - 1) {
+              while (bits.length < limbBits) {
+                  bits.push(new Bool(false));
+              }
+              return bits.slice(0, limbBits);
+          }
+          // For the last limb, only include significant bits
+          return bits.slice(0, totalBits - (index * limbBits));
+      });
+  
+      // Ensure the total length doesn't exceed what's needed
+      return allBits.slice(0, totalBits);
+  }
+  
+
+    static fromBits(bits: Bool[]): ProvableBigInt_ {
+      let value = 0n;
+      for (let i = 0; i < bits.length; i++) {
+        if (bits[i].toBoolean()) {
+          value |= 1n << BigInt(i);
+        }
+      }
+      return ProvableBigInt_.fromBigint(value);
     }
 
     clone(): ProvableBigInt_ {
@@ -319,7 +418,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         );
       }
       // the final limb plus carry should be zero to assert correctness
-      delta[17].add(carry).assertEquals(0n);
+      delta[this.Constructor.config.limb_num - 1].add(carry).assertEquals(0n);
 
       return r;
     }
@@ -388,11 +487,11 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         rangeCheck(carry, 128, true);
 
         deltaPlusCarry.assertEquals(
-          carry.mul(1n << BigInt(this.Constructor.config.limb_num))
+          carry.mul(1n << BigInt(this.Constructor.config.limb_size))
         );
       }
 
-      delta[2 * 18 - 2].add(carry).assertEquals(0n);
+      delta[2 * this.Constructor.config.limb_num - 2].add(carry).assertEquals(0n);
 
       return r;
     }
@@ -526,7 +625,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         // Case 2: If p ≡ 3 (mod 4), we can use a simpler formula
         // In this case, the square root is a^((p+1)/4) mod p
         if (p % 4n === 3n) {
-          const sqrt = this.toBigint() ** ((p + 1n) / 4n) % p;
+          const pplusonedivfour = ((p + 1n) / 4n);
+          const pplusonedivfour_reduced = pplusonedivfour % p;
+          const sqrt = modularExponentiation(this.toBigint(), pplusonedivfour_reduced, p);
           return ProvableBigInt_.fromBigint(sqrt);
         }
 
@@ -639,7 +740,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         );
       }
 
-      delta[17].add(carry).assertEquals(0n);
+      delta[this.Constructor.config.limb_num - 1].add(carry).assertEquals(0n);
 
       return r;
     }
@@ -853,6 +954,7 @@ function rangeCheck128Signed(xSigned: Field) {
 }
 
 function findConfig(modulus: bigint): BigIntParameter {
+  const BigIntParamList: string[] = Object.keys(BigIntParams);
   const filteredParams = BigIntParamList.filter(
     (param) => BigIntParams[param].MAX >= modulus
   );
@@ -868,4 +970,19 @@ function findConfig(modulus: bigint): BigIntParameter {
   }, filteredParams[0]);
 
   return BigIntParams[index];
+}
+
+function modularExponentiation(base: bigint, exponent: bigint, modulus: bigint): bigint {
+  let result = 1n;
+  base = base % modulus;
+
+  while (exponent > 0n) {
+      if (exponent % 2n === 1n) {
+          result = (result * base) % modulus;
+      }
+      exponent = exponent >> 1n; // Divide exponent by 2
+      base = (base * base) % modulus;
+  }
+
+  return result;
 }
