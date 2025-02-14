@@ -19,11 +19,9 @@ let z = SmallField.fromBigint(1n);
 x.assertEquals(y); // 16 = -1 (mod 17)
 x.mul(x).assertEquals(z); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
 
-
 class ForeignScalar extends createProvableBigInt(Fq.modulus) {}
 
 ForeignScalar.provable satisfies ProvablePure<ForeignScalar>;
-
 
 let f = spec({
   rng: Random.scalar,
@@ -38,12 +36,11 @@ let u264 = spec({
   provable: ForeignScalar.provable,
 });
 
-
 // arithmetic
 equivalent({ from: [f, f], to: u264 })(Fq.add, (x, y) => x.add(y));
 equivalent({ from: [f], to: u264 })(
-    (x) => Fq.add(x, x),
-    (x) => x.double()
+  (x) => Fq.add(x, x),
+  (x) => x.double()
 );
 // equivalent({ from: [f, f], to: u264 })(Fq.sub, (x, y) => x.sub(y)); // onlw works for x > y
 equivalent({ from: [f, f], to: u264 })(Fq.mul, (x, y) => x.mul(y));
@@ -62,8 +59,6 @@ equivalent({ from: [f], to: f })(
 equivalent({ from: [f], to: u264 })(Fq.negate, (x) => x.negate());
 //equivalent({ from: [f, f], to: u264 })(Fq.power, (x, y) => x.pow(y));
 //equivalent({ from: [f], to: u264 })(Fq.sqrt, (x) => x.sqrt());
-
-
 
 // equality with a constant
 
