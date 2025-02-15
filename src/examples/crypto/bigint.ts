@@ -1,45 +1,36 @@
-import { Experimental } from 'o1js';
+import assert from 'assert';
+import { Experimental, method, Provable, Scalar, SmartContract, state, State } from 'o1js';
 
-const { ProvableBigInt, createProvableBigInt } = Experimental;
+const { createProvableBigInt } = Experimental;
 
-const BigInt384 = createProvableBigInt(97n);
+// Let's create a small finite field: F_17
 
-let a = BigInt384.fromBigint(1n);
-let b = BigInt384.fromBigint(2n);
-let c = a.add(b);
+class SmallField extends createProvableBigInt(97n) {}
 
-console.log(a.toBigint());
-console.log(b.toBigint());
-console.log(c.toBigint());
+let x = SmallField.fromBigint(16n);
+x.assertEquals(SmallField.fromBigint(-1n)); // 16 = -1 (mod 17)
+x.mul(x).assertEquals(SmallField.fromBigint(1n)); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
 
-a = BigInt384.fromBigint(71n);
-b = BigInt384.fromBigint(31n);
-c = a.sub(b);
+// most arithmetic operations return "unreduced" fields, i.e., fields that could be larger than the modulus:
 
-console.log(a.toBigint());
-console.log(b.toBigint());
-console.log(c.toBigint());
+let z = x.add(x);
+assert(z instanceof SmallField);
 
-a = BigInt384.fromBigint(3n);
-b = BigInt384.fromBigint(2n);
-c = a.mul(b);
+z.add(SmallField.one()).sub(x).assertEquals(SmallField.zero()); // works
 
-console.log(a.toBigint());
-console.log(b.toBigint());
-console.log(c.toBigint());
+class MyContract extends SmartContract {
+  @state(SmallField) x = State<SmallField>();
 
-a = BigInt384.fromBigint(6n);
-b = BigInt384.fromBigint(2n);
-c = a.mul(b);
+  @method async myMethod(y: SmallField) {
+    let x = y.mul(SmallField.fromBigint(3n));
+    Provable.log(x);
+    this.x.set(x);
+  }
+}
+await MyContract.analyzeMethods(); // works
 
-console.log(a.toBigint());
-console.log(b.toBigint());
-console.log(c.toBigint());
+// btw - we support any finite field up to 259 bits. for example, the seqp256k1 base field:
+let Fseqp256k1 = createProvableBigInt((1n << 256n) - (1n << 32n) - 0b1111010001n);
 
-a = BigInt384.fromBigint(1n);
-b = BigInt384.fromBigint(2n);
-c = a.sqrt();
-
-console.log(a.toBigint());
-console.log(b.toBigint());
-console.log(c.toBigint());
+// or the Pallas scalar field, to do arithmetic on scalars:
+let Fq = createProvableBigInt(Scalar.ORDER);
