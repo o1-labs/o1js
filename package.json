@@ -46,7 +46,7 @@
   },
   "scripts": {
     "dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",
-    "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/build-node.js && node src/build/build-native.js",
+    "build": "node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/build-node.js",
     "build:bindings": "./src/bindings/scripts/build-o1js-node.sh",
     "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:wasm": "./src/bindings/scripts/update-wasm-and-types.sh",
