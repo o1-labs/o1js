@@ -16,7 +16,7 @@ const { createProvableBigInt } = Experimental;
 describe('BigInt17', () => {
   const modulus = 17n;
   const BigInt17 = createProvableBigInt(modulus);
-  console.log(BigInt17.config);
+
   describe('Creation and Conversion', () => {
     it('should correctly create a BigInt17 instance from a bigint and convert back to bigint', () => {
       const value = 12n;
@@ -591,7 +591,7 @@ describe('BigInt17', () => {
 describe('BigInt255', () => {
   const modulus = Field.ORDER;
   const BigInt255 = createProvableBigInt(modulus);
-  console.log(BigInt255.config);
+
   describe('Creation and Conversion', () => {
     it('should correctly create a BigInt255 instance from a bigint and convert back to bigint', () => {
       const value = 12n;
@@ -1205,7 +1205,7 @@ describe('BigInt381', () => {
   const modulus =
     0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaabn;
   const BigInt381 = createProvableBigInt(modulus);
-  console.log(BigInt381.config);
+
   describe('Creation and Conversion', () => {
     it('should correctly create a BigInt381 instance from a bigint and convert back to bigint', () => {
       const value = 12n;
@@ -1819,7 +1819,7 @@ describe('BigInt512', () => {
   const modulus =
     0xaadd9db8dbe9c48b3fd4e6ae33c9fc07cb308db3b3c9d20ed6639cca703308717d4d9b009bc66842aecda12ae6a380e62881ff2f2d82c68528aa6056583a48f3n;
   const BigInt512 = createProvableBigInt(modulus);
-  console.log(BigInt512.config);
+
   describe('Creation and Conversion', () => {
     it('should correctly create a BigInt512 instance from a bigint and convert back to bigint', () => {
       const value = 12n;
