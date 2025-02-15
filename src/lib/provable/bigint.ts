@@ -598,15 +598,15 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         // Step 2: Find a quadratic non-residue z
         // This is any number z where z^((p-1)/2) ≡ -1 (mod p)
         let z = 2n;
-        while (z ** ((p - 1n) / 2n) % p !== p - 1n) {
+        while (modularExponentiation(z, (p - 1n) / 2n, p) !== p - 1n) {
           z += 1n;
         }
 
         // Step 3: Initialize main loop variables
         let M = S;
-        let c = z ** Q % p;
-        let t = this.toBigint() ** Q % p;
-        let R = this.toBigint() ** ((Q + 1n) / 2n) % p;
+        let c = modularExponentiation(z, Q, p);
+        let t = modularExponentiation(this.toBigint(), Q, p);
+        let R = modularExponentiation(this.toBigint(), (Q + 1n) / 2n, p);
 
         // Main loop of Tonelli-Shanks algorithm
         while (t !== 0n && t !== 1n) {
@@ -614,7 +614,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
           let t2i = t;
           let i = 0n;
           for (i = 1n; i < M; i++) {
-            t2i = t2i ** 2n % p;
+            t2i = t2i ** 2n;
+            t2i %= p;
             if (t2i === 1n) break;
           }
 
@@ -626,7 +627,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
           }
 
           // Update variables for next iteration
-          const b = c ** (2n ** (M - i - 1n)) % p;
+          const b = modularExponentiation(c, 2n ** (M - i - 1n), p);
           M = i;
           c = b ** 2n % p;
           t = (t * c) % p;
@@ -641,7 +642,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return r;
     }
 
-    mod() {
+    mod(): ProvableBigInt_ {
       // witness q, r so that this = q*p + r
       let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
         let this_big = this.toBigint();
