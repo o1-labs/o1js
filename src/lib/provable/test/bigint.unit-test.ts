@@ -1,5 +1,8 @@
 import { createProvableBigInt } from '../bigint.js';
 import { Fq } from '../../../bindings/crypto/finite-field.js';
+import { bls12_381 } from '@noble/curves/bls12-381';
+import { p521, secp521r1 } from '@noble/curves/p521';
+
 import {
   equivalentProvable as equivalent,
   spec,
@@ -9,7 +12,6 @@ import {
 import { Random } from '../../testing/property.js';
 import { ProvablePure } from '../types/provable-intf.js';
 
-// 17, base field, bls , 521 bit, rsa
 class SmallField extends createProvableBigInt(17n) {}
 
 let x = SmallField.fromBigint(16n);
@@ -19,87 +21,142 @@ let z = SmallField.fromBigint(1n);
 x.assertEquals(y); // 16 = -1 (mod 17)
 x.mul(x).assertEquals(z); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
 
-class ForeignScalar extends createProvableBigInt(Fq.modulus) {}
+class BigInt255 extends createProvableBigInt(Fq.modulus) {}
 
-ForeignScalar.provable satisfies ProvablePure<ForeignScalar>;
+BigInt255.provable satisfies ProvablePure<BigInt255>;
 
-let f = spec({
+let fq = spec({
   rng: Random.scalar,
-  there: ForeignScalar.fromBigint,
-  back: (x: ForeignScalar) => x.toBigint(),
-  provable: ForeignScalar.provable,
+  there: BigInt255.fromBigint,
+  back: (x: BigInt255) => x.toBigint(),
+  provable: BigInt255.provable,
 });
-let u264 = spec({
-  rng: Random.bignat(1n << 264n),
-  there: ForeignScalar.fromBigint,
-  back: (x: ForeignScalar) => x.toBigint(),
-  provable: ForeignScalar.provable,
+let u255 = spec({
+  rng: Random.bignat(1n << 255n),
+  there: BigInt255.fromBigint,
+  back: (x: BigInt255) => x.toBigint(),
+  provable: BigInt255.provable,
 });
 
 // arithmetic
-equivalent({ from: [f, f], to: u264 })(Fq.add, (x, y) => x.add(y));
-equivalent({ from: [f], to: u264 })(
+equivalent({ from: [fq, fq], to: u255 })(Fq.add, (x, y) => x.add(y));
+equivalent({ from: [fq], to: u255 })(
   (x) => Fq.add(x, x),
   (x) => x.double()
 );
-// equivalent({ from: [f, f], to: u264 })(Fq.sub, (x, y) => x.sub(y)); // onlw works for x > y
-equivalent({ from: [f, f], to: u264 })(Fq.mul, (x, y) => x.mul(y));
-equivalent({ from: [f], to: u264 })(Fq.square, (x) => x.square());
-
-equivalent({ from: [f, f], to: f })(
+equivalent({ from: [fq, fq], to: u255 })(Fq.sub, (x, y) => x.sub(y));
+equivalent({ from: [fq, fq], to: u255 })(Fq.mul, (x, y) => x.mul(y));
+equivalent({ from: [fq], to: u255 })(Fq.square, (x) => x.square());
+equivalent({ from: [fq, fq], to: fq })(
   (x, y) => Fq.div(x, y) ?? throwError('division by 0'),
   (x, y) => x.div(y)
 );
-/*
-equivalent({ from: [f], to: f })(
+equivalent({ from: [fq], to: fq })(
   (x) => Fq.inverse(x) ?? throwError('division by 0'),
   (x) => x.inverse()
 );
-*/
-equivalent({ from: [f], to: u264 })(Fq.negate, (x) => x.negate());
-//equivalent({ from: [f, f], to: u264 })(Fq.power, (x, y) => x.pow(y));
-//equivalent({ from: [f], to: u264 })(Fq.sqrt, (x) => x.sqrt());
-
-// equality with a constant
-
-equivalent({ from: [f, f], to: unit })(
+equivalent({ from: [fq], to: u255 })(Fq.negate, (x) => x.negate());
+equivalent({ from: [fq, fq], to: u255 })(Fq.power, (x, y) => x.pow(y));
+equivalent({ from: [fq], to: u255 })(
+  (x) => Fq.sqrt(x) ?? throwError(),
+  (x) => x.sqrt()
+);
+// comparison
+equivalent({ from: [fq, fq], to: unit })(
   (x, y) => x === y || throwError('not equal'),
   (x, y) => x.assertEquals(y)
 );
 
-/*
-// toBits / fromBits
-equivalent({ from: [f], to: f })(
-  (x) => x,
-  (x) => {
-    let bits = x.toBits();
-    expect(bits.length).toEqual(255);
-    return ForeignScalar.fromBits(bits);
-  }
-);
-*/
-/*
-class BlsPrime extends createProvableBigInt(bls12_381.G1.CURVE.Fp.ORDER) {}
+const bls_Fp = bls12_381.fields.Fp;
+class BigInt381 extends createProvableBigInt(bls_Fp.ORDER) {}
 
-// types
-BlsPrime.provable satisfies ProvablePure<BlsPrime>;
+BigInt381.provable satisfies ProvablePure<BigInt381>;
 
-let g = spec({
-    rng: Random.bignat(1n << 300n),
-    there: ForeignScalar.fromBigint,
-    back: (x: ForeignScalar) => x.toBigint(),
-    provable: ForeignScalar.provable,
-  });
-
+let blsp = spec({
+  rng: Random.scalar,
+  there: BigInt381.fromBigint,
+  back: (x: BigInt381) => x.toBigint(),
+  provable: BigInt381.provable,
+});
 let u381 = spec({
-    rng: Random.bignat(1n << 300n),
-    there: BlsPrime.fromBigint,
-    back: (x: BlsPrime) => x.toBigint(),
-    provable: BlsPrime.provable,
-  });
+  rng: Random.bignat(1n << 381n),
+  there: BigInt381.fromBigint,
+  back: (x: BigInt381) => x.toBigint(),
+  provable: BigInt381.provable,
+});
 
+// arithmetic
+equivalent({ from: [blsp, blsp], to: u381 })(bls_Fp.add, (x, y) => x.add(y));
+equivalent({ from: [blsp], to: u381 })(
+  (x) => bls_Fp.add(x, x),
+  (x) => x.double()
+);
+equivalent({ from: [blsp, blsp], to: u381 })(bls_Fp.sub, (x, y) => x.sub(y));
+equivalent({ from: [blsp, blsp], to: u381 })(bls_Fp.mul, (x, y) => x.mul(y));
+equivalent({ from: [blsp], to: u381 })(bls_Fp.sqr, (x) => x.square());
+equivalent({ from: [blsp, blsp], to: blsp })(
+  (x, y) => bls_Fp.div(x, y) ?? throwError('division by 0'),
+  (x, y) => x.div(y)
+);
+equivalent({ from: [blsp], to: blsp })(
+  (x) => bls_Fp.inv(x) ?? throwError('division by 0'),
+  (x) => x.inverse()
+);
+equivalent({ from: [blsp], to: u381 })(bls_Fp.neg, (x) => x.negate());
+equivalent({ from: [blsp, blsp], to: u381 })(bls_Fp.pow, (x, y) => x.pow(y));
+equivalent({ from: [blsp], to: u381 })(
+  (x) => bls_Fp.sqrt(x) ?? throwError(),
+  (x) => x.sqrt()
+);
+// comparison
+equivalent({ from: [blsp, blsp], to: unit })(
+  (x, y) => x === y || throwError('not equal'),
+  (x, y) => x.assertEquals(y)
+);
 
-equivalent({ from: [g, g], to: u381 })((x, y) => bls12_381.G1.CURVE.Fp.add(x, y), (x, y) => x.add(y));
+const secp521r1_Fp = secp521r1.CURVE.Fp;
+class BigInt521 extends createProvableBigInt(secp521r1_Fp.ORDER) {}
 
+BigInt521.provable satisfies ProvablePure<BigInt521>;
 
-*/
+let sfp = spec({
+  rng: Random.scalar,
+  there: BigInt521.fromBigint,
+  back: (x: BigInt521) => x.toBigint(),
+  provable: BigInt521.provable,
+});
+let u521 = spec({
+  rng: Random.bignat(1n << 521n),
+  there: BigInt521.fromBigint,
+  back: (x: BigInt521) => x.toBigint(),
+  provable: BigInt521.provable,
+});
+
+// arithmetic
+equivalent({ from: [sfp, sfp], to: u521 })(secp521r1_Fp.add, (x, y) => x.add(y));
+equivalent({ from: [sfp], to: u521 })(
+  (x) => secp521r1_Fp.add(x, x),
+  (x) => x.double()
+);
+equivalent({ from: [sfp, sfp], to: u521 })(secp521r1_Fp.sub, (x, y) => x.sub(y));
+equivalent({ from: [sfp, sfp], to: u521 })(secp521r1_Fp.mul, (x, y) => x.mul(y));
+equivalent({ from: [sfp], to: u521 })(secp521r1_Fp.sqr, (x) => x.square());
+equivalent({ from: [sfp, sfp], to: sfp })(
+  (x, y) => secp521r1_Fp.div(x, y) ?? throwError('division by 0'),
+  (x, y) => x.div(y)
+);
+equivalent({ from: [sfp], to: sfp })(
+  (x) => secp521r1_Fp.inv(x) ?? throwError('division by 0'),
+  (x) => x.inverse()
+);
+equivalent({ from: [sfp], to: u521 })(secp521r1_Fp.neg, (x) => x.negate());
+equivalent({ from: [sfp, sfp], to: u521 })(secp521r1_Fp.pow, (x, y) => x.pow(y));
+equivalent({ from: [sfp], to: u521 })(
+  (x) => secp521r1_Fp.sqrt(x) ?? throwError(),
+  (x) => x.sqrt()
+);
+// comparison
+equivalent({ from: [sfp, sfp], to: unit })(
+  (x, y) => x === y || throwError('not equal'),
+  (x, y) => x.assertEquals(y)
+);
