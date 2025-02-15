@@ -180,20 +180,12 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     static fromBigint(x: bigint): ProvableBigInt_ {
       let fields = [];
       let value = x;
-      // SHOULD WE ACCEPT UNREDUCED INPUTS?
+
       if (value < 0n) {
-        //throw new Error('Input must be non-negative.');
         value = ((x % modulus) + modulus) % modulus;
       }
-      if (value > ProvableBigInt_.config.MAX) {
-        throw new Error(
-          `Input exceeds ${
-            ProvableBigInt_.config.limb_num * Number(ProvableBigInt_.config.limb_size)
-          }-bit size limit.`
-        );
-      }
       if (value >= ProvableBigInt_.modulus.toBigint()) {
-        throw new Error(`Input exceeds modulus.`);
+        value = value % modulus;
       }
       for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
         fields.push(Field.from(value & ProvableBigInt_.config.mask)); // fields[i] = x & 2^64 - 1
