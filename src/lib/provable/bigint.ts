@@ -545,14 +545,6 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns The result as a ProvableBigInt
      */
     pow(exp: ProvableBigInt_): ProvableBigInt_ {
-      let { r } = Provable.witness(Struct({ r: ProvableBigInt_ as typeof ProvableBigInt }), () => {
-        const modulo = this.Constructor.modulus.toBigint();
-        const b = this.toBigint();
-        const x = exp.toBigint();
-        const res = b ** x % modulo;
-        return { r: ProvableBigInt_.fromBigint(res) };
-      });
-
       const exponentBits = exp.toBits();
       const processChunk = function* (bits: Bool[], chunkSize: number) {
         for (let i = 0; i < bits.length; i += chunkSize) {
@@ -570,8 +562,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         }
       }
 
-      result.assertEquals(r);
-      return r;
+      return result;
     }
 
     /**
