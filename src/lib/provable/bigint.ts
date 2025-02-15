@@ -260,7 +260,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to add
      * @returns The sum as a ProvableBigInt
      */
-    add(a: ProvableBigInt_, isDouble = false) {
+    add(a: ProvableBigInt_, isDouble = false): ProvableBigInt_ {
       if (isDouble) a = this;
       // witness q, r so that x+y = q*p + r
       let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
@@ -475,7 +475,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The divisor as a ProvableBigInt
      * @returns The quotient as ProvableBigInt
      */
-    div(a: ProvableBigInt_) {
+    div(a: ProvableBigInt_): ProvableBigInt_ {
       const inv_a = a.inverse();
 
       let res = this.mul(inv_a);
