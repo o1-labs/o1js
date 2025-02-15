@@ -332,66 +332,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to substract
      * @returns The difference as a ProvableBigInt
      */
-    sub(a: ProvableBigInt_) {
-      // witness q, r so that this-a = q*p + r
-      let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
-        let diff = this.toBigint() - a.toBigint();
-        let p0 = this.Constructor.modulus.toBigint();
-        let q = diff / p0;
-        let r = diff - q * p0;
-        return {
-          q: ProvableBigInt_.fromBigint(q),
-          r: ProvableBigInt_.fromBigint(r),
-        };
-      });
-
-      let delta: Field[] = Array.from({ length: this.Constructor.config.limb_num }, () =>
-        Field.from(0)
-      );
-      let [X, Y, Q, R, P] = [
-        this.fields,
-        a.fields,
-        q.fields,
-        r.fields,
-        this.Constructor.modulus.fields,
-      ];
-
-      // compute X - Y limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        delta[i] = X[i].sub(Y[i]);
-      }
-
-      // subtract q*p limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        for (let j = 0; j < this.Constructor.config.limb_num; j++) {
-          if (i + j < this.Constructor.config.limb_num) {
-            delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
-          }
-        }
-      }
-
-      // subtract r limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        delta[i] = delta[i].sub(R[i]).seal();
-      }
-
-      let carry = Field.from(0);
-
-      for (let i = 0; i < this.Constructor.config.limb_num - 1; i++) {
-        let deltaPlusCarry = delta[i].add(carry).seal();
-
-        carry = Provable.witness(Field, () =>
-          deltaPlusCarry.div(1n << this.Constructor.config.limb_size)
-        );
-        rangeCheck(carry, 128, true);
-
-        // ensure that after adding the carry, the limb is a multiple of 2^limb_size
-        deltaPlusCarry.assertEquals(carry.mul(1n << this.Constructor.config.limb_size));
-      }
-      // the final limb plus carry should be zero to assert correctness
-      delta[this.Constructor.config.limb_num - 1].add(carry).assertEquals(0n);
-
-      return r;
+    sub(a: ProvableBigInt_): ProvableBigInt_ {
+      return this.add(a.negate());
     }
 
     /**
