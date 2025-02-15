@@ -916,8 +916,17 @@ function findConfig(modulus: bigint): BigIntParameter {
       `No configuration found for modulus ${modulus}. It exceeds the maximum supported size.`
     );
   }
-  const index = filteredParams.reduce((maxParam, currentParam) => {
-    return BigIntParams[currentParam].MAX > BigIntParams[maxParam].MAX ? currentParam : maxParam;
+
+  const index = filteredParams.reduce((bestParam, currentParam) => {
+    const currentConfig = BigIntParams[currentParam];
+    const bestConfig = BigIntParams[bestParam];
+    if (currentConfig.limb_num < bestConfig.limb_num) {
+      return currentParam;
+    } else if (currentConfig.limb_num === bestConfig.limb_num) {
+      return currentConfig.MAX < bestConfig.MAX ? currentParam : bestParam;
+    } else {
+      return bestParam;
+    }
   }, filteredParams[0]);
 
   return BigIntParams[index];
