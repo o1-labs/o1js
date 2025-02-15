@@ -527,16 +527,23 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     /**
      * Computes the additive inverse of a ProvableBigInt
      * @returns The additive inverse as a ProvableBigInt
-     * @summary x + x' = 0 mod p. For all x except 0, inverse of a is equal to (p - a) mod p. Inverse of 0 is 0 itself.
      */
     negate(): ProvableBigInt_ {
-      // If a is zero, return zero. Otherwise, return the result of subtracting a from the modulus.
-      return Provable.if(
-        this.equals(ProvableBigInt_.zero()),
-        ProvableBigInt_,
-        ProvableBigInt_.zero(),
-        this.Constructor.modulus.sub(this)
-      );
+      let { negation } = Provable.witness(Struct({ negation: ProvableBigInt_ }), () => {
+        let thisVal = this.toBigint();
+        let p = this.Constructor.modulus.toBigint();
+        let negVal = 0n;
+        if (thisVal !== 0n) {
+          negVal = p - thisVal;
+        }
+        return {
+          negation: ProvableBigInt_.fromBigint(negVal),
+        };
+      });
+
+      this.add(negation).assertEquals(ProvableBigInt_.zero());
+
+      return negation;
     }
 
     /**
