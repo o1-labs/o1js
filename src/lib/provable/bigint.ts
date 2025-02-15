@@ -173,6 +173,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return ProvableBigInt_.fromBigint(1n);
     }
 
+    static from(x: bigint | string | number | boolean): ProvableBigInt_ {
+      return ProvableBigInt_.fromBigint(BigInt(x));
+    }
+
     static fromBigint(x: bigint): ProvableBigInt_ {
       let fields = [];
       let value = x;
