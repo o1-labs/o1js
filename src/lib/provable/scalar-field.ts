@@ -19,9 +19,7 @@ class ScalarField extends createForeignField(Fq.modulus) {
 
   public static toScalar(field: ForeignField) {
     if (field.modulus !== Fq.modulus) {
-      throw new Error(
-        'Only ForeignFields with Fq modulus are convertable into a scalar'
-      );
+      throw new Error('Only ForeignFields with Fq modulus are convertable into a scalar');
     }
     const field3 = field.value;
     const shiftedScalar = field3ToShiftedScalar(field3);

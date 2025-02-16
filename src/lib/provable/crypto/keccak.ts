@@ -209,9 +209,7 @@ const theta = (state: Field[][]): Field[][] => {
   );
 
   // for all i in {0..4} and j in {0..4}: E[i,j] = A[i,j] xor D[i]
-  const stateE = stateA.map((row, index) =>
-    row.map((elem) => xor(elem, stateD[index]))
-  );
+  const stateE = stateA.map((row, index) => row.map((elem) => xor(elem, stateD[index])));
 
   return stateE;
 };
@@ -318,12 +316,7 @@ function permutation(state: Field[][], rcs: bigint[]): Field[][] {
 // KECCAK SPONGE
 
 // Absorb padded message into a keccak state with given rate and capacity
-function absorb(
-  paddedMessage: Field[],
-  capacity: number,
-  rate: number,
-  rc: bigint[]
-): State {
+function absorb(paddedMessage: Field[], capacity: number, rate: number, rc: bigint[]): State {
   assert(
     rate + capacity === KECCAK_STATE_LENGTH_WORDS,
     `invalid rate or capacity (rate + capacity should be ${KECCAK_STATE_LENGTH_WORDS})`
@@ -366,12 +359,7 @@ function squeeze(state: State, length: number, rate: number): Field[] {
 }
 
 // Keccak sponge function for 200 bytes of state width
-function sponge(
-  paddedMessage: Field[],
-  length: number,
-  capacity: number,
-  rate: number
-): Field[] {
+function sponge(paddedMessage: Field[], length: number, capacity: number, rate: number): Field[] {
   // check that the padded message is a multiple of rate
   assert(paddedMessage.length % rate === 0, 'Invalid padded message length');
 
@@ -388,12 +376,7 @@ function sponge(
 // - the first byte of the message will be the least significant byte of the first word of the state (A[0][0])
 // - the 10*1 pad will take place after the message, until reaching the bit length rate.
 // - then, {0} pad will take place to finish the 200 bytes of the state.
-function hash(
-  message: Bytes,
-  length: number,
-  capacity: number,
-  nistVersion: boolean
-): UInt8[] {
+function hash(message: Bytes, length: number, capacity: number, nistVersion: boolean): UInt8[] {
   // Throw errors if used improperly
   assert(capacity > 0, 'capacity must be positive');
   assert(
@@ -446,9 +429,7 @@ const State = {
    * Create a state of all zeros
    */
   zeros(): State {
-    return Array.from(Array(KECCAK_DIM), (_) =>
-      Array(KECCAK_DIM).fill(Field.from(0))
-    );
+    return Array.from(Array(KECCAK_DIM), (_) => Array(KECCAK_DIM).fill(Field.from(0)));
   },
 
   /**

@@ -205,8 +205,6 @@ test(Random.field, Random.field, (x0, y0, assert) => {
     let bits = BinableFp.toBits(x0).slice(0, -1);
     let x1 = Provable.witness(Field, () => Field.fromBits(bits));
     let bitsVars = x1.toBits();
-    Provable.asProver(() =>
-      assert(bitsVars.every((b, i) => b.toBoolean() === bits[i]))
-    );
+    Provable.asProver(() => assert(bitsVars.every((b, i) => b.toBoolean() === bits[i])));
   });
 });

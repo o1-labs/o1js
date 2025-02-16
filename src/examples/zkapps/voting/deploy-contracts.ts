@@ -77,14 +77,7 @@ export async function deployContracts(
     voterContract.committedMembers.set(voterRoot);
     voterContract.accumulatedMembers.set(Reducer.initialActionState);
   });
-  await tx
-    .sign([
-      feePayer.key,
-      params.votingKey,
-      params.candidateKey,
-      params.voterKey,
-    ])
-    .send();
+  await tx.sign([feePayer.key, params.votingKey, params.candidateKey, params.voterKey]).send();
 
   console.log('successfully deployed contracts');
   return {
@@ -141,30 +134,19 @@ export async function deployInvalidContracts(
 
     // invalid contracts
 
-    let invalidCandidateContract = new InvalidContract(
-      params.candidateKey.toPublicKey()
-    );
+    let invalidCandidateContract = new InvalidContract(params.candidateKey.toPublicKey());
 
     await invalidCandidateContract.deploy();
 
     candidateContract = invalidCandidateContract as Membership_;
 
-    let invalidVoterContract = new InvalidContract(
-      params.voterKey.toPublicKey()
-    );
+    let invalidVoterContract = new InvalidContract(params.voterKey.toPublicKey());
 
     await invalidVoterContract.deploy();
 
     voterContract = invalidVoterContract as Membership_;
   });
-  await tx
-    .sign([
-      feePayer.key,
-      params.votingKey,
-      params.candidateKey,
-      params.voterKey,
-    ])
-    .send();
+  await tx.sign([feePayer.key, params.votingKey, params.candidateKey, params.voterKey]).send();
 
   console.log('successfully deployed contracts');
   return {
