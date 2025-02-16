@@ -28,11 +28,7 @@ import {
 } from '../../testing/constraint-system.js';
 import { GateType } from '../../../snarky.js';
 import { AnyTuple } from '../../util/types.js';
-import {
-  foreignField,
-  throwError,
-  unreducedForeignField,
-} from './test-utils.js';
+import { foreignField, throwError, unreducedForeignField } from './test-utils.js';
 import { l2 } from '../gadgets/range-check.js';
 
 const { ForeignField } = Gadgets;
@@ -79,12 +75,7 @@ for (let F of fields) {
   equivalentProvable({ from: [f, f, f, f, f], to: unit })(
     (x, y, z, a, b) => assert(F.mul(F.sub(x, y), z) === F.add(a, b)),
     (x, y, z, a, b) =>
-      ForeignField.assertMul(
-        ForeignField.Sum(x).sub(y),
-        z,
-        ForeignField.Sum(a).add(b),
-        F.modulus
-      ),
+      ForeignField.assertMul(ForeignField.Sum(x).sub(y), z, ForeignField.Sum(a).add(b), F.modulus),
     'assertMul negative'
   );
 
@@ -331,22 +322,14 @@ function assertMulExampleNaive(x: Field3, y: Field3, f: bigint) {
   let y2 = Provable.witness(Field3, () => ForeignField.mul(y, y, f));
 
   // assert (x - y) * (x + y) = x^2 - y^2
-  let lhs = ForeignField.mul(
-    ForeignField.sub(x, y, f),
-    ForeignField.add(x, y, f),
-    f
-  );
+  let lhs = ForeignField.mul(ForeignField.sub(x, y, f), ForeignField.add(x, y, f), f);
   let rhs = ForeignField.sub(x2, y2, f);
   Provable.assertEqual(Field3, lhs, rhs);
 }
 
 let from2 = { from: [f, f] satisfies AnyTuple };
-let gates = constraintSystem.size(from2, (x, y) =>
-  assertMulExample(x, y, F.modulus)
-);
-let gatesNaive = constraintSystem.size(from2, (x, y) =>
-  assertMulExampleNaive(x, y, F.modulus)
-);
+let gates = constraintSystem.size(from2, (x, y) => assertMulExample(x, y, F.modulus));
+let gatesNaive = constraintSystem.size(from2, (x, y) => assertMulExampleNaive(x, y, F.modulus));
 // the assertMul() version should save 11.5 rows:
 // -2*1.5 rows by replacing input MRCs with low-limb ffadd
 // -2*4 rows for avoiding the MRC on both mul() and sub() outputs
@@ -373,10 +356,7 @@ constraintSystem(
 // helper
 
 function containsNTimes(n: number, pattern: readonly GateType[]) {
-  return and(
-    contains(repeat(n, pattern)),
-    not(contains(repeat(n + 1, pattern)))
-  );
+  return and(contains(repeat(n, pattern)), not(contains(repeat(n + 1, pattern))));
 }
 
 function sum(xs: bigint[], signs: (1n | -1n)[], F: FiniteField) {

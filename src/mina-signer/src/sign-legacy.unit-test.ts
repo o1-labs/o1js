@@ -29,7 +29,8 @@ let networks: NetworkId[] = ['devnet', 'testnet', 'mainnet'];
 
 for (let network of networks) {
   let i = 0;
-  let reference = NetworkId.toString(network) === 'testnet'
+  let reference =
+    NetworkId.toString(network) === 'testnet'
       ? signatures['devnet']
       : signatures[NetworkId.toString(network)];
 
@@ -124,9 +125,7 @@ let signature = Signature.toJSON({ r: Field.random(), s: Scalar.random() });
 expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
   `inputs larger than ${2n ** 64n - 1n} are not allowed`
 );
-expect(verifyPayment(amountTooLarge, signature, publicKey, 'mainnet')).toEqual(
-  false
-);
+expect(verifyPayment(amountTooLarge, signature, publicKey, 'mainnet')).toEqual(false);
 
 // negative tests with invalid signatures
 
@@ -140,17 +139,9 @@ let signatureScalarTooLarge = Signature.toJSON({
   s: Scalar.modulus,
 });
 
-expect(
-  verifyPayment(validPayment, garbageSignature, publicKey, 'mainnet')
-).toEqual(false);
-expect(
-  verifyPayment(validPayment, signatureFieldTooLarge, publicKey, 'mainnet')
-).toEqual(false);
-expect(
-  verifyPayment(validPayment, signatureScalarTooLarge, publicKey, 'mainnet')
-).toEqual(false);
+expect(verifyPayment(validPayment, garbageSignature, publicKey, 'mainnet')).toEqual(false);
+expect(verifyPayment(validPayment, signatureFieldTooLarge, publicKey, 'mainnet')).toEqual(false);
+expect(verifyPayment(validPayment, signatureScalarTooLarge, publicKey, 'mainnet')).toEqual(false);
 
-console.log(
-  'legacy signatures match the test vectors and successfully verify! 🎉'
-);
+console.log('legacy signatures match the test vectors and successfully verify! 🎉');
 process.exit(0);
