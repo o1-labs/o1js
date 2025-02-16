@@ -5,10 +5,7 @@ import { UInt32, UInt64 } from '../provable/int.js';
 import { PublicKey } from '../provable/crypto/signature.js';
 import { TokenId, ReceiptChainHash } from './base58-encodings.js';
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
-import {
-  customTypes,
-  TypeMap,
-} from '../../bindings/mina-transaction/gen/transaction.js';
+import { customTypes, TypeMap } from '../../bindings/mina-transaction/gen/transaction.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
 import { ProvableExtended } from '../provable/types/struct.js';
 import { FetchedAccount } from './graphql.js';
@@ -19,10 +16,7 @@ export { newAccount, parseFetchedAccount, fillPartialAccount };
 type Account = Types.Account;
 const Account = Types.Account;
 
-function newAccount(accountId: {
-  publicKey: PublicKey;
-  tokenId?: Field;
-}): Account {
+function newAccount(accountId: { publicKey: PublicKey; tokenId?: Field }): Account {
   let account = Account.empty();
   account.publicKey = accountId.publicKey;
   account.tokenId = accountId.tokenId ?? Types.TokenId.empty();
@@ -42,13 +36,7 @@ function parseFetchedAccount(account: FetchedAccount): Account {
     zkappState,
     balance,
     permissions,
-    timing: {
-      cliffAmount,
-      cliffTime,
-      initialMinimumBalance,
-      vestingIncrement,
-      vestingPeriod,
-    },
+    timing: { cliffAmount, cliffTime, initialMinimumBalance, vestingIncrement, vestingPeriod },
     delegateAccount,
     receiptChainHash,
     actionState,
@@ -72,11 +60,8 @@ function parseFetchedAccount(account: FetchedAccount): Account {
     balance: balance && UInt64.from(balance.total),
     nonce: UInt32.from(nonce),
     receiptChainHash:
-      (receiptChainHash && ReceiptChainHash.fromBase58(receiptChainHash)) ||
-      undefined,
-    delegate:
-      (delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey)) ??
-      undefined,
+      (receiptChainHash && ReceiptChainHash.fromBase58(receiptChainHash)) || undefined,
+    delegate: (delegateAccount && PublicKey.fromBase58(delegateAccount.publicKey)) ?? undefined,
     votingFor: undefined, // TODO
     timing:
       (cliffAmount &&
@@ -92,9 +77,7 @@ function parseFetchedAccount(account: FetchedAccount): Account {
           vestingPeriod: UInt32.from(vestingPeriod),
         }) ||
       undefined,
-    permissions:
-      (permissions && Permissions.fromJSON(permissions)) ??
-      Permissions.initial(),
+    permissions: (permissions && Permissions.fromJSON(permissions)) ?? Permissions.initial(),
     zkapp: hasZkapp
       ? {
           appState: (zkappState && zkappState.map(Field)) ?? undefined,

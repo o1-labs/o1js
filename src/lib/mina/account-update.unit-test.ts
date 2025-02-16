@@ -1,13 +1,5 @@
 import { mocks } from '../../bindings/crypto/constants.js';
-import {
-  AccountUpdate,
-  PrivateKey,
-  Field,
-  Bool,
-  Mina,
-  Int64,
-  Types,
-} from '../../index.js';
+import { AccountUpdate, PrivateKey, Field, Bool, Mina, Int64, Types } from '../../index.js';
 import { Test } from '../../snarky.js';
 import { expect } from 'expect';
 
@@ -21,9 +13,7 @@ function createAccountUpdate() {
   return accountUpdate;
 }
 
-function createAccountUpdateWithMayUseToken(
-  mayUseToken: AccountUpdate['body']['mayUseToken']
-) {
+function createAccountUpdateWithMayUseToken(mayUseToken: AccountUpdate['body']['mayUseToken']) {
   let accountUpdate = AccountUpdate.default(address);
   accountUpdate.body.mayUseToken = mayUseToken;
   return accountUpdate;
@@ -42,9 +32,7 @@ function createAccountUpdateWithMayUseToken(
 
   // this is useful console output in the case the test should fail
   if (fields1.length !== fields2.length) {
-    console.log(
-      `unequal length. expected ${fields1.length}, actual: ${fields2.length}`
-    );
+    console.log(`unequal length. expected ${fields1.length}, actual: ${fields2.length}`);
   }
   for (let i = 0; i < fields1.length; i++) {
     if (fields1[i].toString() !== fields2[i].toString()) {
@@ -101,9 +89,7 @@ function createAccountUpdateWithMayUseToken(
 // creates the right empty sequence state
 {
   let accountUpdate = createAccountUpdate();
-  expect(
-    accountUpdate.body.preconditions.account.actionState.value.toString()
-  ).toEqual(
+  expect(accountUpdate.body.preconditions.account.actionState.value.toString()).toEqual(
     '25079927036070901246064867767436987657692091363973573142121686150614948079097'
   );
 }
@@ -111,9 +97,9 @@ function createAccountUpdateWithMayUseToken(
 // creates the right empty vk hash
 {
   let accountUpdate = createAccountUpdate();
-  expect(
-    accountUpdate.body.authorizationKind.verificationKeyHash.toString()
-  ).toEqual(mocks.dummyVerificationKeyHash);
+  expect(accountUpdate.body.authorizationKind.verificationKeyHash.toString()).toEqual(
+    mocks.dummyVerificationKeyHash
+  );
 }
 
 // does not throw an error if private key is missing unless if .send is executed
@@ -138,7 +124,5 @@ function createAccountUpdateWithMayUseToken(
     parentsOwnToken: Bool(false),
     inheritFromParent: Bool(false),
   });
-  expect(AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()).toEqual(
-    true
-  );
+  expect(AccountUpdate.MayUseToken.isNo(accountUpdate).toBoolean()).toEqual(true);
 }

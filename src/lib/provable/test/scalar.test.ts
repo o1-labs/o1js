@@ -26,9 +26,7 @@ describe('scalar', () => {
       describe('fromBits', () => {
         it('should return a Scalar', async () => {
           await Provable.runAndCheck(() => {
-            Provable.witness(Scalar, () =>
-              Scalar.fromBits(Field.random().toBits())
-            );
+            Provable.witness(Scalar, () => Scalar.fromBits(Field.random().toBits()));
           });
         });
       });
@@ -85,9 +83,7 @@ describe('scalar', () => {
         });
 
         it("fromJSON('2^32-1') should be 2^32-1", () => {
-          expect(Scalar.fromJSON(String(2 ** 32 - 1))!.toJSON()).toEqual(
-            String(2 ** 32 - 1)
-          );
+          expect(Scalar.fromJSON(String(2 ** 32 - 1))!.toJSON()).toEqual(String(2 ** 32 - 1));
         });
 
         it('fromJSON(1) should be 1', () => {
