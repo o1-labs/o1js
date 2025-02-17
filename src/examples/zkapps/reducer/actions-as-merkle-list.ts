@@ -9,15 +9,7 @@
  * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
  * in progress to mitigate this limitation.
  */
-import {
-  Bool,
-  Mina,
-  PublicKey,
-  Reducer,
-  SmartContract,
-  method,
-  assert,
-} from 'o1js';
+import { Bool, Mina, PublicKey, Reducer, SmartContract, method, assert } from 'o1js';
 
 export { MerkleListReducing, testLocal };
 
@@ -79,8 +71,7 @@ async function testLocal() {
   let Local = await Mina.LocalBlockchain({ proofsEnabled: true });
   Mina.setActiveInstance(Local);
 
-  let [sender, contractAccount, otherAddress, anotherAddress] =
-    Local.testAccounts;
+  let [sender, contractAccount, otherAddress, anotherAddress] = Local.testAccounts;
 
   let contract = new MerkleListReducing(contractAccount);
 
@@ -111,9 +102,7 @@ async function testLocal() {
   // check if the actions contain the `sender` address
 
   Local.setProofsEnabled(true);
-  let containsTx = await Mina.transaction(sender, () =>
-    contract.assertContainsAddress(sender)
-  );
+  let containsTx = await Mina.transaction(sender, () => contract.assertContainsAddress(sender));
   await containsTx.prove();
   await containsTx.sign([sender.key]).send();
 }

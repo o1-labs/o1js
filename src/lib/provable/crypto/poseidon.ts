@@ -67,17 +67,12 @@ const Poseidon = {
       return TupleN.fromArray(3, newState.map(Field));
     }
 
-    let newState = Snarky.poseidon.update(
-      MlFieldArray.to(state),
-      MlFieldArray.to(input)
-    );
+    let newState = Snarky.poseidon.update(MlFieldArray.to(state), MlFieldArray.to(input));
     return MlFieldArray.from(newState) as [Field, Field, Field];
   },
 
   hashWithPrefix(prefix: string, input: Field[]) {
-    let init = Poseidon.update(Poseidon.initialState(), [
-      prefixToField(prefix),
-    ]);
+    let init = Poseidon.update(Poseidon.initialState(), [prefixToField(prefix)]);
     return Poseidon.update(init, input)[0];
   },
 
@@ -162,10 +157,7 @@ function prefixToField(prefix: string) {
       let bits = [];
       for (let j = 0, c = char.charCodeAt(0); j < 8; j++, c >>= 1) {
         if (j === 7)
-          assert(
-            c === 0,
-            `Invalid character ${char}, only ASCII characters are supported.`
-          );
+          assert(c === 0, `Invalid character ${char}, only ASCII characters are supported.`);
         bits.push(!!(c & 1));
       }
       return bits;
@@ -186,9 +178,7 @@ function packToFields({ fields = [], packed = [] }: HashInput) {
   for (let [field, size] of packed) {
     currentSize += size;
     if (currentSize < 255) {
-      currentPackedField = currentPackedField
-        .mul(Field(1n << BigInt(size)))
-        .add(field);
+      currentPackedField = currentPackedField.mul(Field(1n << BigInt(size))).add(field);
     } else {
       packedBits.push(currentPackedField);
       currentSize = size;
@@ -208,11 +198,7 @@ function isHashable<T>(obj: any): obj is Hashable<T> {
   return hasToInput && hasEmpty;
 }
 
-const TokenSymbolPure: ProvableExtended<
-  { symbol: string; field: Field },
-  string,
-  string
-> = {
+const TokenSymbolPure: ProvableExtended<{ symbol: string; field: Field }, string, string> = {
   toFields({ field }) {
     return [field];
   },
@@ -235,9 +221,7 @@ const TokenSymbolPure: ProvableExtended<
     if (typeof symbol !== 'string') return symbol;
     let bytesLength = new TextEncoder().encode(symbol).length;
     if (bytesLength > 6)
-      throw Error(
-        `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
-      );
+      throw Error(`Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`);
     let field = prefixToField(symbol);
     return { symbol, field };
   },

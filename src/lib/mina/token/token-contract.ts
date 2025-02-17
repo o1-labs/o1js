@@ -92,17 +92,10 @@ abstract class TokenContract extends SmartContract {
     updates: AccountUpdateForest,
     callback: (update: AccountUpdate, usesToken: Bool) => void
   ) {
-    let iterator = TokenAccountUpdateIterator.create(
-      updates,
-      this.deriveTokenId()
-    );
+    let iterator = TokenAccountUpdateIterator.create(updates, this.deriveTokenId());
 
     // iterate through the forest and apply user-defined logic
-    for (
-      let i = 0;
-      i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES;
-      i++
-    ) {
+    for (let i = 0; i < (this.constructor as typeof TokenContract).MAX_ACCOUNT_UPDATES; i++) {
       let { accountUpdate, usesThisToken } = iterator.next();
       callback(accountUpdate, usesThisToken);
     }
@@ -149,9 +142,7 @@ abstract class TokenContract extends SmartContract {
   /**
    * Approve a list of account updates (with arbitrarily many children).
    */
-  async approveAccountUpdates(
-    accountUpdates: (AccountUpdate | AccountUpdateTree)[]
-  ) {
+  async approveAccountUpdates(accountUpdates: (AccountUpdate | AccountUpdateTree)[]) {
     let forest = toForest(accountUpdates);
     await this.approveBase(forest);
   }
@@ -186,11 +177,7 @@ abstract class TokenContract extends SmartContract {
   }
 }
 
-function toForest(
-  updates: (AccountUpdate | AccountUpdateTree)[]
-): AccountUpdateForest {
-  let trees = updates.map((a) =>
-    a instanceof AccountUpdate ? a.extractTree() : a
-  );
+function toForest(updates: (AccountUpdate | AccountUpdateTree)[]): AccountUpdateForest {
+  let trees = updates.map((a) => (a instanceof AccountUpdate ? a.extractTree() : a));
   return AccountUpdateForest.fromReverse(trees);
 }

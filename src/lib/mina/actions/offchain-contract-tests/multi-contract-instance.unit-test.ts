@@ -1,10 +1,4 @@
-import {
-  SmartContract,
-  method,
-  state,
-  PublicKey,
-  UInt64,
-} from '../../../../index.js';
+import { SmartContract, method, state, PublicKey, UInt64 } from '../../../../index.js';
 import * as Mina from '../../mina.js';
 import assert from 'assert';
 import { ExampleContract } from './ExampleContract.js';
@@ -13,14 +7,8 @@ import { settle, transfer } from './utils.js';
 const Local = await Mina.LocalBlockchain({ proofsEnabled: false });
 Mina.setActiveInstance(Local);
 
-const [
-  sender,
-  receiver1,
-  receiver2,
-  receiver3,
-  contractAccountA,
-  contractAccountB,
-] = Local.testAccounts;
+const [sender, receiver1, receiver2, receiver3, contractAccountA, contractAccountB] =
+  Local.testAccounts;
 
 const contractA = new ExampleContract(contractAccountA);
 const contractB = new ExampleContract(contractAccountB);
@@ -89,21 +77,15 @@ console.log(
 );
 console.log(
   'Contract A, Receiver 1: ',
-  (
-    await contractA.offchainState.fields.accounts.get(receiver1)
-  ).value.toBigInt()
+  (await contractA.offchainState.fields.accounts.get(receiver1)).value.toBigInt()
 );
 console.log(
   'Contract A, Receiver 2: ',
-  (
-    await contractA.offchainState.fields.accounts.get(receiver2)
-  ).value.toBigInt()
+  (await contractA.offchainState.fields.accounts.get(receiver2)).value.toBigInt()
 );
 console.log(
   'Contract A, Receiver 3: ',
-  (
-    await contractA.offchainState.fields.accounts.get(receiver3)
-  ).value.toBigInt()
+  (await contractA.offchainState.fields.accounts.get(receiver3)).value.toBigInt()
 );
 
 console.log(
@@ -112,9 +94,7 @@ console.log(
 );
 console.log(
   'Contract B, Receiver 1: ',
-  (
-    await contractB.offchainState.fields.accounts.get(receiver1)
-  ).value.toBigInt()
+  (await contractB.offchainState.fields.accounts.get(receiver1)).value.toBigInt()
 );
 assert((await contractA.getBalance(sender)).toBigInt() == 400n);
 assert((await contractA.getBalance(receiver1)).toBigInt() == 100n);
@@ -146,21 +126,15 @@ console.log(
 );
 console.log(
   'Contract A, Receiver 1: ',
-  (
-    await contractA.offchainState.fields.accounts.get(receiver1)
-  ).value.toBigInt()
+  (await contractA.offchainState.fields.accounts.get(receiver1)).value.toBigInt()
 );
 console.log(
   'Contract A, Receiver 2: ',
-  (
-    await contractA.offchainState.fields.accounts.get(receiver2)
-  ).value.toBigInt()
+  (await contractA.offchainState.fields.accounts.get(receiver2)).value.toBigInt()
 );
 console.log(
   'Contract A, Receiver 3: ',
-  (
-    await contractA.offchainState.fields.accounts.get(receiver3)
-  ).value.toBigInt()
+  (await contractA.offchainState.fields.accounts.get(receiver3)).value.toBigInt()
 );
 
 console.log(
@@ -169,9 +143,7 @@ console.log(
 );
 console.log(
   'Contract B, Receiver: ',
-  (
-    await contractB.offchainState.fields.accounts.get(receiver1)
-  ).value.toBigInt()
+  (await contractB.offchainState.fields.accounts.get(receiver1)).value.toBigInt()
 );
 
 assert((await contractA.getBalance(sender)).toBigInt() == 300n);

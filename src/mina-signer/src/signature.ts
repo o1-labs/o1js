@@ -1,12 +1,6 @@
 import { blake2b } from 'blakejs';
 import { Field } from './field-bigint.js';
-import {
-  Group,
-  Scalar,
-  PrivateKey,
-  versionNumbers,
-  PublicKey,
-} from './curve-bigint.js';
+import { Group, Scalar, PrivateKey, versionNumbers, PublicKey } from './curve-bigint.js';
 import {
   HashInput,
   hashWithPrefix,
@@ -18,12 +12,7 @@ import {
   inputToBitsLegacy,
   HashLegacy,
 } from './poseidon-bigint.js';
-import {
-  bitsToBytes,
-  bytesToBits,
-  record,
-  withVersionNumber,
-} from '../../bindings/lib/binable.js';
+import { bitsToBytes, bytesToBits, record, withVersionNumber } from '../../bindings/lib/binable.js';
 import { base58 } from '../../lib/util/base58.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
 import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
@@ -75,11 +64,7 @@ const Signature = {
 /**
  * Convenience wrapper around {@link sign} where the message is a single {@link Field} element
  */
-function signFieldElement(
-  message: Field,
-  privateKey: PrivateKey,
-  networkId: NetworkId
-) {
+function signFieldElement(message: Field, privateKey: PrivateKey, networkId: NetworkId) {
   return sign({ fields: [message] }, privateKey, networkId);
 }
 /**
@@ -116,11 +101,7 @@ function verifyFieldElement(
  *
  * @see {@link deriveNonce} and {@link hashMessage} for details on how the nonce and hash are computed.
  */
-function sign(
-  message: HashInput,
-  privateKey: PrivateKey,
-  networkId: NetworkId
-): Signature {
+function sign(message: HashInput, privateKey: PrivateKey, networkId: NetworkId): Signature {
   let publicKey = Group.scale(Group.generatorMina, privateKey);
   let kPrime = deriveNonce(message, publicKey, privateKey, networkId);
   if (Scalar.equal(kPrime, 0n)) throw Error('sign: derived nonce is 0');
@@ -183,12 +164,7 @@ function deriveNonce(
  * @param r an element of the Pallas base field, computed by {@link sign} as the x-coordinate of the generator, scaled by the nonce.
  * @param networkId either "testnet" or "mainnet", determines the salt (initial state) in the Poseidon hash.
  */
-function hashMessage(
-  message: HashInput,
-  publicKey: Group,
-  r: Field,
-  networkId: NetworkId
-): Scalar {
+function hashMessage(message: HashInput, publicKey: Group, r: Field, networkId: NetworkId): Scalar {
   let { x, y } = publicKey;
   let input = HashInput.append(message, { fields: [x, y, r] });
   return hashWithPrefix(signaturePrefix(networkId), packToFields(input));
