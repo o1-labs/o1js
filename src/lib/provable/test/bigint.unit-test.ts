@@ -1,7 +1,7 @@
 import { createProvableBigInt } from '../bigint.js';
 import { Fq } from '../../../bindings/crypto/finite-field.js';
 import { bls12_381 } from '@noble/curves/bls12-381';
-import { p521, secp521r1 } from '@noble/curves/p521';
+import { secp521r1 } from '@noble/curves/p521';
 
 import {
   equivalentProvable as equivalent,
