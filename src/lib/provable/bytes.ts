@@ -9,10 +9,10 @@ import { Field } from './field.js';
 import { Bool } from './bool.js';
 
 // external API
-export { Bytes };
+export { Bytes, FlexibleBytes };
 
 // internal API
-export { createBytes, FlexibleBytes };
+export { createBytes };
 
 type FlexibleBytes = Bytes | (UInt8 | bigint | number)[] | Uint8Array;
 
