@@ -20,9 +20,7 @@ async function initializeBindings() {
   CJS: if (typeof require !== 'undefined') {
     snarky = require('./bindings/compiled/_node_bindings/o1js_node.bc.cjs');
   }
-  ESM: snarky = (
-    await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')
-  ).default;
+  ESM: snarky = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
   ({ Snarky, Ledger, Pickles, Test: Test_ } = snarky);
   resolve();
   initializingPromise = undefined;

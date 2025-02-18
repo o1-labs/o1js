@@ -93,12 +93,7 @@ const mainProgram = ZkProgram({
       },
     },
     validateUsingTree: {
-      privateInputs: [
-        SelfProof,
-        VerificationKey,
-        MerkleTreeWitness,
-        SideloadedProgramProof,
-      ],
+      privateInputs: [SelfProof, VerificationKey, MerkleTreeWitness, SideloadedProgramProof],
       async method(
         publicInput: MainProgramState,
         previous: Proof<MainProgramState, MainProgramState>,
@@ -152,10 +147,7 @@ const { proof: proof1 } = await mainProgram.addSideloadedProgram(
 );
 
 console.log('Proving child program execution');
-const { proof: childProof } = await sideloadedProgram.compute(
-  Field(0),
-  Field(10)
-);
+const { proof: childProof } = await sideloadedProgram.compute(Field(0), Field(10));
 
 console.log('Proving verification inside main program');
 const { proof: proof2 } = await mainProgram.validateUsingTree(
@@ -170,10 +162,7 @@ const validProof2 = await verify(proof2, mainVk);
 console.log('ok?', validProof2);
 
 console.log('Proving different method of child program');
-const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(
-  Field(0),
-  Field(10)
-);
+const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
 
 console.log('Proving verification inside main program');
 const proof3 = await mainProgram.validateUsingTree(

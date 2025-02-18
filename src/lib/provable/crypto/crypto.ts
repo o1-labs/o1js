@@ -1,8 +1,5 @@
 import { CurveParams as CurveParams_ } from '../../../bindings/crypto/elliptic-curve-examples.js';
-import {
-  CurveAffine,
-  createCurveAffine,
-} from '../../../bindings/crypto/elliptic-curve.js';
+import { CurveAffine, createCurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
 
 // crypto namespace
 const Crypto = {
