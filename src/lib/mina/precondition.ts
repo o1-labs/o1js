@@ -543,7 +543,7 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
 function ensureConsistentPrecondition(property: any, newIsSome: any, value: any, name: any) {
   if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
     let errorMessage = `
-Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
+Precondition Error: Attempting to set a precondition that is already set for '${name}'.
 '${name}' represents the field or value you're trying to set a precondition for.
 Preconditions must be set only once to avoid overwriting previous assertions. 
 For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
