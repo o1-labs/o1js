@@ -259,6 +259,40 @@ class Bool {
   }
 
   /**
+   * Boolean AND operation across a list of booleans, returns `Bool(true)` if all elements in the list are true.
+   */
+  static allTrue(list: (Bool | boolean)[]): Bool {
+    if (list.length === 0) {
+      return new Bool(true);
+    } else {
+      let b = toBool(list[0]);
+
+      for (let i = 1; i < list.length; i++) {
+        b = b.and(toBool(list[i]));
+      }
+
+      return b;
+    }
+  }
+
+  /**
+   * Boolean OR operation across a list of booleans, returns `Bool(true)` if any element in the list is true.
+   */
+  static anyTrue(list: (Bool | boolean)[]): Bool {
+    if (list.length === 0) {
+      return new Bool(false);
+    } else {
+      let b = toBool(list[0]);
+
+      for (let i = 1; i < list.length; i++) {
+        b = b.or(toBool(list[i]));
+      }
+
+      return b;
+    }
+  }
+
+  /**
    * Asserts if both {@link Bool} are equal.
    */
   static assertEqual(x: Bool, y: Bool | boolean): void {
@@ -410,6 +444,11 @@ function toBoolean(x: boolean | Bool): boolean {
     return x;
   }
   return x.toBoolean();
+}
+
+function toBool(x: boolean | Bool): Bool {
+  if (x instanceof Bool) return x;
+  return new Bool(x);
 }
 
 function toFieldVar(x: boolean | Bool): BoolVar {
