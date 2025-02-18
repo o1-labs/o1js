@@ -9,10 +9,10 @@ import { Field } from './field.js';
 import { Bool } from './bool.js';
 
 // external API
-export { Bytes };
+export { Bytes, FlexibleBytes };
 
 // internal API
-export { createBytes, FlexibleBytes };
+export { createBytes };
 
 type FlexibleBytes = Bytes | (UInt8 | bigint | number)[] | Uint8Array;
 
@@ -38,7 +38,7 @@ class Bytes {
    *
    * Inputs smaller than `this.size` are padded with zero bytes.
    */
-  static from(data: (UInt8 | bigint | number)[] | Uint8Array | Bytes): Bytes {
+  static from(data: FlexibleBytes): Bytes {
     if (data instanceof Bytes) return data;
     if (this._size === undefined) {
       let Bytes_ = createBytes(data.length);
