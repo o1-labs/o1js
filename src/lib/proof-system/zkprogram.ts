@@ -258,7 +258,7 @@ function ZkProgram<
    * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
    */
   analyzeMethods: () => Promise<{
-    [I in keyof Config['methods']]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+    [I in keyof Config['methods']]: MethodAnalysis;
   }>;
 
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
