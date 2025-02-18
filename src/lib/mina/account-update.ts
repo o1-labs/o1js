@@ -1,25 +1,10 @@
-import {
-  cloneCircuitValue,
-  FlexibleProvable,
-  StructNoJson,
-} from '../provable/types/struct.js';
-import {
-  provable,
-  provableExtends,
-  provablePure,
-} from '../provable/types/provable-derivers.js';
-import {
-  memoizationContext,
-  memoizeWitness,
-  Provable,
-} from '../provable/provable.js';
+import { cloneCircuitValue, FlexibleProvable, StructNoJson } from '../provable/types/struct.js';
+import { provable, provableExtends, provablePure } from '../provable/types/provable-derivers.js';
+import { memoizationContext, memoizeWitness, Provable } from '../provable/provable.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import { Pickles } from '../../snarky.js';
 import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
-import {
-  Types,
-  toJSONEssential,
-} from '../../bindings/mina-transaction/types.js';
+import { Types, toJSONEssential } from '../../bindings/mina-transaction/types.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
 import { UInt64, UInt32, Int64 } from '../provable/int.js';
 import type { SmartContract } from './zkapp.js';
@@ -42,22 +27,10 @@ import {
   MayUseToken as BaseMayUseToken,
 } from '../../bindings/mina-transaction/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
-import {
-  hashWithPrefix,
-  packToFields,
-  Poseidon,
-} from '../provable/crypto/poseidon.js';
-import {
-  mocks,
-  prefixes,
-  protocolVersions,
-} from '../../bindings/crypto/constants.js';
+import { hashWithPrefix, packToFields, Poseidon } from '../provable/crypto/poseidon.js';
+import { mocks, prefixes, protocolVersions } from '../../bindings/crypto/constants.js';
 import { MlArray } from '../ml/base.js';
-import {
-  Signature,
-  signFieldElement,
-  zkAppBodyPrefix,
-} from '../../mina-signer/src/signature.js';
+import { Signature, signFieldElement, zkAppBodyPrefix } from '../../mina-signer/src/signature.js';
 import { MlFieldConstArray } from '../ml/fields.js';
 import {
   accountUpdatesToCallForest,
@@ -68,17 +41,9 @@ import {
 import { currentTransaction } from './transaction-context.js';
 import { isSmartContract } from './smart-contract-base.js';
 import { activeInstance } from './mina-instance.js';
-import {
-  emptyHash,
-  genericHash,
-  MerkleList,
-  MerkleListBase,
-} from '../provable/merkle-list.js';
+import { emptyHash, genericHash, MerkleList, MerkleListBase } from '../provable/merkle-list.js';
 import { Hashed } from '../provable/packed.js';
-import {
-  accountUpdateLayout,
-  smartContractContext,
-} from './smart-contract-context.js';
+import { accountUpdateLayout, smartContractContext } from './smart-contract-context.js';
 import { assert } from '../util/assert.js';
 import { RandomId } from '../provable/types/auxiliary.js';
 import { From } from '../../bindings/lib/provable-generic.js';
@@ -153,8 +118,7 @@ const MayUseToken = {
     },
   }: AccountUpdate) => parentsOwnToken.or(inheritFromParent).not(),
   isParentsOwnToken: (a: AccountUpdate) => a.body.mayUseToken.parentsOwnToken,
-  isInheritFromParent: (a: AccountUpdate) =>
-    a.body.mayUseToken.inheritFromParent,
+  isInheritFromParent: (a: AccountUpdate) => a.body.mayUseToken.inheritFromParent,
 };
 
 type Events = BaseEvents;
@@ -304,16 +268,13 @@ let Permission = {
     /**
      * Modification is permitted by signatures only, using the private key of the zkapp account
      */
-    signature: () =>
-      VerificationKeyPermission.withCurrentVersion(Permission.signature()),
+    signature: () => VerificationKeyPermission.withCurrentVersion(Permission.signature()),
 
     /**
      * Modification is permitted by zkapp proofs or signatures
      */
     proofOrSignature: () =>
-      VerificationKeyPermission.withCurrentVersion(
-        Permission.proofOrSignature()
-      ),
+      VerificationKeyPermission.withCurrentVersion(Permission.proofOrSignature()),
   },
 };
 
@@ -476,8 +437,7 @@ let Permissions = {
     access: Permission.impossible(),
     setDelegate: Permission.impossible(),
     setPermissions: Permission.impossible(),
-    setVerificationKey:
-      Permission.VerificationKey.impossibleDuringCurrentVersion(),
+    setVerificationKey: Permission.VerificationKey.impossibleDuringCurrentVersion(),
     setZkappUri: Permission.impossible(),
     editActionState: Permission.impossible(),
     setTokenSymbol: Permission.impossible(),
@@ -499,16 +459,12 @@ let Permissions = {
       case 'Impossible':
         return Permission.impossible();
       default:
-        throw Error(
-          `Cannot parse invalid permission. ${permission} does not exist.`
-        );
+        throw Error(`Cannot parse invalid permission. ${permission} does not exist.`);
     }
   },
 
   fromJSON: (
-    permissions: NonNullable<
-      Types.Json.AccountUpdate['body']['update']['permissions']
-    >
+    permissions: NonNullable<Types.Json.AccountUpdate['body']['update']['permissions']>
   ): Permissions => {
     return Object.fromEntries(
       Object.entries(permissions).map(([k, v]) => [
@@ -603,11 +559,7 @@ const Body = {
   /**
    * A body that doesn't change the underlying account record
    */
-  keepAll(
-    publicKey: PublicKey,
-    tokenId?: Field,
-    mayUseToken?: MayUseToken
-  ): Body {
+  keepAll(publicKey: PublicKey, tokenId?: Field, mayUseToken?: MayUseToken): Body {
     let { body } = Types.AccountUpdate.empty();
     body.publicKey = publicKey;
     if (tokenId) {
@@ -688,8 +640,7 @@ class AccountUpdate implements Types.AccountUpdate {
   label: string = '';
   body: Body;
   authorization: Control;
-  lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined =
-    undefined;
+  lazyAuthorization: LazySignature | LazyProof | LazyNone | undefined = undefined;
   account: Account;
   network: Network;
   currentSlot: CurrentSlot;
@@ -786,12 +737,10 @@ class AccountUpdate implements Types.AccountUpdate {
 
     return {
       addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        accountUpdate.body.balanceChange =
-          accountUpdate.body.balanceChange.add(x);
+        accountUpdate.body.balanceChange = accountUpdate.body.balanceChange.add(x);
       },
       subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        accountUpdate.body.balanceChange =
-          accountUpdate.body.balanceChange.sub(x);
+        accountUpdate.body.balanceChange = accountUpdate.body.balanceChange.sub(x);
       },
     };
   }
@@ -831,11 +780,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * }
    * ```
    */
-  static assertBetween<T>(
-    property: OrIgnore<ClosedInterval<T>>,
-    lower: T,
-    upper: T
-  ) {
+  static assertBetween<T>(property: OrIgnore<ClosedInterval<T>>, lower: T, upper: T) {
     property.isSome = Bool(true);
     property.value.lower = lower;
     property.value.upper = upper;
@@ -858,10 +803,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * }
    * ```
    */
-  static assertEquals<T extends object>(
-    property: OrIgnore<ClosedInterval<T> | T>,
-    value: T
-  ) {
+  static assertEquals<T extends object>(property: OrIgnore<ClosedInterval<T> | T>, value: T) {
     property.isSome = Bool(true);
     if ('lower' in property.value && 'upper' in property.value) {
       property.value.lower = value;
@@ -923,28 +865,21 @@ class AccountUpdate implements Types.AccountUpdate {
     nonce: UInt32,
   });
 
-  private static getSigningInfo(
-    accountUpdate: AccountUpdate | FeePayerUnsigned
-  ) {
+  private static getSigningInfo(accountUpdate: AccountUpdate | FeePayerUnsigned) {
     return memoizeWitness(AccountUpdate.signingInfo, () =>
       AccountUpdate.getSigningInfoUnchecked(accountUpdate)
     );
   }
 
-  private static getSigningInfoUnchecked(
-    update: AccountUpdate | FeePayerUnsigned
-  ) {
+  private static getSigningInfoUnchecked(update: AccountUpdate | FeePayerUnsigned) {
     let publicKey = update.body.publicKey;
-    let tokenId =
-      update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
+    let tokenId = update instanceof AccountUpdate ? update.body.tokenId : TokenId.default;
     let nonce = Number(getAccountPreconditions(update.body).nonce.toString());
     // if the fee payer is the same account update as this one, we have to start
     // the nonce predicate at one higher, bc the fee payer already increases its
     // nonce
     let isFeePayer = currentTransaction()?.sender?.equals(publicKey);
-    let isSameAsFeePayer = !!isFeePayer
-      ?.and(tokenId.equals(TokenId.default))
-      .toBoolean();
+    let isSameAsFeePayer = !!isFeePayer?.and(tokenId.equals(TokenId.default)).toBoolean();
     if (isSameAsFeePayer) nonce++;
     // now, we check how often this account update already updated its nonce in
     // this tx, and increase nonce from `getAccount` by that amount
@@ -975,17 +910,10 @@ class AccountUpdate implements Types.AccountUpdate {
 
   hash(): Field {
     let input = Types.AccountUpdate.toInput(this);
-    return hashWithPrefix(
-      zkAppBodyPrefix(activeInstance.getNetworkId()),
-      packToFields(input)
-    );
+    return hashWithPrefix(zkAppBodyPrefix(activeInstance.getNetworkId()), packToFields(input));
   }
 
-  toPublicInput({
-    accountUpdates,
-  }: {
-    accountUpdates: AccountUpdate[];
-  }): ZkappPublicInput {
+  toPublicInput({ accountUpdates }: { accountUpdates: AccountUpdate[] }): ZkappPublicInput {
     let accountUpdate = this.hash();
 
     // collect this update's descendants
@@ -1021,8 +949,7 @@ class AccountUpdate implements Types.AccountUpdate {
     let layout = accountUpdateLayout();
     let hash = layout?.get(this)?.final?.hash;
     let id = this.id;
-    let children =
-      layout?.finalizeAndRemove(this) ?? AccountUpdateForest.empty();
+    let children = layout?.finalizeAndRemove(this) ?? AccountUpdateForest.empty();
     let accountUpdate = HashedAccountUpdate.hash(this, hash);
     return new AccountUpdateTree({ accountUpdate, id, children });
   }
@@ -1074,9 +1001,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (insideContract) {
       let self = insideContract.this.self;
       self.approve(accountUpdate);
-      accountUpdate.label = `${
-        self.label || 'Unlabeled'
-      } > AccountUpdate.create()`;
+      accountUpdate.label = `${self.label || 'Unlabeled'} > AccountUpdate.create()`;
     } else {
       currentTransaction()?.layout.pushTopLevel(accountUpdate);
       accountUpdate.label = `Mina.transaction() > AccountUpdate.create()`;
@@ -1141,10 +1066,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static createSigned(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.create(publicKey, tokenId);
-    accountUpdate.label = accountUpdate.label.replace(
-      '.create()',
-      '.createSigned()'
-    );
+    accountUpdate.label = accountUpdate.label.replace('.create()', '.createSigned()');
     accountUpdate.requireSignature();
     return accountUpdate;
   }
@@ -1186,15 +1108,10 @@ class AccountUpdate implements Types.AccountUpdate {
   static check = Types.AccountUpdate.check;
   static fromFields(fields: Field[], [other, aux]: any[]): AccountUpdate {
     let accountUpdate = Types.AccountUpdate.fromFields(fields, aux);
-    return Object.assign(
-      new AccountUpdate(accountUpdate.body, accountUpdate.authorization),
-      other
-    );
+    return Object.assign(new AccountUpdate(accountUpdate.body, accountUpdate.authorization), other);
   }
   static toValue = Types.AccountUpdate.toValue;
-  static fromValue(
-    value: From<typeof Types.AccountUpdate> | AccountUpdate
-  ): AccountUpdate {
+  static fromValue(value: From<typeof Types.AccountUpdate> | AccountUpdate): AccountUpdate {
     if (value instanceof AccountUpdate) return value;
     let accountUpdate = Types.AccountUpdate.fromValue(value);
     return new AccountUpdate(accountUpdate.body, accountUpdate.authorization);
@@ -1245,8 +1162,7 @@ class AccountUpdate implements Types.AccountUpdate {
       jsLayout.AccountUpdate as any,
       this
     );
-    let body: Partial<Types.Json.AccountUpdate['body']> =
-      jsonUpdate.body as any;
+    let body: Partial<Types.Json.AccountUpdate['body']> = jsonUpdate.body as any;
     delete body.callData;
     body.publicKey = short(body.publicKey!);
     if (body.balanceChange?.magnitude === '0') delete body.balanceChange;
@@ -1258,32 +1174,23 @@ class AccountUpdate implements Types.AccountUpdate {
     if (body.callDepth === 0) delete body.callDepth;
     if (body.incrementNonce === false) delete body.incrementNonce;
     if (body.useFullCommitment === false) delete body.useFullCommitment;
-    if (body.implicitAccountCreationFee === false)
-      delete body.implicitAccountCreationFee;
+    if (body.implicitAccountCreationFee === false) delete body.implicitAccountCreationFee;
     if (body.events?.length === 0) delete body.events;
     if (body.actions?.length === 0) delete body.actions;
     if (body.preconditions?.account) {
-      body.preconditions.account = JSON.stringify(
-        body.preconditions.account
-      ) as any;
+      body.preconditions.account = JSON.stringify(body.preconditions.account) as any;
     }
     if (body.preconditions?.network) {
-      body.preconditions.network = JSON.stringify(
-        body.preconditions.network
-      ) as any;
+      body.preconditions.network = JSON.stringify(body.preconditions.network) as any;
     }
     if (body.preconditions?.validWhile) {
-      body.preconditions.validWhile = JSON.stringify(
-        body.preconditions.validWhile
-      ) as any;
+      body.preconditions.validWhile = JSON.stringify(body.preconditions.validWhile) as any;
     }
     if (jsonUpdate.authorization?.proof) {
       jsonUpdate.authorization.proof = short(jsonUpdate.authorization.proof);
     }
     if (jsonUpdate.authorization?.signature) {
-      jsonUpdate.authorization.signature = short(
-        jsonUpdate.authorization.signature
-      );
+      jsonUpdate.authorization.signature = short(jsonUpdate.authorization.signature);
     }
     if (body.update?.verificationKey) {
       body.update.verificationKey = JSON.stringify({
@@ -1304,10 +1211,7 @@ class AccountUpdate implements Types.AccountUpdate {
     if (body.authorizationKind?.isProved === false) {
       delete (body as any).authorizationKind?.verificationKeyHash;
     }
-    if (
-      body.authorizationKind?.isProved === false &&
-      body.authorizationKind?.isSigned === false
-    ) {
+    if (body.authorizationKind?.isProved === false && body.authorizationKind?.isSigned === false) {
       delete (body as any).authorizationKind;
     }
     if (
@@ -1333,17 +1237,10 @@ class AccountUpdate implements Types.AccountUpdate {
 // call forest stuff
 
 function hashAccountUpdate(update: AccountUpdate) {
-  return genericHash(
-    AccountUpdate,
-    zkAppBodyPrefix(activeInstance.getNetworkId()),
-    update
-  );
+  return genericHash(AccountUpdate, zkAppBodyPrefix(activeInstance.getNetworkId()), update);
 }
 
-class HashedAccountUpdate extends Hashed.create(
-  AccountUpdate,
-  hashAccountUpdate
-) {}
+class HashedAccountUpdate extends Hashed.create(AccountUpdate, hashAccountUpdate) {}
 
 type AccountUpdateTreeBase = {
   id: number;
@@ -1371,16 +1268,11 @@ const AccountUpdateTreeBase = StructNoJson({
  * };
  * ```
  */
-class AccountUpdateForest extends MerkleList.create(
-  AccountUpdateTreeBase,
-  merkleListHash
-) {
+class AccountUpdateForest extends MerkleList.create(AccountUpdateTreeBase, merkleListHash) {
   static provable = provableExtends(AccountUpdateForest, super.provable);
 
   push(update: AccountUpdate | AccountUpdateTreeBase) {
-    return super.push(
-      update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update
-    );
+    return super.push(update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update);
   }
   pushIf(condition: Bool, update: AccountUpdate | AccountUpdateTreeBase) {
     return super.pushIf(
@@ -1398,11 +1290,7 @@ class AccountUpdateForest extends MerkleList.create(
     return AccountUpdateForest.toFlatArray(this, mutate, depth);
   }
 
-  static toFlatArray(
-    forest: AccountUpdateForestBase,
-    mutate = true,
-    depth = 0
-  ) {
+  static toFlatArray(forest: AccountUpdateForestBase, mutate = true, depth = 0) {
     let flat: AccountUpdate[] = [];
     for (let { element: tree } of forest.data.get()) {
       let update = tree.accountUpdate.value.get();
@@ -1413,9 +1301,7 @@ class AccountUpdateForest extends MerkleList.create(
     return flat;
   }
 
-  private static fromSimpleForest(
-    simpleForest: CallForest<AccountUpdate>
-  ): AccountUpdateForest {
+  private static fromSimpleForest(simpleForest: CallForest<AccountUpdate>): AccountUpdateForest {
     let nodes = simpleForest.map((node) => {
       let accountUpdate = HashedAccountUpdate.hash(node.accountUpdate);
       let children = AccountUpdateForest.fromSimpleForest(node.children);
@@ -1487,10 +1373,7 @@ class AccountUpdateTree extends StructNoJson({
   approve(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
     accountUpdateLayout()?.disattach(update);
     if (update instanceof AccountUpdate) {
-      this.children.pushIf(
-        update.isDummy().not(),
-        AccountUpdateTree.from(update, hash)
-      );
+      this.children.pushIf(update.isDummy().not(), AccountUpdateTree.from(update, hash));
     } else {
       this.children.push(update);
     }
@@ -1518,10 +1401,7 @@ function hashNode(tree: AccountUpdateTreeBase) {
   ]);
 }
 function hashCons(forestHash: Field, nodeHash: Field) {
-  return Poseidon.hashWithPrefix(prefixes.accountUpdateCons, [
-    nodeHash,
-    forestHash,
-  ]);
+  return Poseidon.hashWithPrefix(prefixes.accountUpdateCons, [nodeHash, forestHash]);
 }
 
 /**
@@ -1576,10 +1456,7 @@ class UnfinishedForest {
   }
 
   constructor(mutable?: UnfinishedTree[], final?: AccountUpdateForest) {
-    assert(
-      (final === undefined) !== (mutable === undefined),
-      'final or mutable'
-    );
+    assert((final === undefined) !== (mutable === undefined), 'final or mutable');
     this.final = final;
     this.mutable = mutable;
   }
@@ -1613,10 +1490,7 @@ class UnfinishedForest {
 
   push(node: UnfinishedTree) {
     if (node.siblings === this) return;
-    assert(
-      node.siblings === undefined,
-      'Cannot push node that already has a parent.'
-    );
+    assert(node.siblings === undefined, 'Cannot push node that already has a parent.');
     node.siblings = this;
     assert(this.isMutable(), 'Cannot push to an immutable forest');
     this.mutable.push(node);
@@ -1749,9 +1623,7 @@ const UnfinishedTree = {
     return { accountUpdate, id: node.id, isDummy: node.isDummy, children };
   },
 
-  isUnfinished(
-    input: AccountUpdate | AccountUpdateTree | UnfinishedTree
-  ): input is UnfinishedTree {
+  isUnfinished(input: AccountUpdate | AccountUpdateTree | UnfinishedTree): input is UnfinishedTree {
     return 'final' in input || 'mutable' in input;
   },
 };
@@ -1778,9 +1650,7 @@ class AccountUpdateLayout {
     return this.map.get(update.id);
   }
 
-  private getOrCreate(
-    update: AccountUpdate | AccountUpdateTree | UnfinishedTree
-  ): UnfinishedTree {
+  private getOrCreate(update: AccountUpdate | AccountUpdateTree | UnfinishedTree): UnfinishedTree {
     if (UnfinishedTree.isUnfinished(update)) {
       if (!this.map.has(update.id)) {
         this.map.set(update.id, update);
@@ -1800,10 +1670,7 @@ class AccountUpdateLayout {
     return node;
   }
 
-  pushChild(
-    parent: AccountUpdate | UnfinishedTree,
-    child: AccountUpdate | AccountUpdateTree
-  ) {
+  pushChild(parent: AccountUpdate | UnfinishedTree, child: AccountUpdate | AccountUpdateTree) {
     let parentNode = this.getOrCreate(parent);
     let childNode = this.getOrCreate(child);
     parentNode.children.push(childNode);
@@ -1813,10 +1680,7 @@ class AccountUpdateLayout {
     this.pushChild(this.root, child);
   }
 
-  setChildren(
-    parent: AccountUpdate | UnfinishedTree,
-    children: AccountUpdateForest
-  ) {
+  setChildren(parent: AccountUpdate | UnfinishedTree, children: AccountUpdateForest) {
     let parentNode = this.getOrCreate(parent);
     parentNode.children.setToForest(children);
   }
@@ -1849,10 +1713,7 @@ class AccountUpdateLayout {
     return this.root.children.toFlatArray(mutate);
   }
 
-  forEachPredecessor(
-    update: AccountUpdate,
-    callback: (update: AccountUpdate) => void
-  ) {
+  forEachPredecessor(update: AccountUpdate, callback: (update: AccountUpdate) => void) {
     let updates = this.toFlatList({ mutate: false });
     for (let otherUpdate of updates) {
       if (otherUpdate.id === update.id) return;
@@ -1966,8 +1827,7 @@ function addMissingSignatures(
   );
 
   function addFeePayerSignature(accountUpdate: FeePayerUnsigned): FeePayer {
-    let { body, authorization, lazyAuthorization } =
-      cloneCircuitValue(accountUpdate);
+    let { body, authorization, lazyAuthorization } = cloneCircuitValue(accountUpdate);
     if (lazyAuthorization === undefined) return { body, authorization };
 
     let i = additionalPublicKeys.findIndex((pk) =>
@@ -2065,11 +1925,7 @@ async function addMissingProofs(
   let accountUpdatesProved: AccountUpdateProved[] = [];
   let proofs: (Proof<ZkappPublicInput, Empty> | undefined)[] = [];
   for (let i = 0; i < accountUpdates.length; i++) {
-    let { accountUpdateProved, proof } = await addProof(
-      zkappCommand,
-      i,
-      proofsEnabled
-    );
+    let { accountUpdateProved, proof } = await addProof(zkappCommand, i, proofsEnabled);
     accountUpdatesProved.push(accountUpdateProved);
     proofs.push(proof);
   }
@@ -2079,11 +1935,7 @@ async function addMissingProofs(
   };
 }
 
-async function addProof(
-  transaction: ZkappCommand,
-  index: number,
-  proofsEnabled: boolean
-) {
+async function addProof(transaction: ZkappCommand, index: number, proofsEnabled: boolean) {
   let accountUpdate = transaction.accountUpdates[index];
   accountUpdate = AccountUpdate.clone(accountUpdate);
 
@@ -2119,9 +1971,7 @@ async function createZkappProof(
   { transaction, accountUpdate, index }: ZkappProverData
 ): Promise<Proof<ZkappPublicInput, Empty>> {
   let publicInput = accountUpdate.toPublicInput(transaction);
-  let publicInputFields = MlFieldConstArray.to(
-    ZkappPublicInput.toFields(publicInput)
-  );
+  let publicInputFields = MlFieldConstArray.to(ZkappPublicInput.toFields(publicInput));
 
   let [, , proof] = await zkAppProver.run(
     [accountUpdate.publicKey, accountUpdate.tokenId, ...args],

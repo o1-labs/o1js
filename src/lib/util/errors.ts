@@ -13,30 +13,21 @@ export {
  *
  * @param constructor - The target class constructor.
  */
-function CatchAndPrettifyStacktraceForAllMethods<
-  T extends { new (...args: any[]): {} }
->(constructor: T) {
+function CatchAndPrettifyStacktraceForAllMethods<T extends { new (...args: any[]): {} }>(
+  constructor: T
+) {
   // Iterate through all properties (including methods) of the class prototype
-  for (const propertyName of Object.getOwnPropertyNames(
-    constructor.prototype
-  )) {
+  for (const propertyName of Object.getOwnPropertyNames(constructor.prototype)) {
     // Skip the constructor
     if (propertyName === 'constructor') continue;
 
     // Get the property descriptor
-    const descriptor = Object.getOwnPropertyDescriptor(
-      constructor.prototype,
-      propertyName
-    );
+    const descriptor = Object.getOwnPropertyDescriptor(constructor.prototype, propertyName);
 
     // Check if the property is a method
     if (descriptor && typeof descriptor.value === 'function') {
       // Apply the CatchAndPrettifyStacktrace decorator to the method
-      CatchAndPrettifyStacktrace(
-        constructor.prototype,
-        propertyName,
-        descriptor
-      );
+      CatchAndPrettifyStacktrace(constructor.prototype, propertyName, descriptor);
 
       // Update the method descriptor
       Object.defineProperty(constructor.prototype, propertyName, descriptor);
@@ -268,16 +259,11 @@ function getDirectoryPath(stacktraceLine: string) {
  * An error that was assumed cannot happen, and communicates to users that it's not their fault but an internal bug.
  */
 function Bug(message: string) {
-  return Error(
-    `${message}\nThis shouldn't have happened and indicates an internal bug.`
-  );
+  return Error(`${message}\nThis shouldn't have happened and indicates an internal bug.`);
 }
 /**
  * Make an assertion. When failing, this will communicate to users it's not their fault but indicates an internal bug.
  */
-function assert(
-  condition: boolean,
-  message = 'Failed assertion.'
-): asserts condition {
+function assert(condition: boolean, message = 'Failed assertion.'): asserts condition {
   if (!condition) throw Bug(message);
 }

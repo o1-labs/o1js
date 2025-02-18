@@ -80,9 +80,7 @@ expect(() => {
 }).toThrow('Missing fee in fee payer');
 
 // should calculate a correct minimum fee
-expect(
-  client.getAccountUpdateMinimumFee(exampleZkappCommand.accountUpdates)
-).toBe(0.002);
+expect(client.getAccountUpdateMinimumFee(exampleZkappCommand.accountUpdates)).toBe(0.002);
 
 // same transaction signed with o1js (OCaml implementation) gives the same result
 
@@ -108,7 +106,7 @@ tx.sign([PrivateKey.fromBase58(privateKey)]);
 expect(zkappCommand.data.zkappCommand.feePayer.authorization).toEqual(
   tx.transaction.feePayer.authorization
 );
-expect(
-  zkappCommand.data.zkappCommand.accountUpdates[1].authorization.signature
-).toEqual(tx.transaction.accountUpdates[1].authorization.signature);
+expect(zkappCommand.data.zkappCommand.accountUpdates[1].authorization.signature).toEqual(
+  tx.transaction.accountUpdates[1].authorization.signature
+);
 expect(JSON.stringify(zkappCommand.data.zkappCommand)).toEqual(tx.toJSON());
