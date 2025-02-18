@@ -9,7 +9,7 @@ import { Account } from './account.js';
 import { ZkappCommand, TokenId, Authorization, Actions } from './account-update.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { TupleN } from '../../util/types.js';
-import { Types, TypesBigint } from '../../../bindings/mina-transaction/types.js';
+import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
 import { invalidTransactionError } from './errors.js';
 import {
   Transaction,

@@ -17,7 +17,7 @@ import { verifyAccountUpdateSignature } from '../../../mina-signer/src/sign-zkap
 import { TransactionCost, TransactionLimits } from './constants.js';
 import { cloneCircuitValue } from '../../provable/types/struct.js';
 import { assert } from '../../provable/gadgets/common.js';
-import { Types, TypesBigint } from '../../../bindings/mina-transaction/types.js';
+import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
 import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';

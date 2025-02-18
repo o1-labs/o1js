@@ -7,7 +7,7 @@ import {
   TokenId,
   hashAccountUpdate,
 } from '../account-update.js';
-import { TypesBigint } from '../../../../bindings/mina-transaction/types.js';
+import { TypesBigint } from '../../../../bindings/mina-transaction/v1/types.js';
 import { Pickles, initializeBindings } from '../../../../snarky.js';
 import {
   accountUpdatesToCallForest,

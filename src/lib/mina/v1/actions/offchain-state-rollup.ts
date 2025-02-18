@@ -2,7 +2,7 @@ import { ZkProgram } from '../../../proof-system/zkprogram.js';
 import { Proof } from '../../../proof-system/proof.js';
 import { Bool, Field } from '../../../provable/wrapped.js';
 import { MerkleList, MerkleListIterator } from '../../../provable/merkle-list.js';
-import { Actions } from '../../../../bindings/mina-transaction/transaction-leaves.js';
+import { Actions } from '../../../../bindings/mina-transaction/v1/transaction-leaves.js';
 import { IndexedMerkleMap, IndexedMerkleMapBase } from '../../../provable/merkle-tree-indexed.js';
 import { Struct } from '../../../provable/types/struct.js';
 import { SelfProof } from '../../../proof-system/zkprogram.js';

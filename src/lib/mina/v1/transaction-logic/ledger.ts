@@ -6,7 +6,7 @@ import type { AccountUpdate } from '../account-update.js';
 import { Account, newAccount } from '../account.js';
 import { Field } from '../../../provable/field.js';
 import { applyAccountUpdate } from './apply.js';
-import { Types } from '../../../../bindings/mina-transaction/types.js';
+import { Types } from '../../../../bindings/mina-transaction/v1/types.js';
 
 export { SimpleLedger };
 

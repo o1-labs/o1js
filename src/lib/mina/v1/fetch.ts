@@ -4,7 +4,7 @@ import { UInt32, UInt64 } from '../../provable/int.js';
 import { Actions, TokenId } from './account-update.js';
 import { PublicKey, PrivateKey } from '../../provable/crypto/signature.js';
 import { NetworkValue } from './precondition.js';
-import { Types } from '../../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { ActionStates } from './mina.js';
 import { LedgerHash, EpochSeed, StateHash } from './base58-encodings.js';
 import { Account, fillPartialAccount, parseFetchedAccount, PartialAccount } from './account.js';

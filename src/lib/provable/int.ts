@@ -1,7 +1,7 @@
 import { Field, Bool } from './wrapped.js';
 import { AnyConstructor, Struct } from './types/struct.js';
-import { Types } from '../../bindings/mina-transaction/types.js';
-import * as TypesBigint from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { Types } from '../../bindings/mina-transaction/v1/types.js';
+import * as TypesBigint from '../../bindings/mina-transaction/v1/transaction-leaves-bigint.js';
 import { HashInput } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';

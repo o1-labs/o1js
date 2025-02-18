@@ -155,8 +155,8 @@ function writeTsContent({ jsLayout: types, isJson, isProvable, leavesRelPath }) 
 import { ${[...imports].join(', ')} } from '${importPath}';
 ${
   !isJson
-    ? `import { ${GenericType} } from '../../lib/generic.js';\n` +
-      `import { ${FromLayout}, GenericLayout } from '../../lib/from-layout.js';\n` +
+    ? `import { ${GenericType} } from '../../../lib/generic.js';\n` +
+      `import { ${FromLayout}, GenericLayout } from '../../../lib/from-layout.js';\n` +
       "import * as Json from './transaction-json.js';\n" +
       (isProvable ? "import * as Value from './transaction-bigint.js';\n" : '') +
       "import { jsLayout } from './js-layout.js';\n"
@@ -222,13 +222,13 @@ async function writeTsFile(content, relPath) {
   });
   await fs.writeFile(absPath, content);
 }
-let genPath = '../../bindings/mina-transaction/gen';
+let genPath = '../../bindings/mina-transaction/gen/v1';
 await ensureDir(genPath);
 
 let jsonTypesContent = writeTsContent({
   jsLayout,
   isJson: true,
-  leavesRelPath: '../transaction-leaves-json.js',
+  leavesRelPath: '../../v1/transaction-leaves-json.js',
 });
 await writeTsFile(jsonTypesContent, `${genPath}/transaction-json.ts`);
 
@@ -236,7 +236,7 @@ let jsTypesContent = writeTsContent({
   jsLayout,
   isJson: false,
   isProvable: true,
-  leavesRelPath: '../transaction-leaves.js',
+  leavesRelPath: '../../v1/transaction-leaves.js',
 });
 await writeTsFile(jsTypesContent, `${genPath}/transaction.ts`);
 
@@ -244,7 +244,7 @@ jsTypesContent = writeTsContent({
   jsLayout,
   isJson: false,
   isProvable: false,
-  leavesRelPath: '../transaction-leaves-bigint.js',
+  leavesRelPath: '../../v1/transaction-leaves-bigint.js',
 });
 await writeTsFile(jsTypesContent, `${genPath}/transaction-bigint.ts`);
 

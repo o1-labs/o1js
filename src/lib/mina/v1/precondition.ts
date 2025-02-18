@@ -4,16 +4,16 @@ import { Provable } from '../../provable/provable.js';
 import { activeInstance as Mina } from './mina-instance.js';
 import type { AccountUpdate } from './account-update.js';
 import { Int64, UInt32, UInt64 } from '../../provable/int.js';
-import { Layout } from '../../../bindings/mina-transaction/gen/transaction.js';
-import { jsLayout } from '../../../bindings/mina-transaction/gen/js-layout.js';
+import { Layout } from '../../../bindings/mina-transaction/gen/v1/transaction.js';
+import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
 import { emptyReceiptChainHash, TokenSymbol } from '../../provable/crypto/poseidon.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import {
   ActionState,
   Actions,
   ZkappUri,
-} from '../../../bindings/mina-transaction/transaction-leaves.js';
-import type { Types } from '../../../bindings/mina-transaction/types.js';
+} from '../../../bindings/mina-transaction/v1/transaction-leaves.js';
+import type { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import type { Permissions } from './account-update.js';
 import { ZkappStateLength } from './mina-instance.js';
 import { assertInternal } from '../../util/errors.js';

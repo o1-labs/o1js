@@ -5,8 +5,8 @@ import {
   Field,
   Json,
   ZkappCommand,
-} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
-import * as TypesSnarky from '../../bindings/mina-transaction/gen/transaction.js';
+} from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import * as TypesSnarky from '../../bindings/mina-transaction/gen/v1/transaction.js';
 import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,

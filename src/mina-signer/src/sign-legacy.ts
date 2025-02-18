@@ -3,7 +3,7 @@ import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
 import { SignatureJson, Signature, signLegacy, verifyLegacy } from './signature.js';
-import { Json } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+import { Json } from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
 import { bytesToBits, stringToBytes } from '../../bindings/lib/binable.js';
 import { NetworkId } from './types.js';
 

@@ -260,7 +260,8 @@
                   ./src/bindings/js
                   ./src/bindings/crypto
                   ./src/bindings/lib
-                  ./src/bindings/mina-transaction/gen/dune
+                  ./src/bindings/mina-transaction/gen/v1/dune
+                  ./src/bindings/mina-transaction/gen/v2/dune
                   (fileFilter (file: file.hasExt "js") ./src/bindings/mina-transaction)
                   ./src/bindings/ocaml/lib
                   ./src/bindings/ocaml/dune
