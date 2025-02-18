@@ -5,7 +5,7 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
 import { humanizeErrors, invalidTransactionError } from './errors.js';
-import { Types } from '../../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { Account } from './account.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { currentTransaction } from './transaction-context.js';

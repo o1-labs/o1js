@@ -4,7 +4,7 @@ import {
   Json,
   AccountUpdate,
   ZkappCommand,
-} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+} from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
 import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
 import { Signature, signFieldElement, verifyFieldElement, zkAppBodyPrefix } from './signature.js';
