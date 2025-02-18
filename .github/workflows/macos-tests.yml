@@ -1,0 +1,45 @@
+name: Test nix builds for macos
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devshell:
+    name: build-dev-shell-macos
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        node: [18, 20]
+        os: [macos-latest]
+    steps:
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+              substituters = https://cache.nixos.org https://cache.nixos.org/
+              trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+              trusted-substituters = https://cache.nixos.org
+              trusted-users = root nix-serve root bbrian
+              extra-substituters = https://storage.googleapis.com/mina-nix-cache
+              extra-trusted-public-keys = nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10=
+              experimental-features = nix-command flakes ca-derivations recursive-nix
+              max-jobs = 12
+      - uses: actions/cache@v3
+        with:
+          path: /nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('**/flake.lock') }}
+      - name: build devshell
+        run: |
+          set -Eeu
+          ./pin.sh
+          nix build o1js\#devShells.aarch64-darwin.default
