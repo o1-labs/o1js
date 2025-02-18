@@ -27,6 +27,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `MerkleList.popOption()` for popping the last element and also learning if there was one https://github.com/o1-labs/o1js/pull/1997
 - Added custom header support for `Fetch` methods such as `fetchEvents`, `fetchActions` etc. and to `Mina` instance. Also added two new methods `setMinaDefaultHeaders` and `setArchiveDefaultHeaders` https://github.com/o1-labs/o1js/pull/2004
 - Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
+- Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`
 
 ### Changed
 
