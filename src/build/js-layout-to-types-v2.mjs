@@ -307,7 +307,7 @@ const depOrderTypeNames = analyzeTypeDependencies(jsLayout);
 let out = '';
 
 out += "// @generated this file is auto-generated - don't edit it directly\n";
-out += "import { BindingsType } from '../../v2/type.js';\n";
+out += "import { BindingsType } from '../../v2/schema.js';\n";
 out += `\
   \ import {
   \   Actions,
