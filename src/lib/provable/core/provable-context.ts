@@ -29,7 +29,7 @@ export {
 
 type ConstraintSystemSummary = {
   /**
-   * Number of rows in the constraint system.
+   * Number of rows in the constraint system
    */
   rows: number;
   digest: string;
