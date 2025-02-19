@@ -53,6 +53,7 @@ export {
   CompiledTag,
   sortMethodArguments,
   MethodInterface,
+  MethodReturnType,
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
