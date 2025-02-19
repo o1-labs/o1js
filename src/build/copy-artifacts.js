@@ -8,8 +8,8 @@ await copyFromTo(
   '_node_bindings'
 );
 
-await copyFromTo(
-  ['src/bindings/compiled/native_bindings/'],
-  'native_bindings',
-  '_native_bindings'
-);
+// await copyFromTo(
+//   ['src/bindings/compiled/nodenative_bindings/'],
+//   'native_bindings',
+//   '_native_bindings'
+// );
