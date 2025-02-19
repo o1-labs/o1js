@@ -7,5 +7,5 @@ console.log(nativeRustValue);
 
 OCamlobject.runMe();
 
-nativeRustValue = OCamlobject.runPoseidonCipherNative();
+nativeRustValue = OCamlobject.runPoseidonCipherNative([1, 2, 3]);
 console.log(nativeRustValue);
