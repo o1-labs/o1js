@@ -67,6 +67,7 @@ declare namespace Snarky {
 declare const OCamlobject: {
   runMe: () => void;
   runMeRust: () => string;
+  runPoseidonCipherNative: () => string;
 };
 
 /**
