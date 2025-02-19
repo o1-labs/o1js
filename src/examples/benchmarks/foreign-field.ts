@@ -1,8 +1,6 @@
 import { Crypto, Provable, createForeignField } from 'o1js';
 
-class ForeignScalar extends createForeignField(
-  Crypto.CurveParams.Secp256k1.modulus
-) {}
+class ForeignScalar extends createForeignField(Crypto.CurveParams.Secp256k1.modulus) {}
 
 function main() {
   let s = Provable.witness(ForeignScalar.Canonical, ForeignScalar.random);

@@ -43,13 +43,7 @@ it('pickles rule creation', async () => {
   let privateInputs = [EmptyProof, Bool];
 
   // collect method interface
-  let methodIntf = sortMethodArguments(
-    'mock',
-    'main',
-    privateInputs,
-    undefined,
-    Proof
-  );
+  let methodIntf = sortMethodArguments('mock', 'main', privateInputs, undefined, Proof);
 
   expect(methodIntf).toEqual({
     methodName: 'main',
@@ -70,10 +64,7 @@ it('pickles rule creation', async () => {
     [EmptyProof]
   );
 
-  await equivalentAsync(
-    { from: [field, bool], to: record({ field, bool }) },
-    { runs: 5 }
-  )(
+  await equivalentAsync({ from: [field, bool], to: record({ field, bool }) }, { runs: 5 })(
     (field, bool) => ({ field, bool }),
     async (field, bool) => {
       let dummy = await EmptyProof.dummy(field, undefined, 0);
@@ -122,13 +113,7 @@ it('pickles rule creation: nested proof', async () => {
   }
 
   // collect method interface
-  let methodIntf = sortMethodArguments(
-    'mock',
-    'main',
-    [NestedProof2],
-    undefined,
-    Proof
-  );
+  let methodIntf = sortMethodArguments('mock', 'main', [NestedProof2], undefined, Proof);
 
   expect(methodIntf).toEqual({
     methodName: 'main',
@@ -177,13 +162,7 @@ it('pickles rule creation: nested proof', async () => {
 
 it('fails with more than two (nested) proofs', async () => {
   expect(() => {
-    sortMethodArguments(
-      'mock',
-      'main',
-      [NestedProof2, NestedProof],
-      undefined,
-      Proof
-    );
+    sortMethodArguments('mock', 'main', [NestedProof2, NestedProof], undefined, Proof);
   }).toThrowError('mock.main() has more than two proof arguments');
 });
 
@@ -226,10 +205,7 @@ const CounterProgram = ZkProgram({
   methods: {
     increment: {
       privateInputs: [UInt64],
-      async method(
-        { current, updated }: CounterPublicInput,
-        incrementBy: UInt64
-      ) {
+      async method({ current, updated }: CounterPublicInput, incrementBy: UInt64) {
         const newCount = current.add(incrementBy);
         newCount.assertEquals(updated);
       },
@@ -237,6 +213,5 @@ const CounterProgram = ZkProgram({
   },
 });
 
-const incrementMethodMetadata = (await CounterProgram.analyzeMethods())
-  .increment;
+const incrementMethodMetadata = (await CounterProgram.analyzeMethods()).increment;
 expect(incrementMethodMetadata).toEqual(expect.objectContaining({ rows: 18 }));

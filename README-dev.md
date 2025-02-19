@@ -92,10 +92,11 @@ If the bindings check fails in CI it will upload a patch you can use to update t
 This can also be helpful when the bindings don't build identically, as unfortunately often happens.
 
 To use this patch:
+
 - Click details on the `Build o1js bindings / build-bindings-ubunutu` job
 - Go to the `patch-upload` job and expand the logs for `Upload patch`
 - Download the file linked in the last line of the logs ie.
-`Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
+  `Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
 - unzip it
 - navigate to `src/bindings`
 - run `git apply path/to/bindings.patch`
@@ -129,6 +130,27 @@ Where:
 - `compatible`: This is the [Mina repository](https://github.com/MinaProtocol/mina) branch. It corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and soft-fork features are maintained.
 
 - `develop`: This branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
+
+### Style Guide
+
+This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and [prettier](https://prettier.io/docs/) configs to stay tidy. Here are some tips to comply with the style:
+
+1. Check for style violations by running the npm commands `npm run lint path/to/file` and `npm run format:check path/to/file`
+
+- To attempt to fix all style violations in all changed filed, you can run:
+  - `git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run format`
+  - and `git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run lint:fix`
+
+2. Integrate prettier into your dev environment
+
+- For instance the [VS Code](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) plugin allows for format on save
+
+3. Enable pre-commit hooks
+
+- There is an opt-in pre-commit hook avaibale that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
+
+> [!NOTE]  
+> You can opt-out of linting in a PR by tagging it with skip-lint, in case the linting script is legitimately blocking an important PR
 
 ### Running Tests
 
@@ -243,17 +265,23 @@ This script initializes a Node.js process with the `--inspect-brk` flag that sta
 After the Node.js process is running, open the Chrome browser and navigate to `chrome://inspect` to attach the Chrome Debugger to the Node.js process. You can set breakpoints, inspect variables, and profile the performance of your zkApp or o1js. For more information on using the Chrome Debugger, see the [DevTools documentation](https://developer.chrome.com/docs/devtools/).
 
 ### Debugging within the SDK
+
 To debug a call into the SDK, you can link your local copy of the SDK with `npm link`. After that, you'll be able to add log statements, set breakpoints, and make code changes. Within the SDK, run:
+
 ```sh
 npm run link
 ```
+
 Then in your zkApp codebase, run:
+
 ```sh
 npm link o1js
 ```
 
 #### Logging from OCaml
+
 If you need to debug a call into the OCaml code, the process is a little more complicated. The OCaml is compiled into JavaScript with js_of_ocaml during `npm run build:update-bindings`, so you'll need to add your logs into the OCaml code and rebuild the bindings to see them. Logging from OCaml in a way that will reflect as JS `console.log`s in the compiled code can be done like this:
+
 ```ocaml
 let () = print_endline "This is a log" in
 ```

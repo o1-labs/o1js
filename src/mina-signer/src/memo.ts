@@ -20,9 +20,7 @@ export { Memo };
 function fromString(memo: string) {
   let length = stringLengthInBytes(memo);
   if (length > 32) throw Error('Memo.fromString: string too long');
-  return (
-    `\x01${String.fromCharCode(length)}${memo}` + '\x00'.repeat(32 - length)
-  );
+  return `\x01${String.fromCharCode(length)}${memo}` + '\x00'.repeat(32 - length);
 }
 function toString(memo: string) {
   let totalLength = stringLengthInBytes(memo);
