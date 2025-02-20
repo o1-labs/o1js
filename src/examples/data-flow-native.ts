@@ -1,4 +1,4 @@
-import { OCamlobject, initializeBindings } from 'o1js';
+import { OCamlobject, initializeBindings, Field } from 'o1js';
 
 await initializeBindings();
 
@@ -7,5 +7,6 @@ console.log(nativeRustValue);
 
 OCamlobject.runMe();
 
-nativeRustValue = OCamlobject.runPoseidonCipherNative([1, 2, 3]);
+const input = [Field(1), Field(2), Field(3)];
+nativeRustValue = OCamlobject.runPoseidonCipherNative(input);
 console.log(nativeRustValue);
