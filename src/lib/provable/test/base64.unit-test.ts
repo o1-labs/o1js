@@ -15,10 +15,7 @@ function calculateB64DecodedBytesLength(base64String: string): number {
   return byteLength;
 }
 
-function generateRandomString(
-  maxLength: number,
-  encoding?: BufferEncoding
-): string {
+function generateRandomString(maxLength: number, encoding?: BufferEncoding): string {
   // Generate a random length between 1 and maxLength
   const randomLength = Math.floor(Math.random() * maxLength) + 1;
 
@@ -37,9 +34,7 @@ describe('Base64 Decode Tests', () => {
     const decodedByteLength = calculateB64DecodedBytesLength(base64String);
 
     // Decode the base64 string
-    const decodedBytes = Bytes.fromString(base64String)
-      .base64Decode(decodedByteLength)
-      .toBytes();
+    const decodedBytes = Bytes.fromString(base64String).base64Decode(decodedByteLength).toBytes();
 
     // Calculate the expected decoded bytes using JS implementation
     const decodedString = atob(base64String);
@@ -93,8 +88,7 @@ describe('Base64 Encode Tests', () => {
   }
 
   test('should Base64 encode an input', async () => {
-    const input =
-      'ef140c0eea15554e26d16d164554ab55731e1922004ac9ee70af5d26cadcfaf5';
+    const input = 'ef140c0eea15554e26d16d164554ab55731e1922004ac9ee70af5d26cadcfaf5';
     testBase64Encode(input);
   });
 

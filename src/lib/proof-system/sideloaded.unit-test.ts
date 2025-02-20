@@ -56,11 +56,7 @@ const sideloadedProgram = ZkProgram({
   methods: {
     recurseOneSideloaded: {
       privateInputs: [SampleSideloadedProof, VerificationKey],
-      async method(
-        publicInput: Field,
-        proof: SampleSideloadedProof,
-        vk: VerificationKey
-      ) {
+      async method(publicInput: Field, proof: SampleSideloadedProof, vk: VerificationKey) {
         proof.verify(vk);
 
         proof.publicInput.assertEquals(publicInput, 'PublicInput not matching');
@@ -122,11 +118,7 @@ const sideloadedProgram2 = ZkProgram({
 });
 
 export class SideloadedSmartContract extends SmartContract {
-  @method async setValue(
-    value: Field,
-    proof: SampleSideloadedProof,
-    vk: VerificationKey
-  ) {
+  @method async setValue(value: Field, proof: SampleSideloadedProof, vk: VerificationKey) {
     proof.verify(vk);
     proof.publicInput.assertEquals(value);
   }

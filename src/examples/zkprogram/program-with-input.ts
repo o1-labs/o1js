@@ -1,12 +1,4 @@
-import {
-  SelfProof,
-  Field,
-  ZkProgram,
-  verify,
-  Proof,
-  JsonProof,
-  Provable,
-} from 'o1js';
+import { SelfProof, Field, ZkProgram, verify, Proof, JsonProof, Provable } from 'o1js';
 
 let MyProgram = ZkProgram({
   name: 'example-with-input',
@@ -42,7 +34,7 @@ let { verificationKey } = await MyProgram.compile();
 console.log('verification key', verificationKey.data.slice(0, 10) + '..');
 
 console.log('proving base case...');
-let { proof } = await MyProgram.baseCase(Field(0));
+let { proof } = await MyProgram.baseCase(0);
 proof = await testJsonRoundtrip(MyProgram.Proof, proof);
 
 // type sanity check
@@ -57,7 +49,7 @@ ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 1...');
-let { proof: proof1 } = await MyProgram.inductiveCase(Field(1), proof);
+let { proof: proof1 } = await MyProgram.inductiveCase(1, proof);
 proof1 = await testJsonRoundtrip(MyProgram.Proof, proof1);
 
 console.log('verify...');
@@ -69,7 +61,7 @@ ok = await MyProgram.verify(proof1);
 console.log('ok (alternative)?', ok);
 
 console.log('proving step 2...');
-let { proof: proof2 } = await MyProgram.inductiveCase(Field(2), proof1);
+let { proof: proof2 } = await MyProgram.inductiveCase(2, proof1);
 proof2 = await testJsonRoundtrip(MyProgram.Proof, proof2);
 
 console.log('verify...');

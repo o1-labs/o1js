@@ -112,7 +112,7 @@ nix develop mina
 
 ### Storage handling
 
-Using Nix can take up a lot of disk space if not optimized. Every time you run `nix develop {SOMETHING}`, Nix will create new generations taking gigabytes of data instead of replacing the old ones. This can soon become a problem in your hard disk if you don't handle it carefully. Here are a few indications that can help with this. 
+Using Nix can take up a lot of disk space if not optimized. Every time you run `nix develop {SOMETHING}`, Nix will create new generations taking gigabytes of data instead of replacing the old ones. This can soon become a problem in your hard disk if you don't handle it carefully. Here are a few indications that can help with this.
 
 Nix has a garbage collector that **is not used by default** after every run. Instead, artifacts get accumulated in your disk unless configured otherwise. But if the full gargabe collector is executed (`nix-store --gc`), it will get the dependencies removed completely, and you can expect that the next time executing the Nix build will take hours to complete.
 
@@ -122,16 +122,16 @@ On top of that, adding `auto-optimise-store = true` to `/etc/nix/nix.conf` and r
 
 ### Runtime optimization
 
-Other configurations are worth adding into your `/etc/nix/nix.conf`: 
+Other configurations are worth adding into your `/etc/nix/nix.conf`:
 
 ```bash
-keep-otuputs = true 
+keep-otuputs = true
 max-jobs = 20
 extra-substituters = https://storage.googleapis.com/mina-nix-cache
 extra-trusted-public-keys = nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10=
 ```
 
-The first of those flags tells the garbage collector to keep build time dependencies of current gc-roots, which should help reduce the amount of data that gets removed and rebuilt. 
+The first of those flags tells the garbage collector to keep build time dependencies of current gc-roots, which should help reduce the amount of data that gets removed and rebuilt.
 
 The second flag increases the default number of jobs being 1, so that rebuilding from scratch will take shorter time.
 
@@ -189,7 +189,7 @@ Alternatively, try this change in the `src/mina/flake.nix` file:
 
 ```
 -        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen ];
-+        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen cargo libiconvI];
++        devShellPackages = with pkgs; [ rosetta-cli wasm-pack nodejs binaryen cargo libiconv];
 ```
 
 ### wasm32-unknown-unknown
@@ -293,13 +293,19 @@ Then, the error message would still contain old directories.
 Rerun `pin.sh` and `src/mina/nix/pin.sh`.
 
 ### Changes to nix flakes aren't taking effect
+
 On MacOS, nix may ignore changes to files when nix commands are run and reuse the flake cached in its registry. Running commands like `nix develop o1js` and `nix run o1js#update-bindings` will reuse the cached version of the flake. As a result:
+
 - The devshell could be missing newly added dependencies.
 - Builds executed directly with `nix run` could be generated from old source files.
+
 #### Fix
+
 There are two ways to ensure Nix recognizes flake changes:
+
 - Rerun `pin.sh` to force an update to the registry, then run your command.
 - Reference the flake by its directory path rather than its registry name. This forces Nix to use the current contents of the directory:
+
 ```bash
 nix develop .'?submodules=1#default'
 ```

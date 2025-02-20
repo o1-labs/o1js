@@ -44,10 +44,7 @@ type Signed<T> = { data: T; signature: string };
 type SignedLegacy<T> = { data: T; signature: SignatureJson };
 const dummySignature: Signature = { r: Field(1), s: Scalar(1) };
 
-function hashPayment(
-  signed: SignedLegacy<PaymentJson>,
-  { berkeley = false } = {}
-) {
+function hashPayment(signed: SignedLegacy<PaymentJson>, { berkeley = false } = {}) {
   if (!berkeley) return hashPaymentV1(signed);
   let payload = userCommandToEnum(paymentFromJson(signed.data));
   return hashSignedCommand({
@@ -57,10 +54,7 @@ function hashPayment(
   });
 }
 
-function hashStakeDelegation(
-  signed: SignedLegacy<DelegationJson>,
-  { berkeley = false } = {}
-) {
+function hashStakeDelegation(signed: SignedLegacy<DelegationJson>, { berkeley = false } = {}) {
   if (!berkeley) return hashStakeDelegationV1(signed);
   let payload = userCommandToEnum(delegationFromJson(signed.data));
   return hashSignedCommand({
@@ -123,19 +117,14 @@ const Payment = record<Payment>(
   },
   ['receiver', 'amount']
 );
-const Delegation = record<Delegation>({ newDelegate: BinablePublicKey }, [
-  'newDelegate',
-]);
+const Delegation = record<Delegation>({ newDelegate: BinablePublicKey }, ['newDelegate']);
 type DelegationEnum = { type: 'SetDelegate'; value: Delegation };
 const DelegationEnum = enumWithArgument<[DelegationEnum]>([
   { type: 'SetDelegate', value: Delegation },
 ]);
 
 const Body = enumWithArgument<
-  [
-    { type: 'Payment'; value: Payment },
-    { type: 'StakeDelegation'; value: DelegationEnum }
-  ]
+  [{ type: 'Payment'; value: Payment }, { type: 'StakeDelegation'; value: DelegationEnum }]
 >([
   { type: 'Payment', value: Payment },
   { type: 'StakeDelegation', value: DelegationEnum },
@@ -181,10 +170,7 @@ function hashPaymentV1({ data, signature }: SignedLegacy<PaymentJson>) {
   });
 }
 
-function hashStakeDelegationV1({
-  data,
-  signature,
-}: SignedLegacy<DelegationJson>) {
+function hashStakeDelegationV1({ data, signature }: SignedLegacy<DelegationJson>) {
   let payload = userCommandToV1(delegationFromJson(data));
   return hashSignedCommandV1({
     signer: PublicKey.fromBase58(data.common.feePayer),
@@ -271,25 +257,20 @@ const PaymentV1 = with1(
   )
 );
 type DelegationV1 = Delegation & { delegator: PublicKey };
-const DelegationV1 = record<DelegationV1>(
-  { delegator: PublicKey, newDelegate: PublicKey },
-  ['delegator', 'newDelegate']
-);
+const DelegationV1 = record<DelegationV1>({ delegator: PublicKey, newDelegate: PublicKey }, [
+  'delegator',
+  'newDelegate',
+]);
 type DelegationEnumV1 = { type: 'SetDelegate'; value: DelegationV1 };
 const DelegationEnumV1 = with1(
-  enumWithArgument<[DelegationEnumV1]>([
-    { type: 'SetDelegate', value: DelegationV1 },
-  ])
+  enumWithArgument<[DelegationEnumV1]>([{ type: 'SetDelegate', value: DelegationV1 }])
 );
 type BodyV1 =
   | { type: 'Payment'; value: PaymentV1 }
   | { type: 'StakeDelegation'; value: DelegationEnumV1 };
 const BodyV1 = with1(
   enumWithArgument<
-    [
-      { type: 'Payment'; value: PaymentV1 },
-      { type: 'StakeDelegation'; value: DelegationEnumV1 }
-    ]
+    [{ type: 'Payment'; value: PaymentV1 }, { type: 'StakeDelegation'; value: DelegationEnumV1 }]
   >([
     { type: 'Payment', value: PaymentV1 },
     { type: 'StakeDelegation', value: DelegationEnumV1 },

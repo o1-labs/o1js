@@ -12,8 +12,11 @@
     "src/bindings/**/*",
     "src/examples/**/*",
     "src/lib/provable/+(core|test)/**/*",
-    "src/**/*(test|unit-test).ts",
+    "src/**/*(test|unit-test).ts"
   ],
+  "validation": {
+    "notExported": false // Allows us to reference types and classes that are not documented from types and classes that are documented
+  },
   "entryPoints": [
     "src/index.ts",
     "src/lib/provable/field.ts",
@@ -46,5 +49,5 @@
   "indexFormat": "table",
   "mergeReadme": true,
   "expandParameters": true,
-  "expandObjects": true,
+  "expandObjects": true
 }

@@ -90,9 +90,7 @@ equivalentProvable({ from: [scalar], to: unit, verbose: true })(
     Provable.equal(Scalar, s, sCanonical).assertTrue();
 
     // and also has exactly the same field elements as input
-    return sCanonical.high254
-      .equals(s.high254)
-      .and(sCanonical.lowBit.equals(s.lowBit));
+    return sCanonical.high254.equals(s.high254).and(sCanonical.lowBit.equals(s.lowBit));
   },
   'toCanonical(canonical)'
 );
@@ -106,9 +104,7 @@ equivalentProvable({ from: [nonCanonicalScalar], to: unit, verbose: true })(
     Provable.equal(Scalar, s, sCanonical).assertTrue();
 
     // but has different field elements as input
-    return sCanonical.high254
-      .equals(s.high254)
-      .and(sCanonical.lowBit.equals(s.lowBit));
+    return sCanonical.high254.equals(s.high254).and(sCanonical.lowBit.equals(s.lowBit));
   },
   'toCanonical(nonCanonical)'
 );
@@ -117,9 +113,7 @@ const g = Group.generator;
 
 runAndCheckSync(() => {
   let badZero = Provable.witness(Scalar, () => nonCanonicalScalar.there(0n));
-  let badMinusOne = Provable.witness(Scalar, () =>
-    nonCanonicalScalar.there(-1n)
-  );
+  let badMinusOne = Provable.witness(Scalar, () => nonCanonicalScalar.there(-1n));
 
   // incomplete scalar multiplication
   assert.throws(() => g.scale(badZero), /Field.inv: zero/);
@@ -151,9 +145,7 @@ function run(
     Provable.asProver(() => {
       assert(
         result_out_circuit.equals(result_in_circuit).toBoolean(),
-        `Result for x does not match. g1: ${JSON.stringify(
-          g1
-        )}, g2: ${JSON.stringify(g2)}`
+        `Result for x does not match. g1: ${JSON.stringify(g1)}, g2: ${JSON.stringify(g2)}`
       );
     });
   });
@@ -176,9 +168,7 @@ function runScale<T extends Scalar | Field>(
     Provable.asProver(() => {
       assert(
         result_out_circuit.equals(result_in_circuit).toBoolean(),
-        `Result for x does not match. g: ${JSON.stringify(
-          g
-        )}, s: ${JSON.stringify(s)}
+        `Result for x does not match. g: ${JSON.stringify(g)}, s: ${JSON.stringify(s)}
         
         out_circuit: ${JSON.stringify(result_out_circuit)}
         in_circuit: ${JSON.stringify(result_in_circuit)}`

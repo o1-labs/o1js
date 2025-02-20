@@ -244,8 +244,8 @@ class Scalar implements ShiftedScalar {
    * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
    *
    */
-  static toInput(x: Scalar): HashInput {
-    return { fields: [x.high254], packed: [[x.lowBit.toField(), 1]] };
+  static toInput(value: Scalar): HashInput {
+    return { fields: [value.high254], packed: [[value.lowBit.toField(), 1]] };
   }
 
   /**
@@ -263,10 +263,7 @@ class Scalar implements ShiftedScalar {
    * Creates a data structure from an array of serialized {@link Field} elements.
    */
   static fromFields(fields: Field[]): Scalar {
-    assert(
-      fields.length === 2,
-      `Scalar.fromFields(): expected 2 fields, got ${fields.length}`
-    );
+    assert(fields.length === 2, `Scalar.fromFields(): expected 2 fields, got ${fields.length}`);
     let lowBit = Bool.Unsafe.fromField(fields[0]);
     let high254 = fields[1];
     return new Scalar(lowBit, high254);
