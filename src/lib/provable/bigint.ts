@@ -87,7 +87,7 @@ const BigIntParams: { [key: string]: BigIntParameter } = {
  *
  * Each arithmetic operation ensures the result is a valid element of the prime field.
  *
- * Example usage:
+ * @example
  * ```ts
  * // Create a big integer type with modulus 2^521 - 1
  * const BigInt521 = createProvableBigInt(2n ** 521n - 1n);
