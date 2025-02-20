@@ -784,6 +784,11 @@ abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
 }
 
 function rangeCheck(x: Field, bits: number, signed?: boolean) {
+  const supportedBits = new Set([32, 48, 64, 116, 128]);
+  if (!supportedBits.has(bits)) {
+    throw new Error(`Unsupported bit size: ${bits}`);
+  }
+
   switch (bits) {
     case 32:
       Gadgets.rangeCheck32(x);
@@ -798,7 +803,11 @@ function rangeCheck(x: Field, bits: number, signed?: boolean) {
       rangeCheck116(x);
       break;
     case 128:
-      if (signed) rangeCheck128Signed(x);
+      if (signed) {
+        rangeCheck128Signed(x);
+      } else {
+        throw new Error('128-bit unsigned range check not implemented');
+      }
       break;
   }
 }
