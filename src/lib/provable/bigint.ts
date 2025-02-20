@@ -726,7 +726,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
   return ProvableBigInt_;
 }
 
-abstract class ProvableBigInt<T extends ProvableBigInt<T>> {
+abstract class ProvableBigInt<T> {
   fields: Field[];
   value: Unconstrained<bigint>;
 
