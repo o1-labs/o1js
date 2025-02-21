@@ -2,7 +2,7 @@ import { Test } from '../../snarky.js';
 import { Random, test } from '../testing/property.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import { PrivateKey, PublicKey } from '../provable/crypto/signature.js';
-import { TokenId, dummySignature } from '../mina/account-update.js';
+import { TokenId, dummySignature } from '../mina/v1/account-update.js';
 import { Ml } from './conversion.js';
 import { expect } from 'expect';
 import { FieldConst } from '../provable/core/fieldvar.js';
@@ -81,10 +81,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
 
   let js = TokenId.derive(tokenOwner, parentTokenId);
   let ml = Field(
-    mlTest.tokenId.derive(
-      Ml.fromPublicKey(tokenOwner),
-      Ml.constFromField(parentTokenId)
-    )
+    mlTest.tokenId.derive(Ml.fromPublicKey(tokenOwner), Ml.constFromField(parentTokenId))
   );
   expect(js).toEqual(ml);
 });
@@ -104,10 +101,7 @@ test(Random.publicKey, randomTokenId, (publicKey, field) => {
 
     let js = TokenId.derive(tokenOwner, parentTokenId);
     let ml = Field(
-      mlTest.tokenId.deriveChecked(
-        Ml.fromPublicKeyVar(tokenOwner),
-        Ml.varFromField(parentTokenId)
-      )
+      mlTest.tokenId.deriveChecked(Ml.fromPublicKeyVar(tokenOwner), Ml.varFromField(parentTokenId))
     );
 
     expect(js.isConstant()).toEqual(false);

@@ -8,20 +8,10 @@ export {
   AlmostForeignField,
   CanonicalForeignField,
 } from './lib/provable/foreign-field.js';
-export {
-  createForeignCurve,
-  ForeignCurve,
-} from './lib/provable/crypto/foreign-curve.js';
-export {
-  createEcdsa,
-  EcdsaSignature,
-} from './lib/provable/crypto/foreign-ecdsa.js';
+export { createForeignCurve, ForeignCurve } from './lib/provable/crypto/foreign-curve.js';
+export { createEcdsa, EcdsaSignature } from './lib/provable/crypto/foreign-ecdsa.js';
 export { ScalarField } from './lib/provable/scalar-field.js';
-export {
-  Poseidon,
-  TokenSymbol,
-  ProvableHashable,
-} from './lib/provable/crypto/poseidon.js';
+export { Poseidon, TokenSymbol, ProvableHashable } from './lib/provable/crypto/poseidon.js';
 export { Keccak } from './lib/provable/crypto/keccak.js';
 export { Hash } from './lib/provable/crypto/hash.js';
 
@@ -34,40 +24,24 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
-export {
-  From,
-  InferValue,
-  InferJson,
-  IsPure,
-} from './bindings/lib/provable-generic.js';
+export { From, InferValue, InferJson, IsPure } from './bindings/lib/provable-generic.js';
 export { ProvableType } from './lib/provable/types/provable-intf.js';
-export {
-  provable,
-  provablePure,
-} from './lib/provable/types/provable-derivers.js';
+export { provable, provablePure } from './lib/provable/types/provable-derivers.js';
 export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';
 export { Provable } from './lib/provable/provable.js';
-export {
-  Circuit,
-  Keypair,
-  public_,
-  circuitMain,
-} from './lib/proof-system/circuit.js';
+export { Circuit, Keypair, public_, circuitMain } from './lib/proof-system/circuit.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
-export { Bytes } from './lib/provable/wrapped-classes.js';
+export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/types.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
-import {
-  IndexedMerkleMap,
-  IndexedMerkleMapBase,
-} from './lib/provable/merkle-tree-indexed.js';
+import { IndexedMerkleMap, IndexedMerkleMapBase } from './lib/provable/merkle-tree-indexed.js';
 export { Option } from './lib/provable/option.js';
 
-export * as Mina from './lib/mina/mina.js';
+export * as Mina from './lib/mina/v1/mina.js';
 export {
   Transaction,
   type TransactionPromise,
@@ -75,11 +49,11 @@ export {
   type IncludedTransaction,
   type RejectedTransaction,
   type PendingTransactionPromise,
-} from './lib/mina/transaction.js';
-export type { DeployArgs } from './lib/mina/zkapp.js';
-export { SmartContract, method, declareMethods } from './lib/mina/zkapp.js';
-export { Reducer } from './lib/mina/actions/reducer.js';
-export { state, State, declareState } from './lib/mina/state.js';
+} from './lib/mina/v1/transaction.js';
+export type { DeployArgs } from './lib/mina/v1/zkapp.js';
+export { SmartContract, method, declareMethods } from './lib/mina/v1/zkapp.js';
+export { Reducer } from './lib/mina/v1/actions/reducer.js';
+export { state, State, declareState } from './lib/mina/v1/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
 export {
@@ -90,15 +64,11 @@ export {
   Void,
   VerificationKey,
 } from './lib/proof-system/zkprogram.js';
-export {
-  type ProofBase,
-  Proof,
-  DynamicProof,
-} from './lib/proof-system/proof.js';
+export { type ProofBase, Proof, DynamicProof } from './lib/proof-system/proof.js';
 export { FeatureFlags } from './lib/proof-system/feature-flags.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 
-export { Account } from './lib/mina/account.js';
+export { Account } from './lib/mina/v1/account.js';
 export {
   TokenId,
   AccountUpdate,
@@ -107,12 +77,12 @@ export {
   TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
-} from './lib/mina/account-update.js';
+} from './lib/mina/v1/account-update.js';
 
-export { TokenAccountUpdateIterator } from './lib/mina/token/forest-iterator.js';
-export { TokenContract } from './lib/mina/token/token-contract.js';
+export { TokenAccountUpdateIterator } from './lib/mina/v1/token/forest-iterator.js';
+export { TokenContract } from './lib/mina/v1/token/token-contract.js';
 
-export type { TransactionStatus } from './lib/mina/graphql.js';
+export type { TransactionStatus } from './lib/mina/v1/graphql.js';
 export {
   fetchAccount,
   fetchLastBlock,
@@ -125,7 +95,7 @@ export {
   setArchiveGraphqlEndpoint,
   sendZkapp,
   Lightnet,
-} from './lib/mina/fetch.js';
+} from './lib/mina/v1/fetch.js';
 export * as Encryption from './lib/provable/crypto/encryption.js';
 export * as Encoding from './bindings/lib/encoding.js';
 export { Character, CircuitString } from './lib/provable/string.js';
@@ -144,9 +114,9 @@ export { setNumberOfWorkers } from './lib/proof-system/workers.js';
 
 // experimental APIs
 import { memoizeWitness } from './lib/provable/provable.js';
-import * as OffchainState_ from './lib/mina/actions/offchain-state.js';
-import * as BatchReducer_ from './lib/mina/actions/batch-reducer.js';
-import { Actionable } from './lib/mina/actions/offchain-state-serialization.js';
+import * as OffchainState_ from './lib/mina/v1/actions/offchain-state.js';
+import * as BatchReducer_ from './lib/mina/v1/actions/batch-reducer.js';
+import { Actionable } from './lib/mina/v1/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 import {
