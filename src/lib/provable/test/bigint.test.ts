@@ -352,7 +352,7 @@ describe('BigInt17', () => {
     it('should correctly compute the modular inverse of a ProvableBigInt', () => {
       const a = BigInt17.fromBigint(2n);
       const result = a.inverse();
-      expect(result.toBigint()).toStrictEqual(9n); 
+      expect(result.toBigint()).toStrictEqual(9n);
     });
 
     it('should correctly compute the modular inverse of 1', () => {
@@ -527,7 +527,7 @@ describe('BigInt17', () => {
     });
 
     it('should correctly compare BigInt17 numbers with modulus', () => {
-      const a = BigInt17.fromBigint(17n); 
+      const a = BigInt17.fromBigint(17n);
       const b = BigInt17.fromBigint(1n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
@@ -577,7 +577,7 @@ describe('BigInt17', () => {
     });
 
     it('should correctly compare BigInt17 numbers with one being the modulus', () => {
-      const a = BigInt17.fromBigint(17n); 
+      const a = BigInt17.fromBigint(17n);
       const b = BigInt17.fromBigint(0n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(false);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
@@ -927,7 +927,7 @@ describe('BigInt255', () => {
     it('should correctly compute the modular inverse of a ProvableBigInt', () => {
       const a = BigInt255.fromBigint(2n);
       const result = a.inverse();
-      expect(result.toBigint()).toStrictEqual(modularInverse(2n, modulus)); 
+      expect(result.toBigint()).toStrictEqual(modularInverse(2n, modulus));
     });
 
     it('should correctly compute the modular inverse of 1', () => {
@@ -1100,7 +1100,7 @@ describe('BigInt255', () => {
     });
 
     it('should correctly compare BigInt255 numbers with modulus', () => {
-      const a = BigInt255.fromBigint(modulus); 
+      const a = BigInt255.fromBigint(modulus);
       const b = BigInt255.fromBigint(1n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
@@ -1150,7 +1150,7 @@ describe('BigInt255', () => {
     });
 
     it('should correctly compare BigInt255 numbers with one being the modulus', () => {
-      const a = BigInt255.fromBigint(modulus); 
+      const a = BigInt255.fromBigint(modulus);
       const b = BigInt255.fromBigint(0n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(false);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
@@ -1541,7 +1541,7 @@ describe('BigInt381', () => {
     it('should correctly compute the modular inverse of a ProvableBigInt', () => {
       const a = BigInt381.fromBigint(2n);
       const result = a.inverse();
-      expect(result.toBigint()).toStrictEqual(modularInverse(2n, modulus)); 
+      expect(result.toBigint()).toStrictEqual(modularInverse(2n, modulus));
     });
 
     it('should correctly compute the modular inverse of 1', () => {
@@ -1714,7 +1714,7 @@ describe('BigInt381', () => {
     });
 
     it('should correctly compare BigInt381 numbers with modulus', () => {
-      const a = BigInt381.fromBigint(modulus); 
+      const a = BigInt381.fromBigint(modulus);
       const b = BigInt381.fromBigint(1n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
@@ -1764,7 +1764,7 @@ describe('BigInt381', () => {
     });
 
     it('should correctly compare BigInt381 numbers with one being the modulus', () => {
-      const a = BigInt381.fromBigint(modulus); 
+      const a = BigInt381.fromBigint(modulus);
       const b = BigInt381.fromBigint(0n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(false);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
@@ -2155,7 +2155,7 @@ describe('BigInt512', () => {
     it('should correctly compute the modular inverse of a ProvableBigInt', () => {
       const a = BigInt512.fromBigint(2n);
       const result = a.inverse();
-      expect(result.toBigint()).toStrictEqual(modularInverse(2n, modulus)); 
+      expect(result.toBigint()).toStrictEqual(modularInverse(2n, modulus));
     });
 
     it('should correctly compute the modular inverse of 1', () => {
@@ -2328,7 +2328,7 @@ describe('BigInt512', () => {
     });
 
     it('should correctly compare BigInt512 numbers with modulus', () => {
-      const a = BigInt512.fromBigint(modulus); 
+      const a = BigInt512.fromBigint(modulus);
       const b = BigInt512.fromBigint(1n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
@@ -2378,7 +2378,7 @@ describe('BigInt512', () => {
     });
 
     it('should correctly compare BigInt512 numbers with one being the modulus', () => {
-      const a = BigInt512.fromBigint(modulus); 
+      const a = BigInt512.fromBigint(modulus);
       const b = BigInt512.fromBigint(0n);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(false);
       expect(a.greaterThan(b).toBoolean()).toStrictEqual(false);
