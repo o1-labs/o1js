@@ -71,7 +71,7 @@ const BigIntParams: { [key: string]: BigIntParameter } = {
  * - Basic operations: addition, double, subtraction, multiplication, square, division
  * - Advanced operations: inverse, negate, sqrt, power
  * - Comparison operations: equals, assertEquals, greaterThan, lessthan, greaterThanOrEqual, lessThanOrEqual
- * - Conversion methods: fromBigInt, toBigint, fromFields, toFields, fromBits, toBits
+ * - Conversion methods: fromBigInt, toBigInt, fromFields, toFields, fromBits, toBits
  *
  * Implementation details:
  *
@@ -93,9 +93,9 @@ const BigIntParams: { [key: string]: BigIntParameter } = {
  * const BigInt521 = createProvableBigInt(2n ** 521n - 1n);
  *
  * // Create instances
- * const a = BigInt521.fromBigint(123n);
- * const b = BigInt521.fromBigint(456n);
- * const c = BigInt521.fromBigint(1024n);
+ * const a = BigInt521.fromBigInt(123n);
+ * const b = BigInt521.fromBigInt(456n);
+ * const c = BigInt521.fromBigInt(1024n);
  *
  * // Perform operations
  * const sum = a.add(b);
@@ -162,7 +162,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns A ProvableBigInt representing zero
      */
     static zero(): ProvableBigInt_ {
-      return ProvableBigInt_.fromBigint(0n);
+      return ProvableBigInt_.fromBigInt(0n);
     }
 
     /**
@@ -170,21 +170,21 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns A ProvableBigInt representing one
      */
     static one(): ProvableBigInt_ {
-      return ProvableBigInt_.fromBigint(1n);
+      return ProvableBigInt_.fromBigInt(1n);
     }
 
     static from(x: bigint | string | number | boolean): ProvableBigInt_ {
-      return ProvableBigInt_.fromBigint(BigInt(x));
+      return ProvableBigInt_.fromBigInt(BigInt(x));
     }
 
-    static fromBigint(x: bigint): ProvableBigInt_ {
+    static fromBigInt(x: bigint): ProvableBigInt_ {
       let fields = [];
       let value = x;
 
       if (value < 0n) {
         value = ((x % modulus) + modulus) % modulus;
       }
-      if (value >= ProvableBigInt_.modulus.toBigint()) {
+      if (value >= ProvableBigInt_.modulus.toBigInt()) {
         value = value % modulus;
       }
       for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
@@ -198,7 +198,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return this.constructor as typeof ProvableBigInt;
     }
 
-    toBigint(): bigint {
+    toBigInt(): bigint {
       let result = 0n;
       for (let i = 0; i < this.Constructor.config.limb_num; i++) {
         result |= this.fields[i].toBigInt() << (this.Constructor.config.limb_size * BigInt(i)); // result = result | fields[i] << 64 * i
@@ -220,7 +220,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     toBits(): Bool[] {
       // Calculate total needed bits based on modulus
-      const totalBits = this.Constructor.modulus.toBigint().toString(2).length;
+      const totalBits = this.Constructor.modulus.toBigInt().toString(2).length;
       const limbBits = Number(this.Constructor.config.limb_size);
 
       // Convert each field to bits with proper size
@@ -248,7 +248,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
           value |= 1n << BigInt(i);
         }
       }
-      return ProvableBigInt_.fromBigint(value);
+      return ProvableBigInt_.fromBigInt(value);
     }
 
     clone(): ProvableBigInt_ {
@@ -264,13 +264,13 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       if (isDouble) a = this;
       // witness q, r so that x+y = q*p + r
       let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
-        let xPlusY = this.toBigint() + a.toBigint();
-        let p0 = this.Constructor.modulus.toBigint();
+        let xPlusY = this.toBigInt() + a.toBigInt();
+        let p0 = this.Constructor.modulus.toBigInt();
         let q = xPlusY / p0;
         let r = xPlusY - q * p0;
         return {
-          q: ProvableBigInt_.fromBigint(q),
-          r: ProvableBigInt_.fromBigint(r),
+          q: ProvableBigInt_.fromBigInt(q),
+          r: ProvableBigInt_.fromBigInt(r),
         };
       });
 
@@ -345,13 +345,13 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       if (isSquare) a = this;
 
       let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
-        let xy = this.toBigint() * a.toBigint();
-        let p0 = this.Constructor.modulus.toBigint();
+        let xy = this.toBigInt() * a.toBigInt();
+        let p0 = this.Constructor.modulus.toBigInt();
         let q = xy / p0;
         let r = xy - q * p0;
         return {
-          q: ProvableBigInt_.fromBigint(q),
-          r: ProvableBigInt_.fromBigint(r),
+          q: ProvableBigInt_.fromBigInt(q),
+          r: ProvableBigInt_.fromBigInt(r),
         };
       });
 
@@ -433,11 +433,11 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       let { res } = Provable.witness(
         Struct({ res: ProvableBigInt_ as typeof ProvableBigInt }),
         () => {
-          const p = this.Constructor.modulus.toBigint();
+          const p = this.Constructor.modulus.toBigInt();
           let t = 0n;
           let newT = 1n;
           let r = p;
-          let newR = this.toBigint();
+          let newR = this.toBigInt();
 
           // Loop until newR is equal to zero
           while (newR !== 0n) {
@@ -457,7 +457,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
             t = t + p;
           }
 
-          return { res: ProvableBigInt_.fromBigint(t) };
+          return { res: ProvableBigInt_.fromBigInt(t) };
         }
       );
 
@@ -472,14 +472,14 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      */
     negate(): ProvableBigInt_ {
       let { negation } = Provable.witness(Struct({ negation: ProvableBigInt_ }), () => {
-        let thisVal = this.toBigint();
-        let p = this.Constructor.modulus.toBigint();
+        let thisVal = this.toBigInt();
+        let p = this.Constructor.modulus.toBigInt();
         let negVal = 0n;
         if (thisVal !== 0n) {
           negVal = p - thisVal;
         }
         return {
-          negation: ProvableBigInt_.fromBigint(negVal),
+          negation: ProvableBigInt_.fromBigInt(negVal),
         };
       });
 
@@ -520,18 +520,18 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      */
     sqrt(): ProvableBigInt_ {
       let r = Provable.witness(ProvableBigInt_, () => {
-        const p = this.Constructor.modulus.toBigint();
+        const p = this.Constructor.modulus.toBigInt();
         // Special cases
         // Case 1: If input is 0, square root is 0
-        if (this.toBigint() === 0n) return ProvableBigInt_.fromBigint(0n);
+        if (this.toBigInt() === 0n) return ProvableBigInt_.fromBigInt(0n);
 
         // Case 2: If p ≡ 3 (mod 4), we can use a simpler formula
         // In this case, the square root is a^((p+1)/4) mod p
         if (p % 4n === 3n) {
           const pplusonedivfour = (p + 1n) / 4n;
           const pplusonedivfour_reduced = pplusonedivfour % p;
-          const sqrt = modularExponentiation(this.toBigint(), pplusonedivfour_reduced, p);
-          return ProvableBigInt_.fromBigint(sqrt);
+          const sqrt = modularExponentiation(this.toBigInt(), pplusonedivfour_reduced, p);
+          return ProvableBigInt_.fromBigInt(sqrt);
         }
 
         // Tonelli-Shanks Algorithm
@@ -554,8 +554,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         // Step 3: Initialize main loop variables
         let M = S;
         let c = modularExponentiation(z, Q, p);
-        let t = modularExponentiation(this.toBigint(), Q, p);
-        let R = modularExponentiation(this.toBigint(), (Q + 1n) / 2n, p);
+        let t = modularExponentiation(this.toBigInt(), Q, p);
+        let R = modularExponentiation(this.toBigInt(), (Q + 1n) / 2n, p);
 
         // Main loop of Tonelli-Shanks algorithm
         while (t !== 0n && t !== 1n) {
@@ -583,7 +583,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
           R = (R * b) % p;
         }
 
-        return ProvableBigInt_.fromBigint(R);
+        return ProvableBigInt_.fromBigInt(R);
       });
 
       r.square().assertEquals(this);
@@ -594,13 +594,13 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     mod(): ProvableBigInt_ {
       // witness q, r so that this = q*p + r
       let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
-        let this_big = this.toBigint();
-        let p0 = this.Constructor.modulus.toBigint();
+        let this_big = this.toBigInt();
+        let p0 = this.Constructor.modulus.toBigInt();
         let q = this_big / p0;
         let r = this_big - q * p0;
         return {
-          q: ProvableBigInt_.fromBigint(q),
-          r: ProvableBigInt_.fromBigint(r),
+          q: ProvableBigInt_.fromBigInt(q),
+          r: ProvableBigInt_.fromBigInt(r),
         };
       });
 
@@ -760,7 +760,7 @@ abstract class ProvableBigInt<T> {
   }
 
   abstract get Constructor(): typeof ProvableBigInt;
-  abstract toBigint(): bigint;
+  abstract toBigInt(): bigint;
   abstract toFields(): Field[];
   abstract toBits(): Bool[];
   abstract clone(): T;

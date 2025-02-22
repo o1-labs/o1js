@@ -14,9 +14,9 @@ import { ProvablePure } from '../types/provable-intf.js';
 
 class SmallField extends createProvableBigInt(17n) {}
 
-let x = SmallField.fromBigint(16n);
-let y = SmallField.fromBigint(-1n);
-let z = SmallField.fromBigint(1n);
+let x = SmallField.fromBigInt(16n);
+let y = SmallField.fromBigInt(-1n);
+let z = SmallField.fromBigInt(1n);
 
 x.assertEquals(y); // 16 = -1 (mod 17)
 x.mul(x).assertEquals(z); // 16 * 16 = 15 * 17 + 1 = 1 (mod 17)
@@ -27,14 +27,14 @@ BigInt255.provable satisfies ProvablePure<BigInt255>;
 
 let fq = spec({
   rng: Random.scalar,
-  there: BigInt255.fromBigint,
-  back: (x: BigInt255) => x.toBigint(),
+  there: BigInt255.fromBigInt,
+  back: (x: BigInt255) => x.toBigInt(),
   provable: BigInt255.provable,
 });
 let u255 = spec({
   rng: Random.bignat(1n << 255n),
-  there: BigInt255.fromBigint,
-  back: (x: BigInt255) => x.toBigint(),
+  there: BigInt255.fromBigInt,
+  back: (x: BigInt255) => x.toBigInt(),
   provable: BigInt255.provable,
 });
 
@@ -74,14 +74,14 @@ BigInt381.provable satisfies ProvablePure<BigInt381>;
 
 let blsp = spec({
   rng: Random.scalar,
-  there: BigInt381.fromBigint,
-  back: (x: BigInt381) => x.toBigint(),
+  there: BigInt381.fromBigInt,
+  back: (x: BigInt381) => x.toBigInt(),
   provable: BigInt381.provable,
 });
 let u381 = spec({
   rng: Random.bignat(1n << 381n),
-  there: BigInt381.fromBigint,
-  back: (x: BigInt381) => x.toBigint(),
+  there: BigInt381.fromBigInt,
+  back: (x: BigInt381) => x.toBigInt(),
   provable: BigInt381.provable,
 });
 
@@ -121,14 +121,14 @@ BigInt521.provable satisfies ProvablePure<BigInt521>;
 
 let sfp = spec({
   rng: Random.scalar,
-  there: BigInt521.fromBigint,
-  back: (x: BigInt521) => x.toBigint(),
+  there: BigInt521.fromBigInt,
+  back: (x: BigInt521) => x.toBigInt(),
   provable: BigInt521.provable,
 });
 let u521 = spec({
   rng: Random.bignat(1n << 521n),
-  there: BigInt521.fromBigint,
-  back: (x: BigInt521) => x.toBigint(),
+  there: BigInt521.fromBigInt,
+  back: (x: BigInt521) => x.toBigInt(),
   provable: BigInt521.provable,
 });
 
