@@ -17,7 +17,7 @@ import {
 import { InferProvableType, provable } from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
-import { snarkContext } from '../provable/core/provable-context.js';
+import { ConstraintSystemSummary, snarkContext } from '../provable/core/provable-context.js';
 import { hashConstant } from '../provable/crypto/poseidon.js';
 import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
@@ -25,7 +25,7 @@ import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
 import { Cache, readCache, writeCache } from './cache.js';
 import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
-import { ProvableType, ProvableTypePure, ToProvable } from '../provable/types/provable-intf.js';
+import { ProvableType, ToProvable } from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { Subclass, Tuple } from '../util/types.js';
@@ -70,6 +70,10 @@ type Empty = Undefined;
 const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
+
+type MethodAnalysis = ConstraintSystemSummary & {
+  proofs: ProofClass[];
+};
 
 function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
@@ -248,8 +252,13 @@ function ZkProgram<
     >
   ) => Promise<boolean>;
   digest: () => Promise<string>;
+  /**
+   * Analyze the constraint system created by each method in the program.
+   *
+   * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
+   */
   analyzeMethods: () => Promise<{
-    [I in keyof Config['methods']]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+    [I in keyof Config['methods']]: MethodAnalysis;
   }>;
 
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
@@ -324,7 +333,7 @@ function ZkProgram<
   }
 
   async function analyzeMethods() {
-    let methodsMeta: Record<string, UnwrapPromise<ReturnType<typeof analyzeMethod>>> = {};
+    let methodsMeta: Record<string, MethodAnalysis> = {};
     for (let i = 0; i < methodIntfs.length; i++) {
       let methodEntry = methodIntfs[i];
       methodsMeta[methodEntry.methodName] = await analyzeMethod(
@@ -334,7 +343,7 @@ function ZkProgram<
       );
     }
     return methodsMeta as {
-      [I in keyof Methods]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+      [I in keyof Methods]: MethodAnalysis;
     };
   }
 
@@ -804,8 +813,8 @@ async function analyzeMethod(
   publicInputType: Provable<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => unknown
-) {
-  let result: Awaited<ReturnType<typeof Provable.constraintSystem>>;
+): Promise<MethodAnalysis> {
+  let result: ConstraintSystemSummary;
   let proofs: ProofClass[];
   let id = ZkProgramContext.enter();
   try {
@@ -1195,4 +1204,4 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
  * if we use `Get<T, Key>` instead of `T[Key]`, we allow `T` to be inferred _without_ the `Key` key,
  * and thus retain the precise type of `T` during inference
  */
-type Get<T, Key extends string> = T extends { [K in Key]: infer Value } ? Value : undefined;
+type Get<T, Key extends string> = T extends { [K in Key]: infer _Value } ? _Value : undefined;

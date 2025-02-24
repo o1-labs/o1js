@@ -25,6 +25,12 @@ function nMethods(i: number) {
 }
 
 try {
+  await MyProgram.analyzeMethods();
+} catch (error) {
+  throw Error(`Could not analyze zkProgram with ${methodCount} branches: ${error}`);
+}
+
+try {
   await MyProgram.compile();
 } catch (error) {
   throw Error(`Could not compile zkProgram with ${methodCount} branches: ${error}`);
