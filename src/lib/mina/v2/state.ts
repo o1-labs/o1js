@@ -17,6 +17,9 @@ import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Provable } from '../../provable/provable.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
+import { ZkappConstants } from '../v1/constants.js';
+
+const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
 
 // TODO IMMEDIATELY: This representation doesn't actually work, because if you specify a state
 //                   element in a custom state layout that doesn't satisfy the StateElement type,

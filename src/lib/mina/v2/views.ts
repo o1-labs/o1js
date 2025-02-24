@@ -3,7 +3,7 @@
 import { Account, AccountId, AccountIdMap } from './account.js';
 import { MinaAmount } from './core.js';
 import { Field } from '../../provable/field.js';
-import { UInt32 } from '../../provable/int.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
 
 export interface ChainView {
   snarkedLedgerHash: Field;
@@ -35,6 +35,63 @@ export interface LedgerView {
   updateAccount(accountId: AccountId, f: (account: Account) => Account): void;
 }
 
+export class LocalChain implements ChainView {
+  snarkedLedgerHash: Field;
+  blockchainLength: UInt32;
+  minWindowDensity: UInt32;
+  totalCurrency: UInt64;
+  globalSlotSinceGenesis: UInt32;
+  stakingEpochData: EpochData;
+  nextEpochData: EpochData;
+
+  constructor(
+    snarkedLedgerHash: Field,
+    blockchainLength: UInt32,
+    minWindowDensity: UInt32,
+    totalCurrency: UInt64,
+    globalSlotSinceGenesis: UInt32,
+    stakingEpochData: EpochData,
+    nextEpochData: EpochData
+  ) {
+    this.snarkedLedgerHash = snarkedLedgerHash;
+    this.blockchainLength = blockchainLength;
+    this.minWindowDensity = minWindowDensity;
+    this.totalCurrency = totalCurrency;
+    this.globalSlotSinceGenesis = globalSlotSinceGenesis;
+    this.stakingEpochData = stakingEpochData;
+    this.nextEpochData = nextEpochData;
+  }
+
+  static initial(): LocalChain {
+    return new LocalChain(
+      Field.empty(),
+      UInt32.from(0),
+      UInt32.from(0),
+      UInt64.from(0),
+      UInt32.from(0),
+      {
+        ledger: {
+          hash: Field.empty(),
+          totalCurrency: UInt64.from(0),
+        },
+        seed: Field.empty(),
+        startCheckpoint: Field.empty(),
+        lockCheckpoint: Field.empty(),
+        epochLength: UInt32.from(0),
+      },
+      {
+        ledger: {
+          hash: Field.empty(),
+          totalCurrency: UInt64.from(0),
+        },
+        seed: Field.empty(),
+        startCheckpoint: Field.empty(),
+        lockCheckpoint: Field.empty(),
+        epochLength: UInt32.from(0),
+      }
+    );
+  }
+}
 export class LocalLedger implements LedgerView {
   private accounts: AccountIdMap<Account>;
 

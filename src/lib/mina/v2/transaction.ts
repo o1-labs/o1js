@@ -9,7 +9,7 @@ import { TokenId } from './core.js';
 import { AccountUpdateErrorTrace, ZkappCommandErrorTrace, getCallerFrame } from './errors.js';
 import { Precondition } from './preconditions.js';
 import { StateLayout } from './state.js';
-import { LedgerView } from './views.js';
+import { ChainView, LedgerView, LocalChain } from './views.js';
 import { ApplyState, checkAndApplyAccountUpdate, checkAndApplyFeePayment } from './zkapp-logic.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
@@ -225,14 +225,22 @@ export class AuthorizedZkappCommand {
 //     disambiguate the transaction environment from the mina program environment
 export class ZkappCommandContext {
   ledger: LedgerView;
+  chain: ChainView;
   failedAccounts: AccountIdSet;
   globalSlot: UInt32;
   feeExcessState: ApplyState<Int64>;
   private accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
   private accountUpdateForestTrace: AccountUpdateErrorTrace[];
 
-  constructor(ledger: LedgerView, failedAccounts: AccountIdSet, globalSlot: UInt32) {
+  constructor(
+    ledger: LedgerView,
+    chain: ChainView,
+    failedAccounts: AccountIdSet,
+    globalSlot: UInt32
+  ) {
     this.ledger = ledger;
+    this.chain = chain;
+
     this.failedAccounts = failedAccounts;
     this.globalSlot = globalSlot;
     this.feeExcessState = { status: 'Alive', value: Int64.zero };
@@ -264,9 +272,9 @@ export class ZkappCommandContext {
             this.ledger.getAccount(accountUpdate.accountId) ??
             Account.empty(accountUpdate.accountId);
           const applied = checkAndApplyAccountUpdate(
+            this.chain,
             account,
             accountUpdate,
-            this.globalSlot,
             this.feeExcessState
           );
 
@@ -349,6 +357,7 @@ export class ZkappCommandContext {
 //                 create a new zkapp command, to help avoid unexpected behavior externally.
 export async function createUnsignedZkappCommand(
   ledger: LedgerView,
+  chain: ChainView,
   {
     feePayer,
     fee,
@@ -378,7 +387,7 @@ export async function createUnsignedZkappCommand(
       validUntil,
     });
 
-    const applied = checkAndApplyFeePayment(feePayerAccount, feePayment, globalSlot);
+    const applied = checkAndApplyFeePayment(chain, feePayerAccount, feePayment);
     switch (applied.status) {
       case 'Applied':
         ledger.setAccount(applied.updatedAccount);
@@ -393,7 +402,7 @@ export async function createUnsignedZkappCommand(
     failedAccounts.add(feePayerId);
   }
 
-  const ctx = new ZkappCommandContext(ledger, failedAccounts, globalSlot);
+  const ctx = new ZkappCommandContext(ledger, chain, failedAccounts, globalSlot);
   await f(ctx);
   const { accountUpdateForest, accountUpdateForestTrace, generalErrors } = ctx.finalize();
 
@@ -421,6 +430,7 @@ export async function createUnsignedZkappCommand(
 
 export async function createZkappCommand(
   ledger: LedgerView,
+  chain: ChainView,
   authEnv: ZkappCommandAuthorizationEnvironment,
   feePayment: {
     feePayer: PublicKey;
@@ -429,6 +439,6 @@ export async function createZkappCommand(
   },
   f: (ctx: ZkappCommandContext) => Promise<void>
 ): Promise<AuthorizedZkappCommand> {
-  const unsignedCmd = await createUnsignedZkappCommand(ledger, feePayment, f);
+  const unsignedCmd = await createUnsignedZkappCommand(ledger, chain, feePayment, f);
   return unsignedCmd.authorize(authEnv);
 }
