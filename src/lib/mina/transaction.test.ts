@@ -37,9 +37,7 @@ describe('transactions', () => {
     let new_fee = await promise.setFee(new UInt64(100));
     new_fee.sign([feePayer.key, contractAccount.key]);
     // second send is rejected for using the same nonce
-    await expect(new_fee.send()).rejects.toThrowError(
-      'Account_nonce_precondition_unsatisfied'
-    );
+    await expect(new_fee.send()).rejects.toThrowError('Account_nonce_precondition_unsatisfied');
     // check that tx was applied, by checking nonce was incremented
     expect(new_fee.transaction.feePayer.body.nonce).toEqual(nonce);
   });

@@ -5,11 +5,7 @@ import { UInt32 } from '../int.js';
 import { PrivateKey, PublicKey } from '../crypto/signature.js';
 import { expect } from 'expect';
 import { method, SmartContract } from '../../mina/zkapp.js';
-import {
-  LocalBlockchain,
-  setActiveInstance,
-  transaction,
-} from '../../mina/mina.js';
+import { LocalBlockchain, setActiveInstance, transaction } from '../../mina/mina.js';
 import { State, state } from '../../mina/state.js';
 import { AccountUpdate } from '../../mina/account-update.js';
 import { Provable } from '../provable.js';

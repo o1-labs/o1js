@@ -74,8 +74,7 @@ class TokenContract extends TokenContractBase {
   }
 
   @method async burn(receiverAddress: PublicKey, amount: UInt64) {
-    let totalAmountInCirculation =
-      this.totalAmountInCirculation.getAndRequireEquals();
+    let totalAmountInCirculation = this.totalAmountInCirculation.getAndRequireEquals();
     let newTotalAmountInCirculation = totalAmountInCirculation.sub(amount);
     this.internal.burn({ address: receiverAddress, amount });
     this.totalAmountInCirculation.set(newTotalAmountInCirculation);
@@ -245,9 +244,7 @@ describe('Token', () => {
         )
           .sign([feePayer.key, tokenAccount.key])
           .send();
-        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
-          100_000n
-        );
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(100_000n);
       });
 
       test('minting should fail if overflow occurs ', async () => {
@@ -290,9 +287,7 @@ describe('Token', () => {
         )
           .sign([bAccount.key, feePayer.key, tokenAccount.key])
           .send();
-        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
-          90_000n
-        );
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(90_000n);
       });
 
       test('throw error if token owner burns more tokens than token account has', async () => {
@@ -349,12 +344,8 @@ describe('Token', () => {
         tx.sign([bAccount.key, cAccount.key, feePayer.key, tokenAccount.key]);
         await tx.send();
 
-        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
-          90_000n
-        );
-        expect(Mina.getBalance(cAccount, tokenId).value.toBigInt()).toEqual(
-          10_000n
-        );
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(90_000n);
+        expect(Mina.getBalance(cAccount, tokenId).value.toBigInt()).toEqual(10_000n);
       });
 
       test('should error creating a token account if no account creation fee is specified', async () => {
@@ -450,9 +441,7 @@ describe('Token', () => {
         await tx.prove();
         tx.sign([tokenAccount.key, feePayer.key]);
         await tx.send();
-        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
-          100_000n
-        );
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(100_000n);
       });
     });
 
@@ -480,9 +469,7 @@ describe('Token', () => {
         await tx.prove();
         tx.sign([bAccount.key, feePayer.key]);
         await tx.send();
-        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
-          90_000n
-        );
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(90_000n);
       });
     });
 
@@ -510,22 +497,13 @@ describe('Token', () => {
         tx = await Mina.transaction(feePayer, async () => {
           await b.approveSend(UInt64.from(10_000));
 
-          await token.approveTransfer(
-            bAccount,
-            cAccount,
-            UInt64.from(10_000),
-            b.self
-          );
+          await token.approveTransfer(bAccount, cAccount, UInt64.from(10_000), b.self);
         });
         await tx.prove();
         await tx.sign([feePayer.key]).send();
 
-        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(
-          90_000n
-        );
-        expect(Mina.getBalance(cAccount, tokenId).value.toBigInt()).toEqual(
-          10_000n
-        );
+        expect(Mina.getBalance(bAccount, tokenId).value.toBigInt()).toEqual(90_000n);
+        expect(Mina.getBalance(cAccount, tokenId).value.toBigInt()).toEqual(10_000n);
       });
 
       test('should fail to approve with an incorrect layout', async () => {
@@ -541,12 +519,7 @@ describe('Token', () => {
         await expect(() =>
           Mina.transaction(feePayer, async () => {
             await c.approveIncorrectLayout(UInt64.from(10_000));
-            await token.approveTransfer(
-              bAccount,
-              cAccount,
-              UInt64.from(10_000),
-              c.self
-            );
+            await token.approveTransfer(bAccount, cAccount, UInt64.from(10_000), c.self);
           })
         ).rejects.toThrow();
       });
@@ -560,9 +533,7 @@ describe('Token', () => {
           });
           AccountUpdate.attachToTransaction(token.self);
         });
-        await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(
-          /Update_not_permitted_access/
-        );
+        await expect(tx.sign([feePayer.key]).send()).rejects.toThrow(/Update_not_permitted_access/);
       });
     });
   });

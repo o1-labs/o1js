@@ -4,14 +4,7 @@
  *
  * In other words, the exact implementation/constraints of zkApp methods we call are not hard-coded in the caller contract.
  */
-import {
-  Bool,
-  UInt64,
-  SmartContract,
-  method,
-  PublicKey,
-  Mina,
-} from '../../../index.js';
+import { Bool, UInt64, SmartContract, method, PublicKey, Mina } from '../../../index.js';
 
 type Subcontract = SmartContract & {
   submethod(a: UInt64, b: UInt64): Promise<Bool>;

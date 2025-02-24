@@ -47,10 +47,7 @@ let dispatchTx = await Mina.transaction(senderSpec, async () => {
   await merkleListReducerContract.postAddress(addresses.contract);
   await merkleListReducerContract.postTwoAddresses(addresses.user2, sender);
   await merkleListReducerContract.postAddress(addresses.user2);
-  await merkleListReducerContract.postTwoAddresses(
-    addresses.contract,
-    addresses.user1
-  );
+  await merkleListReducerContract.postTwoAddresses(addresses.contract, addresses.user1);
 });
 await dispatchTx.prove();
 pendingTx = await dispatchTx.sign([senderKey]).send();
@@ -81,10 +78,7 @@ await dispatchTx1.prove();
 txs.push({ tx: dispatchTx1, privateKey: senderKey });
 
 let dispatchTx2 = await Mina.transaction(sender2Spec, async () => {
-  await merkleListReducerContract.postTwoAddresses(
-    addresses.user2,
-    addresses.contract
-  );
+  await merkleListReducerContract.postTwoAddresses(addresses.user2, addresses.contract);
 });
 await dispatchTx2.prove();
 txs.push({ tx: dispatchTx2, privateKey: sender2Key });

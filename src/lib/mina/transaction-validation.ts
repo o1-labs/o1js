@@ -59,15 +59,12 @@ function defaultNetworkState(): NetworkValue {
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-  let { totalTimeRequired, eventElements, authTypes } =
-    getTotalTimeRequired(accountUpdates);
+  let { totalTimeRequired, eventElements, authTypes } = getTotalTimeRequired(accountUpdates);
 
   let isWithinCostLimit = totalTimeRequired < TransactionCost.COST_LIMIT;
 
-  let isWithinEventsLimit =
-    eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
-  let isWithinActionsLimit =
-    eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
+  let isWithinEventsLimit = eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
+  let isWithinActionsLimit = eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
 
   let error = '';
 
@@ -98,8 +95,7 @@ function getTotalTimeRequired(accountUpdates: AccountUpdate[]) {
   let authKinds = accountUpdates.map((update) => {
     eventElements.events += countEventElements(update.body.events);
     eventElements.actions += countEventElements(update.body.actions);
-    let { isSigned, isProved, verificationKeyHash } =
-      update.body.authorizationKind;
+    let { isSigned, isProved, verificationKeyHash } = update.body.authorizationKind;
     return {
       isSigned: isSigned.toBoolean(),
       isProved: isProved.toBoolean(),
@@ -185,9 +181,7 @@ async function verifyAccountUpdate(
     );
   }
   // we are essentially only checking if the update is empty or an actual update
-  function includesChange<T extends {}>(
-    val: T | string | null | (string | null)[]
-  ): boolean {
+  function includesChange<T extends {}>(val: T | string | null | (string | null)[]): boolean {
     if (Array.isArray(val)) {
       return !val.every((v) => v === null);
     } else {
@@ -249,16 +243,11 @@ async function verifyAccountUpdate(
       };
 
       let verificationKey = account.zkapp?.verificationKey?.data;
-      assert(
-        verificationKey !== undefined,
-        'Account does not have a verification key'
-      );
+      assert(verificationKey !== undefined, 'Account does not have a verification key');
 
       isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
-        throw Error(
-          `Invalid proof for account update\n${JSON.stringify(update)}`
-        );
+        throw Error(`Invalid proof for account update\n${JSON.stringify(update)}`);
       }
     } catch (error) {
       errorTrace += '\n\n' + (error as Error).stack;
@@ -340,8 +329,7 @@ async function verifyAccountUpdate(
 
 type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
-const isPair = (a: AuthorizationKind, b: AuthorizationKind) =>
-  !a.isProved && !b.isProved;
+const isPair = (a: AuthorizationKind, b: AuthorizationKind) => !a.isProved && !b.isProved;
 
 function filterPairs(xs: AuthorizationKind[]): {
   xs: { isProved: boolean; isSigned: boolean }[];

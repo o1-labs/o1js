@@ -16,8 +16,7 @@ let isValid = await SHA256Program.verify(proof);
 console.log('digest:', proof.publicOutput.toHex());
 
 if (
-  proof.publicOutput.toHex() !==
-  '7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9'
+  proof.publicOutput.toHex() !== '7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9'
 )
   throw new Error('Invalid sha256 digest!');
 if (!isValid) throw new Error('Invalid proof');

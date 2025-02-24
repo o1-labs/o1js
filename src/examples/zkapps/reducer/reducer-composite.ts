@@ -94,10 +94,7 @@ if (doProofs) {
   await Counter.compile();
 }
 
-console.log(
-  'rows: ',
-  (await Counter.analyzeMethods())['rollupIncrements'].rows
-);
+console.log('rows: ', (await Counter.analyzeMethods())['rollupIncrements'].rows);
 
 console.log('deploy');
 let tx = await Mina.transaction(feePayer, async () => {

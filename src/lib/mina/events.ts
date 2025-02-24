@@ -1,9 +1,6 @@
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
-import {
-  GenericProvableExtended,
-  GenericSignableField,
-} from '../../bindings/lib/generic.js';
+import { GenericProvableExtended, GenericSignableField } from '../../bindings/lib/generic.js';
 
 export { createEvents, dataAsHash };
 
@@ -87,10 +84,7 @@ function createEvents<Field>({
     },
     pushEvent(actions: Events, event: Event): Events {
       let eventHash = hashWithPrefix(prefixes.event, event);
-      let hash = hashWithPrefix(prefixes.sequenceEvents, [
-        actions.hash,
-        eventHash,
-      ]);
+      let hash = hashWithPrefix(prefixes.sequenceEvents, [actions.hash, eventHash]);
       return { hash, data: [event, ...actions.data] };
     },
     fromList(events: Event[]): Events {
@@ -104,10 +98,7 @@ function createEvents<Field>({
       return emptyHashWithPrefix('MinaZkappActionStateEmptyElt');
     },
     updateSequenceState(state: Field, sequenceEventsHash: Field) {
-      return hashWithPrefix(prefixes.sequenceEvents, [
-        state,
-        sequenceEventsHash,
-      ]);
+      return hashWithPrefix(prefixes.sequenceEvents, [state, sequenceEventsHash]);
     },
   };
 
@@ -150,12 +141,7 @@ function dataAsHash<T, V, J, Field>({
   toJSON: (value: T) => J;
   fromJSON: (json: J) => { data: T; hash: Field };
   Field: GenericSignableField<Field>;
-}): GenericProvableExtended<
-  { data: T; hash: Field },
-  { data: V; hash: bigint },
-  J,
-  Field
-> {
+}): GenericProvableExtended<{ data: T; hash: Field }, { data: V; hash: bigint }, J, Field> {
   return {
     empty,
     sizeInFields() {

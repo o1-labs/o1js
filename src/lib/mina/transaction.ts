@@ -83,9 +83,7 @@ type TransactionCommon = {
 };
 
 namespace Transaction {
-  export function fromJSON(
-    json: Types.Json.ZkappCommand
-  ): Transaction<false, false> {
+  export function fromJSON(json: Types.Json.ZkappCommand): Transaction<false, false> {
     let transaction = ZkappCommand.fromJSON(json);
     return newTransaction(transaction, activeInstance.proofsEnabled);
   }
@@ -96,10 +94,7 @@ namespace Transaction {
  * This type encompasses methods for serializing the transaction, signing it, generating proofs,
  * and submitting it to the network.
  */
-type Transaction<
-  Proven extends boolean,
-  Signed extends boolean
-> = TransactionCommon & {
+type Transaction<Proven extends boolean, Signed extends boolean> = TransactionCommon & {
   send(): PendingTransactionPromise;
   /**
    * Sends the {@link Transaction} to the network. Unlike the standard {@link Transaction.send}, this function does not throw an error if internal errors are detected. Instead, it returns a {@link PendingTransaction} if the transaction is successfully sent for processing or a {@link RejectedTransaction} if it encounters errors during processing or is outright rejected by the Mina daemon.
@@ -133,9 +128,7 @@ type Transaction<
   /**
    * setFeePerSnarkCost behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
-  setFeePerSnarkCost(
-    newFeePerSnarkCost: number
-  ): TransactionPromise<Proven, false>;
+  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<Proven, false>;
 } & (Proven extends false
     ? {
         /**
@@ -176,10 +169,7 @@ type PendingTransactionStatus = 'pending' | 'rejected';
  * The {@link PendingTransaction} type extends certain functionalities from the base {@link Transaction} type,
  * adding methods to monitor the transaction's progress towards being finalized (either included in a block or rejected).
  */
-type PendingTransaction = Pick<
-  TransactionCommon,
-  'transaction' | 'toJSON' | 'toPretty'
-> & {
+type PendingTransaction = Pick<TransactionCommon, 'transaction' | 'toJSON' | 'toPretty'> & {
   /**
    * @property {PendingTransactionStatus} status The status of the transaction after being sent to the Mina daemon.
    * This property indicates the transaction's initial processing status but does not guarantee its eventual inclusion in a block.
@@ -220,10 +210,7 @@ type PendingTransaction = Pick<
    * }
    * ```
    */
-  wait(options?: {
-    maxAttempts?: number;
-    interval?: number;
-  }): Promise<IncludedTransaction>;
+  wait(options?: { maxAttempts?: number; interval?: number }): Promise<IncludedTransaction>;
 
   /**
    * Waits for the transaction to be included in a block. This method polls the Mina daemon to check the transaction's status
@@ -280,9 +267,7 @@ type PendingTransaction = Pick<
   /**
    * setFeePerSnarkCost is the same as {@link Transaction.setFeePerSnarkCost(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
    */
-  setFeePerSnarkCost(
-    newFeePerSnarkCost: number
-  ): TransactionPromise<boolean, false>;
+  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<boolean, false>;
 };
 
 /**
@@ -344,10 +329,9 @@ type RejectedTransaction = Pick<
  * A `Promise<Transaction>` with some additional methods for making chained method calls
  * into the pending value upon its resolution.
  */
-type TransactionPromise<
-  Proven extends boolean,
-  Signed extends boolean
-> = Promise<Transaction<Proven, Signed>> & {
+type TransactionPromise<Proven extends boolean, Signed extends boolean> = Promise<
+  Transaction<Proven, Signed>
+> & {
   /** Equivalent to calling the resolved `Transaction`'s `send` method. */
   send(): PendingTransactionPromise;
 } & (Proven extends false
@@ -395,9 +379,7 @@ function toTransactionPromise<Proven extends boolean, Signed extends boolean>(
       );
     },
     proofs() {
-      return pending.then(
-        (v) => (v as never as Transaction<true, Proven>).proofs
-      );
+      return pending.then((v) => (v as never as Transaction<true, Proven>).proofs);
     },
   }) as never as TransactionPromise<Proven, Signed>;
 }
@@ -426,11 +408,7 @@ async function createTransaction(
   feePayer: FeePayerSpec,
   f: () => Promise<unknown>,
   numberOfRuns: 0 | 1 | undefined,
-  {
-    fetchMode = 'cached' as FetchMode,
-    isFinalRunOutsideCircuit = true,
-    proofsEnabled = true,
-  } = {}
+  { fetchMode = 'cached' as FetchMode, isFinalRunOutsideCircuit = true, proofsEnabled = true } = {}
 ): Promise<Transaction<false, false>> {
   if (currentTransaction.has()) {
     throw new Error('Cannot start new transaction within another transaction');
@@ -476,9 +454,7 @@ async function createTransaction(
     throw err;
   }
 
-  let accountUpdates = currentTransaction
-    .get()
-    .layout.toFlatList({ mutate: true });
+  let accountUpdates = currentTransaction.get().layout.toFlatList({ mutate: true });
 
   try {
     // check that on-chain values weren't used without setting a precondition
@@ -505,8 +481,7 @@ async function createTransaction(
     }
     feePayerAccountUpdate = AccountUpdate.defaultFeePayer(sender, nonce_);
     if (fee !== undefined) {
-      feePayerAccountUpdate.body.fee =
-        fee instanceof UInt64 ? fee : UInt64.from(String(fee));
+      feePayerAccountUpdate.body.fee = fee instanceof UInt64 ? fee : UInt64.from(String(fee));
     }
   } else {
     // otherwise use a dummy fee payer that has to be filled in later
@@ -532,12 +507,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
     },
     prove() {
       return toTransactionPromise(async () => {
-        let { zkappCommand, proofs } = await addMissingProofs(
-          self.transaction,
-          {
-            proofsEnabled,
-          }
-        );
+        let { zkappCommand, proofs } = await addMissingProofs(self.transaction, {
+          proofsEnabled,
+        });
         self.transaction = zkappCommand;
         return Object.assign(self as never as Transaction<true, false>, {
           proofs,
@@ -559,9 +531,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
         const pendingTransaction = await sendTransaction(self);
         if (pendingTransaction.errors.length > 0) {
           throw Error(
-            `Transaction failed with errors:\n- ${pendingTransaction.errors.join(
-              '\n- '
-            )}`
+            `Transaction failed with errors:\n- ${pendingTransaction.errors.join('\n- ')}`
           );
         }
         return pendingTransaction;
@@ -570,20 +540,13 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
     async safeSend() {
       const pendingTransaction = await sendTransaction(self);
       if (pendingTransaction.errors.length > 0) {
-        return createRejectedTransaction(
-          pendingTransaction,
-          pendingTransaction.errors
-        );
+        return createRejectedTransaction(pendingTransaction, pendingTransaction.errors);
       }
       return pendingTransaction;
     },
     setFeePerSnarkCost(newFeePerSnarkCost: number) {
-      let { totalTimeRequired } = getTotalTimeRequired(
-        transaction.accountUpdates
-      );
-      return this.setFee(
-        new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost))
-      );
+      let { totalTimeRequired } = getTotalTimeRequired(transaction.accountUpdates);
+      return this.setFee(new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost)));
     },
     setFee(newFee: UInt64) {
       return toTransactionPromise(async () => {
@@ -595,9 +558,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
           }
         });
         self.transaction.feePayer.body.fee = newFee;
-        self.transaction.feePayer.lazyAuthorization = {
-          kind: 'lazy-signature',
-        };
+        self.transaction.feePayer.lazyAuthorization = { kind: 'lazy-signature' };
         return self;
       });
     },
@@ -652,13 +613,7 @@ function getAccount(publicKey: PublicKey, tokenId?: Field): Account {
 }
 
 function createRejectedTransaction(
-  {
-    transaction,
-    data,
-    toJSON,
-    toPretty,
-    hash,
-  }: Omit<PendingTransaction, 'wait' | 'safeWait'>,
+  { transaction, data, toJSON, toPretty, hash }: Omit<PendingTransaction, 'wait' | 'safeWait'>,
   errors: string[]
 ): RejectedTransaction {
   return {

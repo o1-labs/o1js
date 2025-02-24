@@ -11,10 +11,7 @@ import { Mina, AccountUpdate, PrivateKey, UInt64, Reducer, Bool } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
-import {
-  ParticipantPreconditions,
-  ElectionPreconditions,
-} from './preconditions.js';
+import { ParticipantPreconditions, ElectionPreconditions } from './preconditions.js';
 
 let Local = await Mina.LocalBlockchain({
   proofsEnabled: false,
@@ -27,27 +24,15 @@ let [feePayer] = Local.testAccounts;
 let tx;
 
 // B62qra25W4URGXxZYqYjfkXBa6SfwwrSjX2ZFJ24x12sSy8khGRcRH1
-let voterKey = PrivateKey.fromBase58(
-  'EKEgiGWBmGG77ERKU7ihArYbUTfroEr466Gs1RKUph8bgpvF5BSD'
-);
+let voterKey = PrivateKey.fromBase58('EKEgiGWBmGG77ERKU7ihArYbUTfroEr466Gs1RKUph8bgpvF5BSD');
 // B62qohqUFi8iy5mA4roZDNEuHdj1bWtyriYZouybC33wb8Q6AiUc7D7
-let candidateKey = PrivateKey.fromBase58(
-  'EKELdqBuWoNa4KFibyumCJNCr1SzMFJi5mV3pCASXfNH3geh6ezG'
-);
+let candidateKey = PrivateKey.fromBase58('EKELdqBuWoNa4KFibyumCJNCr1SzMFJi5mV3pCASXfNH3geh6ezG');
 // B62qq2s61y9gzALPWSAFitucxq1PhLEjQLGwb65gQ7UgsVFNTtjrzRj
-let votingKey = PrivateKey.fromBase58(
-  'EKFHGpCJTuQk1xHTkQH3q3xXJCHMQLPwhy5iTJk3L2bK4FG9iVnv'
-);
+let votingKey = PrivateKey.fromBase58('EKFHGpCJTuQk1xHTkQH3q3xXJCHMQLPwhy5iTJk3L2bK4FG9iVnv');
 
 let params: VotingAppParams = {
-  candidatePreconditions: new ParticipantPreconditions(
-    UInt64.from(100),
-    UInt64.from(1000)
-  ),
-  voterPreconditions: new ParticipantPreconditions(
-    UInt64.from(10),
-    UInt64.from(200)
-  ),
+  candidatePreconditions: new ParticipantPreconditions(UInt64.from(100), UInt64.from(1000)),
+  voterPreconditions: new ParticipantPreconditions(UInt64.from(10), UInt64.from(200)),
   electionPreconditions: ElectionPreconditions.default,
   voterKey,
   candidateKey,
@@ -72,9 +57,7 @@ tx = await Mina.transaction(feePayer, async () => {
 
   await contracts.candidateContract.deploy();
   contracts.candidateContract.committedMembers.set(candidateStore.getRoot());
-  contracts.candidateContract.accumulatedMembers.set(
-    Reducer.initialActionState
-  );
+  contracts.candidateContract.accumulatedMembers.set(Reducer.initialActionState);
 
   await contracts.voterContract.deploy();
   contracts.voterContract.committedMembers.set(voterStore.getRoot());
@@ -145,10 +128,7 @@ await tx.sign([feePayer.key]).send();
   the membership contract will then emit one event per new member
   we should have emitted three new members
   */
-console.log(
-  '3 events?? ',
-  (await contracts.voterContract.reducer.fetchActions()).length === 3
-);
+console.log('3 events?? ', (await contracts.voterContract.reducer.fetchActions()).length === 3);
 
 /*
 
@@ -198,10 +178,7 @@ await tx.sign([feePayer.key]).send();
   the membership contract will then emit one event per new member
   we should have emitted 2 new members, because we registered 2 new candidates
   */
-console.log(
-  '2 events?? ',
-  (await contracts.candidateContract.reducer.fetchActions()).length === 2
-);
+console.log('2 events?? ', (await contracts.candidateContract.reducer.fetchActions()).length === 2);
 
 /*
   we only emitted sequence events,
@@ -211,10 +188,7 @@ console.log(
 
 console.log(
   'still initial root? ',
-  contracts.candidateContract.committedMembers
-    .get()
-    .equals(initialRoot)
-    .toBoolean()
+  contracts.candidateContract.committedMembers.get().equals(initialRoot).toBoolean()
 );
 console.log(
   'still initial root? ',
@@ -241,17 +215,11 @@ for (let a of candidateStore.values()) {
 
 console.log(
   'candidate root? ',
-  contracts.candidateContract.committedMembers
-    .get()
-    .equals(candidateStore.getRoot())
-    .toBoolean()
+  contracts.candidateContract.committedMembers.get().equals(candidateStore.getRoot()).toBoolean()
 );
 console.log(
   'voter root? ',
-  contracts.voterContract.committedMembers
-    .get()
-    .equals(voterStore.getRoot())
-    .toBoolean()
+  contracts.voterContract.committedMembers.get().equals(voterStore.getRoot()).toBoolean()
 );
 
 /*
@@ -298,11 +266,7 @@ console.log(
 
 printResult();
 
-function registerMember(
-  i: bigint,
-  m: Member,
-  store: OffchainStorage<Member>
-): Member {
+function registerMember(i: bigint, m: Member, store: OffchainStorage<Member>): Member {
   Local.addAccount(m.publicKey, m.balance.toString());
 
   // we will also have to keep track of new voters and candidates within our off-chain merkle tree
@@ -324,12 +288,7 @@ function vote(i: bigint) {
 }
 
 function printResult() {
-  if (
-    !contracts.voting.committedVotes
-      .get()
-      .equals(votesStore.getRoot())
-      .toBoolean()
-  ) {
+  if (!contracts.voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
     throw new Error('On-chain root is not up to date with the off-chain tree');
   }
 

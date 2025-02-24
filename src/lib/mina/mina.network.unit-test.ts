@@ -1,12 +1,4 @@
-import {
-  UInt64,
-  Mina,
-  AccountUpdate,
-  PublicKey,
-  Field,
-  TokenId,
-  PrivateKey,
-} from 'o1js';
+import { UInt64, Mina, AccountUpdate, PublicKey, Field, TokenId, PrivateKey } from 'o1js';
 import { describe, it, before, beforeEach, afterEach } from 'node:test';
 import { expect } from 'expect';
 
@@ -66,10 +58,7 @@ describe('Test default network', () => {
   it('Multiple account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 2; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
@@ -81,10 +70,7 @@ describe('Test default network', () => {
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 12; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
@@ -117,10 +103,7 @@ describe('Test enforced network', () => {
   it('Multiple account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 2; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
@@ -132,10 +115,7 @@ describe('Test enforced network', () => {
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 12; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
@@ -168,10 +148,7 @@ describe('Test unlimited network', () => {
   it('Multiple account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 2; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
@@ -183,10 +160,7 @@ describe('Test unlimited network', () => {
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 12; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
@@ -211,10 +185,7 @@ describe('Test network with headers', () => {
   beforeEach(() => {
     originalFetch = global.fetch;
     lastFetchOptions = undefined;
-    global.fetch = ((
-      input: RequestInfo | URL,
-      init?: RequestInit
-    ): Promise<Response> => {
+    global.fetch = ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       lastFetchOptions = init;
       let url: string;
       if (typeof input === 'string') {
@@ -270,10 +241,7 @@ describe('Test network with headers', () => {
   it('Multiple account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 2; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
@@ -285,10 +253,7 @@ describe('Test network with headers', () => {
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
       for (let index = 0; index < 12; index++) {
-        const accountUpdateBob = AccountUpdate.create(
-          bobAccount,
-          Field.from(index)
-        );
+        const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
       }
