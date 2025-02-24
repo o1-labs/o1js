@@ -55,9 +55,7 @@ const RawCircuitString = {
   ...provable({ values: Provable.Array(Character, DEFAULT_STRING_LENGTH) }),
 
   toValue({ values }) {
-    return stringDecoder.decode(
-      new Uint8Array(values.map((x) => Number(x.toField().toBigInt())))
-    );
+    return stringDecoder.decode(new Uint8Array(values.map((x) => Number(x.toField().toBigInt()))));
   },
 
   fromValue(value) {
@@ -166,9 +164,7 @@ class CircuitString extends Struct(RawCircuitString) {
     } else if (textEncoding === 'utf-8') {
       return CircuitString.toValue(this);
     }
-    throw Error(
-      'CircuitString: unsupported encoding, only ascii and utf-8 are supported'
-    );
+    throw Error('CircuitString: unsupported encoding, only ascii and utf-8 are supported');
   }
 
   private static fromValueUtf8(value: string | { values: Character[] }) {
@@ -186,10 +182,7 @@ class CircuitString extends Struct(RawCircuitString) {
     CircuitString.encoding = encoding;
   }
 
-  static fromString(
-    str: string,
-    encoding?: CircuitStringEncoding
-  ): CircuitString {
+  static fromString(str: string, encoding?: CircuitStringEncoding): CircuitString {
     const textEncoding = encoding ?? CircuitString.encoding;
     if (str.length > this.maxLength) {
       throw Error('CircuitString.fromString: input string exceeds max length!');
@@ -199,9 +192,7 @@ class CircuitString extends Struct(RawCircuitString) {
     } else if (textEncoding === 'utf-8') {
       return new CircuitString(CircuitString.fromValueUtf8(str));
     }
-    throw Error(
-      'CircuitString: unsupported encoding, only ascii and utf-8 are supported'
-    );
+    throw Error('CircuitString: unsupported encoding, only ascii and utf-8 are supported');
   }
 }
 

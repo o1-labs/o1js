@@ -6,10 +6,7 @@ console.timeEnd('compile');
 
 let preimage = Bytes12.fromString('hello world!');
 
-console.log(
-  'blake2b rows:',
-  (await BLAKE2BProgram.analyzeMethods()).blake2b.rows
-);
+console.log('blake2b rows:', (await BLAKE2BProgram.analyzeMethods()).blake2b.rows);
 
 console.time('prove');
 let { proof } = await BLAKE2BProgram.blake2b(preimage);
