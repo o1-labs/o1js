@@ -91,9 +91,9 @@ class ForeignField {
    * ```ts
    * let x = new ForeignField(5);
    * ```
-   * 
+   *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
-   * 
+   *
    * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
    * - When constructing from a {@link Field3} array, ensure all elements are valid Field elements and range checked.
    * - Ensure constants are correctly reduced to the modulus of the field.

@@ -129,11 +129,13 @@ type Transaction<
    * await tx.send();
    * ```
    */
-  setFee(newFee:UInt64) : TransactionPromise<Proven,false>;
+  setFee(newFee: UInt64): TransactionPromise<Proven, false>;
   /**
    * setFeePerSnarkCost behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost:number) : TransactionPromise<Proven,false>;
+  setFeePerSnarkCost(
+    newFeePerSnarkCost: number
+  ): TransactionPromise<Proven, false>;
 } & (Proven extends false
     ? {
         /**
@@ -274,11 +276,13 @@ type PendingTransaction = Pick<
   /**
    * setFee is the same as {@link Transaction.setFee(newFee)} but for a {@link PendingTransaction}.
    */
-  setFee(newFee:UInt64):TransactionPromise<boolean,false>;
+  setFee(newFee: UInt64): TransactionPromise<boolean, false>;
   /**
    * setFeePerSnarkCost is the same as {@link Transaction.setFeePerSnarkCost(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost:number):TransactionPromise<boolean,false>;
+  setFeePerSnarkCost(
+    newFeePerSnarkCost: number
+  ): TransactionPromise<boolean, false>;
 };
 
 /**
@@ -573,24 +577,28 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       }
       return pendingTransaction;
     },
-    setFeePerSnarkCost(newFeePerSnarkCost:number) {
-      let {totalTimeRequired} = getTotalTimeRequired(transaction.accountUpdates);
-      return this.setFee(new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost)));
+    setFeePerSnarkCost(newFeePerSnarkCost: number) {
+      let { totalTimeRequired } = getTotalTimeRequired(
+        transaction.accountUpdates
+      );
+      return this.setFee(
+        new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost))
+      );
     },
-    setFee(newFee:UInt64) {
-      return  toTransactionPromise(async () =>
-      {
-        self = self as Transaction<false,false>;
-        self.transaction.accountUpdates.forEach( au => {
-          if (au.body.useFullCommitment.toBoolean())
-          {
+    setFee(newFee: UInt64) {
+      return toTransactionPromise(async () => {
+        self = self as Transaction<false, false>;
+        self.transaction.accountUpdates.forEach((au) => {
+          if (au.body.useFullCommitment.toBoolean()) {
             au.authorization.signature = undefined;
-            au.lazyAuthorization = {kind:'lazy-signature'};
+            au.lazyAuthorization = { kind: 'lazy-signature' };
           }
-          });
+        });
         self.transaction.feePayer.body.fee = newFee;
-        self.transaction.feePayer.lazyAuthorization = {kind : 'lazy-signature'};
-        return self
+        self.transaction.feePayer.lazyAuthorization = {
+          kind: 'lazy-signature',
+        };
+        return self;
       });
     },
   };

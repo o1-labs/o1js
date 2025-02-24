@@ -238,7 +238,7 @@ async function LocalBlockchain({
             events[addr][tokenId] ??= [];
             let updatedEvents = p.body.events.data.map((data: Field[]) => {
               return {
-                data: data.map(e => e.toString()),
+                data: data.map((e) => e.toString()),
                 transactionInfo: {
                   transactionHash: '',
                   transactionStatus: '',

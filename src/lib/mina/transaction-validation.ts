@@ -59,8 +59,8 @@ function defaultNetworkState(): NetworkValue {
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-
-  let {totalTimeRequired,eventElements,authTypes} = getTotalTimeRequired(accountUpdates);
+  let { totalTimeRequired, eventElements, authTypes } =
+    getTotalTimeRequired(accountUpdates);
 
   let isWithinCostLimit = totalTimeRequired < TransactionCost.COST_LIMIT;
 
@@ -92,8 +92,7 @@ ${JSON.stringify(authTypes)}
   if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
 
-
-function getTotalTimeRequired(accountUpdates : AccountUpdate[]){
+function getTotalTimeRequired(accountUpdates: AccountUpdate[]) {
   let eventElements = { events: 0, actions: 0 };
 
   let authKinds = accountUpdates.map((update) => {
@@ -129,7 +128,7 @@ function getTotalTimeRequired(accountUpdates : AccountUpdate[]){
     TransactionCost.SIGNED_PAIR_COST * authTypes.signedPair +
     TransactionCost.SIGNED_SINGLE_COST * authTypes.signedSingle;
   // returns totalTimeRequired and additional data used by verifyTransactionLimits
-  return {totalTimeRequired,eventElements,authTypes};
+  return { totalTimeRequired, eventElements, authTypes };
 }
 
 function countEventElements({ data }: Events) {

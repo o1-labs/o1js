@@ -60,7 +60,6 @@ await equivalentAsync(
   return proof.publicOutput;
 });
 
-
 function testVectors() {
   return [
     {

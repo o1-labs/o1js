@@ -1,9 +1,4 @@
-import {
-  AccountUpdate,
-  Lightnet,
-  Mina,
-  PrivateKey,
-} from 'o1js';
+import { AccountUpdate, Lightnet, Mina, PrivateKey } from 'o1js';
 import { DEFAULT_LIGHTNET_CONFIG } from '../../utils/network-configuration.js';
 import { randomAccounts } from '../../utils/random-accounts.js';
 import { tic, toc } from '../../utils/tic-toc.node.js';
@@ -19,10 +14,10 @@ let { keys, addresses } = randomAccounts('contract', 'user1', 'user2');
 let pendingTx: Mina.PendingTransaction;
 
 // compile contracts & wait for fee payer to be funded
-const senderKey = (await Lightnet.acquireKeyPair()).privateKey
+const senderKey = (await Lightnet.acquireKeyPair()).privateKey;
 const sender = senderKey.toPublicKey();
 
-const sender2Key = (await Lightnet.acquireKeyPair()).privateKey
+const sender2Key = (await Lightnet.acquireKeyPair()).privateKey;
 const sender2 = sender2Key.toPublicKey();
 
 tic('Compiling Merkle List Reducer Smart Contract');
