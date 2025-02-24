@@ -41,8 +41,8 @@ import {
   Empty,
   MethodInterface,
   sortMethodArguments,
-  VerificationKey,
 } from '../../proof-system/zkprogram.js';
+import { VerificationKey } from '../../proof-system/verification-key.js';
 import { Proof, ProofClass } from '../../proof-system/proof.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import {

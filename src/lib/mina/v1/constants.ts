@@ -26,3 +26,9 @@ export namespace TransactionLimits {
   // Defined in https://github.com/MinaProtocol/mina/blob/e39abf79b7fdf96717eb8a8ee88ec42ba1e2663d/src/lib/mina_compile_config/mina_compile_config.ml#L77
   export const MAX_EVENT_ELEMENTS = 100 as const;
 }
+
+export namespace ZkappConstants {
+  export const MAX_ZKAPP_STATE_FIELDS = 8 as const;
+  export const ACCOUNT_ACTION_STATE_BUFFER_SIZE = 5 as const;
+  export const ACCOUNT_CREATION_FEE = 1000000000n as const;
+}
