@@ -3,6 +3,11 @@ import { Field } from '../../provable/field.js';
 import { UInt64 } from '../../provable/int.js';
 import { Provable } from '../../provable/types/provable-intf.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
+import { bytesToBits, stringToBytes } from 'src/bindings/lib/binable.js';
+import { GenericHashInput } from 'src/bindings/lib/generic.js';
+import { hashWithPrefix, packToFields } from 'src/lib/provable/crypto/poseidon.js';
+import { prefixes } from 'src/bindings/crypto/constants.js';
+import { Types } from 'src/bindings/mina-transaction/v1/types.js';
 
 export {
   Option,
@@ -18,6 +23,8 @@ export {
   ProvableTuple,
   ProvableInstance,
   ProvableTupleInstances,
+  TokenId,
+  ZkappUri,
 };
 
 const { Option, Range } = Bindings.Leaves;
@@ -26,6 +33,62 @@ type Range<T> = Bindings.Leaves.Range<T>;
 
 // TODO: constructors from Mina and NanoMina
 type MinaAmount = UInt64;
+
+class ZkappUri {
+  readonly data: string;
+  readonly hash: Field;
+
+  constructor(uri: string | { data: string; hash: Field }) {
+    if (typeof uri === 'object') {
+      this.data = uri.data;
+      this.hash = uri.hash;
+    } else {
+      this.data = uri;
+
+      let packed: Field[];
+      if (uri.length === 0) {
+        packed = [new Field(0), new Field(0)];
+      } else {
+        const bits = bytesToBits(stringToBytes(uri));
+        bits.push(true);
+        const input: GenericHashInput<Field> = {
+          packed: bits.map((b) => [new Field(Number(b)), 1]),
+        };
+        packed = packToFields(input);
+      }
+
+      this.hash = hashWithPrefix(prefixes.zkappUri, packed);
+    }
+  }
+
+  toJSON(): Types.Json.AccountUpdate['body']['update']['zkappUri'] {
+    return this.data.toString();
+  }
+
+  static empty(): ZkappUri {
+    return new ZkappUri('');
+  }
+
+  static from(uri: ZkappUri | string): ZkappUri {
+    return uri instanceof ZkappUri ? uri : new ZkappUri(uri);
+  }
+}
+
+// TODO
+class TokenId {
+  // TODO: construct this from it's parts, don't pass in the raw Field directly
+  constructor(public value: Field) {}
+
+  equals(x: TokenId): Bool {
+    return this.value.equals(x.value);
+  }
+
+  toString(): string {
+    return this.value.toString();
+  }
+
+  static MINA: TokenId = new TokenId(new Field(1));
+}
 
 function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | undefined {
   return value === undefined ? undefined : f(value);

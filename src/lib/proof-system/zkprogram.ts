@@ -44,9 +44,10 @@ import { emptyWitness } from '../provable/types/util.js';
 import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { VerificationKey } from './verification-key.js';
 
 // public API
-export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, VerificationKey };
+export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void };
 
 // internal API
 export {
@@ -63,6 +64,7 @@ export {
   RegularProver,
   TupleToInstances,
   PrivateInput,
+  Proof,
 };
 
 type Undefined = undefined;
@@ -601,22 +603,6 @@ type ZkProgram<
  * ```
  */
 class SelfProof<PublicInput, PublicOutput> extends Proof<PublicInput, PublicOutput> {}
-
-class VerificationKey extends Struct({
-  ...provable({ data: String, hash: Field }),
-  toJSON({ data }: { data: string }) {
-    return data;
-  },
-}) {
-  static async dummy(): Promise<VerificationKey> {
-    await initializeBindings();
-    const [, data, hash] = Pickles.dummyVerificationKey();
-    return new VerificationKey({
-      data,
-      hash: Field(hash),
-    });
-  }
-}
 
 function sortMethodArguments(
   programName: string,
