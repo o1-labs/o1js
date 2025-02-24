@@ -3,7 +3,7 @@ import {
   ZkappCommandAuthorizationEnvironment,
   ZkappFeePaymentAuthorizationEnvironment,
 } from './authorization.js';
-import { AccountUpdate, AccountUpdateTree, GenericData } from './account-update.js';
+import { AccountUpdate, AccountUpdateTree, Authorized, GenericData } from './account-update.js';
 import { Account, AccountId, AccountIdSet } from './account.js';
 import { TokenId } from './core.js';
 import { AccountUpdateErrorTrace, ZkappCommandErrorTrace, getCallerFrame } from './errors.js';
@@ -22,14 +22,16 @@ import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigi
 import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 
-export interface ZkappFeePaymentDescription {
+export { ZkappCommand, ZkappFeePayment };
+
+interface ZkappFeePaymentDescription {
   publicKey: PublicKey;
   fee: UInt64; // TODO: abstract currency representation
   validUntil?: UInt32; // TODO: abstract slot representation
   nonce: UInt32;
 }
 
-export class ZkappFeePayment {
+class ZkappFeePayment {
   readonly __type: 'ZkappCommand' = 'ZkappCommand';
 
   publicKey: PublicKey;
@@ -77,8 +79,8 @@ export class ZkappFeePayment {
     });
   }
 
-  toDummyAuthorizedAccountUpdate(): AccountUpdate.Authorized {
-    return new AccountUpdate.Authorized({ signature: '', proof: null }, this.toAccountUpdate());
+  toDummyAuthorizedAccountUpdate(): Authorized {
+    return new Authorized({ signature: '', proof: null }, this.toAccountUpdate());
   }
 
   toInternalRepr(): BindingsLayout.FeePayerBody {
@@ -99,7 +101,7 @@ export class ZkappFeePayment {
   }
 }
 
-export class AuthorizedZkappFeePayment {
+class AuthorizedZkappFeePayment {
   constructor(public readonly body: ZkappFeePayment, public readonly signature: string) {}
 
   toInternalRepr(): BindingsLayout.ZkappFeePayer {
@@ -110,14 +112,14 @@ export class AuthorizedZkappFeePayment {
   }
 }
 
-export interface ZkappCommandDescription {
+interface ZkappCommandDescription {
   feePayment: ZkappFeePayment;
   // TODO: merge AccountUpdateTree and AccountUpdate
   accountUpdates: (AccountUpdate | AccountUpdateTree<AccountUpdate>)[];
   memo?: string;
 }
 
-export class ZkappCommand {
+class ZkappCommand {
   // TODO: put this on everything (in this case, we really need it to disambiguate the Description format)
   readonly __type: 'ZkappCommand' = 'ZkappCommand';
 
@@ -180,11 +182,11 @@ export class ZkappCommand {
   }
 }
 
-export class AuthorizedZkappCommand {
+class AuthorizedZkappCommand {
   readonly __type: 'AuthorizedZkappCommand' = 'AuthorizedZkappCommand';
 
   readonly feePayment: AuthorizedZkappFeePayment;
-  readonly accountUpdateForest: AccountUpdateTree<AccountUpdate.Authorized>[];
+  readonly accountUpdateForest: AccountUpdateTree<Authorized>[];
   readonly memo: string;
 
   constructor({
@@ -193,7 +195,7 @@ export class AuthorizedZkappCommand {
     memo,
   }: {
     feePayment: AuthorizedZkappFeePayment;
-    accountUpdateForest: AccountUpdateTree<AccountUpdate.Authorized>[];
+    accountUpdateForest: AccountUpdateTree<Authorized>[];
     memo: string;
   }) {
     this.feePayment = feePayment;
@@ -223,7 +225,7 @@ export class AuthorizedZkappCommand {
 
 // NB: this is really more of an environment than a context, but this naming convention helps to
 //     disambiguate the transaction environment from the mina program environment
-export class ZkappCommandContext {
+class ZkappCommandContext {
   ledger: LedgerView;
   chain: ChainView;
   failedAccounts: AccountIdSet;
@@ -355,7 +357,7 @@ export class ZkappCommandContext {
 //                 account updates are still applied to the provided ledger view. We should
 //                 probably make the ledger view interface immutable, or clone it every time we
 //                 create a new zkapp command, to help avoid unexpected behavior externally.
-export async function createUnsignedZkappCommand(
+async function createUnsignedZkappCommand(
   ledger: LedgerView,
   chain: ChainView,
   {
@@ -428,7 +430,7 @@ export async function createUnsignedZkappCommand(
   }
 }
 
-export async function createZkappCommand(
+async function createZkappCommand(
   ledger: LedgerView,
   chain: ChainView,
   authEnv: ZkappCommandAuthorizationEnvironment,

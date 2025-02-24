@@ -10,6 +10,8 @@ import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { TokenSymbol } from '../../../lib/provable/crypto/poseidon.js';
 import { TokenId, ZkappUri } from './core.js';
 
+export { AccountId, AccountTiming, AccountIdSet, Account, AccountIdMap };
+
 function accountIdKeys(accountId: AccountId): {
   publicKey: string;
   tokenId: string;
@@ -20,7 +22,7 @@ function accountIdKeys(accountId: AccountId): {
   };
 }
 
-export class AccountId {
+class AccountId {
   constructor(public publicKey: PublicKey, public tokenId: TokenId) {}
 
   equals(x: AccountId): Bool {
@@ -63,7 +65,7 @@ export class AccountId {
   }
 }
 
-export class AccountIdMap<T> {
+class AccountIdMap<T> {
   private data: { [publicKey: string]: { [tokenId: string]: T } };
 
   constructor() {
@@ -95,7 +97,7 @@ export class AccountIdMap<T> {
   }
 }
 
-export class AccountIdSet {
+class AccountIdSet {
   private idMap: AccountIdMap<null>;
 
   constructor() {
@@ -111,7 +113,7 @@ export class AccountIdSet {
   }
 }
 
-export class AccountTiming {
+class AccountTiming {
   initialMinimumBalance: UInt64;
   cliffTime: UInt32;
   cliffAmount: UInt64;
@@ -187,7 +189,7 @@ export class AccountTiming {
   }
 }
 
-export class Account<State extends StateLayout = 'GenericState'> {
+class Account<State extends StateLayout = 'GenericState'> {
   State: StateDefinition<State>;
   isNew: Unconstrained<boolean>;
 

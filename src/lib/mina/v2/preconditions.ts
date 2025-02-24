@@ -15,7 +15,15 @@ import { Actions } from '../../../bindings/mina-transaction/v1/transaction-leave
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/v2/js-layout.js';
 import { ZkappConstants } from '../v1/constants.js';
 
-export namespace Precondition {
+export {
+  Preconditions,
+  Precondition,
+  PreconditionsDescription,
+  EpochDataPreconditions,
+  EpochLedgerPreconditions,
+};
+
+namespace Precondition {
   export class Equals<T extends Eq<T>> {
     constructor(public isEnabled: Bool, public value: T) {}
 
@@ -160,13 +168,13 @@ export namespace Precondition {
   }
 }
 
-export type PreconditionsDescription<State extends StateLayout> = {
+type PreconditionsDescription<State extends StateLayout> = {
   network?: NetworkPreconditionsDescription | NetworkPreconditions;
   account?: AccountPreconditionsDescription<State> | AccountPreconditions<State>;
   validWhile?: UInt32 | Precondition.InRange<UInt32>;
 };
 
-export class Preconditions<State extends StateLayout = 'GenericState'> {
+class Preconditions<State extends StateLayout = 'GenericState'> {
   readonly network: NetworkPreconditions;
   readonly account: AccountPreconditions<State>;
   readonly validWhile: Precondition.InRange<UInt32>;
@@ -283,12 +291,12 @@ export class Preconditions<State extends StateLayout = 'GenericState'> {
   }
 }
 
-export type EpochLedgerPreconditionsDescription = {
+type EpochLedgerPreconditionsDescription = {
   hash?: Field | Precondition.Equals<Field>;
   totalCurrency?: MinaAmount | Precondition.InRange<MinaAmount>;
 };
 
-export class EpochLedgerPreconditions {
+class EpochLedgerPreconditions {
   readonly hash: Precondition.Equals<Field>;
   readonly totalCurrency: Precondition.InRange<MinaAmount>;
 
@@ -381,7 +389,7 @@ export class EpochLedgerPreconditions {
   }
 }
 
-export type EpochDataPreconditionsDescription = {
+type EpochDataPreconditionsDescription = {
   ledger?: EpochLedgerPreconditions | EpochLedgerPreconditionsDescription;
   seed?: Field | Precondition.Equals<Field>;
   startCheckpoint?: Field | Precondition.Equals<Field>;
@@ -389,7 +397,7 @@ export type EpochDataPreconditionsDescription = {
   epochLength?: UInt32 | Precondition.InRange<UInt32>;
 };
 
-export class EpochDataPreconditions {
+class EpochDataPreconditions {
   readonly ledger: EpochLedgerPreconditions;
   readonly seed: Precondition.Equals<Field>;
   readonly startCheckpoint: Precondition.Equals<Field>;
@@ -494,7 +502,7 @@ export class EpochDataPreconditions {
   }
 }
 
-export type NetworkPreconditionsDescription = {
+type NetworkPreconditionsDescription = {
   snarkedLedgerHash?: Field | Precondition.Equals<Field>;
   blockchainLength?: UInt32 | Precondition.InRange<UInt32>;
   minWindowDensity?: UInt32 | Precondition.InRange<UInt32>;
@@ -504,7 +512,7 @@ export type NetworkPreconditionsDescription = {
   nextEpochData?: EpochDataPreconditions | EpochDataPreconditionsDescription;
 };
 
-export class NetworkPreconditions {
+class NetworkPreconditions {
   readonly snarkedLedgerHash: Precondition.Equals<Field>;
   readonly blockchainLength: Precondition.InRange<UInt32>;
   readonly minWindowDensity: Precondition.InRange<UInt32>;
@@ -626,7 +634,7 @@ export class NetworkPreconditions {
   }
 }
 
-export type AccountPreconditionsDescription<State extends StateLayout> = {
+type AccountPreconditionsDescription<State extends StateLayout> = {
   balance?: MinaAmount | Precondition.InRange<MinaAmount>;
   nonce?: UInt32 | Precondition.InRange<UInt32>;
   receiptChainHash?: Field | Precondition.Equals<Field>;
@@ -638,7 +646,7 @@ export type AccountPreconditionsDescription<State extends StateLayout> = {
   isNew?: Bool | Precondition.Equals<Bool>;
 };
 
-export class AccountPreconditions<State extends StateLayout = 'GenericState'> {
+class AccountPreconditions<State extends StateLayout = 'GenericState'> {
   // TODO: should these really be read-only?
   readonly State: StateDefinition<State>;
   readonly balance: Precondition.InRange<MinaAmount>;

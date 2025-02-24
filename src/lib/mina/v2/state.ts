@@ -19,19 +19,29 @@ import { Provable } from '../../provable/provable.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { ZkappConstants } from '../v1/constants.js';
 
+export {
+  StateValues,
+  GenericStatePreconditions,
+  StatePreconditions,
+  StateDefinition,
+  StateUpdates,
+  StateLayout,
+  GenericStateUpdates,
+};
+
 const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
 
 // TODO IMMEDIATELY: This representation doesn't actually work, because if you specify a state
 //                   element in a custom state layout that doesn't satisfy the StateElement type,
 //                   typescript will just replace the state element types in the layout with `any`.
 //                   Fucking typescript.
-export type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
-export type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
+type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
+type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
 // TODO: custom state layouts need to specify the order of their keys
-export type CustomStateLayout = { [name: string]: Provable<any> & Empty<any> };
-export type StateLayout = 'GenericState' | CustomStateLayout;
+type CustomStateLayout = { [name: string]: Provable<any> & Empty<any> };
+type StateLayout = 'GenericState' | CustomStateLayout;
 
-export const CustomStateLayout = {
+const CustomStateLayout = {
   project<StateIn extends CustomStateLayout, StateOut extends { [name in keyof StateIn]: unknown }>(
     Layout: StateIn,
     f: (key: keyof StateIn, value: StateIn[typeof key]) => StateOut[typeof key]
@@ -52,13 +62,13 @@ export const CustomStateLayout = {
   // }
 };
 
-export type StateDefinition<State extends StateLayout> = State extends 'GenericState'
+type StateDefinition<State extends StateLayout> = State extends 'GenericState'
   ? 'GenericState'
   : { Layout: State } & Provable<{
       [name in keyof State]: ProvableInstance<State[name]>;
     }>;
 
-export const StateDefinition = {
+const StateDefinition = {
   split2<State extends StateLayout, Generic1, Custom1, Generic2, Custom2>(
     definition: StateDefinition<State>,
     value1: State extends 'GenericState' ? Generic1 : Custom1,
@@ -135,7 +145,7 @@ export const StateDefinition = {
 };
 
 // TODO: allow for explicit ordering/mapping of state field indices
-export function State<State extends CustomStateLayout>(Layout: State): StateDefinition<State> {
+function State<State extends CustomStateLayout>(Layout: State): StateDefinition<State> {
   // TODO: proxy provable definition out of Struct with helper
   // class StateDef extends Struct(Layout) {}
 
@@ -192,7 +202,7 @@ export function State<State extends CustomStateLayout>(Layout: State): StateDefi
   // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
 }
 
-export type StatePreconditions<State extends StateLayout> = State extends 'GenericState'
+type StatePreconditions<State extends StateLayout> = State extends 'GenericState'
   ? GenericStatePreconditions
   : {
       [name in keyof State]: Precondition.Equals<
@@ -200,7 +210,7 @@ export type StatePreconditions<State extends StateLayout> = State extends 'Gener
       >;
     };
 
-export const StatePreconditions = {
+const StatePreconditions = {
   empty<State extends StateLayout>(State: StateDefinition<State>): StatePreconditions<State> {
     return StateDefinition.project(
       State,
@@ -293,13 +303,13 @@ export const StatePreconditions = {
   },
 };
 
-export type StateUpdates<State extends StateLayout> = State extends 'GenericState'
+type StateUpdates<State extends StateLayout> = State extends 'GenericState'
   ? GenericStateUpdates
   : {
       [name in keyof State]?: ProvableInstance<State[name]> | Update<ProvableInstance<State[name]>>;
     };
 
-export const StateUpdates = {
+const StateUpdates = {
   empty<State extends StateLayout>(State: StateDefinition<State>): StateUpdates<State> {
     return StateDefinition.project(State, GenericStateUpdates.empty, (Layout: CustomStateLayout) =>
       CustomStateLayout.project(Layout, (_key, T) => Update.disabled(T.empty()))
@@ -390,11 +400,11 @@ export const StateUpdates = {
   },
 };
 
-export type StateValues<State extends StateLayout> = State extends 'GenericState'
+type StateValues<State extends StateLayout> = State extends 'GenericState'
   ? GenericStateValues
   : { [name in keyof State]: ProvableInstance<State[name]> };
 
-export const StateValues = {
+const StateValues = {
   empty<State extends StateLayout>(State: StateDefinition<State>): StateValues<State> {
     return StateDefinition.project(State, GenericStateValues.empty, (Layout: CustomStateLayout) =>
       CustomStateLayout.project(Layout, (_key, T) => T.empty())
@@ -514,23 +524,23 @@ export const StateValues = {
   },
 };
 
-export type StateMask<State extends StateLayout> = State extends 'GenericState'
+type StateMask<State extends StateLayout> = State extends 'GenericState'
   ? GenericStateMask
   : { [name in keyof State]?: ProvableInstance<State[name]> };
 
-export const StateMask = {
+const StateMask = {
   create<State extends StateLayout>(State: StateDefinition<State>): StateMask<State> {
     return StateDefinition.project(State, GenericStateMask.empty, () => ({}));
   },
 };
 
-export type StateReader<State extends StateLayout> = State extends 'GenericState'
+type StateReader<State extends StateLayout> = State extends 'GenericState'
   ? GenericStateReader
   : {
       [name in keyof State]: State[name] extends Provable<infer U> ? () => U : never;
     };
 
-export const StateReader = {
+const StateReader = {
   create<State extends StateLayout>(
     State: StateDefinition<State>,
     stateValues: Unconstrained<StateValues<State>>,
@@ -558,7 +568,7 @@ export const StateReader = {
   },
 };
 
-export class StateFieldsArray<T> {
+class StateFieldsArray<T> {
   constructor(private fieldElements: T[], empty: () => T) {
     if (this.fieldElements.length > MAX_ZKAPP_STATE_FIELDS) {
       throw new Error('exceeded maximum number of state elements');
@@ -580,7 +590,7 @@ export class StateFieldsArray<T> {
   }
 }
 
-export class GenericStateValues extends StateFieldsArray<Field> {
+class GenericStateValues extends StateFieldsArray<Field> {
   constructor(values: Field[]) {
     super(values, Field.empty);
   }
@@ -603,7 +613,7 @@ export class GenericStateValues extends StateFieldsArray<Field> {
   }
 }
 
-export class GenericStatePreconditions extends StateFieldsArray<Precondition.Equals<Field>> {
+class GenericStatePreconditions extends StateFieldsArray<Precondition.Equals<Field>> {
   constructor(preconditions: Precondition.Equals<Field>[]) {
     super(preconditions, () => Precondition.Equals.disabled(Field.empty()));
   }
@@ -617,7 +627,7 @@ export class GenericStatePreconditions extends StateFieldsArray<Precondition.Equ
   }
 }
 
-export class GenericStateUpdates extends StateFieldsArray<Update<Field>> {
+class GenericStateUpdates extends StateFieldsArray<Update<Field>> {
   constructor(updates: Update<Field>[]) {
     super(updates, () => Update.disabled(Field.empty()));
   }
@@ -631,7 +641,7 @@ export class GenericStateUpdates extends StateFieldsArray<Update<Field>> {
   }
 }
 
-export class GenericStateMask extends StateFieldsArray<Field | undefined> {
+class GenericStateMask extends StateFieldsArray<Field | undefined> {
   constructor() {
     super([], () => undefined);
   }
@@ -646,7 +656,7 @@ export class GenericStateMask extends StateFieldsArray<Field | undefined> {
   }
 }
 
-export class GenericStateReader {
+class GenericStateReader {
   constructor(
     private values: Unconstrained<GenericStateValues>,
     private mask: Unconstrained<GenericStateMask>

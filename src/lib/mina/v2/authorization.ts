@@ -7,8 +7,19 @@ import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { protocolVersions } from '../../../bindings/crypto/constants.js';
 
-export type AuthorizationLevelIdentifier = Bindings.Leaves.AuthRequiredIdentifier;
+export {
+  AccountUpdateAuthorization,
+  AccountUpdateAuthorizationEnvironment,
+  AccountUpdateAuthorizationKind,
+  AccountUpdateAuthorizationKindIdentifier,
+  AccountUpdateAuthorizationKindWithZkappContext,
+  AuthorizationLevelIdentifier,
+  VerificationKeyAuthorizationLevel,
+  ZkappCommandAuthorizationEnvironment,
+  ZkappFeePaymentAuthorizationEnvironment,
+};
 
+type AuthorizationLevelIdentifier = Bindings.Leaves.AuthRequiredIdentifier;
 export class AuthorizationLevel {
   // TODO: it would be nice if these could be private, but then the subtyping doesn't work... maybe we can do a trick here with object splats?
   constant: Bool;
@@ -202,7 +213,7 @@ export class AuthorizationLevel {
   }
 }
 
-export class VerificationKeyAuthorizationLevel {
+class VerificationKeyAuthorizationLevel {
   auth: AuthorizationLevel;
   txnVersion: UInt32;
 
@@ -286,18 +297,18 @@ export class VerificationKeyAuthorizationLevel {
   }
 }
 
-export interface AccountUpdateAuthorization {
+interface AccountUpdateAuthorization {
   proof: string | null;
   signature: string | null;
 }
 
-export type AccountUpdateAuthorizationKindIdentifier =
+type AccountUpdateAuthorizationKindIdentifier =
   | 'None'
   | 'Signature'
   | 'Proof'
   | 'SignatureAndProof';
 
-export class AccountUpdateAuthorizationKind {
+class AccountUpdateAuthorizationKind {
   isSigned: Bool;
   isProved: Bool;
 
@@ -370,7 +381,7 @@ export class AccountUpdateAuthorizationKind {
   }
 }
 
-export class AccountUpdateAuthorizationKindWithZkappContext {
+class AccountUpdateAuthorizationKindWithZkappContext {
   isSigned: Bool;
   isProved: Bool;
   verificationKeyHash: Field;
@@ -386,18 +397,18 @@ export class AccountUpdateAuthorizationKindWithZkappContext {
   }
 }
 
-export type AccountUpdateAuthorizationEnvironment = ZkappCommandAuthorizationEnvironment & {
+type AccountUpdateAuthorizationEnvironment = ZkappCommandAuthorizationEnvironment & {
   accountUpdateForestCommitment: bigint; // TODO: Field;
   fullTransactionCommitment?: bigint; // TODO: Field;
 };
 
-export interface ZkappFeePaymentAuthorizationEnvironment {
+interface ZkappFeePaymentAuthorizationEnvironment {
   networkId: NetworkId;
   privateKey: PrivateKey;
   fullTransactionCommitment: bigint; // TODO: Field
 }
 
-export interface ZkappCommandAuthorizationEnvironment {
+interface ZkappCommandAuthorizationEnvironment {
   networkId: NetworkId;
   getPrivateKey(publicKey: PublicKey): Promise<PrivateKey>;
 }

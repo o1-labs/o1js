@@ -7,7 +7,7 @@ import StackTrace from 'stacktrace-js';
 //       and we won't want to show this information to developers using the API, only to ones
 //       working on it. We should improve this in the future.
 
-export import StackFrame = StackTrace.StackFrame;
+import StackFrame = StackTrace.StackFrame;
 
 export function getCallerFrame(): StackFrame {
   const frames = StackTrace.getSync();
@@ -97,7 +97,7 @@ export interface AccountUpdateErrorTrace {
   childTraces: AccountUpdateErrorTrace[];
 }
 
-// export interface TransactionErrors {
+//  interface TransactionErrors {
 //   warnings: Error[];
 //   errors: Error[];
 // }

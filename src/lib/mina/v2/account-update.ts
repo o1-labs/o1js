@@ -38,8 +38,10 @@ import { VerificationKey } from '../../../lib/proof-system/verification-key.js';
 
 // TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
 // TODO: replay checks
-
-export class AccountUpdateCommitment extends Struct({
+// TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
+// TODO: replay checks
+export { AccountUpdate, Authorized, GenericData, AccountUpdateTree };
+class AccountUpdateCommitment extends Struct({
   accountUpdateCommitment: Field,
 }) {
   constructor(accountUpdateCommitment: Field) {
@@ -48,7 +50,7 @@ export class AccountUpdateCommitment extends Struct({
 }
 
 // TODO: move elsewhere
-export type DynamicProvable<T> =
+type DynamicProvable<T> =
   | Provable<T>
   | {
       toFields(x: T): Field[];
@@ -57,7 +59,7 @@ export type DynamicProvable<T> =
     };
 
 // TODO: move elsewhere
-export const GenericData: DynamicProvable<Field[]> = {
+const GenericData: DynamicProvable<Field[]> = {
   toFields(x: Field[]): Field[] {
     return x;
   },
@@ -73,18 +75,18 @@ export const GenericData: DynamicProvable<Field[]> = {
 };
 
 // TODO: move elsewhere
-export interface Hashable {
+interface Hashable {
   hash(): Field;
 }
 
 // TODO: move elsewhere
-export interface HashableDataConfig<Item> {
+interface HashableDataConfig<Item> {
   readonly emptyPrefix: string;
   readonly consPrefix: string;
   hash(item: Item): Field;
 }
 
-export function EventsHashConfig<T>(T: DynamicProvable<T>): HashableDataConfig<T> {
+function EventsHashConfig<T>(T: DynamicProvable<T>): HashableDataConfig<T> {
   return {
     emptyPrefix: 'MinaZkappEventsEmpty',
     consPrefix: prefixes.events,
@@ -95,7 +97,7 @@ export function EventsHashConfig<T>(T: DynamicProvable<T>): HashableDataConfig<T
   };
 }
 
-export function ActionsHashConfig<T>(T: DynamicProvable<T>): HashableDataConfig<T> {
+function ActionsHashConfig<T>(T: DynamicProvable<T>): HashableDataConfig<T> {
   return {
     emptyPrefix: 'MinaZkappActionsEmpty',
     consPrefix: prefixes.sequenceEvents,
@@ -107,7 +109,7 @@ export function ActionsHashConfig<T>(T: DynamicProvable<T>): HashableDataConfig<
 }
 
 // TODO: move elsewhere
-export class CommittedList<Item> {
+class CommittedList<Item> {
   readonly Item: DynamicProvable<Item>;
   readonly data: Item[];
   readonly hash: Field;
@@ -186,19 +188,19 @@ export class CommittedList<Item> {
   }
 }
 
-export interface MayUseToken {
+interface MayUseToken {
   parentsOwnToken: Bool;
   inheritFromParent: Bool;
 }
 
-export type AccountUpdateTreeDescription<RootDescription, Child> = RootDescription & {
+type AccountUpdateTreeDescription<RootDescription, Child> = RootDescription & {
   // TODO: support using commitments?
   children?: AccountUpdateTree<Child>[];
 };
 
 // TODO: CONSIDER -- merge this logic into AccountUpdate
-// export class AccountUpdateTree<AccountUpdateType> {
-export class AccountUpdateTree<Root, Child = Root> {
+//  class AccountUpdateTree<AccountUpdateType> {
+class AccountUpdateTree<Root, Child = Root> {
   constructor(public rootAccountUpdate: Root, public children: AccountUpdateTree<Child, Child>[]) {}
 
   // depth first traversal (parents before children)
@@ -362,7 +364,7 @@ export class AccountUpdateTree<Root, Child = Root> {
   }
 }
 
-export interface ContextFreeAccountUpdateDescription<
+interface ContextFreeAccountUpdateDescription<
   State extends StateLayout = 'GenericState',
   Event = Field[],
   Action = Field[]
@@ -389,7 +391,7 @@ export interface ContextFreeAccountUpdateDescription<
 
 // in a ZkModule context: ContextFreeAccountUpdate is an AccountUpdate without an account id and call data
 
-export class ContextFreeAccountUpdate<
+class ContextFreeAccountUpdate<
   State extends StateLayout = 'GenericState',
   Event = Field[],
   Action = Field[]
@@ -572,11 +574,7 @@ export class ContextFreeAccountUpdate<
   }
 }
 
-export type AccountUpdateDescription<
-  State extends StateLayout,
-  Event = Field[],
-  Action = Field[]
-> = (
+type AccountUpdateDescription<State extends StateLayout, Event = Field[], Action = Field[]> = (
   | {
       update: ContextFreeAccountUpdate<State, Event, Action>;
       proof?: Proof<undefined, AccountUpdateCommitment>;
@@ -588,7 +586,7 @@ export type AccountUpdateDescription<
   callData?: Field;
 };
 
-export class AccountUpdate<
+class AccountUpdate<
   State extends StateLayout = 'GenericState',
   Event = Field[],
   Action = Field[]
@@ -705,7 +703,7 @@ export class AccountUpdate<
 
   async authorize(
     authEnv: AccountUpdateAuthorizationEnvironment
-  ): Promise<AccountUpdate.Authorized<State, Event, Action>> {
+  ): Promise<Authorized<State, Event, Action>> {
     let proof = null;
     let signature = null;
 
@@ -758,7 +756,7 @@ export class AccountUpdate<
       signature = Signature.toBase58(sig);
     }
 
-    return new AccountUpdate.Authorized({ proof, signature }, this);
+    return new Authorized({ proof, signature }, this);
   }
 
   static create(x: AccountUpdateDescription<'GenericState', Field[], Field[]>): AccountUpdate {
@@ -836,205 +834,195 @@ export class AccountUpdate<
 }
 
 // TODO NOW: un-namespace this
-export namespace AccountUpdate {
-  export type ContextFreeDescription<
-    State extends StateLayout = 'GenericState',
-    Event = Field[],
-    Action = Field[]
-  > = ContextFreeAccountUpdateDescription<State, Event, Action>;
-  export type ContextFree<
-    State extends StateLayout = 'GenericState',
-    Event = Field[],
-    Action = Field[]
-  > = ContextFreeAccountUpdate<State, Event, Action>;
-  export const ContextFree = ContextFreeAccountUpdate;
 
-  // TODO: can we enforce that Authorized account updates are immutable?
-  export class Authorized<
-    State extends StateLayout = 'GenericState',
-    Event = Field[],
-    Action = Field[]
-  > {
-    authorization: AccountUpdateAuthorization;
-    private update: AccountUpdate<State, Event, Action>;
+type ContextFreeDescription<
+  State extends StateLayout = 'GenericState',
+  Event = Field[],
+  Action = Field[]
+> = ContextFreeAccountUpdateDescription<State, Event, Action>;
+type ContextFree<
+  State extends StateLayout = 'GenericState',
+  Event = Field[],
+  Action = Field[]
+> = ContextFreeAccountUpdate<State, Event, Action>;
+const ContextFree = ContextFreeAccountUpdate;
 
-    constructor(
-      authorization: AccountUpdateAuthorization,
-      update: AccountUpdate<State, Event, Action>
-    ) {
-      this.authorization = authorization;
-      this.update = update;
-    }
+// TODO: can we enforce that Authorized account updates are immutable?
+class Authorized<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]> {
+  authorization: AccountUpdateAuthorization;
+  private update: AccountUpdate<State, Event, Action>;
 
-    toAccountUpdate(): AccountUpdate<State, Event, Action> {
-      return this.update;
-    }
+  constructor(
+    authorization: AccountUpdateAuthorization,
+    update: AccountUpdate<State, Event, Action>
+  ) {
+    this.authorization = authorization;
+    this.update = update;
+  }
 
-    get State(): StateDefinition<State> {
-      return this.update.State;
-    }
-    get authorizationKind(): AccountUpdateAuthorizationKind {
-      return this.update.authorizationKind;
-    }
-    get accountId(): AccountId {
-      return this.update.accountId;
-    }
-    get verificationKeyHash(): Field {
-      return this.update.verificationKeyHash;
-    }
-    get callData(): Field {
-      return this.update.callData;
-    }
-    get preconditions(): Preconditions<State> {
-      return this.update.preconditions;
-    }
-    get balanceChange(): Int64 {
-      return this.update.balanceChange;
-    }
-    get incrementNonce(): Bool {
-      return this.update.incrementNonce;
-    }
-    get useFullCommitment(): Bool {
-      return this.update.useFullCommitment;
-    }
-    get implicitAccountCreationFee(): Bool {
-      return this.update.implicitAccountCreationFee;
-    }
-    get mayUseToken(): MayUseToken {
-      return this.update.mayUseToken;
-    }
-    get pushEvents(): CommittedList<Event> {
-      return this.update.pushEvents;
-    }
-    get pushActions(): CommittedList<Action> {
-      return this.update.pushActions;
-    }
-    get stateUpdates(): StateUpdates<State> {
-      return this.update.stateUpdates;
-    }
-    get permissionsUpdate(): Update<Permissions> {
-      return this.update.permissionsUpdate;
-    }
-    get delegateUpdate(): Update<PublicKey> {
-      return this.update.delegateUpdate;
-    }
-    get verificationKeyUpdate(): Update<VerificationKey> {
-      return this.update.verificationKeyUpdate;
-    }
-    get zkappUriUpdate(): Update<ZkappUri> {
-      return this.update.zkappUriUpdate;
-    }
-    get tokenSymbolUpdate(): Update<TokenSymbol> {
-      return this.update.tokenSymbolUpdate;
-    }
-    get timingUpdate(): Update<AccountTiming> {
-      return this.update.timingUpdate;
-    }
-    get votingForUpdate(): Update<Field> {
-      return this.update.votingForUpdate;
-    }
-    get authorizationKindWithZkappContext(): AccountUpdateAuthorizationKindWithZkappContext {
-      return this.update.authorizationKindWithZkappContext;
-    }
+  toAccountUpdate(): AccountUpdate<State, Event, Action> {
+    return this.update;
+  }
 
-    hash(netId: NetworkId): Field {
-      let input = Bindings.Layout.ZkappAccountUpdate.toInput(this.toInternalRepr(0));
-      return hashWithPrefix(zkAppBodyPrefix(netId), packToFields(input));
-    }
+  get State(): StateDefinition<State> {
+    return this.update.State;
+  }
+  get authorizationKind(): AccountUpdateAuthorizationKind {
+    return this.update.authorizationKind;
+  }
+  get accountId(): AccountId {
+    return this.update.accountId;
+  }
+  get verificationKeyHash(): Field {
+    return this.update.verificationKeyHash;
+  }
+  get callData(): Field {
+    return this.update.callData;
+  }
+  get preconditions(): Preconditions<State> {
+    return this.update.preconditions;
+  }
+  get balanceChange(): Int64 {
+    return this.update.balanceChange;
+  }
+  get incrementNonce(): Bool {
+    return this.update.incrementNonce;
+  }
+  get useFullCommitment(): Bool {
+    return this.update.useFullCommitment;
+  }
+  get implicitAccountCreationFee(): Bool {
+    return this.update.implicitAccountCreationFee;
+  }
+  get mayUseToken(): MayUseToken {
+    return this.update.mayUseToken;
+  }
+  get pushEvents(): CommittedList<Event> {
+    return this.update.pushEvents;
+  }
+  get pushActions(): CommittedList<Action> {
+    return this.update.pushActions;
+  }
+  get stateUpdates(): StateUpdates<State> {
+    return this.update.stateUpdates;
+  }
+  get permissionsUpdate(): Update<Permissions> {
+    return this.update.permissionsUpdate;
+  }
+  get delegateUpdate(): Update<PublicKey> {
+    return this.update.delegateUpdate;
+  }
+  get verificationKeyUpdate(): Update<VerificationKey> {
+    return this.update.verificationKeyUpdate;
+  }
+  get zkappUriUpdate(): Update<ZkappUri> {
+    return this.update.zkappUriUpdate;
+  }
+  get tokenSymbolUpdate(): Update<TokenSymbol> {
+    return this.update.tokenSymbolUpdate;
+  }
+  get timingUpdate(): Update<AccountTiming> {
+    return this.update.timingUpdate;
+  }
+  get votingForUpdate(): Update<Field> {
+    return this.update.votingForUpdate;
+  }
+  get authorizationKindWithZkappContext(): AccountUpdateAuthorizationKindWithZkappContext {
+    return this.update.authorizationKindWithZkappContext;
+  }
 
-    toInternalRepr(callDepth: number): Bindings.Layout.ZkappAccountUpdate {
-      return {
-        authorization: {
-          proof: this.authorization.proof === null ? undefined : this.authorization.proof,
-          signature:
-            this.authorization.signature === null ? undefined : this.authorization.signature,
-        },
-        body: this.update.toInternalRepr(callDepth),
-      };
-    }
+  hash(netId: NetworkId): Field {
+    let input = Bindings.Layout.ZkappAccountUpdate.toInput(this.toInternalRepr(0));
+    return hashWithPrefix(zkAppBodyPrefix(netId), packToFields(input));
+  }
 
-    static fromInternalRepr(x: Bindings.Layout.ZkappAccountUpdate): Authorized {
-      return new Authorized(
-        {
-          // when the internal representation is returned from the previous version when casting from fields,
-          // (if there is no proof or authorization, values are set to false rather than to undefined)
-          proof: (x.authorization.proof as any) !== false ? x.authorization.proof ?? null : null,
-          signature:
-            (x.authorization.proof as any) !== false ? x.authorization.signature ?? null : null,
-        },
-        AccountUpdate.fromInternalRepr(x.body)
-      );
-    }
+  toInternalRepr(callDepth: number): Bindings.Layout.ZkappAccountUpdate {
+    return {
+      authorization: {
+        proof: this.authorization.proof === null ? undefined : this.authorization.proof,
+        signature: this.authorization.signature === null ? undefined : this.authorization.signature,
+      },
+      body: this.update.toInternalRepr(callDepth),
+    };
+  }
 
-    toJSON(callDepth: number): any {
-      return Authorized.toJSON(this, callDepth);
-    }
+  static fromInternalRepr(x: Bindings.Layout.ZkappAccountUpdate): Authorized {
+    return new Authorized(
+      {
+        // when the internal representation is returned from the previous version when casting from fields,
+        // (if there is no proof or authorization, values are set to false rather than to undefined)
+        proof: (x.authorization.proof as any) !== false ? x.authorization.proof ?? null : null,
+        signature:
+          (x.authorization.proof as any) !== false ? x.authorization.signature ?? null : null,
+      },
+      AccountUpdate.fromInternalRepr(x.body)
+    );
+  }
 
-    toInput(): HashInput {
-      return Authorized.toInput(this);
-    }
+  toJSON(callDepth: number): any {
+    return Authorized.toJSON(this, callDepth);
+  }
 
-    toFields(): Field[] {
-      return Authorized.toFields(this);
-    }
+  toInput(): HashInput {
+    return Authorized.toInput(this);
+  }
 
-    static empty(): Authorized {
-      return new Authorized({ proof: null, signature: null }, AccountUpdate.empty());
-    }
+  toFields(): Field[] {
+    return Authorized.toFields(this);
+  }
 
-    static sizeInFields(): number {
-      return Bindings.Layout.ZkappAccountUpdate.sizeInFields();
-    }
+  static empty(): Authorized {
+    return new Authorized({ proof: null, signature: null }, AccountUpdate.empty());
+  }
 
-    static toJSON<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-      x: Authorized<State, Event, Action>,
-      callDepth: number
-    ): any {
-      return Bindings.Layout.ZkappAccountUpdate.toJSON(x.toInternalRepr(callDepth));
-    }
+  static sizeInFields(): number {
+    return Bindings.Layout.ZkappAccountUpdate.sizeInFields();
+  }
 
-    static toInput<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-      x: Authorized<State, Event, Action>
-    ): HashInput {
-      return Bindings.Layout.ZkappAccountUpdate.toInput(x.toInternalRepr(0));
-    }
+  static toJSON<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
+    x: Authorized<State, Event, Action>,
+    callDepth: number
+  ): any {
+    return Bindings.Layout.ZkappAccountUpdate.toJSON(x.toInternalRepr(callDepth));
+  }
 
-    static toFields<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-      x: Authorized<State, Event, Action>
-    ): Field[] {
-      return Bindings.Layout.ZkappAccountUpdate.toFields(x.toInternalRepr(0));
-    }
+  static toInput<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
+    x: Authorized<State, Event, Action>
+  ): HashInput {
+    return Bindings.Layout.ZkappAccountUpdate.toInput(x.toInternalRepr(0));
+  }
 
-    static toAuxiliary<
-      State extends StateLayout = 'GenericState',
-      Event = Field[],
-      Action = Field[]
-    >(x?: Authorized<State, Event, Action>): any[] {
-      return Bindings.Layout.ZkappAccountUpdate.toAuxiliary(x?.toInternalRepr(0));
-    }
+  static toFields<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
+    x: Authorized<State, Event, Action>
+  ): Field[] {
+    return Bindings.Layout.ZkappAccountUpdate.toFields(x.toInternalRepr(0));
+  }
 
-    static fromFields(fields: Field[], aux: any[]): Authorized {
-      return Authorized.fromInternalRepr(
-        Bindings.Layout.ZkappAccountUpdate.fromFields(fields, aux)
-      );
-    }
+  static toAuxiliary<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
+    x?: Authorized<State, Event, Action>
+  ): any[] {
+    return Bindings.Layout.ZkappAccountUpdate.toAuxiliary(x?.toInternalRepr(0));
+  }
 
-    static toValue<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-      x: Authorized<State, Event, Action>
-    ): Authorized<State, Event, Action> {
-      return x;
-    }
+  static fromFields(fields: Field[], aux: any[]): Authorized {
+    return Authorized.fromInternalRepr(Bindings.Layout.ZkappAccountUpdate.fromFields(fields, aux));
+  }
 
-    static fromValue<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-      x: Authorized<State, Event, Action>
-    ): Authorized<State, Event, Action> {
-      return x;
-    }
+  static toValue<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
+    x: Authorized<State, Event, Action>
+  ): Authorized<State, Event, Action> {
+    return x;
+  }
 
-    static check<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-      _x: Authorized<State, Event, Action>
-    ) {
-      throw new Error('TODO');
-    }
+  static fromValue<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
+    x: Authorized<State, Event, Action>
+  ): Authorized<State, Event, Action> {
+    return x;
+  }
+
+  static check<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
+    _x: Authorized<State, Event, Action>
+  ) {
+    throw new Error('TODO');
   }
 }

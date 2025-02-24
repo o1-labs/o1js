@@ -17,9 +17,11 @@ import { Int64, Sign, UInt64, UInt32 } from '../../provable/int.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { ZkappConstants } from '../v1/constants.js';
 
-export type ApplyResult<T> = ({ status: 'Applied' } & T) | { status: 'Failed'; errors: Error[] };
+export { checkAndApplyAccountUpdate, checkAndApplyFeePayment, ApplyState };
 
-export type ApplyState<T> = { status: 'Alive'; value: T } | { status: 'Dead' };
+type ApplyResult<T> = ({ status: 'Applied' } & T) | { status: 'Failed'; errors: Error[] };
+
+type ApplyState<T> = { status: 'Alive'; value: T } | { status: 'Dead' };
 
 function updateApplyState<T>(
   applyState: ApplyState<T>,
@@ -317,7 +319,7 @@ function applyUpdates<State extends StateLayout, Event, Action>(
   return { updatedFeeExcessState: feeExcessState, updatedAccount };
 }
 
-export function checkAccountTiming<State extends StateLayout>(
+function checkAccountTiming<State extends StateLayout>(
   account: Account<State>,
   globalSlot: UInt32,
   errors: Error[]
@@ -331,7 +333,7 @@ export function checkAccountTiming<State extends StateLayout>(
 //       applying account updates (eg: the account balance already meets the minimum requirement of
 //       the account timing). This will help prevent other mistakes that occur before applying an
 //       account update.
-export function checkAndApplyAccountUpdate<State extends StateLayout, Event, Action>(
+function checkAndApplyAccountUpdate<State extends StateLayout, Event, Action>(
   chain: ChainView,
   account: Account<State>,
   update: AccountUpdate<State, Event, Action>,
@@ -371,7 +373,7 @@ export function checkAndApplyAccountUpdate<State extends StateLayout, Event, Act
   }
 }
 
-export function checkAndApplyFeePayment(
+function checkAndApplyFeePayment(
   chain: ChainView,
   account: Account,
   feePayment: ZkappFeePayment
