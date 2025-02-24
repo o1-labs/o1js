@@ -7,7 +7,7 @@ import { UInt64, UInt32 } from '../../provable/int.js';
 import { Provable } from '../../provable/provable.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
-import { TokenSymbol } from 'src/lib/provable/crypto/poseidon.js';
+import { TokenSymbol } from '../../../lib/provable/crypto/poseidon.js';
 import { TokenId, ZkappUri } from './core.js';
 
 function accountIdKeys(accountId: AccountId): {

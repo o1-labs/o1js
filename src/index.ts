@@ -115,9 +115,12 @@ import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 export { Experimental };
 
+import * as V2 from './lib/mina/v2/index.js';
+
 const Experimental_ = {
   memoizeWitness,
   IndexedMerkleMap,
+  V2,
 };
 
 /**
@@ -125,6 +128,8 @@ const Experimental_ = {
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
 namespace Experimental {
+  export let V2 = Experimental_.V2;
+
   export let memoizeWitness = Experimental_.memoizeWitness;
 
   export let Recursive = Recursive_;

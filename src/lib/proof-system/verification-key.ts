@@ -1,4 +1,4 @@
-import { initializeBindings, Pickles } from 'src/snarky.js';
+import { initializeBindings, Pickles } from '../../snarky.js';
 import { provable } from '../provable/types/provable-derivers.js';
 import { Struct } from '../provable/types/struct.js';
 import { Field } from '../provable/wrapped.js';

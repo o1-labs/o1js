@@ -34,7 +34,7 @@ import {
 } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { Struct } from '../../provable/types/struct.js';
-import { VerificationKey } from 'src/lib/proof-system/verification-key.js';
+import { VerificationKey } from '../../../lib/proof-system/verification-key.js';
 
 // TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
 // TODO: replay checks

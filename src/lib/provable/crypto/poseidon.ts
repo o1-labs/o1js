@@ -10,7 +10,7 @@ import { rangeCheckN } from '../gadgets/range-check.js';
 import { TupleN } from '../../util/types.js';
 import { Group } from '../group.js';
 import { ProvableType, WithProvable } from '../types/provable-intf.js';
-import { stringLengthInBytes } from 'src/bindings/lib/binable.js';
+import { stringLengthInBytes } from '../../../bindings/lib/binable.js';
 
 // external API
 export { Poseidon, TokenSymbol };

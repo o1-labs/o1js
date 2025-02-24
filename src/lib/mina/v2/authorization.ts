@@ -5,7 +5,7 @@ import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 import { HashInput } from '../../provable/types/provable-derivers.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
-import { protocolVersions } from 'src/bindings/crypto/constants.js';
+import { protocolVersions } from '../../../bindings/crypto/constants.js';
 
 export type AuthorizationLevelIdentifier = Bindings.Leaves.AuthRequiredIdentifier;
 
