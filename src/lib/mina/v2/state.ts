@@ -28,7 +28,7 @@ const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
 export type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
 export type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
 // TODO: custom state layouts need to specify the order of their keys
-export type CustomStateLayout = { [name: string]: Provable<any> };
+export type CustomStateLayout = { [name: string]: Provable<any> & Empty<any> };
 export type StateLayout = 'GenericState' | CustomStateLayout;
 
 export const CustomStateLayout = {
@@ -195,7 +195,9 @@ export function State<State extends CustomStateLayout>(Layout: State): StateDefi
 export type StatePreconditions<State extends StateLayout> = State extends 'GenericState'
   ? GenericStatePreconditions
   : {
-      [name in keyof State]: Precondition.Equals<ProvableInstance<State[name]>>;
+      [name in keyof State]: Precondition.Equals<
+        ProvableInstance<State[name]> & Eq<ProvableInstance<State[name]>>
+      >;
     };
 
 export const StatePreconditions = {
@@ -219,7 +221,9 @@ export const StatePreconditions = {
       (
         Layout: CustomStateLayout,
         preconditions: {
-          [name in keyof State]: Precondition.Equals<ProvableInstance<State[name]>>;
+          [name in keyof State]: Precondition.Equals<
+            ProvableInstance<State[name]> & Eq<ProvableInstance<State[name]>>
+          >;
         }
       ) => {
         // const fieldPreconditions = CustomStateLayout.mapToArray<typeof Layout, Precondition.Equals<Field>>(
@@ -326,7 +330,7 @@ export const StateUpdates = {
             | Update<ProvableInstance<State[name]>>;
         }
       ) => {
-        const entries = Object.entries(Layout) as [keyof State, Provable<any>][];
+        const entries = Object.entries(Layout) as [keyof State, Provable<any> & Empty<any>][];
         const fieldUpdates = entries.flatMap(([key, T]) => {
           const update = updates[key];
           const update2 =
