@@ -1,71 +1,66 @@
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
-import { UInt32, UInt64 } from '../../provable/int.js';
+import { UInt64 } from '../../provable/int.js';
 import { Provable } from '../../provable/types/provable-intf.js';
-import { protocolVersions } from '../../../bindings/crypto/constants.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 
 export {
   Option,
   Range,
-  MAX_ZKAPP_STATE_FIELDS,
-  ACCOUNT_ACTION_STATE_BUFFER_SIZE,
-  CURRENT_TRANSACTION_VERSION,
-  ACCOUNT_CREATION_FEE,
+  MinaAmount,
+  mapUndefined,
+  Empty,
+  Update,
+  Compare,
+  Eq,
+  ToFields,
+  Tuple,
+  ProvableTuple,
+  ProvableInstance,
+  ProvableTupleInstances,
 };
 
 const { Option, Range } = Bindings.Leaves;
 type Option<T> = Bindings.Leaves.Option<T>;
 type Range<T> = Bindings.Leaves.Range<T>;
 
-const MAX_ZKAPP_STATE_FIELDS = 8 as const;
-const ACCOUNT_ACTION_STATE_BUFFER_SIZE = 5 as const;
-const CURRENT_TRANSACTION_VERSION = UInt32.from(protocolVersions.txnVersion);
-const ACCOUNT_CREATION_FEE = UInt64.from(10 ** 9);
-
 // TODO: constructors from Mina and NanoMina
-export type MinaAmount = UInt64;
+type MinaAmount = UInt64;
 
-export function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | undefined {
+function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | undefined {
   return value === undefined ? undefined : f(value);
 }
 
-export interface Empty<T> {
+interface Empty<T> {
   empty: () => T;
 }
 
-export interface Eq<T extends Eq<T>> {
+interface Eq<T extends Eq<T>> {
   equals(x: T): Bool;
 }
 
-export type Compare<T extends Compare<T>> = Eq<T> & {
+type Compare<T extends Compare<T>> = Eq<T> & {
   lessThan(x: T): Bool;
   lessThanOrEqual(x: T): Bool;
   greaterThan(x: T): Bool;
   greaterThanOrEqual(x: T): Bool;
 };
 
-export interface ToFields {
+interface ToFields {
   toFields(): Field[];
 }
 
-export type Tuple<T> = [T, ...T[]] | [];
+type Tuple<T> = [T, ...T[]] | [];
 
-export type ProvableTuple = Tuple<Provable<any>>;
+type ProvableTuple = Tuple<Provable<any>>;
 
-export type ProvableInstance<P> = P extends Provable<infer T>
-  ? unknown extends T
-    ? T
-    : never
-  : never;
+type ProvableInstance<P> = P extends Provable<infer T> ? (unknown extends T ? T : never) : never;
 
-export type ProvableTupleInstances<T extends ProvableTuple> = {
+type ProvableTupleInstances<T extends ProvableTuple> = {
   [I in keyof T]: ProvableInstance<T[I]>;
 };
 
-export type Constructor<T> = new (...args: any[]) => T;
-
-export class Update<T> {
+class Update<T> {
   constructor(public set: Bool, public value: T) {}
 
   toOption(): Option<T> {
