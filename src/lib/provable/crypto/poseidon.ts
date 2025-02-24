@@ -10,6 +10,7 @@ import { rangeCheckN } from '../gadgets/range-check.js';
 import { TupleN } from '../../util/types.js';
 import { Group } from '../group.js';
 import { ProvableType, WithProvable } from '../types/provable-intf.js';
+import { stringLengthInBytes } from 'src/bindings/lib/binable.js';
 
 // external API
 export { Poseidon, TokenSymbol };
@@ -220,8 +221,10 @@ const TokenSymbolPure: ProvableExtended<{ symbol: string; field: Field }, string
   fromValue(symbol: string | TokenSymbol) {
     if (typeof symbol !== 'string') return symbol;
     let bytesLength = new TextEncoder().encode(symbol).length;
-    if (bytesLength > 6)
-      throw Error(`Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`);
+    if (bytesLength > MAX_TOKEN_SYMBOL_LENGTH)
+      throw Error(
+        `Token symbol ${symbol} should be a maximum of ${MAX_TOKEN_SYMBOL_LENGTH} bytes, but is ${bytesLength}`
+      );
     let field = prefixToField(symbol);
     return { symbol, field };
   },
@@ -239,9 +242,31 @@ const TokenSymbolPure: ProvableExtended<{ symbol: string; field: Field }, string
     return { symbol: '', field: Field(0n) };
   },
 };
+
+const MAX_TOKEN_SYMBOL_LENGTH = 6;
+
 class TokenSymbol extends Struct(TokenSymbolPure) {
+  constructor(symbol: string | { symbol: string; field: Field }) {
+    if (typeof symbol === 'object') {
+      super({ symbol: symbol.symbol, field: symbol.field });
+    } else {
+      let bytesLength = stringLengthInBytes(symbol);
+      if (bytesLength > MAX_TOKEN_SYMBOL_LENGTH) {
+        throw Error(
+          `Token symbol ${symbol} should be a maximum of ${MAX_TOKEN_SYMBOL_LENGTH} bytes, but is ${bytesLength}`
+        );
+      }
+
+      super({ symbol: symbol, field: prefixToField(symbol) });
+    }
+  }
+
   static from(value: string | TokenSymbol) {
     return TokenSymbol.fromValue(value) as TokenSymbol;
+  }
+
+  static empty(): TokenSymbol {
+    return new TokenSymbol('');
   }
 }
 

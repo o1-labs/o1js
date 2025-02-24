@@ -59,6 +59,7 @@ export {
   TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
+  ZkappUri,
 };
 // internal API
 export {
@@ -617,10 +618,17 @@ type LazyProof = {
 
 const AccountId = provable({ tokenOwner: PublicKey, parentTokenId: Field });
 
+const ZkappUri = {
+  ...Types.ZkappUri,
+};
+
 const TokenId = {
   ...Types.TokenId,
   ...Base58TokenId,
   get default() {
+    return Field(1);
+  },
+  get MINA() {
     return Field(1);
   },
   derive(tokenOwner: PublicKey, parentTokenId = Field(1)): Field {
