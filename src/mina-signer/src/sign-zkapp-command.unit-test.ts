@@ -10,10 +10,10 @@ import * as TypesSnarky from '../../bindings/mina-transaction/gen/transaction.js
 import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
-} from '../../lib/mina/account-update.js';
+} from '../../lib/mina/v1/account-update.js';
 import { FieldConst } from '../../lib/provable/core/fieldvar.js';
 import { packToFields as packToFieldsSnarky } from '../../lib/provable/crypto/poseidon.js';
-import { Network, setActiveInstance } from '../../lib/mina/mina.js';
+import { Network, setActiveInstance } from '../../lib/mina/v1/mina.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import {
   PrivateKey as PrivateKeySnarky,
