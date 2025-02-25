@@ -40,7 +40,6 @@ jobs:
       - uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'please update the npm-deps-hash'
-          event: 'REQUEST_CHANGES'
 
   nix-build:
     name: build-bindings-ubuntu
