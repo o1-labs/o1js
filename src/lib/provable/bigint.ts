@@ -173,6 +173,14 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return ProvableBigInt_.fromBigInt(1n);
     }
 
+    /**
+     * Returns a ProvableBigInt representing one
+     * @returns A ProvableBigInt representing one
+     */
+    static MAX(): ProvableBigInt_ {
+      return ProvableBigInt_.fromBigInt(modulus - 1n);
+    }
+
     static from(x: bigint | string | number | boolean): ProvableBigInt_ {
       return ProvableBigInt_.fromBigInt(BigInt(x));
     }
