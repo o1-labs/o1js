@@ -89,7 +89,7 @@ const BigIntParams: { [key: string]: BigIntParameter } = {
  *
  * @example
  * ```ts
- * // Create a big integer type with modulus 2^521 - 1
+ * // Create a Provable BigInt class with modulus 2^521 - 1
  * const BigInt521 = createProvableBigInt(2n ** 521n - 1n);
  *
  * // Create instances
