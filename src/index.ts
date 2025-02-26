@@ -119,11 +119,13 @@ import * as BatchReducer_ from './lib/mina/v1/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/v1/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
+import { Testing } from './lib/testing/testing.js';
 export { Experimental };
 
 const Experimental_ = {
   memoizeWitness,
   IndexedMerkleMap,
+  Testing
 };
 
 /**
@@ -131,6 +133,7 @@ const Experimental_ = {
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
 namespace Experimental {
+  export let Testing = Experimental_.Testing;
   export let memoizeWitness = Experimental_.memoizeWitness;
 
   export let Recursive = Recursive_;
