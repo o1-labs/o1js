@@ -505,6 +505,13 @@ class UInt64 extends CircuitValue {
   }
 
   /**
+   * Split a UInt64 into 8 UInt8s, in little-endian order.
+   */
+  toBytes() {
+    return TupleN.fromArray(8, wordToBytes(this.value, 8));
+  }
+
+  /**
    * Split a UInt64 into 8 UInt8s, in big-endian order.
    */
   toBytesBE() {
