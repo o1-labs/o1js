@@ -89,6 +89,7 @@ async function buildWeb({ production }) {
     allowOverwrite: true,
     logLevel: 'error',
     minify,
+    external: ['node:assert/strict'],
   });
 }
 
