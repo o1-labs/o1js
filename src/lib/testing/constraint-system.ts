@@ -37,7 +37,10 @@ export {
 };
 
 // TODO get rid of this top-level await by making `test` support async functions
-let { constraintSystemSync } = await synchronousRunners();
+let constraintSystemSync: any;
+(async () => {
+  constraintSystemSync = await synchronousRunners();
+})();
 
 /**
  * `constraintSystem()` is a test runner to check properties of constraint systems.

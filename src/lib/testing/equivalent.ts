@@ -40,7 +40,11 @@ export {
 export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec, First, Second };
 
 // TODO get rid of this top-level await by making `test` support async functions
-let { runAndCheckSync } = await synchronousRunners();
+let runAndCheckSync: any;
+
+(async () => {
+  ({ runAndCheckSync } = await synchronousRunners());
+})();
 
 // a `Spec` tells us how to compare two functions
 
