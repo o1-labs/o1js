@@ -125,7 +125,7 @@ export { Experimental };
 const Experimental_ = {
   memoizeWitness,
   IndexedMerkleMap,
-  Testing
+  Testing,
 };
 
 /**
