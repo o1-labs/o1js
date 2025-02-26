@@ -84,12 +84,11 @@ async function buildWeb({ production }) {
     resolveExtensions: ['.js', '.ts'],
     plugins: [wasmPlugin(), srcStringPlugin()],
     dropLabels: ['CJS'],
-    external: ['*.bc.js'],
+    external: ['*.bc.js', 'node:assert/strict'],
     target,
     allowOverwrite: true,
     logLevel: 'error',
     minify,
-    external: ['node:assert/strict'],
   });
 }
 
@@ -182,7 +181,7 @@ function srcStringPlugin() {
   };
 }
 
-function deferExecutionPlugin() {
+function _deferExecutionPlugin() {
   return {
     name: 'defer-execution-plugin',
     setup(build) {
