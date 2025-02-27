@@ -364,6 +364,8 @@ function Network(
       publicKey: PublicKey,
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default,
+      from?: number,
+      to?: number,
       headers?: HeadersInit
     ) {
       let pubKey = publicKey.toBase58();
@@ -379,6 +381,8 @@ function Network(
             fromActionState: fromActionStateBase58,
             endActionState: endActionStateBase58,
           },
+          from,
+          to,
           tokenId: token,
         },
         archiveEndpoint,

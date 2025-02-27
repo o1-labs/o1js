@@ -290,10 +290,10 @@ const getEventsQuery = (
   const { to, from } = filterOptions ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
   if (to !== undefined) {
-    input += `, to: ${to}`;
+    input += `, to: ${to.toString()}`;
   }
   if (from !== undefined) {
-    input += `, from: ${from}`;
+    input += `, from: ${from.toString()}`;
   }
   return `{
   events(input: { ${input} }) {
@@ -321,11 +321,8 @@ const getActionsQuery = (
   publicKey: string,
   actionStates: ActionStatesStringified,
   tokenId: string,
-  _filterOptions?: EventActionFilterOptions,
-  // As of 2025-01-07 minascan is running a version of the node API which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
-  // In case a user tries to access an older API version, we support making the query without these fields, but can't guarantee action ordering
-  // Transaction sequence info is required to be 100% certain of action order
-  _excludeTransactionInfo: boolean = false
+  from?: number | undefined,
+  to?: number | undefined
 ) => {
   const { fromActionState, endActionState } = actionStates ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
@@ -335,22 +332,31 @@ const getActionsQuery = (
   if (endActionState !== undefined) {
     input += `, endActionState: "${endActionState}"`;
   }
-  return `{
-  actions(input: { ${input} }) {
-    blockInfo {
-      distanceFromMaxBlockHeight
-    }
-    actionState {
-      actionStateOne
-      actionStateTwo
-    }
-    actionData {
-      accountUpdateId
-      data
-      ${_excludeTransactionInfo ? '' : 'transactionInfo { sequenceNumber zkappAccountUpdateIds }'}
-    }
+  if (to !== undefined) {
+    input += `, to: ${to}`;
   }
-}`;
+  if (from !== undefined) {
+    input += `, from: ${from}`;
+  }
+  return `{
+    actions(input: { ${input} }) {
+      blockInfo {
+        distanceFromMaxBlockHeight
+      }
+      actionState {
+        actionStateOne
+        actionStateTwo
+      }
+      actionData {
+        accountUpdateId
+        data
+        transactionInfo { 
+          sequenceNumber 
+          zkappAccountUpdateIds 
+        }
+      }
+    }
+  }`;
 };
 
 const genesisConstantsQuery = `{

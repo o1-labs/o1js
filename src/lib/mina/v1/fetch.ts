@@ -79,9 +79,14 @@ type NetworkConfig = {
 };
 
 type ActionsQueryInputs = {
+  /** Public key of the ZkApp to which actions have been emitted */
   publicKey: string;
   actionStates: ActionStatesStringified;
   tokenId?: string;
+  /** Block number to query from */
+  from?: number;
+  /** Block number to query to */
+  to?: number;
 };
 
 let networkConfig = {
@@ -719,35 +724,20 @@ async function fetchActions(
     throw Error(
       'fetchActions: Specified GraphQL endpoint is undefined. When using actions, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
     );
-  const { publicKey, actionStates, tokenId = TokenId.toBase58(TokenId.default) } = accountInfo;
+  const {
+    publicKey,
+    actionStates,
+    tokenId = TokenId.toBase58(TokenId.default),
+    from,
+    to,
+  } = accountInfo;
 
-  let [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
-    getActionsQuery(publicKey, actionStates, tokenId),
+  let [response, _error] = await makeGraphqlRequest<ActionQueryResponse>(
+    getActionsQuery(publicKey, actionStates, tokenId, from, to),
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints,
     { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
   );
-  // As of 2025-01-07, minascan is running a version of the node which supports `sequenceNumber` and `zkappAccountUpdateIds` fields
-  // We could consider removing this fallback since no other nodes are widely used
-  if (error) {
-    const originalError = error;
-    [response, error] = await makeGraphqlRequest<ActionQueryResponse>(
-      getActionsQuery(
-        publicKey,
-        actionStates,
-        tokenId,
-        /* _filterOptions= */ undefined,
-        /* _excludeTransactionInfo= */ true
-      ),
-      graphqlEndpoint,
-      networkConfig.archiveFallbackEndpoints,
-      { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
-    );
-    if (error)
-      throw Error(
-        `ORIGINAL ERROR: ${originalError.statusText} \n\nRETRY ERROR: ${error.statusText}`
-      );
-  }
   let fetchedActions = response?.data.actions;
   if (fetchedActions === undefined) {
     return {
