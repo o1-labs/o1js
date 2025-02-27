@@ -11,6 +11,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   check-npm-deps:
     name: check-npm-deps
@@ -40,7 +44,6 @@ jobs:
       - uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'please update the npm-deps-hash'
-          event: 'REQUEST_CHANGES'
 
   nix-build:
     name: build-bindings-ubuntu
