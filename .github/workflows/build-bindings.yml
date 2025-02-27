@@ -44,7 +44,9 @@ jobs:
       - uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'please update the npm-deps-hash'
-
+          event: 'REQUEST_CHANGES'
+          token: ${{ secrets.GITHUB_TOKEN }}
+  
   nix-build:
     name: build-bindings-ubuntu
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
