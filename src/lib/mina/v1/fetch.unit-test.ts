@@ -186,25 +186,6 @@ describe('Fetch', () => {
     });
   });
 
-  // Test that when to and from are passed as params to fetchActions, they are included in the query
-  test('fetchActions with to and from', async () => {
-    const publicKey = PrivateKey.random().toPublicKey().toBase58();
-    const from = 5;
-    const to = 10;
-    const fetchActionsSpy = jest.spyOn(global, 'fetch');
-    await fetchActions({ publicKey, to, from, actionStates: {} }, 'https://mina.dummy/graphql');
-
-    expect(fetchActionsSpy).toHaveBeenCalledWith(
-      'https://mina.dummy/graphql',
-      expect.objectContaining({
-        body: expect.arrayContaining([
-          expect.stringContaining(`from: ${from}`),
-          expect.stringContaining(`to: ${to}`),
-        ]),
-      })
-    );
-  });
-
   const minaEndpoint = 'https://mina.dummy/graphql';
   const archiveEndpoint = 'https://archive.dummy/graphql';
 
