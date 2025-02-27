@@ -102,7 +102,6 @@ describe('GraphQL Queries', () => {
       normalizeGraphql(
         getActionsQuery({
           publicKey,
-          actionStates: {},
         })
       )
     ).toBe(normalizeGraphql(expectedQuery));

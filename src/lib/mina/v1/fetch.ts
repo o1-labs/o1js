@@ -732,7 +732,16 @@ async function fetchActions(
     };
   }
 
-  const actionsList = createActionsList(queryInputs, fetchedActions);
+  const actionsList = createActionsList(
+    {
+      publicKey: queryInputs.publicKey,
+      actionStates: {
+        fromActionState: queryInputs.actionStates?.fromActionState,
+        endActionState: queryInputs.actionStates?.endActionState,
+      },
+    },
+    fetchedActions
+  );
   addCachedActions(
     { publicKey: queryInputs.publicKey, tokenId: queryInputs.publicKey },
     actionsList,
@@ -746,10 +755,12 @@ async function fetchActions(
  * Given a graphQL response from #getActionsQuery, process the actions into a canonical actions list
  */
 export function createActionsList(
-  accountInfo: ActionsQueryInputs,
+  accountInfo: {
+    publicKey: string;
+    actionStates: ActionStatesStringified;
+  },
   fetchedActions: FetchedAction[]
 ) {
-  const _fetchedActions = fetchedActions;
   const { publicKey, actionStates } = accountInfo;
 
   let actionsList: { actions: string[][]; hash: string }[] = [];

@@ -43,7 +43,7 @@ function removeJsonQuotes(json: string) {
 type ActionsQueryInputs = {
   /** Public key of the ZkApp to which actions have been emitted */
   publicKey: string;
-  actionStates: ActionStatesStringified;
+  actionStates?: ActionStatesStringified;
   tokenId?: string;
   /** Block number to query from */
   from?: number;
