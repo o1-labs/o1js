@@ -16,7 +16,9 @@ import {
   type FetchedBlock,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
+  type EventsQueryInputs,
   type EventQueryResponse,
+  type ActionsQueryInputs,
   type ActionQueryResponse,
   type EventActionFilterOptions,
   type SendZkAppResponse,
@@ -76,17 +78,6 @@ type NetworkConfig = {
   lightnetAccountManagerEndpoint: string;
   minaDefaultHeaders: HeadersInit;
   archiveDefaultHeaders: HeadersInit;
-};
-
-type ActionsQueryInputs = {
-  /** Public key of the ZkApp to which actions have been emitted */
-  publicKey: string;
-  actionStates: ActionStatesStringified;
-  tokenId?: string;
-  /** Block number to query from */
-  from?: number;
-  /** Block number to query to */
-  to?: number;
 };
 
 let networkConfig = {
@@ -651,18 +642,16 @@ function sendZkapp(
  * ```
  */
 async function fetchEvents(
-  accountInfo: { publicKey: string; tokenId?: string },
+  queryInputs: EventsQueryInputs,
   graphqlEndpoint = networkConfig.archiveEndpoint,
-  filterOptions: EventActionFilterOptions = {},
   headers?: HeadersInit
 ) {
   if (!graphqlEndpoint)
     throw Error(
       'fetchEvents: Specified GraphQL endpoint is undefined. When using events, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
     );
-  const { publicKey, tokenId } = accountInfo;
   let [response, error] = await makeGraphqlRequest<EventQueryResponse>(
-    getEventsQuery(publicKey, tokenId ?? TokenId.toBase58(TokenId.default), filterOptions),
+    getEventsQuery(queryInputs),
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints,
     { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
@@ -670,7 +659,9 @@ async function fetchEvents(
   if (error) throw Error(error.statusText);
   let fetchedEvents = response?.data.events;
   if (fetchedEvents === undefined) {
-    throw Error(`Failed to fetch events data. Account: ${publicKey} Token: ${tokenId}`);
+    throw Error(
+      `Failed to fetch events data. Account: ${queryInputs.publicKey} Token: ${queryInputs.tokenId}`
+    );
   }
 
   return fetchedEvents.map((event) => {
@@ -710,7 +701,7 @@ async function fetchEvents(
  * ```
  */
 async function fetchActions(
-  accountInfo: ActionsQueryInputs,
+  queryInputs: ActionsQueryInputs,
   graphqlEndpoint = networkConfig.archiveEndpoint,
   headers?: HeadersInit
 ): Promise<
@@ -724,16 +715,9 @@ async function fetchActions(
     throw Error(
       'fetchActions: Specified GraphQL endpoint is undefined. When using actions, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
     );
-  const {
-    publicKey,
-    actionStates,
-    tokenId = TokenId.toBase58(TokenId.default),
-    from,
-    to,
-  } = accountInfo;
 
   let [response, _error] = await makeGraphqlRequest<ActionQueryResponse>(
-    getActionsQuery(publicKey, actionStates, tokenId, from, to),
+    getActionsQuery(queryInputs),
     graphqlEndpoint,
     networkConfig.archiveFallbackEndpoints,
     { headers: { ...networkConfig.archiveDefaultHeaders, ...headers } }
@@ -743,13 +727,17 @@ async function fetchActions(
     return {
       error: {
         statusCode: 404,
-        statusText: `fetchActions: Account with public key ${publicKey} with tokenId ${tokenId} does not exist.`,
+        statusText: `fetchActions: Account with public key ${queryInputs.publicKey} with tokenId ${queryInputs.tokenId} does not exist.`,
       },
     };
   }
 
-  const actionsList = createActionsList(accountInfo, fetchedActions);
-  addCachedActions({ publicKey, tokenId }, actionsList, graphqlEndpoint);
+  const actionsList = createActionsList(queryInputs, fetchedActions);
+  addCachedActions(
+    { publicKey: queryInputs.publicKey, tokenId: queryInputs.publicKey },
+    actionsList,
+    graphqlEndpoint
+  );
 
   return actionsList;
 }

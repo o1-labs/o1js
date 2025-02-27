@@ -279,9 +279,11 @@ describe('Fetch', () => {
     test('Archive default headers with per request headers', async () => {
       const perRequestHeaders = { 'X-Another': 'another-value' };
       await fetchEvents(
-        { publicKey: PrivateKey.random().toPublicKey().toBase58() },
+        {
+          publicKey: PrivateKey.random().toPublicKey().toBase58(),
+          tokenId: TokenId.default.toString(),
+        },
         archiveEndpoint,
-        {},
         perRequestHeaders
       );
 

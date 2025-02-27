@@ -350,13 +350,14 @@ function Network(
       filterOptions: EventActionFilterOptions = {},
       headers?: HeadersInit
     ) {
-      let pubKey = publicKey.toBase58();
-      let token = TokenId.toBase58(tokenId);
+      const pubKey = publicKey.toBase58();
+      const token = TokenId.toBase58(tokenId);
+      const from = filterOptions.from ? Number(filterOptions.from.toString()) : undefined;
+      const to = filterOptions.to ? Number(filterOptions.to.toString()) : undefined;
 
       return Fetch.fetchEvents(
-        { publicKey: pubKey, tokenId: token },
+        { publicKey: pubKey, tokenId: token, from, to },
         archiveEndpoint,
-        filterOptions,
         headers
       );
     },
@@ -368,11 +369,11 @@ function Network(
       to?: number,
       headers?: HeadersInit
     ) {
-      let pubKey = publicKey.toBase58();
-      let token = TokenId.toBase58(tokenId);
-      let { fromActionState, endActionState } = actionStates ?? {};
-      let fromActionStateBase58 = fromActionState ? fromActionState.toString() : undefined;
-      let endActionStateBase58 = endActionState ? endActionState.toString() : undefined;
+      const pubKey = publicKey.toBase58();
+      const token = TokenId.toBase58(tokenId);
+      const { fromActionState, endActionState } = actionStates ?? {};
+      const fromActionStateBase58 = fromActionState ? fromActionState.toString() : undefined;
+      const endActionStateBase58 = endActionState ? endActionState.toString() : undefined;
 
       return Fetch.fetchActions(
         {

@@ -33,13 +33,19 @@ describe('GraphQL Queries', () => {
             }
         }
     }`;
-    expect(normalizeGraphql(getEventsQuery(publicKey, tokenId))).toBe(
-      normalizeGraphql(expectedQuery)
-    );
+    expect(
+      normalizeGraphql(
+        getEventsQuery({
+          publicKey,
+          tokenId,
+        })
+      )
+    ).toBe(normalizeGraphql(expectedQuery));
   });
 
   test('getEventsQuery with to and from', () => {
-    const filterOptions = { to: UInt32.from(10), from: UInt32.from(5) };
+    const from = 5;
+    const to = 10;
     const expectedQuery = `{
       events(input: { address: "testPublicKey", tokenId: "testTokenId", to: 10, from: 5 }) {
         blockInfo {
@@ -60,9 +66,16 @@ describe('GraphQL Queries', () => {
         }
     }
 }`;
-    expect(normalizeGraphql(getEventsQuery(publicKey, tokenId, filterOptions))).toBe(
-      normalizeGraphql(expectedQuery)
-    );
+    expect(
+      normalizeGraphql(
+        getEventsQuery({
+          publicKey,
+          tokenId,
+          from,
+          to,
+        })
+      )
+    ).toBe(normalizeGraphql(expectedQuery));
   });
 
   test('getActionsQuery without filter options', () => {
@@ -85,9 +98,14 @@ describe('GraphQL Queries', () => {
             }
         }
     }`;
-    expect(normalizeGraphql(getActionsQuery(publicKey, {}, tokenId))).toBe(
-      normalizeGraphql(expectedQuery)
-    );
+    expect(
+      normalizeGraphql(
+        getActionsQuery({
+          publicKey,
+          actionStates: {},
+        })
+      )
+    ).toBe(normalizeGraphql(expectedQuery));
   });
 
   test('getActionsQuery with action state filter', () => {
@@ -111,9 +129,14 @@ describe('GraphQL Queries', () => {
         }
     }
 }`;
-    expect(normalizeGraphql(getActionsQuery(publicKey, filterOptions, tokenId))).toBe(
-      normalizeGraphql(expectedQuery)
-    );
+    expect(
+      normalizeGraphql(
+        getActionsQuery({
+          publicKey,
+          actionStates: filterOptions,
+        })
+      )
+    ).toBe(normalizeGraphql(expectedQuery));
   });
 
   test('getActionsQuery with to and from', () => {
@@ -138,8 +161,16 @@ describe('GraphQL Queries', () => {
         }
     }
 }`;
-    expect(normalizeGraphql(getActionsQuery(publicKey, {}, tokenId, from, to))).toBe(
-      normalizeGraphql(expectedQuery)
-    );
+    expect(
+      normalizeGraphql(
+        getActionsQuery({
+          publicKey,
+          actionStates: {},
+          from,
+          to,
+          tokenId,
+        })
+      )
+    ).toBe(normalizeGraphql(expectedQuery));
   });
 });

@@ -1,5 +1,5 @@
 import { UInt32 } from '../../provable/int.js';
-import type { ZkappCommand } from './account-update.js';
+import { TokenId, type ZkappCommand } from './account-update.js';
 import type { ActionStatesStringified } from './fetch.js';
 import { Types } from '../../../bindings/mina-transaction/types.js';
 
@@ -13,7 +13,9 @@ export {
   type FetchedBlock,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
+  type EventsQueryInputs,
   type EventQueryResponse,
+  type ActionsQueryInputs,
   type ActionQueryResponse,
   type EventActionFilterOptions,
   type SendZkAppResponse,
@@ -37,6 +39,27 @@ function removeJsonQuotes(json: string) {
   let cleaned = JSON.stringify(JSON.parse(json), null, 2);
   return cleaned.replace(/\"(\S+)\"\s*:/gm, '$1:');
 }
+
+type ActionsQueryInputs = {
+  /** Public key of the ZkApp to which actions have been emitted */
+  publicKey: string;
+  actionStates: ActionStatesStringified;
+  tokenId?: string;
+  /** Block number to query from */
+  from?: number;
+  /** Block number to query to */
+  to?: number;
+};
+
+type EventsQueryInputs = {
+  /** Public key of the ZkApp to which events have been emitted */
+  publicKey: string;
+  tokenId?: string;
+  /** Block number to query from */
+  from?: number;
+  /** Block number to query to */
+  to?: number;
+};
 
 type AuthRequired = Types.Json.AuthRequired;
 // TODO auto-generate this type and the query
@@ -282,12 +305,9 @@ const transactionStatusQuery = (txId: string) => `query {
     transactionStatus(zkappTransaction:"${txId}")
   }`;
 
-const getEventsQuery = (
-  publicKey: string,
-  tokenId: string,
-  filterOptions?: EventActionFilterOptions
-) => {
-  const { to, from } = filterOptions ?? {};
+const getEventsQuery = (inputs: EventsQueryInputs) => {
+  inputs.tokenId ??= TokenId.toBase58(TokenId.default);
+  const { publicKey, tokenId, to, from } = inputs;
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
   if (to !== undefined) {
     input += `, to: ${to.toString()}`;
@@ -317,13 +337,9 @@ const getEventsQuery = (
 }`;
 };
 
-const getActionsQuery = (
-  publicKey: string,
-  actionStates: ActionStatesStringified,
-  tokenId: string,
-  from?: number | undefined,
-  to?: number | undefined
-) => {
+const getActionsQuery = (inputs: ActionsQueryInputs) => {
+  inputs.tokenId ??= TokenId.toBase58(TokenId.default);
+  const { publicKey, tokenId, actionStates, from, to } = inputs;
   const { fromActionState, endActionState } = actionStates ?? {};
   let input = `address: "${publicKey}", tokenId: "${tokenId}"`;
   if (fromActionState !== undefined) {
