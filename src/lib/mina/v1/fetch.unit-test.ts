@@ -281,7 +281,6 @@ describe('Fetch', () => {
       await fetchEvents(
         {
           publicKey: PrivateKey.random().toPublicKey().toBase58(),
-          tokenId: TokenId.default.toString(),
         },
         archiveEndpoint,
         perRequestHeaders
