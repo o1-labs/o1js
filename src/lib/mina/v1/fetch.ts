@@ -20,7 +20,6 @@ import {
   type EventQueryResponse,
   type ActionsQueryInputs,
   type ActionQueryResponse,
-  type EventActionFilterOptions,
   type SendZkAppResponse,
   type FetchedAccountResponse,
   type CurrentSlotResponse,

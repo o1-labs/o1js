@@ -1,4 +1,3 @@
-import { UInt32 } from '../../../lib/provable/int.js';
 import { getActionsQuery, getEventsQuery } from './graphql.js';
 import { parse, print } from 'graphql';
 
@@ -80,7 +79,7 @@ describe('GraphQL Queries', () => {
 
   test('getActionsQuery without filter options', () => {
     const expectedQuery = `{
-        actions(input: { address: "testPublicKey", tokenId: "testTokenId" }) {
+        actions(input: { address: "testPublicKey", tokenId: "wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf" }) {
             blockInfo {
                 distanceFromMaxBlockHeight
             }
@@ -110,7 +109,7 @@ describe('GraphQL Queries', () => {
   test('getActionsQuery with action state filter', () => {
     const filterOptions = { fromActionState: 'A', endActionState: 'B' };
     const expectedQuery = `{
-      actions(input: { address: "testPublicKey", tokenId: "testTokenId", fromActionState: "A", endActionState: "B" }) {
+      actions(input: { address: "testPublicKey", tokenId: "wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf", fromActionState: "A", endActionState: "B" }) {
         blockInfo {
             distanceFromMaxBlockHeight
         }
