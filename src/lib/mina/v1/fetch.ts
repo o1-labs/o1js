@@ -715,6 +715,8 @@ async function fetchActions(
       'fetchActions: Specified GraphQL endpoint is undefined. When using actions, you must set the archive node endpoint in Mina.Network(). Please ensure your Mina.Network() configuration includes an archive node endpoint.'
     );
 
+  queryInputs.tokenId = queryInputs.tokenId ?? TokenId.toBase58(TokenId.default);
+
   let [response, _error] = await makeGraphqlRequest<ActionQueryResponse>(
     getActionsQuery(queryInputs),
     graphqlEndpoint,
@@ -742,7 +744,7 @@ async function fetchActions(
     fetchedActions
   );
   addCachedActions(
-    { publicKey: queryInputs.publicKey, tokenId: queryInputs.publicKey },
+    { publicKey: queryInputs.publicKey, tokenId: queryInputs.tokenId },
     actionsList,
     graphqlEndpoint
   );
