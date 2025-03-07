@@ -324,6 +324,18 @@ jobs:
         run: |
           git tag $RELEASED_VERSION
           git push origin $RELEASED_VERSION
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          tag_name: ${{ steps.publish.outputs.version }}
+          release_name: Release ${{ steps.publish.outputs.version }}
+          body: |
+            Release ${{ steps.publish.outputs.version }}
+          draft: false
+          prerelease: false
 
 
   Release-mina-signer-on-NPM:
