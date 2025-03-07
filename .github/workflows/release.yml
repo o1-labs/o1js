@@ -12,7 +12,7 @@ name: Version Bump
 on:
   workflow_dispatch: # Allow to manually trigger the workflow
   schedule:
-    - cron: '0 15 27 * *' # At 16:00 UTC every 27th of each month
+    - cron: '0 15 27 * *' # At 15:00 UTC every 27th of each month
 
 jobs:
   version-bump:
