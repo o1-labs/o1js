@@ -13,6 +13,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   Prepare:
     runs-on: ubuntu-latest
@@ -324,6 +327,13 @@ jobs:
         run: |
           git tag $RELEASED_VERSION
           git push origin $RELEASED_VERSION
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.publish.outputs.version }}
+          generateReleaseNotes: true
+          name: Release ${{ steps.publish.outputs.version }}
 
 
   Release-mina-signer-on-NPM:
