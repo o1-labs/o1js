@@ -58,13 +58,14 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-bindings --max-jobs 4
-      - name: Check for differences
+      - name: check-diff
         run: |
+          set -Eeu
           git diff --exit-code src/bindings/
         continue-on-error: true
       - name: suggest-changes
+        if: steps.check-diff.outcome == 'failure'
         uses: parkerbxyz/suggest-changes@v1
-        if: ${{ failure() }}
         with:
           comment: 'The bindings did not match when built in ci.'
           event: 'REQUEST_CHANGES'
@@ -76,3 +77,6 @@ jobs:
         run: |
           nix-store --gc --print-dead
           nix-store --optimise
+      - name: Ensure job fails if diff failed
+        if: steps.check-diff.outcome == 'failure'
+        run: exit 1
