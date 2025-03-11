@@ -1,0 +1,43 @@
+{
+  "name": "o1js-testing",
+  "description": "o1js testing utilities",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.testing.json",
+    "test": "for f in ./**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f || exit 1; done",
+    "prepublishOnly": "npx rimraf ./dist && npm run build"
+  },
+  "keywords": [
+    "o1js",
+    "test",
+    "zk"
+  ],
+  "author": "o1labs",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/o1-labs/o1js.git",
+    "directory": "src/o1js-testing"
+  },
+  "bugs": "https://github.com/o1-labs/o1js/issues",
+  "main": "dist/node/o1js-testing/testing.js",
+  "types": "dist/node/o1js-testing/index.d.ts",
+  "exports": {
+    "types": "./dist/node/o1js-testing/testing.d.ts",
+    "web": "./dist/web/index.js",
+    "require": "./dist/node/o1js-testing/index.cjs",
+    "node": "./dist/node/o1js-testing/testing.js",
+    "default": "./dist/web/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "o1js": "2.2.0"
+  },
+  "devDependencies": {
+    "pkg-pr-new": "^0.0.9"
+  }
+}

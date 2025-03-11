@@ -1,0 +1,21 @@
+{
+    "include": ["./src/testing/testing.ts"],
+    "exclude": ["./src/**/*.unit-test.ts"],
+    "compilerOptions": {
+      "rootDir": "./src",
+      "outDir": "src/testing/dist/node",
+      "baseUrl": ".", // affects where output files end up
+      "target": "es2020", // goal: ship *the most modern syntax* that is supported by *all* browsers that support our Wasm
+      "module": "nodenext", // allow top-level await
+      "moduleResolution": "nodenext", // comply with node + "type": "module"
+      "esModuleInterop": true, // to silence jest
+  
+      "strict": true, // for the full TypeScript experience
+      "importHelpers": true, // reduces size
+      "declaration": true, // declaration files are how library consumers get our types
+      "noEmitOnError": false, // avoid accidentally shipping with type errors
+      "allowJs": true, // to use JSDoc in some places where TS would be too cumbersome
+      "sourceMap": true
+    }
+  }
+  
