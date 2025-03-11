@@ -37,11 +37,10 @@ jobs:
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: update-hash
         run: nix run o1js#update-npm-deps
-      - uses: parkerbxyz/suggest-changes@v1
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          comment: 'please update the npm-deps-hash'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
+          commit_message: "update npmDepsHash"
+          file_pattern: 'npmDepsHash'
 
   nix-build:
     name: build-bindings-ubuntu
@@ -64,11 +63,12 @@ jobs:
         run: |
           git diff > changes.diff
           echo "has_changes=$([[ -s changes.diff ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-      - name: Suggest changes
+      - name: Commit changes
         if: steps.diff.outputs.has_changes == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "recompile bindings"
+          file_pattern: 'src/bindings/*'
       - name: Fail if changes were suggested
         if: steps.diff.outputs.has_changes == 'true'
         run: |
