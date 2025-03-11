@@ -66,10 +66,9 @@ jobs:
           echo "has_changes=$([[ -s changes.diff ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
       - name: Suggest changes
         if: steps.diff.outputs.has_changes == 'true'
-        uses: parkerbxyz/suggest-changes@v1
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          comment: 'Ci produced different bindings'
-          token: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: "recompile bindings"
       - name: Fail if changes were suggested
         if: steps.diff.outputs.has_changes == 'true'
         run: |
