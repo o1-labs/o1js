@@ -40,7 +40,8 @@ jobs:
       - uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'please update the npm-deps-hash'
-          event: 'REQUEST_CHANGES'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
 
   nix-build:
     name: build-bindings-ubuntu
@@ -68,7 +69,7 @@ jobs:
         uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'Ci produced different bindings'
-          event: 'COMMENT'
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Fail if changes were suggested
         if: steps.diff.outputs.has_changes == 'true'
         run: |
