@@ -70,6 +70,11 @@ jobs:
         run: |
           nix-store --gc --print-dead
           nix-store --optimise
+  update-bindings:
+    needs: nix-build
+    if: ${{ failure() }}
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
       - uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'The bindings did not match when built in ci.'
