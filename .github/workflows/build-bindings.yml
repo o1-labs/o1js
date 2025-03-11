@@ -62,7 +62,8 @@ jobs:
         run: |
           git diff --exit-code src/bindings/
         continue-on-error: true
-      - uses: parkerbxyz/suggest-changes@v1
+      - name: suggest-changes
+        uses: parkerbxyz/suggest-changes@v1
         if: ${{ failure() }}
         with:
           comment: 'The bindings did not match when built in ci.'
