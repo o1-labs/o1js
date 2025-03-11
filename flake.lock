@@ -2,12 +2,8 @@
   "nodes": {
     "describe-dune": {
       "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "flake-utils": ["flake-utils"],
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1724407960,
@@ -25,14 +21,8 @@
     },
     "describe-dune_2": {
       "inputs": {
-        "flake-utils": [
-          "mina",
-          "utils"
-        ],
-        "nixpkgs": [
-          "mina",
-          "nixpkgs"
-        ]
+        "flake-utils": ["mina", "utils"],
+        "nixpkgs": ["mina", "nixpkgs"]
       },
       "locked": {
         "lastModified": 1724407960,
@@ -50,12 +40,8 @@
     },
     "dune-nix": {
       "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "flake-utils": ["flake-utils"],
+        "nixpkgs": ["nixpkgs"]
       },
       "locked": {
         "lastModified": 1723653683,
@@ -73,14 +59,8 @@
     },
     "dune-nix_2": {
       "inputs": {
-        "flake-utils": [
-          "mina",
-          "utils"
-        ],
-        "nixpkgs": [
-          "mina",
-          "nixpkgs"
-        ]
+        "flake-utils": ["mina", "utils"],
+        "nixpkgs": ["mina", "nixpkgs"]
       },
       "locked": {
         "lastModified": 1724418497,
@@ -226,10 +206,7 @@
     },
     "gitignore-nix": {
       "inputs": {
-        "nixpkgs": [
-          "mina",
-          "nixpkgs"
-        ]
+        "nixpkgs": ["mina", "nixpkgs"]
       },
       "locked": {
         "lastModified": 1660459072,
@@ -324,10 +301,7 @@
     },
     "nix-npm-buildPackage": {
       "inputs": {
-        "nixpkgs": [
-          "mina",
-          "nixpkgs"
-        ]
+        "nixpkgs": ["mina", "nixpkgs"]
       },
       "locked": {
         "lastModified": 1670813451,
@@ -477,15 +451,9 @@
         "flake-compat": "flake-compat_2",
         "flake-utils": "flake-utils_3",
         "mirage-opam-overlays": "mirage-opam-overlays",
-        "nixpkgs": [
-          "mina",
-          "nixpkgs"
-        ],
+        "nixpkgs": ["mina", "nixpkgs"],
         "opam-overlays": "opam-overlays",
-        "opam-repository": [
-          "mina",
-          "opam-repository"
-        ],
+        "opam-repository": ["mina", "opam-repository"],
         "opam2json": "opam2json"
       },
       "locked": {
@@ -536,11 +504,7 @@
     },
     "opam2json": {
       "inputs": {
-        "nixpkgs": [
-          "mina",
-          "opam-nix",
-          "nixpkgs"
-        ]
+        "nixpkgs": ["mina", "opam-nix", "nixpkgs"]
       },
       "locked": {
         "lastModified": 1671540003,
