@@ -119,7 +119,7 @@
           [
             nodejs
             nodePackages.npm
-            #nodePackages.prettier
+            nodePackages.prettier
             typescript
             nodePackages.typescript-language-server
             rustup
