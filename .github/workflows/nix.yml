@@ -1,0 +1,43 @@
+name: nix
+on:
+  workflow_dispatch:
+
+on:
+  # TODO we could set up Automated PRs to update mina with this
+  #schedule:
+  #  - cron: '0 0 * * 0'  # Runs every sunday
+  workflow_dispatch:  # Empty workflow_dispatch trigger
+
+jobs:
+  update-and-create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build the o1js bindings
+        run: |
+          pushd src/mina
+          git switch compatible
+          git pull
+          popd
+          git add src/mina
+          nix run o1js#update-bindings --max-jobs 4
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update mina
+          title: '[Automated] Update mina'
+          body: |
+            This PR is automatically generated to update inputs.
+            Please review the changes and merge if appropriate.
+          branch: automated-input-update
+          base: main

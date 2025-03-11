@@ -1,0 +1,23 @@
+# This is the slowest part of the CI now so I think it's better to just do it daily
+# instead of every commit
+name: Clean nix store
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # once per day at midnight
+  workflow_dispatch: # can be run with gh workflow run 'Clean nix store'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nix-cleanup:
+    - name: Set up Nix
+      run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+    - name: Cleanup the Nix store
+      if: always()
+      run: |
+        nix-store --gc --print-dead
+        nix-store --optimise
+
