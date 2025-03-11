@@ -265,14 +265,15 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1739454056,
-        "narHash": "sha256-qwW1JF2Rceh2su6gEkCZNQOZQCGTg1rWp7ldbmhGJO4=",
-        "path": "src/mina",
+        "lastModified": 1741625627,
+        "narHash": "sha256-+QRiYr14EC5Wnz/mcLz+gqglGujJ/vvZ+P9j/4e6VbI=",
+        "path": "/home/bbrian/Code/work/o1js/src/mina",
         "type": "path"
       },
       "original": {
-        "path": "src/mina",
-        "type": "path"
+        "submodules": true,
+        "type": "git",
+        "url": "file:src/mina"
       }
     },
     "mirage-opam-overlays": {
