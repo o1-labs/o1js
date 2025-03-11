@@ -58,17 +58,22 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-bindings --max-jobs 4
-      - name: check-diff
+      - name: Capture diff
+        id: diff
         run: |
-          set -Eeu
-          git diff --exit-code src/bindings/
-        continue-on-error: true
-      - name: suggest-changes
-        if: steps.check-diff.outputs.failed
+          git diff > changes.diff
+          echo "has_changes=$([[ -s changes.diff ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+      - name: Suggest changes
+        if: steps.diff.outputs.has_changes == 'true'
         uses: parkerbxyz/suggest-changes@v1
         with:
-          comment: 'The bindings did not match when built in ci.'
-          event: 'REQUEST_CHANGES'
+          comment: 'Ci produced different bindings'
+          event: 'COMMENT'
+      - name: Fail if changes were suggested
+        if: steps.diff.outputs.has_changes == 'true'
+        run: |
+          echo "Changes were suggested. Failing the workflow."
+          exit 1
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
         run: |
@@ -77,6 +82,3 @@ jobs:
         run: |
           nix-store --gc --print-dead
           nix-store --optimise
-      - name: Ensure job fails if diff failed
-        if: steps.check-diff.outputs.failed
-        run: exit 1
