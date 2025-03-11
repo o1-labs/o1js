@@ -64,7 +64,7 @@ jobs:
           git diff --exit-code src/bindings/
         continue-on-error: true
       - name: suggest-changes
-        if: steps.check-diff.outcome == 'failure'
+        if: steps.check-diff.outputs.failed
         uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'The bindings did not match when built in ci.'
@@ -78,5 +78,5 @@ jobs:
           nix-store --gc --print-dead
           nix-store --optimise
       - name: Ensure job fails if diff failed
-        if: steps.check-diff.outcome == 'failure'
+        if: steps.check-diff.outputs.failed
         run: exit 1
