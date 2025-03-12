@@ -27,20 +27,8 @@ jobs:
         run: |
           set -Eeu
           ./pin.sh
-          nix build o1js#npm-deps
-  update-npm-deps:
-    needs: check-npm-deps
-    if: ${{ failure() }}
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
-    steps:
-      - name: Set up Nix
-        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
-      - name: update-hash
-        run: nix run o1js#update-npm-deps
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "update npmDepsHash"
-          file_pattern: 'npmDepsHash'
+          nix build o1js#npm-deps || \
+            (echo consider 'gh workflow run nix' && false)
 
   nix-build:
     name: build-bindings-ubuntu
@@ -58,22 +46,6 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-bindings --max-jobs 4
-      - name: Capture diff
-        id: diff
-        run: |
-          git diff > changes.diff
-          echo "has_changes=$([[ -s changes.diff ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-      - name: Commit changes
-        if: steps.diff.outputs.has_changes == 'true'
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "recompile bindings"
-          file_pattern: 'src/bindings/*'
-      - name: Fail if changes were suggested
-        if: steps.diff.outputs.has_changes == 'true'
-        run: |
-          echo "Changes were suggested. Failing the workflow."
-          exit 1
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
         run: |
@@ -82,3 +54,9 @@ jobs:
         run: |
           nix-store --gc --print-dead
           nix-store --optimise
+      # Last so nix is still cleaned on a failure
+      - name: check diff
+        id: diff
+        run: |
+          git diff --exit-code src/bindings || \
+            (echo consider 'gh workflow run nix' && false)
