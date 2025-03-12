@@ -54,7 +54,7 @@ jobs:
         run: |
           set -Eeu
           nix run o1js#update-bindings --max-jobs 4
-          if ! git diff --exit-code src/bindings
+          if ! git diff --name-only --exit-code src/bindings
           then
             echo bindings need to be rebuilt
             echo a fix will be pushed to ${{ github.head_ref }}-ci-fix
