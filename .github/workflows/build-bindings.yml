@@ -31,7 +31,8 @@ jobs:
           if ! nix build o1js#npm-deps
           then
             echo npmDepsHash out of date
-            echo a fix will be pushed to ${{ github.ref_name}}-ci-fix
+            echo a fix will be pushed to ${{ github.head_ref }}-ci-fix
+            echo please run ./use-ci-fix.sh
             exit 1
           fi
       - name: fix npmDepsHash
@@ -46,7 +47,7 @@ jobs:
         with:
           commit_message: "update npmDepsHash"
           file_pattern: 'npmDepsHash'
-          branch: ${{ github.ref_name}}-ci-fix
+          branch: ${{ github.head_ref}}-ci-fix
           create_branch: true
       - name: Build the o1js bindings
         id: bindings-build
@@ -56,7 +57,8 @@ jobs:
           if ! git diff --exit-code src/bindings
           then
             echo bindings need to be rebuilt
-            echo a fix will be pushed to ${{ github.ref_name }}-ci-fix
+            echo a fix will be pushed to ${{ github.head_ref }}-ci-fix
+            echo please run ./use-ci-fix.sh
             exit 1
           fi
       - name: Commit new bindings
@@ -65,7 +67,7 @@ jobs:
         with:
           commit_message: "recompile bindings"
           file_pattern: 'src/bindings/*'
-          branch: ${{ github.ref_name}}-ci-fix
+          branch: ${{ github.head_ref}}-ci-fix
           create_branch: true
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
