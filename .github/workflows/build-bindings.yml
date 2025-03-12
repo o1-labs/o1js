@@ -52,7 +52,8 @@ jobs:
         id: bindings-build
         run: |
           set -Eeu
-          if ! nix run o1js#update-bindings --max-jobs 4
+          nix run o1js#update-bindings --max-jobs 4
+          if ! git diff --exit-code src/bindings
           then
             echo bindings need to be rebuilt
             echo a fix will be pushed to ${{ github.ref_name }}-ci-fix
@@ -74,9 +75,26 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
-      - name: Cleanup the Nix store
-        if: always()
-        run: |
-          nix-store --gc --print-dead
-          nix-store --optimise
+---
+# This is the slowest part of the CI now so I think it's better to just do it daily
+name: Clean nix store
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # once per day at midnight
+  workflow_dispatch: # can be run with gh workflow run 'Clean nix store'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nix-cleanup:
+    - name: Set up Nix
+      run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+    - name: Cleanup the Nix store
+      if: always()
+      run: |
+        nix-store --gc --print-dead
+        nix-store --optimise
 
