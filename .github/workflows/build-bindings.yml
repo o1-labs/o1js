@@ -27,8 +27,7 @@ jobs:
         run: |
           set -Eeu
           ./pin.sh
-          nix build o1js#npm-deps || \
-            (echo consider 'gh workflow run nix' && false)
+          nix build o1js#npm-deps || (echo consider 'gh workflow run nix' && false)
 
   nix-build:
     name: build-bindings-ubuntu
@@ -58,5 +57,4 @@ jobs:
       - name: check diff
         id: diff
         run: |
-          git diff --exit-code src/bindings || \
-            (echo consider 'gh workflow run nix' && false)
+          git diff --exit-code src/bindings || (echo consider 'gh workflow run nix' && false)
