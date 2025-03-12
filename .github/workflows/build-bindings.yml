@@ -45,16 +45,16 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-bindings --max-jobs 4
+      - name: check diff
+        id: diff
+        run: |
+          git diff --exit-code src/bindings || (echo consider 'gh workflow run nix' && false)
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
         run: |
           nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
       - name: Cleanup the Nix store
+        if: always()
         run: |
           nix-store --gc --print-dead
           nix-store --optimise
-      # Last so nix is still cleaned on a failure
-      - name: check diff
-        id: diff
-        run: |
-          git diff --exit-code src/bindings || (echo consider 'gh workflow run nix' && false)
