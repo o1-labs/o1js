@@ -1,5 +1,6 @@
 name: nix
 on:
+  pull_request: # temporary trigger to test
   workflow_dispatch:
     inputs:
       name:
