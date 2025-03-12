@@ -1,0 +1,3 @@
+# Don't lint generated files
+src/bindings/compiled/
+src/bindings/mina-transaction/gen/
