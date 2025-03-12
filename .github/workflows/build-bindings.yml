@@ -33,7 +33,7 @@ jobs:
       - name: check diff
         id: diff
         run: |
-          (git diff --exit-code src/bindings | /dev/null) || (echo consider 'gh workflow run nix' && false)
+          git diff --exit-code --name-only src/bindings || (echo consider 'gh workflow run nix' && false)
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
         run: |
