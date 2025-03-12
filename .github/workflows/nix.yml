@@ -22,3 +22,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: fixes
+        run: |
+          set -Eeu
+          ./pin.sh
+          nix run o1js#update-npm-deps
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "update npmDepsHash"
+          file_pattern: 'npmDepsHash'
+      - name: Build the o1js bindings
+        run: |
+          nix run o1js#update-bindings --max-jobs 4
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "recompile bindings"
+          file_pattern: 'src/bindings/*'
+
