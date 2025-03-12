@@ -2,7 +2,7 @@
 # community can change them without being scared of breaking things, or
 # needing to do the complicated (without nix) build setup.
 
-name: Build o1js bindings
+name: Build precompiled bindings
 
 on:
   pull_request:
