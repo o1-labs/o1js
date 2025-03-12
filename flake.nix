@@ -2,7 +2,7 @@
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
-    mina.url = "path:src/mina";
+    mina.url = "git+file:src/mina?submodules=1";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
@@ -119,7 +119,7 @@
           [
             nodejs
             nodePackages.npm
-            #nodePackages.prettier
+            nodePackages.prettier
             typescript
             nodePackages.typescript-language-server
             rustup
