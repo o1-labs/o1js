@@ -35,18 +35,19 @@ jobs:
             exit 1
           fi
       - name: fix npmDepsHash
-        if: ${{ failure() }} && steps.build-npm-deps.outcome == 'failure'
+        if: failure() && steps.build-npm-deps.outcome == 'failure'
         run: |
           set -Eeu
           ./pin.sh
           nix run o1js#update-npm-deps
       - name: Commit changes
-        if: ${{ failure() }} && steps.build-npm-deps.outcome == 'failure'
+        if: failure() && steps.build-npm-deps.outcome == 'failure'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "update npmDepsHash"
           file_pattern: 'npmDepsHash'
           branch: ${{ github.ref_name}}-ci-fix
+          create_branch: true
       - name: Build the o1js bindings
         id: bindings-build
         run: |
@@ -58,12 +59,13 @@ jobs:
             exit 1
           fi
       - name: Commit new bindings
-        if: ${{ failure() }} && steps.bindings-build.outcome == 'failure'
+        if: failure() && steps.bindings-build.outcome == 'failure'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "recompile bindings"
           file_pattern: 'src/bindings/*'
           branch: ${{ github.ref_name}}-ci-fix
+          create_branch: true
       - name: check diff
         id: diff
         run: |
