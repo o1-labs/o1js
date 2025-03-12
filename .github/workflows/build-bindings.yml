@@ -67,34 +67,7 @@ jobs:
           file_pattern: 'src/bindings/*'
           branch: ${{ github.ref_name}}-ci-fix
           create_branch: true
-      - name: check diff
-        id: diff
-        run: |
-          git diff --exit-code --name-only src/bindings || (echo consider 'gh workflow run nix --ref $(git branch --show-current)' && false)
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
         run: |
           nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
----
-# This is the slowest part of the CI now so I think it's better to just do it daily
-name: Clean nix store
-
-on:
-  schedule:
-    - cron: '0 0 * * *' # once per day at midnight
-  workflow_dispatch: # can be run with gh workflow run 'Clean nix store'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  nix-cleanup:
-    - name: Set up Nix
-      run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
-    - name: Cleanup the Nix store
-      if: always()
-      run: |
-        nix-store --gc --print-dead
-        nix-store --optimise
-
