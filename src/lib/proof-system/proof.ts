@@ -1,14 +1,7 @@
-import {
-  areBindingsInitialized,
-  initializeBindings,
-  withThreadPool,
-} from '../../snarky.js';
+import { areBindingsInitialized, initializeBindings, withThreadPool } from '../../snarky.js';
 import { Pickles, Base64ProofString } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
-import type {
-  FlexibleProvable,
-  InferProvable,
-} from '../provable/types/struct.js';
+import type { FlexibleProvable, InferProvable } from '../provable/types/struct.js';
 import { FeatureFlags } from './feature-flags.js';
 import type { VerificationKey, JsonProof } from './zkprogram.js';
 import { Subclass } from '../util/types.js';
@@ -92,10 +85,7 @@ class ProofBase<Input = any, Output = any> {
   }
 
   static get provable(): Provable<any> {
-    if (
-      this.publicInputType === undefined ||
-      this.publicOutputType === undefined
-    ) {
+    if (this.publicInputType === undefined || this.publicOutputType === undefined) {
       throw Error(
         `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
           `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
@@ -121,10 +111,7 @@ class ProofBase<Input = any, Output = any> {
     return (this.constructor as typeof ProofBase).publicFields(this);
   }
 
-  static _proofFromBase64(
-    proofString: Base64ProofString,
-    maxProofsVerified: 0 | 1 | 2
-  ) {
+  static _proofFromBase64(proofString: Base64ProofString, maxProofsVerified: 0 | 1 | 2) {
     assertBindingsInitialized();
     return Pickles.proofOfBase64(proofString, maxProofsVerified)[1];
   }
@@ -150,20 +137,11 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
       publicInput: publicInputJson,
       publicOutput: publicOutputJson,
     }: JsonProof
-  ): Promise<
-    Proof<
-      InferProvable<S['publicInputType']>,
-      InferProvable<S['publicOutputType']>
-    >
-  > {
+  ): Promise<Proof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>> {
     await initializeBindings();
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
-    return this.provable.fromFields(fields, [
-      [],
-      [],
-      [proof, maxProofsVerified],
-    ]) as any;
+    return this.provable.fromFields(fields, [[], [], [proof, maxProofsVerified]]) as any;
   }
 
   /**
@@ -234,7 +212,7 @@ let sideloadedKeysCounter = 0;
  * NOTE: In the case of `DynamicProof`s, the circuit makes no assertions about the verificationKey used on its own.
  * This is the responsibility of the application developer and should always implement appropriate checks.
  * This pattern differs a lot from the usage of normal `Proof`, where the verification key is baked into the compiled circuit.
- * @see `src/examples/zkprogram/dynamic-keys-merkletree.ts` for an example of how this can be done using merkle trees
+ * @see {@link src/examples/zkprogram/dynamic-keys-merkletree.ts} for an example of how this can be done using merkle trees
  *
  * Assertions generally only happen using the vk hash that is part of the `VerificationKey` struct along with the raw vk data as auxiliary data.
  * When using verify() on a `DynamicProof`, Pickles makes sure that the verification key data matches the hash.
@@ -296,19 +274,12 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
       publicOutput: publicOutputJson,
     }: JsonProof
   ): Promise<
-    DynamicProof<
-      InferProvable<S['publicInputType']>,
-      InferProvable<S['publicOutputType']>
-    >
+    DynamicProof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>
   > {
     await initializeBindings();
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
-    return this.provable.fromFields(fields, [
-      [],
-      [],
-      [proof, maxProofsVerified],
-    ]) as any;
+    return this.provable.fromFields(fields, [[], [], [proof, maxProofsVerified]]) as any;
   }
 
   static async dummy<S extends Subclass<typeof DynamicProof>>(
@@ -319,10 +290,12 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
     domainLog2: number = 14
   ): Promise<InstanceType<S>> {
     return this.fromProof(
-      await Proof.dummy<
-        InferProvable<S['publicInputType']>,
-        InferProvable<S['publicOutputType']>
-      >(publicInput, publicOutput, maxProofsVerified, domainLog2)
+      await Proof.dummy<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>(
+        publicInput,
+        publicOutput,
+        maxProofsVerified,
+        domainLog2
+      )
     );
   }
 
@@ -333,10 +306,7 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
    */
   static fromProof<S extends Subclass<typeof DynamicProof>>(
     this: S,
-    proof: Proof<
-      InferProvable<S['publicInputType']>,
-      InferProvable<S['publicOutputType']>
-    >
+    proof: Proof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>
   ): InstanceType<S> {
     return new this({
       publicInput: proof.publicInput,
@@ -353,9 +323,7 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
 
 async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   await initializeBindings();
-  return withThreadPool(
-    async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]
-  );
+  return withThreadPool(async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]);
 }
 
 type ProofValue<Input, Output> = {
@@ -365,11 +333,10 @@ type ProofValue<Input, Output> = {
   maxProofsVerified: 0 | 1 | 2;
 };
 
-type ProvableProof<
-  Proof extends ProofBase,
-  InputV = any,
-  OutputV = any
-> = Provable<Proof, ProofValue<InputV, OutputV>>;
+type ProvableProof<Proof extends ProofBase, InputV = any, OutputV = any> = Provable<
+  Proof,
+  ProofValue<InputV, OutputV>
+>;
 
 function provableProof<
   Class extends Subclass<typeof ProofBase<Input, Output>>,
@@ -388,9 +355,7 @@ function provableProof<
       return input.sizeInFields() + output.sizeInFields();
     },
     toFields(value) {
-      return input
-        .toFields(value.publicInput)
-        .concat(output.toFields(value.publicOutput));
+      return input.toFields(value.publicInput).concat(output.toFields(value.publicOutput));
     },
     toAuxiliary(value) {
       let inputAux = input.toAuxiliary(value?.publicInput);

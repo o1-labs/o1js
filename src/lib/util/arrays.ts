@@ -17,10 +17,7 @@ function chunkString(str: string, size: number): string[] {
 }
 
 function zip<T, S>(a: T[], b: S[]) {
-  assert(
-    a.length <= b.length,
-    'zip(): second array must be at least as long as the first array'
-  );
+  assert(a.length <= b.length, 'zip(): second array must be at least as long as the first array');
   return a.map((a, i): [T, S] => [a, b[i]!]);
 }
 
@@ -34,11 +31,13 @@ function pad<T>(array: T[], size: number, value: T): T[] {
 
 function mapObject<
   T extends Record<string, any>,
-  F extends <K extends keyof T>(value: T[K], key: K) => any
+  F extends <K extends keyof T>(value: T[K], key: K, i: number) => any
 >(t: T, fn: F) {
   let s = {} as { [K in keyof T]: ReturnType<F> };
+  let i = 0;
   for (let key in t) {
-    s[key] = fn(t[key], key);
+    s[key] = fn(t[key], key, i);
+    i++;
   }
   return s;
 }

@@ -10,10 +10,10 @@ import * as TypesSnarky from '../../bindings/mina-transaction/gen/transaction.js
 import {
   AccountUpdate as AccountUpdateSnarky,
   ZkappCommand as ZkappCommandSnarky,
-} from '../../lib/mina/account-update.js';
+} from '../../lib/mina/v1/account-update.js';
 import { FieldConst } from '../../lib/provable/core/fieldvar.js';
 import { packToFields as packToFieldsSnarky } from '../../lib/provable/crypto/poseidon.js';
-import { Network, setActiveInstance } from '../../lib/mina/mina.js';
+import { Network, setActiveInstance } from '../../lib/mina/v1/mina.js';
 import { Ml, MlHashInput } from '../../lib/ml/conversion.js';
 import {
   PrivateKey as PrivateKeySnarky,
@@ -35,11 +35,7 @@ import {
   signZkappCommand,
   verifyZkappCommandSignature,
 } from './sign-zkapp-command.js';
-import {
-  Signature,
-  signFieldElement,
-  verifyFieldElement,
-} from './signature.js';
+import { Signature, signFieldElement, verifyFieldElement } from './signature.js';
 import { NetworkId } from './types.js';
 
 let mlTest = await Test();
@@ -63,69 +59,56 @@ test(Random.json.publicKey, (publicKeyBase58) => {
 // empty account update
 let dummy = AccountUpdate.empty();
 let dummySnarky = AccountUpdateSnarky.dummy();
-expect(AccountUpdate.toJSON(dummy)).toEqual(
-  AccountUpdateSnarky.toJSON(dummySnarky)
-);
+expect(AccountUpdate.toJSON(dummy)).toEqual(AccountUpdateSnarky.toJSON(dummySnarky));
 
 let dummyInput = AccountUpdate.toInput(dummy);
 let dummyInputSnarky = MlHashInput.from(
-  mlTest.hashInputFromJson.body(
-    JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body)
-  )
+  mlTest.hashInputFromJson.body(JSON.stringify(AccountUpdateSnarky.toJSON(dummySnarky).body))
 );
-expect(stringify(dummyInput.fields)).toEqual(
-  stringify(dummyInputSnarky.fields)
-);
-expect(stringify(dummyInput.packed)).toEqual(
-  stringify(dummyInputSnarky.packed)
-);
+expect(stringify(dummyInput.fields)).toEqual(stringify(dummyInputSnarky.fields));
+expect(stringify(dummyInput.packed)).toEqual(stringify(dummyInputSnarky.packed));
 
-test(
-  Random.accountUpdate,
-  RandomTransaction.networkId,
-  (accountUpdate, networkId) => {
-    const minaInstance = Network({
-      networkId,
-      mina: 'http://localhost:8080/graphql',
-    });
+test(Random.accountUpdate, RandomTransaction.networkId, (accountUpdate, networkId) => {
+  const minaInstance = Network({
+    networkId,
+    mina: 'http://localhost:8080/graphql',
+  });
 
-    fixVerificationKey(accountUpdate);
+  fixVerificationKey(accountUpdate);
 
-    // example account update
-    let accountUpdateJson: Json.AccountUpdate =
-      AccountUpdate.toJSON(accountUpdate);
+  // example account update
+  let accountUpdateJson: Json.AccountUpdate = AccountUpdate.toJSON(accountUpdate);
 
-    // account update hash
-    let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
-    let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
-    let input = AccountUpdate.toInput(accountUpdate);
-    expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
-    expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
+  // account update hash
+  let accountUpdateSnarky = AccountUpdateSnarky.fromJSON(accountUpdateJson);
+  let inputSnarky = TypesSnarky.AccountUpdate.toInput(accountUpdateSnarky);
+  let input = AccountUpdate.toInput(accountUpdate);
+  expect(toJSON(input.fields)).toEqual(toJSON(inputSnarky.fields));
+  expect(toJSON(input.packed)).toEqual(toJSON(inputSnarky.packed));
 
-    let packed = packToFields(input);
-    let packedSnarky = packToFieldsSnarky(inputSnarky);
-    expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
+  let packed = packToFields(input);
+  let packedSnarky = packToFieldsSnarky(inputSnarky);
+  expect(toJSON(packed)).toEqual(toJSON(packedSnarky));
 
-    setActiveInstance(minaInstance);
-    let hashSnarky = accountUpdateSnarky.hash();
-    let hash = accountUpdateHash(accountUpdate, networkId);
-    expect(hash).toEqual(hashSnarky.toBigInt());
+  setActiveInstance(minaInstance);
+  let hashSnarky = accountUpdateSnarky.hash();
+  let hash = accountUpdateHash(accountUpdate, networkId);
+  expect(hash).toEqual(hashSnarky.toBigInt());
 
-    // check against different network hash
-    expect(hash).not.toEqual(
-      accountUpdateHash(
-        accountUpdate,
-        NetworkId.toString(networkId) === 'mainnet' ? 'devnet' : 'mainnet'
-      )
-    );
-    expect(hash).not.toEqual(
-      accountUpdateHash(
-        accountUpdate,
-        NetworkId.toString(networkId) === 'mainnet' ? 'testnet' : 'mainnet'
-      )
-    );
-  }
-);
+  // check against different network hash
+  expect(hash).not.toEqual(
+    accountUpdateHash(
+      accountUpdate,
+      NetworkId.toString(networkId) === 'mainnet' ? 'devnet' : 'mainnet'
+    )
+  );
+  expect(hash).not.toEqual(
+    accountUpdateHash(
+      accountUpdate,
+      NetworkId.toString(networkId) === 'mainnet' ? 'testnet' : 'mainnet'
+    )
+  );
+});
 
 // private key to/from base58
 test(Random.json.privateKey, (feePayerKeyBase58) => {
@@ -162,9 +145,7 @@ test(
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
     let commitment = callForestHash(callForest, networkId);
-    expect(commitment).toEqual(
-      FieldConst.toBigint(ocamlCommitments.commitment)
-    );
+    expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
   }
 );
 
@@ -197,9 +178,7 @@ test(
     // o1js fromJSON -> toJSON roundtrip, + consistency with mina-signer
     let zkappCommandSnarky = ZkappCommandSnarky.fromJSON(zkappCommandJson);
     let zkappCommandJsonSnarky = ZkappCommandSnarky.toJSON(zkappCommandSnarky);
-    expect(JSON.stringify(zkappCommandJson)).toEqual(
-      JSON.stringify(zkappCommandJsonSnarky)
-    );
+    expect(JSON.stringify(zkappCommandJson)).toEqual(JSON.stringify(zkappCommandJsonSnarky));
     let recoveredZkappCommand = ZkappCommand.fromJSON(zkappCommandJson);
     expect(recoveredZkappCommand).toEqual(zkappCommand);
 
@@ -210,9 +189,7 @@ test(
     );
     let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
     let commitment = callForestHash(callForest, networkId);
-    expect(commitment).toEqual(
-      FieldConst.toBigint(ocamlCommitments.commitment)
-    );
+    expect(commitment).toEqual(FieldConst.toBigint(ocamlCommitments.commitment));
 
     let memo = Memo.fromBase58(memoBase58);
     let memoHash = Memo.hash(memo);
@@ -226,33 +203,21 @@ test(
     let feePayerInput1 = MlHashInput.from(
       mlTest.hashInputFromJson.body(JSON.stringify(feePayerJson.body))
     );
-    expect(stringify(feePayerInput.fields)).toEqual(
-      stringify(feePayerInput1.fields)
-    );
-    expect(stringify(feePayerInput.packed)).toEqual(
-      stringify(feePayerInput1.packed)
-    );
+    expect(stringify(feePayerInput.fields)).toEqual(stringify(feePayerInput1.fields));
+    expect(stringify(feePayerInput.packed)).toEqual(stringify(feePayerInput1.packed));
 
     let feePayerDigest = feePayerHash(feePayer, networkId);
-    expect(feePayerDigest).toEqual(
-      FieldConst.toBigint(ocamlCommitments.feePayerHash)
-    );
+    expect(feePayerDigest).toEqual(FieldConst.toBigint(ocamlCommitments.feePayerHash));
 
     let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
       memoHash,
       feePayerDigest,
       commitment,
     ]);
-    expect(fullCommitment).toEqual(
-      FieldConst.toBigint(ocamlCommitments.fullCommitment)
-    );
+    expect(fullCommitment).toEqual(FieldConst.toBigint(ocamlCommitments.fullCommitment));
 
     // signature
-    let sigFieldElements = signFieldElement(
-      fullCommitment,
-      feePayerKey,
-      networkId
-    );
+    let sigFieldElements = signFieldElement(fullCommitment, feePayerKey, networkId);
     let sigOCaml = mlTest.signature.signFieldElement(
       ocamlCommitments.fullCommitment,
       Ml.fromPrivateKey(feePayerKeySnarky),
@@ -265,21 +230,17 @@ test(
       verifyFieldElement(s, fullCommitment, feePayerAddress, id);
 
     expect(verify(sigFieldElements, networkId)).toEqual(true);
-    expect(
-      verify(sigFieldElements, networkId === 'mainnet' ? 'testnet' : 'mainnet')
-    ).toEqual(false);
-    expect(
-      verify(sigFieldElements, networkId === 'mainnet' ? 'devnet' : 'mainnet')
-    ).toEqual(false);
+    expect(verify(sigFieldElements, networkId === 'mainnet' ? 'testnet' : 'mainnet')).toEqual(
+      false
+    );
+    expect(verify(sigFieldElements, networkId === 'mainnet' ? 'devnet' : 'mainnet')).toEqual(false);
 
     // full end-to-end test: sign a zkapp transaction
     let sig = signZkappCommand(zkappCommandJson, feePayerKeyBase58, networkId);
     expect(sig.feePayer.authorization).toEqual(sigOCaml);
 
     let feePayerAddressBase58 = PublicKey.toBase58(feePayerAddress);
-    expect(
-      verifyZkappCommandSignature(sig, feePayerAddressBase58, networkId)
-    ).toEqual(true);
+    expect(verifyZkappCommandSignature(sig, feePayerAddressBase58, networkId)).toEqual(true);
     expect(
       verifyZkappCommandSignature(
         sig,
@@ -317,7 +278,5 @@ function fixVerificationKey(a: AccountUpdate) {
 }
 
 function fixVerificationKeyHash(a: AccountUpdate) {
-  a.body.authorizationKind.verificationKeyHash = Field(
-    mocks.dummyVerificationKeyHash
-  );
+  a.body.authorizationKind.verificationKeyHash = Field(mocks.dummyVerificationKeyHash);
 }

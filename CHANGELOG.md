@@ -15,20 +15,36 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/fb625f...HEAD)
+
+## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
 ### Added
+
+- Exported the type `FlexibleBytes`, previously being used only internally
+  https://github.com/o1-labs/o1js/pull/2015.
+- Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
 - `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
 - Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
 - `MerkleList.popOption()` for popping the last element and also learning if there was one https://github.com/o1-labs/o1js/pull/1997
+- Added custom header support for `Fetch` methods such as `fetchEvents`, `fetchActions` etc. and to `Mina` instance. Also added two new methods `setMinaDefaultHeaders` and `setArchiveDefaultHeaders` https://github.com/o1-labs/o1js/pull/2004
+- Added new method `CircuitString.setEncoding()` to change default behavior of the `CircuitString` encoding, possible value is `"ascii" | "uft-8"` default to `"ascii"`. Also added an optional `encoding: CircuitStringEncoding` parameter in `.toString()` and `.fromString()` to switch encoding temporary.
+- Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
+- Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
+- Add `UInt64.toBytes()`l https://github.com/o1-labs/o1js/pull/2060 [@kadirchan](https://github.com/kadirchan)
 
 ### Changed
+
 - Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
 - Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+- Enable to pass normal JS values (e.g., `bigint` instead of `Field`) to ZkProgram provers https://github.com/o1-labs/o1js/pull/1934
+  - Also improves the supported JS values for a few important types like `Signature` and `UIntX`
+- ECDSA `verifySignedHash()` accepts hash `Bytes` directly for easy use with alternative hash functions https://github.com/o1-labs/o1js/pull/2005
 
 ### Fixed
 
 - Fix behavior of `initializeBindings()` when called concurrently, to improve error messages in common failure scenarios https://github.com/o1-labs/o1js/pull/1996
+- Fix `ZkProgram` public input/output types https://github.com/o1-labs/o1js/pull/1998
 
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
@@ -380,7 +396,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
   - The default value is 1 and should work for most existing contracts
 - `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)
-   As a replacement, `UInt64.Unsafe.fromField()` was introduced
+  As a replacement, `UInt64.Unsafe.fromField()` was introduced
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
 - Fixed vulnerability in `Field.to/fromBits()` outlined in [#1023](https://github.com/o1-labs/o1js/issues/1023) by imposing a limit of 254 bits https://github.com/o1-labs/o1js/pull/1461

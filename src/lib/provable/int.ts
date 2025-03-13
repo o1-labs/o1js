@@ -7,7 +7,6 @@ import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
 import { addMod32, addMod64 } from './gadgets/arithmetic.js';
-import type { Gadgets } from './gadgets/gadgets.js';
 import { withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { CircuitValue, prop } from './types/circuit-value.js';
@@ -101,11 +100,7 @@ class UInt64 extends CircuitValue {
    */
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
-    let field = Provable.if(
-      this.greaterThan(UInt64.from(max)),
-      Field.from(max),
-      this.value
-    );
+    let field = Provable.if(this.greaterThan(UInt64.from(max)), Field.from(max), this.value);
     return UInt32.Unsafe.fromField(field);
   }
 
@@ -135,9 +130,7 @@ class UInt64 extends CircuitValue {
     if (!x.isConstant()) return x;
     let xBig = x.toBigInt();
     if (xBig < 0n || xBig >= 1n << BigInt(this.NUM_BITS)) {
-      throw Error(
-        `UInt64: Expected number between 0 and 2^64 - 1, got ${xBig}`
-      );
+      throw Error(`UInt64: Expected number between 0 and 2^64 - 1, got ${xBig}`);
     }
     return x;
   }
@@ -186,10 +179,7 @@ class UInt64 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Provable.witness(
-      Field,
-      () => new Field(x.toBigInt() / y_.toBigInt())
-    );
+    let q = Provable.witness(Field, () => new Field(x.toBigInt() / y_.toBigInt()));
 
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, q);
 
@@ -445,10 +435,7 @@ class UInt64 extends CircuitValue {
   assertLessThanOrEqual(y: UInt64, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 <= y0,
-        message ?? `UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`
-      );
+      return assert(x0 <= y0, message ?? `UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
     }
     assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
@@ -474,10 +461,7 @@ class UInt64 extends CircuitValue {
   assertLessThan(y: UInt64, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 < y0,
-        message ?? `UInt64.assertLessThan: expected ${x0} < ${y0}`
-      );
+      return assert(x0 < y0, message ?? `UInt64.assertLessThan: expected ${x0} < ${y0}`);
     }
     assertLessThanGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
@@ -516,10 +500,37 @@ class UInt64 extends CircuitValue {
     return x.value.toBigInt();
   }
 
-  static fromValue<T extends AnyConstructor>(
-    x: bigint | UInt64
-  ): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(x: number | bigint | UInt64): InstanceType<T> {
     return UInt64.from(x) as any;
+  }
+
+  /**
+   * Split a UInt64 into 8 UInt8s, in little-endian order.
+   */
+  toBytes() {
+    return TupleN.fromArray(8, wordToBytes(this.value, 8));
+  }
+
+  /**
+   * Split a UInt64 into 8 UInt8s, in big-endian order.
+   */
+  toBytesBE() {
+    return TupleN.fromArray(8, wordToBytes(this.value, 8).reverse());
+  }
+
+  /**
+   * Combine 8 UInt8s into a UInt64, in little-endian order.
+   */
+  static fromBytes(bytes: UInt8[]): UInt64 {
+    assert(bytes.length === 8, '8 bytes needed to create a uint64');
+    return UInt64.Unsafe.fromField(bytesToWord(bytes));
+  }
+
+  /**
+   * Combine 8 UInt8s into a UInt64, in big-endian order.
+   */
+  static fromBytesBE(bytes: UInt8[]): UInt64 {
+    return UInt64.fromBytes([...bytes].reverse());
   }
 }
 /**
@@ -612,9 +623,7 @@ class UInt32 extends CircuitValue {
     if (!x.isConstant()) return x;
     let xBig = x.toBigInt();
     if (xBig < 0n || xBig >= 1n << BigInt(this.NUM_BITS)) {
-      throw Error(
-        `UInt32: Expected number between 0 and 2^32 - 1, got ${xBig}`
-      );
+      throw Error(`UInt32: Expected number between 0 and 2^32 - 1, got ${xBig}`);
     }
     return x;
   }
@@ -664,10 +673,7 @@ class UInt32 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Provable.witness(
-      Field,
-      () => new Field(x.toBigInt() / y_.toBigInt())
-    );
+    let q = Provable.witness(Field, () => new Field(x.toBigInt() / y_.toBigInt()));
 
     RangeCheck.rangeCheck32(q);
 
@@ -921,10 +927,7 @@ class UInt32 extends CircuitValue {
   assertLessThanOrEqual(y: UInt32, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 <= y0,
-        message ?? `UInt32.assertLessThanOrEqual: expected ${x0} <= ${y0}`
-      );
+      return assert(x0 <= y0, message ?? `UInt32.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
     }
     assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
@@ -949,10 +952,7 @@ class UInt32 extends CircuitValue {
   assertLessThan(y: UInt32, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 < y0,
-        message ?? `UInt32.assertLessThan: expected ${x0} < ${y0}`
-      );
+      return assert(x0 < y0, message ?? `UInt32.assertLessThan: expected ${x0} < ${y0}`);
     }
     assertLessThanGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
@@ -991,9 +991,7 @@ class UInt32 extends CircuitValue {
     return x.value.toBigInt();
   }
 
-  static fromValue<T extends AnyConstructor>(
-    x: bigint | UInt32
-  ): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(x: number | bigint | UInt32): InstanceType<T> {
     return UInt32.from(x) as any;
   }
 
@@ -1051,9 +1049,7 @@ class Sign extends CircuitValue {
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
   }
-  static fromJSON<T extends AnyConstructor>(
-    x: 'Positive' | 'Negative'
-  ): InstanceType<T> {
+  static fromJSON<T extends AnyConstructor>(x: 'Positive' | 'Negative'): InstanceType<T> {
     return (x === 'Positive' ? new Sign(Field(1)) : new Sign(Field(-1))) as any;
   }
   neg() {
@@ -1077,9 +1073,7 @@ class Sign extends CircuitValue {
     return x.value.toBigInt() as TypesBigint.Sign;
   }
 
-  static fromValue<T extends AnyConstructor>(
-    x: bigint | Sign
-  ): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(x: number | bigint | Sign): InstanceType<T> {
     if (x instanceof Sign) return x as any;
     return new Sign(Field(x)) as any;
   }
@@ -1206,10 +1200,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     },
   };
 
-  fromObject(obj: {
-    magnitude: UInt64 | number | string | bigint;
-    sgn: Sign | bigint;
-  }) {
+  fromObject(obj: { magnitude: UInt64 | number | string | bigint; sgn: Sign | bigint }) {
     return Int64.create(UInt64.from(obj.magnitude), Sign.fromValue(obj.sgn));
   }
 
@@ -1367,11 +1358,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
     let isNonNegative = this.isNonNegative();
-    rest = Provable.if(
-      isNonNegative.or(rest.equals(0)),
-      rest,
-      y_.value.sub(rest)
-    );
+    rest = Provable.if(isNonNegative.or(rest.equals(0)), rest, y_.value.sub(rest));
     return new Int64(new UInt64(rest.value));
   }
 
@@ -1385,10 +1372,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Asserts that two values are equal.
    */
-  assertEquals(
-    y: Int64 | number | string | bigint | UInt64 | UInt32,
-    message?: string
-  ) {
+  assertEquals(y: Int64 | number | string | bigint | UInt64 | UInt32, message?: string) {
     let y_ = Int64.from(y);
     this.toField().assertEquals(y_.toField(), message);
   }
@@ -1430,9 +1414,7 @@ class Int64 extends CircuitValue implements BalanceChange {
 
     // check unique representation of 0: we can't have magnitude = 0 and sgn = -1
     // magnitude + sign != -1 (this check works because magnitude >= 0)
-    magnitude.value
-      .add(sgn.value)
-      .assertNotEquals(-1, 'Int64: 0 must have positive sign');
+    magnitude.value.add(sgn.value).assertNotEquals(-1, 'Int64: 0 must have positive sign');
   }
 }
 
@@ -1615,12 +1597,7 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y_.value.isConstant()) {
       return Bool(this.toBigInt() <= y_.toBigInt());
     }
-    return lessThanOrEqualGeneric(
-      this.value,
-      y_.value,
-      1n << 8n,
-      RangeCheck.rangeCheck8
-    );
+    return lessThanOrEqualGeneric(this.value, y_.value, 1n << 8n, RangeCheck.rangeCheck8);
   }
 
   /**
@@ -1637,12 +1614,7 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y_.value.isConstant()) {
       return Bool(this.toBigInt() < y_.toBigInt());
     }
-    return lessThanGeneric(
-      this.value,
-      y_.value,
-      1n << 8n,
-      RangeCheck.rangeCheck8
-    );
+    return lessThanGeneric(this.value, y_.value, 1n << 8n, RangeCheck.rangeCheck8);
   }
 
   /**
@@ -1657,10 +1629,7 @@ class UInt8 extends Struct({
     let y_ = UInt8.from(y);
     if (this.value.isConstant() && y_.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y_.value.toBigInt()];
-      return assert(
-        x0 < y0,
-        message ?? `UInt8.assertLessThan: expected ${x0} < ${y0}`
-      );
+      return assert(x0 < y0, message ?? `UInt8.assertLessThan: expected ${x0} < ${y0}`);
     }
     try {
       // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanGeneric`
@@ -1682,18 +1651,11 @@ class UInt8 extends Struct({
     let y_ = UInt8.from(y);
     if (this.value.isConstant() && y_.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y_.value.toBigInt()];
-      return assert(
-        x0 <= y0,
-        message ?? `UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`
-      );
+      return assert(x0 <= y0, message ?? `UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
     }
     try {
       // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanOrEqualGeneric`
-      assertLessThanOrEqualGeneric(
-        this.value,
-        y_.value,
-        RangeCheck.rangeCheck16
-      );
+      assertLessThanOrEqualGeneric(this.value, y_.value, RangeCheck.rangeCheck16);
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -1837,6 +1799,15 @@ class UInt8 extends Struct({
       return new UInt8(xx.value.value);
     }
     return new UInt8(x);
+  }
+
+  static fromValue(
+    // we need all the { value } inputs to correctly extend the Struct
+    x: number | UInt8 | { value: string | number | bigint | Field }
+  ) {
+    if (typeof x === 'number') return UInt8.from(x);
+    if (x instanceof UInt8) return x;
+    return UInt8.Unsafe.fromField(Field(x.value));
   }
 
   private static checkConstant(x: Field) {

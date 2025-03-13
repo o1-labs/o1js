@@ -162,9 +162,7 @@ class ForeignCurve {
       assert(0n < x && x < this.Bigint.Field.modulus);
 
       // compute the right-hand side of the curve equation: x³ + ax + b
-      const crvX = this.Bigint.Field.mod(
-        this.Bigint.Field.mod(x * x) * x + this.Bigint.b
-      );
+      const crvX = this.Bigint.Field.mod(this.Bigint.Field.mod(x * x) * x + this.Bigint.b);
       // compute the square root (y-coordinate)
       let y = this.Bigint.Field.sqrt(crvX)!;
       const isYOdd = (y & 1n) === 1n; // determine whether y is odd
@@ -434,10 +432,7 @@ class ForeignCurveNotNeeded extends ForeignCurve {
  * {@link ForeignCurveNotNeeded} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
-  assert(
-    params.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
-  );
+  assert(params.modulus > l2Mask + 1n, 'Base field moduli smaller than 2^176 are not supported');
 
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);
