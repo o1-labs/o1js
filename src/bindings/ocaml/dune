@@ -1,0 +1,44 @@
+(executable
+ (name o1js_types)
+ (public_name o1js-types)
+ (package o1js_bindings)
+ (modules o1js_types)
+ (link_flags (-linkall))
+ (modes native)
+ (libraries mina_base fields_derivers.zkapps yojson)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps ppx_version)))
+
+(rule
+ (targets jsLayout.json)
+ (action
+  (with-stdout-to
+   jsLayout.json
+   (run %{exe:./o1js_types.exe}))))
+
+(executable
+ (name o1js_constants)
+ (public_name o1js-constants)
+ (package o1js_bindings)
+ (modules o1js_constants)
+ (link_flags (-linkall))
+ (modes native)
+ (libraries
+  mina_base
+  core_kernel
+  base
+  sponge
+  hash_prefixes
+  mina_signature_kind
+  base58_check
+  pickles
+  random_oracle
+  random_oracle.permutation.ocaml
+  yojson
+  protocol_version)
+ (instrumentation
+  (backend bisect_ppx))
+ (preprocess
+  (pps ppx_version)))
