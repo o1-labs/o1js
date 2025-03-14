@@ -329,6 +329,7 @@ jobs:
           git push origin $RELEASED_VERSION
       - name: Create Release
         uses: ncipollo/release-action@v1
+        if: success()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.publish.outputs.version }}
