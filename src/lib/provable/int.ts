@@ -76,7 +76,7 @@ class UInt64 extends CircuitValue {
     return this.value.toString();
   }
   /**
-   * Turns the {@link UInt64} into a {@link BigInt}.
+   * Turns the {@link UInt64} into a BigInt.
    * @returns
    */
   toBigInt() {
@@ -586,7 +586,7 @@ class UInt32 extends CircuitValue {
     return this.value.toString();
   }
   /**
-   * Turns the {@link UInt32} into a {@link BigInt}.
+   * Turns the {@link UInt32} into a BigInt.
    */
   toBigint() {
     return this.value.toBigInt();
@@ -1205,7 +1205,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Turns the {@link Int64} into a {@link BigInt}.
+   * Turns the {@link Int64} into a BigInt.
    */
   toBigint() {
     let abs = this.magnitude.toBigInt();
@@ -1278,8 +1278,8 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Int64.from(5).neg();
    * ```
    *
-   * @see {@link Int64#from} for creating Int64 instances
-   * @see {@link Int64#zero} for the zero constant
+   * @see {@link Int64.from} for creating Int64 instances
+   * @see {@link Int64.zero} for the zero constant
    *
    * @throws {Error} Implicitly, if the internal Provable.if condition fails
    */
