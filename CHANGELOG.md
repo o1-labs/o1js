@@ -15,10 +15,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/fb625f...HEAD)
+
+## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
 ### Added
 
+- `to` and `from` are added as query parameters for `fetchActions` and `fetchEvents` https://github.com/o1-labs/o1js/pull/2066
 - Exported the type `FlexibleBytes`, previously being used only internally
   https://github.com/o1-labs/o1js/pull/2015.
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
