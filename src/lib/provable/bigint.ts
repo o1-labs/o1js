@@ -196,7 +196,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         value = value % modulus;
       }
       for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
-        fields.push(Field.from(value & ProvableBigInt_.config.mask)); // fields[i] = x & 2^64 - 1
+        fields.push(Field.from(value & ProvableBigInt_.config.mask)); // fields[i] = x & mask
         value >>= ProvableBigInt_.config.limb_size; // x = x >> limb_size
       }
       return new ProvableBigInt_(fields, Unconstrained.from(value));
@@ -209,7 +209,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     toBigInt(): bigint {
       let result = 0n;
       for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        result |= this.fields[i].toBigInt() << (this.Constructor.config.limb_size * BigInt(i)); // result = result | fields[i] << 64 * i
+        result |= this.fields[i].toBigInt() << (this.Constructor.config.limb_size * BigInt(i)); // result = result | fields[i] << limb_size * i
       }
       return result;
     }
