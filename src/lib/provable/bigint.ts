@@ -318,10 +318,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       for (let i = 0; i < this.Constructor.config.limb_num - 1; i++) {
         let deltaPlusCarry = delta[i].add(carry).seal();
 
-        carry = Provable.witness(Field, () => deltaPlusCarry.div(1n << 116n));
+        carry = Provable.witness(Field, () => deltaPlusCarry.div(1n << this.Constructor.config.limb_size));
         rangeCheck(carry, 128, true);
 
-        // ensure that after adding the carry, the limb is a multiple of 2^116
+        // ensure that after adding the carry, the limb is a multiple of 2^limb_size
         deltaPlusCarry.assertEquals(carry.mul(1n << this.Constructor.config.limb_size));
       }
 
