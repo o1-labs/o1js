@@ -57,7 +57,7 @@ const BigIntParams: { [key: string]: BigIntParameter } = {
 
 /**
  * Creates a class representing a ProvableBigInt with modular arithmetic capabilities.
- * This is particularly useful for implementing prime fields that doesn't fit into the native field.
+ * This is particularly useful for implementing prime fields that don't fit into the native field.
  *
  * ```ts
  * const BigInt521 = createProvableBigInt(2n ** 521n - 1n); // creates a class for 521-bit integers
