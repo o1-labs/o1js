@@ -10,6 +10,11 @@ import {
   rangeCheck64,
   rangeCheckN,
   isDefinitelyInRangeN,
+  l2Mask,
+  lMask,
+  l2,
+  l,
+  l3,
 } from './range-check.js';
 import {
   not,
@@ -1023,4 +1028,15 @@ const Gadgets = {
    *
    */
   BLAKE2B: BLAKE2B,
+
+  /*
+   * TODO: describe
+   */
+  Constants: {
+    l2Mask,
+    l,
+    l2,
+    l3,
+    lMask,
+  },
 };
