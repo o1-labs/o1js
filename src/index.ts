@@ -188,3 +188,12 @@ namespace Experimental {
 }
 
 Error.stackTraceLimit = 100000;
+
+// export parts of the low-level bindings interface for advanced users
+export { Bindings };
+
+import { EllipticCurve as EllipticCurve_, FiniteField as FiniteField_ } from './bindings/index.js';
+namespace Bindings {
+  export const EllipticCurve = EllipticCurve_;
+  export const FiniteField = FiniteField_;
+}
