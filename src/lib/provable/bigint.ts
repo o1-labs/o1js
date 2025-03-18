@@ -1,10 +1,10 @@
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable } from './provable.js';
-import { ProvablePureExtended, Struct } from './types/struct.js';
+import { ProvablePureExtended } from './types/struct.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './gadgets/common.js';
-import { provableFromClass } from './types/provable-derivers.js';
+import { provable, provableFromClass } from './types/provable-derivers.js';
 import { Unconstrained } from './types/unconstrained.js';
 
 export { createProvableBigInt, ProvableBigInt };
@@ -252,7 +252,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
     add(a: ProvableBigInt_, isDouble = false): ProvableBigInt_ {
       if (isDouble) a = this;
       // witness q, r so that x+y = q*p + r
-      let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
+      let { q, r } = Provable.witness(provable({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
         let xPlusY = this.toBigInt() + a.toBigInt();
         let p0 = this.Constructor.modulus.toBigInt();
         let q = xPlusY / p0;
@@ -342,7 +342,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
     mul(a: ProvableBigInt_, isSquare = false): ProvableBigInt_ {
       if (isSquare) a = this;
 
-      let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
+      let { q, r } = Provable.witness(provable({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
         let xy = this.toBigInt() * a.toBigInt();
         let p0 = this.Constructor.modulus.toBigInt();
         let q = xy / p0;
@@ -432,7 +432,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      */
     inverse(): ProvableBigInt_ {
       let { res } = Provable.witness(
-        Struct({ res: ProvableBigInt_ as typeof ProvableBigInt }),
+        provable({ res: ProvableBigInt_ as typeof ProvableBigInt }),
         () => {
           const p = this.Constructor.modulus.toBigInt();
           let t = 0n;
@@ -473,7 +473,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      * @returns The additive inverse as a ProvableBigInt
      */
     negate(): ProvableBigInt_ {
-      let { negation } = Provable.witness(Struct({ negation: ProvableBigInt_ }), () => {
+      let { negation } = Provable.witness(provable({ negation: ProvableBigInt_}), () => {
         let thisVal = this.toBigInt();
         let p = this.Constructor.modulus.toBigInt();
         let negVal = 0n;
@@ -597,7 +597,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
 
     mod(): ProvableBigInt_ {
       // witness q, r so that this = q*p + r
-      let { q, r } = Provable.witness(Struct({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
+      let { q, r } = Provable.witness(provable({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
         let this_big = this.toBigInt();
         let p0 = this.Constructor.modulus.toBigInt();
         let q = this_big / p0;
