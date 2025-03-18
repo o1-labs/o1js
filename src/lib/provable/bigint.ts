@@ -179,18 +179,37 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
       return this.fields.slice(0, this.Constructor.config.limbNum);
     }
 
-    /**
-     * Creates a ProvableBigInt instance from an limbs as an array of fields
-     * @param fields The limbs of the ProvableBigInt. Must be of the correct length.
-     * @returns A ProvableBigInt instance from the fields
-     */
-    static fromFields(fields: Field[]): ProvableBigInt_ {
-      let value = 0n;
-      for (let i = 0; i < ProvableBigInt_.config.limbNum; i++) {
-        value |= BigInt(fields[i].toBigInt()) << BigInt(ProvableBigInt_.config.limbSize * i);
-      }
-      return new ProvableBigInt_(fields, Unconstrained.from(value));
-    }
+    static Unsafe = {
+      /**
+       * Creates a ProvableBigInt instance from an limbs as an array of fields
+       * **WARNING**: This method is UNSAFE and lacks checks on the fields. Use with caution as it can lead to incorrect results or security vulnerabilities.
+       * @param fields The limbs of the ProvableBigInt. Must be of the correct length.
+       * @returns A ProvableBigInt instance from the fields
+       */
+      fromFields(fields: Field[]): ProvableBigInt_ {
+        let value = 0n;
+        for (let i = 0; i < ProvableBigInt_.config.limbNum; i++) {
+          value |= BigInt(fields[i].toBigInt()) << BigInt(ProvableBigInt_.config.limbSize * i);
+        }
+        return new ProvableBigInt_(fields, Unconstrained.from(value));
+      },
+
+      /**
+       * Creates a ProvableBigInt instance from an array of bits
+       * **WARNING**: This method is UNSAFE and lacks checks on the bits. Use with caution as it can lead to incorrect results or security vulnerabilities.
+       * @param bits
+       * @returns A ProvableBigInt instance from the bits
+       */
+      fromBits(bits: Bool[]): ProvableBigInt_ {
+        let value = 0n;
+        for (let i = 0; i < bits.length; i++) {
+          if (bits[i].toBoolean()) {
+            value |= 1n << BigInt(i);
+          }
+        }
+        return ProvableBigInt_.fromBigInt(value);
+      },
+    };
 
     /**
      * Converts a ProvableBigInt instance to an array of bits
@@ -217,22 +236,6 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
 
       // Ensure the total length doesn't exceed what's needed
       return allBits.slice(0, totalBits);
-    }
-
-    /**
-     * UNSAFE
-     * Creates a ProvableBigInt instance from an array of bits
-     * @param bits
-     * @returns A ProvableBigInt instance from the bits
-     */
-    static fromBits(bits: Bool[]): ProvableBigInt_ {
-      let value = 0n;
-      for (let i = 0; i < bits.length; i++) {
-        if (bits[i].toBoolean()) {
-          value |= 1n << BigInt(i);
-        }
-      }
-      return ProvableBigInt_.fromBigInt(value);
     }
 
     /**

@@ -46,7 +46,7 @@ describe('BigInt17', () => {
       const value = 11n;
       const bigInt = BigInt17.fromBigInt(value);
       const bits = bigInt.toBits();
-      const newBigInt = BigInt17.fromBits(bits);
+      const newBigInt = BigInt17.Unsafe.fromBits(bits);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
 
@@ -54,7 +54,7 @@ describe('BigInt17', () => {
       const value = 11n;
       const bigInt = BigInt17.fromBigInt(value);
       const fields = bigInt.toFields();
-      const newBigInt = BigInt17.fromFields(fields);
+      const newBigInt = BigInt17.Unsafe.fromFields(fields);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
   });
@@ -621,7 +621,7 @@ describe('BigInt255', () => {
       const value = Field.random().toBigInt();
       const bigInt = BigInt255.fromBigInt(value);
       const bits = bigInt.toBits();
-      const newBigInt = BigInt255.fromBits(bits);
+      const newBigInt = BigInt255.Unsafe.fromBits(bits);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
 
@@ -629,7 +629,7 @@ describe('BigInt255', () => {
       const value = Field.random().toBigInt();
       const bigInt = BigInt255.fromBigInt(value);
       const fields = bigInt.toFields();
-      const newBigInt = BigInt255.fromFields(fields);
+      const newBigInt = BigInt255.Unsafe.fromFields(fields);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
   });
@@ -1160,8 +1160,8 @@ describe('BigInt255', () => {
     });
 
     it('should correctly compare BigInt255 numbers properly', () => {
-      const a = BigInt255.fromFields([new Field(1), new Field(3), new Field(3), new Field(0)]);
-      const b = BigInt255.fromFields([new Field(1), new Field(2), new Field(4), new Field(0)]);
+      const a = BigInt255.Unsafe.fromFields([new Field(1), new Field(3), new Field(3), new Field(0)]);
+      const b = BigInt255.Unsafe.fromFields([new Field(1), new Field(2), new Field(4), new Field(0)]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
@@ -1170,8 +1170,8 @@ describe('BigInt255', () => {
     });
 
     it('should correctly compare BigInt255 numbers properly', () => {
-      const a = BigInt255.fromFields([new Field(1), new Field(0), new Field(4), new Field(0)]);
-      const b = BigInt255.fromFields([
+      const a = BigInt255.Unsafe.fromFields([new Field(1), new Field(0), new Field(4), new Field(0)]);
+      const b = BigInt255.Unsafe.fromFields([
         new Field(1),
         new Field(18446744073709551615n),
         new Field(1),
@@ -1185,13 +1185,13 @@ describe('BigInt255', () => {
     });
 
     it('should correctly compare BigInt255 numbers properly', () => {
-      const a = BigInt255.fromFields([
+      const a = BigInt255.Unsafe.fromFields([
         new Field(18446744073709551615n),
         new Field(1),
         new Field(1),
         new Field(0),
       ]);
-      const b = BigInt255.fromFields([new Field(1), new Field(1), new Field(2), new Field(0)]);
+      const b = BigInt255.Unsafe.fromFields([new Field(1), new Field(1), new Field(2), new Field(0)]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
@@ -1235,7 +1235,7 @@ describe('BigInt381', () => {
       const value = Field.random().toBigInt();
       const bigInt = BigInt381.fromBigInt(value);
       const bits = bigInt.toBits();
-      const newBigInt = BigInt381.fromBits(bits);
+      const newBigInt = BigInt381.Unsafe.fromBits(bits);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
 
@@ -1243,7 +1243,7 @@ describe('BigInt381', () => {
       const value = Field.random().toBigInt();
       const bigInt = BigInt381.fromBigInt(value);
       const fields = bigInt.toFields();
-      const newBigInt = BigInt381.fromFields(fields);
+      const newBigInt = BigInt381.Unsafe.fromFields(fields);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
   });
@@ -1774,8 +1774,8 @@ describe('BigInt381', () => {
     });
 
     it('should correctly compare BigInt381 numbers properly', () => {
-      const a = BigInt381.fromFields([new Field(1), new Field(3), new Field(3), new Field(0)]);
-      const b = BigInt381.fromFields([new Field(1), new Field(2), new Field(4), new Field(0)]);
+      const a = BigInt381.Unsafe.fromFields([new Field(1), new Field(3), new Field(3), new Field(0)]);
+      const b = BigInt381.Unsafe.fromFields([new Field(1), new Field(2), new Field(4), new Field(0)]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
@@ -1784,8 +1784,8 @@ describe('BigInt381', () => {
     });
 
     it('should correctly compare BigInt381 numbers properly', () => {
-      const a = BigInt381.fromFields([new Field(1), new Field(0), new Field(4), new Field(0)]);
-      const b = BigInt381.fromFields([
+      const a = BigInt381.Unsafe.fromFields([new Field(1), new Field(0), new Field(4), new Field(0)]);
+      const b = BigInt381.Unsafe.fromFields([
         new Field(1),
         new Field(18446744073709551615n),
         new Field(1),
@@ -1799,13 +1799,13 @@ describe('BigInt381', () => {
     });
 
     it('should correctly compare BigInt381 numbers properly', () => {
-      const a = BigInt381.fromFields([
+      const a = BigInt381.Unsafe.fromFields([
         new Field(18446744073709551615n),
         new Field(1),
         new Field(1),
         new Field(0),
       ]);
-      const b = BigInt381.fromFields([new Field(1), new Field(1), new Field(2), new Field(0)]);
+      const b = BigInt381.Unsafe.fromFields([new Field(1), new Field(1), new Field(2), new Field(0)]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
@@ -1849,7 +1849,7 @@ describe('BigInt512', () => {
       const value = Field.random().toBigInt();
       const bigInt = BigInt512.fromBigInt(value);
       const bits = bigInt.toBits();
-      const newBigInt = BigInt512.fromBits(bits);
+      const newBigInt = BigInt512.Unsafe.fromBits(bits);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
 
@@ -1857,7 +1857,7 @@ describe('BigInt512', () => {
       const value = Field.random().toBigInt();
       const bigInt = BigInt512.fromBigInt(value);
       const fields = bigInt.toFields();
-      const newBigInt = BigInt512.fromFields(fields);
+      const newBigInt = BigInt512.Unsafe.fromFields(fields);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
   });
@@ -2388,14 +2388,14 @@ describe('BigInt512', () => {
     });
 
     it('should correctly compare BigInt512 numbers properly', () => {
-      const a = BigInt512.fromFields([
+      const a = BigInt512.Unsafe.fromFields([
         new Field(1),
         new Field(3),
         new Field(3),
         new Field(1),
         new Field(0),
       ]);
-      const b = BigInt512.fromFields([
+      const b = BigInt512.Unsafe.fromFields([
         new Field(1),
         new Field(2),
         new Field(4),
@@ -2410,14 +2410,14 @@ describe('BigInt512', () => {
     });
 
     it('should correctly compare BigInt512 numbers properly', () => {
-      const a = BigInt512.fromFields([
+      const a = BigInt512.Unsafe.fromFields([
         new Field(1),
         new Field(0),
         new Field(4),
         new Field(7),
         new Field(0),
       ]);
-      const b = BigInt512.fromFields([
+      const b = BigInt512.Unsafe.fromFields([
         new Field(1),
         new Field(18446744073709551615n),
         new Field(1),
@@ -2432,14 +2432,14 @@ describe('BigInt512', () => {
     });
 
     it('should correctly compare BigInt512 numbers properly', () => {
-      const a = BigInt512.fromFields([
+      const a = BigInt512.Unsafe.fromFields([
         new Field(18446744073709551615n),
         new Field(1),
         new Field(1),
         new Field(0),
         new Field(0),
       ]);
-      const b = BigInt512.fromFields([
+      const b = BigInt512.Unsafe.fromFields([
         new Field(1),
         new Field(1),
         new Field(2),
