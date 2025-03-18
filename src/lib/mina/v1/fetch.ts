@@ -1,5 +1,5 @@
-import { Field } from '../provable/wrapped.js';
-import { UInt32, UInt64 } from '../provable/int.js';
+import { Field } from '../../provable/wrapped.js';
+import { UInt32, UInt64 } from '../../provable/int.js'
 import { Actions, TokenId } from './account-update.js';
 import { PublicKey, PrivateKey } from '../../provable/crypto/signature.js';
 import { NetworkValue } from './precondition.js';
