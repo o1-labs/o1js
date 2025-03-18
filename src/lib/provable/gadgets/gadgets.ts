@@ -34,7 +34,8 @@ import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
 import { BLAKE2B } from './blake2b.js';
 import { rangeCheck3x12 } from './lookup.js';
-import { arrayGet } from './basic.js';
+import { arrayGet, arrayGetGeneric } from './basic.js';
+import { sliceField3 } from './bit-slices.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 
@@ -56,6 +57,12 @@ const Gadgets = {
    * **Note**: This saves n constraints compared to `Provable.switch(array.map((_, i) => index.equals(i)), type, array)`.
    */
   arrayGet,
+  /**
+   * Get value from array in O(n) constraints.
+   *
+   * Assumes that index is in [0, n), returns an unconstrained result otherwise.
+   */
+  arrayGetGeneric,
 
   /**
    * Asserts that the input value is in the range [0, 2^64).
@@ -632,6 +639,17 @@ const Gadgets = {
     },
 
     /**
+     * check whether x = c mod f
+     *
+     * c is a constant, and we require c in [0, f)
+     *
+     * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
+     */
+    equals(x: Field3, y: bigint, f: bigint) {
+      return ForeignField.equals(x, y, f);
+    },
+
+    /**
      * Foreign field subtraction: `x - y mod f`
      *
      * See {@link Gadgets.ForeignField.add} for assumptions and usage examples.
@@ -793,9 +811,10 @@ const Gadgets = {
       x: Field3 | ForeignFieldSum,
       y: Field3 | ForeignFieldSum,
       z: Field3 | ForeignFieldSum,
-      f: bigint
+      f: bigint,
+      message?: string
     ) {
-      return ForeignField.assertMul(x, y, z, f);
+      return ForeignField.assertMul(x, y, z, f, message);
     },
 
     /**
@@ -893,6 +912,10 @@ const Gadgets = {
    * **Note:** This interface does not contain any provable methods.
    */
   Field3,
+  /**
+   * TODO: add description
+   */
+  sliceField3,
   /**
    * Division modulo 2^32. The operation decomposes a {@link Field} element in the range [0, 2^64) into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
    *

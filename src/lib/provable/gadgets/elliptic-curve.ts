@@ -15,7 +15,7 @@ import {
 import { Bool } from '../bool.js';
 import { provable } from '../types/provable-derivers.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
-import { arrayGet, assertNotVectorEquals } from './basic.js';
+import { arrayGet, arrayGetGeneric, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { exists } from '../core/exists.js';
 import { ProvableType } from '../types/provable-intf.js';
@@ -671,28 +671,6 @@ function simpleMapToCurve(x: bigint, Curve: CurveAffine) {
     p = Curve.scale(p, Curve.cofactor!);
   }
   return p;
-}
-
-/**
- * Get value from array in O(n) constraints.
- *
- * Assumes that index is in [0, n), returns an unconstrained result otherwise.
- */
-function arrayGetGeneric<T>(type: ProvableType<T>, array: T[], index: Field) {
-  type = ProvableType.get(type);
-  // witness result
-  let a = Provable.witness(type, () => array[Number(index)]);
-  let aFields = type.toFields(a);
-
-  // constrain each field of the result
-  let size = type.sizeInFields();
-  let arrays = array.map(type.toFields);
-
-  for (let j = 0; j < size; j++) {
-    let arrayFieldsJ = arrays.map((x) => x[j]);
-    arrayGet(arrayFieldsJ, index).assertEquals(aFields[j]);
-  }
-  return a;
 }
 
 // type/conversion helpers
