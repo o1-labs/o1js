@@ -325,7 +325,9 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
     async fetchActions(
       publicKey: PublicKey,
       actionStates?: ActionStates,
-      tokenId: Field = TokenId.default
+      tokenId: Field = TokenId.default,
+      _from?: number,
+      _to?: number
     ) {
       return this.getActions(publicKey, actionStates, tokenId);
     },
