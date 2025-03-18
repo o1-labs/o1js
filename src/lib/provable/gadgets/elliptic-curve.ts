@@ -15,10 +15,9 @@ import {
 import { Bool } from '../bool.js';
 import { provable } from '../types/provable-derivers.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
-import { arrayGet, arrayGetGeneric, assertNotVectorEquals } from './basic.js';
+import { arrayGetGeneric, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 import { exists } from '../core/exists.js';
-import { ProvableType } from '../types/provable-intf.js';
 
 // external API
 export { EllipticCurve, Point, Ecdsa };
