@@ -9,11 +9,11 @@ import { Unconstrained } from './types/unconstrained.js';
 
 export { createProvableBigInt, ProvableBigInt };
 
-type BigIntParameter = {
-  limb_num: number;
-  limb_size: number;
+type bigIntParameter = {
+  limbNum: number;
+  limbSize: number;
   mask: bigint;
-  MAX: bigint;
+  max: bigint;
 };
 
 /**
@@ -86,8 +86,8 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
   assert(modulus !== 0n, `ProvableBigInt: modulus must be non-zero, got ${modulus}`);
   assert(modulus > 0n, `ProvableBigInt: modulus must be positive, got ${modulus}`);
   assert(
-    modulus < config_.MAX,
-    `ProvableBigInt: modulus exceeds the max supported size of 2^${config_.MAX}`
+    modulus < config_.max,
+    `ProvableBigInt: modulus exceeds the max supported size of 2^${config_.max}`
   );
   assert(isPrime(modulus), 'ProvableBigInt: modulus must be prime');
   let fields = bigintToLimbs(modulus, config_);
@@ -105,7 +105,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
       this._modulus = new ProvableBigInt_(fields, Unconstrained.from(modulus));
       this._config = config_;
       this._provable = provableFromClass(ProvableBigInt_, {
-        fields: Provable.Array(Field, config_.limb_num),
+        fields: Provable.Array(Field, config_.limbNum),
       });
     }
 
@@ -129,7 +129,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      * Returns a ProvableBigInt representing one
      * @returns A ProvableBigInt representing one
      */
-    static MAX(): ProvableBigInt_ {
+    static max(): ProvableBigInt_ {
       return ProvableBigInt_.fromBigInt(modulus - 1n);
     }
 
@@ -165,8 +165,8 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      */
     toBigInt(): bigint {
       let result = 0n;
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        result |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limb_size * i); // result = result | fields[i] << limb_size * i
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
+        result |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i); // result = result | fields[i] << limbSize * i
       }
       return result;
     }
@@ -176,7 +176,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      * @returns Limbs of the ProvableBigInt
      */
     toFields(): Field[] {
-      return this.fields.slice(0, this.Constructor.config.limb_num);
+      return this.fields.slice(0, this.Constructor.config.limbNum);
     }
 
     /**
@@ -186,8 +186,8 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      */
     static fromFields(fields: Field[]): ProvableBigInt_ {
       let value = 0n;
-      for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
-        value |= BigInt(fields[i].toBigInt()) << BigInt(ProvableBigInt_.config.limb_size * i);
+      for (let i = 0; i < ProvableBigInt_.config.limbNum; i++) {
+        value |= BigInt(fields[i].toBigInt()) << BigInt(ProvableBigInt_.config.limbSize * i);
       }
       return new ProvableBigInt_(fields, Unconstrained.from(value));
     }
@@ -199,13 +199,13 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
     toBits(): Bool[] {
       // Calculate total needed bits based on modulus
       const totalBits = this.Constructor.modulus.toBigInt().toString(2).length;
-      const limbBits = this.Constructor.config.limb_size;
+      const limbBits = this.Constructor.config.limbSize;
 
       // Convert each field to bits with proper size
       let allBits = this.fields.flatMap((field, index) => {
         const bits = field.toBits();
         // For all limbs except the last one, ensure proper bit length
-        if (index < this.Constructor.config.limb_num - 1) {
+        if (index < this.Constructor.config.limbNum - 1) {
           while (bits.length < limbBits) {
             bits.push(new Bool(false));
           }
@@ -263,7 +263,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
         };
       });
 
-      let delta: Field[] = Array.from({ length: this.Constructor.config.limb_num }, () =>
+      let delta: Field[] = Array.from({ length: this.Constructor.config.limbNum }, () =>
         Field.from(0)
       );
       let [X, Y, Q, R, P] = [
@@ -275,41 +275,41 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
       ];
 
       // compute X + Y limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
         if (isDouble) delta[i] = X[i].mul(2);
         else delta[i] = X[i].add(Y[i]);
       }
 
       // subtract q*p limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        for (let j = 0; j < this.Constructor.config.limb_num; j++) {
-          if (i + j < this.Constructor.config.limb_num) {
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
+        for (let j = 0; j < this.Constructor.config.limbNum; j++) {
+          if (i + j < this.Constructor.config.limbNum) {
             delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
           }
         }
       }
 
       // subtract r limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
         delta[i] = delta[i].sub(R[i]).seal();
       }
 
       let carry = Field.from(0);
 
-      for (let i = 0; i < this.Constructor.config.limb_num - 1; i++) {
+      for (let i = 0; i < this.Constructor.config.limbNum - 1; i++) {
         let deltaPlusCarry = delta[i].add(carry).seal();
 
         carry = Provable.witness(Field, () =>
-          deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limb_size))
+          deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
         );
         rangeCheck(carry, 128, true);
 
-        // ensure that after adding the carry, the limb is a multiple of 2^limb_size
-        deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limb_size)));
+        // ensure that after adding the carry, the limb is a multiple of 2^limbSize
+        deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
       }
 
       // the final limb plus carry should be zero to assert correctness
-      delta[this.Constructor.config.limb_num - 1].add(carry).assertEquals(0n);
+      delta[this.Constructor.config.limbNum - 1].add(carry).assertEquals(0n);
 
       return r;
     }
@@ -354,7 +354,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
       });
 
       let delta: Field[] = Array.from(
-        { length: 2 * this.Constructor.config.limb_num - 1 },
+        { length: 2 * this.Constructor.config.limbNum - 1 },
         () => new Field(0)
       );
       let [X, Y, Q, R, P] = [
@@ -365,19 +365,19 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
         this.Constructor.modulus.fields,
       ];
 
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
         if (isSquare) {
           for (let j = 0; j < i; j++) {
             delta[i + j] = delta[i + j].add(X[i].mul(X[j]).mul(2n));
           }
           delta[2 * i] = delta[2 * i].add(X[i].mul(X[i]));
         } else {
-          for (let j = 0; j < this.Constructor.config.limb_num; j++) {
+          for (let j = 0; j < this.Constructor.config.limbNum; j++) {
             delta[i + j] = delta[i + j].add(X[i].mul(Y[j]));
           }
         }
 
-        for (let j = 0; j < this.Constructor.config.limb_num; j++) {
+        for (let j = 0; j < this.Constructor.config.limbNum; j++) {
           delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
         }
 
@@ -386,18 +386,18 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
 
       let carry = new Field(0);
 
-      for (let i = 0; i < 2 * this.Constructor.config.limb_num - 2; i++) {
+      for (let i = 0; i < 2 * this.Constructor.config.limbNum - 2; i++) {
         let deltaPlusCarry = delta[i].add(carry).seal();
 
         carry = Provable.witness(Field, () =>
-          deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limb_size))
+          deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
         );
         rangeCheck(carry, 128, true);
 
-        deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limb_size)));
+        deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
       }
 
-      delta[2 * this.Constructor.config.limb_num - 2].add(carry).assertEquals(0n);
+      delta[2 * this.Constructor.config.limbNum - 2].add(carry).assertEquals(0n);
 
       return r;
     }
@@ -612,33 +612,33 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
       let delta: Field[] = X;
 
       // subtract q*p limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
-        for (let j = 0; j < this.Constructor.config.limb_num; j++) {
-          if (i + j < this.Constructor.config.limb_num) {
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
+        for (let j = 0; j < this.Constructor.config.limbNum; j++) {
+          if (i + j < this.Constructor.config.limbNum) {
             delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
           }
         }
       }
 
       // subtract r limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limb_num; i++) {
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
         delta[i] = delta[i].sub(R[i]).seal();
       }
 
       let carry = Field.from(0);
 
-      for (let i = 0; i < this.Constructor.config.limb_num - 1; i++) {
+      for (let i = 0; i < this.Constructor.config.limbNum - 1; i++) {
         let deltaPlusCarry = delta[i].add(carry).seal();
 
         carry = Provable.witness(Field, () =>
-          deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limb_size))
+          deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
         );
         rangeCheck(carry, 128, true);
 
-        deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limb_size)));
+        deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
       }
 
-      delta[this.Constructor.config.limb_num - 1].add(carry).assertEquals(0n);
+      delta[this.Constructor.config.limbNum - 1].add(carry).assertEquals(0n);
 
       return r;
     }
@@ -867,10 +867,10 @@ function findConfig(modulus: bigint): bigIntParameter {
   const maxBitLength = limbCount * defaultLimbSize;
 
   return {
-    limb_num: limbCount,
-    limb_size: defaultLimbSize,
+    limbNum: limbCount,
+    limbSize: defaultLimbSize,
     mask: (1n << BigInt(defaultLimbSize)) - 1n,
-    MAX: (1n << BigInt(maxBitLength)) - 1n,
+    max: (1n << BigInt(maxBitLength)) - 1n,
   };
 }
 
@@ -949,9 +949,9 @@ function randomBigintInRange(min: bigint, max: bigint): bigint {
 
 function bigintToLimbs(x: bigint, config: bigIntParameter): Field[] {
   let fields = [];
-  for (let i = 0; i < config.limb_num; i++) {
+  for (let i = 0; i < config.limbNum; i++) {
     fields.push(Field.from(x & config.mask)); // fields[i] = x & mask
-    x >>= BigInt(config.limb_size); // x = x >> limb_size
+    x >>= BigInt(config.limbSize); // x = x >> limbSize
   }
   return fields;
 }
