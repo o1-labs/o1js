@@ -191,7 +191,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     }
 
     /**
-     * Converts a ProvableBigInt instance to an array of fields
+     * Converts a ProvableBigInt instance to field array representation of the limbs
      * @returns Limbs of the ProvableBigInt
      */
     toFields(): Field[] {
@@ -199,8 +199,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     }
 
     /**
-     * Creates a ProvableBigInt instance from an array of fields
-     * @param fields
+     * Creates a ProvableBigInt instance from an limbs as an array of fields
+     * @param fields The limbs of the ProvableBigInt. Must be of the correct length.
      * @returns A ProvableBigInt instance from the fields
      */
     static fromFields(fields: Field[]): ProvableBigInt_ {
