@@ -16,45 +16,6 @@ type BigIntParameter = {
   MAX: bigint;
 };
 
-const BigIntParams: { [key: string]: BigIntParameter } = {
-  348: {
-    limb_num: 3,
-    limb_size: 116n,
-    mask: (1n << 116n) - 1n,
-    MAX: (1n << 348n) - 1n,
-  },
-  464: {
-    limb_num: 4,
-    limb_size: 116n,
-    mask: (1n << 116n) - 1n,
-    MAX: (1n << 464n) - 1n,
-  },
-  580: {
-    limb_num: 5,
-    limb_size: 116n,
-    mask: (1n << 116n) - 1n,
-    MAX: (1n << 580n) - 1n,
-  },
-  1044: {
-    limb_num: 9,
-    limb_size: 116n,
-    mask: (1n << 116n) - 1n,
-    MAX: (1n << 1044n) - 1n,
-  },
-  2088: {
-    limb_num: 18,
-    limb_size: 116n,
-    mask: (1n << 116n) - 1n,
-    MAX: (1n << 2088n) - 1n,
-  },
-  4176: {
-    limb_num: 36,
-    limb_size: 116n,
-    mask: (1n << 116n) - 1n,
-    MAX: (1n << 4176n) - 1n,
-  },
-};
-
 /**
  * Creates a class representing a ProvableBigInt with modular arithmetic capabilities.
  * This is particularly useful for implementing prime fields that don't fit into the native field.
@@ -903,27 +864,17 @@ function rangeCheck128Signed(xSigned: Field) {
 }
 
 function findConfig(modulus: bigint): BigIntParameter {
-  const BigIntParamList: string[] = Object.keys(BigIntParams);
-  const filteredParams = BigIntParamList.filter((param) => BigIntParams[param].MAX >= modulus);
-  if (filteredParams.length === 0) {
-    throw new Error(
-      `No configuration found for modulus ${modulus}. It exceeds the maximum supported size.`
-    );
-  }
+  const bitLength = modulus.toString(2).length;
+  const defaultLimbSize = 116;
+  const limbCount = Math.ceil(bitLength / defaultLimbSize);
+  const maxBitLength = limbCount * defaultLimbSize;
 
-  const index = filteredParams.reduce((bestParam, currentParam) => {
-    const currentConfig = BigIntParams[currentParam];
-    const bestConfig = BigIntParams[bestParam];
-    if (currentConfig.limb_num < bestConfig.limb_num) {
-      return currentParam;
-    } else if (currentConfig.limb_num === bestConfig.limb_num) {
-      return currentConfig.MAX < bestConfig.MAX ? currentParam : bestParam;
-    } else {
-      return bestParam;
-    }
-  }, filteredParams[0]);
-
-  return BigIntParams[index];
+  return {
+    limb_num: limbCount,
+    limb_size: BigInt(defaultLimbSize),
+    mask: (1n << BigInt(defaultLimbSize)) - 1n,
+    MAX: (1n << BigInt(maxBitLength)) - 1n,
+  };
 }
 
 function modularExponentiation(base: bigint, exponent: bigint, modulus: bigint): bigint {
