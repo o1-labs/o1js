@@ -90,21 +90,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     `ProvableBigInt: modulus exceeds the max supported size of 2^${config_.MAX}`
   );
   assert(isPrime(modulus), 'ProvableBigInt: modulus must be prime');
-  let fields = [];
-  let x = modulus;
-  if (x < 0n) {
-    throw new Error('Modulus must be non-negative.');
-  }
-  if (x > config_.MAX) {
-    throw new Error(
-      `Modulus exceeds ${config_.limb_num * Number(config_.limb_size)}-bit size limit.`
-    );
-  }
-
-  for (let i = 0; i < config_.limb_num; i++) {
-    fields.push(Field.from(x & config_.mask)); // fields[i] = x & mask
-    x >>= config_.limb_size; // x = x >> limb_size
-  }
+  let fields = bigintToLimbs(modulus, config_);
 
   class ProvableBigInt_ extends ProvableBigInt<ProvableBigInt_> {
     constructor(fields: Field[], value: Unconstrained<bigint>) {
@@ -162,19 +148,14 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns ProvableBigInt instance from the input
      */
     static fromBigInt(x: bigint): ProvableBigInt_ {
-      let fields = [];
       let value = x;
-
       if (value < 0n) {
         value = ((x % modulus) + modulus) % modulus;
       }
       if (value >= ProvableBigInt_.modulus.toBigInt()) {
         value = value % modulus;
       }
-      for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
-        fields.push(Field.from(value & ProvableBigInt_.config.mask)); // fields[i] = x & mask
-        value >>= ProvableBigInt_.config.limb_size; // x = x >> limb_size
-      }
+      let fields = bigintToLimbs(value, ProvableBigInt_.config);
       return new ProvableBigInt_(fields, Unconstrained.from(value));
     }
 
@@ -948,4 +929,13 @@ function randomBigintInRange(min: bigint, max: bigint): bigint {
       return min + x;
     }
   }
+}
+
+function bigintToLimbs(x: bigint, config: BigIntParameter): Field[] {
+  let fields = [];
+  for (let i = 0; i < config.limb_num; i++) {
+    fields.push(Field.from(x & config.mask)); // fields[i] = x & mask
+    x >>= BigInt(config.limb_size); // x = x >> limb_size
+  }
+  return fields;
 }
