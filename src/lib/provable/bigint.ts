@@ -473,7 +473,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      * @returns The additive inverse as a ProvableBigInt
      */
     negate(): ProvableBigInt_ {
-      let { negation } = Provable.witness(provable({ negation: ProvableBigInt_}), () => {
+      let { negation } = Provable.witness(provable({ negation: ProvableBigInt_ }), () => {
         let thisVal = this.toBigInt();
         let p = this.Constructor.modulus.toBigInt();
         let negVal = 0n;
@@ -591,54 +591,6 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
       });
 
       r.square().assertEquals(this);
-
-      return r;
-    }
-
-    mod(): ProvableBigInt_ {
-      // witness q, r so that this = q*p + r
-      let { q, r } = Provable.witness(provable({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
-        let this_big = this.toBigInt();
-        let p0 = this.Constructor.modulus.toBigInt();
-        let q = this_big / p0;
-        let r = this_big - q * p0;
-        return {
-          q: ProvableBigInt_.fromBigInt(q),
-          r: ProvableBigInt_.fromBigInt(r),
-        };
-      });
-
-      let [X, Q, R, P] = [this.fields, q.fields, r.fields, this.Constructor.modulus.fields];
-      let delta: Field[] = X;
-
-      // subtract q*p limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        for (let j = 0; j < this.Constructor.config.limbNum; j++) {
-          if (i + j < this.Constructor.config.limbNum) {
-            delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
-          }
-        }
-      }
-
-      // subtract r limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        delta[i] = delta[i].sub(R[i]).seal();
-      }
-
-      let carry = Field.from(0);
-
-      for (let i = 0; i < this.Constructor.config.limbNum - 1; i++) {
-        let deltaPlusCarry = delta[i].add(carry).seal();
-
-        carry = Provable.witness(Field, () =>
-          deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
-        );
-        rangeCheck(carry, 128, true);
-
-        deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
-      }
-
-      delta[this.Constructor.config.limbNum - 1].add(carry).assertEquals(0n);
 
       return r;
     }
@@ -784,7 +736,6 @@ abstract class ProvableBigInt<T> {
   abstract negate(): T;
   abstract pow(exp: T): T;
   abstract sqrt(): T;
-  abstract mod(): T;
   abstract greaterThan(a: T): Bool;
   abstract greaterThanOrEqual(a: T): Bool;
   abstract lessThan(a: T): Bool;
