@@ -2,12 +2,6 @@ import { Experimental, Field } from 'o1js';
 
 const { createProvableBigInt } = Experimental;
 
-// test type 1 : small numbers - result doesn't need to be reduced
-// test type 2 : big numbers - result needs to be reduced
-// test type 3 : max numbers
-// test type 4 : result should never be unreduced
-// test from/to functions
-
 // p = 17
 // p = PALLAS_PRIME
 // p = BLS_PRIME
