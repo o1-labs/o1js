@@ -150,6 +150,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       super(fields, Unconstrained.from(value));
     }
 
+    get Constructor() {
+      return this.constructor as typeof ProvableBigInt;
+    }
+
     static {
       this._modulus = new ProvableBigInt_(fields, Unconstrained.from(modulus));
       this._config = config_;
@@ -182,10 +186,20 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return ProvableBigInt_.fromBigInt(modulus - 1n);
     }
 
+    /**
+     * Creates a ProvableBigInt instance from a JS bigint, string, number, or boolean
+     * @param x
+     * @returns ProvableBigInt instance from the input
+     */
     static from(x: bigint | string | number | boolean): ProvableBigInt_ {
       return ProvableBigInt_.fromBigInt(BigInt(x));
     }
 
+    /**
+     * Creates a ProvableBigInt instance from a JS bigint
+     * @param x
+     * @returns ProvableBigInt instance from the input
+     */
     static fromBigInt(x: bigint): ProvableBigInt_ {
       let fields = [];
       let value = x;
@@ -203,10 +217,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return new ProvableBigInt_(fields, Unconstrained.from(value));
     }
 
-    get Constructor() {
-      return this.constructor as typeof ProvableBigInt;
-    }
-
+    /**
+     * Converts a ProvableBigInt instance to a JS bigint
+     * @returns JS bigint representation of the ProvableBigInt
+     */
     toBigInt(): bigint {
       let result = 0n;
       for (let i = 0; i < this.Constructor.config.limb_num; i++) {
@@ -215,10 +229,19 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return result;
     }
 
+    /**
+     * Converts a ProvableBigInt instance to an array of fields
+     * @returns Limbs of the ProvableBigInt
+     */
     toFields(): Field[] {
       return this.fields.slice(0, this.Constructor.config.limb_num);
     }
 
+    /**
+     * Creates a ProvableBigInt instance from an array of fields
+     * @param fields
+     * @returns A ProvableBigInt instance from the fields
+     */
     static fromFields(fields: Field[]): ProvableBigInt_ {
       let value = 0n;
       for (let i = 0; i < ProvableBigInt_.config.limb_num; i++) {
@@ -227,6 +250,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return new ProvableBigInt_(fields, Unconstrained.from(value));
     }
 
+    /**
+     * Converts a ProvableBigInt instance to an array of bits
+     * @returns An array of bits representing the ProvableBigInt
+     */
     toBits(): Bool[] {
       // Calculate total needed bits based on modulus
       const totalBits = this.Constructor.modulus.toBigInt().toString(2).length;
@@ -250,6 +277,12 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return allBits.slice(0, totalBits);
     }
 
+    /**
+     * UNSAFE
+     * Creates a ProvableBigInt instance from an array of bits
+     * @param bits
+     * @returns A ProvableBigInt instance from the bits
+     */
     static fromBits(bits: Bool[]): ProvableBigInt_ {
       let value = 0n;
       for (let i = 0; i < bits.length; i++) {
@@ -260,6 +293,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return ProvableBigInt_.fromBigInt(value);
     }
 
+    /**
+     * Clones a ProvableBigInt instance
+     * @returns A new ProvableBigInt instance with the same value
+     */
     clone(): ProvableBigInt_ {
       return new ProvableBigInt_(this.fields, this.value);
     }
@@ -334,6 +371,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return r;
     }
 
+    /**
+     * Doubles a ProvableBigInt
+     * @returns The double of a ProvableBigInt
+     */
     double(): ProvableBigInt_ {
       return this.add(this, true);
     }
