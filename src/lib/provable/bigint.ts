@@ -245,6 +245,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Adds two ProvableBigInt instances
+     * Cost: Cheap
      * @param a The ProvableBigInt to add
      * @returns The sum as a ProvableBigInt
      */
@@ -315,6 +316,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Doubles a ProvableBigInt
+     * Cost: Cheap
      * @returns The double of a ProvableBigInt
      */
     double(): ProvableBigInt_ {
@@ -323,6 +325,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Subtracts one ProvableBigInt from another
+     * Cost: Cheap
      * @param a The ProvableBigInt to substract
      * @returns The difference as a ProvableBigInt
      */
@@ -332,6 +335,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Multiplies two ProvableBigInt instances
+     * Cost: Cheap
      * @param a The ProvableBigInt to multiply
      * @returns The product as a ProvableBigInt
      */
@@ -400,6 +404,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Computes the square root of a ProvableBigInt
+     * Cost: Cheap
      * @returns The square root as a ProvableBigInt
      */
     square(): ProvableBigInt_ {
@@ -408,6 +413,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Divides one ProvableBigInt by another.
+     * Cost: Cheap-Moderate
      * @param a The divisor as a ProvableBigInt
      * @returns The quotient as ProvableBigInt
      */
@@ -421,6 +427,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Computes the modular inverse of a ProvableBigInt
+     * Cost: Cheap
      * @returns The inverse as a ProvableBigInt
      */
     inverse(): ProvableBigInt_ {
@@ -462,6 +469,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Computes the additive inverse of a ProvableBigInt
+     * Cost: Cheap
      * @returns The additive inverse as a ProvableBigInt
      */
     negate(): ProvableBigInt_ {
@@ -484,6 +492,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Computes the power of a ProvableBigInt raised to an exponent
+     * Cost: Expensive
      * @param exp The exponent
      * @returns The result as a ProvableBigInt
      */
@@ -510,6 +519,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Computes the square root of a Provable BigInt
+     * Cost: Cheap
      * @returns The square root as a ProvableBigInt
      */
     sqrt(): ProvableBigInt_ {
@@ -635,6 +645,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Checks if one ProvableBigInt is greater than another
+     * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is greater than b
      */
@@ -652,6 +663,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Checks if one ProvableBigInt is greater than or equal to another
+     * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is greater than or equal to b
      */
@@ -670,6 +682,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Checks if one ProvableBigInt is less than another
+     * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than b
      */
@@ -684,6 +697,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Checks if one ProvableBigInt is less than or equal to another
+     * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
      */
@@ -699,6 +713,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Checks if one ProvableBigInt is equal to another
+     * Cost: Cheap
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is equal to b
      */
@@ -710,6 +725,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
     /**
      * Checks if one ProvableBigInt is less than or equal to another
+     * Cost: Cheap
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
      */
