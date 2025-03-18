@@ -1,11 +1,4 @@
-import {
-  ZkProgram,
-  Crypto,
-  createEcdsa,
-  createForeignCurve,
-  Bool,
-  Bytes,
-} from 'o1js';
+import { ZkProgram, Crypto, createEcdsa, createForeignCurve, Bool, Bytes, Hash } from 'o1js';
 
 export { keccakAndEcdsa, ecdsa, Secp256k1, Ecdsa, Bytes32, ecdsaEthers };
 
@@ -58,6 +51,27 @@ const ecdsaEthers = ZkProgram({
       privateInputs: [Ecdsa, Secp256k1],
       async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
         return { publicOutput: signature.verifyEthers(message, publicKey) };
+      },
+    },
+  },
+});
+
+/**
+ * We can also use a different hash function with ECDSA, like SHA-256.
+ */
+const sha256AndEcdsa = ZkProgram({
+  name: 'ecdsa-sha256',
+  publicInput: Bytes32,
+  publicOutput: Bool,
+
+  methods: {
+    verifyEcdsa: {
+      privateInputs: [Ecdsa, Secp256k1],
+      async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
+        let messageHash = Hash.SHA2_256.hash(message);
+        return {
+          publicOutput: signature.verifySignedHash(messageHash, publicKey),
+        };
       },
     },
   },

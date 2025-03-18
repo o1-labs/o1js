@@ -57,11 +57,7 @@ const Vesta = createCurveAffine(CurveParams.Vesta);
   // sign a message using web crypto
   let message = new TextEncoder().encode('hello world');
 
-  let sigBuffer = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    privateKey,
-    message
-  );
+  let sigBuffer = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, message);
   let r = bytesToBigIntBE(sigBuffer.slice(0, 32));
   let s = bytesToBigIntBE(sigBuffer.slice(32));
   let signature = Ecdsa.Signature.from({ r, s });
@@ -91,14 +87,11 @@ for (let Curve of curves) {
 
   let signatureInputs = record({ privateKey, msg: scalar });
 
-  let signature = map(
-    { from: signatureInputs, to: badSignature },
-    ({ privateKey, msg }) => {
-      let publicKey = Curve.scale(Curve.one, privateKey);
-      let signature = Ecdsa.sign(Curve, msg, privateKey);
-      return { signature, msg, publicKey };
-    }
-  );
+  let signature = map({ from: signatureInputs, to: badSignature }, ({ privateKey, msg }) => {
+    let publicKey = Curve.scale(Curve.one, privateKey);
+    let signature = Ecdsa.sign(Curve, msg, privateKey);
+    return { signature, msg, publicKey };
+  });
 
   // with 30% prob, test the version without GLV even if the curve supports it
   let noGlv = fromRandom(Random.map(Random.fraction(), (f) => f < 0.3));
@@ -127,10 +120,7 @@ for (let Curve of curves) {
   };
 
   // input validation equivalent to the one implicit in verify()
-  const checkInputs = ({
-    signature: { r, s },
-    publicKey,
-  }: First<typeof signature>) => {
+  const checkInputs = ({ signature: { r, s }, publicKey }: First<typeof signature>) => {
     assert(r !== 0n && s !== 0n, 'invalid signature');
     let pk = Curve.fromNonzero(publicKey);
     assert(Curve.isOnCurve(pk), 'invalid public key');
@@ -177,10 +167,7 @@ let signature = Ecdsa.Signature.fromHex(
   '0x82de9950cc5aac0dca7210cb4b77320ac9e844717d39b1781e9d941d920a12061da497b3c134f50b2fce514d66e20c5e43f9615f097395a5527041d14860a52f1b'
 );
 
-let msgHash =
-  Field3.from(
-    0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn
-  );
+let msgHash = Field3.from(0x3e91cd8bd233b3df4e4762b329e2922381da770df1b31276ec77d0557be7fcefn);
 
 const ia = initialAggregator(Secp256k1);
 const config = { G: { windowSize: 4 }, P: { windowSize: 4 }, ia };
@@ -197,13 +184,7 @@ let program = ZkProgram({
         let publicKey_ = Provable.witness(Point, () => publicKey);
 
         return {
-          publicOutput: Ecdsa.verify(
-            Secp256k1,
-            signature_,
-            msgHash_,
-            publicKey_,
-            config
-          ),
+          publicOutput: Ecdsa.verify(Secp256k1, signature_, msgHash_, publicKey_, config),
         };
       },
     },
@@ -249,13 +230,7 @@ let programNoEndo = ZkProgram({
         let publicKey_ = Provable.witness(Point, () => publicKey);
 
         return {
-          publicOutput: Ecdsa.verify(
-            Secp256r1,
-            signature_,
-            msgHash_,
-            publicKey_,
-            config
-          ),
+          publicOutput: Ecdsa.verify(Secp256r1, signature_, msgHash_, publicKey_, config),
         };
       },
     },
@@ -276,7 +251,6 @@ function bytesToBigIntBE(bytes: ArrayBuffer | Uint8Array | number[]) {
 
 function fromBase64Url(b64url: string): Uint8Array {
   let b64 =
-    b64url.replace(/-/g, '+').replace(/_/g, '/') +
-    '===='.slice(0, (4 - (b64url.length % 4)) % 4);
+    b64url.replace(/-/g, '+').replace(/_/g, '/') + '===='.slice(0, (4 - (b64url.length % 4)) % 4);
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }

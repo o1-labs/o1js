@@ -74,10 +74,7 @@ function fieldToHex<T extends Field | Scalar>(
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function fieldFromHex<T extends Field | Scalar>(
-  binable: Binable<T>,
-  hex: string
-): [T, boolean] {
+function fieldFromHex<T extends Field | Scalar>(binable: Binable<T>, hex: string): [T, boolean] {
   let bytes: number[] = [];
   for (let i = 0; i < hex.length; i += 2) {
     let byte = parseInt(hex[i] + hex[i + 1], 16);
@@ -104,9 +101,7 @@ function signTransaction(
   } else {
     throw Error('signTransaction: Unsupported transaction');
   }
-  let publicKey = PublicKey.toBase58(
-    PrivateKey.toPublicKey(PrivateKey.fromBase58(privateKey))
-  );
+  let publicKey = PublicKey.toBase58(PrivateKey.toPublicKey(PrivateKey.fromBase58(privateKey)));
   return {
     data: transaction,
     signature: signatureJsonToHex(signature),
@@ -196,9 +191,7 @@ function rosettaCombinePayload(
     privateKey,
     network
   );
-  let signatures = [
-    rosettaCombineSignature(signature, unsignedPayload.payloads[0]),
-  ];
+  let signatures = [rosettaCombineSignature(signature, unsignedPayload.payloads[0])];
   return {
     network_identifier: { blockchain: 'mina', network },
     unsigned_transaction: unsignedPayload.unsigned_transaction,

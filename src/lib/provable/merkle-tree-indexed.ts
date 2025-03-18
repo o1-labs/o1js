@@ -103,10 +103,8 @@ class IndexedMerkleMapBase {
   }>;
 
   // we'd like to do `abstract static provable` here but that's not supported
-  static provable: Provable<
-    IndexedMerkleMapBase,
-    InferValue<typeof provableBase>
-  > = undefined as any;
+  static provable: Provable<IndexedMerkleMapBase, InferValue<typeof provableBase>> =
+    undefined as any;
 
   /**
    * Creates a new, empty Indexed Merkle Map.
@@ -197,12 +195,7 @@ class IndexedMerkleMapBase {
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     let lowPath = this._proveInclusion(low, 'Invalid low node (root)');
     // if the key does exist, we have lowNode.nextKey == key, and this line fails
-    assertStrictlyBetween(
-      low.key,
-      key,
-      low.nextKey,
-      'Key already exists in the tree'
-    );
+    assertStrictlyBetween(low.key, key, low.nextKey, 'Key already exists in the tree');
 
     // at this point, we know that we have a valid insertion; so we can mutate internal data
 
@@ -286,12 +279,7 @@ class IndexedMerkleMapBase {
     this._setLeafUnconstrained(true, newLow);
 
     // prove inclusion of this leaf if it exists
-    let path = this._proveInclusionOrEmpty(
-      keyExists,
-      indexBits,
-      self,
-      'Invalid leaf (root)'
-    );
+    let path = this._proveInclusionOrEmpty(keyExists, indexBits, self, 'Invalid leaf (root)');
     assert(keyExists.implies(self.key.equals(key)), 'Invalid leaf (key)');
 
     // update leaf, or append a new one
@@ -389,12 +377,7 @@ class IndexedMerkleMapBase {
     // prove that the key does not exist yet, by showing a valid low node
     let low = Provable.witness(Leaf, () => this._findLeaf(key).low);
     this._proveInclusion(low, 'Invalid low node (root)');
-    assertStrictlyBetween(
-      low.key,
-      key,
-      low.nextKey,
-      message ?? 'Key already exists in the tree'
-    );
+    assertStrictlyBetween(low.key, key, low.nextKey, message ?? 'Key already exists in the tree');
   }
 
   /**
@@ -456,12 +439,7 @@ class IndexedMerkleMapBase {
    *
    * If the condition is false, we prove that the tree contains an empty leaf instead.
    */
-  _proveInclusionOrEmpty(
-    condition: Bool,
-    index: Bool[],
-    leaf: BaseLeaf,
-    message?: string
-  ) {
+  _proveInclusionOrEmpty(condition: Bool, index: Bool[], leaf: BaseLeaf, message?: string) {
     let node = Provable.if(condition, Leaf.hashNode(leaf), Field(0n));
     let { root, path } = this._computeRoot(node, index);
     root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
@@ -485,11 +463,7 @@ class IndexedMerkleMapBase {
    *
    * The index can be given as a `Field` or as an array of bits.
    */
-  _computeRoot(
-    node: Field,
-    index: Unconstrained<number> | Bool[],
-    witness?: Field[]
-  ) {
+  _computeRoot(node: Field, index: Unconstrained<number> | Bool[], witness?: Field[]) {
     // if the index was passed in as unconstrained, we witness its bits here
     let indexBits =
       index instanceof Unconstrained
@@ -550,11 +524,7 @@ class IndexedMerkleMapBase {
         self: Leaf.fromStored(leaves[0], 0),
       };
 
-    let { lowIndex, foundValue } = bisectUnique(
-      key,
-      (i) => leaves[i].key,
-      leaves.length
-    );
+    let { lowIndex, foundValue } = bisectUnique(key, (i) => leaves[i].key, leaves.length);
     let iLow = foundValue ? lowIndex - 1 : lowIndex;
     let low = Leaf.fromStored(leaves[iLow], iLow);
 
@@ -622,9 +592,7 @@ namespace Nodes {
     let node = nodes[level]?.[index];
     if (node === undefined) {
       if (nonEmpty)
-        throw Error(
-          `node at level=${level}, index=${index} was expected to be known, but isn't.`
-        );
+        throw Error(`node at level=${level}, index=${index} was expected to be known, but isn't.`);
       node = empty(level);
     }
     return node;
@@ -760,12 +728,7 @@ function bisectUnique(
  * - high=0 is treated as the maximum value, so `x in (low, 0)` always succeeds if only low < x; except for x = 0.
  * - x=0 is also treated as the maximum value, so `0 in (low, high)` always fails, because x >= high.
  */
-function assertStrictlyBetween(
-  low: Field,
-  x: Field,
-  high: Field,
-  message?: string
-) {
+function assertStrictlyBetween(low: Field, x: Field, high: Field, message?: string) {
   // exclude x=0
   x.assertNotEquals(0n, message ?? '0 is not in any strict range');
 
@@ -775,9 +738,7 @@ function assertStrictlyBetween(
   // for x < high, use a safe comparison that also works if high=0
   let highIsZero = high.equals(0n);
   let xSafe = Provable.witness(Field, () => (highIsZero.toBoolean() ? 0n : x));
-  let highSafe = Provable.witness(Field, () =>
-    highIsZero.toBoolean() ? 1n : high
-  );
+  let highSafe = Provable.witness(Field, () => (highIsZero.toBoolean() ? 1n : high));
   xSafe.assertLessThan(highSafe, message);
   assert(xSafe.equals(x).or(highIsZero), message);
   assert(highSafe.equals(high).or(highIsZero), message);

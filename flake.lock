@@ -265,8 +265,8 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1731611028,
-        "narHash": "sha256-sehBPO+H9mtShGb3KNhdDVHj0pogt/tmiL9tc2ICkaU=",
+        "lastModified": 1739454056,
+        "narHash": "sha256-qwW1JF2Rceh2su6gEkCZNQOZQCGTg1rWp7ldbmhGJO4=",
         "path": "src/mina",
         "type": "path"
       },

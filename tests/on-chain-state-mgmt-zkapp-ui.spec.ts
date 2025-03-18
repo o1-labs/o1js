@@ -1,11 +1,16 @@
 import { test } from './fixtures/on-chain-state-mgmt-zkapp.js';
 
 test.describe('On-Chain State Management zkApp UI', () => {
-  test('should load page and initialize o1js', async ({
-    onChainStateMgmtZkAppPage,
-  }) => {
+  test('should load page and initialize o1js', async ({ onChainStateMgmtZkAppPage }) => {
     await onChainStateMgmtZkAppPage.goto();
     await onChainStateMgmtZkAppPage.checkO1jsInitialization();
+  });
+
+  test('should compile zkProgram', async ({ onChainStateMgmtZkAppPage }) => {
+    await onChainStateMgmtZkAppPage.goto();
+    await onChainStateMgmtZkAppPage.checkO1jsInitialization();
+    await onChainStateMgmtZkAppPage.compileZkProgram();
+    await onChainStateMgmtZkAppPage.checkZkProgramCompilation();
   });
 
   test('should fail to update account state since zkApp was not yet deployed', async ({
@@ -19,9 +24,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     await onChainStateMgmtZkAppPage.checkZkAppStateUpdateFailureByUnknownAccount();
   });
 
-  test('should compile and deploy zkApp', async ({
-    onChainStateMgmtZkAppPage,
-  }) => {
+  test('should compile and deploy zkApp', async ({ onChainStateMgmtZkAppPage }) => {
     await onChainStateMgmtZkAppPage.goto();
     await onChainStateMgmtZkAppPage.checkO1jsInitialization();
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
@@ -39,10 +42,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
     await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
-    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(
-      currentAccountState,
-      newAccountState
-    );
+    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(currentAccountState, newAccountState);
   });
 
   test.skip('should re-deploy zkApp', async ({ onChainStateMgmtZkAppPage }) => {
@@ -56,10 +56,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
     await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
-    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(
-      currentAccountState,
-      newAccountState
-    );
+    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(currentAccountState, newAccountState);
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
   });
@@ -92,10 +89,7 @@ test.describe('On-Chain State Management zkApp UI', () => {
     await onChainStateMgmtZkAppPage.compileAndDeployZkApp();
     await onChainStateMgmtZkAppPage.checkDeployedZkApp();
     await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
-    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(
-      currentAccountState,
-      newAccountState
-    );
+    await onChainStateMgmtZkAppPage.checkUpdatedZkAppState(currentAccountState, newAccountState);
     currentAccountState = newAccountState;
     newAccountState = '1';
     await onChainStateMgmtZkAppPage.updateZkAppState(newAccountState);
