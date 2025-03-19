@@ -61,6 +61,7 @@ const ForeignField = {
 
   assertLessThan,
   assertLessThanOrEqual,
+  assertEquals,
 
   equals,
   toCanonical,
@@ -404,6 +405,19 @@ function equals(x: Field3, c: bigint, f: bigint) {
     let x012 = toVar(x[0].add(x[1].mul(1n << l)).add(x[2].mul(1n << l2)));
     return x012.equals(c);
   }
+}
+
+// Field3 equality
+function assertEquals(x: Field3, y: Field3) {
+  // constant case
+  if (Field3.isConstant(x) && Field3.isConstant(y)) {
+    assert(Field3.toBigint(x) === Field3.toBigint(y), 'assertEqual: got x != y');
+    return;
+  }
+  //provable case
+  x[0].assertEquals(y[0]);
+  x[1].assertEquals(y[1]);
+  x[2].assertEquals(y[2]);
 }
 
 /**

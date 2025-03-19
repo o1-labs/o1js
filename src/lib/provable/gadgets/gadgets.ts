@@ -28,7 +28,7 @@ import {
   leftShift32,
 } from './bitwise.js';
 import { Field } from '../wrapped.js';
-import { ForeignField, Field3, Sum as ForeignFieldSum } from './foreign-field.js';
+import { ForeignField, Field3, Sum as ForeignFieldSum, split } from './foreign-field.js';
 import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
@@ -895,6 +895,13 @@ const Gadgets = {
     },
 
     /**
+     * TODO: add description
+
+     */
+    assertEquals(x: Field3, y: Field3) {
+      ForeignField.assertEquals(x, y);
+    },
+    /**
      * Convert x, which may be unreduced, to a canonical representative xR < f
      * such that x = xR mod f
      *
@@ -903,6 +910,9 @@ const Gadgets = {
      */
     toCanonical(x: Field3, f: bigint) {
       return ForeignField.toCanonical(x, f);
+    },
+    Util: {
+      split,
     },
   },
 

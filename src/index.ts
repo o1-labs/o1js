@@ -1,4 +1,5 @@
 export { TupleN } from './lib/util/types.js';
+export { Octets } from './lib/util/octets.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
@@ -8,7 +9,8 @@ export {
   AlmostForeignField,
   CanonicalForeignField,
 } from './lib/provable/foreign-field.js';
-export { createForeignCurve, ForeignCurve } from './lib/provable/crypto/foreign-curve.js';
+export { createForeignCurve, ForeignCurve, toPoint } from './lib/provable/crypto/foreign-curve.js';
+export type { FlexiblePoint } from './lib/provable/crypto/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/provable/crypto/foreign-ecdsa.js';
 export { ScalarField } from './lib/provable/scalar-field.js';
 export { Poseidon, TokenSymbol, ProvableHashable } from './lib/provable/crypto/poseidon.js';
@@ -24,6 +26,10 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
+
+export { provableFromClass } from './lib/provable/types/provable-derivers.js';
+export type { ProvablePureExtended } from './lib/provable/types/struct.js';
+
 export { From, InferValue, InferJson, IsPure } from './bindings/lib/provable-generic.js';
 export { ProvableType } from './lib/provable/types/provable-intf.js';
 export { provable, provablePure } from './lib/provable/types/provable-derivers.js';
