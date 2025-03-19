@@ -3,7 +3,7 @@
 o1js is a TypeScript framework designed for zk-SNARKs and zkApps on the Mina blockchain.
 
 - [zkApps Overview](https://docs.minaprotocol.com/zkapps)
-- [Mina README](/src/mina/README.md)
+- [Mina README](/src/mina-signer/README.md)
 
 For more information on our development process and how to contribute, see [CONTRIBUTING.md](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md). This document is meant to guide you through building o1js from source and understanding the development workflow.
 
@@ -93,7 +93,7 @@ This can also be helpful when the bindings don't build identically, as unfortuna
 
 To use this patch:
 
-- Click details on the `Build o1js bindings / build-bindings-ubunutu` job
+- Click details on the `Build o1js bindings / build-bindings-ubuntu` job
 - Go to the `patch-upload` job and expand the logs for `Upload patch`
 - Download the file linked in the last line of the logs ie.
   `Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
@@ -147,7 +147,7 @@ This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and
 
 3. Enable pre-commit hooks
 
-- There is an opt-in pre-commit hook avaibale that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
+- There is an opt-in pre-commit hook available that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
 
 > [!NOTE]  
 > You can opt-out of linting in a PR by tagging it with skip-lint, in case the linting script is legitimately blocking an important PR
