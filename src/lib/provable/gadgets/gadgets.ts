@@ -28,7 +28,7 @@ import {
   leftShift32,
 } from './bitwise.js';
 import { Field } from '../wrapped.js';
-import { ForeignField, Field3, Sum as ForeignFieldSum, split } from './foreign-field.js';
+import { ForeignField, Field3, Sum as ForeignFieldSum } from './foreign-field.js';
 import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
@@ -639,14 +639,14 @@ const Gadgets = {
     },
 
     /**
-     * check whether x = c mod f
+     * Check whether `x = c mod f`
      *
-     * c is a constant, and we require c in [0, f)
+     * `c` is a constant, and we require `c` in `[0, f)`
      *
-     * assumes that x is almost reduced mod f, so we know that x might be c or c + f, but not c + 2f, c + 3f, ...
+     * Assumes that `x` is almost reduced modulo `f`, so we know that `x` might be `c` or `c + f`, but not `c + 2f`, `c + 3f`, ...
      */
-    equals(x: Field3, y: bigint, f: bigint) {
-      return ForeignField.equals(x, y, f);
+    equals(x: Field3, c: bigint, f: bigint) {
+      return ForeignField.equals(x, c, f);
     },
 
     /**
@@ -895,8 +895,7 @@ const Gadgets = {
     },
 
     /**
-     * TODO: add description
-
+     * Proves that x is equal to y.
      */
     assertEquals(x: Field3, y: Field3) {
       ForeignField.assertEquals(x, y);
@@ -911,9 +910,12 @@ const Gadgets = {
     toCanonical(x: Field3, f: bigint) {
       return ForeignField.toCanonical(x, f);
     },
-    Util: {
-      split,
-    },
+    /**
+     * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `chunkSize`
+     *
+     * This serves as a range check that the input is in [0, 2^maxBits)
+     */
+    sliceField3,
   },
 
   /**
@@ -922,10 +924,7 @@ const Gadgets = {
    * **Note:** This interface does not contain any provable methods.
    */
   Field3,
-  /**
-   * TODO: add description
-   */
-  sliceField3,
+
   /**
    * Division modulo 2^32. The operation decomposes a {@link Field} element in the range [0, 2^64) into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
    *
