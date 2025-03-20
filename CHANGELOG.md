@@ -25,6 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - New transaction construction API `new ZkappCommand()`. https://github.com/o1-labs/o1js/pull/2042
 - Bump up Rust version to 1.79.0. Bindings now depends on nightly-2024-06-13.
   https://github.com/o1-labs/o1js/pull/2063
+- `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](httpts://github.com/o1-labs/o1js/pull/2091)
 
 ## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
