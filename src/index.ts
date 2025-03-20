@@ -196,4 +196,4 @@ namespace Experimental {
 Error.stackTraceLimit = 100000;
 
 // export parts of the low-level bindings interface for advanced users
-export * as Bindings from './bindings/index.js';
+export * as Core from './bindings/index.js';
