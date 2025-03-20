@@ -10,8 +10,10 @@ import { TupleN } from '../../util/types.js';
 import { exists, existsOne } from '../core/exists.js';
 import { createField } from '../core/field-constructor.js';
 import { assert } from '../../util/assert.js';
+import { ProvableType } from '../types/provable-intf.js';
+import { Provable } from '../provable.js';
 
-export { assertMul, assertBilinear, arrayGet, assertOneOf, assertNotVectorEquals };
+export { assertMul, assertBilinear, arrayGet, assertOneOf, assertNotVectorEquals, arrayGetGeneric };
 
 // internal
 export { reduceToScaledVar, toLinearCombination, emptyCell, linear, bilinear, ScaledVar, Constant };
@@ -363,3 +365,25 @@ function getLinear(x: ScaledVar | Constant): [[bigint, VarFieldVar], bigint] {
 }
 
 const ScaledVar = { isVar, getVar, isConst, getConst };
+
+/**
+ * Get value from array in O(n) constraints.
+ *
+ * Assumes that index is in [0, n), returns an unconstrained result otherwise.
+ */
+function arrayGetGeneric<T>(type: ProvableType<T>, array: T[], index: Field) {
+  type = ProvableType.get(type);
+  // witness result
+  let a = Provable.witness(type, () => array[Number(index)]);
+  let aFields = type.toFields(a);
+
+  // constrain each field of the result
+  let size = type.sizeInFields();
+  let arrays = array.map(type.toFields);
+
+  for (let j = 0; j < size; j++) {
+    let arrayFieldsJ = arrays.map((x) => x[j]);
+    arrayGet(arrayFieldsJ, index).assertEquals(aFields[j]);
+  }
+  return a;
+}
