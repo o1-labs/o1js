@@ -1061,8 +1061,8 @@ const Gadgets = {
    */
   BLAKE2B: BLAKE2B,
 
-  /*
-   * TODO: describe
+  /**
+   * Default limb size constants mostly used in range checks.
    */
   Constants: {
     l2Mask,
