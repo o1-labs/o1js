@@ -485,6 +485,10 @@ const Field3 = {
       return x;
     },
   } satisfies ProvablePureExtended<Field3, bigint, [string, string, string]>,
+  /**
+   * Splits a bigint into three limbs using bitwise operations.
+   */
+  split,
 };
 
 type Field2 = [Field, Field];
