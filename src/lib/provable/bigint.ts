@@ -202,12 +202,15 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
        */
       fromBits(bits: Bool[]): ProvableBigInt_ {
         let value = 0n;
-        for (let i = 0; i < bits.length; i++) {
-          if (bits[i].toBoolean()) {
-            value |= 1n << BigInt(i);
+        let bigint = Provable.witness(ProvableBigInt_, () => {
+          for (let i = 0; i < bits.length; i++) {
+            if (bits[i].toBoolean()) {
+              value |= 1n << BigInt(i);
+            }
           }
-        }
-        return ProvableBigInt_.fromBigInt(value);
+          return ProvableBigInt_.fromBigInt(value);
+        });
+        return bigint;
       },
     };
 
@@ -216,26 +219,9 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
      * @returns An array of bits representing the ProvableBigInt
      */
     toBits(): Bool[] {
-      // Calculate total needed bits based on modulus
-      const totalBits = this.Constructor.modulus.toBigInt().toString(2).length;
-      const limbBits = this.Constructor.config.limbSize;
-
-      // Convert each field to bits with proper size
-      let allBits = this.fields.flatMap((field, index) => {
-        const bits = field.toBits();
-        // For all limbs except the last one, ensure proper bit length
-        if (index < this.Constructor.config.limbNum - 1) {
-          while (bits.length < limbBits) {
-            bits.push(new Bool(false));
-          }
-          return bits.slice(0, limbBits);
-        }
-        // For the last limb, only include significant bits
-        return bits.slice(0, totalBits - index * limbBits);
+      return this.fields.flatMap((field) => {
+        return field.toBits(this.Constructor.config.limbSize);
       });
-
-      // Ensure the total length doesn't exceed what's needed
-      return allBits.slice(0, totalBits);
     }
 
     /**
