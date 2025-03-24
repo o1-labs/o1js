@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./src/testing/testing.ts"],
-  "exclude": ["./src/**/*.unit-test.ts"],
+  "include": ["./src/testing/testing.ts", "./src/testing/index.ts", "./src/lib/**/*.ts", "./src/snarky.js"],
+  "exclude": ["./src/**/*.test.ts"],
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "src/testing/dist/node"
