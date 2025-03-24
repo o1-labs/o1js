@@ -35,7 +35,7 @@ export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
 export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
-export { Types } from './bindings/mina-transaction/types.js';
+export { Types } from './bindings/mina-transaction/v1/types.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 import { IndexedMerkleMap, IndexedMerkleMapBase } from './lib/provable/merkle-tree-indexed.js';
