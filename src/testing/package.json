@@ -33,7 +33,7 @@
     "README.md"
   ],
   "peerDependencies": {
-    "o1js": "^2.0.0"
+    "o1js": ">=2.0.0"
   },
   "devDependencies": {
     "pkg-pr-new": "^0.0.9"
