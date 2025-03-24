@@ -1,7 +1,6 @@
 import { fetchAccount, setGraphqlEndpoints, fetchLastBlock, PublicKey, Types } from 'o1js';
 
 setGraphqlEndpoints([
-  'https://proxy.devnet.minaexplorer.com/graphql',
   'https://api.minascan.io/node/devnet/v1/graphql',
 ]);
 
