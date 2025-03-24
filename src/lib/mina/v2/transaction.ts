@@ -6,11 +6,11 @@ import {
 import { AccountUpdate, AccountUpdateTree, Authorized, GenericData } from './account-update.js';
 import { Account, AccountId, AccountIdSet } from './account.js';
 import { TokenId } from './core.js';
-import { AccountUpdateErrorTrace, ZkappCommandErrorTrace, getCallerFrame } from './errors.js';
+import { AccountUpdateErrorTrace, getCallerFrame } from './errors.js';
 import { Precondition } from './preconditions.js';
 import { StateLayout } from './state.js';
-import { ChainView, LedgerView, LocalChain } from './views.js';
-import { ApplyState, checkAndApplyAccountUpdate, checkAndApplyFeePayment } from './zkapp-logic.js';
+import { ChainView, LedgerView } from './views.js';
+import { ApplyState, checkAndApplyAccountUpdate } from './zkapp-logic.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
@@ -22,7 +22,7 @@ import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigi
 import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 
-export { ZkappCommand, ZkappFeePayment };
+export { ZkappCommand, ZkappFeePayment, ZkappCommandContext };
 
 interface ZkappFeePaymentDescription {
   publicKey: PublicKey;
@@ -32,7 +32,7 @@ interface ZkappFeePaymentDescription {
 }
 
 class ZkappFeePayment {
-  readonly __type: 'ZkappCommand' = 'ZkappCommand';
+  readonly __type: 'ZkappCommand' = 'ZkappCommand' as const;
 
   publicKey: PublicKey;
   fee: UInt64;
@@ -121,7 +121,7 @@ interface ZkappCommandDescription {
 
 class ZkappCommand {
   // TODO: put this on everything (in this case, we really need it to disambiguate the Description format)
-  readonly __type: 'ZkappCommand' = 'ZkappCommand';
+  readonly __type: 'ZkappCommand' = 'ZkappCommand' as const;
 
   feePayment: ZkappFeePayment;
   accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
@@ -183,7 +183,7 @@ class ZkappCommand {
 }
 
 class AuthorizedZkappCommand {
-  readonly __type: 'AuthorizedZkappCommand' = 'AuthorizedZkappCommand';
+  readonly __type: 'AuthorizedZkappCommand' = 'AuthorizedZkappCommand' as const;
 
   readonly feePayment: AuthorizedZkappFeePayment;
   readonly accountUpdateForest: AccountUpdateTree<Authorized>[];
@@ -225,6 +225,7 @@ class AuthorizedZkappCommand {
 
 // NB: this is really more of an environment than a context, but this naming convention helps to
 //     disambiguate the transaction environment from the mina program environment
+
 class ZkappCommandContext {
   ledger: LedgerView;
   chain: ChainView;
@@ -357,6 +358,7 @@ class ZkappCommandContext {
 //                 account updates are still applied to the provided ledger view. We should
 //                 probably make the ledger view interface immutable, or clone it every time we
 //                 create a new zkapp command, to help avoid unexpected behavior externally.
+/*
 async function createUnsignedZkappCommand(
   ledger: LedgerView,
   chain: ChainView,
@@ -429,7 +431,8 @@ async function createUnsignedZkappCommand(
     );
   }
 }
-
+*/
+/*
 async function createZkappCommand(
   ledger: LedgerView,
   chain: ChainView,
@@ -444,3 +447,5 @@ async function createZkappCommand(
   const unsignedCmd = await createUnsignedZkappCommand(ledger, chain, feePayment, f);
   return unsignedCmd.authorize(authEnv);
 }
+
+*/

@@ -75,10 +75,11 @@ const GenericData: DynamicProvable<Field[]> = {
 };
 
 // TODO: move elsewhere
+/*
 interface Hashable {
   hash(): Field;
 }
-
+*/
 // TODO: move elsewhere
 interface HashableDataConfig<Item> {
   readonly emptyPrefix: string;
@@ -156,7 +157,7 @@ class CommittedList<Item> {
     if (value instanceof CommittedList) return value;
 
     let items: Item[];
-    let hash = new Field(0);
+    //let hash;
     if (value === undefined) {
       items = [];
     } else if (value instanceof Array) {
@@ -175,10 +176,10 @@ class CommittedList<Item> {
         });
       }
 
-      hash = value.hash;
+      //hash = value.hash;
     }
 
-    hash = hash ?? CommittedList.hashList(config, items);
+    //hash = hash ?? CommittedList.hashList(config, items);
 
     return new CommittedList({
       Item,
