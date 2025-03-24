@@ -36,7 +36,7 @@ const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
 //                   typescript will just replace the state element types in the layout with `any`.
 //                   Fucking typescript.
 type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
-type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
+// type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
 // TODO: custom state layouts need to specify the order of their keys
 type CustomStateLayout = { [name: string]: Provable<any> & Empty<any> };
 type StateLayout = 'GenericState' | CustomStateLayout;
@@ -517,7 +517,7 @@ const StateValues = {
           const update = updates.updates[i];
           return update.set.toBoolean() ? update.value : value;
         }),
-      (Layout, values, state): { [name in keyof State]: ProvableInstance<State[name]> } => {
+      (_Layout, _values, _state): { [name in keyof State]: ProvableInstance<State[name]> } => {
         throw new Error('no');
       }
     );

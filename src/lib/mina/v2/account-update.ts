@@ -156,7 +156,7 @@ class CommittedList<Item> {
     if (value instanceof CommittedList) return value;
 
     let items: Item[];
-    let hash;
+    let hash = new Field(0);
     if (value === undefined) {
       items = [];
     } else if (value instanceof Array) {
@@ -835,6 +835,7 @@ class AccountUpdate<
 
 // TODO NOW: un-namespace this
 
+/*
 type ContextFreeDescription<
   State extends StateLayout = 'GenericState',
   Event = Field[],
@@ -846,7 +847,7 @@ type ContextFree<
   Action = Field[]
 > = ContextFreeAccountUpdate<State, Event, Action>;
 const ContextFree = ContextFreeAccountUpdate;
-
+*/
 // TODO: can we enforce that Authorized account updates are immutable?
 class Authorized<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]> {
   authorization: AccountUpdateAuthorization;

@@ -93,6 +93,8 @@ class LocalChain implements ChainView {
     );
   }
 }
+
+/*
 class LocalLedger implements LedgerView {
   private accounts: AccountIdMap<Account>;
 
@@ -125,3 +127,4 @@ class LocalLedger implements LedgerView {
     });
   }
 }
+*/
