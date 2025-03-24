@@ -54,12 +54,7 @@ function rangeCheck0(
  * the rangeCheck1 gate is used in combination with the rangeCheck0,
  * for doing a 3x88-bit range check
  */
-function rangeCheck1(
-  v2: Field,
-  v12: Field,
-  vCurr: TupleN<Field, 13>,
-  vNext: TupleN<Field, 15>
-) {
+function rangeCheck1(v2: Field, v12: Field, vCurr: TupleN<Field, 13>, vNext: TupleN<Field, 15>) {
   Snarky.gates.rangeCheck1(
     v2.value,
     v12.value,

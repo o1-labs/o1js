@@ -3,7 +3,6 @@ import {
   CurveAffine,
   createCurveAffine,
 } from '../../../bindings/crypto/elliptic-curve.js';
-import type { Group } from '../group.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import { AlmostForeignField, createForeignField } from '../foreign-field.js';
 import { EllipticCurve, Point } from '../gadgets/elliptic-curve.js';
@@ -18,7 +17,7 @@ import { Bytes } from '../bytes.js';
 export { createForeignCurve, ForeignCurve };
 
 // internal API
-export { toPoint, FlexiblePoint };
+export { toPoint, FlexiblePoint, ForeignCurveNotNeeded };
 
 type FlexiblePoint = {
   x: AlmostForeignField | Field3 | bigint | number;
@@ -162,9 +161,7 @@ class ForeignCurve {
       assert(0n < x && x < this.Bigint.Field.modulus);
 
       // compute the right-hand side of the curve equation: x³ + ax + b
-      const crvX = this.Bigint.Field.mod(
-        this.Bigint.Field.mod(x * x) * x + this.Bigint.b
-      );
+      const crvX = this.Bigint.Field.mod(this.Bigint.Field.mod(x * x) * x + this.Bigint.b);
       // compute the square root (y-coordinate)
       let y = this.Bigint.Field.sqrt(crvX)!;
       const isYOdd = (y & 1n) === 1n; // determine whether y is odd
@@ -205,6 +202,7 @@ class ForeignCurve {
   }
 
   /**
+   * @internal
    * Checks whether this curve point is constant.
    *
    * See {@link FieldVar} to understand constants vs variables.
@@ -398,6 +396,9 @@ class ForeignCurve {
   }
 }
 
+/**
+ * @see: {@link ForeignCurve}
+ */
 class ForeignCurveNotNeeded extends ForeignCurve {
   constructor(g: {
     x: AlmostForeignField | Field3 | bigint | number;
@@ -421,7 +422,7 @@ class ForeignCurveNotNeeded extends ForeignCurve {
  * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
  * ```
  *
- * `createForeignCurve(params)` takes curve parameters {@link CurveParams} as input.
+ * `createForeignCurve(params)` takes curve parameters `CurveParams` as input.
  * We support `modulus` and `order` to be prime numbers up to 259 bits.
  *
  * The returned {@link ForeignCurveNotNeeded} class represents a _non-zero curve point_ and supports standard
@@ -430,10 +431,7 @@ class ForeignCurveNotNeeded extends ForeignCurve {
  * {@link ForeignCurveNotNeeded} also includes to associated foreign fields: `ForeignCurve.Field` and `ForeignCurve.Scalar`, see {@link createForeignField}.
  */
 function createForeignCurve(params: CurveParams): typeof ForeignCurve {
-  assert(
-    params.modulus > l2Mask + 1n,
-    'Base field moduli smaller than 2^176 are not supported'
-  );
+  assert(params.modulus > l2Mask + 1n, 'Base field moduli smaller than 2^176 are not supported');
 
   const FieldUnreduced = createForeignField(params.modulus);
   const ScalarUnreduced = createForeignField(params.order);

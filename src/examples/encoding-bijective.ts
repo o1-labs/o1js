@@ -7,9 +7,7 @@ let { toBytes, fromBytes } = Encoding.Bijective.Fp;
 // random fields
 let fields = Array.from({ length: n }, () => Field.random());
 let newFields = fromBytes(toBytes(fields));
-let fieldsEqual = arrayEqual(fields, newFields, (f, g) =>
-  f.equals(g).toBoolean()
-);
+let fieldsEqual = arrayEqual(fields, newFields, (f, g) => f.equals(g).toBoolean());
 if (!fieldsEqual) throw Error('roundtrip fields -> bytes -> fields failed');
 else console.log('fields -> bytes -> fields: ok');
 

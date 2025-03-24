@@ -1,10 +1,7 @@
 import { SignedLegacy } from './transaction-hash.js';
 import { DelegationJson, PaymentJson } from './sign-legacy.js';
 import { Random } from '../../lib/testing/property.js';
-import {
-  PublicKey,
-  ZkappCommand,
-} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+import { PublicKey, ZkappCommand } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
 import { PrivateKey } from './curve-bigint.js';
 import { Signature } from './signature.js';
 import { NetworkId } from './types.js';
@@ -61,14 +58,10 @@ let callDepth = Random.step(
   0
 );
 // account update with a call depth that takes valid steps
-let accountUpdate = Random.map(
-  Random.accountUpdate,
-  callDepth,
-  (accountUpdate, callDepth) => {
-    accountUpdate.body.callDepth = callDepth;
-    return accountUpdate;
-  }
-);
+let accountUpdate = Random.map(Random.accountUpdate, callDepth, (accountUpdate, callDepth) => {
+  accountUpdate.body.callDepth = callDepth;
+  return accountUpdate;
+});
 
 // modification #2: use the fee payer's public key for account updates, with 1/3 chance
 // this is an important test case and won't happen by chance
@@ -81,14 +74,11 @@ let accountUpdateFrom = Random.dependent(
     return accountUpdate;
   }
 );
-let feePayerFrom = Random.dependent(
-  Random.feePayer,
-  (publicKey: PublicKey, [feePayer]) => {
-    feePayer.body.publicKey = publicKey;
-    feePayer.authorization = Signature.toBase58(Signature.dummy());
-    return feePayer;
-  }
-);
+let feePayerFrom = Random.dependent(Random.feePayer, (publicKey: PublicKey, [feePayer]) => {
+  feePayer.body.publicKey = publicKey;
+  feePayer.authorization = Signature.toBase58(Signature.dummy());
+  return feePayer;
+});
 
 let size = Random.nat(20);
 // reset: true makes call depth start from 0 again at the start of each sampled array
@@ -98,10 +88,7 @@ let zkappCommandFrom = Random.dependent(
   feePayerFrom,
   accountUpdatesFrom,
   Random.memo,
-  (
-    publicKey: PublicKey,
-    [feePayerFrom, accountUpdatesFrom, memo]
-  ): ZkappCommand => {
+  (publicKey: PublicKey, [feePayerFrom, accountUpdatesFrom, memo]): ZkappCommand => {
     let feePayer = feePayerFrom(publicKey);
     let accountUpdates = accountUpdatesFrom.map((from) => from(publicKey));
     return { feePayer, accountUpdates, memo };
@@ -141,7 +128,7 @@ const RandomTransaction = {
   zkappCommand,
   zkappCommandAndFeePayerKey,
   zkappCommandJson,
-  networkId: Random.oneOf<NetworkId[]>('testnet', 'mainnet', {
+  networkId: Random.oneOf<NetworkId[]>('testnet', 'mainnet', 'devnet', {
     custom: 'other',
   }),
   accountUpdateWithCallDepth: accountUpdate,

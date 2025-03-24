@@ -1,14 +1,4 @@
-import {
-  Field,
-  SmartContract,
-  method,
-  Bool,
-  state,
-  State,
-  Poseidon,
-  Struct,
-  Provable,
-} from 'o1js';
+import { Field, SmartContract, method, Bool, state, State, Poseidon, Struct, Provable } from 'o1js';
 
 export { Sudoku, SudokuZkApp };
 
@@ -43,10 +33,7 @@ class SudokuZkApp extends SmartContract {
     this.isSolved.set(Bool(false));
   }
 
-  @method async submitSolution(
-    sudokuInstance: Sudoku,
-    solutionInstance: Sudoku
-  ) {
+  @method async submitSolution(sudokuInstance: Sudoku, solutionInstance: Sudoku) {
     let sudoku = sudokuInstance.value;
     let solution = solutionInstance.value;
 
@@ -99,9 +86,7 @@ class SudokuZkApp extends SmartContract {
     // finally, we check that the sudoku is the one that was originally deployed
     let sudokuHash = this.sudokuHash.get(); // get the hash from the blockchain
     this.sudokuHash.requireEquals(sudokuHash); // precondition that links this.sudokuHash.get() to the actual on-chain state
-    sudokuInstance
-      .hash()
-      .assertEquals(sudokuHash, 'sudoku matches the one committed on-chain');
+    sudokuInstance.hash().assertEquals(sudokuHash, 'sudoku matches the one committed on-chain');
 
     // all checks passed => the sudoku is solved!
     this.isSolved.set(Bool(true));

@@ -14,10 +14,7 @@ const zkAppAddress = zkAppPrivateKey.toPublicKey();
 const zkApp = new SudokuZkApp(zkAppAddress);
 
 let methods = await SudokuZkApp.analyzeMethods();
-console.log(
-  'first 5 gates of submitSolution method:',
-  ...methods.submitSolution.gates.slice(0, 5)
-);
+console.log('first 5 gates of submitSolution method:', ...methods.submitSolution.gates.slice(0, 5));
 
 console.log('Deploying and initializing Sudoku...');
 await SudokuZkApp.compile();

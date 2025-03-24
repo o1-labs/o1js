@@ -8,14 +8,7 @@ import { CurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import { simpleMapToCurve } from '../gadgets/elliptic-curve.js';
 import { provable } from '../types/provable-derivers.js';
 
-export {
-  foreignField,
-  unreducedForeignField,
-  uniformForeignField,
-  bytes,
-  pointSpec,
-  throwError,
-};
+export { foreignField, unreducedForeignField, uniformForeignField, bytes, pointSpec, throwError };
 
 // test input specs
 
@@ -29,10 +22,7 @@ function foreignField(F: FiniteField): ProvableSpec<bigint, Field3> {
 }
 
 // for testing with inputs > f
-function unreducedForeignField(
-  maxBits: number,
-  F: FiniteField
-): ProvableSpec<bigint, Field3> {
+function unreducedForeignField(maxBits: number, F: FiniteField): ProvableSpec<bigint, Field3> {
   return {
     rng: Random.bignat(1n << BigInt(maxBits)),
     there: Field3.from,
@@ -80,9 +70,7 @@ function pointSpec<T>(field: ProvableSpec<bigint, T>, Curve: CurveAffine) {
   });
 
   // valid random point
-  let point = map({ from: field, to: pointShape }, (x) =>
-    simpleMapToCurve(x, Curve)
-  );
+  let point = map({ from: field, to: pointShape }, (x) => simpleMapToCurve(x, Curve));
   return point;
 }
 

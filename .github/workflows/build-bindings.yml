@@ -12,6 +12,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-npm-deps:
+    name: check-npm-deps
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Try to build
+        run: |
+          set -Eeu
+          ./pin.sh
+          nix build o1js#npm-deps
+  update-npm-deps:
+    needs: check-npm-deps
+    if: ${{ failure() }}
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: update-hash
+        run: nix run o1js#update-npm-deps
+      - uses: parkerbxyz/suggest-changes@v1
+        with:
+          comment: 'please update the npm-deps-hash'
+          event: 'REQUEST_CHANGES'
+
   nix-build:
     name: build-bindings-ubuntu
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
@@ -27,10 +57,32 @@ jobs:
         run: |
           set -Eeu
           ./pin.sh
-          nix develop o1js --command bash -c "npm run build:update-bindings"
+          nix run o1js#update-bindings --max-jobs 4
+          #fail if this changes any files
+          cd src/bindings
+          echo If this check fails you can download a patch from the patch-upload job
+          echo "https://github.com/o1-labs/o1js/blob/main/README-dev.md#bindings-check-in-ci"
+          git diff --exit-code
+      - name: add build to gc-root if on main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
       - name: Cleanup the Nix store
         run: |
-          nix-env --delete-generations old
-          nix-collect-garbage -d --quiet
           nix-store --gc --print-dead
           nix-store --optimise
+  patch-upload:
+    needs: nix-build
+    if: ${{ failure() }}
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: generate patch
+        run: |
+          cd src/bindings
+          git add .
+          git diff HEAD --textconv --text > ../../bindings.patch
+      - name: Upload patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings.patch
+          path: bindings.patch

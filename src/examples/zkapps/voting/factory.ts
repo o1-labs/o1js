@@ -5,10 +5,7 @@
 
 import { PrivateKey } from 'o1js';
 import { Membership, Membership_ } from './membership.js';
-import {
-  ElectionPreconditions,
-  ParticipantPreconditions,
-} from './preconditions.js';
+import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
 import { Voting, Voting_ } from './voting.js';
 
 export { VotingAppParams };
@@ -42,9 +39,7 @@ function defaultParams(): VotingAppParams {
  * @param params {@link VotingAppParams}
  * @returns
  */
-export async function VotingApp(
-  params: VotingAppParams = defaultParams()
-): Promise<{
+export async function VotingApp(params: VotingAppParams = defaultParams()): Promise<{
   voterContract: Membership_;
   candidateContract: Membership_;
   voting: Voting_;

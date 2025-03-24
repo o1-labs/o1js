@@ -23,12 +23,9 @@ import {
   leftShift32,
 } from './bitwise.js';
 import { Field } from '../wrapped.js';
-import {
-  ForeignField,
-  Field3,
-  Sum as ForeignFieldSum,
-} from './foreign-field.js';
+import { ForeignField, Field3, Sum as ForeignFieldSum } from './foreign-field.js';
 import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
+import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
 import { BLAKE2B } from './blake2b.js';
 import { rangeCheck3x12, inTable } from './lookup.js';
@@ -707,6 +704,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field multiplication: `x * y mod f`
      *
      * The modulus `f` does not need to be prime, but has to be smaller than 2^259.
@@ -744,6 +743,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field inverse: `x^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -755,6 +756,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field division: `x * y^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -768,6 +771,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
      *
      * Note: This is much more efficient than using {@link Gadgets.ForeignField.add} and {@link Gadgets.ForeignField.sub} separately to
@@ -811,6 +816,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
      */
     Sum(x: Field3) {
@@ -818,6 +825,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
      * i.e., satisfies the assumptions required by {@link Gadgets.ForeignField.mul} and other gadgets:
      * - each limb is in the range [0, 2^88)
@@ -976,6 +985,7 @@ const Gadgets = {
   addMod64,
 
   /**
+   *
    * Implementation of the [SHA256 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function with 256bit output.
    *
    * Applies the SHA2-256 hash function to a list of byte-sized elements.
@@ -991,9 +1001,30 @@ const Gadgets = {
    * let preimage = Bytes.fromString("hello world");
    * let digest = Gadgets.SHA256.hash(preimage);
    * ```
-   *
+   * @deprecated {@link SHA256} is deprecated in favor of {@link SHA2}, which supports more variants of the hash function.
    */
   SHA256: SHA256,
+
+  /**
+   * Implementation of the [SHA2 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function
+   * with 224 | 256 | 384 | 512 bit output.
+   *
+   * Applies the SHA2 hash function to a list of byte-sized elements.
+   *
+   * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]`, `bigint[]` or `Uint8Array` to perform a hash outside provable code.
+   *
+   * Produces an output of {@link Bytes} that conforms to the chosen bit length.
+   *
+   * @param length - 224 | 256 | 384 | 512 representing the length of the hash.
+   * @param data - {@link Bytes} representing the message to hash.
+   *
+   * ```ts
+   * let preimage = Bytes.fromString("hello world");
+   * let digest = Gadgets.SHA2.hash(512, preimage);
+   * ```
+   *   */
+  SHA2: SHA2,
 
   /**
    * Implementation of the [BLAKE2b hash function.](https://en.wikipedia.org/wiki/BLAKE_(hash_function)#BLAKE2) Hash function with arbitrary length output.

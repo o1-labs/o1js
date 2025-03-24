@@ -1,12 +1,7 @@
 import { mod } from '../../../bindings/crypto/finite-field.js';
 import { Field } from '../field.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import {
-  Spec,
-  boolean,
-  equivalentAsync,
-  fieldWithRng,
-} from '../../testing/equivalent.js';
+import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
 import { Random } from '../../testing/property.js';
 import { assert } from '../gadgets/common.js';
 import { Gadgets } from '../gadgets/gadgets.js';
@@ -20,9 +15,7 @@ let uint = (n: number | bigint): Spec<bigint, Field> => {
 
 let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
   let uint = Random.bignat((1n << BigInt(n)) - 1n);
-  return fieldWithRng(
-    Random.map(Random.oneOf(uint, uint.invalid), (x) => mod(x, Field.ORDER))
-  );
+  return fieldWithRng(Random.map(Random.oneOf(uint, uint.invalid), (x) => mod(x, Field.ORDER)));
 };
 
 /*
@@ -115,7 +108,7 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
       return true;
     },
     async (x, y, z) => {
-      let proof = await RuntimeTable.runtimeTable(x, y, z);
+      let { proof } = await RuntimeTable.runtimeTable(x, y, z);
       return await RuntimeTable.verify(proof);
     }
   );

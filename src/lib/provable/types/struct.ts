@@ -1,16 +1,6 @@
 import { Field, Bool, Scalar, Group } from '../wrapped.js';
-import {
-  provable,
-  provableTuple,
-  HashInput,
-  NonMethods,
-} from './provable-derivers.js';
-import type {
-  InferJson,
-  InferProvable,
-  InferredProvable,
-  IsPure,
-} from './provable-derivers.js';
+import { provable, provableTuple, HashInput, NonMethods } from './provable-derivers.js';
+import type { InferJson, InferProvable, InferredProvable, IsPure } from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { ProvablePure, ProvableType } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
@@ -48,16 +38,11 @@ type ProvableExtension<T, TJson = any> = {
 
 type ProvableExtended<T, TValue = any, TJson = any> = Provable<T, TValue> &
   ProvableExtension<T, TJson>;
-type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
-  T,
-  TValue
-> &
+type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<T, TValue> &
   ProvableExtension<T, TJson>;
 
-type Struct<T> = ProvableExtended<NonMethods<T>> &
-  Constructor<T> & { _isStruct: true };
-type StructPure<T> = ProvablePureExtended<NonMethods<T>> &
-  Constructor<T> & { _isStruct: true };
+type Struct<T> = ProvableExtended<NonMethods<T>> & Constructor<T> & { _isStruct: true };
+type StructPure<T> = ProvablePureExtended<NonMethods<T>> & Constructor<T> & { _isStruct: true };
 type FlexibleProvable<T> = Provable<T> | Struct<T>;
 type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
 type FlexibleProvableType<T> = ProvableType<T> | Struct<T>;
@@ -71,6 +56,7 @@ type AnyConstructor = Constructor<any>;
  * These composite types can be passed in as arguments to smart contract methods, used for on-chain state variables
  * or as event / action types.
  *
+ * @example
  * Here's an example of creating a "Voter" struct, which holds a public key and a collection of votes on 3 different proposals:
  * ```ts
  * let Vote = { hasVoted: Bool, inFavor: Bool };
@@ -131,10 +117,9 @@ type AnyConstructor = Constructor<any>;
  * Again, it's important to note that this doesn't enable you to prove anything about the `fullName` string.
  * From the circuit point of view, it simply doesn't exist!
  *
- * @note Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
+ * **Note**: Ensure you do not use or extend `Struct` as a type directly. Instead, always call it as a function to construct a type. `Struct` is not a valid provable type itself, types created with `Struct(...)` are.
  *
  * @param type Object specifying the layout of the `Struct`
- * @param options Advanced option which allows you to force a certain order of object keys
  * @returns Class which you can extend
  */
 function Struct<
@@ -311,12 +296,9 @@ function cloneCircuitValue<T>(obj: T): T {
 
   // built-in JS datatypes with custom cloning strategies
   if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
-  if (obj instanceof Set)
-    return new Set([...obj].map(cloneCircuitValue)) as any as T;
+  if (obj instanceof Set) return new Set([...obj].map(cloneCircuitValue)) as any as T;
   if (obj instanceof Map)
-    return new Map(
-      [...obj].map(([k, v]) => [k, cloneCircuitValue(v)])
-    ) as any as T;
+    return new Map([...obj].map(([k, v]) => [k, cloneCircuitValue(v)])) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
   // o1js primitives and proofs aren't cloned
@@ -342,26 +324,16 @@ function cloneCircuitValue<T>(obj: T): T {
 
 function circuitValueEquals<T>(a: T, b: T): boolean {
   // primitive JS types and functions are checked for exact equality
-  if (
-    typeof a !== 'object' ||
-    a === null ||
-    typeof b !== 'object' ||
-    b === null
-  )
-    return a === b;
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return a === b;
 
   // built-in JS datatypes with custom equality checks
   if (Array.isArray(a)) {
     return (
-      Array.isArray(b) &&
-      a.length === b.length &&
-      a.every((a_, i) => circuitValueEquals(a_, b[i]))
+      Array.isArray(b) && a.length === b.length && a.every((a_, i) => circuitValueEquals(a_, b[i]))
     );
   }
   if (a instanceof Set) {
-    return (
-      b instanceof Set && a.size === b.size && [...a].every((a_) => b.has(a_))
-    );
+    return b instanceof Set && a.size === b.size && [...a].every((a_) => b.has(a_));
   }
   if (a instanceof Map) {
     return (
@@ -402,7 +374,5 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   let aEntries = Object.entries(a as any).filter(([, v]) => v !== undefined);
   let bEntries = Object.entries(b as any).filter(([, v]) => v !== undefined);
   if (aEntries.length !== bEntries.length) return false;
-  return aEntries.every(
-    ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
-  );
+  return aEntries.every(([key, value]) => key in b && circuitValueEquals((b as any)[key], value));
 }

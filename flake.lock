@@ -265,9 +265,9 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1731611028,
-        "narHash": "sha256-sehBPO+H9mtShGb3KNhdDVHj0pogt/tmiL9tc2ICkaU=",
-        "path": "src/mina",
+        "lastModified": 1742840739,
+        "narHash": "sha256-7ZqfnbPIt6HzSPhK75kaxNr6bbTZATwsnh2uUTRyoOE=",
+        "path": "/Users/querolite/WORKSPACE/o1js/src/mina",
         "type": "path"
       },
       "original": {
