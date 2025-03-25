@@ -3,7 +3,6 @@ import { Bool, Experimental, Int64, PrivateKey, PublicKey, sendZkapp, UInt32, UI
 const {
   ZkappCommand,
   ZkappFeePayment,
-  AccountUpdateTree,
   AccountUpdate,
   AccountUpdateAuthorizationKind,
   GenericData,
