@@ -22,7 +22,7 @@ import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigi
 import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 
-export { ZkappCommand, ZkappFeePayment, ZkappCommandContext };
+export { ZkappCommand, ZkappFeePayment, ZkappCommandContext, AuthorizedZkappCommand };
 
 interface ZkappFeePaymentDescription {
   publicKey: PublicKey;
