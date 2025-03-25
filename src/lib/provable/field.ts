@@ -20,6 +20,7 @@ import {
   lessThanOrEqualFull,
 } from './gadgets/comparison.js';
 import { toVar } from './gadgets/common.js';
+import { UInt8 } from './int.js';
 
 // external API
 export { Field };
@@ -1049,11 +1050,74 @@ class Field {
     return { fields: [value] };
   }
 
+  /**
+   * Returns an array of {@link UInt8} elements representing this field element
+   * as little endian ordered bytes.
+   *
+   * If the optional `bytelength` argument is used, it proves that the field
+   * element fits in `bytelength` bytes. The length has to be between 0 and 32,
+   * and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the
+   * `bytelength` you specify, which by default is 32 bytes. Prefer to pass a
+   * smaller `bytelength` if possible.
+   *
+   * @param input - the field element to convert to bytes.
+   * @param bytelength - the number of bytes to fit the element. If the element
+   *                     does not fit in `length` bits, the functions throws an
+   *                     error.
+   *
+   * @return An array of {@link UInt8} element representing this {@link Field} in
+   *         little endian encoding.
+   */
+  toProvableBytes(byteLength: number = 32) {
+    let input = this;
+    checkBitLength('Field.toBytes()', byteLength, 32 * 8);
+    if (input.isConstant()) {
+      if (input.toBigInt() >= 1n << (BigInt(byteLength) * 8n)) {
+        throw Error(`toOctets(): ${input} does not fit in ${byteLength} bytes`);
+      }
+      let x = input.toBigInt();
+      return Array.from({ length: byteLength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
+    }
+    let bytes = Provable.witness(Provable.Array(UInt8, byteLength), () => {
+      let x = input.toBigInt();
+      return Array.from({ length: byteLength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
+    });
+    let field = bytes
+      .reverse()
+      .map((x) => x.value)
+      .reduce((acc, byte) => acc.mul(256).add(byte));
+
+    field.assertEquals(input, `toOctets(): incorrect decomposition into ${byteLength} bytes`);
+    return bytes;
+  }
+
+  /**
+   * Returns {@link Field} element from the little endian representation of an
+   * array of {@link UInt8} elements given as input. It adds necessary checks to
+   * the circuit to ensure that the conversion was done correctly.
+   *
+   * @param x An array of {@link UInt8} element representing this {@link Field}
+   *          in little endian encoding.
+   *
+   * @return The field element will be reduced modulo the native modulus.
+   */
+  static fromProvableBytes(bytes: UInt8[]) {
+    return bytes
+      .slice()
+      .reverse()
+      .map((b) => b.value)
+      .reduce((acc, byte) => acc.mul(256).add(byte));
+  }
+
   // Binable<Field>
 
   /**
    * Create an array of digits equal to the [little-endian](https://en.wikipedia.org/wiki/Endianness) byte order of the given {@link Field} element.
    * Note that the array has always 32 elements as the {@link Field} is a `finite-field` in the order of {@link Field.ORDER}.
+   *
+   * **Warning**: This operation does _not_ affect the circuit and can't be used to prove anything about the byte representation of the {@link Field}.
    *
    * @param value - The {@link Field} element to generate the array of bytes of.
    *

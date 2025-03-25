@@ -4,7 +4,7 @@
 import { inverse as modInverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
-import type { Field } from '../field.js';
+import { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
@@ -23,6 +23,7 @@ import {
 import { createBool, createField, getField } from '../core/field-constructor.js';
 import type { Bool } from '../bool.js';
 import { ProvablePureExtended } from '../types/struct.js';
+import { UInt8 } from '../int.js';
 
 // external API
 export { ForeignField, Field3 };
@@ -489,6 +490,43 @@ const Field3 = {
    * Splits a bigint into three limbs using bitwise operations.
    */
   split,
+  /**
+   * Convert a 3-tuple of Fields to a little-endian array of 32 UInt8s, checking
+   * in provable mode that the result is equal to the input.
+   */
+  toBytes(x: Field3): UInt8[] {
+    const limbBytes = Number(l) / 8;
+    return [
+      x[0].toProvableBytes(limbBytes),
+      x[1].toProvableBytes(limbBytes),
+      x[2].toProvableBytes(limbBytes - 1), // only 256 bits
+    ].flat();
+  },
+
+  /**
+   * Convert a little-endian array of {@link UInt8} to a 3-tuple of Fields.
+   * This uses a modulus to reduce the result to fit into the 3 limbs.
+   *
+   * @param bytes - The little-endian array of bytes to convert to a Field3.
+   * @param mod - The modulus to reduce the result to fit into the 3 limbs.
+   *
+   * @returns The Field3 representation of the input bytes, reduced modulo the given modulus.
+   */
+  fromBytes(bytes: UInt8[], mod: bigint): Field3 {
+    // TODO: more efficient implementation
+    assert(mod < 1n << 259n, 'Foreign modulus must fits in 259 bits');
+    return bytes
+      .slice() // copy the array to prevent mutation
+      .reverse()
+      .map((b) => [Field.from(b.value), Field.from(0n), Field.from(0n)] as Field3)
+      .reduce((acc, byte) =>
+        ForeignField.add(
+          ForeignField.mul(Field3.from(acc), Field3.from(256n), mod),
+          Field3.from(byte),
+          mod
+        )
+      );
+  },
 };
 
 type Field2 = [Field, Field];
