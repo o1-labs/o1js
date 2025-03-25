@@ -44,9 +44,7 @@ const TestProgram = V2.MinaProgram({
               nonce: new UInt32(0),
             },
           },
-          setState: {
-            x: value,
-          },
+          setState: V2.StateUpdates.empty(TestState),
         };
       },
     },
