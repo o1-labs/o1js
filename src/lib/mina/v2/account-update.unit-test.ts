@@ -1,11 +1,6 @@
 import { AccountUpdate, Authorized, GenericData } from './account-update.js';
 import { AccountId, AccountTiming } from './account.js';
 import { AccountUpdateAuthorizationKind } from './authorization.js';
-import {
-  testV1V2ClassEquivalence,
-  testV1V2ValueEquivalence,
-  testV2Encoding,
-} from './test/utils.js';
 import { TokenId, Update } from './core.js';
 import { Precondition } from './preconditions.js';
 import { GenericStatePreconditions, GenericStateUpdates } from './state.js';
