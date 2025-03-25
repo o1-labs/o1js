@@ -21,6 +21,7 @@ class VerificationKey extends Struct({
   }
 
   static dummySync(): VerificationKey {
+    console.log('dummy sync');
     return new VerificationKey({
       ...RAW_VERIFICATION_KEY,
       hash: Field(RAW_VERIFICATION_KEY.hash),
