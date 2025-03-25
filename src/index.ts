@@ -124,12 +124,13 @@ import {
 } from './lib/provable/bigint.js';
 export { Experimental };
 
-import * as V2 from './lib/mina/v2/index.js';
+import * as V2_ from './lib/mina/v2/index.js';
+import { Field } from './lib/provable/wrapped.js';
 
 const Experimental_ = {
   memoizeWitness,
   IndexedMerkleMap,
-  V2,
+  V2: V2_,
 };
 
 /**
@@ -138,6 +139,18 @@ const Experimental_ = {
  */
 namespace Experimental {
   export let V2 = Experimental_.V2;
+
+  export namespace V2 {
+    export type MinaProgramEnv<State extends V2_.StateLayout> = V2_.MinaProgramEnv<State>;
+    export type StateLayout = V2_.StateLayout;
+    export type MinaProgramMethodReturn<
+      State extends V2_.StateLayout = 'GenericState',
+      Event = Field[],
+      Action = Field[]
+    > = V2_.MinaProgramMethodReturn<State, Event, Action>;
+    export type StateDefinition<State extends V2_.StateLayout> = V2_.StateDefinition<State>;
+    export type ZkappCommandAuthorizationEnvironment = V2_.ZkappCommandAuthorizationEnvironment;
+  }
 
   export let memoizeWitness = Experimental_.memoizeWitness;
 
