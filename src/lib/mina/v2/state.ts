@@ -27,6 +27,8 @@ export {
   StateUpdates,
   StateLayout,
   GenericStateUpdates,
+  StateMask,
+  StateReader,
 };
 
 const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
