@@ -8,3 +8,4 @@ export * from './state.js';
 export * from './transaction.js';
 export * from './views.js';
 export * from './zkapp-logic.js';
+export * from './dsl/mina-program.js';
