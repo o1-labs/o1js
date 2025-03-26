@@ -17,7 +17,7 @@ import { fetchActions, getProofsEnabled } from '../mina-instance.js';
 import { ZkProgram } from '../../../proof-system/zkprogram.js';
 import { Unconstrained } from '../../../provable/types/unconstrained.js';
 import { hashWithPrefix as hashWithPrefixBigint } from '../../../../mina-signer/src/poseidon-bigint.js';
-import { Actions as ActionsBigint } from '../../../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { Actions as ActionsBigint } from '../../../../bindings/mina-transaction/v1/transaction-leaves-bigint.js';
 import {
   FlatActions,
   HashedAction,

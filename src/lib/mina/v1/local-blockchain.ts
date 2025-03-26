@@ -9,7 +9,7 @@ import { Account } from './account.js';
 import { ZkappCommand, TokenId, Authorization, Actions } from './account-update.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { TupleN } from '../../util/types.js';
-import { Types, TypesBigint } from '../../../bindings/mina-transaction/types.js';
+import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
 import { invalidTransactionError } from './errors.js';
 import {
   Transaction,
@@ -325,7 +325,9 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
     async fetchActions(
       publicKey: PublicKey,
       actionStates?: ActionStates,
-      tokenId: Field = TokenId.default
+      tokenId: Field = TokenId.default,
+      _from?: number,
+      _to?: number
     ) {
       return this.getActions(publicKey, actionStates, tokenId);
     },

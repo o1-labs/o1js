@@ -1,7 +1,7 @@
 import { Field, Bool } from './wrapped.js';
 import { AnyConstructor, Struct } from './types/struct.js';
-import { Types } from '../../bindings/mina-transaction/types.js';
-import * as TypesBigint from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { Types } from '../../bindings/mina-transaction/v1/types.js';
+import * as TypesBigint from '../../bindings/mina-transaction/v1/transaction-leaves-bigint.js';
 import { HashInput } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
@@ -76,7 +76,7 @@ class UInt64 extends CircuitValue {
     return this.value.toString();
   }
   /**
-   * Turns the {@link UInt64} into a {@link BigInt}.
+   * Turns the {@link UInt64} into a BigInt.
    * @returns
    */
   toBigInt() {
@@ -505,6 +505,13 @@ class UInt64 extends CircuitValue {
   }
 
   /**
+   * Split a UInt64 into 8 UInt8s, in little-endian order.
+   */
+  toBytes() {
+    return TupleN.fromArray(8, wordToBytes(this.value, 8));
+  }
+
+  /**
    * Split a UInt64 into 8 UInt8s, in big-endian order.
    */
   toBytesBE() {
@@ -579,7 +586,7 @@ class UInt32 extends CircuitValue {
     return this.value.toString();
   }
   /**
-   * Turns the {@link UInt32} into a {@link BigInt}.
+   * Turns the {@link UInt32} into a BigInt.
    */
   toBigint() {
     return this.value.toBigInt();
@@ -1198,7 +1205,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   }
 
   /**
-   * Turns the {@link Int64} into a {@link BigInt}.
+   * Turns the {@link Int64} into a BigInt.
    */
   toBigint() {
     let abs = this.magnitude.toBigInt();
@@ -1271,8 +1278,8 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Int64.from(5).neg();
    * ```
    *
-   * @see {@link Int64#from} for creating Int64 instances
-   * @see {@link Int64#zero} for the zero constant
+   * @see {@link Int64.from} for creating Int64 instances
+   * @see {@link Int64.zero} for the zero constant
    *
    * @throws {Error} Implicitly, if the internal Provable.if condition fails
    */

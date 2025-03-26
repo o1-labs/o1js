@@ -1,4 +1,4 @@
-import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
+import type { Account as JsonAccount } from './bindings/mina-transaction/gen/v1/transaction-json.ts';
 import type { Field } from './lib/provable/field.js';
 import type {
   FieldVar,

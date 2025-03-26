@@ -3,7 +3,6 @@ import {
   CurveAffine,
   createCurveAffine,
 } from '../../../bindings/crypto/elliptic-curve.js';
-import type { Group } from '../group.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import { AlmostForeignField, createForeignField } from '../foreign-field.js';
 import { EllipticCurve, Point } from '../gadgets/elliptic-curve.js';
@@ -18,7 +17,7 @@ import { Bytes } from '../bytes.js';
 export { createForeignCurve, ForeignCurve };
 
 // internal API
-export { toPoint, FlexiblePoint };
+export { toPoint, FlexiblePoint, ForeignCurveNotNeeded };
 
 type FlexiblePoint = {
   x: AlmostForeignField | Field3 | bigint | number;
@@ -203,6 +202,7 @@ class ForeignCurve {
   }
 
   /**
+   * @internal
    * Checks whether this curve point is constant.
    *
    * See {@link FieldVar} to understand constants vs variables.
@@ -396,6 +396,9 @@ class ForeignCurve {
   }
 }
 
+/**
+ * @see: {@link ForeignCurve}
+ */
 class ForeignCurveNotNeeded extends ForeignCurve {
   constructor(g: {
     x: AlmostForeignField | Field3 | bigint | number;
@@ -419,7 +422,7 @@ class ForeignCurveNotNeeded extends ForeignCurve {
  * const Curve = createForeignCurve(Crypto.CurveParams.Secp256k1);
  * ```
  *
- * `createForeignCurve(params)` takes curve parameters {@link CurveParams} as input.
+ * `createForeignCurve(params)` takes curve parameters `CurveParams` as input.
  * We support `modulus` and `order` to be prime numbers up to 259 bits.
  *
  * The returned {@link ForeignCurveNotNeeded} class represents a _non-zero curve point_ and supports standard

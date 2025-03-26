@@ -3,8 +3,8 @@ import { provable, provableExtends, provablePure } from '../../provable/types/pr
 import { memoizationContext, memoizeWitness, Provable } from '../../provable/provable.js';
 import { Field, Bool } from '../../provable/wrapped.js';
 import { Pickles } from '../../../snarky.js';
-import { jsLayout } from '../../../bindings/mina-transaction/gen/js-layout.js';
-import { Types, toJSONEssential } from '../../../bindings/mina-transaction/types.js';
+import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
+import { Types, toJSONEssential } from '../../../bindings/mina-transaction/v1/types.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 import { UInt64, UInt32, Int64 } from '../../provable/int.js';
 import type { SmartContract } from './zkapp.js';
@@ -25,7 +25,7 @@ import {
   Events as BaseEvents,
   Actions as BaseActions,
   MayUseToken as BaseMayUseToken,
-} from '../../../bindings/mina-transaction/transaction-leaves.js';
+} from '../../../bindings/mina-transaction/v1/transaction-leaves.js';
 import { TokenId as Base58TokenId } from './base58-encodings.js';
 import { hashWithPrefix, packToFields, Poseidon } from '../../provable/crypto/poseidon.js';
 import { mocks, prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
@@ -490,6 +490,8 @@ interface Body extends AccountUpdateBody {
   publicKey: PublicKey;
 
   /**
+   * @internal
+   *
    * Specify {@link Update}s to tweakable pieces of the account record backing
    * this address in the ledger.
    */
@@ -515,6 +517,8 @@ interface Body extends AccountUpdateBody {
    */
   events: Events;
   /**
+   * @internal
+   *
    * Recent {@link Action}s emitted from this account.
    * Actions can be collected by archive nodes and used in combination with
    * a {@link Reducer}.
@@ -597,6 +601,7 @@ const FeePayerBody = {
     };
   },
 };
+
 type FeePayerUnsigned = FeePayer & {
   lazyAuthorization?: LazySignature | undefined;
 };

@@ -15,10 +15,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/fb625f...HEAD)
 
 ### Added
 
+- _Experimental_ New bindings layer for new API types. https://github.com/o1-labs/o1js/pull/2032
+- _Experimental_ New API types for https://github.com/o1-labs/o1js/pull/2042
+  - `AccountUpdate`, `Account`, `Authorization`, `Permissions` etc.
+  - New transaction construction API `new ZkappCommand()`. https://github.com/o1-labs/o1js/pull/2042
+
+## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
+
+### Added
+
+- `to` and `from` are added as query parameters for `fetchActions` and `fetchEvents` https://github.com/o1-labs/o1js/pull/2066
 - Exported the type `FlexibleBytes`, previously being used only internally
   https://github.com/o1-labs/o1js/pull/2015.
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
@@ -26,8 +36,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
 - `MerkleList.popOption()` for popping the last element and also learning if there was one https://github.com/o1-labs/o1js/pull/1997
 - Added custom header support for `Fetch` methods such as `fetchEvents`, `fetchActions` etc. and to `Mina` instance. Also added two new methods `setMinaDefaultHeaders` and `setArchiveDefaultHeaders` https://github.com/o1-labs/o1js/pull/2004
+- Added new method `CircuitString.setEncoding()` to change default behavior of the `CircuitString` encoding, possible value is `"ascii" | "uft-8"` default to `"ascii"`. Also added an optional `encoding: CircuitStringEncoding` parameter in `.toString()` and `.fromString()` to switch encoding temporary.
 - Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
 - Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
+- Add `UInt64.toBytes()`l https://github.com/o1-labs/o1js/pull/2060 [@kadirchan](https://github.com/kadirchan)
 
 ### Changed
 
