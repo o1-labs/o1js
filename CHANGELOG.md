@@ -17,6 +17,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/fb625f...HEAD)
 
+- Support of runtime tables https://github.com/o1-labs/o1js/pull/1858
+
 ## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
 ### Added
@@ -113,10 +115,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **BLAKE2B hash function** gadget. https://github.com/o1-labs/o1js/pull/1767
 
 ## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
-
-### Added
-
-- Configuration of runtime tables https://github.com/o1-labs/o1js/pull/1858
 
 ### Fixes
 

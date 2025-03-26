@@ -67,9 +67,10 @@ const FeatureFlags = {
   /**
    * Given a ZkProgram, return the feature flag configuration that fits the given program.
    * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
+   * Optionally, it accepts a flag indicating whether runtime tables are used in the program (default is false)
    */
-  fromZkProgram: async (program: AnalysableProgram, runtimeTables = false) =>
-    await fromZkProgramList([program], runtimeTables),
+  fromZkProgram: async (program: AnalysableProgram, withRuntimeTables = false) =>
+    await fromZkProgramList([program], withRuntimeTables),
 
   /**
    * Given a list of ZkPrograms, return the feature flag configuration that fits the given set of programs.
@@ -78,14 +79,14 @@ const FeatureFlags = {
   fromZkProgramList,
 };
 
-async function fromZkProgramList(programs: Array<AnalysableProgram>, runtimeTables = false) {
+async function fromZkProgramList(programs: Array<AnalysableProgram>, withRuntimeTables = false) {
   let flatMethodIntfs: Array<Awaited<ReturnType<typeof analyzeMethod>>> = [];
   for (const program of programs) {
     let methodInterface = await program.analyzeMethods();
     flatMethodIntfs.push(...Object.values(methodInterface));
   }
 
-  return featureFlagsfromFlatMethodIntfs(flatMethodIntfs, runtimeTables);
+  return featureFlagsfromFlatMethodIntfs(flatMethodIntfs, withRuntimeTables);
 }
 
 async function featureFlagsfromFlatMethodIntfs(
