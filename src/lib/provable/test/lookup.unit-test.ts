@@ -1,4 +1,3 @@
-import { mod } from '../../../bindings/crypto/finite-field.js';
 import { Field } from '../field.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
