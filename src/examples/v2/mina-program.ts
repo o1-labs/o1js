@@ -12,8 +12,6 @@ import {
 
 const V2 = Experimental.V2;
 
-type MinaProgramEnv<S extends Experimental.V2.StateLayout> = Experimental.V2.MinaProgramEnv<S>;
-
 type TestState = {
   x: typeof Field;
 };
@@ -21,6 +19,7 @@ type TestState = {
 const TestState: Experimental.V2.StateDefinition<TestState> = V2.State({
   x: Field,
 });
+console.log(V2.StateUpdates.empty(TestState));
 
 const TestProgram = V2.MinaProgram({
   name: 'TestProgram',
@@ -33,8 +32,8 @@ const TestProgram = V2.MinaProgram({
       privateInputs: [Field],
 
       async method(
-        _env: MinaProgramEnv<TestState>,
-        value: Field
+        _env: Experimental.V2.MinaProgramEnv<TestState>,
+        _value: Field
       ): Promise<Experimental.V2.MinaProgramMethodReturn<TestState>> {
         return {
           incrementNonce: new Bool(true),
