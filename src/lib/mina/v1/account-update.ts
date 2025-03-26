@@ -601,6 +601,7 @@ const FeePayerBody = {
     };
   },
 };
+
 type FeePayerUnsigned = FeePayer & {
   lazyAuthorization?: LazySignature | undefined;
 };
