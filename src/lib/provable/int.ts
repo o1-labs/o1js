@@ -7,7 +7,7 @@ import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
 import { addMod32, addMod64 } from './gadgets/arithmetic.js';
-import { withMessage } from './field.js';
+import { checkBitLength, withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { CircuitValue, prop } from './types/circuit-value.js';
 import {
@@ -19,6 +19,8 @@ import {
 import { assert } from '../util/assert.js';
 import { TupleN } from '../util/types.js';
 import { bytesToWord, wordToBytes } from './gadgets/bit-slices.js';
+import { Fp } from '../../bindings/crypto/finite-field.js';
+import { BinableFp } from '../../mina-signer/src/field-bigint.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -532,6 +534,48 @@ class UInt64 extends CircuitValue {
   static fromBytesBE(bytes: UInt8[]): UInt64 {
     return UInt64.fromBytes([...bytes].reverse());
   }
+
+  /**
+   * Turns the {@link UInt64} into a {@link Bool} array. Default length is 64.
+   */
+  toBits(length: number = 64) {
+    checkBitLength('UInt64.toBits()', length, 64);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigInt());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt64.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    let bits = Provable.witness(Provable.Array(Bool, length), () => {
+      let f = this.toBigInt();
+      return Array.from({ length }, (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n)));
+    });
+    UInt64.fromBits(bits).assertEquals(this);
+    return bits;
+  }
+
+  /**
+   * Create a {@link UInt64} from a {@link Bool} array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt64.fromBits()', length, 64);
+    if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
+      let bits_ = bits
+        .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
+        .concat(Array(Fp.sizeInBits - length).fill(false));
+      return new UInt64(BinableFp.fromBits(bits_));
+    }
+    return UInt64.Unsafe.fromField(
+      bits
+        .map((b) => new Bool(b))
+        .reduce((acc, bit, idx) => {
+          const shift = 1n << BigInt(idx);
+          return acc.add(bit.toField().mul(shift));
+        }, Field.from(0))
+        .seal()
+    );
+  }
 }
 /**
  * A 32 bit unsigned integer with values ranging from 0 to 4,294,967,295.
@@ -1022,6 +1066,48 @@ class UInt32 extends CircuitValue {
    */
   static fromBytesBE(bytes: UInt8[]): UInt32 {
     return UInt32.fromBytes([...bytes].reverse());
+  }
+
+  /**
+   * Turns the {@link UInt32} into a {@link Bool} array. Default length is 32.
+   */
+  toBits(length: number = 32) {
+    checkBitLength('UInt32.toBits()', length, 32);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigint());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt32.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    let bits = Provable.witness(Provable.Array(Bool, length), () => {
+      let f = this.toBigint();
+      return Array.from({ length }, (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n)));
+    });
+    UInt32.fromBits(bits).assertEquals(this);
+    return bits;
+  }
+
+  /**
+   * Create a {@link UInt32} from a {@link Bool} array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt32.fromBits()', length, 32);
+    if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
+      let bits_ = bits
+        .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
+        .concat(Array(Fp.sizeInBits - length).fill(false));
+      return new UInt32(BinableFp.fromBits(bits_));
+    }
+    return UInt32.Unsafe.fromField(
+      bits
+        .map((b) => new Bool(b))
+        .reduce((acc, bit, idx) => {
+          const shift = 1n << BigInt(idx);
+          return acc.add(bit.toField().mul(shift));
+        }, Field.from(0))
+        .seal()
+    );
   }
 }
 
