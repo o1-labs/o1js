@@ -68,7 +68,8 @@ const FeatureFlags = {
    * Given a ZkProgram, return the feature flag configuration that fits the given program.
    * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
    */
-  fromZkProgram: async (program: AnalysableProgram, runtimeTables = false) => await fromZkProgramList([program], runtimeTables),
+  fromZkProgram: async (program: AnalysableProgram, runtimeTables = false) =>
+    await fromZkProgramList([program], runtimeTables),
 
   /**
    * Given a list of ZkPrograms, return the feature flag configuration that fits the given set of programs.
@@ -88,7 +89,8 @@ async function fromZkProgramList(programs: Array<AnalysableProgram>, runtimeTabl
 }
 
 async function featureFlagsfromFlatMethodIntfs(
-  methodIntfs: Array<Awaited<ReturnType<typeof analyzeMethod>>>, runtimeTables = false
+  methodIntfs: Array<Awaited<ReturnType<typeof analyzeMethod>>>,
+  runtimeTables = false
 ): Promise<FeatureFlags> {
   // compute feature flags that belong to each method
   let flags = methodIntfs.map(({ gates }) => {
@@ -160,7 +162,10 @@ function featureFlagsFromGates(gates: Gate[], runtimeTables = false): FeatureFla
   return flags;
 }
 
-function featureFlagsToMlOption(flags: FeatureFlags, withRuntimeTables?: boolean): MlArrayOptionalElements<MlFeatureFlags> {
+function featureFlagsToMlOption(
+  flags: FeatureFlags,
+  withRuntimeTables?: boolean
+): MlArrayOptionalElements<MlFeatureFlags> {
   const {
     rangeCheck0,
     rangeCheck1,

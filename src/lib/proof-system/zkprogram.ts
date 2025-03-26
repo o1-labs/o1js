@@ -388,7 +388,6 @@ function ZkProgram<
         overrideWrapDomain: config.overrideWrapDomain,
         state: programState,
         withRuntimeTables,
-        
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -739,7 +738,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       gates[i],
       proofs[i],
       state,
-      withRuntimeTables,
+      withRuntimeTables
     )
   );
 
@@ -863,7 +862,7 @@ function picklesRuleFromFunction(
   gates: Gate[],
   verifiedProofs: ProofClass[],
   state?: ReturnType<typeof createProgramState>,
-  withRuntimeTables?: boolean,
+  withRuntimeTables?: boolean
 ): Pickles.Rule {
   async function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();

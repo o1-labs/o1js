@@ -39,13 +39,5 @@ function inTable(
   let [idx1, v1] = pair1 === undefined ? pair0 : pair1;
   let [idx2, v2] = pair2 === undefined ? pair0 : pair2;
 
-  Gates.lookup(
-    Field.from(id),
-    Field.from(idx0),
-    v0,
-    Field.from(idx1),
-    v1,
-    Field.from(idx2),
-    v2
-  );
+  Gates.lookup(Field.from(id), Field.from(idx0), v0, Field.from(idx1), v1, Field.from(idx2), v2);
 }

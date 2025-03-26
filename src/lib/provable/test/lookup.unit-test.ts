@@ -31,18 +31,11 @@ let uint = (n: number | bigint): Spec<bigint, Field> => {
   });
 
   // constraint system sanity check
-  constraintSystem.fromZkProgram(
-    RangeCheck,
-    'three12Bit',
-    contains(['Lookup'])
-  );
+  constraintSystem.fromZkProgram(RangeCheck, 'three12Bit', contains(['Lookup']));
 
   await RangeCheck.compile();
 
-  await equivalentAsync(
-    { from: [uint(12), uint(12), uint(12)], to: boolean },
-    { runs: 3 }
-  )(
+  await equivalentAsync({ from: [uint(12), uint(12), uint(12)], to: boolean }, { runs: 3 })(
     (x, y, z) => {
       assert(x < 1n << 12n);
       assert(y < 1n << 12n);
@@ -55,7 +48,7 @@ let uint = (n: number | bigint): Spec<bigint, Field> => {
     }
   );
 }
-  
+
 // Runtime table tests
 {
   let RuntimeTable = ZkProgram({
@@ -82,30 +75,20 @@ let uint = (n: number | bigint): Spec<bigint, Field> => {
 
   // constraint system sanity check
 
-  constraintSystem.fromZkProgram(
-    RuntimeTable,
-    'runtimeTable',
-    contains(['Lookup'])
-  );
+  constraintSystem.fromZkProgram(RuntimeTable, 'runtimeTable', contains(['Lookup']));
 
   // check feature flags are set up correctly
   const featureFlags = await FeatureFlags.fromZkProgram(RuntimeTable, true);
   assert(featureFlags.lookup === true);
   assert(featureFlags.runtimeTables === true);
 
-  await RuntimeTable.compile(
-    {
-        cache: Cache.None,
-        forceRecompile: true,
-        withRuntimeTables: true
-    }
-  );
+  await RuntimeTable.compile({
+    cache: Cache.None,
+    forceRecompile: true,
+    withRuntimeTables: true,
+  });
 
-
-  await equivalentAsync(
-    { from: [uint(12), uint(12), uint(12)], to: boolean },
-    { runs: 1 }
-  )(
+  await equivalentAsync({ from: [uint(12), uint(12), uint(12)], to: boolean }, { runs: 1 })(
     (x, y, z) => {
       assert(x < 1n << 12n);
       assert(y < 1n << 12n);
