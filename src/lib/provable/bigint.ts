@@ -9,7 +9,7 @@ import { Unconstrained } from './types/unconstrained.js';
 
 export { createProvableBigInt, ProvableBigInt };
 
-type bigIntParameter = {
+type BigIntParameter = {
   limbNum: number;
   limbSize: number;
   mask: bigint;
@@ -81,7 +81,7 @@ type bigIntParameter = {
  * @returns A class representing ProvableBigInts with the specified modulus
  * @throws If the modulus is zero, negative, or exceeds the maximum supported size
  */
-function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
+function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
   const config_ = config ?? findConfig(modulus);
   assert(modulus !== 0n, `ProvableBigInt: modulus must be non-zero, got ${modulus}`);
   assert(modulus > 0n, `ProvableBigInt: modulus must be positive, got ${modulus}`);
@@ -166,7 +166,7 @@ function createProvableBigInt(modulus: bigint, config?: bigIntParameter) {
     toBigInt(): bigint {
       let result = 0n;
       for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        result |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i); // result = result | fields[i] << limbSize * i
+        result |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i); 
       }
       return result;
     }
@@ -693,14 +693,14 @@ abstract class ProvableBigInt<T> {
   }
 
   public static _modulus?: ProvableBigInt<any>;
-  public static _config?: bigIntParameter;
+  public static _config?: BigIntParameter;
 
   static get modulus(): ProvableBigInt<any> {
     assert(this._modulus !== undefined, 'Modulus not initialized');
     return this._modulus;
   }
 
-  static get config(): bigIntParameter {
+  static get config(): BigIntParameter {
     assert(this._config !== undefined, 'Config not initialized');
     return this._config;
   }
@@ -800,7 +800,7 @@ function rangeCheck128Signed(xSigned: Field) {
   x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
 
-function findConfig(modulus: bigint): bigIntParameter {
+function findConfig(modulus: bigint): BigIntParameter {
   const bitLength = modulus.toString(2).length;
   const defaultLimbSize = 116;
   const limbCount = Math.ceil(bitLength / defaultLimbSize);
@@ -887,7 +887,7 @@ function randomBigintInRange(min: bigint, max: bigint): bigint {
   }
 }
 
-function bigintToLimbs(x: bigint, config: bigIntParameter): Field[] {
+function bigintToLimbs(x: bigint, config: BigIntParameter): Field[] {
   let fields = [];
   for (let i = 0; i < config.limbNum; i++) {
     fields.push(Field.from(x & config.mask)); // fields[i] = x & mask
