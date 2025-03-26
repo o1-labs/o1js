@@ -3,13 +3,14 @@ import { Pickles, Base64ProofString } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import type { FlexibleProvable, InferProvable } from '../provable/types/struct.js';
 import { FeatureFlags } from './feature-flags.js';
-import type { VerificationKey, JsonProof } from './zkprogram.js';
+import type { JsonProof } from './zkprogram.js';
 import { Subclass } from '../util/types.js';
 import type { Provable } from '../provable/provable.js';
 import { assert } from '../util/assert.js';
 import { Unconstrained } from '../provable/types/unconstrained.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
 import { ZkProgramContext } from './zkprogram-context.js';
+import { VerificationKey } from './verification-key.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof, ProofClass };

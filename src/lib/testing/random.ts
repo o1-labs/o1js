@@ -6,7 +6,7 @@ import {
   AccountUpdate,
   ZkappCommand,
   empty,
-} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+} from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
 import {
   AuthRequired,
   Bool,
@@ -23,9 +23,9 @@ import {
   PublicKey,
   StateHash,
   MayUseToken,
-} from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
+} from '../../bindings/mina-transaction/v1/transaction-leaves-bigint.js';
 import { genericLayoutFold } from '../../bindings/lib/from-layout.js';
-import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/v1/js-layout.js';
 import { PrimitiveTypeMap, primitiveTypeMap } from '../../bindings/lib/generic.js';
 import { Scalar, PrivateKey, Group } from '../../mina-signer/src/curve-bigint.js';
 import { Signature } from '../../mina-signer/src/signature.js';
@@ -34,7 +34,7 @@ import { alphabet } from '../util/base58.js';
 import { bytesToBigInt } from '../../bindings/crypto/bigint-helpers.js';
 import { Memo } from '../../mina-signer/src/memo.js';
 import { Signable } from '../../mina-signer/src/derivers-bigint.js';
-import { tokenSymbolLength } from '../../bindings/mina-transaction/derived-leaves.js';
+import { tokenSymbolLength } from '../../bindings/mina-transaction/v1/derived-leaves.js';
 import { stringLengthInBytes } from '../../bindings/lib/binable.js';
 import { mocks } from '../../bindings/crypto/constants.js';
 import type { FiniteField } from '../../bindings/crypto/finite-field.js';
@@ -187,7 +187,7 @@ const nonNumericString = reject(
   string(nat(20)),
   (str: any) => !isNaN(str) && !isNaN(parseFloat(str))
 );
-const invalidUint8Json = toString(oneOf(uint8.invalid, nonInteger, nonNumericString));
+
 const invalidUint32Json = toString(oneOf(uint32.invalid, nonInteger, nonNumericString));
 const invalidUint64Json = toString(oneOf(uint64.invalid, nonInteger, nonNumericString));
 
