@@ -119,6 +119,10 @@ import * as BatchReducer_ from './lib/mina/v1/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/v1/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
+import {
+  ProvableBigInt as ProvableBigInt_,
+  createProvableBigInt as createProvableBigInt_,
+} from './lib/provable/bigint.js';
 export { Experimental };
 
 const Experimental_ = {
@@ -134,6 +138,9 @@ namespace Experimental {
   export let memoizeWitness = Experimental_.memoizeWitness;
 
   export let Recursive = Recursive_;
+
+  export let ProvableBigInt = ProvableBigInt_;
+  export let createProvableBigInt = createProvableBigInt_;
 
   // indexed merkle map
   export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;
