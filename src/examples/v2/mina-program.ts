@@ -19,7 +19,6 @@ type TestState = {
 const TestState: Experimental.V2.StateDefinition<TestState> = V2.State({
   x: Field,
 });
-console.log(V2.StateUpdates.empty(TestState));
 
 const TestProgram = V2.MinaProgram({
   name: 'TestProgram',
@@ -43,7 +42,9 @@ const TestProgram = V2.MinaProgram({
               nonce: new UInt32(0),
             },
           },
-          setState: V2.StateUpdates.empty(TestState),
+          setState: {
+            x: new V2.Update(Bool(true), _value) as never, // ugly fix, this needs to be fixed asap
+          },
         };
       },
     },
