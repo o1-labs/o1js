@@ -7,18 +7,12 @@ import { assert } from '../gadgets/common.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { Gates } from '../gates.js';
 import { constraintSystem, contains } from '../../testing/constraint-system.js';
-import { FeatureFlags } from 'o1js';
+import { FeatureFlags, Cache } from 'o1js';
 
 let uint = (n: number | bigint): Spec<bigint, Field> => {
   return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
 };
 
-let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
-  let uint = Random.bignat((1n << BigInt(n)) - 1n);
-  return fieldWithRng(Random.map(Random.oneOf(uint, uint.invalid), (x) => mod(x, Field.ORDER)));
-};
-
-/*
 // Range-check tests
 {
   let RangeCheck = ZkProgram({
@@ -37,7 +31,6 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
   });
 
   // constraint system sanity check
-
   constraintSystem.fromZkProgram(
     RangeCheck,
     'three12Bit',
@@ -47,7 +40,7 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
   await RangeCheck.compile();
 
   await equivalentAsync(
-    { from: [uint(12), uint(12), maybeUint(12)], to: boolean },
+    { from: [uint(12), uint(12), uint(12)], to: boolean },
     { runs: 3 }
   )(
     (x, y, z) => {
@@ -57,13 +50,12 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
       return true;
     },
     async (x, y, z) => {
-      let proof = await RangeCheck.three12Bit(x, y, z);
+      let { proof } = await RangeCheck.three12Bit(x, y, z);
       return await RangeCheck.verify(proof);
     }
   );
 }
-  */
-
+  
 // Runtime table tests
 {
   let RuntimeTable = ZkProgram({
@@ -75,8 +67,14 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
           let tableId = 2;
           let indices = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n];
           Gates.addRuntimeTableConfig(tableId, indices);
+          // values are inserted into the table in the given positions
           Gadgets.inTable(tableId, [5n, v0], [6n, v1], [7n, v2]);
+          // a second time can be used to check more values in more positions
+          Gadgets.inTable(tableId, [2n, v0]);
+          // can ask for the same index asked previously
           Gadgets.inTable(tableId, [6n, v1]);
+          // even multiple times in the same call
+          Gadgets.inTable(tableId, [6n, v1], [6n, v1]);
         },
       },
     },
@@ -91,11 +89,18 @@ let maybeUint = (n: number | bigint): Spec<bigint, Field> => {
   );
 
   // check feature flags are set up correctly
-  const featureFlags = await FeatureFlags.fromZkProgram(RuntimeTable);
+  const featureFlags = await FeatureFlags.fromZkProgram(RuntimeTable, true);
   assert(featureFlags.lookup === true);
-  //assert(featureFlags.runtimeTables === true);
+  assert(featureFlags.runtimeTables === true);
 
-  await RuntimeTable.compile();
+  await RuntimeTable.compile(
+    {
+        cache: Cache.None,
+        forceRecompile: true,
+        withRuntimeTables: true
+    }
+  );
+
 
   await equivalentAsync(
     { from: [uint(12), uint(12), uint(12)], to: boolean },
