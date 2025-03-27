@@ -409,7 +409,7 @@ function equals(x: Field3, c: bigint, f: bigint) {
   }
 }
 
-// Field3 equality
+// Field3 equality checking that each of the 3 limbs are exactly the same (not modular equality).  
 function assertEquals(x: Field3, y: Field3) {
   // constant case
   if (Field3.isConstant(x) && Field3.isConstant(y)) {
@@ -496,11 +496,10 @@ const Field3 = {
    * in provable mode that the result is equal to the input.
    */
   toBytes(x: Field3): UInt8[] {
-    const limbBytes = Number(l) / 8;
     return [
-      toProvableBytes(x[0], limbBytes),
-      toProvableBytes(x[1], limbBytes),
-      toProvableBytes(x[2], limbBytes - 1), // only 256 bits
+      toProvableBytes(x[0], Number(l)), // 88 bits
+      toProvableBytes(x[1], Number(l)), // 88 bits
+      toProvableBytes(x[2], Number(l) - 10), // 78 bits, only allow <= 254 bits
     ].flat();
   },
 
@@ -515,7 +514,7 @@ const Field3 = {
    */
   fromBytes(bytes: UInt8[], mod: bigint): Field3 {
     // TODO: more efficient implementation
-    assert(mod < 1n << 259n, 'Foreign modulus must fits in 259 bits');
+    assert(mod < 1n << 259n, 'Foreign modulus must fit in 259 bits');
     return bytes
       .slice() // copy the array to prevent mutation
       .reverse()
@@ -534,27 +533,29 @@ const Field3 = {
  * Returns an array of {@link UInt8} elements representing this field element
  * as little endian ordered bytes.
  *
- * If the optional `bytelength` argument is used, it proves that the field
- * element fits in `bytelength` bytes. The length has to be between 0 and 32,
+ * If the optional `bitLength` argument is used, it proves that the field
+ * element fits in `bitLength` bits. The length has to be between 0 and 254,
  * and the method throws if it isn't.
  *
  * **Warning**: The cost of this operation in a zk proof depends on the
- * `bytelength` you specify, which by default is 32 bytes. Prefer to pass a
- * smaller `bytelength` if possible.
+ * `bitLength` you specify, which by default is 254 bits because some field
+ * elements of 255 bits do not fit in the native field. Prefer to pass a
+ * smaller `bitLength` if possible.
  *
  * @param input - the field element to convert to bytes.
- * @param bytelength - the number of bytes to fit the element. If the element
- *                     does not fit in `length` bits, the functions throws an
+ * @param bitLength - the number of bits to fit the element. If the element
+ *                     does not fit in `bitLength` bits, the function throws an
  *                     error.
  *
  * @return An array of {@link UInt8} element representing this {@link Field} in
  *         little endian encoding.
  */
-function toProvableBytes(input: Field, byteLength: number = 32) {
-  checkBitLength('Field.toBytes()', byteLength, 32 * 8);
+function toProvableBytes(input: Field, bitLength: number = 254) {
+  checkBitLength('toProvableBytes()', bitLength, 254);
+  let byteLength = Math.ceil(bitLength / 8);
   if (input.isConstant()) {
-    if (input.toBigInt() >= 1n << (BigInt(byteLength) * 8n)) {
-      throw Error(`toOctets(): ${input} does not fit in ${byteLength} bytes`);
+    if (input.toBigInt() >= 1n << (BigInt(bitLength))) {
+      throw Error(`toOctets(): ${input} does not fit in ${bitLength} bits`);
     }
     let x = input.toBigInt();
     return Array.from({ length: byteLength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
@@ -568,7 +569,7 @@ function toProvableBytes(input: Field, byteLength: number = 32) {
     .map((x) => x.value)
     .reduce((acc, byte) => acc.mul(256).add(byte));
 
-  field.assertEquals(input, `toOctets(): incorrect decomposition into ${byteLength} bytes`);
+  field.assertEquals(input, `toProvableBytes(): incorrect decomposition into ${bitLength} bits`);
   return bytes;
 }
 
