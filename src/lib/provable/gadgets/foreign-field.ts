@@ -495,23 +495,23 @@ const Field3 = {
    * Convert a 3-tuple of Fields to a little-endian array of 32 UInt8s, checking
    * in provable mode that the result is equal to the input.
    *
-   * An optional bitlength argument can be passed to indicate the expected maximum
-   * bitlength of the `Field3`. By default this is 256 bits and it is enforced to
+   * An optional `bitlength` argument can be passed to indicate the expected maximum
+   * bit length of the `Field3`. By default this is 256 bits and it is enforced to
    * be between 176 and 259 bits.
    *
-   * **Warning**: Do not use this function with a bitlength that is larger than
+   * **Warning**: Do not use this function with a bit length that is larger than
    * the length of the foreign field to avoid unsound circuits. Consider using
    * as input only canonical field elements (reduced modulo the foreign modulus).
    */
-  toBytes(x: Field3, bitlength = 256): UInt8[] {
+  toBytes(x: Field3, bitLength = 256): UInt8[] {
     assert(
-      bitlength > 176 && bitlength <= 259,
-      'Field3.toBytes(): foreign bitlength must be between 176 and 259'
+      bitLength > 176 && bitLength <= 259,
+      'Field3.toBytes(): foreign bit length must be between 176 and 259'
     );
     return [
       toProvableBytes(x[0], Number(l)), // 88 bits
       toProvableBytes(x[1], Number(l)), // 88 bits
-      toProvableBytes(x[2], bitlength - 2 * Number(l)), // bits in high limb
+      toProvableBytes(x[2], bitLength - 2 * Number(l)), // bits in high limb
     ].flat();
   },
 
