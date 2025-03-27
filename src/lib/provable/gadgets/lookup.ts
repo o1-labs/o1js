@@ -1,4 +1,3 @@
-import { assert } from 'console';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 
