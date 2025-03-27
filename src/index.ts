@@ -1,6 +1,6 @@
 export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
-export { Ledger, initializeBindings } from './snarky.js';
+export { Ledger, initializeBindings, Snarky } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
@@ -116,6 +116,7 @@ import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 export { Experimental };
 
 import * as V2 from './lib/mina/v2/index.js';
+import { Snarky } from './snarky.js';
 
 const Experimental_ = {
   memoizeWitness,

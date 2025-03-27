@@ -97,6 +97,11 @@ declare const Snarky: {
      * Check whether we are inside an asProver or exists block
      */
     inProverBlock(): boolean;
+
+    poseidonBlockCipher(
+      state: Array<Field>,
+    ): unknown;
+
     /**
      * Setting that controls whether snarky throws an exception on violated constraint.
      */
