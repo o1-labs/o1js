@@ -78,13 +78,16 @@ const Provable = {
    * function decompose(value: UInt64) {
    *   // get two arbitrary 32-bit values from the prover
    *   let lowerLimb = Provable.witness(UInt32, () => {
-   *      return value.and(new UInt64(0xffffffffn));
+   *     return value.and(new UInt64(0xffffffffn)).toUInt32();
    *   });
    *   let upperLimb = Provable.witness(UInt32, () => {
-   *      return value.and(new UInt64(0xffffffff00000000n));
+   *     return value
+   *       .and(new UInt64(0xffffffff00000000n))
+   *       .div(2 ** 32)
+   *       .toUInt32();
    *   });
    *   // prove the 32-bit lower and upper limbs match the 64-bit value
-   *   value.assertEquals(lowerLimb.add(upperLimb.mul(2n**32n)));
+   *   value.assertEquals(new UInt64(lowerLimb).add(new UInt64(upperLimb).mul(2 ** 32)));
    * }
    * ```
    *
@@ -94,19 +97,22 @@ const Provable = {
    * ```ts
    * class Decomposition extends Struct({
    *   lower: UInt32,
-   *   upper: UInt32
+   *   upper: UInt32,
    * }) {}
    *
    * function decompose(value: UInt64) {
    *   // get two arbitrary 32-bit values from the prover
    *   let limbs = Provable.witness(Decomposition, () => {
-   *      return new Decomposition({
-   *        lower: value.and(new UInt64(0xffffffffn)),
-   *        upper: value.and(new UInt64(0xffffffff00000000n))
-   *      });
+   *     return new Decomposition({
+   *       lower: value.and(new UInt64(0xffffffffn)).toUInt32(),
+   *       upper: value
+   *         .and(new UInt64(0xffffffff00000000n))
+   *         .div(2 ** 32)
+   *         .toUInt32(),
+   *     });
    *   });
    *   // prove the 32-bit lower and upper limbs match the 64-bit value
-   *   value.assertEquals(limbs.lower.add(limbs.upper.mul(2n**32n)));
+   *   value.assertEquals(new UInt64(limbs.lower).add(new UInt64(limbs.upper).mul(2 ** 32)));
    * }
    * ```
    */
