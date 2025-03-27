@@ -98,10 +98,6 @@ declare const Snarky: {
      */
     inProverBlock(): boolean;
 
-    poseidonBlockCipher(
-      state: Array<Field>,
-    ): unknown;
-
     /**
      * Setting that controls whether snarky throws an exception on violated constraint.
      */

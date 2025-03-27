@@ -20,7 +20,6 @@ import {
   lessThanOrEqualFull,
 } from './gadgets/comparison.js';
 import { toVar } from './gadgets/common.js';
-import { UInt8 } from './int.js';
 
 // external API
 export { Field };
