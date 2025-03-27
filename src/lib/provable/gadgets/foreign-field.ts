@@ -409,7 +409,7 @@ function equals(x: Field3, c: bigint, f: bigint) {
   }
 }
 
-// Field3 equality checking that each of the 3 limbs are exactly the same (not modular equality).  
+// Field3 equality checking that each of the 3 limbs are exactly the same (not modular equality).
 function assertEquals(x: Field3, y: Field3) {
   // constant case
   if (Field3.isConstant(x) && Field3.isConstant(y)) {
@@ -554,7 +554,7 @@ function toProvableBytes(input: Field, bitLength: number = 254) {
   checkBitLength('toProvableBytes()', bitLength, 254);
   let byteLength = Math.ceil(bitLength / 8);
   if (input.isConstant()) {
-    if (input.toBigInt() >= 1n << (BigInt(bitLength))) {
+    if (input.toBigInt() >= 1n << BigInt(bitLength)) {
       throw Error(`toOctets(): ${input} does not fit in ${bitLength} bits`);
     }
     let x = input.toBigInt();
