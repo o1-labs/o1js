@@ -87,7 +87,11 @@ const Provable = {
    *       .toUInt32();
    *   });
    *   // prove the 32-bit lower and upper limbs match the 64-bit value
-   *   value.assertEquals(new UInt64(lowerLimb).add(new UInt64(upperLimb).mul(2 ** 32)));
+   *   value.assertEquals(
+   *     limbs.lower
+   *       .toUInt64()
+   *       .add(limbs.upper.toUInt64().mul(UInt64.from(2n * 32n)))
+   *   );
    * }
    * ```
    *
@@ -112,7 +116,11 @@ const Provable = {
    *     });
    *   });
    *   // prove the 32-bit lower and upper limbs match the 64-bit value
-   *   value.assertEquals(new UInt64(limbs.lower).add(new UInt64(limbs.upper).mul(2 ** 32)));
+   *   value.assertEquals(
+   *     limbs.lower
+   *       .toUInt64()
+   *       .add(limbs.upper.toUInt64().mul(UInt64.from(2n * 32n)))
+   *   );
    * }
    * ```
    */
