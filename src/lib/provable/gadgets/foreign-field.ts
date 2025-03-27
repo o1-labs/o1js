@@ -23,8 +23,6 @@ import {
 import { createBool, createField, getField } from '../core/field-constructor.js';
 import type { Bool } from '../bool.js';
 import { ProvablePureExtended } from '../types/struct.js';
-import { UInt8 } from '../int.js';
-import { Provable } from '../provable.js';
 
 // external API
 export { ForeignField, Field3 };
