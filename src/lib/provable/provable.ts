@@ -3,33 +3,33 @@
  * - a namespace with tools for writing provable code
  * - the main interface for types that can be used in provable code
  */
-import { Bool } from './bool.js';
-import { Field } from './field.js';
-import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
-import type { FlexibleProvable, FlexibleProvableType, ProvableExtended } from './types/struct.js';
+import { InferValue } from '../../bindings/lib/provable-generic.js';
+import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 import { Context } from '../util/global-context.js';
+import { Bool } from './bool.js';
+import {
+  asProver,
+  constraintSystem,
+  generateWitness,
+  inCheckedComputation,
+  inProver,
+} from './core/provable-context.js';
+import { Field } from './field.js';
 import {
   HashInput,
   InferJson,
   InferProvableType,
   InferredProvable,
 } from './types/provable-derivers.js';
-import {
-  inCheckedComputation,
-  inProver,
-  asProver,
-  constraintSystem,
-  generateWitness,
-} from './core/provable-context.js';
+import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
+import type { FlexibleProvable, FlexibleProvableType, ProvableExtended } from './types/struct.js';
 import { witness, witnessAsync, witnessFields } from './types/witness.js';
-import { InferValue } from '../../bindings/lib/provable-generic.js';
-import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 
 // external API
 export { Provable };
 
 // internal API
-export { memoizationContext, MemoizationContext, memoizeWitness, getBlindingValue };
+  export { getBlindingValue, memoizationContext, MemoizationContext, memoizeWitness };
 
 /**
  * `Provable<T>` is the general interface for provable types in o1js.
@@ -52,6 +52,15 @@ const Provable = {
    * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
    * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
    * that you want to associate with it.
+   *
+   * The only constraints enforced on the witnessed value come from its type. This means
+   * the witnessed value may be anything which satisfies the constraints defined in `Type.check()`.
+   * Note that for composite types like ({@link Struct}s, the
+   * default `Type.check()` method calls `check()` on each {@link Struct} field.
+   *
+   * **Warning:** Be *extremely wary* of any custom `check()` methods, which may have forgotten
+   * to call `check()` on sub-components of the {@link Struct}.
+   *
    * @example
    * Example for re-implementing `Field.inv` with the help of `witness`:
    * ```ts
@@ -61,6 +70,44 @@ const Provable = {
    * }
    * // prove that `invX` is really the inverse of `x`:
    * invX.mul(x).assertEquals(1);
+   * ```
+   *
+   * Example for decomposing a 64-bit integer into two 32-bit limbs. {@link Provable.witness} will
+   * prove that the two limbs are actually 32-bits, ensuring the decomposition is unique.
+   * ```ts
+   * function decompose(value: UInt64) {
+   *   // get two arbitrary 32-bit values from the prover
+   *   let lowerLimb = Provable.witness(UInt32, () => {
+   *      return value.and(new UInt64(0xffffffffn));
+   *   });
+   *   let upperLimb = Provable.witness(UInt32, () => {
+   *      return value.and(new UInt64(0xffffffff00000000n));
+   *   });
+   *   // prove the 32-bit lower and upper limbs match the 64-bit value
+   *   value.assertEquals(lowerLimb.add(upperLimb.mul(2n**32n)));
+   * }
+   * ```
+   *
+   * Modified example for decomposing a 64-bit integer into two 32-bit limbs.
+   * This time we use a {@link Struct} to get both 32-bit values from the prover at once,
+   * while still proving each limb is actually 32 bits.
+   * ```ts
+   * class Decomposition extends Struct({
+   *   lower: UInt32,
+   *   upper: UInt32
+   * }) {}
+   *
+   * function decompose(value: UInt64) {
+   *   // get two arbitrary 32-bit values from the prover
+   *   let limbs = Provable.witness(Decomposition, () => {
+   *      return new Decomposition({
+   *        lower: value.and(new UInt64(0xffffffffn)),
+   *        upper: value.and(new UInt64(0xffffffff00000000n))
+   *      });
+   *   });
+   *   // prove the 32-bit lower and upper limbs match the 64-bit value
+   *   value.assertEquals(limbs.lower.add(limbs.upper.mul(2n**32n)));
+   * }
    * ```
    */
   witness,
