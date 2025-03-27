@@ -4,7 +4,7 @@
 import { inverse as modInverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
-import { checkBitLength, Field } from '../field.js';
+import type { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
@@ -491,101 +491,7 @@ const Field3 = {
    * Splits a bigint into three limbs using bitwise operations.
    */
   split,
-  /**
-   * Convert a 3-tuple of Fields to a little-endian array of 32 UInt8s, checking
-   * in provable mode that the result is equal to the input.
-   *
-   * An optional `bitlength` argument can be passed to indicate the expected maximum
-   * bit length of the `Field3`. By default this is 256 bits and it is enforced to
-   * be between 176 and 259 bits.
-   *
-   * **Warning**: Do not use this function with a bit length that is larger than
-   * the length of the foreign field to avoid unsound circuits. Consider using
-   * as input only canonical field elements (reduced modulo the foreign modulus).
-   */
-  toBytes(x: Field3, bitLength = 256): UInt8[] {
-    assert(
-      bitLength > 176 && bitLength <= 259,
-      'Field3.toBytes(): foreign bit length must be between 176 and 259'
-    );
-    return [
-      toProvableBytes(x[0], Number(l)), // 88 bits
-      toProvableBytes(x[1], Number(l)), // 88 bits
-      toProvableBytes(x[2], bitLength - 2 * Number(l)), // bits in high limb
-    ].flat();
-  },
-
-  /**
-   * Convert a little-endian array of {@link UInt8} to a 3-tuple of Fields.
-   * This uses a modulus to reduce the result to fit into the 3 limbs.
-   *
-   * @param bytes - The little-endian array of bytes to convert to a Field3.
-   * @param mod - The modulus to reduce the result to fit into the 3 limbs.
-   *
-   * @returns The Field3 representation of the input bytes, reduced modulo the given modulus.
-   */
-  fromBytes(bytes: UInt8[], mod: bigint): Field3 {
-    // TODO: more efficient implementation
-    assert(mod < 1n << 259n, 'Foreign modulus must fit in 259 bits');
-    return bytes
-      .slice() // copy the array to prevent mutation
-      .reverse()
-      .map((b) => [Field.from(b.value), Field.from(0n), Field.from(0n)] as Field3)
-      .reduce((acc, byte) =>
-        ForeignField.add(
-          ForeignField.mul(Field3.from(acc), Field3.from(256n), mod),
-          Field3.from(byte),
-          mod
-        )
-      );
-  },
 };
-
-/**
- * Returns an array of {@link UInt8} elements representing this field element
- * as little endian ordered bytes.
- *
- * If the optional `bitLength` argument is used, it proves that the field
- * element fits in `bitLength` bits. The length has to be between 0 and 254,
- * and the method throws if it isn't.
- *
- * **Warning**: The cost of this operation in a zk proof depends on the
- * `bitLength` you specify, which by default is 254 bits because some field
- * elements of 255 bits do not fit in the native field. Prefer to pass a
- * smaller `bitLength` if possible.
- *
- * @param input - the field element to convert to bytes.
- * @param bitLength - the number of bits to fit the element. If the element
- *                     does not fit in `bitLength` bits, the function throws an
- *                     error.
- *
- * @return An array of {@link UInt8} element representing this {@link Field} in
- *         little endian encoding.
- */
-function toProvableBytes(input: Field, bitLength: number = 254) {
-  checkBitLength('toProvableBytes()', bitLength, 254);
-  let byteLength = Math.ceil(bitLength / 8);
-  if (input.isConstant()) {
-    if (input.toBigInt() >= 1n << BigInt(bitLength)) {
-      throw Error(`toOctets(): ${input} does not fit in ${bitLength} bits`);
-    }
-    let x = input.toBigInt();
-    return Array.from({ length: byteLength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
-  }
-  let bytes = Provable.witness(Provable.Array(UInt8, byteLength), () => {
-    let x = input.toBigInt();
-    return Array.from({ length: byteLength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
-  });
-  let field = bytes
-    .reverse()
-    .map((x) => x.value)
-    .reduce((acc, byte) => acc.mul(256).add(byte));
-
-  // Checks that the expected number of bytes is produced
-  assert(bytes.length <= byteLength);
-  field.assertEquals(input, `toProvableBytes(): incorrect decomposition into ${bitLength} bits`);
-  return bytes;
-}
 
 type Field2 = [Field, Field];
 const Field2 = {
