@@ -1,5 +1,4 @@
 export { TupleN } from './lib/util/types.js';
-export { Octets } from './lib/util/octets.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
