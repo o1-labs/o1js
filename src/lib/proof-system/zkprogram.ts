@@ -240,6 +240,7 @@ function ZkProgram<
     cache?: Cache;
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
+    withRuntimeTables?: boolean;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -362,6 +363,7 @@ function ZkProgram<
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
     proofsEnabled = undefined as boolean | undefined,
+    withRuntimeTables = false,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -383,6 +385,7 @@ function ZkProgram<
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
         state: programState,
+        withRuntimeTables,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -686,6 +689,7 @@ async function compileProgram({
   forceRecompile,
   overrideWrapDomain,
   state,
+  withRuntimeTables,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -698,6 +702,7 @@ async function compileProgram({
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
   state?: ReturnType<typeof createProgramState>;
+  withRuntimeTables?: boolean;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -714,7 +719,8 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       methodEntry,
       gates[i],
       proofs[i],
-      state
+      state,
+      withRuntimeTables
     )
   );
 
@@ -837,7 +843,8 @@ function picklesRuleFromFunction(
   { methodName, args, auxiliaryType }: MethodInterface,
   gates: Gate[],
   verifiedProofs: ProofClass[],
-  state?: ReturnType<typeof createProgramState>
+  state?: ReturnType<typeof createProgramState>,
+  withRuntimeTables?: boolean
 ): Pickles.Rule {
   async function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();
@@ -965,7 +972,7 @@ function picklesRuleFromFunction(
           Proof.maxProofsVerified,
           Proof.publicInputType?.sizeInFields() ?? 0,
           Proof.publicOutputType?.sizeInFields() ?? 0,
-          featureFlagsToMlOption(Proof.featureFlags)
+          featureFlagsToMlOption(Proof.featureFlags, withRuntimeTables)
         );
         SideloadedTag.store(tag.name, computedTag);
       } else {
@@ -984,7 +991,7 @@ function picklesRuleFromFunction(
     }
   });
 
-  let featureFlags = featureFlagsToMlOption(featureFlagsFromGates(gates));
+  let featureFlags = featureFlagsToMlOption(featureFlagsFromGates(gates, withRuntimeTables));
 
   return {
     identifier: methodName,
