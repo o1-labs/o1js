@@ -267,7 +267,7 @@
       "locked": {
         "lastModified": 1743089992,
         "narHash": "sha256-siKzGj6SwzDjzkH4TeJnufr9pfq1Zmh18OcBTX8Ljx4=",
-        "path": "/Users/querolite/WORKSPACE/o1js/src/mina",
+        "path": "src/mina",
         "type": "path"
       },
       "original": {
