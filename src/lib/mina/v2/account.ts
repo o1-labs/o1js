@@ -244,7 +244,7 @@ class Account<State extends StateLayout = 'GenericState'> {
   ) {
     this.State = State;
 
-    this.isNew = isNew instanceof Unconstrained ? isNew : new Unconstrained(true, isNew);
+    this.isNew = isNew instanceof Unconstrained ? isNew : Unconstrained.from(isNew);
 
     this.accountId = data.accountId;
     this.tokenSymbol = data.tokenSymbol;

@@ -15,8 +15,8 @@ export {
   AccountUpdateAuthorizationKindWithZkappContext,
   AuthorizationLevelIdentifier,
   VerificationKeyAuthorizationLevel,
-  ZkappCommandAuthorizationEnvironment,
   ZkappFeePaymentAuthorizationEnvironment,
+  ZkappCommandAuthorizationEnvironment,
 };
 
 type AuthorizationLevelIdentifier = Bindings.Leaves.AuthRequiredIdentifier;

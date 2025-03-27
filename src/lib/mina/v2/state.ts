@@ -27,6 +27,9 @@ export {
   StateUpdates,
   StateLayout,
   GenericStateUpdates,
+  StateMask,
+  StateReader,
+  State,
 };
 
 const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
@@ -145,7 +148,7 @@ const StateDefinition = {
 };
 
 // TODO: allow for explicit ordering/mapping of state field indices
-/*
+
 function State<State extends CustomStateLayout>(Layout: State): StateDefinition<State> {
   // TODO: proxy provable definition out of Struct with helper
   // class StateDef extends Struct(Layout) {}
@@ -202,7 +205,7 @@ function State<State extends CustomStateLayout>(Layout: State): StateDefinition<
   } as StateDefinition<State>;
   // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
 }
-*/
+
 type StatePreconditions<State extends StateLayout> = State extends 'GenericState'
   ? GenericStatePreconditions
   : {
