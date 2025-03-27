@@ -286,10 +286,18 @@ function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
   );
 }
 
-function addRuntimeTableConfig(id: number, first_column: bigint[]) {
+/**
+ * Configures a runtime table with identifier `id` and indices `firstColumn`.
+ *
+ * **Note**: id 0 and 1 are reserved values, do not use them.
+ *
+ * @param id
+ * @param firstColumn
+ */
+function addRuntimeTableConfig(id: number, firstColumn: bigint[]) {
   Snarky.gates.addRuntimeTableConfig(
     id,
-    MlArray.to(first_column.map((x) => FieldConst.fromBigint(x)))
+    MlArray.to(firstColumn.map((x) => FieldConst.fromBigint(x)))
   );
 }
 

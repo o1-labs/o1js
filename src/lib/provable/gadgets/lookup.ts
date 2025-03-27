@@ -1,3 +1,4 @@
+import { assert } from 'console';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
 
@@ -23,6 +24,10 @@ function rangeCheck3x12(v0: Field, v1: Field, v2: Field) {
  * In-circuit check that up to 3 pairs of index and value are in the runtime
  * table given by the identifier. Each given pair is a tuple composed of a
  * bigint and a Field.
+ *
+ * **Note**: The runtime table must be configured before calling this function.
+ *
+ * **Note**: Table id 0 and 1 are reserved values, do not use them.
  *
  * @param id
  * @param pair0

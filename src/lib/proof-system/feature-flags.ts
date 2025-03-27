@@ -111,7 +111,7 @@ async function featureFlagsfromFlatMethodIntfs(
     xor: false,
     rot: false,
     lookup: false,
-    runtimeTables: false, //
+    runtimeTables: false,
   };
 
   // if there's only one method that means it defines the feature flags for the entire program
