@@ -4,7 +4,7 @@
 import { inverse as modInverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
-import { Field } from '../field.js';
+import { checkBitLength, Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
 import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
@@ -24,6 +24,7 @@ import { createBool, createField, getField } from '../core/field-constructor.js'
 import type { Bool } from '../bool.js';
 import { ProvablePureExtended } from '../types/struct.js';
 import { UInt8 } from '../int.js';
+import { Provable } from '../provable.js';
 
 // external API
 export { ForeignField, Field3 };
@@ -497,9 +498,9 @@ const Field3 = {
   toBytes(x: Field3): UInt8[] {
     const limbBytes = Number(l) / 8;
     return [
-      x[0].toProvableBytes(limbBytes),
-      x[1].toProvableBytes(limbBytes),
-      x[2].toProvableBytes(limbBytes - 1), // only 256 bits
+      toProvableBytes(x[0], limbBytes),
+      toProvableBytes(x[1], limbBytes),
+      toProvableBytes(x[2], limbBytes - 1), // only 256 bits
     ].flat();
   },
 
@@ -528,6 +529,48 @@ const Field3 = {
       );
   },
 };
+
+/**
+ * Returns an array of {@link UInt8} elements representing this field element
+ * as little endian ordered bytes.
+ *
+ * If the optional `bytelength` argument is used, it proves that the field
+ * element fits in `bytelength` bytes. The length has to be between 0 and 32,
+ * and the method throws if it isn't.
+ *
+ * **Warning**: The cost of this operation in a zk proof depends on the
+ * `bytelength` you specify, which by default is 32 bytes. Prefer to pass a
+ * smaller `bytelength` if possible.
+ *
+ * @param input - the field element to convert to bytes.
+ * @param bytelength - the number of bytes to fit the element. If the element
+ *                     does not fit in `length` bits, the functions throws an
+ *                     error.
+ *
+ * @return An array of {@link UInt8} element representing this {@link Field} in
+ *         little endian encoding.
+ */
+function toProvableBytes(input: Field, byteLength: number = 32) {
+  checkBitLength('Field.toBytes()', byteLength, 32 * 8);
+  if (input.isConstant()) {
+    if (input.toBigInt() >= 1n << (BigInt(byteLength) * 8n)) {
+      throw Error(`toOctets(): ${input} does not fit in ${byteLength} bytes`);
+    }
+    let x = input.toBigInt();
+    return Array.from({ length: byteLength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
+  }
+  let bytes = Provable.witness(Provable.Array(UInt8, byteLength), () => {
+    let x = input.toBigInt();
+    return Array.from({ length: byteLength }, (_, k) => new UInt8((x >> BigInt(8 * k)) & 0xffn));
+  });
+  let field = bytes
+    .reverse()
+    .map((x) => x.value)
+    .reduce((acc, byte) => acc.mul(256).add(byte));
+
+  field.assertEquals(input, `toOctets(): incorrect decomposition into ${byteLength} bytes`);
+  return bytes;
+}
 
 type Field2 = [Field, Field];
 const Field2 = {
