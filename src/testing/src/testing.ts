@@ -4,12 +4,7 @@ import * as Property_ from '../../lib/testing/property.js';
 import * as ConstraintSystem_ from '../../lib/testing/constraint-system.js';
 
 // Export functions directly from their source modules
-export const {
-  test,
-  Random,
-  sample,
-  withHardCoded
-} = Property_;
+export const { test, Random, sample, withHardCoded } = Property_;
 
 export const {
   equivalent,
@@ -34,7 +29,7 @@ export const {
   fromRandom,
   first,
   second,
-  constant
+  constant,
 } = Equivalent_;
 
 export const {
@@ -50,7 +45,7 @@ export const {
   isEmpty,
   withoutGenerics,
   print,
-  repeat
+  repeat,
 } = ConstraintSystem_;
 
 // Re-export types
@@ -61,7 +56,7 @@ export type {
   SpecFromFunctions,
   ProvableSpec,
   First,
-  Second
+  Second,
 } from '../../lib/testing/equivalent.js';
 
 export type { ConstraintSystemTest } from '../../lib/testing/constraint-system.js';
