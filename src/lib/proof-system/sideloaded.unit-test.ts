@@ -1,4 +1,5 @@
-import { VerificationKey, Void, ZkProgram } from './zkprogram.js';
+import { Void, ZkProgram } from './zkprogram.js';
+import { VerificationKey } from './verification-key.js';
 import { DynamicProof } from './proof.js';
 import { Field, SmartContract, Struct, method } from '../../index.js';
 import { it, describe } from 'node:test';

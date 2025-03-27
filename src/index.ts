@@ -1,6 +1,6 @@
 export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
-export { Ledger, initializeBindings } from './snarky.js';
+export { Ledger, initializeBindings, Snarky } from './snarky.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
@@ -40,7 +40,7 @@ export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
 export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
-export { Types } from './bindings/mina-transaction/types.js';
+export { Types } from './bindings/mina-transaction/v1/types.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 import { IndexedMerkleMap, IndexedMerkleMapBase } from './lib/provable/merkle-tree-indexed.js';
@@ -61,14 +61,8 @@ export { Reducer } from './lib/mina/v1/actions/reducer.js';
 export { state, State, declareState } from './lib/mina/v1/state.js';
 
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
-export {
-  SelfProof,
-  verify,
-  Empty,
-  Undefined,
-  Void,
-  VerificationKey,
-} from './lib/proof-system/zkprogram.js';
+export { SelfProof, verify, Empty, Undefined, Void } from './lib/proof-system/zkprogram.js';
+export { VerificationKey } from './lib/proof-system/verification-key.js';
 export { type ProofBase, Proof, DynamicProof } from './lib/proof-system/proof.js';
 export { FeatureFlags } from './lib/proof-system/feature-flags.js';
 export { Cache, CacheHeader } from './lib/proof-system/cache.js';
@@ -126,9 +120,13 @@ import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 export { Experimental };
 
+import * as V2 from './lib/mina/v2/index.js';
+import { Snarky } from './snarky.js';
+
 const Experimental_ = {
   memoizeWitness,
   IndexedMerkleMap,
+  V2,
 };
 
 /**
@@ -136,6 +134,8 @@ const Experimental_ = {
  * (Not unstable in the sense that they are less functional or tested than other parts.)
  */
 namespace Experimental {
+  export let V2 = Experimental_.V2;
+
   export let memoizeWitness = Experimental_.memoizeWitness;
 
   export let Recursive = Recursive_;

@@ -17,11 +17,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/fb625f...HEAD)
 
-###
+### Added
 
 - Added new `Octets` namespace with various conversion functions between Field elements and byte arrays. https://github.com/o1-labs/o1js/pull/2083
 - Export various internal functions and types. https://github.com/o1-labs/o1js/pull/2083
 - Export part of the core cryptography layer via the `Core` namespace. https://github.com/o1-labs/o1js/pull/2083
+- _Experimental_ New bindings layer for new API types. https://github.com/o1-labs/o1js/pull/2032
+- _Experimental_ New API types for https://github.com/o1-labs/o1js/pull/2042
+  - `AccountUpdate`, `Account`, `Authorization`, `Permissions` etc.
+  - New transaction construction API `new ZkappCommand()`. https://github.com/o1-labs/o1js/pull/2042
 
 ## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
