@@ -1015,6 +1015,28 @@ describe('int', () => {
       });
 
       describe('toBits() and fromBits()', () => {
+        it('fromBits from raw bits 4 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true)];
+          const uint = UInt64.fromBits(bits);
+          expect(uint.toString()).toEqual('10');
+          expect(uint.toBits(4)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 5 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true), Bool(true)];
+          const uint = UInt64.fromBits(bits);
+          expect(uint.toString()).toEqual('26');
+          expect(uint.toBits(5)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 45 bit', () => {
+          const bits = Array(44).fill(Bool(false));
+          bits.push(Bool(true));
+          const uint = UInt64.fromBits(bits);
+          expect(uint.toString()).toEqual((2n ** 44n).toString());
+          expect(uint.toBits(45)).toEqual(bits);
+        });
+
         it('test with some random values', () => {
           const testValues = [
             0,
@@ -1864,6 +1886,28 @@ describe('int', () => {
       });
 
       describe('toBits() and fromBits()', () => {
+        it('fromBits from raw bits 4 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true)];
+          const uint = UInt32.fromBits(bits);
+          expect(uint.toString()).toEqual('10');
+          expect(uint.toBits(4)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 5 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true), Bool(true)];
+          const uint = UInt32.fromBits(bits);
+          expect(uint.toString()).toEqual('26');
+          expect(uint.toBits(5)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 25 bit', () => {
+          const bits = Array(24).fill(Bool(false));
+          bits.push(Bool(true));
+          const uint = UInt32.fromBits(bits);
+          expect(uint.toString()).toEqual((2n ** 24n).toString());
+          expect(uint.toBits(25)).toEqual(bits);
+        });
+
         it('test with some random values', () => {
           const testValues = [0, 1, 123, 255, 256, 65535, 65536, 2 ** 31 - 1, UInt32.MAXINT()];
           for (let val of testValues) {
