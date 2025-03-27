@@ -55,7 +55,7 @@ export class MinaProgramEnv<State extends StateLayout> {
     //       account before we call a method on it
     private verificationKey: Unconstrained<VerificationKey>
   ) {
-    this.expectedPreconditions = new Unconstrained(true, {
+    this.expectedPreconditions = Unconstrained.from({
       state: StateMask.create(State),
     });
   }
@@ -106,10 +106,10 @@ export class MinaProgramEnv<State extends StateLayout> {
 
   get state(): StateReader<State> {
     const accountState = Provable.witness(Unconstrained<StateValues<State>>, () => {
-      return new Unconstrained(true, this.account.get().zkapp.state);
+      return Unconstrained.from(this.account.get().zkapp.state);
     });
     const accountStateMask = Provable.witness(Unconstrained<StateMask<State>>, () => {
-      return new Unconstrained(true, this.expectedPreconditions.get().state);
+      return Unconstrained.from(this.expectedPreconditions.get().state);
     });
     return StateReader.create(this.State, accountState, accountStateMask);
   }
@@ -380,8 +380,8 @@ function proverMethod<
 
     const env = new MinaProgramEnv(
       account.State,
-      new Unconstrained(true, account),
-      new Unconstrained(true, verificationKey)
+      Unconstrained.from(account),
+      Unconstrained.from(verificationKey)
     );
 
     const { proof, auxiliaryOutput: genericAccountUpdateTree } = await rawProver(env, ...inputs);
