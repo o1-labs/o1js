@@ -556,12 +556,7 @@ class UInt64 extends CircuitValue {
         throw Error(`UInt64.toBits(): ${this} does not fit in ${length} bits`);
       return bits.slice(0, length).map((b) => new Bool(b));
     }
-    let bits = Provable.witness(Provable.Array(Bool, length), () => {
-      let f = this.toBigInt();
-      return Array.from({ length }, (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n)));
-    });
-    UInt64.fromBits(bits).assertEquals(this);
-    return bits;
+    return this.value.toBits(length);
   }
 
   /**
@@ -580,21 +575,7 @@ class UInt64 extends CircuitValue {
   static fromBits(bits: (Bool | boolean)[]) {
     const length = bits.length;
     checkBitLength('UInt64.fromBits()', length, 64);
-    if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
-      let bits_ = bits
-        .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
-        .concat(Array(Fp.sizeInBits - length).fill(false));
-      return new UInt64(BinableFp.fromBits(bits_));
-    }
-    return UInt64.Unsafe.fromField(
-      bits
-        .map((b) => new Bool(b))
-        .reduce((acc, bit, idx) => {
-          const shift = 1n << BigInt(idx);
-          return acc.add(bit.toField().mul(shift));
-        }, Field.from(0))
-        .seal()
-    );
+    return UInt64.Unsafe.fromField(Field.fromBits(bits));
   }
 }
 /**
@@ -1109,12 +1090,7 @@ class UInt32 extends CircuitValue {
         throw Error(`UInt32.toBits(): ${this} does not fit in ${length} bits`);
       return bits.slice(0, length).map((b) => new Bool(b));
     }
-    let bits = Provable.witness(Provable.Array(Bool, length), () => {
-      let f = this.toBigint();
-      return Array.from({ length }, (_, k) => new Bool(!!((f >> BigInt(k)) & 0x1n)));
-    });
-    UInt32.fromBits(bits).assertEquals(this);
-    return bits;
+    return this.value.toBits(length);
   }
 
   /**
@@ -1133,21 +1109,7 @@ class UInt32 extends CircuitValue {
   static fromBits(bits: (Bool | boolean)[]) {
     const length = bits.length;
     checkBitLength('UInt32.fromBits()', length, 32);
-    if (bits.every((b) => typeof b === 'boolean' || b.toField().isConstant())) {
-      let bits_ = bits
-        .map((b) => (typeof b === 'boolean' ? b : b.toBoolean()))
-        .concat(Array(Fp.sizeInBits - length).fill(false));
-      return new UInt32(BinableFp.fromBits(bits_));
-    }
-    return UInt32.Unsafe.fromField(
-      bits
-        .map((b) => new Bool(b))
-        .reduce((acc, bit, idx) => {
-          const shift = 1n << BigInt(idx);
-          return acc.add(bit.toField().mul(shift));
-        }, Field.from(0))
-        .seal()
-    );
+    return UInt32.Unsafe.fromField(Field.fromBits(bits));
   }
 }
 
@@ -1939,5 +1901,52 @@ class UInt8 extends Struct({
   private static checkConstant(x: Field) {
     if (!x.isConstant()) return;
     RangeCheck.rangeCheck8(x);
+  }
+
+  isConstant() {
+    return this.value.isConstant();
+  }
+
+  /**
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt8} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt8 element fits in `length` bits.
+   * The `length` has to be between 0 and 8 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 8 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt8}.
+   */
+  toBits(length: number = 8) {
+    checkBitLength('UInt8.toBits()', length, 8);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigInt());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt8.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    return this.value.toBits(length);
+  }
+
+  /**
+   * Convert a bit array into a {@link UInt8} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt8 element. In this case, no more than 8 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt8} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt8} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt8} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt8.fromBits()', length, 8);
+    return UInt8.Unsafe.fromField(Field.fromBits(bits));
   }
 }
