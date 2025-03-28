@@ -43,7 +43,7 @@ const command = await new ZkappCommand({
       []
     ),
   ],
-}).authorize({
+}).authorizeProof({
   // this transaction will be authorized for the testnet network
   networkId: 'testnet',
   // we provide a function that returns the private key for the authorization

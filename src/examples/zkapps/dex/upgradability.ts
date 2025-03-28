@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { AccountUpdate, Mina, Permissions, PrivateKey, UInt64 } from 'o1js';
+import { AccountUpdate, Mina, Permissions, PrivateKey, SmartContract, UInt64 } from 'o1js';
 import { getProfiler } from '../../utils/profiler.js';
 import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
@@ -409,6 +409,7 @@ async function upgradeabilityTests({ withVesting }: { withVesting: boolean }) {
   tx = await Mina.transaction(feePayer, async () => {
     // pay fees for creating 3 dex accounts
     let update = AccountUpdate.createSigned(addresses.dex);
+    Dex.setVerificationKeyUnsafe;
     update.account.permissions.set({
       ...Permissions.initial(),
       setVerificationKey: Permissions.VerificationKey.impossibleDuringCurrentVersion(),

@@ -21,38 +21,45 @@ import { Memo } from '../../../mina-signer/src/memo.js';
 import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigint.js';
 import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
+import { Mina } from './mina.js';
 
-export { ZkappCommand, ZkappFeePayment, ZkappCommandContext, AuthorizedZkappCommand };
+export { ZkappCommand, ZkappFeePayment, ZkappCommandContext };
 
 interface ZkappFeePaymentDescription {
-  publicKey: PublicKey;
-  fee: UInt64; // TODO: abstract currency representation
-  validUntil?: UInt32; // TODO: abstract slot representation
-  nonce: UInt32;
+  readonly publicKey: PublicKey;
+  readonly fee: UInt64; // TODO: abstract currency representation
+  readonly validUntil?: UInt32; // TODO: abstract slot representation
+  readonly nonce: UInt32;
 }
 
-class ZkappFeePayment {
-  readonly __type: 'ZkappCommand' = 'ZkappCommand' as const;
-
-  publicKey: PublicKey;
-  fee: UInt64;
-  validUntil: UInt32 | undefined;
-  nonce: UInt32;
+class ZkappFeePayment implements Mina.Transaction<ZkappFeePayment> {
+  readonly __type: 'FeeTransfer';
+  feePayer: BindingsLayout.FeePayerBody;
+  authorization: Signature;
 
   constructor(descr: ZkappFeePaymentDescription) {
-    this.publicKey = descr.publicKey;
-    this.fee = descr.fee;
-    this.validUntil = descr.validUntil;
-    this.nonce = descr.nonce;
+    this.feePayer = {
+      publicKey: descr.publicKey,
+      fee: descr.fee,
+      validUntil: descr.validUntil,
+      nonce: descr.nonce,
+    };
   }
 
-  authorize({
+  authorizeSignature({
     networkId,
     privateKey,
     fullTransactionCommitment,
-  }: ZkappFeePaymentAuthorizationEnvironment): AuthorizedZkappFeePayment {
+  }: ZkappFeePaymentAuthorizationEnvironment): ZkappFeePayment {
     let signature = signFieldElement(fullTransactionCommitment, privateKey.toBigInt(), networkId);
-    return new AuthorizedZkappFeePayment(this, Signature.toBase58(signature));
+    const ret = new ZkappFeePayment({
+      publicKey: this.feePayer.publicKey,
+      fee: this.feePayer.fee,
+      validUntil: this.feePayer.validUntil,
+      nonce: this.feePayer.nonce,
+    });
+    ret.authorization = signature;
+    return ret;
   }
 
   toAccountUpdate(): AccountUpdate {
@@ -60,19 +67,19 @@ class ZkappFeePayment {
       authorizationKind: AccountUpdateAuthorizationKind.Signature(),
       verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
       callData: new Field(0),
-      accountId: new AccountId(this.publicKey, TokenId.MINA),
-      balanceChange: Int64.create(this.fee, Sign.minusOne),
+      accountId: new AccountId(this.feePayer.publicKey, TokenId.MINA),
+      balanceChange: Int64.create(this.feePayer.fee, Sign.minusOne),
       incrementNonce: new Bool(true),
       useFullCommitment: new Bool(true),
       implicitAccountCreationFee: new Bool(true),
       preconditions: {
         account: {
-          nonce: this.nonce,
+          nonce: this.feePayer.nonce,
         },
         network: {
           globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(
             UInt32.zero,
-            this.validUntil ?? UInt32.MAXINT()
+            this.feePayer.validUntil ?? UInt32.MAXINT()
           ),
         },
       },
@@ -83,13 +90,17 @@ class ZkappFeePayment {
     return new Authorized({ signature: '', proof: null }, this.toAccountUpdate());
   }
 
-  toInternalRepr(): BindingsLayout.FeePayerBody {
-    return {
-      publicKey: this.publicKey,
-      fee: this.fee,
-      validUntil: this.validUntil,
-      nonce: this.nonce,
+  toInternalRepr(): BindingsLayout.ZkappFeePayer {
+    const repr: BindingsLayout.ZkappFeePayer = {
+      body: {
+        publicKey: this.feePayer.publicKey,
+        fee: this.feePayer.fee,
+        validUntil: this.feePayer.validUntil,
+        nonce: this.feePayer.nonce,
+      },
+      authorization: this.authorization ? Signature.toBase58(this.authorization) : '',
     };
+    return repr;
   }
 
   toJSON(): any {
@@ -97,18 +108,7 @@ class ZkappFeePayment {
   }
 
   static toJSON(x: ZkappFeePayment): any {
-    return BindingsLayout.FeePayerBody.toJSON(x.toInternalRepr());
-  }
-}
-
-class AuthorizedZkappFeePayment {
-  constructor(public readonly body: ZkappFeePayment, public readonly signature: string) {}
-
-  toInternalRepr(): BindingsLayout.ZkappFeePayer {
-    return {
-      body: this.body.toInternalRepr(),
-      authorization: this.signature,
-    };
+    return BindingsLayout.ZkappFeePayer.toJSON(x.toInternalRepr());
   }
 }
 
@@ -119,16 +119,19 @@ interface ZkappCommandDescription {
   memo?: string;
 }
 
-class ZkappCommand {
+class ZkappCommand implements Mina.Transaction<ZkappCommand> {
   // TODO: put this on everything (in this case, we really need it to disambiguate the Description format)
-  readonly __type: 'ZkappCommand' = 'ZkappCommand' as const;
+  readonly __type: 'ZkAppCommand';
 
+  feePayer: BindingsLayout.FeePayerBody;
   feePayment: ZkappFeePayment;
   accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
+  authorizedAccountUpdateForest: AccountUpdateTree<Authorized>[];
   memo: string;
 
   constructor(descr: ZkappCommandDescription) {
     this.feePayment = descr.feePayment;
+    this.feePayer = this.feePayment.feePayer;
     this.accountUpdateForest = descr.accountUpdates.map((update) =>
       update instanceof AccountUpdateTree ? update : new AccountUpdateTree(update, [])
     );
@@ -143,7 +146,7 @@ class ZkappCommand {
     const feePayerCommitment = this.feePayment.toDummyAuthorizedAccountUpdate().hash(networkId);
     const accountUpdateForestCommitment = AccountUpdateTree.hashForest(
       networkId,
-      this.accountUpdateForest
+      this.accountUpdateForest as AccountUpdateTree<AccountUpdate>[]
     );
     const memoCommitment = Memo.hash(this.memo);
     const fullTransactionCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
@@ -154,12 +157,12 @@ class ZkappCommand {
     return { accountUpdateForestCommitment, fullTransactionCommitment };
   }
 
-  async authorize(authEnv: ZkappCommandAuthorizationEnvironment): Promise<AuthorizedZkappCommand> {
-    const feePayerPrivateKey = await authEnv.getPrivateKey(this.feePayment.publicKey);
+  async authorizeProof(authEnv: ZkappCommandAuthorizationEnvironment): Promise<ZkappCommand> {
+    const feePayerPrivateKey = await authEnv.getPrivateKey(this.feePayment.feePayer.publicKey);
 
     const commitments = this.commitments(authEnv.networkId);
 
-    const authorizedFeePayment = this.feePayment.authorize({
+    const authorizedFeePayment = this.feePayment.authorizeSignature({
       networkId: authEnv.networkId,
       privateKey: feePayerPrivateKey,
       fullTransactionCommitment: commitments.fullTransactionCommitment,
@@ -169,56 +172,39 @@ class ZkappCommand {
       ...authEnv,
       ...commitments,
     };
+
+    const ret = new ZkappCommand({
+      feePayment: authorizedFeePayment,
+      accountUpdates: this.accountUpdateForest,
+    });
+    ret.memo = this.memo;
+
     const authorizedAccountUpdateForest = await AccountUpdateTree.mapForest(
-      this.accountUpdateForest,
+      ret.accountUpdateForest,
       (accountUpdate) => accountUpdate.authorize(accountUpdateAuthEnv)
     );
 
-    return new AuthorizedZkappCommand({
-      feePayment: authorizedFeePayment,
-      accountUpdateForest: authorizedAccountUpdateForest,
-      memo: this.memo,
-    });
-  }
-}
+    ret.authorizedAccountUpdateForest = authorizedAccountUpdateForest;
 
-class AuthorizedZkappCommand {
-  readonly __type: 'AuthorizedZkappCommand' = 'AuthorizedZkappCommand' as const;
-
-  readonly feePayment: AuthorizedZkappFeePayment;
-  readonly accountUpdateForest: AccountUpdateTree<Authorized>[];
-  readonly memo: string;
-
-  constructor({
-    feePayment,
-    accountUpdateForest,
-    memo,
-  }: {
-    feePayment: AuthorizedZkappFeePayment;
-    accountUpdateForest: AccountUpdateTree<Authorized>[];
-    memo: string;
-  }) {
-    this.feePayment = feePayment;
-    this.accountUpdateForest = accountUpdateForest;
-    // TODO: here we have to assume the Memo is already encoded correctly, but what we really want is a Memo type...
-    this.memo = memo;
+    return ret;
   }
 
   toInternalRepr(): BindingsLayout.ZkappCommand {
     return {
       feePayer: this.feePayment.toInternalRepr(),
-      accountUpdates: AccountUpdateTree.unrollForest(this.accountUpdateForest, (update, depth) =>
-        update.toInternalRepr(depth)
+      accountUpdates: AccountUpdateTree.unrollForest(
+        this.authorizedAccountUpdateForest,
+        (update, depth) => update.toInternalRepr(depth)
       ),
       memo: Memo.toBase58(this.memo),
     };
   }
 
   toJSON(): any {
-    return AuthorizedZkappCommand.toJSON(this);
+    return ZkappCommand.toJSON(this);
   }
 
-  static toJSON(x: AuthorizedZkappCommand): any {
+  static toJSON(x: ZkappCommand): any {
     return BindingsLayout.ZkappCommand.toJSON(x.toInternalRepr());
   }
 }
