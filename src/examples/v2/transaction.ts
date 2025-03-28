@@ -2,7 +2,6 @@ import { Experimental, Field, PrivateKey, PublicKey, UInt32, UInt64, Verificatio
 
 const {
   ZkappCommand,
-  ZkappFeePayment,
   AccountUpdateTree,
   AccountUpdate,
   AccountUpdateAuthorizationKind,
@@ -22,11 +21,11 @@ const appAddress = feePayerAddress;
 // Create a transaction through the new transaction construction API
 // a transaction consists of a feepayer and a list of account updates
 const command = await new ZkappCommand({
-  feePayment: new ZkappFeePayment({
+  feePayer: {
     publicKey: feePayerAddress,
     fee: new UInt64(10 * 10 ** 9),
     nonce: new UInt32(0),
-  }),
+  },
   accountUpdates: [
     new AccountUpdateTree(
       // this account update describes a generic state update that is signed by the app key
@@ -43,7 +42,7 @@ const command = await new ZkappCommand({
       []
     ),
   ],
-}).authorizeProof({
+}).authorize({
   // this transaction will be authorized for the testnet network
   networkId: 'testnet',
   // we provide a function that returns the private key for the authorization
