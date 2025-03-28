@@ -60,7 +60,7 @@ type BigIntParameter = {
  *
  * // Perform operations
  * const sum = a.add(b);
- * const double = a.add(b);
+ * const double = a.double();
  * const diff = a.sub(b);
  * const product = a.mul(b);
  * const square = a.square();
