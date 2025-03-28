@@ -69,7 +69,6 @@ type BigIntParameter = {
  * const negation = a.negate();
  * const power = a.pow(b);
  * const sqrt = c.sqrt();
- *
  * ```
  *
  * The class automatically handles modular reduction after
