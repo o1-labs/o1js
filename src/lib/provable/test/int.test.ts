@@ -2696,6 +2696,49 @@ describe('int', () => {
           });
         });
       });
+
+      describe('toBits() and fromBits()', () => {
+        it('fromBits from raw bits 4 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true)];
+          const uint = UInt8.fromBits(bits);
+          expect(uint.toString()).toEqual('10');
+          expect(uint.toBits(4)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 7 bit', () => {
+          const bits = Array(6).fill(Bool(false));
+          bits.push(Bool(true));
+          const uint = UInt8.fromBits(bits);
+          expect(uint.toString()).toEqual((2n ** 6n).toString());
+          expect(uint.toBits(7)).toEqual(bits);
+        });
+
+        it('test with some random values', () => {
+          const testValues = [0, 1, 123, 255];
+          for (let val of testValues) {
+            const original = UInt8.from(val);
+            const bits = original.toBits();
+            const reconstructed = UInt8.fromBits(bits);
+            expect(reconstructed.toString()).toEqual(original.toString());
+          }
+        });
+
+        it('fails if we ask for fewer bits than the value needs', () => {
+          const len = 6;
+          const val = UInt8.from(0xfe);
+          expect(() => val.toBits(len)).toThrow(
+            `UInt8.toBits(): ${val.toString()} does not fit in ${len} bits`
+          );
+        });
+
+        it('fails if we provide a bits array that is longer than 8 in fromBits()', () => {
+          const len = 10;
+          const badBits = Array(len).fill(Bool(true));
+          expect(() => UInt8.fromBits(badBits)).toThrow(
+            `UInt8.fromBits(): bit length must be 8 or less, got ${len}`
+          );
+        });
+      });
     });
   });
 });
