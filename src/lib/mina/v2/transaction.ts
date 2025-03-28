@@ -265,7 +265,6 @@ class ZkappCommand implements Transaction<ZkappCommand> {
   }
 
   static toJSON(x: ZkappCommand): any {
-    // TODO: Is the ZkAppCommand bindings layout appropriate for signed commands as well?
     return BindingsLayout.ZkappCommand.toJSON(x.toInternalRepr());
   }
 }
