@@ -1,7 +1,7 @@
 import {
   AccountUpdateAuthorizationKind,
   ZkappCommandAuthorizationEnvironment,
-  ZkappFeePaymentAuthorizationEnvironment,
+  FeeTransferAuthorizationEnvironment,
 } from './authorization.js';
 import { AccountUpdate, AccountUpdateTree, Authorized, GenericData } from './account-update.js';
 import { Account, AccountId, AccountIdSet } from './account.js';
@@ -9,50 +9,105 @@ import { TokenId } from './core.js';
 import { AccountUpdateErrorTrace, getCallerFrame } from './errors.js';
 import { Precondition } from './preconditions.js';
 import { StateLayout } from './state.js';
-import { ChainView, LedgerView } from './views.js';
 import { ApplyState, checkAndApplyAccountUpdate } from './zkapp-logic.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
 import { mocks } from '../../../bindings/crypto/constants.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/v2/js-layout.js';
 import { Memo } from '../../../mina-signer/src/memo.js';
 import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigint.js';
 import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
+import { LedgerView, ChainView } from './views.js';
+import { PublicKey } from 'src/lib/provable/crypto/signature.js';
 
-export { ZkappCommand, ZkappFeePayment, ZkappCommandContext, AuthorizedZkappCommand };
+export { ZkappCommand, FeePayerAccountUpdate, ZkappCommandContext };
 
-interface ZkappFeePaymentDescription {
-  publicKey: PublicKey;
-  fee: UInt64; // TODO: abstract currency representation
-  validUntil?: UInt32; // TODO: abstract slot representation
-  nonce: UInt32;
+interface FeePayerInputs {
+  readonly publicKey: PublicKey;
+  readonly fee: UInt64; // TODO: abstract currency representation
+  readonly validUntil?: UInt32; // TODO: abstract slot representation
+  readonly nonce: UInt32;
 }
 
-class ZkappFeePayment {
-  readonly __type: 'ZkappCommand' = 'ZkappCommand' as const;
+interface ZkappCommandInputs {
+  feePayer: FeePayerInputs | FeePayerAccountUpdate;
+  // TODO: merge AccountUpdateTree and AccountUpdate
+  accountUpdates: (AccountUpdate | AccountUpdateTree<AccountUpdate>)[];
+  memo?: string;
+}
 
-  publicKey: PublicKey;
-  fee: UInt64;
-  validUntil: UInt32 | undefined;
-  nonce: UInt32;
+interface Commitments {
+  accountUpdateForestCommitment: BigInt;
+  fullTransactionCommitment: BigInt;
+}
 
-  constructor(descr: ZkappFeePaymentDescription) {
-    this.publicKey = descr.publicKey;
-    this.fee = descr.fee;
-    this.validUntil = descr.validUntil;
-    this.nonce = descr.nonce;
+// TODO: Are there actually any other types of transaction?  Or only ZkAppCommand?
+interface Transaction<T extends Transaction<T>> {
+  readonly __type: ['SignedCommand', 'ZkAppCommand'][number];
+
+  /**
+   * Short string (max length 32) that can be used to describe the transaction.
+   * This is not used in the protocol, but it is public on chain and can be used
+   * for indexing or in application logic.
+   *
+   * TODO: we probably want an explicit memo type instead to help enforce these rules early and not surprise the user when their memo changes slightly later
+   */
+  memo?: string;
+
+  /**
+   * The public key of the account, the amount, and the metadata associated with the fee for this transaction.
+   */
+  feePayerAccountUpdate: FeePayerAccountUpdate;
+
+  isAuthorized: boolean;
+
+  /**
+   * Commits to the state of the transaction so that Mina can verify the authorization
+   *
+   * @param networkId The id of the Mina network (e.g. 'testnet', 'mainnet')
+   * @returns The Field commitments to the account update forest and the full transaction as bigints
+   */
+  commitments(networkId: NetworkId): Commitments;
+
+  /**
+   * Authorizes all account updates in the transaction, either by signature or by proof
+   *
+   * @returns An authorized {@link Transaction}
+   */
+  authorize(...args: any): T | Promise<T>;
+
+  /**
+   * Converts the transaction to a JSON object.
+   *
+   * @returns A JSON object representing the transaction
+   */
+  toJSON(): any;
+}
+
+class FeePayerAccountUpdate {
+  feePayer: BindingsLayout.FeePayerBody;
+  authorization: Signature;
+
+  constructor(descr: FeePayerInputs) {
+    this.feePayer = {
+      publicKey: descr.publicKey,
+      fee: descr.fee,
+      validUntil: descr.validUntil,
+      nonce: descr.nonce,
+    };
   }
 
   authorize({
     networkId,
     privateKey,
     fullTransactionCommitment,
-  }: ZkappFeePaymentAuthorizationEnvironment): AuthorizedZkappFeePayment {
+  }: FeeTransferAuthorizationEnvironment): FeePayerAccountUpdate {
     let signature = signFieldElement(fullTransactionCommitment, privateKey.toBigInt(), networkId);
-    return new AuthorizedZkappFeePayment(this, Signature.toBase58(signature));
+    const authorizedFeePayer = new FeePayerAccountUpdate(this.feePayer);
+    authorizedFeePayer.authorization = signature;
+    return authorizedFeePayer;
   }
 
   toAccountUpdate(): AccountUpdate {
@@ -60,19 +115,19 @@ class ZkappFeePayment {
       authorizationKind: AccountUpdateAuthorizationKind.Signature(),
       verificationKeyHash: new Field(mocks.dummyVerificationKeyHash),
       callData: new Field(0),
-      accountId: new AccountId(this.publicKey, TokenId.MINA),
-      balanceChange: Int64.create(this.fee, Sign.minusOne),
+      accountId: new AccountId(this.feePayer.publicKey, TokenId.MINA),
+      balanceChange: Int64.create(this.feePayer.fee, Sign.minusOne),
       incrementNonce: new Bool(true),
       useFullCommitment: new Bool(true),
       implicitAccountCreationFee: new Bool(true),
       preconditions: {
         account: {
-          nonce: this.nonce,
+          nonce: this.feePayer.nonce,
         },
         network: {
           globalSlotSinceGenesis: Precondition.InRange.betweenInclusive(
             UInt32.zero,
-            this.validUntil ?? UInt32.MAXINT()
+            this.feePayer.validUntil ?? UInt32.MAXINT()
           ),
         },
       },
@@ -83,56 +138,53 @@ class ZkappFeePayment {
     return new Authorized({ signature: '', proof: null }, this.toAccountUpdate());
   }
 
-  toInternalRepr(): BindingsLayout.FeePayerBody {
-    return {
-      publicKey: this.publicKey,
-      fee: this.fee,
-      validUntil: this.validUntil,
-      nonce: this.nonce,
+  toInternalRepr(): BindingsLayout.ZkappFeePayer {
+    const repr: BindingsLayout.ZkappFeePayer = {
+      body: {
+        publicKey: this.feePayer.publicKey,
+        fee: this.feePayer.fee,
+        validUntil: this.feePayer.validUntil,
+        nonce: this.feePayer.nonce,
+      },
+      authorization: this.authorization ? Signature.toBase58(this.authorization) : '',
     };
+    return repr;
   }
 
   toJSON(): any {
-    return ZkappFeePayment.toJSON(this);
+    return FeePayerAccountUpdate.toJSON(this);
   }
 
-  static toJSON(x: ZkappFeePayment): any {
-    return BindingsLayout.FeePayerBody.toJSON(x.toInternalRepr());
-  }
-}
-
-class AuthorizedZkappFeePayment {
-  constructor(public readonly body: ZkappFeePayment, public readonly signature: string) {}
-
-  toInternalRepr(): BindingsLayout.ZkappFeePayer {
-    return {
-      body: this.body.toInternalRepr(),
-      authorization: this.signature,
-    };
+  static toJSON(x: FeePayerAccountUpdate): any {
+    return BindingsLayout.ZkappFeePayer.toJSON(x.toInternalRepr());
   }
 }
 
-interface ZkappCommandDescription {
-  feePayment: ZkappFeePayment;
-  // TODO: merge AccountUpdateTree and AccountUpdate
-  accountUpdates: (AccountUpdate | AccountUpdateTree<AccountUpdate>)[];
-  memo?: string;
-}
+/**
+ * A command including a fee payer account update and at least one additional account update.
+ *
+ * TODO: This class can represent either a UserCommand or a ZkAppCommand right?  Should we rename/split out the implementations?
+ */
+class ZkappCommand implements Transaction<ZkappCommand> {
+  readonly __type: 'ZkAppCommand';
 
-class ZkappCommand {
-  // TODO: put this on everything (in this case, we really need it to disambiguate the Description format)
-  readonly __type: 'ZkappCommand' = 'ZkappCommand' as const;
-
-  feePayment: ZkappFeePayment;
+  feePayerAccountUpdate: FeePayerAccountUpdate;
   accountUpdateForest: AccountUpdateTree<AccountUpdate>[];
+  authorizedAccountUpdateForest: AccountUpdateTree<Authorized>[];
+  isAuthorized = false;
   memo: string;
 
-  constructor(descr: ZkappCommandDescription) {
-    this.feePayment = descr.feePayment;
+  constructor(descr: ZkappCommandInputs) {
+    if ('fee' in descr.feePayer) {
+      // Must be a FeePayerInputs
+      this.feePayerAccountUpdate = new FeePayerAccountUpdate(descr.feePayer);
+    } else {
+      // Must be a FeePayerAccountUpdate
+      this.feePayerAccountUpdate = descr.feePayer as FeePayerAccountUpdate;
+    }
     this.accountUpdateForest = descr.accountUpdates.map((update) =>
       update instanceof AccountUpdateTree ? update : new AccountUpdateTree(update, [])
     );
-    // TODO: we probably want an explicit memo type instead to help enforce these rules early and not surprise the user when their memo changes slightly later
     this.memo = Memo.fromString(descr.memo ?? '');
   }
 
@@ -140,10 +192,12 @@ class ZkappCommand {
     accountUpdateForestCommitment: bigint;
     fullTransactionCommitment: bigint;
   } {
-    const feePayerCommitment = this.feePayment.toDummyAuthorizedAccountUpdate().hash(networkId);
+    const feePayerCommitment = this.feePayerAccountUpdate
+      .toDummyAuthorizedAccountUpdate()
+      .hash(networkId);
     const accountUpdateForestCommitment = AccountUpdateTree.hashForest(
       networkId,
-      this.accountUpdateForest
+      this.accountUpdateForest as AccountUpdateTree<AccountUpdate>[]
     );
     const memoCommitment = Memo.hash(this.memo);
     const fullTransactionCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
@@ -154,12 +208,20 @@ class ZkappCommand {
     return { accountUpdateForestCommitment, fullTransactionCommitment };
   }
 
-  async authorize(authEnv: ZkappCommandAuthorizationEnvironment): Promise<AuthorizedZkappCommand> {
-    const feePayerPrivateKey = await authEnv.getPrivateKey(this.feePayment.publicKey);
+  /**
+   * Signs the fee payer account update and proves the other account updates in the transaction
+   *
+   * @param authorizationEnvironment - The fee payer signature authorization environment (this is required on top of the proof authorization in any case)
+   * @returns An authorized Promise<{@link ZkappCommand}>
+   */
+  async authorize(authEnv: ZkappCommandAuthorizationEnvironment): Promise<ZkappCommand> {
+    const feePayerPrivateKey = await authEnv.getPrivateKey(
+      this.feePayerAccountUpdate.feePayer.publicKey
+    );
 
     const commitments = this.commitments(authEnv.networkId);
 
-    const authorizedFeePayment = this.feePayment.authorize({
+    const authorizedFeePayerAU = this.feePayerAccountUpdate.authorize({
       networkId: authEnv.networkId,
       privateKey: feePayerPrivateKey,
       fullTransactionCommitment: commitments.fullTransactionCommitment,
@@ -169,56 +231,40 @@ class ZkappCommand {
       ...authEnv,
       ...commitments,
     };
+
+    const ret = new ZkappCommand({
+      feePayer: authorizedFeePayerAU,
+      accountUpdates: this.accountUpdateForest,
+    });
+    ret.memo = this.memo;
+
     const authorizedAccountUpdateForest = await AccountUpdateTree.mapForest(
-      this.accountUpdateForest,
+      ret.accountUpdateForest,
       (accountUpdate) => accountUpdate.authorize(accountUpdateAuthEnv)
     );
 
-    return new AuthorizedZkappCommand({
-      feePayment: authorizedFeePayment,
-      accountUpdateForest: authorizedAccountUpdateForest,
-      memo: this.memo,
-    });
-  }
-}
+    ret.authorizedAccountUpdateForest = authorizedAccountUpdateForest;
+    ret.isAuthorized = true;
 
-class AuthorizedZkappCommand {
-  readonly __type: 'AuthorizedZkappCommand' = 'AuthorizedZkappCommand' as const;
-
-  readonly feePayment: AuthorizedZkappFeePayment;
-  readonly accountUpdateForest: AccountUpdateTree<Authorized>[];
-  readonly memo: string;
-
-  constructor({
-    feePayment,
-    accountUpdateForest,
-    memo,
-  }: {
-    feePayment: AuthorizedZkappFeePayment;
-    accountUpdateForest: AccountUpdateTree<Authorized>[];
-    memo: string;
-  }) {
-    this.feePayment = feePayment;
-    this.accountUpdateForest = accountUpdateForest;
-    // TODO: here we have to assume the Memo is already encoded correctly, but what we really want is a Memo type...
-    this.memo = memo;
+    return ret;
   }
 
   toInternalRepr(): BindingsLayout.ZkappCommand {
     return {
-      feePayer: this.feePayment.toInternalRepr(),
-      accountUpdates: AccountUpdateTree.unrollForest(this.accountUpdateForest, (update, depth) =>
-        update.toInternalRepr(depth)
+      feePayer: this.feePayerAccountUpdate.toInternalRepr(),
+      accountUpdates: AccountUpdateTree.unrollForest(
+        this.authorizedAccountUpdateForest,
+        (update, depth) => update.toInternalRepr(depth)
       ),
       memo: Memo.toBase58(this.memo),
     };
   }
 
   toJSON(): any {
-    return AuthorizedZkappCommand.toJSON(this);
+    return ZkappCommand.toJSON(this);
   }
 
-  static toJSON(x: AuthorizedZkappCommand): any {
+  static toJSON(x: ZkappCommand): any {
     return BindingsLayout.ZkappCommand.toJSON(x.toInternalRepr());
   }
 }

@@ -16,7 +16,7 @@ export {
   AuthorizationLevelIdentifier,
   VerificationKeyAuthorizationLevel,
   ZkappCommandAuthorizationEnvironment,
-  ZkappFeePaymentAuthorizationEnvironment,
+  FeeTransferAuthorizationEnvironment,
 };
 
 type AuthorizationLevelIdentifier = Bindings.Leaves.AuthRequiredIdentifier;
@@ -402,7 +402,7 @@ type AccountUpdateAuthorizationEnvironment = ZkappCommandAuthorizationEnvironmen
   fullTransactionCommitment?: bigint; // TODO: Field;
 };
 
-interface ZkappFeePaymentAuthorizationEnvironment {
+interface FeeTransferAuthorizationEnvironment {
   networkId: NetworkId;
   privateKey: PrivateKey;
   fullTransactionCommitment: bigint; // TODO: Field

@@ -9,7 +9,7 @@ import {
   EpochLedgerPreconditions,
 } from './preconditions.js';
 import { StateLayout, StateUpdates, StateValues } from './state.js';
-import { ZkappFeePayment } from './transaction.js';
+import { FeePayerAccountUpdate } from './transaction.js';
 import { ChainView, EpochData, EpochLedgerData } from './views.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
@@ -376,7 +376,7 @@ function checkAndApplyAccountUpdate<State extends StateLayout, Event, Action>(
 function checkAndApplyFeePayment(
   chain: ChainView,
   account: Account,
-  feePayment: ZkappFeePayment
+  feePayment: FeePayerAccountUpdate
 ): ApplyResult<{ updatedAccount: Account }> {
   const result = checkAndApplyAccountUpdate(chain, account, feePayment.toAccountUpdate(), {
     status: 'Alive',
