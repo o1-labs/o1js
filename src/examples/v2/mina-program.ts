@@ -121,5 +121,4 @@ const testTransaction = await V2.createZkappCommand(
     await TestProgram.init(ctx, app.accountId, Field(3) as never);
   }
 );
-
-//console.log(JSON.stringify(testTransaction));
+console.log(JSON.stringify(testTransaction, null, 2));
