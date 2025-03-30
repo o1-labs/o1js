@@ -28,11 +28,10 @@ const TestProgram = V2.MinaProgram({
 
   methods: {
     init: {
-      privateInputs: [Field],
+      privateInputs: [],
 
       async method(
-        _env: Experimental.V2.MinaProgramEnv<TestState>,
-        _value: Field
+        _env: Experimental.V2.MinaProgramEnv<TestState>
       ): Promise<Experimental.V2.MinaProgramMethodReturn<TestState>> {
         return {
           incrementNonce: new Bool(true),
@@ -42,9 +41,10 @@ const TestProgram = V2.MinaProgram({
               nonce: new UInt32(0),
             },
           },
-          setState: {
-            x: new V2.Update(Bool(true), _value) as never, // ugly fix, this needs to be fixed asap
-          },
+
+          /*    setState: {
+            x: new V2.Update(Bool(true)) as never, // ugly fix, this needs to be fixed asap
+          }, */
         };
       },
     },
@@ -84,7 +84,7 @@ const testTransaction = await V2.createZkappCommand(
   authEnv,
   {
     feePayer: feePayerAddress,
-    fee: new UInt64(10 ** 9),
+    fee: UInt64.from(1000000000),
   },
   async (ctx) => {
     ctx.add(
@@ -92,7 +92,7 @@ const testTransaction = await V2.createZkappCommand(
         accountId: feePayer.accountId,
         authorizationKind: 'Signature',
         incrementNonce: new Bool(true),
-        balanceChange: Int64.create(new UInt64(10 ** 9), Sign.minusOne),
+        balanceChange: Int64.from(2000000000 * -1),
         preconditions: {
           account: {
             nonce: ctx.ledger.getAccount(feePayer.accountId)?.nonce ?? UInt32.zero,
@@ -107,7 +107,7 @@ const testTransaction = await V2.createZkappCommand(
         authorizationKind: 'Signature',
         useFullCommitment: new Bool(true),
         implicitAccountCreationFee: new Bool(true),
-        balanceChange: Int64.create(new UInt64(10 ** 9), Sign.one),
+        balanceChange: Int64.from(1000000000),
         setVerificationKey: compiledTestProgram.verificationKey,
         setPermissions: {
           editState: 'Proof',
@@ -127,8 +127,8 @@ const testTransaction = await V2.createZkappCommand(
       })
     );
 
-    await TestProgram.init(ctx, app.accountId, Field(42) as never);
+    await TestProgram.init(ctx, app.accountId);
   }
 );
 
-console.log(JSON.stringify(testTransaction));
+//console.log(JSON.stringify(testTransaction));
