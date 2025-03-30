@@ -1,9 +1,9 @@
 // Views into chain-state (ledger and best block)
 
 import { Account, AccountId, AccountIdMap } from './account.js';
-import { MinaAmount } from './core.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
+import { MinaAmount } from './currency.js';
 
 export { ChainView, EpochData, EpochLedgerData, LedgerView, LocalChain, LocalLedger };
 interface ChainView {

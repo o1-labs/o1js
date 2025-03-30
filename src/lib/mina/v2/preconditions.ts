@@ -1,4 +1,4 @@
-import { Compare, Eq, MinaAmount, Option, Range } from './core.js';
+import { Compare, Eq, Option, Range } from './core.js';
 import {
   GenericStatePreconditions,
   StatePreconditions,
@@ -14,6 +14,7 @@ import { HashInput } from '../../provable/types/provable-derivers.js';
 import { Actions } from '../../../bindings/mina-transaction/v1/transaction-leaves.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/v2/js-layout.js';
 import { ZkappConstants } from '../v1/constants.js';
+import { MinaAmount } from './currency.js';
 
 export {
   Preconditions,

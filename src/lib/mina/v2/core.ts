@@ -12,7 +12,6 @@ import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 export {
   Option,
   Range,
-  MinaAmount,
   mapUndefined,
   Empty,
   Update,
@@ -43,9 +42,6 @@ function mapObject<In extends { [key: string]: any }, Out extends { [key in keyo
 const { Option, Range } = Bindings.Leaves;
 type Option<T> = Bindings.Leaves.Option<T>;
 type Range<T> = Bindings.Leaves.Range<T>;
-
-// TODO: constructors from Mina and NanoMina
-type MinaAmount = UInt64;
 
 class ZkappUri {
   readonly data: string;
@@ -87,7 +83,6 @@ class ZkappUri {
   }
 }
 
-// TODO
 class TokenId {
   // TODO: construct this from it's parts, don't pass in the raw Field directly
   constructor(public value: Field) {}
