@@ -521,8 +521,19 @@ const StateValues = {
           const update = updates.updates[i];
           return update.set.toBoolean() ? update.value : value;
         }),
-      (_Layout, _values, _state): { [name in keyof State]: ProvableInstance<State[name]> } => {
-        throw new Error('no');
+      (Layout, values, updates): { [name in keyof State]: ProvableInstance<State[name]> } => {
+        const result = { ...values };
+        for (const key in Layout) {
+          const update = updates[key as keyof State];
+          if (update !== undefined) {
+            const updateValue =
+              update instanceof Update ? update : new Update(new Bool(true), update);
+            if (updateValue.set.toBoolean()) {
+              result[key as keyof State] = updateValue.value;
+            }
+          }
+        }
+        return result;
       }
     );
   },
