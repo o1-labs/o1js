@@ -635,6 +635,16 @@ class SmartContract extends SmartContractBase {
   }
 
   /**
+   * Manually set the verificaiton key.
+   */
+  static setVerificationKeyUnsafe(verificationKey: { data: string; hash: Field | string }) {
+    SmartContract._verificationKey = {
+      data: verificationKey.data,
+      hash: Field.from(verificationKey.hash),
+    };
+  }
+
+  /**
    * Deploys a {@link SmartContract}.
    *
    * ```ts

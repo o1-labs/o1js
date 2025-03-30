@@ -8,7 +8,8 @@ export {
   AlmostForeignField,
   CanonicalForeignField,
 } from './lib/provable/foreign-field.js';
-export { createForeignCurve, ForeignCurve } from './lib/provable/crypto/foreign-curve.js';
+export { createForeignCurve, ForeignCurve, toPoint } from './lib/provable/crypto/foreign-curve.js';
+export type { FlexiblePoint } from './lib/provable/crypto/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/provable/crypto/foreign-ecdsa.js';
 export { ScalarField } from './lib/provable/scalar-field.js';
 export { Poseidon, TokenSymbol, ProvableHashable } from './lib/provable/crypto/poseidon.js';
@@ -24,6 +25,10 @@ export type {
   FlexibleProvablePure,
   InferProvable,
 } from './lib/provable/types/struct.js';
+
+export { provableFromClass } from './lib/provable/types/provable-derivers.js';
+export type { ProvablePureExtended } from './lib/provable/types/struct.js';
+
 export { From, InferValue, InferJson, IsPure } from './bindings/lib/provable-generic.js';
 export { ProvableType } from './lib/provable/types/provable-intf.js';
 export { provable, provablePure } from './lib/provable/types/provable-derivers.js';
@@ -206,3 +211,6 @@ namespace Experimental {
 }
 
 Error.stackTraceLimit = 100000;
+
+// export parts of the low-level bindings interface for advanced users
+export * as Core from './bindings/index.js';

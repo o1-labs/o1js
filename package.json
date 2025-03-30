@@ -82,7 +82,6 @@
     "@influxdata/influxdb-client": "^1.33.2",
     "@noble/hashes": "^1.3.2",
     "@playwright/test": "^1.48.0",
-    "@types/isomorphic-fetch": "^0.0.36",
     "@types/jest": "^27.0.0",
     "@types/node": "^18.14.2",
     "esbuild": "^0.19.2",
@@ -110,7 +109,6 @@
   "dependencies": {
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
-    "isomorphic-fetch": "^3.0.0",
     "js-sha256": "^0.9.0",
     "reflect-metadata": "^0.1.13",
     "tslib": "^2.3.0",
