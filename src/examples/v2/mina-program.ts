@@ -1,4 +1,4 @@
-import { Bool, Experimental, Field, Int64, PrivateKey, PublicKey, UInt32, UInt64 } from 'o1js';
+import { Bool, Experimental, Field, PrivateKey, PublicKey, UInt32 } from 'o1js';
 
 const V2 = Experimental.V2;
 
@@ -52,7 +52,7 @@ const feePayerAddress = feePayerKey.toPublicKey();
 
 const feePayer = V2.Account.empty(new V2.AccountId(feePayerAddress, V2.TokenId.MINA));
 feePayer.nonce = new UInt32(4);
-feePayer.balance = new UInt64(100 * 10 ** 9);
+feePayer.balance = V2.MinaAmount.fromMINA(1000);
 
 const appKey = PrivateKey.random();
 const app = V2.Account.empty(new V2.AccountId(appKey.toPublicKey(), V2.TokenId.MINA));
@@ -78,7 +78,7 @@ const testTransaction = await V2.createZkappCommand(
   authEnv,
   {
     feePayer: feePayerAddress,
-    fee: UInt64.from(1000000000),
+    fee: V2.MinaAmount.fromMINA(1),
   },
   async (ctx) => {
     ctx.add(
@@ -86,7 +86,7 @@ const testTransaction = await V2.createZkappCommand(
         accountId: feePayer.accountId,
         authorizationKind: 'Signature',
         incrementNonce: new Bool(true),
-        balanceChange: Int64.from(2000000000 * -1),
+        balanceChange: V2.BalanceChange.negative.fromMINA(2n),
         preconditions: {
           account: {
             nonce: ctx.ledger.getAccount(feePayer.accountId)?.nonce ?? UInt32.zero,
@@ -101,7 +101,7 @@ const testTransaction = await V2.createZkappCommand(
         authorizationKind: 'Signature',
         useFullCommitment: new Bool(true),
         implicitAccountCreationFee: new Bool(true),
-        balanceChange: Int64.from(1000000000),
+        balanceChange: V2.BalanceChange.positive.fromMINA(1n),
         setVerificationKey: compiledTestProgram.verificationKey,
         setPermissions: {
           editState: 'Proof',
