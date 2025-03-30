@@ -28,10 +28,11 @@ const TestProgram = V2.MinaProgram({
 
   methods: {
     init: {
-      privateInputs: [],
+      privateInputs: [Field],
 
       async method(
-        _env: Experimental.V2.MinaProgramEnv<TestState>
+        _env: Experimental.V2.MinaProgramEnv<TestState>,
+        value: Field
       ): Promise<Experimental.V2.MinaProgramMethodReturn<TestState>> {
         return {
           incrementNonce: new Bool(true),
@@ -42,9 +43,9 @@ const TestProgram = V2.MinaProgram({
             },
           },
 
-          /*    setState: {
-            x: new V2.Update(Bool(true)) as never, // ugly fix, this needs to be fixed asap
-          }, */
+          setState: {
+            x: V2.Update.from(value, Field(0)) as never,
+          },
         };
       },
     },
@@ -127,7 +128,7 @@ const testTransaction = await V2.createZkappCommand(
       })
     );
 
-    await TestProgram.init(ctx, app.accountId);
+    await TestProgram.init(ctx, app.accountId, Field(3) as never);
   }
 );
 
