@@ -1,6 +1,5 @@
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
-import { UInt64 } from '../../provable/int.js';
 import { Provable } from '../../provable/types/provable-intf.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { bytesToBits, stringToBytes } from '../../../bindings/lib/binable.js';
