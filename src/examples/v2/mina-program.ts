@@ -4,10 +4,12 @@ const V2 = Experimental.V2;
 
 type TestState = {
   x: typeof Field;
+  address: typeof PublicKey;
 };
 
 const TestState: Experimental.V2.StateDefinition<TestState> = V2.State({
   x: Field,
+  address: PublicKey,
 });
 
 const TestProgram = V2.MinaProgram({
@@ -21,7 +23,7 @@ const TestProgram = V2.MinaProgram({
       privateInputs: [Field],
 
       async method(
-        _env: Experimental.V2.MinaProgramEnv<TestState>,
+        env: Experimental.V2.MinaProgramEnv<TestState>,
         value: Field
       ): Promise<Experimental.V2.MinaProgramMethodReturn<TestState>> {
         return {
@@ -35,6 +37,7 @@ const TestProgram = V2.MinaProgram({
 
           setState: {
             x: V2.Update.from(value, Field(0)) as never,
+            address: V2.Update.from(env.accountId.publicKey, PublicKey.empty()) as never,
           },
         };
       },
