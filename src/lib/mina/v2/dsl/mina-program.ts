@@ -24,6 +24,16 @@ import { PublicKey } from '../../../provable/crypto/signature.js';
 import { Unconstrained } from '../../../provable/types/unconstrained.js';
 import { VerificationKey } from '../../../proof-system/verification-key.js';
 import { ZkappConstants } from '../../v1/constants.js';
+
+export {
+  MinaProgramEnv,
+  MinaProgramMethodReturn,
+  MinaProgramMethodImpl,
+  MinaProgramMethodProver,
+  MinaProgramDescription,
+  MinaProgram,
+};
+
 // TODO: move
 // boo typescript
 function mapObject<In extends { [key: string]: any }, Out extends { [key in keyof In]: any }>(
@@ -37,7 +47,7 @@ function mapObject<In extends { [key: string]: any }, Out extends { [key in keyo
   return newObject as { [key in keyof In]: Out[key] };
 }
 
-export class MinaProgramEnv<State extends StateLayout> {
+class MinaProgramEnv<State extends StateLayout> {
   private expectedPreconditions: Unconstrained<{
     balance?: MinaAmount;
     nonce?: UInt32;
@@ -164,7 +174,7 @@ export class MinaProgramEnv<State extends StateLayout> {
   }
 }
 
-export type MinaProgramMethodReturn<
+type MinaProgramMethodReturn<
   State extends StateLayout = 'GenericState',
   Event = Field[],
   Action = Field[]
@@ -178,7 +188,7 @@ export type MinaProgramMethodReturn<
     >
   | ContextFreeAccountUpdate<State, Event, Action>;
 
-export type MinaProgramMethodImpl<
+type MinaProgramMethodImpl<
   State extends StateLayout,
   Event,
   Action,
@@ -192,7 +202,7 @@ export type MinaProgramMethodImpl<
 };
 
 // TODO: return the tree, not the proof and the single update
-export type MinaProgramMethodProver<
+type MinaProgramMethodProver<
   State extends StateLayout,
   Event,
   Action,
@@ -203,7 +213,7 @@ export type MinaProgramMethodProver<
   ...args: ProvableTupleInstances<PrivateInputs>
 ) => Promise<AccountUpdateTree<AccountUpdate<State, Event, Action>, AccountUpdate>>;
 
-export interface MinaProgramDescription<
+interface MinaProgramDescription<
   State extends StateLayout,
   Event,
   Action,
@@ -224,7 +234,7 @@ export interface MinaProgramDescription<
 }
 
 // TODO: use ZkProgram types to help construct this
-export type MinaProgram<
+type MinaProgram<
   State extends StateLayout,
   Event,
   Action,
@@ -434,7 +444,7 @@ function proverMethod<
   };
 }
 
-export function MinaProgram<
+function MinaProgram<
   State extends StateLayout,
   Event,
   Action,

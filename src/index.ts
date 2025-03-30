@@ -150,6 +150,12 @@ namespace Experimental {
     > = V2_.MinaProgramMethodReturn<State, Event, Action>;
     export type StateDefinition<State extends V2_.StateLayout> = V2_.StateDefinition<State>;
     export type ZkappCommandAuthorizationEnvironment = V2_.ZkappCommandAuthorizationEnvironment;
+    export type MinaProgram<
+      State extends StateLayout,
+      Event,
+      Action,
+      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple }
+    > = V2_.MinaProgram<State, Event, Action, MethodPrivateInputs>;
   }
 
   export let memoizeWitness = Experimental_.memoizeWitness;
