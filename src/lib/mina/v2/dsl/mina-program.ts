@@ -9,7 +9,7 @@ import {
 } from '../account-update.js';
 import { AccountUpdateAuthorizationKind } from '../authorization.js';
 import { Account, AccountId } from '../account.js';
-import { mapObject, MinaAmount, ProvableTuple, ProvableTupleInstances } from '../core.js';
+import { mapObject, ProvableTuple, ProvableTupleInstances } from '../core.js';
 import { getCallerFrame } from '../errors.js';
 import { StateDefinition, StateMask, StateLayout, StateReader, StateValues } from '../state.js';
 import { checkAndApplyAccountUpdate } from '../zkapp-logic.js';
@@ -24,6 +24,7 @@ import { PublicKey } from '../../../provable/crypto/signature.js';
 import { Unconstrained } from '../../../provable/types/unconstrained.js';
 import { VerificationKey } from '../../../proof-system/verification-key.js';
 import { ZkappConstants } from '../../v1/constants.js';
+import { MinaAmount } from '../currency.js';
 
 export {
   MinaProgramEnv,
@@ -157,7 +158,7 @@ class MinaProgramEnv<State extends StateLayout> {
 
   static check<State extends StateLayout>(_x: MinaProgramEnv<State>) {
     // TODO NOW
-    // throw new Error('TODO');
+    //throw new Error('TODO');
   }
 }
 
