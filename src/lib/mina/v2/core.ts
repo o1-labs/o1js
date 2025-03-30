@@ -25,7 +25,20 @@ export {
   ProvableTupleInstances,
   TokenId,
   ZkappUri,
+  mapObject,
 };
+
+// boo typescript
+function mapObject<In extends { [key: string]: any }, Out extends { [key in keyof In]: any }>(
+  object: In,
+  f: <Key extends keyof In>(key: Key) => Out[Key]
+): { [key in keyof In]: Out[key] } {
+  const newObject: Partial<{ [key in keyof In]: Out[key] }> = {};
+  for (const key in object) {
+    newObject[key] = f(key);
+  }
+  return newObject as { [key in keyof In]: Out[key] };
+}
 
 const { Option, Range } = Bindings.Leaves;
 type Option<T> = Bindings.Leaves.Option<T>;
