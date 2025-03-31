@@ -165,7 +165,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     toBigInt(): bigint {
       let result = 0n;
       for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        result |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i); 
+        result |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i);
       }
       return result;
     }
@@ -588,6 +588,14 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is greater than b
+     *
+     * TODO: Comparators should ensure than inputs are canonical fields (value < p).
+     *       e.g.
+     *       ```ts
+     *       let delta = x.sub(x); // not guaranteed to be < p, could be = p
+     *       delta.greaterThan(ProvableBigInt.zero()).assertTrue(); // (p > 0) = true, (0 > 0) = false
+     *       ```
+     *
      */
     greaterThan(a: ProvableBigInt_): Bool {
       return this.fields
@@ -606,6 +614,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is greater than or equal to b
+     *
+     * TODO: @see {@link greaterThan}
+     *
      */
     greaterThanOrEqual(a: ProvableBigInt_): Bool {
       return this.fields
@@ -625,6 +636,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than b
+     *
+     * TODO: @see {@link greaterThan}
+     *
      */
     lessThan(a: ProvableBigInt_): Bool {
       return this.fields
@@ -640,6 +654,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
+     *
+     * TODO: @see {@link greaterThan}
      */
     lessThanOrEqual(a: ProvableBigInt_): Bool {
       return this.fields
@@ -656,6 +672,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is equal to b
+     *
+     * TODO: @see {@link greaterThan}
      */
     equals(a: ProvableBigInt_): Bool {
       return this.fields
@@ -668,6 +686,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
+     *
+     * TODO: @see {@link greaterThan}
      */
     assertEquals(a: ProvableBigInt_) {
       this.equals(a).assertTrue('ProvableBigInts are not equal');

@@ -1154,8 +1154,18 @@ describe('BigInt255', () => {
     });
 
     it('should correctly compare BigInt255 numbers properly', () => {
-      const a = BigInt255.Unsafe.fromFields([new Field(1), new Field(3), new Field(3), new Field(0)]);
-      const b = BigInt255.Unsafe.fromFields([new Field(1), new Field(2), new Field(4), new Field(0)]);
+      const a = BigInt255.Unsafe.fromFields([
+        new Field(1),
+        new Field(3),
+        new Field(3),
+        new Field(0),
+      ]);
+      const b = BigInt255.Unsafe.fromFields([
+        new Field(1),
+        new Field(2),
+        new Field(4),
+        new Field(0),
+      ]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
@@ -1164,7 +1174,12 @@ describe('BigInt255', () => {
     });
 
     it('should correctly compare BigInt255 numbers properly', () => {
-      const a = BigInt255.Unsafe.fromFields([new Field(1), new Field(0), new Field(4), new Field(0)]);
+      const a = BigInt255.Unsafe.fromFields([
+        new Field(1),
+        new Field(0),
+        new Field(4),
+        new Field(0),
+      ]);
       const b = BigInt255.Unsafe.fromFields([
         new Field(1),
         new Field(18446744073709551615n),
@@ -1185,7 +1200,12 @@ describe('BigInt255', () => {
         new Field(1),
         new Field(0),
       ]);
-      const b = BigInt255.Unsafe.fromFields([new Field(1), new Field(1), new Field(2), new Field(0)]);
+      const b = BigInt255.Unsafe.fromFields([
+        new Field(1),
+        new Field(1),
+        new Field(2),
+        new Field(0),
+      ]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
@@ -1768,8 +1788,18 @@ describe('BigInt381', () => {
     });
 
     it('should correctly compare BigInt381 numbers properly', () => {
-      const a = BigInt381.Unsafe.fromFields([new Field(1), new Field(3), new Field(3), new Field(0)]);
-      const b = BigInt381.Unsafe.fromFields([new Field(1), new Field(2), new Field(4), new Field(0)]);
+      const a = BigInt381.Unsafe.fromFields([
+        new Field(1),
+        new Field(3),
+        new Field(3),
+        new Field(0),
+      ]);
+      const b = BigInt381.Unsafe.fromFields([
+        new Field(1),
+        new Field(2),
+        new Field(4),
+        new Field(0),
+      ]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
@@ -1778,7 +1808,12 @@ describe('BigInt381', () => {
     });
 
     it('should correctly compare BigInt381 numbers properly', () => {
-      const a = BigInt381.Unsafe.fromFields([new Field(1), new Field(0), new Field(4), new Field(0)]);
+      const a = BigInt381.Unsafe.fromFields([
+        new Field(1),
+        new Field(0),
+        new Field(4),
+        new Field(0),
+      ]);
       const b = BigInt381.Unsafe.fromFields([
         new Field(1),
         new Field(18446744073709551615n),
@@ -1799,7 +1834,12 @@ describe('BigInt381', () => {
         new Field(1),
         new Field(0),
       ]);
-      const b = BigInt381.Unsafe.fromFields([new Field(1), new Field(1), new Field(2), new Field(0)]);
+      const b = BigInt381.Unsafe.fromFields([
+        new Field(1),
+        new Field(1),
+        new Field(2),
+        new Field(0),
+      ]);
       expect(a.equals(b).toBoolean()).toStrictEqual(false);
       expect(a.lessThan(b).toBoolean()).toStrictEqual(true);
       expect(a.greaterThanOrEqual(b).toBoolean()).toStrictEqual(false);
