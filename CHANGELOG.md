@@ -48,6 +48,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
 - Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
 - Add `UInt64.toBytes()`l https://github.com/o1-labs/o1js/pull/2060 [@kadirchan](https://github.com/kadirchan)
+- **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
 
 ### Changed
 
