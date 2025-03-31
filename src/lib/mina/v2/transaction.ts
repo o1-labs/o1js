@@ -6,11 +6,11 @@ import {
 import { AccountUpdate, AccountUpdateTree, Authorized, GenericData } from './account-update.js';
 import { Account, AccountId, AccountIdSet } from './account.js';
 import { TokenId } from './core.js';
-import { AccountUpdateErrorTrace, getCallerFrame } from './errors.js';
+import { AccountUpdateErrorTrace, getCallerFrame, ZkappCommandErrorTrace } from './errors.js';
 import { Precondition } from './preconditions.js';
 import { StateLayout } from './state.js';
 import { ChainView, LedgerView } from './views.js';
-import { ApplyState, checkAndApplyAccountUpdate } from './zkapp-logic.js';
+import { ApplyState, checkAndApplyAccountUpdate, checkAndApplyFeePayment } from './zkapp-logic.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
@@ -22,7 +22,13 @@ import { hashWithPrefix, prefixes } from '../../../mina-signer/src/poseidon-bigi
 import { Signature, signFieldElement } from '../../../mina-signer/src/signature.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 
-export { ZkappCommand, ZkappFeePayment, ZkappCommandContext, AuthorizedZkappCommand };
+export {
+  ZkappCommand,
+  ZkappFeePayment,
+  ZkappCommandContext,
+  AuthorizedZkappCommand,
+  createZkappCommand,
+};
 
 interface ZkappFeePaymentDescription {
   publicKey: PublicKey;
@@ -358,7 +364,7 @@ class ZkappCommandContext {
 //                 account updates are still applied to the provided ledger view. We should
 //                 probably make the ledger view interface immutable, or clone it every time we
 //                 create a new zkapp command, to help avoid unexpected behavior externally.
-/*
+
 async function createUnsignedZkappCommand(
   ledger: LedgerView,
   chain: ChainView,
@@ -431,8 +437,7 @@ async function createUnsignedZkappCommand(
     );
   }
 }
-*/
-/*
+
 async function createZkappCommand(
   ledger: LedgerView,
   chain: ChainView,
@@ -447,5 +452,3 @@ async function createZkappCommand(
   const unsignedCmd = await createUnsignedZkappCommand(ledger, chain, feePayment, f);
   return unsignedCmd.authorize(authEnv);
 }
-
-*/

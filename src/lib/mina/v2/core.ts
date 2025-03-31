@@ -1,6 +1,5 @@
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
-import { UInt64 } from '../../provable/int.js';
 import { Provable } from '../../provable/types/provable-intf.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { bytesToBits, stringToBytes } from '../../../bindings/lib/binable.js';
@@ -12,7 +11,6 @@ import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 export {
   Option,
   Range,
-  MinaAmount,
   mapUndefined,
   Empty,
   Update,
@@ -25,14 +23,24 @@ export {
   ProvableTupleInstances,
   TokenId,
   ZkappUri,
+  mapObject,
 };
+
+// boo typescript
+function mapObject<In extends { [key: string]: any }, Out extends { [key in keyof In]: any }>(
+  object: In,
+  f: <Key extends keyof In>(key: Key) => Out[Key]
+): { [key in keyof In]: Out[key] } {
+  const newObject: Partial<{ [key in keyof In]: Out[key] }> = {};
+  for (const key in object) {
+    newObject[key] = f(key);
+  }
+  return newObject as { [key in keyof In]: Out[key] };
+}
 
 const { Option, Range } = Bindings.Leaves;
 type Option<T> = Bindings.Leaves.Option<T>;
 type Range<T> = Bindings.Leaves.Range<T>;
-
-// TODO: constructors from Mina and NanoMina
-type MinaAmount = UInt64;
 
 class ZkappUri {
   readonly data: string;
@@ -74,7 +82,6 @@ class ZkappUri {
   }
 }
 
-// TODO
 class TokenId {
   // TODO: construct this from it's parts, don't pass in the raw Field directly
   constructor(public value: Field) {}
