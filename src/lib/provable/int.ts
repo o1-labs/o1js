@@ -536,7 +536,17 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * Turns the {@link UInt64} into a {@link Bool} array. Default length is 64.
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt64} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt64 element fits in `length` bits.
+   * The `length` has to be between 0 and 64 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 64 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt64}.
    */
   toBits(length: number = 64) {
     checkBitLength('UInt64.toBits()', length, 64);
@@ -555,7 +565,17 @@ class UInt64 extends CircuitValue {
   }
 
   /**
-   * Create a {@link UInt64} from a {@link Bool} array.
+   * Convert a bit array into a {@link UInt64} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt64 element. In this case, no more than 64 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt64} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt64} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt64} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
    */
   static fromBits(bits: (Bool | boolean)[]) {
     const length = bits.length;
@@ -1069,7 +1089,17 @@ class UInt32 extends CircuitValue {
   }
 
   /**
-   * Turns the {@link UInt32} into a {@link Bool} array. Default length is 32.
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt32} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt32 element fits in `length` bits.
+   * The `length` has to be between 0 and 32 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 32 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt32}.
    */
   toBits(length: number = 32) {
     checkBitLength('UInt32.toBits()', length, 32);
@@ -1088,7 +1118,17 @@ class UInt32 extends CircuitValue {
   }
 
   /**
-   * Create a {@link UInt32} from a {@link Bool} array.
+   * Convert a bit array into a {@link UInt32} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt32 element. In this case, no more than 32 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt32} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt32} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt32} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
    */
   static fromBits(bits: (Bool | boolean)[]) {
     const length = bits.length;
