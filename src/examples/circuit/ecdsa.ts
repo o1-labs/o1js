@@ -17,11 +17,7 @@ class Bytes32 extends Bytes(32) {}
 
 class Reserves extends Circuit {
   @circuitMain
-  static main(
-    @public_ message: Bytes32,
-    signature: Ecdsa,
-    publicKey: Secp256k1
-  ) {
+  static main(@public_ message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
     assert(signature.verify(message, publicKey));
   }
 }

@@ -1,4 +1,5 @@
-import { VerificationKey, Void, ZkProgram } from './zkprogram.js';
+import { Void, ZkProgram } from './zkprogram.js';
+import { VerificationKey } from './verification-key.js';
 import { DynamicProof } from './proof.js';
 import { Field, SmartContract, Struct, method } from '../../index.js';
 import { it, describe } from 'node:test';
@@ -56,11 +57,7 @@ const sideloadedProgram = ZkProgram({
   methods: {
     recurseOneSideloaded: {
       privateInputs: [SampleSideloadedProof, VerificationKey],
-      async method(
-        publicInput: Field,
-        proof: SampleSideloadedProof,
-        vk: VerificationKey
-      ) {
+      async method(publicInput: Field, proof: SampleSideloadedProof, vk: VerificationKey) {
         proof.verify(vk);
 
         proof.publicInput.assertEquals(publicInput, 'PublicInput not matching');
@@ -122,11 +119,7 @@ const sideloadedProgram2 = ZkProgram({
 });
 
 export class SideloadedSmartContract extends SmartContract {
-  @method async setValue(
-    value: Field,
-    proof: SampleSideloadedProof,
-    vk: VerificationKey
-  ) {
+  @method async setValue(value: Field, proof: SampleSideloadedProof, vk: VerificationKey) {
     proof.verify(vk);
     proof.publicInput.assertEquals(value);
   }

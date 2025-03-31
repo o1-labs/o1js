@@ -1,13 +1,4 @@
-import {
-  SelfProof,
-  Field,
-  ZkProgram,
-  verify,
-  Proof,
-  JsonProof,
-  Provable,
-  Empty,
-} from 'o1js';
+import { Field, ZkProgram, verify } from 'o1js';
 
 let MyProgram = ZkProgram({
   name: 'example-with-output',
@@ -24,6 +15,14 @@ let MyProgram = ZkProgram({
   },
 });
 
-await MyProgram.compile();
+console.time('compile (with cache)');
+let { verificationKey } = await MyProgram.compile();
+console.timeEnd('compile (with cache)');
 
+console.time('proving');
 let result = await MyProgram.baseCase();
+console.timeEnd('proving');
+
+console.log('verifying');
+let ok = await verify(result.proof, verificationKey);
+console.log('ok', ok);

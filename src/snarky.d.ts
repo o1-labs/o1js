@@ -1,4 +1,4 @@
-import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
+import type { Account as JsonAccount } from './bindings/mina-transaction/gen/v1/transaction-json.ts';
 import type { Field } from './lib/provable/field.js';
 import type {
   FieldVar,
@@ -47,7 +47,22 @@ export {
   MlPublicKey,
   MlPublicKeyVar,
   MlFeatureFlags,
+  areBindingsInitialized,
+  Base64ProofString,
+  Base64VerificationKeyString,
 };
+
+declare let areBindingsInitialized: boolean;
+
+/**
+ * A string representation of a Pickles proof in base64 encoding, used for communication between OCaml and TypeScript and for JSON serialization.
+ */
+type Base64ProofString = string;
+
+/**
+ * A string representation of a constraint system's verification key in base64 encoding, used for communication between OCaml and TypeScript and for JSON serialization.
+ */
+type Base64VerificationKeyString = string;
 
 type WasmModule = typeof wasm;
 
@@ -82,6 +97,7 @@ declare const Snarky: {
      * Check whether we are inside an asProver or exists block
      */
     inProverBlock(): boolean;
+
     /**
      * Setting that controls whether snarky throws an exception on violated constraint.
      */
@@ -625,6 +641,7 @@ declare namespace Pickles {
     main: (publicInput: MlArray<FieldVar>) => Promise<{
       publicOutput: MlArray<FieldVar>;
       previousStatements: MlArray<Statement<FieldVar>>;
+      previousProofs: MlArray<Proof>;
       shouldVerify: MlArray<BoolVar>;
     }>;
     /**
@@ -652,8 +669,7 @@ declare namespace Pickles {
   ];
 
   type Prover = (
-    publicInput: MlArray<FieldConst>,
-    previousProofs: MlArray<Proof>
+    publicInput: MlArray<FieldConst>
   ) => Promise<[_: 0, publicOutput: MlArray<FieldConst>, proof: Proof]>;
 }
 
@@ -697,13 +713,15 @@ declare const Pickles: {
     /**
      * @returns (base64 vk, hash)
      */
-    getVerificationKey: () => Promise<[_: 0, data: string, hash: FieldConst]>;
+    getVerificationKey: () => Promise<
+      [_: 0, data: Base64VerificationKeyString, hash: FieldConst]
+    >;
   };
 
   verify(
     statement: Pickles.Statement<FieldConst>,
     proof: Pickles.Proof,
-    verificationKey: string
+    verificationKey: Base64VerificationKeyString
   ): Promise<boolean>;
 
   loadSrsFp(): WasmFpSrs;
@@ -717,12 +735,16 @@ declare const Pickles: {
   /**
    * @returns (base64 vk, hash)
    */
-  dummyVerificationKey: () => [_: 0, data: string, hash: FieldConst];
+  dummyVerificationKey: () => [
+    _: 0,
+    data: Base64VerificationKeyString,
+    hash: FieldConst
+  ];
 
   encodeVerificationKey: (vk: MlWrapVerificationKey) => string;
   decodeVerificationKey: (vk: string) => MlWrapVerificationKey;
 
-  proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => string;
+  proofToBase64: (proof: [0 | 1 | 2, Pickles.Proof]) => Base64ProofString;
   proofOfBase64: <N extends 0 | 1 | 2>(
     base64: string,
     maxProofsVerified: N
@@ -742,7 +764,10 @@ declare const Pickles: {
     // Instantiate the verification key inside the circuit (required).
     inCircuit: (tag: unknown, verificationKey: unknown) => undefined;
     // Instantiate the verification key in prover-only logic (also required).
-    inProver: (tag: unknown, verificationKey: string) => undefined;
+    inProver: (
+      tag: unknown,
+      verificationKey: Base64VerificationKeyString
+    ) => undefined;
     // Create an in-circuit representation of a verification key
     vkToCircuit: (
       verificationKey: () => string

@@ -37,11 +37,9 @@ export { Unconstrained };
  * ```
  */
 class Unconstrained<T> {
-  private option:
-    | { isSome: true; value: T }
-    | { isSome: false; value: undefined };
+  private option: { isSome: true; value: T } | { isSome: false; value: undefined };
 
-  private constructor(isSome: boolean, value?: T) {
+  constructor(isSome: boolean, value?: T) {
     this.option = { isSome, value: value as any };
   }
 

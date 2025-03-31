@@ -1,7 +1,6 @@
 import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
 import { Field, checkBitLength } from './field.js';
-import { FieldVar } from './core/fieldvar.js';
 import { Bool } from './bool.js';
 import {
   ShiftedScalar,
@@ -52,6 +51,7 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
+   * @internal
    * Provable method to convert a {@link ShiftedScalar} to a {@link Scalar}.
    */
   static fromShiftedScalar(s: ShiftedScalar) {
@@ -78,6 +78,7 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
+   * @internal
    * Convert this {@link Scalar} into a constant if it isn't already.
    *
    * If the scalar is a variable, this only works inside `asProver` or `witness` blocks.
@@ -244,8 +245,8 @@ class Scalar implements ShiftedScalar {
    * @return An object where the `fields` key is a {@link Field} array of length 1 created from this {@link Field}.
    *
    */
-  static toInput(x: Scalar): HashInput {
-    return { fields: [x.high254], packed: [[x.lowBit.toField(), 1]] };
+  static toInput(value: Scalar): HashInput {
+    return { fields: [value.high254], packed: [[value.lowBit.toField(), 1]] };
   }
 
   /**
@@ -263,10 +264,7 @@ class Scalar implements ShiftedScalar {
    * Creates a data structure from an array of serialized {@link Field} elements.
    */
   static fromFields(fields: Field[]): Scalar {
-    assert(
-      fields.length === 2,
-      `Scalar.fromFields(): expected 2 fields, got ${fields.length}`
-    );
+    assert(fields.length === 2, `Scalar.fromFields(): expected 2 fields, got ${fields.length}`);
     let lowBit = Bool.Unsafe.fromField(fields[0]);
     let high254 = fields[1];
     return new Scalar(lowBit, high254);
