@@ -1,11 +1,11 @@
 // Views into chain-state (ledger and best block)
 
-import { Account, AccountId } from './account.js';
-import { MinaAmount } from './core.js';
+import { Account, AccountId, AccountIdMap } from './account.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
+import { MinaAmount } from './currency.js';
 
-export { ChainView, EpochData, EpochLedgerData, LedgerView, LocalChain };
+export { ChainView, EpochData, EpochLedgerData, LedgerView, LocalChain, LocalLedger };
 interface ChainView {
   snarkedLedgerHash: Field;
   blockchainLength: UInt32;
@@ -94,7 +94,6 @@ class LocalChain implements ChainView {
   }
 }
 
-/*
 class LocalLedger implements LedgerView {
   private accounts: AccountIdMap<Account>;
 
@@ -127,4 +126,3 @@ class LocalLedger implements LedgerView {
     });
   }
 }
-*/

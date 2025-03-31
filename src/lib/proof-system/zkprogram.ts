@@ -42,7 +42,7 @@ import { mapObject, mapToObject, zip } from '../util/arrays.js';
 import { VerificationKey } from './verification-key.js';
 
 // public API
-export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void };
+export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, Method };
 
 // internal API
 export {
