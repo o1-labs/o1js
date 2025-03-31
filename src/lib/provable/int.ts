@@ -19,7 +19,6 @@ import {
 import { assert } from '../util/assert.js';
 import { TupleN } from '../util/types.js';
 import { bytesToWord, wordToBytes } from './gadgets/bit-slices.js';
-import { Fp } from '../../bindings/crypto/finite-field.js';
 import { BinableFp } from '../../mina-signer/src/field-bigint.js';
 
 // external API
