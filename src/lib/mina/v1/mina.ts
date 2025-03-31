@@ -5,7 +5,7 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
 import { humanizeErrors, invalidTransactionError } from './errors.js';
-import { Types } from '../../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { Account } from './account.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { currentTransaction } from './transaction-context.js';
@@ -463,7 +463,7 @@ async function waitForFunding(address: string, headers?: HeadersInit): Promise<v
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
  */
-async function faucet(pub: PublicKey, network: string = 'berkeley-qanet', headers?: HeadersInit) {
+async function faucet(pub: PublicKey, network: string = 'devnet', headers?: HeadersInit) {
   let address = pub.toBase58();
   let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
     method: 'POST',

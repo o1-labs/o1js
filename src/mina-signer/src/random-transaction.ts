@@ -1,7 +1,10 @@
 import { SignedLegacy } from './transaction-hash.js';
 import { DelegationJson, PaymentJson } from './sign-legacy.js';
 import { Random } from '../../lib/testing/property.js';
-import { PublicKey, ZkappCommand } from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+import {
+  PublicKey,
+  ZkappCommand,
+} from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
 import { PrivateKey } from './curve-bigint.js';
 import { Signature } from './signature.js';
 import { NetworkId } from './types.js';

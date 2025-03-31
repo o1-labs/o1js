@@ -22,7 +22,7 @@ import * as Fetch from './fetch.js';
 import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
 import { type FetchMode } from './transaction-context.js';
 import { assertPromise } from '../../util/assert.js';
-import { Types } from '../../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { getTotalTimeRequired } from './transaction-validation.js';
 
 export {
