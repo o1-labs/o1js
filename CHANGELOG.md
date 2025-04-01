@@ -20,6 +20,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Support of runtime tables https://github.com/o1-labs/o1js/pull/1858
+- _Experimental_ Introducing `MinaProgram`, a new powerful API for interacting with Mina Protocol. https://github.com/o1-labs/o1js/pull/2095
+  - New functions and types for `MinaProgram`
 - Export various internal functions and types. https://github.com/o1-labs/o1js/pull/2083
 - Export part of the core cryptography layer via the `Core` namespace. https://github.com/o1-labs/o1js/pull/2083
 - _Experimental_ New bindings layer for new API types. https://github.com/o1-labs/o1js/pull/2032
@@ -29,6 +31,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Bump up Rust version to 1.79.0. Bindings now depends on nightly-2024-06-13.
   https://github.com/o1-labs/o1js/pull/2063
 - `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](httpts://github.com/o1-labs/o1js/pull/2091)
+- `toBits()` and `fromBits()` methods added for `UInt32` and `UInt64` classes. https://github.com/o1-labs/o1js/pull/2099
 
 ## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
@@ -46,6 +49,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
 - Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
 - Add `UInt64.toBytes()`l https://github.com/o1-labs/o1js/pull/2060 [@kadirchan](https://github.com/kadirchan)
+- **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
 
 ### Changed
 

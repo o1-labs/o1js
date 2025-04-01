@@ -625,6 +625,35 @@ describe('int', () => {
           });
         });
       });
+
+      describe('toBits() / fromBits()', () => {
+        it('should be the same as 12345678', async () => {
+          await Provable.runAndCheck(async () => {
+            const x = Provable.witness(UInt64, () => UInt64.from(12345678n));
+            const bits = x.toBits();
+            const xReconstructed = UInt64.fromBits(bits);
+            xReconstructed.assertEquals(x);
+          });
+        });
+
+        it('should be the same as 2^53-1', async () => {
+          await Provable.runAndCheck(async () => {
+            const x = Provable.witness(UInt64, () => UInt64.from(NUMBERMAX));
+            const bits = x.toBits();
+            const xReconstructed = UInt64.fromBits(bits);
+            xReconstructed.assertEquals(x);
+          });
+        });
+
+        it('should be the same as 2^64-1', async () => {
+          await Provable.runAndCheck(async () => {
+            const x = Provable.witness(UInt64, () => UInt64.MAXINT());
+            const bits = x.toBits();
+            const xReconstructed = UInt64.fromBits(bits);
+            xReconstructed.assertEquals(x);
+          });
+        });
+      });
     });
 
     describe('Outside of circuit', () => {
@@ -982,6 +1011,66 @@ describe('int', () => {
             const uint = UInt64.from(String(NUMBERMAX));
             expect(uint.value).toEqual(Field(String(NUMBERMAX)));
           });
+        });
+      });
+
+      describe('toBits() and fromBits()', () => {
+        it('fromBits from raw bits 4 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true)];
+          const uint = UInt64.fromBits(bits);
+          expect(uint.toString()).toEqual('10');
+          expect(uint.toBits(4)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 5 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true), Bool(true)];
+          const uint = UInt64.fromBits(bits);
+          expect(uint.toString()).toEqual('26');
+          expect(uint.toBits(5)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 45 bit', () => {
+          const bits = Array(44).fill(Bool(false));
+          bits.push(Bool(true));
+          const uint = UInt64.fromBits(bits);
+          expect(uint.toString()).toEqual((2n ** 44n).toString());
+          expect(uint.toBits(45)).toEqual(bits);
+        });
+
+        it('test with some random values', () => {
+          const testValues = [
+            0,
+            1,
+            256,
+            1234567,
+            2 ** 32 - 1,
+            Number.MAX_SAFE_INTEGER,
+            2n ** 53n,
+            (1n << 63n) - 1n,
+            UInt64.MAXINT(),
+          ];
+          for (let val of testValues) {
+            const original = UInt64.from(val);
+            const bits = original.toBits();
+            const reconstructed = UInt64.fromBits(bits);
+            expect(reconstructed.value).toEqual(original.value);
+          }
+        });
+
+        it('fails if we ask for fewer bits than needed', () => {
+          const len = 16;
+          const val = UInt64.from(0xffff_ffffn);
+          expect(() => val.toBits(len)).toThrow(
+            `UInt64.toBits(): ${val.toString()} does not fit in ${len} bits`
+          );
+        });
+
+        it('fails if we provide a bits array that is too long for UInt64', () => {
+          const len = 65;
+          const badBits = Array(len).fill(Bool(true));
+          expect(() => UInt64.fromBits(badBits)).toThrow(
+            `UInt64.fromBits(): bit length must be 64 or less, got ${len}`
+          );
         });
       });
     });
@@ -1416,6 +1505,26 @@ describe('int', () => {
           });
         });
       });
+
+      describe('toBits() / fromBits()', () => {
+        it('should be the same as 12345', async () => {
+          await Provable.runAndCheck(async () => {
+            const x = Provable.witness(UInt32, () => UInt32.from(12345n));
+            const bits = x.toBits();
+            const xReconstructed = UInt32.fromBits(bits);
+            xReconstructed.assertEquals(x);
+          });
+        });
+
+        it('should be the same as 2^32-1', async () => {
+          await Provable.runAndCheck(async () => {
+            const x = Provable.witness(UInt32, () => UInt32.MAXINT());
+            const bits = x.toBits();
+            const xReconstructed = UInt32.fromBits(bits);
+            xReconstructed.assertEquals(x);
+          });
+        });
+      });
     });
 
     describe('Outside of circuit', () => {
@@ -1773,6 +1882,56 @@ describe('int', () => {
             const x = UInt32.from(String(NUMBERMAX));
             expect(x.value).toEqual(Field(String(NUMBERMAX)));
           });
+        });
+      });
+
+      describe('toBits() and fromBits()', () => {
+        it('fromBits from raw bits 4 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true)];
+          const uint = UInt32.fromBits(bits);
+          expect(uint.toString()).toEqual('10');
+          expect(uint.toBits(4)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 5 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true), Bool(true)];
+          const uint = UInt32.fromBits(bits);
+          expect(uint.toString()).toEqual('26');
+          expect(uint.toBits(5)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 25 bit', () => {
+          const bits = Array(24).fill(Bool(false));
+          bits.push(Bool(true));
+          const uint = UInt32.fromBits(bits);
+          expect(uint.toString()).toEqual((2n ** 24n).toString());
+          expect(uint.toBits(25)).toEqual(bits);
+        });
+
+        it('test with some random values', () => {
+          const testValues = [0, 1, 123, 255, 256, 65535, 65536, 2 ** 31 - 1, UInt32.MAXINT()];
+          for (let val of testValues) {
+            const original = UInt32.from(val);
+            const bits = original.toBits();
+            const reconstructed = UInt32.fromBits(bits);
+            expect(reconstructed.toString()).toEqual(original.toString());
+          }
+        });
+
+        it('fails if we ask for fewer bits than the value needs', () => {
+          const len = 8;
+          const val = UInt32.from(0xfffe);
+          expect(() => val.toBits(len)).toThrow(
+            `UInt32.toBits(): ${val.toString()} does not fit in ${len} bits`
+          );
+        });
+
+        it('fails if we provide a bits array that is longer than 32 in fromBits()', () => {
+          const len = 33;
+          const badBits = Array(len).fill(Bool(true));
+          expect(() => UInt32.fromBits(badBits)).toThrow(
+            `UInt32.fromBits(): bit length must be 32 or less, got ${len}`
+          );
         });
       });
     });
@@ -2535,6 +2694,49 @@ describe('int', () => {
             const x = UInt8.from(NUMBERMAX);
             expect(x.value).toEqual(NUMBERMAX);
           });
+        });
+      });
+
+      describe('toBits() and fromBits()', () => {
+        it('fromBits from raw bits 4 bit', () => {
+          const bits = [Bool(false), Bool(true), Bool(false), Bool(true)];
+          const uint = UInt8.fromBits(bits);
+          expect(uint.toString()).toEqual('10');
+          expect(uint.toBits(4)).toEqual(bits);
+        });
+
+        it('fromBits from raw bits 7 bit', () => {
+          const bits = Array(6).fill(Bool(false));
+          bits.push(Bool(true));
+          const uint = UInt8.fromBits(bits);
+          expect(uint.toString()).toEqual((2n ** 6n).toString());
+          expect(uint.toBits(7)).toEqual(bits);
+        });
+
+        it('test with some random values', () => {
+          const testValues = [0, 1, 123, 255];
+          for (let val of testValues) {
+            const original = UInt8.from(val);
+            const bits = original.toBits();
+            const reconstructed = UInt8.fromBits(bits);
+            expect(reconstructed.toString()).toEqual(original.toString());
+          }
+        });
+
+        it('fails if we ask for fewer bits than the value needs', () => {
+          const len = 6;
+          const val = UInt8.from(0xfe);
+          expect(() => val.toBits(len)).toThrow(
+            `UInt8.toBits(): ${val.toString()} does not fit in ${len} bits`
+          );
+        });
+
+        it('fails if we provide a bits array that is longer than 8 in fromBits()', () => {
+          const len = 10;
+          const badBits = Array(len).fill(Bool(true));
+          expect(() => UInt8.fromBits(badBits)).toThrow(
+            `UInt8.fromBits(): bit length must be 8 or less, got ${len}`
+          );
         });
       });
     });

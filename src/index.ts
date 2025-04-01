@@ -118,14 +118,19 @@ import * as BatchReducer_ from './lib/mina/v1/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/v1/actions/offchain-state-serialization.js';
 import { InferProvable } from './lib/provable/types/struct.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
+import {
+  ProvableBigInt as ProvableBigInt_,
+  createProvableBigInt as createProvableBigInt_,
+} from './lib/provable/bigint.js';
 export { Experimental };
 
-import * as V2 from './lib/mina/v2/index.js';
+import * as V2_ from './lib/mina/v2/index.js';
+import { Field } from './lib/provable/wrapped.js';
 
 const Experimental_ = {
   memoizeWitness,
   IndexedMerkleMap,
-  V2,
+  V2: V2_,
 };
 
 /**
@@ -135,9 +140,30 @@ const Experimental_ = {
 namespace Experimental {
   export let V2 = Experimental_.V2;
 
+  export namespace V2 {
+    export type MinaProgramEnv<State extends V2_.StateLayout> = V2_.MinaProgramEnv<State>;
+    export type StateLayout = V2_.StateLayout;
+    export type MinaProgramMethodReturn<
+      State extends V2_.StateLayout = 'GenericState',
+      Event = Field[],
+      Action = Field[]
+    > = V2_.MinaProgramMethodReturn<State, Event, Action>;
+    export type StateDefinition<State extends V2_.StateLayout> = V2_.StateDefinition<State>;
+    export type ZkappCommandAuthorizationEnvironment = V2_.ZkappCommandAuthorizationEnvironment;
+    export type MinaProgram<
+      State extends StateLayout,
+      Event,
+      Action,
+      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple }
+    > = V2_.MinaProgram<State, Event, Action, MethodPrivateInputs>;
+  }
+
   export let memoizeWitness = Experimental_.memoizeWitness;
 
   export let Recursive = Recursive_;
+
+  export let ProvableBigInt = ProvableBigInt_;
+  export let createProvableBigInt = createProvableBigInt_;
 
   // indexed merkle map
   export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;
