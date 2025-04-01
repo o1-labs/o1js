@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- Support of runtime tables https://github.com/o1-labs/o1js/pull/1858
 - _Experimental_ Introducing `MinaProgram`, a new powerful API for interacting with Mina Protocol. https://github.com/o1-labs/o1js/pull/2095
   - New functions and types for `MinaProgram`
 - Export various internal functions and types. https://github.com/o1-labs/o1js/pull/2083
