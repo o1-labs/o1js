@@ -67,8 +67,10 @@ const FeatureFlags = {
   /**
    * Given a ZkProgram, return the feature flag configuration that fits the given program.
    * This function considers all methods of the specified ZkProgram and finds a configuration that fits all.
+   * Optionally, it accepts a flag indicating whether runtime tables are used in the program (default is false)
    */
-  fromZkProgram: async (program: AnalysableProgram) => await fromZkProgramList([program]),
+  fromZkProgram: async (program: AnalysableProgram, withRuntimeTables = false) =>
+    await fromZkProgramList([program], withRuntimeTables),
 
   /**
    * Given a list of ZkPrograms, return the feature flag configuration that fits the given set of programs.
@@ -77,22 +79,23 @@ const FeatureFlags = {
   fromZkProgramList,
 };
 
-async function fromZkProgramList(programs: Array<AnalysableProgram>) {
+async function fromZkProgramList(programs: Array<AnalysableProgram>, withRuntimeTables = false) {
   let flatMethodIntfs: Array<Awaited<ReturnType<typeof analyzeMethod>>> = [];
   for (const program of programs) {
     let methodInterface = await program.analyzeMethods();
     flatMethodIntfs.push(...Object.values(methodInterface));
   }
 
-  return featureFlagsfromFlatMethodIntfs(flatMethodIntfs);
+  return featureFlagsfromFlatMethodIntfs(flatMethodIntfs, withRuntimeTables);
 }
 
 async function featureFlagsfromFlatMethodIntfs(
-  methodIntfs: Array<Awaited<ReturnType<typeof analyzeMethod>>>
+  methodIntfs: Array<Awaited<ReturnType<typeof analyzeMethod>>>,
+  runtimeTables = false
 ): Promise<FeatureFlags> {
   // compute feature flags that belong to each method
   let flags = methodIntfs.map(({ gates }) => {
-    return featureFlagsFromGates(gates);
+    return featureFlagsFromGates(gates, runtimeTables);
   });
   if (flags.length === 0)
     throw Error(
@@ -142,7 +145,7 @@ const gateToFlag: Partial<Record<GateType, keyof FeatureFlags>> = {
   Lookup: 'lookup',
 };
 
-function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
+function featureFlagsFromGates(gates: Gate[], runtimeTables = false): FeatureFlags {
   let flags: FeatureFlags = {
     rangeCheck0: false,
     rangeCheck1: false,
@@ -151,7 +154,7 @@ function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
     xor: false,
     rot: false,
     lookup: false,
-    runtimeTables: false,
+    runtimeTables,
   };
   for (let gate of gates) {
     let flag = gateToFlag[gate.type];
@@ -160,7 +163,10 @@ function featureFlagsFromGates(gates: Gate[]): FeatureFlags {
   return flags;
 }
 
-function featureFlagsToMlOption(flags: FeatureFlags): MlArrayOptionalElements<MlFeatureFlags> {
+function featureFlagsToMlOption(
+  flags: FeatureFlags,
+  withRuntimeTables?: boolean
+): MlArrayOptionalElements<MlFeatureFlags> {
   const {
     rangeCheck0,
     rangeCheck1,
@@ -181,6 +187,6 @@ function featureFlagsToMlOption(flags: FeatureFlags): MlArrayOptionalElements<Ml
     MlOption.mapTo(xor, MlBool),
     MlOption.mapTo(rot, MlBool),
     MlOption.mapTo(lookup, MlBool),
-    MlOption.mapTo(runtimeTables, MlBool),
+    MlOption.mapTo(runtimeTables || withRuntimeTables, MlBool),
   ];
 }

@@ -33,7 +33,7 @@ import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
 import { BLAKE2B } from './blake2b.js';
-import { rangeCheck3x12 } from './lookup.js';
+import { rangeCheck3x12, inTable } from './lookup.js';
 import { arrayGet, arrayGetGeneric } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
 
@@ -584,6 +584,28 @@ const Gadgets = {
    */
   rangeCheck3x12(v0: Field, v1: Field, v2: Field) {
     return rangeCheck3x12(v0, v1, v2);
+  },
+
+  /**
+   * In-circuit check that up to 3 pairs of index and value are in the runtime
+   * table given by the identifier. Each given pair is a tuple composed of a
+   * bigint and a Field.
+   *
+   * Internally, it creates a lookup gate for the three pairs. If fewer pairs are
+   * given, the remaining pairs are duplicates of the first one.
+   *
+   * @param id
+   * @param pair0
+   * @param pair1
+   * @param pair2
+   */
+  inTable(
+    id: number,
+    pair0: [bigint, Field],
+    pair1?: [bigint, Field] | undefined,
+    pair2?: [bigint, Field] | undefined
+  ) {
+    return inTable(id, pair0, pair1, pair2);
   },
 
   /**
