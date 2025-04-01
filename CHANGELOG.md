@@ -15,9 +15,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/bff54db1b...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
 
-## [2.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...bff54db1b) - 2025-03-27
+## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 
 ### Added
 
@@ -33,6 +33,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   https://github.com/o1-labs/o1js/pull/2063
 - `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](httpts://github.com/o1-labs/o1js/pull/2091)
 - `toBits()` and `fromBits()` methods added for `UInt32` and `UInt64` classes. https://github.com/o1-labs/o1js/pull/2099
+- **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
 
 ## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
@@ -49,8 +50,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added new method `CircuitString.setEncoding()` to change default behavior of the `CircuitString` encoding, possible value is `"ascii" | "uft-8"` default to `"ascii"`. Also added an optional `encoding: CircuitStringEncoding` parameter in `.toString()` and `.fromString()` to switch encoding temporary.
 - Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
 - Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
-- Add `UInt64.toBytes()`l https://github.com/o1-labs/o1js/pull/2060 [@kadirchan](https://github.com/kadirchan)
-- **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
 
 ### Changed
 
