@@ -6,7 +6,10 @@ import { changeBase } from '../../bindings/crypto/bigint-helpers.js';
 export { toBase58Check, fromBase58Check, base58, withBase58, fieldEncodings, Base58, alphabet };
 
 const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.split('');
-const inverseAlphabet = Object.fromEntries(alphabet.map((c, i) => [c, i]));
+let inverseAlphabet: Record<string, number> = {};
+alphabet.forEach((c, i) => {
+  inverseAlphabet[c] = i;
+});
 
 function toBase58Check(input: number[] | Uint8Array, versionByte: number) {
   const withVersion = [versionByte, ...input];
