@@ -6,25 +6,22 @@ import { changeBase } from '../../bindings/crypto/bigint-helpers.js';
 export { toBase58Check, fromBase58Check, base58, withBase58, fieldEncodings, Base58, alphabet };
 
 const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.split('');
-let inverseAlphabet: Record<string, number> = {};
-alphabet.forEach((c, i) => {
-  inverseAlphabet[c] = i;
-});
+const inverseAlphabet = Object.fromEntries(alphabet.map((c, i) => [c, i]));
 
 function toBase58Check(input: number[] | Uint8Array, versionByte: number) {
-  let withVersion = [versionByte, ...input];
-  let checksum = computeChecksum(withVersion);
-  let withChecksum = withVersion.concat(checksum);
+  const withVersion = [versionByte, ...input];
+  const checksum = computeChecksum(withVersion);
+  const withChecksum = withVersion.concat(checksum);
   return toBase58(withChecksum);
 }
 
 function fromBase58Check(base58: string, versionByte: number) {
   // throws on invalid character
-  let bytes = fromBase58(base58);
+  const bytes = fromBase58(base58);
   // check checksum
-  let checksum = bytes.slice(-4);
-  let originalBytes = bytes.slice(0, -4);
-  let actualChecksum = computeChecksum(originalBytes);
+  const checksum = bytes.slice(-4);
+  const originalBytes = bytes.slice(0, -4);
+  const actualChecksum = computeChecksum(originalBytes);
   if (!arrayEqual(checksum, actualChecksum)) throw Error('fromBase58Check: invalid checksum');
   // check version byte
   if (originalBytes[0] !== versionByte)
@@ -38,33 +35,42 @@ function fromBase58Check(base58: string, versionByte: number) {
 function toBase58(bytes: number[] | Uint8Array) {
   // count the leading zeroes. these get turned into leading zeroes in the output
   let z = 0;
-  while (bytes[z] === 0) z++;
+  while (z < bytes.length && bytes[z] === 0) z++;
+  
   // for some reason, this is big-endian, so we need to reverse
-  let digits = [...bytes].map(BigInt).reverse();
+  const digits = Array.isArray(bytes) ? bytes.map(BigInt).reverse() : Array.from(bytes).map(BigInt).reverse();
+  
   // change base and reverse
-  let base58Digits = changeBase(digits, 256n, 58n).reverse();
+  const base58Digits = changeBase(digits, 256n, 58n).reverse();
+  
   // add leading zeroes, map into alphabet
-  base58Digits = Array(z).fill(0n).concat(base58Digits);
-  return base58Digits.map((x) => alphabet[Number(x)]).join('');
+  const result = new Array(z).fill(alphabet[0]);
+  base58Digits.forEach((x: bigint) => result.push(alphabet[Number(x)]));
+  return result.join('');
 }
 
 function fromBase58(base58: string) {
-  let base58Digits = [...base58].map((c) => {
-    let digit = inverseAlphabet[c];
-    if (digit === undefined) throw Error('fromBase58: invalid character');
-    return BigInt(digit);
-  });
+  const chars = base58.split('');
   let z = 0;
-  while (base58Digits[z] === 0n) z++;
-  let digits = changeBase(base58Digits.reverse(), 58n, 256n).reverse();
-  digits = Array(z).fill(0n).concat(digits);
-  return digits.map(Number);
+  while (z < chars.length && chars[z] === alphabet[0]) z++;
+  
+  const base58Digits: bigint[] = [];
+  for (let i = z; i < chars.length; i++) {
+    const digit = inverseAlphabet[chars[i]];
+    if (digit === undefined) throw Error('fromBase58: invalid character');
+    base58Digits.push(BigInt(digit));
+  }
+  
+  const digits = base58Digits.length === 0 ? [] : changeBase(base58Digits.reverse(), 58n, 256n).reverse();
+  const result = new Array(z).fill(0);
+  digits.forEach((d: bigint) => result.push(Number(d)));
+  return result;
 }
 
 function computeChecksum(input: number[] | Uint8Array) {
-  let hash1 = sha256.create();
+  const hash1 = sha256.create();
   hash1.update(input);
-  let hash2 = sha256.create();
+  const hash2 = sha256.create();
   hash2.update(hash1.array());
   return hash2.array().slice(0, 4);
 }
@@ -77,11 +83,11 @@ type Base58<T> = {
 function base58<T>(binable: Binable<T>, versionByte: number): Base58<T> {
   return {
     toBase58(t) {
-      let bytes = binable.toBytes(t);
+      const bytes = binable.toBytes(t);
       return toBase58Check(bytes, versionByte);
     },
     fromBase58(base58) {
-      let bytes = fromBase58Check(base58, versionByte);
+      const bytes = fromBase58Check(base58, versionByte);
       return binable.fromBytes(bytes);
     },
   };
@@ -94,7 +100,7 @@ function withBase58<T>(binable: Binable<T>, versionByte: number): Binable<T> & B
 // encoding of fields as base58, compatible with ocaml encodings (provided the versionByte and versionNumber are the same)
 
 function customEncoding<Field>(Field: Binable<Field>, versionByte: number, versionNumber?: number) {
-  let customField = versionNumber !== undefined ? withVersionNumber(Field, versionNumber) : Field;
+  const customField = versionNumber !== undefined ? withVersionNumber(Field, versionNumber) : Field;
   return base58(customField, versionByte);
 }
 
