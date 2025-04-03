@@ -1,9 +1,7 @@
-// Import modules directly with their namespace
 import * as Equivalent_ from '../../lib/testing/equivalent.js';
 import * as Property_ from '../../lib/testing/property.js';
 import * as ConstraintSystem_ from '../../lib/testing/constraint-system.js';
 
-// Export functions directly from their source modules
 export const { test, Random, sample, withHardCoded } = Property_;
 
 export const {
@@ -48,7 +46,6 @@ export const {
   repeat,
 } = ConstraintSystem_;
 
-// Re-export types
 export type {
   Spec,
   ToSpec,
