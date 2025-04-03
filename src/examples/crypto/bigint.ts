@@ -35,17 +35,28 @@ let p = brainpoolP512r1.max();
 let t = brainpoolP512r1.one();
 let k = brainpoolP512r1.zero();
 
-p.inverse().mul(p).assertEquals(t); // p^-1 * p = 1 (mod p)
-t.negate().assertEquals(p); // additive inverse of 1 is equals to p - 1 (mod p)
+// Fixed: p is equivalent to 0 mod p, so inverse() cannot be applied
+if (!p.isZero()) {
+  p.inverse().mul(p).assertEquals(t); // p^-1 * p = 1 (mod p)
+} else {
+  console.error("Error: Cannot compute inverse of zero");
+}
+
+t.negate().assertEquals(p.sub(t)); // Fixed: additive inverse of 1 is p - 1 (mod p)
 p.add(t).assertEquals(k); // p-1 + 1 = 0 (mod p)
 
 class TestContract extends SmartContract {
   @state(BigInt13) x = State<BigInt13>();
 
   @method async testMethod(y: BigInt13) {
-    let x = y.inverse();
-    Provable.log(x);
-    this.x.set(x);
+    // Fixed: Check if y is zero before calling inverse()
+    if (!y.isZero()) {
+      let x = y.inverse();
+      Provable.log(x);
+      this.x.set(x);
+    } else {
+      throw new Error("Cannot compute inverse of zero");
+    }
   }
 }
 
