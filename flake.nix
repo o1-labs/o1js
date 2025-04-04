@@ -1,24 +1,27 @@
 {
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
-    mina.url = "path:src/mina";
+    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-23.11-small";
+    nixpkgs-newer.url = "github:nixos/nixpkgs/nixos-24.11-small";
+    mina.url = "git+file:src/mina?submodules=1";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
-    describe-dune.inputs.nixpkgs.follows = "nixpkgs";
+    describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
     dune-nix.url = "github:o1-labs/dune-nix";
-    dune-nix.inputs.nixpkgs.follows = "nixpkgs";
+    dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
   };
-  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs-mina, nixpkgs-newer, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = (nixpkgs.legacyPackages."${system}".extend
-          (import inputs.nixpkgs-mozilla)
-        ).extend inputs.mina.overlays.rust;
+        pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
+          (import inputs.nixpkgs-mozilla)).extend
+          inputs.mina.overlays.rust).extend
+          (final: prev: { inherit (nixpkgs-newer.legacyPackages."${system}")
+            nodePackages nodejs; });
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
@@ -128,7 +131,7 @@
             dune_3
           ] ++ commonOverrides.buildInputs;
 
-        inherit (nixpkgs) lib;
+        inherit (pkgs) lib;
         # All the submodules required by .gitmodules
         submodules = map builtins.head (builtins.filter lib.isList
           (map (builtins.match "	path = (.*)")
