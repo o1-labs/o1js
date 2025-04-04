@@ -87,8 +87,8 @@
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2023-09-01";
-              sha256 = "sha256-zek9JAnRaoX8V0U2Y5ssXVe9tvoQ0ERGXfUCUGYdrMA=";
+              date = "2024-06-13";
+              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
             }).rust.override
             {
               targets = [
@@ -100,11 +100,11 @@
               extensions = [ "rust-src" ];
             });
         rust-channel-direct = builtins.fetchTarball {
-          url = "https://static.rust-lang.org/dist/rust-std-1.72.0-wasm32-unknown-unknown.tar.gz";
+          url = "https://static.rust-lang.org/dist/rust-std-1.79.0-wasm32-unknown-unknown.tar.gz";
           sha256 =
             if pkgs.stdenv.isDarwin
             then "sha256:1mv8skl4l2q782741r1yakbf0y4q6v9358fm91r45gj97j20il1y"
-            else "sha256:07nxw3m4jpciaqfxn4b95bkhl58zxh3a0kpf5vprfx4r0zdrmql1";
+            else "sha256:Ngiz76YP4HTY75GGdH2P+APE/DEIx2R/Dn+BwwOyzZU=";
         };
         toolchain = pkgs.symlinkJoin {
           name = "toolchain";
@@ -196,7 +196,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [[ "$2" =~ 1.72-x86_64* ]]; }
+                if [ "$1" = run ] && { [ "$2" = nightly-2024-06-13 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
