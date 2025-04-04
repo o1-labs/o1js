@@ -17,6 +17,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
 
+- [PR !2125](https://github.com/o1-labs/o1js/pull/2125) Bump up Mina to the
+  commit
+  [a34f54a2de8e4069afb27838da96318d979c4913](https://github.com/MinaProtocol/mina/blob/a34f54a2de8e4069afb27838da96318d979c4913)
+  to include, particularly, the following changes:
+  - [16812.md](https://github.com/MinaProtocol/mina/blob/a34f54a2de8e4069afb27838da96318d979c4913/changes/16812.md)
+  - [16820.md](https://github.com/MinaProtocol/mina/blob/a34f54a2de8e4069afb27838da96318d979c4913/changes/16820.md)
+  - [16831.md](https://github.com/MinaProtocol/mina/blob/a34f54a2de8e4069afb27838da96318d979c4913/changes/16831.md)
+
 ## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 
 ### Added
