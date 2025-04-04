@@ -133,11 +133,11 @@ async function verify(
 }
 
 /**
- * Validates that a verification key's hash matches the expected hash.
- * This is useful for verifying that a verification key is valid in a circuit.
+ * Asserts that the hash computed from a verification key's data matches the provided hash.
+ * This is used to ensure that the verification key data and hash are consistent.
  *
- * @param verificationKey - The verification key to validate
- * @returns void, throws an error if the hash doesn't match
+ * @param verificationKey - The verification key whose data and hash to check for consistency
+ * @returns void, throws an error if the computed hash doesn't match the provided hash
  */
 async function validateVkHash(verificationKey: VerificationKey) {
   const circuitVk = Pickles.sideLoaded.vkToCircuit(() => verificationKey.data);
