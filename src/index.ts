@@ -60,8 +60,17 @@ export { SmartContract, method, declareMethods } from './lib/mina/v1/zkapp.js';
 export { Reducer } from './lib/mina/v1/actions/reducer.js';
 export { state, State, declareState } from './lib/mina/v1/state.js';
 
-export type { JsonProof } from './lib/proof-system/zkprogram.js';
-export { SelfProof, verify, Empty, Undefined, Void } from './lib/proof-system/zkprogram.js';
+export {
+  ZkProgram,
+  SelfProof,
+  JsonProof,
+  verify,
+  Empty,
+  Undefined,
+  Void,
+  Method,
+  validateVkHash,
+} from './lib/proof-system/zkprogram.js';
 export { VerificationKey } from './lib/proof-system/verification-key.js';
 export { type ProofBase, Proof, DynamicProof } from './lib/proof-system/proof.js';
 export { FeatureFlags } from './lib/proof-system/feature-flags.js';
@@ -102,8 +111,6 @@ export { MerkleTree, MerkleWitness } from './lib/provable/merkle-tree.js';
 export { MerkleMap, MerkleMapWitness } from './lib/provable/merkle-map.js';
 
 export { Nullifier } from './lib/provable/crypto/nullifier.js';
-
-export { ZkProgram } from './lib/proof-system/zkprogram.js';
 
 export { Crypto } from './lib/provable/crypto/crypto.js';
 
