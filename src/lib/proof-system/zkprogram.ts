@@ -144,7 +144,7 @@ async function validateVkHash(verificationKey: VerificationKey) {
 
   // Assert the validity of the auxiliary vk-data by comparing the witnessed and the hash as an input
   const hash = inCircuitVkHash(circuitVk);
-  Field(hash).assertEquals(verificationKey.hash, 'Provided VerificationKey hash not correct');
+  Field(hash).assertEquals(verificationKey.hash, 'Provided VerificationKey hash is not correct');
 }
 
 /**
