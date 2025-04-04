@@ -1,8 +1,6 @@
 import {
   Field,
   SmartContract,
-  state,
-  State,
   method,
   VerificationKey,
   validateVkHash,
@@ -16,7 +14,7 @@ import {
 class VkHashVerifierZkApp extends SmartContract {
   init() {
     super.init();
-    
+
     // Set permissions to allow updating verification key
     this.account.permissions.set({
       ...Permissions.default(),
@@ -29,7 +27,7 @@ class VkHashVerifierZkApp extends SmartContract {
     if (Provable.inCheckedComputation()) {
       validateVkHash(verificationKey);
     }
-    
+
     // Set the verification key in the account
     this.account.verificationKey.set(verificationKey);
   }
@@ -64,7 +62,7 @@ console.log('Original verification key hash:', verificationKey.hash.toString());
 // Create a new verification key with different data for testing
 const invalidVerificationKey = new VerificationKey({
   data: verificationKey.data,
-  hash: Field(12345678) // Different hash value
+  hash: Field(12345678), // Different hash value
 });
 console.log('Invalid verification key hash:', invalidVerificationKey.hash.toString());
 
@@ -73,4 +71,4 @@ const validateAndSet_txn = await Mina.transaction(feePayer2, async () => {
   await zkApp.validateAndSetVerificationKey(invalidVerificationKey);
 });
 await validateAndSet_txn.prove();
-await validateAndSet_txn.sign([feePayer2.key]).send(); 
+await validateAndSet_txn.sign([feePayer2.key]).send();
