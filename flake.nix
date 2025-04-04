@@ -104,7 +104,7 @@
           sha256 =
             if pkgs.stdenv.isDarwin
             then "sha256:1mv8skl4l2q782741r1yakbf0y4q6v9358fm91r45gj97j20il1y"
-            else "sha256:Ngiz76YP4HTY75GGdH2P+APE/DEIx2R/Dn+BwwOyzZU=";
+            else "sha256:15fdn81w70bz1rzn9iq867yc80zqixyp91lixzc79q0glvpv621n";
         };
         toolchain = pkgs.symlinkJoin {
           name = "toolchain";
