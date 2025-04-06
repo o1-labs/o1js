@@ -1,18 +1,16 @@
 # @o1js/testing
 
-This is package contains testing utils used internally in o1js to test primitives.
+This package contains testing utils used internally in o1js to test primitives.
 
 ## Table of Contents
-
-- [@o1js/testing](#o1jstesting)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Installation](#installation)
-  - [Features](#features)
+- [Overview](#overview)
+- [Installation](#installation)
+- [Features](#features)
     - [Property Testing](#property-testing)
     - [Equivalence Testing](#equivalence-testing)
     - [Constraint System Testing](#constraint-system-testing)
-  - [Examples](#examples)
+- [Examples](#examples)
+- [API Reference](#api-reference)
 
 ## Overview
 
@@ -25,7 +23,7 @@ This is package contains testing utils used internally in o1js to test primitive
 ```bash
 npm install --save-dev @o1js/testing
 ```
-> o1js must be installed in the project as peer dependency.
+> `o1js` must be installed in the project as peer dependency.
 
 ## Features
 
@@ -129,3 +127,243 @@ constraintSystem.fromZkProgram(Bitwise, 'notUnchecked', ifNotAllConstant(contain
 ## Examples
 
 Check out [`src/lib/provable/test`](https://github.com/o1-labs/o1js/tree/main/src/lib/provable/test) directory for more examples.
+
+## API Reference
+
+### Property Testing
+
+#### `test()`
+
+The main function for running property-based tests.
+
+##### Parameters
+- `...generators`: Random value generators
+- `run`: A function that takes generated values and tests assertions
+
+##### Variants
+- `test.negative`: Test that all runs fail/throw an error
+- `test.custom`: Create a customized test runner with options like `minRuns`, `maxRuns`, `timeBudget`, etc.
+
+
+#### `sample()`
+
+Generate sample values from a random generator.
+
+##### Parameters
+- `random`: The random generator
+- `n`: Number of samples to generate (default: 1)
+
+#### `withHardCoded()`
+
+Replace a random generator with hardcoded values.
+
+##### Parameters
+- `random`: The original random generator
+- `...hardCoded`: The values to return instead of random ones
+
+#### `Random`
+
+A class for generating random values of different types. It includes many methods like:
+
+- `Random.constant()`: Generate a constant value
+- `Random.int()`: Generate random integers in a given range
+- `Random.nat()`: Generate random natural numbers up to a maximum
+- `Random.fraction()`: Generate random fractional values
+- `Random.boolean()`: Generate random boolean values
+- `Random.byte()`: Generate random byte values
+- `Random.bytes()`: Generate random byte arrays
+- `Random.string()`: Generate random strings
+- `Random.base58()`: Generate random base58 strings
+- `Random.array()`: Generate random arrays
+- `Random.oneOf()`: Choose randomly from provided options
+- `Random.field()`: Generate random field elements
+- `Random.bool()`: Generate random boolean elements
+- `Random.uint8()`, `Random.uint32()`, `Random.uint64()`: Generate random uint values
+- And many more specialized generators
+
+### Equivalence Testing
+
+#### `equivalent()`
+
+Test the equivalence of two functions with different input/output types.
+
+##### Parameters
+- `from`: Specifications for converting input values
+- `to`: Specification for converting output values
+- `verbose`: Whether to log verbose output
+
+#### `equivalentAsync()`
+
+Test the equivalence of two functions with different input/output types.
+
+##### Parameters
+- `from`: Specifications for converting input values
+- `to`: Specification for converting output values
+- `runs`: Number of test runs
+
+#### `equivalentProvable()`
+
+Test the equivalence of two functions where one is provable.
+
+##### Parameters
+- `from`: Specifications for converting input values
+- `to`: Specification for converting output values
+- `verbose`: Whether to log verbose output
+
+### Specs
+
+a `Spec` tells us how to compare two functions.
+
+#### `field`
+
+A `Spec` that provides a way to compare two functions using `field`.
+
+#### `fieldWithRng`
+
+A `Spec` that provides a way to compare two functions using `fieldWithRng`.
+
+#### `bigintField`
+
+A `Spec` that provides a way to compare two functions using `bigintField`.
+
+#### `bool`
+
+A `Spec` that provides a way to compare two functions using `bool`.
+
+#### `boolean`
+
+A `Spec` that provides a way to compare two functions using `boolean`.
+
+#### `unit`
+
+A `Spec` that provides a way to compare two functions using `unit`.
+
+### Spec Combinators
+
+#### `array`
+
+A `Spec` combinator that creates a specification for arrays.
+
+#### `record`
+
+A `Spec` combinator that creates a specification for objects with specific fields.
+
+#### `map`
+
+A `Spec` combinator that transforms a specification using a mapping function.
+
+#### `onlyIf`
+
+A `Spec` combinator that applies a specification conditionally based on a predicate.
+
+#### `fromRandom`
+
+A `Spec` combinator that generates specifications from random values.
+
+#### `first`
+
+A `Spec` combinator that applies a specification to the first element of a tuple.
+
+#### `second`
+
+A `Spec` combinator that applies a specification to the second element of a tuple.
+
+#### `constant`
+
+A `Spec` combinator that creates a specification for a constant value.
+
+### Utils
+
+#### `oneOf`
+
+A `Spec` combinator that creates a specification for a union of multiple specs.
+
+#### `throwError`
+
+A utility to throw an error.
+
+#### `handleErrors`
+
+A helper function to ensure two functions throw equivalent errors.
+
+#### `defaultAssertEqual`
+
+A default assertion function to compare equality.
+
+#### `id`
+
+An identity function.
+
+#### `spec`
+
+A utility for creating specifications.
+
+
+### Constraint System Testing
+
+#### `constraintSystem(label, inputs, main, constraintSystemTest)`
+
+Tests properties of the constraint system generated by a circuit.
+
+##### Parameters
+- `label`: Description of the constraint system.
+- `inputs`: Input specification in the form `{ from: [...provables] }`.
+- `main`: The circuit to test.
+- `constraintSystemTest`: The property test to run on the constraint system.
+
+#### `constraintSystem.fromZkProgram(program, methodName, test)`
+
+Convenience function to run `constraintSystem` on the method of a `ZkProgram`.
+
+##### Parameters
+- `program`: The ZkProgram to test
+- `methodName`: Name of the method to test
+- `test`: The property test to run on the constraint system.
+
+#### `not(test)`
+
+Negates a test.
+
+#### `and(...tests)`
+
+Check that all input tests pass.
+
+#### `or(...tests)`
+
+Check that at least one input test passes.
+
+#### `fulfills`
+
+Test that the constraint system fulfills specific conditions.
+
+#### `equals(gates)`
+
+Test that constraint system has exactly the specified gates.
+
+#### `contains(gates)`
+
+Test that constraint system contains specific gates.
+
+#### `allConstant`
+
+Test whether all inputs are constant.
+
+#### `ifNotAllConstant(test)`
+
+Modifies a test so that it doesn't fail if all inputs are constant, and instead checks that the constraint system is empty in that case.
+
+#### `isEmpty`
+
+Test whether the constraint system is empty.
+
+#### `withoutGenerics(test)`
+
+Modifies a test so that it runs on the constraint system with generic gates filtered out.
+
+#### `print`
+
+Test that just pretty-prints the constraint system.
+
+#### `repeat`
+
+Repeat a sequence of gates.
