@@ -212,91 +212,148 @@ Test the equivalence of two functions where one is provable.
 
 ### Specs
 
-a `Spec` tells us how to compare two functions.
+A `Spec<T1, T2>` is a type that defines how to convert between two types and compare their values. This is essential for equivalence testing. It contains:
+
+- `rng`: A random generator for type T1
+- `there`: A function that converts from T1 to T2
+- `back`: A function that converts from T2 back to T1
+- `assertEqual`: (Optional) A function to compare two T1 values
+- `provable`: (Optional) A Provable for T2, if it's a circuit type
 
 #### `field`
 
-A `Spec` that provides a way to compare two functions using `field`.
+A predefined `ProvableSpec<bigint, Field>` that converts between JavaScript's `bigint` and o1js's `Field` type.
 
-#### `fieldWithRng`
+#### `fieldWithRng(rng)`
 
-A `Spec` that provides a way to compare two functions using `fieldWithRng`.
+Creates a `ProvableSpec<bigint, Field>` using a custom random generator for bigint values.
 
 #### `bigintField`
 
-A `Spec` that provides a way to compare two functions using `bigintField`.
+A `Spec<bigint, bigint>` for testing with native bigint values, using the standard field random generator.
 
 #### `bool`
 
-A `Spec` that provides a way to compare two functions using `bool`.
+A `ProvableSpec<boolean, Bool>` that converts between JavaScript's `boolean` and o1js's `Bool` type.
 
 #### `boolean`
 
-A `Spec` that provides a way to compare two functions using `boolean`.
+A `Spec<boolean, boolean>` for testing with native boolean values.
 
 #### `unit`
 
-A `Spec` that provides a way to compare two functions using `unit`.
+A `ToSpec<void, void>` for testing functions that don't return values.
 
 ### Spec Combinators
 
-#### `array`
+Spec combinators allow you to build complex specifications from simpler ones.
 
-A `Spec` combinator that creates a specification for arrays.
+#### `array(spec, size)`
 
-#### `record`
+Creates a `Spec<T[], S[]>` for arrays by mapping the provided spec over each element.
 
-A `Spec` combinator that creates a specification for objects with specific fields.
+##### Parameters
+- `spec`: The specification for array elements
+- `size`: Either a fixed number or a random generator for the array size
 
-#### `map`
+#### `record(specs)`
 
-A `Spec` combinator that transforms a specification using a mapping function.
+Creates a `Spec` for objects with fields that follow the specifications in the `specs` object.
 
-#### `onlyIf`
+##### Parameters
+- `specs`: An object mapping field names to their specifications
 
-A `Spec` combinator that applies a specification conditionally based on a predicate.
+#### `map({ from, to }, transform)`
 
-#### `fromRandom`
+Transforms a specification by mapping the input values.
 
-A `Spec` combinator that generates specifications from random values.
+##### Parameters
+- `from`: The source specification
+- `to`: The target specification
+- `transform`: A function that transforms inputs of the source type
 
-#### `first`
+#### `onlyIf(spec, predicate)`
 
-A `Spec` combinator that applies a specification to the first element of a tuple.
+Filters the random inputs of a specification using a predicate function.
 
-#### `second`
+##### Parameters
+- `spec`: The base specification
+- `predicate`: A function that returns true for inputs that should be kept
 
-A `Spec` combinator that applies a specification to the second element of a tuple.
+#### `fromRandom(rng)`
 
-#### `constant`
+Creates a simple `Spec<T, T>` from a random generator, using identity functions for conversion.
 
-A `Spec` combinator that creates a specification for a constant value.
+##### Parameters
+- `rng`: The random generator for type T
+
+#### `first(spec)`
+
+Creates a `Spec<T, T>` from a `Spec<T, S>` by using only the input type.
+
+##### Parameters
+- `spec`: The original specification
+
+#### `second(spec)`
+
+Creates a `Spec<S, S>` from a `Spec<T, S>` by using only the output type.
+
+##### Parameters
+- `spec`: The original specification
+
+#### `constant(spec, value)`
+
+Modifies a spec to always use a fixed input value.
+
+##### Parameters
+- `spec`: The original specification
+- `value`: The constant value to use
 
 ### Utils
 
-#### `oneOf`
+Utility functions for working with specs and testing.
 
-A `Spec` combinator that creates a specification for a union of multiple specs.
+#### `oneOf(...specs)`
 
-#### `throwError`
+Creates a union specification that randomly selects from multiple specs for generating test inputs.
 
-A utility to throw an error.
+##### Parameters
+- `...specs`: A list of specifications to choose from
 
-#### `handleErrors`
+#### `throwError(message?)`
 
-A helper function to ensure two functions throw equivalent errors.
+A utility function to throw an error with an optional message.
+
+##### Parameters
+- `message`: Optional error message
+
+#### `handleErrors(op1, op2, useResults?, label?)`
+
+A helper function that ensures two operations throw the same errors or produce comparable results.
+
+##### Parameters
+- `op1`: The first operation to execute
+- `op2`: The second operation to execute
+- `useResults`: Optional function to compare the results
+- `label`: Optional label for error messages
 
 #### `defaultAssertEqual`
 
-A default assertion function to compare equality.
+The default equality assertion function (uses Node's `deepEqual`).
 
-#### `id`
+#### `id(x)`
 
-An identity function.
+An identity function that returns its input unchanged.
 
-#### `spec`
+##### Parameters
+- `x`: The input value
 
-A utility for creating specifications.
+#### `spec(options)`
+
+A factory function for creating `Spec` objects with various configurations.
+
+##### Parameters
+- `options`: Configuration for the spec, including `rng`, `there`, `back`, `assertEqual`, and `provable`
 
 
 ### Constraint System Testing
