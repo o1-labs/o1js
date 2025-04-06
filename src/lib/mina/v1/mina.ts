@@ -5,7 +5,7 @@ import { PublicKey } from '../../provable/crypto/signature.js';
 import { TokenId, Authorization } from './account-update.js';
 import * as Fetch from './fetch.js';
 import { humanizeErrors, invalidTransactionError } from './errors.js';
-import { Types } from '../../../bindings/mina-transaction/types.js';
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { Account } from './account.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { currentTransaction } from './transaction-context.js';
@@ -350,13 +350,14 @@ function Network(
       filterOptions: EventActionFilterOptions = {},
       headers?: HeadersInit
     ) {
-      let pubKey = publicKey.toBase58();
-      let token = TokenId.toBase58(tokenId);
+      const pubKey = publicKey.toBase58();
+      const token = TokenId.toBase58(tokenId);
+      const from = filterOptions.from ? Number(filterOptions.from.toString()) : undefined;
+      const to = filterOptions.to ? Number(filterOptions.to.toString()) : undefined;
 
       return Fetch.fetchEvents(
-        { publicKey: pubKey, tokenId: token },
+        { publicKey: pubKey, tokenId: token, from, to },
         archiveEndpoint,
-        filterOptions,
         headers
       );
     },
@@ -364,13 +365,15 @@ function Network(
       publicKey: PublicKey,
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default,
+      from?: number,
+      to?: number,
       headers?: HeadersInit
     ) {
-      let pubKey = publicKey.toBase58();
-      let token = TokenId.toBase58(tokenId);
-      let { fromActionState, endActionState } = actionStates ?? {};
-      let fromActionStateBase58 = fromActionState ? fromActionState.toString() : undefined;
-      let endActionStateBase58 = endActionState ? endActionState.toString() : undefined;
+      const pubKey = publicKey.toBase58();
+      const token = TokenId.toBase58(tokenId);
+      const { fromActionState, endActionState } = actionStates ?? {};
+      const fromActionStateBase58 = fromActionState ? fromActionState.toString() : undefined;
+      const endActionStateBase58 = endActionState ? endActionState.toString() : undefined;
 
       return Fetch.fetchActions(
         {
@@ -379,6 +382,8 @@ function Network(
             fromActionState: fromActionStateBase58,
             endActionState: endActionStateBase58,
           },
+          from,
+          to,
           tokenId: token,
         },
         archiveEndpoint,
@@ -458,7 +463,7 @@ async function waitForFunding(address: string, headers?: HeadersInit): Promise<v
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
  */
-async function faucet(pub: PublicKey, network: string = 'berkeley-qanet', headers?: HeadersInit) {
+async function faucet(pub: PublicKey, network: string = 'devnet', headers?: HeadersInit) {
   let address = pub.toBase58();
   let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
     method: 'POST',

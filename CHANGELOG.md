@@ -15,10 +15,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/b857516...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
+
+## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 
 ### Added
 
+- Support of runtime tables https://github.com/o1-labs/o1js/pull/1858
+- _Experimental_ Introducing `MinaProgram`, a new powerful API for interacting with Mina Protocol. https://github.com/o1-labs/o1js/pull/2095
+  - New functions and types for `MinaProgram`
+- Export various internal functions and types. https://github.com/o1-labs/o1js/pull/2083
+- Export part of the core cryptography layer via the `Core` namespace. https://github.com/o1-labs/o1js/pull/2083
+- _Experimental_ New bindings layer for new API types. https://github.com/o1-labs/o1js/pull/2032
+- _Experimental_ New API types for https://github.com/o1-labs/o1js/pull/2042
+  - `AccountUpdate`, `Account`, `Authorization`, `Permissions` etc.
+  - New transaction construction API `new ZkappCommand()`. https://github.com/o1-labs/o1js/pull/2042
+- Bump up Rust version to 1.79.0. Bindings now depends on nightly-2024-06-13.
+  https://github.com/o1-labs/o1js/pull/2063
+- `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](httpts://github.com/o1-labs/o1js/pull/2091)
+- `toBits()` and `fromBits()` methods added for `UInt32` and `UInt64` classes. https://github.com/o1-labs/o1js/pull/2099
+- **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
+
+## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
+
+### Added
+
+- `to` and `from` are added as query parameters for `fetchActions` and `fetchEvents` https://github.com/o1-labs/o1js/pull/2066
 - Exported the type `FlexibleBytes`, previously being used only internally
   https://github.com/o1-labs/o1js/pull/2015.
 - Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
@@ -29,7 +51,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added new method `CircuitString.setEncoding()` to change default behavior of the `CircuitString` encoding, possible value is `"ascii" | "uft-8"` default to `"ascii"`. Also added an optional `encoding: CircuitStringEncoding` parameter in `.toString()` and `.fromString()` to switch encoding temporary.
 - Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
 - Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
-- Add `UInt64.toBytes()`l https://github.com/o1-labs/o1js/pull/2060 [@kadirchan](https://github.com/kadirchan)
 
 ### Changed
 

@@ -9,6 +9,7 @@ import { createField, isBool } from '../core/field-constructor.js';
 export { toVars, toVar, isVar, assert, bitSlice, bit, divideWithRemainder, packBits, isConstant };
 
 /**
+ * @internal
  * Given a Field, collapse its AST to a pure Var. See {@link FieldVar}.
  *
  * This is useful to prevent rogue Generic gates added in the middle of gate chains,

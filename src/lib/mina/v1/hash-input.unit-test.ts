@@ -1,7 +1,7 @@
 import { AccountUpdate, Types, Permissions, ProvableExtended } from '../../../index.js';
 import { expect } from 'expect';
-import { jsLayout } from '../../../bindings/mina-transaction/gen/js-layout.js';
-import { Json, provableFromLayout } from '../../../bindings/mina-transaction/gen/transaction.js';
+import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
+import { Json, provableFromLayout } from '../../../bindings/mina-transaction/gen/v1/transaction.js';
 import { packToFields } from '../../provable/crypto/poseidon.js';
 import { Random, test } from '../../testing/property.js';
 import { MlHashInput } from '../../ml/conversion.js';

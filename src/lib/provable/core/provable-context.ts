@@ -22,9 +22,25 @@ export {
   printGates,
   summarizeGates,
   MlConstraintSystem,
+  ConstraintSystemSummary,
 };
 
 // global circuit-related context
+
+type ConstraintSystemSummary = {
+  /**
+   * Number of rows in the constraint system
+   */
+  rows: number;
+  digest: string;
+  /**
+   * List of gates which make up the constraint system
+   */
+  gates: Gate[];
+  publicInputSize: number;
+  print(): void;
+  summary(): Record<string, number>;
+};
 
 type SnarkContext = {
   witnesses?: unknown[];
@@ -147,7 +163,7 @@ async function synchronousRunners() {
   return { runAndCheckSync, constraintSystemSync };
 }
 
-function constraintSystemToJS(cs: MlConstraintSystem) {
+function constraintSystemToJS(cs: MlConstraintSystem): ConstraintSystemSummary {
   // toJson also "finalizes" the constraint system, which means
   // locking in a potential pending single generic gate
   let json = Snarky.constraintSystem.toJson(cs);

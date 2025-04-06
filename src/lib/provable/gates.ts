@@ -17,6 +17,7 @@ export {
   foreignFieldAdd,
   foreignFieldMul,
   KimchiGateType,
+  addRuntimeTableConfig,
 };
 
 export { fieldVar };
@@ -32,6 +33,7 @@ const Gates = {
   foreignFieldAdd,
   foreignFieldMul,
   raw,
+  addRuntimeTableConfig,
 };
 
 function rangeCheck0(
@@ -281,6 +283,21 @@ function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
     kind,
     MlArray.to(values.concat(padding).map((x) => x.value)),
     MlArray.to(coefficients.map(FieldConst.fromBigint))
+  );
+}
+
+/**
+ * Configures a runtime table with identifier `id` and indices `firstColumn`.
+ *
+ * **Note**: id 0 and 1 are reserved values, do not use them.
+ *
+ * @param id
+ * @param firstColumn
+ */
+function addRuntimeTableConfig(id: number, firstColumn: bigint[]) {
+  Snarky.gates.addRuntimeTableConfig(
+    id,
+    MlArray.to(firstColumn.map((x) => FieldConst.fromBigint(x)))
   );
 }
 

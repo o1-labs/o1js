@@ -8,16 +8,11 @@ import {
 } from '../../snarky.js';
 import { Pickles, Gate } from '../../snarky.js';
 import { Field } from '../provable/wrapped.js';
-import {
-  FlexibleProvable,
-  InferProvable,
-  ProvablePureExtended,
-  Struct,
-} from '../provable/types/struct.js';
-import { InferProvableType, provable } from '../provable/types/provable-derivers.js';
+import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
+import { InferProvableType } from '../provable/types/provable-derivers.js';
 import { Provable } from '../provable/provable.js';
 import { assert, prettifyStacktracePromise } from '../util/errors.js';
-import { snarkContext } from '../provable/core/provable-context.js';
+import { ConstraintSystemSummary, snarkContext } from '../provable/core/provable-context.js';
 import { hashConstant } from '../provable/crypto/poseidon.js';
 import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
@@ -25,7 +20,7 @@ import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
 import { Cache, readCache, writeCache } from './cache.js';
 import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
 import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
-import { ProvableType, ProvableTypePure, ToProvable } from '../provable/types/provable-intf.js';
+import { ProvableType, ToProvable } from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
 import { Subclass, Tuple } from '../util/types.js';
@@ -44,15 +39,17 @@ import { emptyWitness } from '../provable/types/util.js';
 import { From, InferValue } from '../../bindings/lib/provable-generic.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { VerificationKey } from './verification-key.js';
 
 // public API
-export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, VerificationKey };
+export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, Method };
 
 // internal API
 export {
   CompiledTag,
   sortMethodArguments,
   MethodInterface,
+  MethodReturnType,
   picklesRuleFromFunction,
   compileProgram,
   analyzeMethod,
@@ -62,6 +59,7 @@ export {
   RegularProver,
   TupleToInstances,
   PrivateInput,
+  Proof,
 };
 
 type Undefined = undefined;
@@ -70,6 +68,10 @@ type Empty = Undefined;
 const Empty = Undefined;
 type Void = undefined;
 const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
+
+type MethodAnalysis = ConstraintSystemSummary & {
+  proofs: ProofClass[];
+};
 
 function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
@@ -238,6 +240,7 @@ function ZkProgram<
     cache?: Cache;
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
+    withRuntimeTables?: boolean;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -248,8 +251,13 @@ function ZkProgram<
     >
   ) => Promise<boolean>;
   digest: () => Promise<string>;
+  /**
+   * Analyze the constraint system created by each method in the program.
+   *
+   * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
+   */
   analyzeMethods: () => Promise<{
-    [I in keyof Config['methods']]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+    [I in keyof Config['methods']]: MethodAnalysis;
   }>;
 
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
@@ -324,7 +332,7 @@ function ZkProgram<
   }
 
   async function analyzeMethods() {
-    let methodsMeta: Record<string, UnwrapPromise<ReturnType<typeof analyzeMethod>>> = {};
+    let methodsMeta: Record<string, MethodAnalysis> = {};
     for (let i = 0; i < methodIntfs.length; i++) {
       let methodEntry = methodIntfs[i];
       methodsMeta[methodEntry.methodName] = await analyzeMethod(
@@ -334,7 +342,7 @@ function ZkProgram<
       );
     }
     return methodsMeta as {
-      [I in keyof Methods]: UnwrapPromise<ReturnType<typeof analyzeMethod>>;
+      [I in keyof Methods]: MethodAnalysis;
     };
   }
 
@@ -355,6 +363,7 @@ function ZkProgram<
     cache = Cache.FileSystemDefault,
     forceRecompile = false,
     proofsEnabled = undefined as boolean | undefined,
+    withRuntimeTables = false,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -376,6 +385,7 @@ function ZkProgram<
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
         state: programState,
+        withRuntimeTables,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -601,22 +611,6 @@ type ZkProgram<
  */
 class SelfProof<PublicInput, PublicOutput> extends Proof<PublicInput, PublicOutput> {}
 
-class VerificationKey extends Struct({
-  ...provable({ data: String, hash: Field }),
-  toJSON({ data }: { data: string }) {
-    return data;
-  },
-}) {
-  static async dummy(): Promise<VerificationKey> {
-    await initializeBindings();
-    const [, data, hash] = Pickles.dummyVerificationKey();
-    return new VerificationKey({
-      data,
-      hash: Field(hash),
-    });
-  }
-}
-
 function sortMethodArguments(
   programName: string,
   methodName: string,
@@ -695,6 +689,7 @@ async function compileProgram({
   forceRecompile,
   overrideWrapDomain,
   state,
+  withRuntimeTables,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -707,6 +702,7 @@ async function compileProgram({
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
   state?: ReturnType<typeof createProgramState>;
+  withRuntimeTables?: boolean;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -723,7 +719,8 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       methodEntry,
       gates[i],
       proofs[i],
-      state
+      state,
+      withRuntimeTables
     )
   );
 
@@ -804,8 +801,8 @@ async function analyzeMethod(
   publicInputType: Provable<any>,
   methodIntf: MethodInterface,
   method: (...args: any) => unknown
-) {
-  let result: Awaited<ReturnType<typeof Provable.constraintSystem>>;
+): Promise<MethodAnalysis> {
+  let result: ConstraintSystemSummary;
   let proofs: ProofClass[];
   let id = ZkProgramContext.enter();
   try {
@@ -846,7 +843,8 @@ function picklesRuleFromFunction(
   { methodName, args, auxiliaryType }: MethodInterface,
   gates: Gate[],
   verifiedProofs: ProofClass[],
-  state?: ReturnType<typeof createProgramState>
+  state?: ReturnType<typeof createProgramState>,
+  withRuntimeTables?: boolean
 ): Pickles.Rule {
   async function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
     let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();
@@ -974,7 +972,7 @@ function picklesRuleFromFunction(
           Proof.maxProofsVerified,
           Proof.publicInputType?.sizeInFields() ?? 0,
           Proof.publicOutputType?.sizeInFields() ?? 0,
-          featureFlagsToMlOption(Proof.featureFlags)
+          featureFlagsToMlOption(Proof.featureFlags, withRuntimeTables)
         );
         SideloadedTag.store(tag.name, computedTag);
       } else {
@@ -993,7 +991,7 @@ function picklesRuleFromFunction(
     }
   });
 
-  let featureFlags = featureFlagsToMlOption(featureFlagsFromGates(gates));
+  let featureFlags = featureFlagsToMlOption(featureFlagsFromGates(gates, withRuntimeTables));
 
   return {
     identifier: methodName,
@@ -1195,4 +1193,4 @@ type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
  * if we use `Get<T, Key>` instead of `T[Key]`, we allow `T` to be inferred _without_ the `Key` key,
  * and thus retain the precise type of `T` during inference
  */
-type Get<T, Key extends string> = T extends { [K in Key]: infer Value } ? Value : undefined;
+type Get<T, Key extends string> = T extends { [K in Key]: infer _Value } ? _Value : undefined;

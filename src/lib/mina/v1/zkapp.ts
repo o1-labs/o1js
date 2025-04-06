@@ -41,8 +41,8 @@ import {
   Empty,
   MethodInterface,
   sortMethodArguments,
-  VerificationKey,
 } from '../../proof-system/zkprogram.js';
+import { VerificationKey } from '../../proof-system/verification-key.js';
 import { Proof, ProofClass } from '../../proof-system/proof.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import {
@@ -632,6 +632,16 @@ class SmartContract extends SmartContractBase {
   static async getMaxProofsVerified() {
     let methodData = await this.analyzeMethods();
     return computeMaxProofsVerified(Object.values(methodData).map((d) => d.proofs.length));
+  }
+
+  /**
+   * Manually set the verificaiton key.
+   */
+  static setVerificationKeyUnsafe(verificationKey: { data: string; hash: Field | string }) {
+    SmartContract._verificationKey = {
+      data: verificationKey.data,
+      hash: Field.from(verificationKey.hash),
+    };
   }
 
   /**

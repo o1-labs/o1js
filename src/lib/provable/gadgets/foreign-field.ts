@@ -61,6 +61,7 @@ const ForeignField = {
 
   assertLessThan,
   assertLessThanOrEqual,
+  assertEquals,
 
   equals,
   toCanonical,
@@ -406,6 +407,19 @@ function equals(x: Field3, c: bigint, f: bigint) {
   }
 }
 
+// Field3 equality checking that each of the 3 limbs are exactly the same (not modular equality).
+function assertEquals(x: Field3, y: Field3) {
+  // constant case
+  if (Field3.isConstant(x) && Field3.isConstant(y)) {
+    assert(Field3.toBigint(x) === Field3.toBigint(y), 'assertEqual: got x != y');
+    return;
+  }
+  //provable case
+  x[0].assertEquals(y[0]);
+  x[1].assertEquals(y[1]);
+  x[2].assertEquals(y[2]);
+}
+
 /**
  * Convert x, which may be unreduced, to a canonical representative < f.
  *
@@ -471,6 +485,10 @@ const Field3 = {
       return x;
     },
   } satisfies ProvablePureExtended<Field3, bigint, [string, string, string]>,
+  /**
+   * Splits a bigint into three limbs using bitwise operations.
+   */
+  split,
 };
 
 type Field2 = [Field, Field];
@@ -551,6 +569,8 @@ function assertMul(
 }
 
 /**
+ * @internal
+ *
  * Lazy sum of {@link Field3} elements, which can be used as input to `Gadgets.ForeignField.assertMul()`.
  */
 class Sum {
