@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Build o1js, mina-signer and @o1js/testing
+      - name: Build o1js, mina-signer, and @o1js/testing
         run: |
           GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
           npm ci
