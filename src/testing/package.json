@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p ../../tsconfig.testing.json &&  node copy-bindings.js",
-    "prepublishOnly": "npx rimraf ./dist && npm run build"
+    "prepublishOnly": "rimraf ./dist && npm run build"
   },
   "keywords": [
     "o1js",
