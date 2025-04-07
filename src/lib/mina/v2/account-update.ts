@@ -809,8 +809,8 @@ class AccountUpdate<
     return Bindings.Layout.AccountUpdateBody.sizeInFields();
   }
 
-  static toFields(x: AccountUpdate, callDepth?: number): Field[] {
-    return Bindings.Layout.AccountUpdateBody.toFields(x.toInternalRepr(callDepth ?? 0));
+  static toFields(x: AccountUpdate): Field[] {
+    return Bindings.Layout.AccountUpdateBody.toFields(x.toInternalRepr(0));
   }
 
   static toAuxiliary(x?: AccountUpdate, callDepth?: number): any[] {

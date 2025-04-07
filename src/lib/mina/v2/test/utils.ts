@@ -114,11 +114,13 @@ export function testV1V2ValueEquivalence<
   // auxiliary equality
   expect(V2Type.toAuxiliary(v2Value, v2InternalReprArg)).toEqual(V1Type.toAuxiliary(v1Value));
 
-  // TODO FIX v1 -> v2 via fields
-  //expect(V2Type.fromFields(V1Type.toFields(v1Value), V1Type.toAuxiliary(v1Value))).toEqual(v2Value);
+  // v1 -> v2 via fields
+  expect(V2Type.fromFields(V1Type.toFields(v1Value), V1Type.toAuxiliary(v1Value))).toEqual(v2Value);
 
-  // TODO FIX v1 -> v2 via fields
-  //expect(V1Type.fromFields(V2Type.toFields(v2Value), V2Type.toAuxiliary(v2Value))).toEqual(v1Value);
+  // v1 -> v2 via fields
+  expect(
+    V1Type.fromFields(V2Type.toFields(v2Value), V2Type.toAuxiliary(v2Value, v2InternalReprArg))
+  ).toEqual(v1Value);
 
   // input equality
   expect(V1Type.toInput(v1Value)).toEqual(V2Type.toInput(v2Value));
