@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Build o1js and mina-signer
+      - name: Build o1js, mina-signer and @o1js/testing
         run: |
           GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
           npm ci
@@ -32,5 +32,8 @@ jobs:
           cd src/mina-signer
           npm ci
           npm run prepublishOnly
-      - name: Publish o1js and mina-signer on pkg-pr-new
-        run: npx pkg-pr-new publish ./ ./src/mina-signer # Enable `--compact` once published to NPM with `repository` in package.json
+          cd ../testing
+          npm ci
+          npm run prepublishOnly
+      - name: Publish o1js, mina-signer and @o1js/testing on pkg-pr-new
+        run: npx pkg-pr-new publish ./ ./src/mina-signer ./src/testing # Enable `--compact` once published to NPM with `repository` in package.json
