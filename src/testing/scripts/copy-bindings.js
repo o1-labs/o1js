@@ -1,4 +1,4 @@
-import { copyFromTo } from '../build/utils.js';
+import { copyFromTo } from '../../build/utils.js';
 
 await copyFromTo(
   ['../../dist/node/bindings/compiled'],
