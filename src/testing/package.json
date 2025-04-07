@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "tsc -p ../../tsconfig.testing.json &&  node copy-bindings.js",
+    "build": "tsc -p ../../tsconfig.testing.json &&  node scripts/copy-bindings.js",
     "prepublishOnly": "rimraf ./dist && npm run build"
   },
   "keywords": [
@@ -35,6 +35,7 @@
     "o1js": ">=2.0.0"
   },
   "devDependencies": {
-    "pkg-pr-new": "^0.0.9"
+    "pkg-pr-new": "^0.0.9",
+    "rimraf": "^6.0.1"
   }
 }
