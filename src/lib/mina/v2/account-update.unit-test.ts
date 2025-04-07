@@ -1,5 +1,4 @@
 import { AccountUpdate, Authorized, GenericData } from './account-update.js';
-import { AccountUpdate as AccountUpdateV1 } from '../v1/account-update.js';
 import { AccountId, AccountTiming } from './account.js';
 import { AccountUpdateAuthorizationKind } from './authorization.js';
 import { TokenId, Update } from './core.js';
