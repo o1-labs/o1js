@@ -24,7 +24,11 @@ import { jsLayout as layoutV1 } from '../../../bindings/mina-transaction/gen/v1/
 import { expect } from 'expect';
 
 import { ZkappConstants } from '../v1/constants.js';
-import { testV1V2ClassEquivalence, testV2Encoding } from './test/utils.js';
+import {
+  testV1V2ClassEquivalence,
+  testV1V2ValueEquivalence,
+  testV2Encoding,
+} from './test/utils.js';
 
 function testHashEquality(v1: TypesV1.AccountUpdate, v2: Authorized) {
   expect(TypesV1.AccountUpdate.toInput(v1)).toEqual(v2.toInput());
@@ -435,8 +439,6 @@ const v2AccountUpdate: Authorized = new Authorized(
   );
 
   testHashEquality(V1AccountUpdate.empty(), Authorized.empty());
-
-  /*
   testV1V2ValueEquivalence<number, TypesV1.AccountUpdate, Authorized>(
     V1AccountUpdate,
     Authorized,
@@ -444,7 +446,7 @@ const v2AccountUpdate: Authorized = new Authorized(
     v2AccountUpdate,
     2
   );
-  */
+
   testHashEquality(v1AccountUpdate, v2AccountUpdate);
 }
 

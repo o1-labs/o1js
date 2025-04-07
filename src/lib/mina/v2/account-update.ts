@@ -809,12 +809,12 @@ class AccountUpdate<
     return Bindings.Layout.AccountUpdateBody.sizeInFields();
   }
 
-  static toFields(x: AccountUpdate): Field[] {
-    return Bindings.Layout.AccountUpdateBody.toFields(x.toInternalRepr(0));
+  static toFields(x: AccountUpdate, callDepth?: number): Field[] {
+    return Bindings.Layout.AccountUpdateBody.toFields(x.toInternalRepr(callDepth ?? 0));
   }
 
-  static toAuxiliary(x?: AccountUpdate): any[] {
-    return Bindings.Layout.AccountUpdateBody.toAuxiliary(x?.toInternalRepr(0));
+  static toAuxiliary(x?: AccountUpdate, callDepth?: number): any[] {
+    return Bindings.Layout.AccountUpdateBody.toAuxiliary(x?.toInternalRepr(callDepth ?? 0));
   }
 
   static fromFields(fields: Field[], aux: any[]): AccountUpdate {
@@ -1005,15 +1005,17 @@ class Authorized<State extends StateLayout = 'GenericState', Event = Field[], Ac
   }
 
   static toFields<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-    x: Authorized<State, Event, Action>
+    x: Authorized<State, Event, Action>,
+    callDepth?: number
   ): Field[] {
-    return Bindings.Layout.ZkappAccountUpdate.toFields(x.toInternalRepr(0));
+    return Bindings.Layout.ZkappAccountUpdate.toFields(x.toInternalRepr(callDepth ?? 0));
   }
 
   static toAuxiliary<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-    x?: Authorized<State, Event, Action>
+    x?: Authorized<State, Event, Action>,
+    callDepth?: number
   ): any[] {
-    return Bindings.Layout.ZkappAccountUpdate.toAuxiliary(x?.toInternalRepr(0));
+    return Bindings.Layout.ZkappAccountUpdate.toAuxiliary(x?.toInternalRepr(callDepth ?? 0));
   }
 
   static fromFields(fields: Field[], aux: any[]): Authorized {
