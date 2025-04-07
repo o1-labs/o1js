@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p ../../tsconfig.testing.json &&  node copy-bindings.js",
-    "test": "for f in ./tests/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f || exit 1; done",
     "prepublishOnly": "npx rimraf ./dist && npm run build"
   },
   "keywords": [
