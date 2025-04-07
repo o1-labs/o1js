@@ -24,7 +24,7 @@ import { jsLayout as layoutV1 } from '../../../bindings/mina-transaction/gen/v1/
 import { expect } from 'expect';
 
 import { ZkappConstants } from '../v1/constants.js';
-import { testV2Encoding } from './test/utils.js';
+import { testV1V2ClassEquivalence, testV2Encoding } from './test/utils.js';
 
 function testHashEquality(v1: TypesV1.AccountUpdate, v2: Authorized) {
   expect(TypesV1.AccountUpdate.toInput(v1)).toEqual(v2.toInput());
@@ -427,13 +427,13 @@ const v2AccountUpdate: Authorized = new Authorized(
   // TODO: the fact that all these extra type-annotation are required means we didn't encode this
   //       type well for typescript's poor type inference
   testV2Encoding<Authorized>(Authorized, v2AccountUpdate);
-  /*
+
   testV1V2ClassEquivalence<number, TypesV1.AccountUpdate, Authorized>(
     V1AccountUpdate,
     Authorized,
     0
   );
-  */
+
   testHashEquality(V1AccountUpdate.empty(), Authorized.empty());
 
   /*
@@ -466,14 +466,11 @@ const v2AccountUpdate: Authorized = new Authorized(
   //       interface makes this test annoying to implement, so skipping for right now.
   console.log(`signature = ${JSON.stringify(v2UpdateSigned.authorization.signature)}`);
 
-  /*
   // HACK
-  const v1Update = {...v2AccountUpdate} as unknown as V1AccountUpdateImpl;
+  /*   const v1Update = { ...v2AccountUpdate } as unknown as V1AccountUpdateImpl;
   Object.setPrototypeOf(v1Update, V1AccountUpdateImpl.prototype);
 
-  expect(v2UpdateSigned.authorization.signature)
-    .toEqual(v1Update.authorization.signature);
-  */
+  expect(v2UpdateSigned.authorization.signature).toEqual(v1Update.authorization.signature); */
 }
 
 console.log('\n:)');
