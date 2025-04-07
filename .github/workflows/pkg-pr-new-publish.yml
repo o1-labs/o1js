@@ -35,5 +35,5 @@ jobs:
           cd ../testing
           npm ci
           npm run prepublishOnly
-      - name: Publish o1js, mina-signer and @o1js/testing on pkg-pr-new
+      - name: Publish o1js, mina-signer, and @o1js/testing on pkg-pr-new
         run: npx pkg-pr-new publish ./ ./src/mina-signer ./src/testing # Enable `--compact` once published to NPM with `repository` in package.json
