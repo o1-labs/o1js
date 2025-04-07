@@ -241,6 +241,7 @@ function ZkProgram<
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
+    lazyMode?: boolean;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -364,6 +365,7 @@ function ZkProgram<
     forceRecompile = false,
     proofsEnabled = undefined as boolean | undefined,
     withRuntimeTables = false,
+    lazyMode = false,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -386,6 +388,7 @@ function ZkProgram<
         overrideWrapDomain: config.overrideWrapDomain,
         state: programState,
         withRuntimeTables,
+        lazyMode,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -690,6 +693,7 @@ async function compileProgram({
   overrideWrapDomain,
   state,
   withRuntimeTables,
+  lazyMode,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -703,6 +707,7 @@ async function compileProgram({
   overrideWrapDomain?: 0 | 1 | 2;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
+  lazyMode?: boolean;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -758,6 +763,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           publicOutputSize: publicOutputType.sizeInFields(),
           storable: picklesCache,
           overrideWrapDomain,
+          lazyMode: lazyMode ?? false,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
