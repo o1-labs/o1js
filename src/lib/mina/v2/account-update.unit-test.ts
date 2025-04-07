@@ -24,6 +24,7 @@ import { jsLayout as layoutV1 } from '../../../bindings/mina-transaction/gen/v1/
 import { expect } from 'expect';
 
 import { ZkappConstants } from '../v1/constants.js';
+import { testV2Encoding } from './test/utils.js';
 
 function testHashEquality(v1: TypesV1.AccountUpdate, v2: Authorized) {
   expect(TypesV1.AccountUpdate.toInput(v1)).toEqual(v2.toInput());
@@ -425,7 +426,7 @@ const v2AccountUpdate: Authorized = new Authorized(
 {
   // TODO: the fact that all these extra type-annotation are required means we didn't encode this
   //       type well for typescript's poor type inference
-  //testV2Encoding<Authorized>(Authorized, v2AccountUpdate);
+  testV2Encoding<Authorized>(Authorized, v2AccountUpdate);
   /*
   testV1V2ClassEquivalence<number, TypesV1.AccountUpdate, Authorized>(
     V1AccountUpdate,
