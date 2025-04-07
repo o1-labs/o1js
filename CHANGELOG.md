@@ -20,6 +20,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
+- [PR !2126](https://github.com/o1-labs/o1js/pull/2126) Bump up Mina to the
+  commit
+  [5a9145feaba3138cd1a1090d8421a8e67a5485e1](https://github.com/MinaProtocol/mina/blob/5a9145feaba3138cd1a1090d8421a8e67a5485e1)
 
 ## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 
