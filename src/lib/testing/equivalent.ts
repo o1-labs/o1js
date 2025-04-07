@@ -37,7 +37,7 @@ export {
   second,
   constant,
 };
-export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec, First, Second, AnyTupleFunction };
+export { Spec, ToSpec, FromSpec, SpecFromFunctions, ProvableSpec, First, Second };
 
 // TODO get rid of this top-level await by making `test` support async functions
 let { runAndCheckSync } = await synchronousRunners();
