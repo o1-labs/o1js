@@ -1005,10 +1005,9 @@ class Authorized<State extends StateLayout = 'GenericState', Event = Field[], Ac
   }
 
   static toFields<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-    x: Authorized<State, Event, Action>,
-    callDepth?: number
+    x: Authorized<State, Event, Action>
   ): Field[] {
-    return Bindings.Layout.ZkappAccountUpdate.toFields(x.toInternalRepr(callDepth ?? 0));
+    return Bindings.Layout.ZkappAccountUpdate.toFields(x.toInternalRepr(0));
   }
 
   static toAuxiliary<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
