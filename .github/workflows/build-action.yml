@@ -52,6 +52,7 @@ jobs:
           nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
   Prepare:
     runs-on: ubuntu-latest
+    needs: precompiled-bindings
     outputs:
       test_count: ${{ steps.count_tests.outputs.test_count }}
       chunk_count: 8 # This is hardcoded to 8, but it can be changed to any number.

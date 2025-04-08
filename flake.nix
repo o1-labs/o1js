@@ -102,17 +102,6 @@
               ];
               extensions = [ "rust-src" ];
             });
-        rust-channel-direct = builtins.fetchTarball {
-          url = "https://static.rust-lang.org/dist/rust-std-1.79.0-wasm32-unknown-unknown.tar.gz";
-          sha256 =
-            if pkgs.stdenv.isDarwin
-            then "sha256:1mv8skl4l2q782741r1yakbf0y4q6v9358fm91r45gj97j20il1y"
-            else "sha256:0x7h8nggyw3vsvgqv0s2hxzn393l4gzpm3vb2qvsnnm1rf0r86v2";
-        };
-        toolchain = pkgs.symlinkJoin {
-          name = "toolchain";
-          paths = [ rust-channel "${rust-channel-direct}/rust-std-wasm32-unknown-unknown" ];
-        };
         rust-platform = pkgs.makeRustPlatform
           {
             cargo = rust-channel;
@@ -242,7 +231,7 @@
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
-                rustup toolchain link nix ${toolchain}
+                rustup toolchain link nix ${rust-channel}
               '';
             }));
 
@@ -304,7 +293,7 @@
               ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
-                rustup toolchain link nix ${toolchain}
+                rustup toolchain link nix ${rust-channel}
                 cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
                 mkdir -p src/bindings/compiled/node_bindings
