@@ -335,7 +335,7 @@
                 '';
               }}/bin/update-npm-deps";
           };
-          update-bindings = {
+          generate-bindings = {
             type = "app";
             program = "${pkgs.writeShellApplication
               { name = "update-bindings";
