@@ -47,7 +47,7 @@ test(Random.field, Random.field, (x, y) => {
 ```typescript
 import { test, Random } from '@o1js/testing';
 
-// Test Uint8.from() correcttly converts numbers to UInt8
+// Test UInt8.from() correctly converts numbers to UInt8
 test(Random.nat(25), (n, assert) => {
   assert(UInt8.from(n).toString() === String(n));
 });
