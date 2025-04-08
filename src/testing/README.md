@@ -119,8 +119,6 @@ let Bitwise = ZkProgram({
   },
 });
 
-await Bitwise.compile();
-
 constraintSystem.fromZkProgram(Bitwise, 'notUnchecked', ifNotAllConstant(contains('Generic')));
 ```
 
