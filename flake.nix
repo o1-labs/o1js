@@ -107,7 +107,7 @@
           sha256 =
             if pkgs.stdenv.isDarwin
             then "sha256:1mv8skl4l2q782741r1yakbf0y4q6v9358fm91r45gj97j20il1y"
-            else "sha256:0hpczvjwn0c74jssc1l10f11gg5j790cxhnqr6g9pyb8z0g1vqby";
+            else "sha256:0x7h8nggyw3vsvgqv0s2hxzn393l4gzpm3vb2qvsnnm1rf0r86v2";
         };
         toolchain = pkgs.symlinkJoin {
           name = "toolchain";
@@ -345,9 +345,6 @@
                 ''
                 cp -r ${self.packages."${system}".o1js-bindings}/* ./src/bindings
                 chmod +w -R src/bindings/compiled
-                MINA_COMMIT=$(git -C src/mina rev-parse HEAD)
-                echo "The mina commit used to generate the backends for node and web is" "$MINA_COMMIT" \
-                  > src/bindings/MINA_COMMIT
                 '';
               }}/bin/update-bindings";
           };

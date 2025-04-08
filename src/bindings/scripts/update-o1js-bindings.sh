@@ -79,12 +79,3 @@ if [ -z "${JUST_BINDINGS}" ]
 then
   npm run build:web
 fi
-
-# 3. update MINA_COMMIT file in o1js
-
-if [ -z "${SKIP_MINA_COMMIT}" ]
-then
-MINA_COMMIT=$(git -C src/mina rev-parse HEAD)
-echo "The mina commit used to generate the backends for node and web is" "$MINA_COMMIT" \
-  > src/bindings/MINA_COMMIT
-fi
