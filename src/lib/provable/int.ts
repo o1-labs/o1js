@@ -1725,6 +1725,52 @@ class UInt8 extends Struct({
   }
 
   /**
+   * Bitwise AND gadget on {@link UInt8} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below.
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.and(b, 2);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(x: UInt8) {
+    return new UInt8(Bitwise.and(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise OR gadget on {@link UInt8} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(x: UInt8) {
+    return new UInt8(Bitwise.or(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
    * Check if this {@link UInt8} is less than or equal to another {@link UInt8} value.
    * Returns a {@link Bool}.
    *
