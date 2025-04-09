@@ -7,6 +7,7 @@ import { GenericHashInput } from '../../../bindings/lib/generic.js';
 import { hashWithPrefix, packToFields } from '../../../lib/provable/crypto/poseidon.js';
 import { prefixes } from '../../../bindings/crypto/constants.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
 
 export {
   Option,
@@ -83,7 +84,6 @@ class ZkappUri {
 }
 
 class TokenId {
-  // TODO: construct this from it's parts, don't pass in the raw Field directly
   constructor(public value: Field) {}
 
   equals(x: TokenId): Bool {
@@ -95,6 +95,30 @@ class TokenId {
   }
 
   static MINA: TokenId = new TokenId(new Field(1));
+
+  /**
+   * Derives a TokenId from a token owner's public key and a parent token ID.
+   * @param tokenOwner - The public key of the token owner.
+   * @param parentTokenId - The parent token ID (defaults to MINA token ID).
+   * @returns A new TokenId.
+   */
+  static derive(tokenOwner: PublicKey, parentTokenId: Field = new Field(1)): TokenId {
+    // Create a HashInput with the fields from the tokenOwner and parentTokenId
+    const fields = [...PublicKey.toFields(tokenOwner), parentTokenId];
+    // Use the hashWithPrefix function to hash the fields with the deriveTokenId prefix
+    const hash = hashWithPrefix(prefixes.deriveTokenId, fields) as Field;
+    // Create a new TokenId with the resulting hash
+    return new TokenId(hash);
+  }
+
+  /**
+   * Creates a TokenId from a Field value.
+   * @param field - The Field value.
+   * @returns A new TokenId.
+   */
+  static fromField(field: Field): TokenId {
+    return new TokenId(field);
+  }
 }
 
 function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | undefined {
