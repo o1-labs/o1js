@@ -284,7 +284,7 @@ class UInt64 extends CircuitValue {
    *
    * @example
    * ```ts
-   * // NOTing 4 bits with the unchecked version 
+   * // NOTing 4 bits with the unchecked version
    * let a = UInt64.from(0b0101);
    * let b = a.not();
    *
