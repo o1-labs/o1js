@@ -1671,6 +1671,60 @@ class UInt8 extends Struct({
   }
 
   /**
+   * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * This gadget builds a chain of XOR gates recursively.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
+   * @param x {@link UInt8} element to XOR.
+   *
+   * @example
+   * ```ts
+   * let a = UInt8.from(0b0101);
+   * let b = UInt8.from(0b0011);
+   *
+   * let c = a.xor(b);
+   * c.assertEquals(0b0110);
+   * ```
+   */
+  xor(x: UInt8) {
+    return new UInt8(Bitwise.xor(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate operates over 8 bit for UInt8 types.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * NOT is implemented as a subtraction of the input from the all one bitmask
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // NOTing 4 bits
+   * let a = UInt8.from(0b0101);
+   * let b = a.not();
+   *
+   * console.log(b.toBigInt().toString(2));
+   * // 11111010
+   *
+   * ```
+   *
+   */
+  not() {
+    return new UInt8(Bitwise.not(this.value, UInt8.NUM_BITS, false).value);
+  }
+
+  /**
    * Check if this {@link UInt8} is less than or equal to another {@link UInt8} value.
    * Returns a {@link Bool}.
    *
