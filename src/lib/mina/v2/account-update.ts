@@ -80,7 +80,8 @@ const GenericData: DynamicProvable<Field[]> = {
   },
 
   fromFieldsDynamic(fields: Field[], aux: any[]): { value: Field[]; fieldsConsumed: number } {
-    const [len] = aux;
+    const [_len] = aux;
+    let len = _len ?? fields.length;
     return { value: fields.slice(0, len), fieldsConsumed: len };
   },
 };
@@ -186,7 +187,6 @@ class CommittedList<Item> {
           return result;
         });
       }
-
       //hash = value.hash;
     }
 
@@ -786,8 +786,8 @@ class AccountUpdate<
       useFullCommitment: x.useFullCommitment,
       implicitAccountCreationFee: x.implicitAccountCreationFee,
       mayUseToken: x.mayUseToken,
-      pushEvents: CommittedList.from(GenericData, EventsHashConfig(GenericData), x.events.data),
-      pushActions: CommittedList.from(GenericData, ActionsHashConfig(GenericData), x.actions.data),
+      pushEvents: CommittedList.from(GenericData, EventsHashConfig(GenericData), x.events),
+      pushActions: CommittedList.from(GenericData, ActionsHashConfig(GenericData), x.actions),
       preconditions: Preconditions.fromInternalRepr(x.preconditions),
       setState: new GenericStateUpdates(x.update.appState.map(Update.fromOption)),
       setDelegate: Update.fromOption(x.update.delegate),
