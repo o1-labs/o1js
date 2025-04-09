@@ -1,16 +1,13 @@
 name: Test o1js against lightnet
 on:
-  push:
+  workflow_run:
+    workflows: ['Build oi1js']
+    types: [completed]
     branches:
-      - main
-      - v3
-      - v1
-  pull_request:
-    branches:
-      - main
-      - v3
-      - v1
-  workflow_dispatch: {}
+      - 'main'
+      - 'v*'
+
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
