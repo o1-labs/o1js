@@ -49,6 +49,8 @@ export {
   DynamicProvable,
   AccountUpdateCommitment,
   CommittedList,
+  EventsHashConfig,
+  ActionsHashConfig,
 };
 class AccountUpdateCommitment extends Struct({
   accountUpdateCommitment: Field,
