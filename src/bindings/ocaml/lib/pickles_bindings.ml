@@ -98,10 +98,15 @@ module Choices = struct
   open Pickles_types
   open Hlist
 
+  module Tag = struct
+    type ('var, 'value, 'width) t =
+      Tag : ('var, 'value, 'width, 'height) Pickles.Tag.t -> ('var, 'value, 'width) t
+  end
+
   module Prevs = struct
     type ('var, 'value, 'width, 'height) t =
       | Prevs :
-          (   self:('var, 'value, 'width, 'height) Pickles.Tag.t
+          (   self:('var, 'value, 'width) Tag.t
            -> ('prev_var, 'prev_values, 'widths, 'heights) H4.T(Pickles.Tag).t
           )
           -> ('var, 'value, 'width, 'height) t
@@ -126,6 +131,7 @@ module Choices = struct
           end in
           let open Types in
           let to_tag ~self tag : (var, value, width, height) Pickles.Tag.t =
+            let Tag.Tag self = self in
             (* The magic here isn't ideal, but it's safe enough if we immediately
                hide it behind [Types].
             *)
@@ -152,7 +158,7 @@ module Choices = struct
          , 'auxiliary_value )
          t =
       | Rule :
-          (   self:('var, 'value, 'width, 'height) Pickles.Tag.t
+          (   self:('var, 'value, 'width) Tag.t
            -> ( 'prev_vars
               , 'prev_values
               , 'widths
@@ -260,7 +266,7 @@ module Choices = struct
       let (Prevs prevs) = Prevs.of_rule rule in
 
       (* this is called after `picklesRuleFromFunction()` and finishes the circuit *)
-      let finish_circuit prevs self (js_result : pickles_rule_js_return) :
+      let finish_circuit prevs (Tag.Tag self) (js_result : pickles_rule_js_return) :
           _ Pickles.Inductive_rule.main_return =
         (* convert js rule output to pickles rule output *)
         let public_output = js_result##.publicOutput in
@@ -301,7 +307,7 @@ module Choices = struct
         { previous_proof_statements; public_output; auxiliary_output = () }
       in
 
-      let rule ~(self : (Statement.t, Statement.Constant.t, _, _) Pickles.Tag.t)
+      let rule ~(self : (Statement.t, Statement.Constant.t, _) Tag.t)
           : _ Pickles.Inductive_rule.Promise.t =
         let prevs = prevs ~self in
 
@@ -340,8 +346,9 @@ module Choices = struct
        , 'auxiliary_value )
        t =
     | Choices :
-        (   self:('var, 'value, 'width, 'height) Pickles.Tag.t
-         -> ( 'prev_vars
+        (   self:('var, 'value, 'width) Tag.t
+         -> ( _
+            , 'prev_vars
             , 'prev_values
             , 'widths
             , 'heights
@@ -351,7 +358,7 @@ module Choices = struct
             , 'ret_value
             , 'auxiliary_var
             , 'auxiliary_value )
-            H4_6.T(Pickles.Inductive_rule.Promise).t )
+            H4_6_with_length.T(Pickles.Inductive_rule.Promise).t )
         -> ( 'var
            , 'value
            , 'width
@@ -364,6 +371,8 @@ module Choices = struct
            , 'auxiliary_value )
            t
 
+  (* Convert each rule given in js_rules as JS object into their corresponding
+     OCaml type counterparty *)
   let of_js ~public_input_size ~public_output_size js_rules =
     let rec get_rules (Choices rules) index :
         ( _
@@ -383,7 +392,8 @@ module Choices = struct
           Inductive_rule.create ~public_input_size ~public_output_size
             (Array.get js_rules index)
         in
-        let rules ~self : _ H4_6.T(Pickles.Inductive_rule.Promise).t =
+        let rules ~self : _ H4_6_with_length.T(Pickles.Inductive_rule.Promise).t
+            =
           rule ~self :: rules ~self
         in
         get_rules (Choices rules) (index - 1)
@@ -627,6 +637,7 @@ let pickles_compile (choices : pickles_rule_js array)
   let (Choices choices) =
     Choices.of_js ~public_input_size ~public_output_size choices
   in
+  let choices ~self = choices ~self:(Choices.Tag.Tag self) in
 
   (* parse caching configuration *)
   let storables =
@@ -638,15 +649,14 @@ let pickles_compile (choices : pickles_rule_js array)
 
   (* call into Pickles *)
   let tag, _cache, p, provers =
-    Pickles.compile_promise () ?override_wrap_domain ~choices
+    Pickles.compile_promise ?cache ?storables ?override_wrap_domain
       ~public_input:
         (Input_and_output
            ( public_input_typ public_input_size
            , public_input_typ public_output_size ) )
       ~auxiliary_typ:Typ.unit
-      ~branches:(module Branches)
       ~max_proofs_verified:(module Max_proofs_verified)
-      ~name ?storables ?cache
+      ~name ~choices ()
   in
 
   (* translate returned prover and verify functions to JS *)

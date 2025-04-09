@@ -102,7 +102,12 @@ val pickles :
       Js.readonly_prop
   ; sideLoaded :
       < create :
-          (Js.js_string Js.t -> int -> int -> int ->  bool option Pickles_types.Plonk_types.Features.t -> 'd)
+          (   Js.js_string Js.t
+           -> int
+           -> int
+           -> int
+           -> bool option Pickles_types.Plonk_types.Features.t
+           -> 'd )
           Js_of_ocaml.Js.readonly_prop
       ; inCircuit :
           (   _ Pickles.Tag.t

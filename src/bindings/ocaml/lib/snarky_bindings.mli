@@ -27,16 +27,16 @@ val snarky :
           (int -> field array option -> Field.t array) Js.readonly_prop
       ; state :
           < allocVar :
-              (Backend.Run_state.t -> field Snarky_backendless.Cvar.t )
+              (Backend.Run_state.t -> field Snarky_backendless.Cvar.t)
               Js.readonly_prop
           ; storeFieldElt :
-              ( Backend.Run_state.t -> field -> field Snarky_backendless.Cvar.t )
+              (Backend.Run_state.t -> field -> field Snarky_backendless.Cvar.t)
               Js.readonly_prop
-          ; asProver : ( Backend.Run_state.t  -> bool) Js.readonly_prop
-          ; setAsProver : ( Backend.Run_state.t  -> bool -> unit) Js.readonly_prop
-          ; hasWitness : ( Backend.Run_state.t  -> bool) Js.readonly_prop
+          ; asProver : (Backend.Run_state.t -> bool) Js.readonly_prop
+          ; setAsProver : (Backend.Run_state.t -> bool -> unit) Js.readonly_prop
+          ; hasWitness : (Backend.Run_state.t -> bool) Js.readonly_prop
           ; getVariableValue :
-              ( Backend.Run_state.t -> int -> field) Js.readonly_prop >
+              (Backend.Run_state.t -> int -> field) Js.readonly_prop >
           Js.t
           Js.readonly_prop >
       Js.t
