@@ -39,6 +39,10 @@ const TestProgram = V2.MinaProgram({
             x: V2.Update.from(value, Field(0)) as never,
             address: V2.Update.from(env.accountId.publicKey, PublicKey.empty()) as never,
           },
+          pushActions: [
+            [Field(1), Field(1)],
+            [Field(1), Field(1)],
+          ],
         };
       },
     },
