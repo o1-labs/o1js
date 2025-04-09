@@ -312,7 +312,14 @@
           inherit dune-description bindings;
           bindings-tar = pkgs.stdenv.mkDerivation {
             name = "bindings.tar.gz";
-            buildCommand = "tar czf $out -C ${bindings} .";
+            src = bindings;
+            buildCommand = ''
+                cp -R $src/* .
+                rm env-vars
+                #restore write permisions removed by nix store
+                chmod +w -R .
+                tar czf $out .
+            '';
           };
           npm-deps = o1js-npm-deps;
         };

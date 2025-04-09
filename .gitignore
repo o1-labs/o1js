@@ -18,3 +18,4 @@ src/bindings/compiled
 # allows dune and README.md
 src/bindings/mina-transaction/gen/*.js
 src/bindings/mina-transaction/gen/*.ts
+.bindings_download
