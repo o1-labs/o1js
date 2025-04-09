@@ -17,6 +17,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
 
+- [PR !2126](https://github.com/o1-labs/o1js/pull/2126) Bump up Mina to the
+  commit
+  [5a9145feaba3138cd1a1090d8421a8e67a5485e1](https://github.com/MinaProtocol/mina/blob/5a9145feaba3138cd1a1090d8421a8e67a5485e1)
+- [PR !2128](https://github.com/o1-labs/o1js/pull/2128) Bump up Mina to the
+  commit
+  [eaca9201](https://github.com/MinaProtocol/mina/tree/eaca9201e0df37f244e341155f253dc9551fb451),
+  to include the latest changes reg. the move of the Rust codebase to the
+  repository proof-systems.
+
 ## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 
 ### Added
