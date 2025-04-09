@@ -34,7 +34,7 @@ jobs:
           node-version: '20'
 
       - name: Wait for bindings-cache
-        uses: fountainhead/action-wait-for-check@v1
+        uses: fountainhead/action-wait-for-check@v1.2.0
         with:
           checkName: "build-bindings"
           ref: ${{ github.sha }}
