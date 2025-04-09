@@ -44,7 +44,7 @@ jobs:
       - name: Upload bindings
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.ref }}-bindings.tar.gz
+          name: ${{ github.event.pull_request.head.sha }}-bindings.tar.gz
           path: bindings.tar.gz
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
