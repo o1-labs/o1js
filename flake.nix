@@ -335,7 +335,7 @@
                 checkPhase = if pkgs.stdenv.isDarwin then "" else null;
                 text =
                 ''
-                cp -r ${self.packages."${system}".o1js-bindings}/* ./src/bindings
+                cp -r ${bindings}/* ./src/bindings
                 chmod +w -R src/bindings/compiled
                 '';
               }}/bin/update-bindings";
