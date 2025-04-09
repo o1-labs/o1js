@@ -42,7 +42,7 @@ import { mapObject, mapToObject, zip } from '../util/arrays.js';
 import { VerificationKey } from './verification-key.js';
 
 // public API
-export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, Method };
+export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, Method, validateVkHash };
 
 // internal API
 export {
@@ -130,6 +130,21 @@ async function verify(
   return prettifyStacktracePromise(
     withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
   );
+}
+
+/**
+ * Asserts that the hash computed from a verification key's data matches the provided hash.
+ * This is used to ensure that the verification key data and hash are consistent.
+ *
+ * @param verificationKey - The verification key whose data and hash to check for consistency
+ * @returns void, throws an error if the computed hash doesn't match the provided hash
+ */
+async function validateVkHash(verificationKey: VerificationKey) {
+  const circuitVk = Pickles.sideLoaded.vkToCircuit(() => verificationKey.data);
+
+  // Assert the validity of the auxiliary vk-data by comparing the witnessed and the hash as an input
+  const hash = inCircuitVkHash(circuitVk);
+  Field(hash).assertEquals(verificationKey.hash, 'Provided VerificationKey hash is not correct');
 }
 
 /**
