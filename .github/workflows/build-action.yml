@@ -369,7 +369,7 @@ jobs:
           tag: ${{ steps.publish.outputs.version }}
           generateReleaseNotes: true
           name: Release ${{ steps.publish.outputs.version }}
-
+          skipIfReleaseExists: true
 
   Release-mina-signer-on-NPM:
     if: github.ref == 'refs/heads/main'

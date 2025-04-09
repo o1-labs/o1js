@@ -244,7 +244,8 @@
           inherit (inputs.mina.devShells."${system}".default)
             PLONK_WASM_NODEJS
             PLONK_WASM_WEB
-            MARLIN_PLONK_STUBS
+            KIMCHI_STUBS
+            KIMCHI_STUBS_STATIC_LIB
             ;
           PREBUILT_KIMCHI_BINDINGS_JS_WEB =
             "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
@@ -314,9 +315,6 @@
             buildCommand = "tar czf $out -C ${bindings} .";
           };
           npm-deps = o1js-npm-deps;
-
-          kimchi = pkgs.kimchi-rust-wasm;
-          ocaml-js = prj.pkgs.__ocaml-js__;
         };
         apps = {
           update-npm-deps = {
