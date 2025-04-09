@@ -35,9 +35,16 @@ jobs:
           nix run o1js#update-npm-deps
           #TODO when there is a diff suggest the change but don't fail
       - name: Build the o1js bindings
-        id: bindings-build
         run: |
           nix run o1js#generate-bindings --max-jobs 4
+      - name: cache bindings
+        uses: actions/cache@v4
+        id: bindings-cache
+        with:
+          path: |
+            src/bindings/compiled
+            src/bindings/mina-transaction/gen
+          key: bindings-${{ github.run_id }}
       - name: generate tar
         run: |
           nix build o1js#bindings-tar --out-link bindings.tar.gz
@@ -66,6 +73,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Restore bindings-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/bindings/compiled
+            src/bindings/mina-transaction/gen
+          key: bindings-${{ github.run_id }}
 
       - name: Cache dependencies and build
         uses: actions/cache@v4
