@@ -26,6 +26,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   to include the latest changes reg. the move of the Rust codebase to the
   repository proof-systems.
 
+### Added
+
+- Added bitwise operation methods (xor, not, and, or) to `UInt8` class.
+
 ## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 
 ### Added
