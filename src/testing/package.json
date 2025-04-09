@@ -20,12 +20,12 @@
     "directory": "src/testing"
   },
   "bugs": "https://github.com/o1-labs/o1js/issues",
-  "main": "dist/node/testing/index.js",
-  "types": "dist/node/testing/index.d.ts",
+  "main": "dist/node/testing/src/index.js",
+  "types": "dist/node/testing/src/index.d.ts",
   "exports": {
-    "types": "./dist/node/testing/index.d.ts",
-    "node": "./dist/node/testing/index.js",
-    "default": "./dist/node/testing/index.js"
+    "types": "./dist/node/testing/src/index.d.ts",
+    "node": "./dist/node/testing/src/index.js",
+    "default": "./dist/node/testing/src/index.js"
   },
   "files": [
     "dist",
