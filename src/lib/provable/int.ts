@@ -284,7 +284,7 @@ class UInt64 extends CircuitValue {
    *
    * @example
    * ```ts
-   * // NOTing 4 bits
+   * // NOTing 4 bits with the unchecked version 
    * let a = UInt64.from(0b0101);
    * let b = a.not();
    *
@@ -816,7 +816,7 @@ class UInt32 extends CircuitValue {
    *
    * @example
    * ```ts
-   * // NOTing 4 bits
+   * // NOTing 4 bits with the unchecked version
    * let a = UInt32.from(0b0101);
    * let b = a.not();
    *
@@ -1710,7 +1710,7 @@ class UInt8 extends Struct({
    *
    * @example
    * ```ts
-   * // NOTing 4 bits
+   * // NOTing 4 bits with the unchecked version
    * let a = UInt8.from(0b0101);
    * let b = a.not();
    *
