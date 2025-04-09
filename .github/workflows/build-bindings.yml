@@ -30,7 +30,7 @@ jobs:
           ./pin.sh
           nix run o1js#update-npm-deps
           #TODO when there is a diff suggest the change but don't fail
-      - uses: Geometer1729/suggest-changes@v1
+      - uses: Geometer1729/suggest-changes@main
         with:
           comment: 'please commit the npmDepsHash change'
           event: 'REQUEST_CHANGES'
