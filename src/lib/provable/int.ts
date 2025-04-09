@@ -284,9 +284,9 @@ class UInt64 extends CircuitValue {
    *
    * @example
    * ```ts
-   * // NOTing 4 bits with the unchecked version
+   * // NOTing 4 bits
    * let a = UInt64.from(0b0101);
-   * let b = a.not(false);
+   * let b = a.not();
    *
    * console.log(b.toBigInt().toString(2));
    * // 1111111111111111111111111111111111111111111111111111111111111010
@@ -816,7 +816,7 @@ class UInt32 extends CircuitValue {
    *
    * @example
    * ```ts
-   * // NOTing 4 bits with the unchecked version
+   * // NOTing 4 bits
    * let a = UInt32.from(0b0101);
    * let b = a.not();
    *
