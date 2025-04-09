@@ -282,7 +282,8 @@
             inherit (inputs.mina.devShells."${system}".default)
               PLONK_WASM_NODEJS
               PLONK_WASM_WEB
-              MARLIN_PLONK_STUBS
+              KIMCHI_STUBS
+              KIMCHI_STUBS_STATIC_LIB
               ;
             PREBUILT_KIMCHI_BINDINGS_JS_WEB =
               "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
