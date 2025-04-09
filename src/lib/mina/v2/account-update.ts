@@ -38,8 +38,6 @@ import { VerificationKey } from '../../../lib/proof-system/verification-key.js';
 
 // TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
 // TODO: replay checks
-// TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
-// TODO: replay checks
 export {
   AccountUpdate,
   Authorized,
@@ -50,6 +48,7 @@ export {
   ContextFreeAccountUpdate,
   DynamicProvable,
   AccountUpdateCommitment,
+  CommittedList,
 };
 class AccountUpdateCommitment extends Struct({
   accountUpdateCommitment: Field,
