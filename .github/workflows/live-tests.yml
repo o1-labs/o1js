@@ -37,6 +37,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Restore bindings-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/bindings/compiled
+            src/bindings/mina-transaction/gen
+          key: bindings-${{ github.run_id }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -61,6 +68,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Restore bindings-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/bindings/compiled
+            src/bindings/mina-transaction/gen
+          key: bindings-${{ github.run_id }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
