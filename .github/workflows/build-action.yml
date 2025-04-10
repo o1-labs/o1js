@@ -45,7 +45,7 @@ jobs:
           path: |
             src/bindings/compiled
             src/bindings/mina-transaction/gen
-          key: bindings-${{ github.run_id }}
+          key: bindings-${{ github.sha }}
 
       - name: Cache dependencies and build
         uses: actions/cache@v4

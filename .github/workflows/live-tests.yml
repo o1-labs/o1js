@@ -43,7 +43,7 @@ jobs:
           path: |
             src/bindings/compiled
             src/bindings/mina-transaction/gen
-          key: bindings-${{ github.run_id }}
+          key: bindings-${{ github.sha }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -74,7 +74,7 @@ jobs:
           path: |
             src/bindings/compiled
             src/bindings/mina-transaction/gen
-          key: bindings-${{ github.run_id }}
+          key: bindings-${{ github.sha }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
