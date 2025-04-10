@@ -99,20 +99,20 @@ class TokenId {
 
   /**
    * Derives a TokenId from a token owner's public key and a parent token ID.
+   * This implementation exactly matches the OCaml code in Mina Protocol:
    * 
    * @param tokenOwner - The public key of the token owner.
    * @param parentTokenId - The parent token ID (defaults to MINA token ID).
    * @returns A new TokenId.
    */
   static derive(tokenOwner: PublicKey, parentTokenId: Field = new Field(1)): TokenId {
-    // Use the provable function to create an AccountId type
-    const AccountId = provable({ tokenOwner: PublicKey, parentTokenId: Field });
+    // Define an AccountId with the specified fields
+    const AccountId = { tokenOwner, parentTokenId };
     
-    // Create the accountId using the provable type
-    const accountId = { tokenOwner, parentTokenId };
-    
-    // Use the toInput method from the provable type to get the hash input
-    const input = AccountId.toInput(accountId);
+    // Create input directly
+    const input: GenericHashInput<Field> = {
+      fields: [...PublicKey.toFields(AccountId.tokenOwner), AccountId.parentTokenId]
+    };
     
     // First pack the input (Random_oracle.pack_input), then hash with the prefix
     const packed = packToFields(input);
