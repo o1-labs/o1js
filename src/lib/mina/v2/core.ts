@@ -8,6 +8,7 @@ import { hashWithPrefix, packToFields } from '../../../lib/provable/crypto/posei
 import { prefixes } from '../../../bindings/crypto/constants.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
+import { provable } from '../../provable/types/provable-derivers.js';
 
 export {
   Option,
@@ -105,17 +106,14 @@ class TokenId {
    * @returns A new TokenId.
    */
   static derive(tokenOwner: PublicKey, parentTokenId: Field = new Field(1)): TokenId {
-    // In Mina protocol, they create an "owner" object which is an AccountId containing
-    // both the tokenOwner (PublicKey) and parentTokenId
-    const accountId = {
-      tokenOwner,
-      parentTokenId
-    };
+    // Use the provable function to create an AccountId type
+    const AccountId = provable({ tokenOwner: PublicKey, parentTokenId: Field });
     
-    // Create input similar to to_input(owner) in OCaml
-    const input: GenericHashInput<Field> = {
-      fields: [...PublicKey.toFields(accountId.tokenOwner), accountId.parentTokenId]
-    };
+    // Create the accountId using the provable type
+    const accountId = { tokenOwner, parentTokenId };
+    
+    // Use the toInput method from the provable type to get the hash input
+    const input = AccountId.toInput(accountId);
     
     // First pack the input (Random_oracle.pack_input), then hash with the prefix
     const packed = packToFields(input);
