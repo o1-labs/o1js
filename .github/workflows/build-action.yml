@@ -37,7 +37,7 @@ jobs:
         uses: fountainhead/action-wait-for-check@v1.2.0
         with:
           checkName: "nix-build"
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore bindings-cache
         uses: actions/cache@v4
