@@ -98,16 +98,30 @@ class TokenId {
 
   /**
    * Derives a TokenId from a token owner's public key and a parent token ID.
+   * This implementation exactly matches the OCaml code in Mina Protocol:
+   * https://github.com/MinaProtocol/mina/blob/2b0f60cf908bf8ed74de98fcc5442d3947f89d8e/src/lib/mina_base/account_id.ml#L133
+   * 
    * @param tokenOwner - The public key of the token owner.
    * @param parentTokenId - The parent token ID (defaults to MINA token ID).
    * @returns A new TokenId.
    */
   static derive(tokenOwner: PublicKey, parentTokenId: Field = new Field(1)): TokenId {
-    // Create a HashInput with the fields from the tokenOwner and parentTokenId
-    const fields = [...PublicKey.toFields(tokenOwner), parentTokenId];
-    // Use the hashWithPrefix function to hash the fields with the deriveTokenId prefix
-    const hash = hashWithPrefix(prefixes.deriveTokenId, fields) as Field;
-    // Create a new TokenId with the resulting hash
+    // In Mina protocol, they create an "owner" object which is an AccountId containing
+    // both the tokenOwner (PublicKey) and parentTokenId
+    const accountId = {
+      tokenOwner,
+      parentTokenId
+    };
+    
+    // Create input similar to to_input(owner) in OCaml
+    const input: GenericHashInput<Field> = {
+      fields: [...PublicKey.toFields(accountId.tokenOwner), accountId.parentTokenId]
+    };
+    
+    // First pack the input (Random_oracle.pack_input), then hash with the prefix
+    const packed = packToFields(input);
+    const hash = hashWithPrefix(prefixes.deriveTokenId, packed) as Field;
+    
     return new TokenId(hash);
   }
 
