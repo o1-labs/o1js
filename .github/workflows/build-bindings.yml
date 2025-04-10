@@ -66,6 +66,7 @@ jobs:
   upload-bindings:
     name: build-bindings
     needs: nix-build
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
       - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
@@ -74,7 +75,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      runs-on: [sdk-self-hosted-linux-amd64-build-system]
       - name: generate tar
         run: |
           nix build o1js#bindings-tar --out-link bindings.tar.gz
