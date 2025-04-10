@@ -27,17 +27,40 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          ref: ${{ github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Build examples
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Watch bindings workflow to await it
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(gh run list --workflow "Build bindings" --json databaseId,headSha --jq '.[] | select(.headSha == "${{ github.sha }}") | .databaseId')
+          gh run watch $RUN_ID --interval 5 --exit-status
+
+      - name: Restore bindings-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/bindings/compiled
+            src/bindings/mina-transaction/gen
+          key: bindings-${{ github.sha }}
+          lookup-only: true
+          fail-on-cache-miss: true
+      - name: Cache dependencies and build
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            dist
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
+
+      - name: Build examples
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           npm ci
           npm run build:examples
