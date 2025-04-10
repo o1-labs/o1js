@@ -35,7 +35,7 @@ jobs:
         with:
           comment: please commit the npmDepsHash change
           event: REQUEST_CHANGES
-          #allow_new_files: true
+          allow_new_files: true
 
   nix-build:
     name: build-bindings-ubuntu
