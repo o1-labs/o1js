@@ -99,7 +99,6 @@ class TokenId {
 
   /**
    * Derives a TokenId from a token owner's public key and a parent token ID.
-   * This implementation exactly matches the OCaml code in Mina Protocol:
    * 
    * @param tokenOwner - The public key of the token owner.
    * @param parentTokenId - The parent token ID (defaults to MINA token ID).
