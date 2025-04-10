@@ -116,8 +116,7 @@ class TokenId {
     
     // First pack the input (Random_oracle.pack_input), then hash with the prefix
     const packed = packToFields(input);
-    // hashWithPrefix returns a value that needs to be cast to Field
-    // The result is actually a Field but TypeScript doesn't know that
+    // While hashWithPrefix actually returns a Field, TypeScript's type system requires a cast
     const hash = hashWithPrefix(prefixes.deriveTokenId, packed) as Field;
     
     return new TokenId(hash);
