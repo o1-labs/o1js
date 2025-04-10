@@ -40,8 +40,8 @@ jobs:
       - name: Wait for bindings-cache
         uses: fountainhead/action-wait-for-check@v1.2.0
         with:
-          checkName: "nix-build"
-          ref: ${{ github.sha }}
+          checkName: "build-bindings-ubuntu"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore bindings-cache
         uses: actions/cache@v4
@@ -78,8 +78,8 @@ jobs:
       - name: Wait for bindings-cache
         uses: fountainhead/action-wait-for-check@v1.2.0
         with:
-          checkName: "nix-build"
-          ref: ${{ github.sha }}
+          checkName: "build-bindings-ubuntu"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore bindings-cache
         uses: actions/cache@v4

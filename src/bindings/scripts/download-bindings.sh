@@ -1,8 +1,12 @@
 # /usr/bin/env bash
 set -e
-# TODO good error handleing
 
-REV=$(git rev-parse HEAD)
+if [ $1 == '--rev' ]
+then
+  REV=$2
+else
+  REV=$(git rev-parse HEAD)
+fi
 RUN_ID=$(gh run list --commit "$REV" --workflow 'Build bindings' --json databaseId --jq '.[0].databaseId')
 
 if [ -z "$RUN_ID" ]
