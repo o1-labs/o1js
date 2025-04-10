@@ -37,6 +37,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Wait for bindings-cache
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          checkName: "build-bindings"
+          ref: ${{ github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore bindings-cache
         uses: actions/cache@v4
         with:
@@ -44,6 +50,8 @@ jobs:
             src/bindings/compiled
             src/bindings/mina-transaction/gen
           key: bindings-${{ github.sha }}
+          lookup-only: true
+          fail-on-cache-miss: true
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -68,6 +76,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Wait for bindings-cache
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          checkName: "build-bindings"
+          ref: ${{ github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore bindings-cache
         uses: actions/cache@v4
         with:
@@ -75,6 +89,8 @@ jobs:
             src/bindings/compiled
             src/bindings/mina-transaction/gen
           key: bindings-${{ github.sha }}
+          lookup-only: true
+          fail-on-cache-miss: true
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
