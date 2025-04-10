@@ -51,7 +51,6 @@ jobs:
             src/bindings/compiled
             src/bindings/mina-transaction/gen
           key: bindings-${{ github.sha }}
-          lookup-only: true
           fail-on-cache-miss: true
       - name: Cache dependencies and build
         uses: actions/cache@v4
