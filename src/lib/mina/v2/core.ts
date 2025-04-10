@@ -123,15 +123,6 @@ class TokenId {
     
     return new TokenId(hash);
   }
-
-  /**
-   * Creates a TokenId from a Field value.
-   * @param field - The Field value.
-   * @returns A new TokenId.
-   */
-  static fromField(field: Field): TokenId {
-    return new TokenId(field);
-  }
 }
 
 function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | undefined {
