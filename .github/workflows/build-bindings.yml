@@ -30,12 +30,11 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-npm-deps
-          git restore flake.lock # prevents suggesting changes to the flake.lock
-      - uses: Geometer1729/suggest-changes@main
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          comment: please commit the npmDepsHash change
-          event: REQUEST_CHANGES
-          allow_new_files: true
+          commit_message: "auto update npmDepsHash"
+          file_pattern: "npmDepsHash"
+
 
   nix-build:
     name: build-bindings-ubuntu
