@@ -32,15 +32,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Watch bindings workflow to await it
+      - name: List checks via API
+        run: |
+          gh api repos/${{ github.repository }}/commits/${{ github.pull_request.head.sha || github.sha }}/check-runs \
+          --jq '.check_runs[] | .name'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          RUN_ID=$(gh run list --workflow "Build bindings" --json databaseId,headSha --jq '.[] | select(.headSha == "${{ github.pull_request.base.sha || github.sha }}") | .databaseId')
-          echo gh run watch $RUN_ID --interval 5 --exit-status
-          gh run watch $RUN_ID --interval 5 --exit-status
-
+      - name: Wait for bindings-cache
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          checkName: "build-bindings-ubuntu"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore bindings-cache
         uses: actions/cache@v4
         with:
