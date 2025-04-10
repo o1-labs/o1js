@@ -27,6 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          ref: ${{ github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
