@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  nix-build: # Has to be a name already on main, we could rename this in a seperate pr
+  check-npm-deps:
     name: build-bindings
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
@@ -35,8 +35,22 @@ jobs:
           comment: 'please commit the npmDepsHash change'
           event: 'REQUEST_CHANGES'
           allow_new_files: 'true'
+
+  nix-build:
+    name: build-bindings
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Build the o1js bindings
         run: |
+          set -Eeu
+          ./pin.sh
           nix run o1js#generate-bindings --max-jobs 4
       - name: cache bindings
         uses: actions/cache@v4
@@ -47,6 +61,20 @@ jobs:
             src/bindings/mina-transaction/gen
           key: bindings-${{ github.sha }}
           save-always: true
+
+  # seperate job because the rest of ci has to wait on the above job
+  upload-bindings:
+    name: build-bindings
+    needs: nix-build
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      runs-on: [sdk-self-hosted-linux-amd64-build-system]
       - name: generate tar
         run: |
           nix build o1js#bindings-tar --out-link bindings.tar.gz
