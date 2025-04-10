@@ -38,6 +38,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RUN_ID=$(gh run list --workflow "Build bindings" --json databaseId,headSha --jq '.[] | select(.headSha == "${{ github.pull_request.base.sha || github.sha }}") | .databaseId')
+          echo gh run watch $RUN_ID --interval 5 --exit-status
           gh run watch $RUN_ID --interval 5 --exit-status
 
       - name: Restore bindings-cache
