@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-bindings:
+  nix-build: # Has to be a name already on main, we could rename this in a seperate pr
     name: build-bindings
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
@@ -29,7 +29,7 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-npm-deps
-          #TODO when there is a diff suggest the change but don't fail
+          git restore flake.lock # prevents suggesting changes to the flake.lock
       - uses: Geometer1729/suggest-changes@main
         with:
           comment: 'please commit the npmDepsHash change'
