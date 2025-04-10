@@ -30,10 +30,19 @@ For most users, building o1js is as simple as running:
 
 ```sh
 npm install
+gh auth login #gh is used to download the compiled artifacts
 npm run build
 ```
 
-This command compiles the TypeScript source files, making them ready for use. The compiled OCaml and WebAssembly artifacts are version-controlled to simplify the build process for end users. These artifacts are stored under `src/bindings/compiled` and contain the artifacts needed for both node and web builds. These files only have to be regenerated if there are changes to the OCaml or Rust source files.
+This command downloads the artifacts from github if they are missing and compiles the TypeScript source files, making them ready for use.
+The compiled OCaml and WebAssembly artifacts are cached for each commit where ci is run or where they are manually built ie by `npm run build:bindings-remote`.
+These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both node and web builds.
+These files only have to be regenerated if there are changes to the OCaml or Rust source files.
+Keep in mind merging a newer version of o1js may include Ocaml and rust changes so you may need to rerun `npm run build:bindings-download`.
+If this fails because the artifacts haven't been built for that commit.
+You can also run `./src/bindings/scripts/download-bindings.sh --rev <some_commit>` to download artifacts for a different commit.
+This can be usefull if you merge newer commits from main into your branch and you know you have the same rust and Ocaml as main so the artifacts should be the same.
+
 
 ## Building with nix
 
@@ -149,7 +158,7 @@ This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and
 
 - There is an opt-in pre-commit hook avaibale that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
 
-> [!NOTE]  
+> [!NOTE]
 > You can opt-out of linting in a PR by tagging it with skip-lint, in case the linting script is legitimately blocking an important PR
 
 ### Running Tests
