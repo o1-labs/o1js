@@ -30,7 +30,6 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-npm-deps
-          git restore flake.lock # prevents suggesting changes to the flake.lock
           git diff npmDepsHash
       - uses: Geometer1729/suggest-changes@main
         with:
