@@ -928,7 +928,7 @@ class UInt32 extends CircuitValue {
    * let a = UInt32.from(3);    // ... 000011
    * let b = UInt32.from(5);    // ... 000101
    *
-   * let c = a.and(b, 2);    // ... 000001
+   * let c = a.and(b);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
@@ -1745,7 +1745,7 @@ class UInt8 extends Struct({
    * let a = UInt8.from(3);    // ... 000011
    * let b = UInt8.from(5);    // ... 000101
    *
-   * let c = a.and(b, 2);    // ... 000001
+   * let c = a.and(b);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
