@@ -59,7 +59,7 @@ jobs:
           path: |
             src/bindings/compiled
             src/bindings/mina-transaction/gen
-          key: bindings-${{ github.sha }}
+          key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
           save-always: true
 
   # seperate job because the rest of ci has to wait on the above job

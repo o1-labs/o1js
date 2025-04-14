@@ -49,7 +49,7 @@ jobs:
           path: |
             src/bindings/compiled
             src/bindings/mina-transaction/gen
-          key: bindings-${{ github.sha }}
+          key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
           fail-on-cache-miss: true
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
@@ -87,7 +87,7 @@ jobs:
           path: |
             src/bindings/compiled
             src/bindings/mina-transaction/gen
-          key: bindings-${{ github.sha }}
+          key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
           fail-on-cache-miss: true
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared

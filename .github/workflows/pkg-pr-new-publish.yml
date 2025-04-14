@@ -39,7 +39,7 @@ jobs:
           path: |
             src/bindings/compiled
             src/bindings/mina-transaction/gen
-          key: bindings-${{ github.sha }}
+          key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
           fail-on-cache-miss: true
 
       - name: Build o1js and mina-signer
