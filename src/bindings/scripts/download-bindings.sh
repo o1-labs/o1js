@@ -1,8 +1,7 @@
 # /usr/bin/env bash
 set -e
 
-if [ $1 == '--rev' ]
-then
+if [ "$#" == "2" ] && [ $1 == '--rev' ] ; then
   REV=$2
 else
   REV=$(git rev-parse HEAD)
@@ -22,6 +21,8 @@ fi
 
 gh run watch "$RUN_ID" --exit-status || echo "Warning: ci failed on this job, trying to download bindings anyway"
 #remove if it exists but don't fail
-[ -z ".bindings_download/bindings.tar.gz" ] || rm .bindings_download/bindings.tar.gz
+if [ -f ".bindings_download/bindings.tar.gz" ]; then
+  rm .bindings_download/bindings.tar.gz
+fi
 gh run download "$RUN_ID" --dir .bindings_download --name=bindings.tar.gz
 tar xzf .bindings_download/bindings.tar.gz -C src/bindings --overwrite

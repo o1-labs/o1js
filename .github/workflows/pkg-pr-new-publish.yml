@@ -27,11 +27,11 @@ jobs:
 
       - name: Build o1js and mina-signer
         env:
+          # needed to download bindings
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
           npm ci
-          npm run build:bindings-download
           npm run prepublishOnly
           cd src/mina-signer
           npm ci
