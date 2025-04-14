@@ -27,6 +27,9 @@ export {
   StateUpdates,
   StateLayout,
   GenericStateUpdates,
+  StateMask,
+  StateReader,
+  State,
 };
 
 const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
@@ -145,7 +148,7 @@ const StateDefinition = {
 };
 
 // TODO: allow for explicit ordering/mapping of state field indices
-/*
+
 function State<State extends CustomStateLayout>(Layout: State): StateDefinition<State> {
   // TODO: proxy provable definition out of Struct with helper
   // class StateDef extends Struct(Layout) {}
@@ -202,7 +205,7 @@ function State<State extends CustomStateLayout>(Layout: State): StateDefinition<
   } as StateDefinition<State>;
   // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
 }
-*/
+
 type StatePreconditions<State extends StateLayout> = State extends 'GenericState'
   ? GenericStatePreconditions
   : {
@@ -518,8 +521,19 @@ const StateValues = {
           const update = updates.updates[i];
           return update.set.toBoolean() ? update.value : value;
         }),
-      (_Layout, _values, _state): { [name in keyof State]: ProvableInstance<State[name]> } => {
-        throw new Error('no');
+      (Layout, values, updates): { [name in keyof State]: ProvableInstance<State[name]> } => {
+        const result = { ...values };
+        for (const key in Layout) {
+          const update = updates[key as keyof State];
+          if (update !== undefined) {
+            const updateValue =
+              update instanceof Update ? update : new Update(new Bool(true), update);
+            if (updateValue.set.toBoolean()) {
+              result[key as keyof State] = updateValue.value;
+            }
+          }
+        }
+        return result;
       }
     );
   },

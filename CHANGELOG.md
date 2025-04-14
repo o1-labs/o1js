@@ -15,11 +15,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/fb625f...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
+
+- [PR !2126](https://github.com/o1-labs/o1js/pull/2126) Bump up Mina to the
+  commit
+  [5a9145feaba3138cd1a1090d8421a8e67a5485e1](https://github.com/MinaProtocol/mina/blob/5a9145feaba3138cd1a1090d8421a8e67a5485e1)
+- [PR !2128](https://github.com/o1-labs/o1js/pull/2128) Bump up Mina to the
+  commit
+  [eaca9201](https://github.com/MinaProtocol/mina/tree/eaca9201e0df37f244e341155f253dc9551fb451),
+  to include the latest changes reg. the move of the Rust codebase to the
+  repository proof-systems.
+
+### Added
+
+- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144$0
+
+## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 
 ### Added
 
 - Support of runtime tables https://github.com/o1-labs/o1js/pull/1858
+- _Experimental_ Introducing `MinaProgram`, a new powerful API for interacting with Mina Protocol. https://github.com/o1-labs/o1js/pull/2095
+  - New functions and types for `MinaProgram`
 - Export various internal functions and types. https://github.com/o1-labs/o1js/pull/2083
 - Export part of the core cryptography layer via the `Core` namespace. https://github.com/o1-labs/o1js/pull/2083
 - _Experimental_ New bindings layer for new API types. https://github.com/o1-labs/o1js/pull/2032
@@ -29,6 +46,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Bump up Rust version to 1.79.0. Bindings now depends on nightly-2024-06-13.
   https://github.com/o1-labs/o1js/pull/2063
 - `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](httpts://github.com/o1-labs/o1js/pull/2091)
+- `toBits()` and `fromBits()` methods added for `UInt32` and `UInt64` classes. https://github.com/o1-labs/o1js/pull/2099
+- **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
 
 ## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
 
@@ -45,7 +64,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added new method `CircuitString.setEncoding()` to change default behavior of the `CircuitString` encoding, possible value is `"ascii" | "uft-8"` default to `"ascii"`. Also added an optional `encoding: CircuitStringEncoding` parameter in `.toString()` and `.fromString()` to switch encoding temporary.
 - Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
 - Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
-- Add `UInt64.toBytes()`l https://github.com/o1-labs/o1js/pull/2060 [@kadirchan](https://github.com/kadirchan)
 
 ### Changed
 

@@ -7,7 +7,7 @@ import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
 import { addMod32, addMod64 } from './gadgets/arithmetic.js';
-import { withMessage } from './field.js';
+import { checkBitLength, withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { CircuitValue, prop } from './types/circuit-value.js';
 import {
@@ -19,6 +19,7 @@ import {
 import { assert } from '../util/assert.js';
 import { TupleN } from '../util/types.js';
 import { bytesToWord, wordToBytes } from './gadgets/bit-slices.js';
+import { BinableFp } from '../../mina-signer/src/field-bigint.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -285,7 +286,7 @@ class UInt64 extends CircuitValue {
    * ```ts
    * // NOTing 4 bits with the unchecked version
    * let a = UInt64.from(0b0101);
-   * let b = a.not(false);
+   * let b = a.not();
    *
    * console.log(b.toBigInt().toString(2));
    * // 1111111111111111111111111111111111111111111111111111111111111010
@@ -531,6 +532,49 @@ class UInt64 extends CircuitValue {
    */
   static fromBytesBE(bytes: UInt8[]): UInt64 {
     return UInt64.fromBytes([...bytes].reverse());
+  }
+
+  /**
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt64} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt64 element fits in `length` bits.
+   * The `length` has to be between 0 and 64 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 64 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt64}.
+   */
+  toBits(length: number = 64) {
+    checkBitLength('UInt64.toBits()', length, 64);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigInt());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt64.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    return this.value.toBits(length);
+  }
+
+  /**
+   * Convert a bit array into a {@link UInt64} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt64 element. In this case, no more than 64 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt64} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt64} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt64} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt64.fromBits()', length, 64);
+    return UInt64.Unsafe.fromField(Field.fromBits(bits));
   }
 }
 /**
@@ -884,7 +928,7 @@ class UInt32 extends CircuitValue {
    * let a = UInt32.from(3);    // ... 000011
    * let b = UInt32.from(5);    // ... 000101
    *
-   * let c = a.and(b, 2);    // ... 000001
+   * let c = a.and(b);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
@@ -1022,6 +1066,49 @@ class UInt32 extends CircuitValue {
    */
   static fromBytesBE(bytes: UInt8[]): UInt32 {
     return UInt32.fromBytes([...bytes].reverse());
+  }
+
+  /**
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt32} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt32 element fits in `length` bits.
+   * The `length` has to be between 0 and 32 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 32 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt32}.
+   */
+  toBits(length: number = 32) {
+    checkBitLength('UInt32.toBits()', length, 32);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigint());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt32.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    return this.value.toBits(length);
+  }
+
+  /**
+   * Convert a bit array into a {@link UInt32} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt32 element. In this case, no more than 32 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt32} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt32} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt32} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt32.fromBits()', length, 32);
+    return UInt32.Unsafe.fromField(Field.fromBits(bits));
   }
 }
 
@@ -1584,6 +1671,106 @@ class UInt8 extends Struct({
   }
 
   /**
+   * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * This gadget builds a chain of XOR gates recursively.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
+   * @param x {@link UInt8} element to XOR.
+   *
+   * @example
+   * ```ts
+   * let a = UInt8.from(0b0101);
+   * let b = UInt8.from(0b0011);
+   *
+   * let c = a.xor(b);
+   * c.assertEquals(0b0110);
+   * ```
+   */
+  xor(x: UInt8) {
+    return new UInt8(Bitwise.xor(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate operates over 8 bit for UInt8 types.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * NOT is implemented as a subtraction of the input from the all one bitmask
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // NOTing 4 bits with the unchecked version
+   * let a = UInt8.from(0b0101);
+   * let b = a.not();
+   *
+   * console.log(b.toBigInt().toString(2));
+   * // 11111010
+   *
+   * ```
+   *
+   */
+  not() {
+    return new UInt8(Bitwise.not(this.value, UInt8.NUM_BITS, false).value);
+  }
+
+  /**
+   * Bitwise AND gadget on {@link UInt8} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below.
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.and(b);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(x: UInt8) {
+    return new UInt8(Bitwise.and(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise OR gadget on {@link UInt8} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(x: UInt8) {
+    return new UInt8(Bitwise.or(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
    * Check if this {@link UInt8} is less than or equal to another {@link UInt8} value.
    * Returns a {@link Bool}.
    *
@@ -1813,5 +2000,52 @@ class UInt8 extends Struct({
   private static checkConstant(x: Field) {
     if (!x.isConstant()) return;
     RangeCheck.rangeCheck8(x);
+  }
+
+  isConstant() {
+    return this.value.isConstant();
+  }
+
+  /**
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt8} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt8 element fits in `length` bits.
+   * The `length` has to be between 0 and 8 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 8 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt8}.
+   */
+  toBits(length: number = 8) {
+    checkBitLength('UInt8.toBits()', length, 8);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigInt());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt8.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    return this.value.toBits(length);
+  }
+
+  /**
+   * Convert a bit array into a {@link UInt8} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt8 element. In this case, no more than 8 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt8} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt8} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt8} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt8.fromBits()', length, 8);
+    return UInt8.Unsafe.fromField(Field.fromBits(bits));
   }
 }

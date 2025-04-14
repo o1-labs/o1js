@@ -1,24 +1,27 @@
 {
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
-    mina.url = "path:src/mina";
+    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-23.11-small";
+    nixpkgs-newer.url = "github:nixos/nixpkgs/nixos-24.11-small";
+    mina.url = "git+file:src/mina?submodules=1";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
-    describe-dune.inputs.nixpkgs.follows = "nixpkgs";
+    describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
     dune-nix.url = "github:o1-labs/dune-nix";
-    dune-nix.inputs.nixpkgs.follows = "nixpkgs";
+    dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
   };
-  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs-mina, nixpkgs-newer, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = (nixpkgs.legacyPackages."${system}".extend
-          (import inputs.nixpkgs-mozilla)
-        ).extend inputs.mina.overlays.rust;
+        pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
+          (import inputs.nixpkgs-mozilla)).extend
+          inputs.mina.overlays.rust).extend
+          (final: prev: { inherit (nixpkgs-newer.legacyPackages."${system}")
+            nodePackages nodejs; });
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
@@ -87,8 +90,8 @@
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2023-09-01";
-              sha256 = "sha256-zek9JAnRaoX8V0U2Y5ssXVe9tvoQ0ERGXfUCUGYdrMA=";
+              date = "2024-06-13";
+              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
             }).rust.override
             {
               targets = [
@@ -100,11 +103,11 @@
               extensions = [ "rust-src" ];
             });
         rust-channel-direct = builtins.fetchTarball {
-          url = "https://static.rust-lang.org/dist/rust-std-1.72.0-wasm32-unknown-unknown.tar.gz";
+          url = "https://static.rust-lang.org/dist/rust-std-1.79.0-wasm32-unknown-unknown.tar.gz";
           sha256 =
             if pkgs.stdenv.isDarwin
             then "sha256:1mv8skl4l2q782741r1yakbf0y4q6v9358fm91r45gj97j20il1y"
-            else "sha256:07nxw3m4jpciaqfxn4b95bkhl58zxh3a0kpf5vprfx4r0zdrmql1";
+            else "sha256:0x7h8nggyw3vsvgqv0s2hxzn393l4gzpm3vb2qvsnnm1rf0r86v2";
         };
         toolchain = pkgs.symlinkJoin {
           name = "toolchain";
@@ -128,7 +131,7 @@
             dune_3
           ] ++ commonOverrides.buildInputs;
 
-        inherit (nixpkgs) lib;
+        inherit (pkgs) lib;
         # All the submodules required by .gitmodules
         submodules = map builtins.head (builtins.filter lib.isList
           (map (builtins.match "	path = (.*)")
@@ -196,7 +199,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2023-09-01 ] || [[ "$2" =~ 1.72-x86_64* ]]; }
+                if [ "$1" = run ] && { [ "$2" = nightly-2024-06-13 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
@@ -279,7 +282,8 @@
             inherit (inputs.mina.devShells."${system}".default)
               PLONK_WASM_NODEJS
               PLONK_WASM_WEB
-              MARLIN_PLONK_STUBS
+              KIMCHI_STUBS
+              KIMCHI_STUBS_STATIC_LIB
               ;
             PREBUILT_KIMCHI_BINDINGS_JS_WEB =
               "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";

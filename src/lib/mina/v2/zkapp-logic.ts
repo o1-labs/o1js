@@ -325,7 +325,7 @@ function checkAccountTiming<State extends StateLayout>(
   errors: Error[]
 ): void {
   const minimumBalance = account.timing.minimumBalanceAtSlot(globalSlot);
-  if (account.balance.greaterThanOrEqual(minimumBalance).toBoolean())
+  if (!account.balance.greaterThanOrEqual(minimumBalance).toBoolean())
     errors.push(new Error('account has an insufficient minimum balance after applying update'));
 }
 
