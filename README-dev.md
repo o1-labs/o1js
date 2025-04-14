@@ -36,7 +36,7 @@ npm run build
 
 This command downloads the artifacts from github if they are missing and compiles the TypeScript source files, making them ready for use.
 The compiled OCaml and WebAssembly artifacts are cached for each commit where ci is run or where they are manually built ie by `npm run build:bindings-remote`.
-These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both node and web builds.
+These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both nodejs and web builds.
 These files only have to be regenerated if there are changes to the OCaml or Rust source files.
 Keep in mind merging a newer version of o1js may include Ocaml and rust changes so you may need to rerun `npm run build:bindings-download`.
 If this fails because the artifacts haven't been built for that commit.
