@@ -20,10 +20,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+
+      - name: Wait for bindings-cache
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          checkName: "build-bindings-ubuntu"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Restore bindings-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/bindings/compiled
+            src/bindings/mina-transaction/gen
+          key: bindings-${{ github.sha }}
+          fail-on-cache-miss: true
+
       - name: Build o1js and mina-signer
         run: |
           GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
