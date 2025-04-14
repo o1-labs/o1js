@@ -286,7 +286,7 @@ class UInt64 extends CircuitValue {
    * ```ts
    * // NOTing 4 bits with the unchecked version
    * let a = UInt64.from(0b0101);
-   * let b = a.not(false);
+   * let b = a.not();
    *
    * console.log(b.toBigInt().toString(2));
    * // 1111111111111111111111111111111111111111111111111111111111111010
@@ -928,7 +928,7 @@ class UInt32 extends CircuitValue {
    * let a = UInt32.from(3);    // ... 000011
    * let b = UInt32.from(5);    // ... 000101
    *
-   * let c = a.and(b, 2);    // ... 000001
+   * let c = a.and(b);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
@@ -1668,6 +1668,106 @@ class UInt8 extends Struct({
 
     remainder.assertLessThan(y);
     return { quotient, remainder };
+  }
+
+  /**
+   * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * This gadget builds a chain of XOR gates recursively.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
+   * @param x {@link UInt8} element to XOR.
+   *
+   * @example
+   * ```ts
+   * let a = UInt8.from(0b0101);
+   * let b = UInt8.from(0b0011);
+   *
+   * let c = a.xor(b);
+   * c.assertEquals(0b0110);
+   * ```
+   */
+  xor(x: UInt8) {
+    return new UInt8(Bitwise.xor(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate operates over 8 bit for UInt8 types.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * NOT is implemented as a subtraction of the input from the all one bitmask
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // NOTing 4 bits with the unchecked version
+   * let a = UInt8.from(0b0101);
+   * let b = a.not();
+   *
+   * console.log(b.toBigInt().toString(2));
+   * // 11111010
+   *
+   * ```
+   *
+   */
+  not() {
+    return new UInt8(Bitwise.not(this.value, UInt8.NUM_BITS, false).value);
+  }
+
+  /**
+   * Bitwise AND gadget on {@link UInt8} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below.
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.and(b);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(x: UInt8) {
+    return new UInt8(Bitwise.and(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise OR gadget on {@link UInt8} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(x: UInt8) {
+    return new UInt8(Bitwise.or(this.value, x.value, UInt8.NUM_BITS).value);
   }
 
   /**
