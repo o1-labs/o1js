@@ -90,7 +90,7 @@
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2024-06-13";
+              date = "2024-06-13"; # if you change this set the hash to sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
               sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
             }).rust.override
             {
@@ -102,17 +102,6 @@
               ];
               extensions = [ "rust-src" ];
             });
-        rust-channel-direct = builtins.fetchTarball {
-          url = "https://static.rust-lang.org/dist/rust-std-1.79.0-wasm32-unknown-unknown.tar.gz";
-          sha256 =
-            if pkgs.stdenv.isDarwin
-            then "sha256:1mv8skl4l2q782741r1yakbf0y4q6v9358fm91r45gj97j20il1y"
-            else "sha256:0x7h8nggyw3vsvgqv0s2hxzn393l4gzpm3vb2qvsnnm1rf0r86v2";
-        };
-        toolchain = pkgs.symlinkJoin {
-          name = "toolchain";
-          paths = [ rust-channel "${rust-channel-direct}/rust-std-wasm32-unknown-unknown" ];
-        };
         rust-platform = pkgs.makeRustPlatform
           {
             cargo = rust-channel;
@@ -125,7 +114,6 @@
             #nodePackages.prettier
             typescript
             nodePackages.typescript-language-server
-            rustup
             wasm-pack
             binaryen # provides wasm-opt
             dune_3
@@ -235,14 +223,14 @@
           default = requireSubmodules (pkgs.mkShell
             (if pkgs.stdenv.isDarwin
             # on macos use plain rustup
-            then { packages = bindings-pkgs; }
+            then { packages = bindings-pkgs;}
             # on linux wrap rustup like in the derivation
             else {
-              packages = [ rustupWrapper ] ++ bindings-pkgs;
+              packages = [ rustupWrapper pkgs.rustup ] ++ bindings-pkgs;
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
-                rustup toolchain link nix ${toolchain}
+                rustup toolchain link nix ${rust-channel}
               '';
             }));
 
@@ -284,6 +272,8 @@
               PLONK_WASM_WEB
               KIMCHI_STUBS
               KIMCHI_STUBS_STATIC_LIB
+              MARLIN_PLONK_STUBS
+              MARLIN_PLONK_STUBS_STATIC_LIB
               ;
             PREBUILT_KIMCHI_BINDINGS_JS_WEB =
               "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
@@ -292,20 +282,13 @@
             EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
             SKIP_MINA_COMMIT = true;
             JUST_BINDINGS = true;
-            buildInputs = (with pkgs;
-              [
-                rustupWrapper
-                bash
-              ]) ++ bindings-pkgs;
+            buildInputs = bindings-pkgs;
             patchPhase = ''
               patchShebangs ./src/bindings/scripts/
               patchShebangs ./src/bindings/crypto/test-vectors/
             '';
             buildPhase =
               ''
-                RUSTUP_HOME=$(pwd)/.rustup
-                export RUSTUP_HOME
-                rustup toolchain link nix ${toolchain}
                 cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
                 mkdir -p src/bindings/compiled/node_bindings
