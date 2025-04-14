@@ -30,6 +30,7 @@ jobs:
           set -Eeu
           ./pin.sh
           nix run o1js#update-npm-deps
+      # if the npmDepsHash is out of date auto commit the new one
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "auto update npmDepsHash"
@@ -61,7 +62,9 @@ jobs:
             src/bindings/mina-transaction/gen
           key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
 
-  # seperate job because the rest of ci has to wait on the above job
+  # The upload job is seperate from the build job because
+  # other workflows have to wait for the cache and the await action works with jobs not steps
+  # so the split is nesecary to avoid waiting for the artifact upload too
   upload-bindings:
     name: upload bindings artifact
     needs: nix-build

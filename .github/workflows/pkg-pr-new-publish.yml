@@ -24,11 +24,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-
-      - name: Build o1js and mina-signer
+      - name: download bindings
         env:
-          # needed to download bindings
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./src/bindings/scripts/download-bindings.sh
+      - name: Build o1js and mina-signer
         run: |
           GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
           npm ci
