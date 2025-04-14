@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
@@ -40,7 +38,8 @@ jobs:
             src/bindings/compiled
             src/bindings/mina-transaction/gen
           key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
-          fail-on-cache-miss: true
+          # restore-keys widens the scope searched
+          restore-keys: bindings-${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Build o1js and mina-signer
         run: |
