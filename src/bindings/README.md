@@ -2,7 +2,6 @@
 
 This repository collects code required by [o1js](https://github.com/o1-labs/o1js) to bind to lower layers of the proof system and the Mina transaction logic, which are written in Rust and OCaml.
 
-The repo is included as a git submodule in the [o1js repo](https://github.com/o1-labs/o1js) under `src/bindings` and is typically used from there.
 
 **Directory structure**
 
