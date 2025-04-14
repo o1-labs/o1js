@@ -1,12 +1,8 @@
 # /usr/bin/env bash
 set -e
 
-if [ "$#" == "2" ] && [ $1 == '--rev' ] ; then
-  REV=$2
-else
-  REV=$(git rev-parse HEAD)
-fi
-RUN_ID=$(gh run list --commit "$REV" --workflow 'Build bindings' --json databaseId --jq '.[0].databaseId')
+REV=${REV:=$(git rev-parse HEAD)}
+RUN_ID=$(gh run list --commit "$REV" --workflow 'build-bindings.yml' --json databaseId --jq '.[0].databaseId')
 
 if [ -z "$RUN_ID" ]
 then

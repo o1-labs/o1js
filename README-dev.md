@@ -40,7 +40,7 @@ These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-
 These files only have to be regenerated if there are changes to the OCaml or Rust source files.
 Keep in mind merging a newer version of o1js may include Ocaml and rust changes so you may need to rerun `npm run build:bindings-download`.
 If this fails because the artifacts haven't been built for that commit.
-You can also run `./src/bindings/scripts/download-bindings.sh --rev <some_commit>` to download artifacts for a different commit.
+You can also run `REV=<some_git_rev> ./src/bindings/scripts/download-bindings.sh` to download artifacts for a different commit.
 This can be usefull if you merge newer commits from main into your branch and you know you have the same rust and Ocaml as main so the artifacts should be the same.
 
 
