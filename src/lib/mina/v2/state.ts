@@ -147,62 +147,69 @@ const StateDefinition = {
   },
 };
 
-// TODO: allow for explicit ordering/mapping of state field indices
+type StateValue<Layout extends Record<string, Provable<any>>> = {
+  [K in keyof Layout]: ProvableInstance<Layout[K]>;
+};
 
-function State<State extends CustomStateLayout>(Layout: State): StateDefinition<State> {
+// TODO: allow for explicit ordering/mapping of state field indices
+function State<Layout extends CustomStateLayout>(
+  layout: Layout
+): StateDefinition<// The instance type is: { [K in keyof Layout]: ProvableInstance<Layout[K]> }
+// where ProvableInstance<X> extracts instance type of the Provable class X
+Layout> {
   // TODO: proxy provable definition out of Struct with helper
   // class StateDef extends Struct(Layout) {}
 
   // TODO: check sizeInFields
-  const sizeInFields = Object.values(Layout)
+  const sizeInFields = Object.values(layout)
     .map((T) => T.sizeInFields())
     .reduce((a, b) => a + b, 0);
 
-  return {
-    Layout,
+  const provable: Provable<{ [K in keyof Layout]: ProvableInstance<Layout[K]> }> = {
     sizeInFields(): number {
       return sizeInFields;
     },
-    toFields(x: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): Field[] {
-      const fields = [];
-      for (const key in Layout) {
-        fields.push(...Layout[key].toFields(x[key]));
+    toFields(x: StateValue<Layout>): Field[] {
+      const fields: Field[] = [];
+      for (const key in layout) {
+        fields.push(...layout[key].toFields(x[key]));
       }
       return fields;
     },
-    toAuxiliary(x?: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): any[] {
-      const aux = [];
-      for (const key in Layout) {
-        aux.push(Layout[key].toAuxiliary(x !== undefined ? x[key] : undefined));
+    toAuxiliary(x?: StateValue<Layout>): any[] {
+      const aux: any[] = [];
+      for (const key in layout) {
+        aux.push(layout[key].toAuxiliary(x !== undefined ? x[key] : undefined));
       }
       return aux;
     },
-    fromFields(
-      _fields: Field[],
-      _aux: any[]
-    ): { [name in keyof State]: ProvableInstance<State[name]> } {
-      throw new Error('TODO');
+    fromFields(_fields: Field[], _aux: any[]): StateValue<Layout> {
+      const result: Partial<StateValue<Layout>> = {};
+      let fieldIndex = 0;
+      for (const key in layout) {
+        const fieldCount = layout[key].sizeInFields();
+        const fieldsForKey = _fields.slice(fieldIndex, fieldIndex + fieldCount);
+        result[key] = layout[key].fromFields(fieldsForKey, _aux);
+        fieldIndex += fieldCount;
+      }
+      return result as StateValue<Layout>;
     },
-    toValue(x: { [name in keyof State]: ProvableInstance<State[name]> }): {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    } {
+    toValue(x: StateValue<Layout>): StateValue<Layout> {
       return x;
     },
-    fromValue(x: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): { [name in keyof State]: ProvableInstance<State[name]> } {
+    fromValue(x: StateValue<Layout>): StateValue<Layout> {
       return x;
     },
-    check(_x: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): void {
-      throw new Error('TODO');
+    check(x: StateValue<Layout>): void {
+      for (const key in layout) {
+        layout[key].check(x[key]);
+      }
     },
-  } as StateDefinition<State>;
+  };
+  return {
+    Layout: layout,
+    ...provable,
+  } as StateDefinition<Layout>;
   // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
 }
 
