@@ -60,10 +60,9 @@ let dummy_constraints =
         : Field.t * Field.t )
 
 (* what we use in places where we don't care about the generic type parameter *)
-type proof = (Pickles_types.Nat.N0.n, Pickles_types.Nat.N0.n) Pickles.Proof.t
+type proof = Pickles_types.Nat.N0.n Pickles.Proof.t
 
-let unsafe_coerce_proof (proof : proof) : ('m, 'm) Pickles.Proof.t =
-  Obj.magic proof
+let unsafe_coerce_proof (proof : proof) : 'm Pickles.Proof.t = Obj.magic proof
 
 type pickles_rule_js_return =
   < publicOutput : Public_input.t Js.prop
@@ -100,7 +99,9 @@ module Choices = struct
 
   module Tag = struct
     type ('var, 'value, 'width) t =
-      Tag : ('var, 'value, 'width, 'height) Pickles.Tag.t -> ('var, 'value, 'width) t
+      | Tag :
+          ('var, 'value, 'width, 'height) Pickles.Tag.t
+          -> ('var, 'value, 'width) t
   end
 
   module Prevs = struct
@@ -131,7 +132,7 @@ module Choices = struct
           end in
           let open Types in
           let to_tag ~self tag : (var, value, width, height) Pickles.Tag.t =
-            let Tag.Tag self = self in
+            let (Tag.Tag self) = self in
             (* The magic here isn't ideal, but it's safe enough if we immediately
                hide it behind [Types].
             *)
@@ -266,7 +267,8 @@ module Choices = struct
       let (Prevs prevs) = Prevs.of_rule rule in
 
       (* this is called after `picklesRuleFromFunction()` and finishes the circuit *)
-      let finish_circuit prevs (Tag.Tag self) (js_result : pickles_rule_js_return) :
+      let finish_circuit prevs (Tag.Tag self)
+          (js_result : pickles_rule_js_return) :
           _ Pickles.Inductive_rule.main_return =
         (* convert js rule output to pickles rule output *)
         let public_output = js_result##.publicOutput in
@@ -307,8 +309,8 @@ module Choices = struct
         { previous_proof_statements; public_output; auxiliary_output = () }
       in
 
-      let rule ~(self : (Statement.t, Statement.Constant.t, _) Tag.t)
-          : _ Pickles.Inductive_rule.Promise.t =
+      let rule ~(self : (Statement.t, Statement.Constant.t, _) Tag.t) :
+          _ Pickles.Inductive_rule.Promise.t =
         let prevs = prevs ~self in
 
         let main ({ public_input } : _ Pickles.Inductive_rule.main_input) =
@@ -530,7 +532,7 @@ module Cache = struct
 end
 
 module Public_inputs_with_proofs =
-  Pickles_types.Hlist.H3.T (Pickles.Statement_with_proof)
+  Pickles_types.Hlist.H2.T (Pickles.Statement_with_proof)
 
 let nat_modules_list : (module Pickles_types.Nat.Intf) list =
   let open Pickles_types.Nat in
@@ -709,9 +711,9 @@ let pickles_compile (choices : pickles_rule_js array)
     val getVerificationKey = get_vk
   end
 
-module Proof0 = Pickles.Proof.Make (Pickles_types.Nat.N0) (Pickles_types.Nat.N0)
-module Proof1 = Pickles.Proof.Make (Pickles_types.Nat.N1) (Pickles_types.Nat.N1)
-module Proof2 = Pickles.Proof.Make (Pickles_types.Nat.N2) (Pickles_types.Nat.N2)
+module Proof0 = Pickles.Proof.Make (Pickles_types.Nat.N0)
+module Proof1 = Pickles.Proof.Make (Pickles_types.Nat.N1)
+module Proof2 = Pickles.Proof.Make (Pickles_types.Nat.N2)
 
 type some_proof = Proof0 of Proof0.t | Proof1 of Proof1.t | Proof2 of Proof2.t
 
@@ -760,13 +762,13 @@ let dummy_proof (max_proofs_verified : int) (domain_log2 : int) : some_proof =
   match max_proofs_verified with
   | 0 ->
       let n = Pickles_types.Nat.N0.n in
-      Proof0 (Pickles.Proof.dummy n n n ~domain_log2)
+      Proof0 (Pickles.Proof.dummy n n ~domain_log2)
   | 1 ->
       let n = Pickles_types.Nat.N1.n in
-      Proof1 (Pickles.Proof.dummy n n n ~domain_log2)
+      Proof1 (Pickles.Proof.dummy n n ~domain_log2)
   | 2 ->
       let n = Pickles_types.Nat.N2.n in
-      Proof2 (Pickles.Proof.dummy n n n ~domain_log2)
+      Proof2 (Pickles.Proof.dummy n n ~domain_log2)
   | _ ->
       failwith "invalid"
 
