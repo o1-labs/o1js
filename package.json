@@ -49,7 +49,7 @@
     "build": "npm run checkForBindings && node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/build-node.js",
     "build:bindings": "./src/bindings/scripts/build-o1js-node.sh",
     "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
-    "build:bindings-remote": "./src/bindings/scripts/remote-build-bindings.sh",
+    "build:bindings-remote": "./src/bindings/scripts/remote-build-bindings.sh && npm run:build",
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
     "build:wasm": "./src/bindings/scripts/update-wasm-and-types.sh",
     "build:web": "rimraf ./dist/web && node src/build/build-web.js",

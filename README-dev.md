@@ -35,14 +35,27 @@ npm run build
 ```
 
 This command downloads the artifacts from github if they are missing and compiles the TypeScript source files, making them ready for use.
-The compiled OCaml and WebAssembly artifacts are cached for each commit where ci is run or where they are manually built ie by `npm run build:bindings-remote`.
-These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both nodejs and web builds.
+The compiled OCaml and WebAssembly artifacts are cached for each commit where ci is run.These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both nodejs and web builds.
 These files only have to be regenerated if there are changes to the OCaml or Rust source files.
-Keep in mind merging a newer version of o1js may include Ocaml and rust changes so you may need to rerun `npm run build:bindings-download`.
-If this fails because the artifacts haven't been built for that commit.
-You can also run `REV=<some_git_rev> npm run build:bindings-download` to download artifacts for a different commit.
-This can be usefull if you merge newer commits from main into your branch and you know you have the same rust and Ocaml as main so the artifacts should be the same.
 
+### External contributors
+
+Unfortunatel you generally won't be able to run `npm run build:bindings-download` on your own commits
+because the artifacts won't have been built for them, so make sure to run it on main before you start making changes.
+In a fresh git repo `npm run build` also works.
+
+Keep in mind that merging a newer version of o1js may include Ocaml and rust changes so you may need to redownload the artifacts.
+When this happens, as long as you aren't making changes to the Ocaml and rust yourself,
+you can run `REV=<commit you just merged> npm run build:bindings-download`, this will download the bindings for the commit you merged which should be the same as the ones you need.
+
+### Internal contributors
+
+If you have an open pr `npm run build:bindings-download` should work on any commit where ci has run or is running.
+If ci is still running it uses `gh run watch` to show you the progress.
+
+If your pr has a merge conflict, in which case CI will not run on each new commit, or you
+just don't have a pr you may can run `npm run build:bindings-remote`.
+This will trigger our self-hosted runner to build the bindings for your commit and download them once it finishes.
 
 ## Building with nix
 
