@@ -8,6 +8,7 @@ const {
   GenericData,
   AccountId,
   TokenId,
+  CurrencyUtils,
 } = Experimental.V2;
 
 // Generate a random keypair for the fee payer
@@ -16,10 +17,10 @@ const feePayerAddress = feePayerKey.toPublicKey(); // B62qjTDdVdxkkRNRbkpdq6D9RU
 
 const receiverAddress = PrivateKey.random().toPublicKey();
 
-const amount = 11000000n;
-const fee = 10n * 10n ** 9n;
+const amount = CurrencyUtils.fromMINA(0.011);
+const fee = CurrencyUtils.fromMINA(10);
 
-const accountCreationFee = 1000000000n;
+const accountCreationFee = CurrencyUtils.fromMINA(1);
 
 const totalAmount = amount + fee;
 
@@ -51,8 +52,10 @@ const paymentCommand = await new ZkappCommand({
   },
 });
 
-let response = await sendZkapp(
-  JSON.stringify(paymentCommand.toJSON()),
-  'https://api.minascan.io/node/devnet/v1/graphql'
-);
-console.log('response', JSON.stringify(response, null, 2));
+console.log('paymentCommand', JSON.stringify(paymentCommand.toJSON(), null, 2));
+
+// let response = await sendZkapp(
+//   JSON.stringify(paymentCommand.toJSON()),
+//   'https://api.minascan.io/node/devnet/v1/graphql'
+// );
+// console.log('response', JSON.stringify(response, null, 2));
