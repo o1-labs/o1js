@@ -185,15 +185,7 @@ function createProvableFromLayout<State extends CustomStateLayout>(
       return aux;
     },
     fromFields(_fields: Field[], _aux: any[]): StateValue<State> {
-      const result: Partial<StateValue<State>> = {};
-      let fieldIndex = 0;
-      for (const key in layout) {
-        const fieldCount = layout[key].sizeInFields();
-        const fieldsForKey = _fields.slice(fieldIndex, fieldIndex + fieldCount);
-        result[key] = layout[key].fromFields(fieldsForKey, _aux);
-        fieldIndex += fieldCount;
-      }
-      return result as StateValue<State>;
+      throw new Error('TODO');
     },
     toValue(x: StateValue<State>): StateValue<State> {
       return x;
@@ -202,9 +194,7 @@ function createProvableFromLayout<State extends CustomStateLayout>(
       return x;
     },
     check(x: StateValue<State>): void {
-      for (const key in layout) {
-        layout[key].check(x[key]);
-      }
+      throw new Error('TODO');
     },
   };
 }
