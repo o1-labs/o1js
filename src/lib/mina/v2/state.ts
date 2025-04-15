@@ -193,7 +193,7 @@ function createProvableFromLayout<State extends CustomStateLayout>(
     fromValue(x: StateValue<State>): StateValue<State> {
       return x;
     },
-    check(x: StateValue<State>): void {
+    check(_x: StateValue<State>): void {
       throw new Error('TODO');
     },
   };

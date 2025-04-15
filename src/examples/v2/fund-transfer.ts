@@ -1,4 +1,4 @@
-import { Bool, Experimental, Int64, PrivateKey, PublicKey, sendZkapp, UInt32, UInt64 } from 'o1js';
+import { Bool, Experimental, Int64, PrivateKey, PublicKey, UInt32, UInt64 } from 'o1js';
 
 const {
   ZkappCommand,
