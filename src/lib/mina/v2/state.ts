@@ -38,9 +38,6 @@ const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
 //                   element in a custom state layout that doesn't satisfy the StateElement type,
 //                   typescript will just replace the state element types in the layout with `any`.
 //                   Fucking typescript.
-/**
- * A type that represents a state element in a custom state layout.
- */
 type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
 // type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
 // TODO: custom state layouts need to specify the order of their keys
@@ -68,9 +65,6 @@ const CustomStateLayout = {
   // }
 };
 
-/**
- * Definition for a custom State layout.
- */
 type CustomStateDefinition<State extends CustomStateLayout> = {
   Layout: State;
 } & Provable<{
@@ -157,9 +151,6 @@ const StateDefinition = {
   },
 };
 
-/**
- * Helper type to define
- */
 type StateValue<Layout extends CustomStateLayout> = {
   [K in keyof Layout]: ProvableInstance<Layout[K]>;
 };
