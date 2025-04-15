@@ -21,7 +21,7 @@ module Statement : sig
   end
 end
 
-type proof = (Pickles_types.Nat.N0.n, Pickles_types.Nat.N0.n) Pickles.Proof.t
+type proof = Pickles_types.Nat.N0.n Pickles.Proof.t
 
 type pickles_rule_js =
   < identifier : Js.js_string Js.t Js.prop
@@ -46,15 +46,15 @@ module Cache : sig
 end
 
 module Proof0 : sig
-  type t = (Pickles_types.Nat.N0.n, Pickles_types.Nat.N0.n) Pickles.Proof.t
+  type t = Pickles_types.Nat.N0.n Pickles.Proof.t
 end
 
 module Proof1 : sig
-  type t = (Pickles_types.Nat.N1.n, Pickles_types.Nat.N1.n) Pickles.Proof.t
+  type t = Pickles_types.Nat.N1.n Pickles.Proof.t
 end
 
 module Proof2 : sig
-  type t = (Pickles_types.Nat.N2.n, Pickles_types.Nat.N2.n) Pickles.Proof.t
+  type t = Pickles_types.Nat.N2.n Pickles.Proof.t
 end
 
 type some_proof = Proof0 of Proof0.t | Proof1 of Proof1.t | Proof2 of Proof2.t
