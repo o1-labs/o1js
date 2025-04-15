@@ -2,19 +2,14 @@ import { Bool, Experimental, Field, PrivateKey, PublicKey, UInt32 } from 'o1js';
 
 const V2 = Experimental.V2;
 
-type TestState = {
-  x: typeof Field;
-  address: typeof PublicKey;
-};
-
-const TestState: Experimental.V2.StateDefinition<TestState> = V2.State({
+const stateLayout = {
   x: Field,
   address: PublicKey,
-});
+};
 
 const TestProgram = V2.MinaProgram({
   name: 'TestProgram',
-  State: TestState,
+  State: V2.State(stateLayout),
   Event: V2.GenericData,
   Action: V2.GenericData,
 
@@ -23,9 +18,9 @@ const TestProgram = V2.MinaProgram({
       privateInputs: [Field],
 
       async method(
-        env: Experimental.V2.MinaProgramEnv<TestState>,
+        env: Experimental.V2.MinaProgramEnv<typeof stateLayout>,
         value: Field
-      ): Promise<Experimental.V2.MinaProgramMethodReturn<TestState>> {
+      ): Promise<Experimental.V2.MinaProgramMethodReturn<typeof stateLayout>> {
         return {
           incrementNonce: new Bool(true),
           preconditions: {
