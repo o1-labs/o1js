@@ -38,7 +38,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Wait for bindings-cache
-        uses: fountainhead/action-wait-for-check@v1.2.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be
         with:
           checkName: "build-bindings-ubuntu"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -76,7 +76,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Wait for bindings-cache
-        uses: fountainhead/action-wait-for-check@v1.2.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be
         with:
           checkName: "build-bindings-ubuntu"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}

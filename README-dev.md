@@ -15,6 +15,7 @@ Before starting, ensure you have the following tools installed:
 
 - [Git](https://git-scm.com/)
 - [Node.js and npm](https://nodejs.org/)
+- [gh](https://cli.github.com/) (used to download artifacts)
 - [Dune, ocamlc, opam](https://github.com/ocaml/dune) (only needed when compiling o1js from source)
 - [Cargo, rustup](https://www.rust-lang.org/learn/get-started) (only needed when compiling o1js from source)
 

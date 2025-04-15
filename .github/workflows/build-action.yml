@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: '20'
       - name: Wait for bindings-cache
-        uses: fountainhead/action-wait-for-check@v1.2.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be
         with:
           checkName: "build-bindings-ubuntu"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -341,7 +341,7 @@ jobs:
           git tag $RELEASED_VERSION
           git push origin $RELEASED_VERSION
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
         if: success()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
