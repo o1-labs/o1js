@@ -2,19 +2,14 @@ import { Bool, Experimental, Field, PrivateKey, PublicKey, UInt32 } from 'o1js';
 
 const V2 = Experimental.V2;
 
-const TestState = V2.State({
+const stateLayout = {
   x: Field,
   address: PublicKey,
-  address1: PublicKey,
-  address2: PublicKey,
-});
-// TODO: Ever function that works with this type of state should implicitly derive this type
-// User should only ever type out the state layout once, then forget about it.
-type TestState = typeof TestState.Layout;
+};
 
 const TestProgram = V2.MinaProgram({
   name: 'TestProgram',
-  State: TestState,
+  State: V2.State(stateLayout),
   Event: V2.GenericData,
   Action: V2.GenericData,
 
@@ -23,9 +18,9 @@ const TestProgram = V2.MinaProgram({
       privateInputs: [Field],
 
       async method(
-        env: Experimental.V2.MinaProgramEnv<TestState>,
+        env: Experimental.V2.MinaProgramEnv<typeof stateLayout>,
         value: Field
-      ): Promise<Experimental.V2.MinaProgramMethodReturn<TestState>> {
+      ): Promise<Experimental.V2.MinaProgramMethodReturn<typeof stateLayout>> {
         return {
           incrementNonce: new Bool(true),
           preconditions: {

@@ -38,6 +38,9 @@ const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
 //                   element in a custom state layout that doesn't satisfy the StateElement type,
 //                   typescript will just replace the state element types in the layout with `any`.
 //                   Fucking typescript.
+/**
+ * A type that represents a state element in a custom state layout.
+ */
 type StateElement<T extends Eq<T>> = Provable<T> & Empty<T>;
 // type StateElementInstance<E> = E extends StateElement<infer T> ? T : never;
 // TODO: custom state layouts need to specify the order of their keys
@@ -65,11 +68,18 @@ const CustomStateLayout = {
   // }
 };
 
-type StateDefinition<State extends StateLayout> = State extends 'GenericState'
-  ? 'GenericState'
-  : { Layout: State } & Provable<{
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }>;
+/**
+ * Definition for a custom State layout.
+ */
+type CustomStateDefinition<State extends CustomStateLayout> = {
+  Layout: State;
+} & Provable<{
+  [name in keyof State]: ProvableInstance<State[name]>;
+}>;
+type GenericStateDefinition = 'GenericState';
+type StateDefinition<State extends StateLayout> = State extends GenericStateDefinition
+  ? GenericStateDefinition
+  : CustomStateDefinition<Exclude<State, 'GenericState'>>;
 
 const StateDefinition = {
   split2<State extends StateLayout, Generic1, Custom1, Generic2, Custom2>(
@@ -147,44 +157,44 @@ const StateDefinition = {
   },
 };
 
-type StateValue<Layout extends Record<string, Provable<any>>> = {
+/**
+ * Helper type to define
+ */
+type StateValue<Layout extends CustomStateLayout> = {
   [K in keyof Layout]: ProvableInstance<Layout[K]>;
 };
 
-// TODO: allow for explicit ordering/mapping of state field indices
-function State<Layout extends CustomStateLayout>(
-  layout: Layout
-): StateDefinition<// The instance type is: { [K in keyof Layout]: ProvableInstance<Layout[K]> }
-// where ProvableInstance<X> extracts instance type of the Provable class X
-Layout> {
-  // TODO: proxy provable definition out of Struct with helper
-  // class StateDef extends Struct(Layout) {}
-
-  // TODO: check sizeInFields
+/**
+ * Create a {@link Provable} from a {@link CustomStateLayout} layout.
+ */
+function createProvableFromLayout<State extends CustomStateLayout>(
+  layout: State
+): Provable<{ [K in keyof State]: ProvableInstance<State[K]> }> {
+  // TODO: Check sizeInFields
   const sizeInFields = Object.values(layout)
     .map((T) => T.sizeInFields())
     .reduce((a, b) => a + b, 0);
 
-  const provable: Provable<{ [K in keyof Layout]: ProvableInstance<Layout[K]> }> = {
+  return {
     sizeInFields(): number {
       return sizeInFields;
     },
-    toFields(x: StateValue<Layout>): Field[] {
+    toFields(x: StateValue<State>): Field[] {
       const fields: Field[] = [];
       for (const key in layout) {
         fields.push(...layout[key].toFields(x[key]));
       }
       return fields;
     },
-    toAuxiliary(x?: StateValue<Layout>): any[] {
-      const aux: any[] = [];
+    toAuxiliary(x?: StateValue<State>): any[] {
+      const aux = [];
       for (const key in layout) {
         aux.push(layout[key].toAuxiliary(x !== undefined ? x[key] : undefined));
       }
       return aux;
     },
-    fromFields(_fields: Field[], _aux: any[]): StateValue<Layout> {
-      const result: Partial<StateValue<Layout>> = {};
+    fromFields(_fields: Field[], _aux: any[]): StateValue<State> {
+      const result: Partial<StateValue<State>> = {};
       let fieldIndex = 0;
       for (const key in layout) {
         const fieldCount = layout[key].sizeInFields();
@@ -192,25 +202,38 @@ Layout> {
         result[key] = layout[key].fromFields(fieldsForKey, _aux);
         fieldIndex += fieldCount;
       }
-      return result as StateValue<Layout>;
+      return result as StateValue<State>;
     },
-    toValue(x: StateValue<Layout>): StateValue<Layout> {
+    toValue(x: StateValue<State>): StateValue<State> {
       return x;
     },
-    fromValue(x: StateValue<Layout>): StateValue<Layout> {
+    fromValue(x: StateValue<State>): StateValue<State> {
       return x;
     },
-    check(x: StateValue<Layout>): void {
+    check(x: StateValue<State>): void {
       for (const key in layout) {
         layout[key].check(x[key]);
       }
     },
   };
+}
+
+/**
+ * Helper function to define a valid {@link StateDefinition} when using a custom state layout.
+ *
+ * @note If using a {@link GenericStateDefinition} then the StateDefinition is always `GenericState`
+ * and there's not need to call this function to calculate it.
+ */
+// TODO: allow for explicit ordering/mapping of state field indices
+function State<State extends CustomStateLayout>(Layout: State): CustomStateDefinition<State> {
+  // TODO: proxy provable definition out of Struct with helper
+  // class StateDef extends Struct(Layout) {}
+  const provable = createProvableFromLayout(Layout);
+
   return {
-    Layout: layout,
+    Layout,
     ...provable,
-  } as StateDefinition<Layout>;
-  // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
+  };
 }
 
 type StatePreconditions<State extends StateLayout> = State extends 'GenericState'
