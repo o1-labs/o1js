@@ -1,6 +1,8 @@
 # /usr/bin/env bash
 set -e
 
+(which gh > /dev/null 2>&1) || (echo "Please install gh the github cli tool: https://github.com/cli/cli#installation" && exit 1)
+
 REV=${REV:=$(git rev-parse HEAD)}
 RUN_ID=$(gh run list --commit "$REV" --workflow 'build-bindings.yml' --json databaseId --jq '.[0].databaseId')
 
