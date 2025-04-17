@@ -19,6 +19,6 @@ jobs:
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Cleanup the Nix store
         run: |
+          nix-store --gc
           nix-store --optimise
-          nix-store --gc --print-dead
 
