@@ -123,9 +123,22 @@ class ProofBase<Input = any, Output = any> {
 }
 
 class Proof<Input, Output> extends ProofBase<Input, Output> {
+  /**
+   * Sets the `shouldVerify` flag to `true`
+   * The downstream effect of this is that the proof will be verified when the circuit is run
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   */
   verify() {
     this.shouldVerify = Bool(true);
   }
+  /**
+   * Sets the `shouldVerify` flag to the given condition param
+   * If set to `Bool(true)`, the proof will be verified when the circuit is run
+   * If set to `Bool(false)`, the proof will not be verified when the circuit is run
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   */
   verifyIf(condition: Bool) {
     this.shouldVerify = condition;
   }
@@ -254,13 +267,29 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
   usedVerificationKey?: VerificationKey;
 
   /**
-   * Verifies this DynamicProof using a given verification key
+   * Sets the `shouldVerify` flag to `true`
+   * The downstream effect of this is that the proof will be verified when the circuit is run
+   *
    * @param vk The verification key this proof will be verified against
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   * @note The vk parameter will have its auxiliary data checked in the circuit, so the hash must match the data, or else the proof will fail
    */
   verify(vk: VerificationKey) {
     this.shouldVerify = Bool(true);
     this.usedVerificationKey = vk;
   }
+  /**
+   * Sets the `shouldVerify` flag to the given condition param
+   * If set to `Bool(true)`, the proof will be verified when the circuit is run
+   * If set to `Bool(false)`, the proof will not be verified when the circuit is run
+   *
+   * @param vk The verification key this proof will be verified against
+   * @param condition The condition to set the shouldVerify flag to
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   * @note The vk parameter will have its auxiliary data checked in the circuit, so the hash must match the data, or else the proof will fail
+   */
   verifyIf(vk: VerificationKey, condition: Bool) {
     this.shouldVerify = condition;
     this.usedVerificationKey = vk;
