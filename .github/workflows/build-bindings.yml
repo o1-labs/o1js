@@ -42,6 +42,11 @@ jobs:
           comment: 'please update the npm-deps-hash'
           event: 'REQUEST_CHANGES'
 
+  delete-me:
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - run: |
+          curl https://static.rust-lang.org/dist/channel-rust-1.79.0.toml.sha256 
   nix-build:
     name: build-bindings-ubuntu
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
