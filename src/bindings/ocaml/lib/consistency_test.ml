@@ -203,6 +203,17 @@ module Hash_from_json = struct
     let tx =
       Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
     in
+    let tx =
+      let open Zkapp_command in
+      { Poly.fee_payer = tx.fee_payer
+      ; memo = tx.memo
+      ; account_updates =
+          tx.account_updates
+          |> Call_forest.accumulate_hashes
+               ~hash_account_update:(fun (p : Account_update.t) ->
+                 Digest.Account_update.create p )
+      }
+    in
     let account_update = List.nth_exn tx.account_updates account_update_index in
     object%js
       val accountUpdate =
@@ -283,7 +294,7 @@ module Transaction_hash = struct
       command |> hash_signed_command |> to_base58_check |> Js.string)
 
   let hash_zkapp_command (command : Js.js_string Js.t) =
-    let command : Zkapp_command.t =
+    let command : Zkapp_command.Stable.Latest.t =
       command |> Js.to_string |> Yojson.Safe.from_string
       |> Zkapp_command.of_json
     in
