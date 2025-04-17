@@ -15,6 +15,7 @@ Before starting, ensure you have the following tools installed:
 
 - [Git](https://git-scm.com/)
 - [Node.js and npm](https://nodejs.org/)
+- [gh](https://cli.github.com/) (used to download artifacts)
 - [Dune, ocamlc, opam](https://github.com/ocaml/dune) (only needed when compiling o1js from source)
 - [Cargo, rustup](https://www.rust-lang.org/learn/get-started) (only needed when compiling o1js from source)
 
@@ -30,10 +31,32 @@ For most users, building o1js is as simple as running:
 
 ```sh
 npm install
+gh auth login #gh is used to download the compiled artifacts
 npm run build
 ```
 
-This command compiles the TypeScript source files, making them ready for use. The compiled OCaml and WebAssembly artifacts are version-controlled to simplify the build process for end users. These artifacts are stored under `src/bindings/compiled` and contain the artifacts needed for both node and web builds. These files only have to be regenerated if there are changes to the OCaml or Rust source files.
+This command downloads the artifacts from github if they are missing and compiles the TypeScript source files, making them ready for use.
+The compiled OCaml and WebAssembly artifacts are cached for each commit where ci is run.These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both nodejs and web builds.
+These files only have to be regenerated if there are changes to the OCaml or Rust source files.
+
+### External contributors
+
+Unfortunatel you generally won't be able to run `npm run build:bindings-download` on your own commits
+because the artifacts won't have been built for them, so make sure to run it on main before you start making changes.
+In a fresh git repo `npm run build` also works.
+
+Keep in mind that merging a newer version of o1js may include Ocaml and rust changes so you may need to redownload the artifacts.
+When this happens, as long as you aren't making changes to the Ocaml and rust yourself,
+you can run `REV=<commit you just merged> npm run build:bindings-download`, this will download the bindings for the commit you merged which should be the same as the ones you need.
+
+### Internal contributors
+
+If you have an open pr `npm run build:bindings-download` should work on any commit where ci has run or is running.
+If ci is still running it uses `gh run watch` to show you the progress.
+
+If your pr has a merge conflict, in which case CI will not run on each new commit, or you
+just don't have a pr you may can run `npm run build:bindings-remote`.
+This will trigger our self-hosted runner to build the bindings for your commit and download them once it finishes.
 
 ## Building with nix
 
@@ -149,7 +172,7 @@ This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and
 
 - There is an opt-in pre-commit hook avaibale that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
 
-> [!NOTE]  
+> [!NOTE]
 > You can opt-out of linting in a PR by tagging it with skip-lint, in case the linting script is legitimately blocking an important PR
 
 ### Running Tests

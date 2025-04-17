@@ -28,8 +28,9 @@ jobs:
         id: get_changed_files
         run: |
           git fetch origin main --depth=1
-          CHANGED_FILES=$(git diff --name-only origin/main | grep -E '\.(ts|js)$' || true)
-          
+          # TODO ideally lint the non-generated files in src/bindings/
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.ref }} | grep -E '\.(ts|js)$' | grep -v 'src/bindings/*' || true)
+
           if [ -n "$CHANGED_FILES" ]; then
             echo "Files changed:"
             echo "$CHANGED_FILES"

@@ -17,6 +17,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
 
+### Added
+
+- [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
+    - o1js-bindings is no longer a submodule (same directory structure)
+    - compiled artifacts are now gitignored
+    - `npm run build:bindings-download` downloads compiled artifacts from github
+    - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
+
+### Changed
+
 - [PR !2126](https://github.com/o1-labs/o1js/pull/2126) Bump up Mina to the
   commit
   [5a9145feaba3138cd1a1090d8421a8e67a5485e1](https://github.com/MinaProtocol/mina/blob/5a9145feaba3138cd1a1090d8421a8e67a5485e1)
