@@ -344,12 +344,12 @@ type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
 const isPair = (a: AuthorizationKind, b: AuthorizationKind) => !a.isProved && !b.isProved;
 
-const isValidVk = (vk: VerificationKey)  => {
+const isValidVk = (vk: VerificationKey) => {
   const verificationKey = VerificationKey.fromValue(vk);
   const circuitVk = Pickles.sideLoaded.vkToCircuit(() => verificationKey.data);
   const inCircuitHash = inCircuitVkHash(circuitVk);
   return inCircuitHash.equals(verificationKey.hash).toBoolean();
-}
+};
 
 function filterPairs(xs: AuthorizationKind[]): {
   xs: { isProved: boolean; isSigned: boolean }[];
