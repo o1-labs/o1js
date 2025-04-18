@@ -15,10 +15,7 @@ import {
 } from 'o1js';
 import { ProvableType } from './types/provable-intf.js';
 import { assert } from './gadgets/common.js';
-import {
-  type From,
-  type InferValue,
-} from '../../bindings/lib/provable-generic.js';
+import { type From, type InferValue } from '../../bindings/lib/provable-generic.js';
 import { zip, pad } from '../util/arrays.js';
 import { arrayGet } from './gadgets/basic.js';
 
@@ -48,7 +45,7 @@ type DynamicArray<T = any, V = any> = DynamicArrayBase<T, V>;
 function DynamicArray<
   A extends ProvableType,
   T extends InferProvable<A> = InferProvable<A>,
-  V extends InferValue<A> = InferValue<A>
+  V extends InferValue<A> = InferValue<A>,
 >(
   type: A,
   {
@@ -538,9 +535,7 @@ class DynamicArrayBase<T = any, V = any> {
   }
 
   toValue(): V[] {
-    return (
-      this.constructor as any as { provable: Provable<any, V[]> }
-    ).provable.toValue(this);
+    return (this.constructor as any as { provable: Provable<any, V[]> }).provable.toValue(this);
   }
 }
 
@@ -581,10 +576,9 @@ function provable<T, V>(
       return new Class(padded, new Field(value.length));
     },
 
-    toCanonical(value)  {
-      return value    
+    toCanonical(value) {
+      return value;
     },
-    
 
     // check has to validate length in addition to the other checks
     check(value) {

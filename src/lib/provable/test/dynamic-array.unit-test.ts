@@ -1,12 +1,7 @@
 import { UInt8, Field, ZkProgram, Provable } from 'o1js';
 import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
-import {
-  Spec,
-  boolean,
-  equivalentAsync,
-  fieldWithRng,
-} from '../../testing/equivalent.js';
+import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
 import { Random } from '../../testing/property.js';
 import exp from 'constants';
 
@@ -19,7 +14,6 @@ function expectThrows(fn: () => void | Promise<void>, msg: string) {
   }
   assert(threw, msg);
 }
-
 
 let List = ZkProgram({
   name: 'dynamicarrays',
@@ -189,9 +183,7 @@ let List = ZkProgram({
         assert(bytes.length.equals(new Field(4)));
         assert(whole.length.equals(bytes.length));
         for (let i = 0; i < 4; i++) {
-          assert(
-            whole.get(new Field(i)).value.equals(bytes.get(new Field(i)).value)
-          );
+          assert(whole.get(new Field(i)).value.equals(bytes.get(new Field(i)).value));
         }
 
         // Slicing [0, 0) should return an empty array
@@ -203,23 +195,13 @@ let List = ZkProgram({
         let first = bytes.slice(new Field(0), new Field(1));
         assert(bytes.length.equals(new Field(4)));
         assert(first.length.equals(new Field(1)));
-        assert(
-          first.get(new Field(0)).value.equals(bytes.get(new Field(0)).value)
-        );
+        assert(first.get(new Field(0)).value.equals(bytes.get(new Field(0)).value));
 
         // Slicing intermediate positions should work correctly
         let intermediate = bytes.slice(new Field(1), new Field(3));
         assert(intermediate.length.equals(new Field(2)));
-        assert(
-          intermediate
-            .get(new Field(0))
-            .value.equals(bytes.get(new Field(1)).value)
-        );
-        assert(
-          intermediate
-            .get(new Field(1))
-            .value.equals(bytes.get(new Field(2)).value)
-        );
+        assert(intermediate.get(new Field(0)).value.equals(bytes.get(new Field(1)).value));
+        assert(intermediate.get(new Field(1)).value.equals(bytes.get(new Field(2)).value));
 
         // Cannot slice out-of-bounds positions
         expectThrows(() => {
@@ -239,20 +221,12 @@ let List = ZkProgram({
         assert(emptyConcat.capacity === 16);
 
         // Concatenate an empty array with a non-empty array gives the non-empty array
-        let right = new Bytestring([
-          new UInt8(10),
-          new UInt8(20),
-          new UInt8(30),
-        ]);
+        let right = new Bytestring([new UInt8(10), new UInt8(20), new UInt8(30)]);
         let nonEmptyRight = emptyLeft.concat(right);
         assert(nonEmptyRight.length.equals(new Field(3)));
         assert(nonEmptyRight.capacity === 16);
         for (let i = 0; i < 3; i++) {
-          assert(
-            nonEmptyRight
-              .get(new Field(i))
-              .value.equals(right.get(new Field(i)).value)
-          );
+          assert(nonEmptyRight.get(new Field(i)).value.equals(right.get(new Field(i)).value));
         }
 
         // Concatenate a non-empty array with an empty array gives the non-empty array
@@ -270,11 +244,7 @@ let List = ZkProgram({
         assert(nonEmptyLeft.length.equals(new Field(8)));
         assert(nonEmptyLeft.capacity === 16);
         for (let i = 0; i < 8; i++) {
-          assert(
-            nonEmptyLeft
-              .get(new Field(i))
-              .value.equals(left.get(new Field(i)).value)
-          );
+          assert(nonEmptyLeft.get(new Field(i)).value.equals(left.get(new Field(i)).value));
         }
 
         // Concatenate two non-empty arrays gives the concatenation of both
@@ -282,16 +252,10 @@ let List = ZkProgram({
         assert(both.length.equals(new Field(11)));
         assert(both.capacity === 16);
         for (let i = 0; i < 8; i++) {
-          assert(
-            both.get(new Field(i)).value.equals(left.get(new Field(i)).value)
-          );
+          assert(both.get(new Field(i)).value.equals(left.get(new Field(i)).value));
         }
         for (let i = 0; i < 3; i++) {
-          assert(
-            both
-              .get(new Field(i + 8))
-              .value.equals(right.get(new Field(i)).value)
-          );
+          assert(both.get(new Field(i + 8)).value.equals(right.get(new Field(i)).value));
         }
 
         // Inserting elements at the beginning of the array
@@ -343,7 +307,6 @@ let List = ZkProgram({
     },
   },
 });
-
 
 await List.compile();
 
