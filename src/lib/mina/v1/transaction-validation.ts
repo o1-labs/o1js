@@ -12,7 +12,7 @@ import {
 import { Field } from '../../provable/wrapped.js';
 import { UInt64, UInt32 } from '../../provable/int.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-import { JsonProof, verify } from '../../proof-system/zkprogram.js';
+import { inCircuitVkHash, JsonProof, verify } from '../../proof-system/zkprogram.js';
 import { verifyAccountUpdateSignature } from '../../../mina-signer/src/sign-zkapp-command.js';
 import { TransactionCost, TransactionLimits } from './constants.js';
 import { cloneCircuitValue } from '../../provable/types/struct.js';
@@ -21,6 +21,8 @@ import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.
 import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
+import { Pickles } from 'src/snarky.js';
+import { VerificationKey } from 'src/lib/proof-system/verification-key.js';
 
 export {
   reportGetAccountError,
@@ -305,6 +307,17 @@ async function verifyAccountUpdate(
     }
   });
 
+  if (accountUpdate.update.verificationKey.isSome.toBoolean()) {
+    const vk = VerificationKey.fromValue(accountUpdate.update.verificationKey.value);
+    const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
+    const inCircuitHash = inCircuitVkHash(circuitVk);
+    if (inCircuitHash !== vk.hash) {
+      throw Error(
+        `Transaction verification failed: Cannot update verification key because the hash of the verification key does not match the data.`
+      );
+    }
+  
+  }
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
     let p = permissionForUpdate('actions');
