@@ -29,6 +29,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144$0
+- Added `VerificationKeyNext` class, which is checked for internal consistency between data and hash https://github.com/o1-labs/o1js/pull/2170
 
 ## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
 

@@ -3,7 +3,7 @@
  */
 import {
   SmartContract,
-  VerificationKey,
+  VerificationKeyNext,
   method,
   Permissions,
   Mina,
@@ -20,7 +20,7 @@ class SelfUpdater extends SmartContract {
     });
   }
 
-  @method async replaceVerificationKey(verificationKey: VerificationKey) {
+  @method async replaceVerificationKey(verificationKey: VerificationKeyNext) {
     this.account.verificationKey.set(verificationKey);
   }
 }
@@ -59,7 +59,29 @@ Provable.log('original verification key', fooVerificationKey);
 
 const { verificationKey: barVerificationKey } = await Bar.compile();
 
+try {
+  const illegalVerificationKey = new VerificationKeyNext({
+    data: fooVerificationKey!.data,
+    hash: barVerificationKey.hash,
+  });
+
+  const tx2 = await Mina.transaction(deployer, async () => {
+    // VK with mismatched hash and data should throw
+    await contract.replaceVerificationKey(illegalVerificationKey);
+  });
+  await tx2.prove();
+} catch (error: any) {
+  if (
+    error.message.includes('The verification key hash is not consistent with the provided data')
+  ) {
+    console.log('correctly threw on illegal verification key');
+  } else {
+    throw error;
+  }
+}
+
 const tx2 = await Mina.transaction(deployer, async () => {
+  // This call will work because the vk is valid
   await contract.replaceVerificationKey(barVerificationKey);
 });
 await tx2.prove();
