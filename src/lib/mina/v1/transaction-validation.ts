@@ -12,7 +12,7 @@ import {
 import { Field } from '../../provable/wrapped.js';
 import { UInt64, UInt32 } from '../../provable/int.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-import { inCircuitVkHash, JsonProof, verify } from '../../proof-system/zkprogram.js';
+import { JsonProof, verify } from '../../proof-system/zkprogram.js';
 import { verifyAccountUpdateSignature } from '../../../mina-signer/src/sign-zkapp-command.js';
 import { TransactionCost, TransactionLimits } from './constants.js';
 import { cloneCircuitValue } from '../../provable/types/struct.js';
@@ -250,7 +250,7 @@ async function verifyAccountUpdate(
 
       const isVkValid = await checkVkValidity(verificationKeyRaw);
       if (!isVkValid)
-      throw Error(`The verification key hash is not consistent with the provided data`);
+        throw Error(`The verification key hash is not consistent with the provided data`);
 
       isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
