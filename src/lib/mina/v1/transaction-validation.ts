@@ -21,8 +21,8 @@ import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.
 import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
-import { Pickles } from 'src/snarky.js';
 import { VerificationKey } from 'src/lib/proof-system/verification-key.js';
+import { Pickles } from 'src/snarky.js';
 
 export {
   reportGetAccountError,
@@ -247,6 +247,9 @@ async function verifyAccountUpdate(
       let verificationKey = account.zkapp?.verificationKey?.data;
       assert(verificationKey !== undefined, 'Account does not have a verification key');
 
+      let vkIsValid = isValidVk(account.zkapp?.verificationKey);
+      assert(vkIsValid, 'Verification key is invalid');
+
       isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
         throw Error(`Invalid proof for account update\n${JSON.stringify(update)}`);
@@ -308,15 +311,12 @@ async function verifyAccountUpdate(
   });
 
   if (accountUpdate.update.verificationKey.isSome.toBoolean()) {
-    const vk = VerificationKey.fromValue(accountUpdate.update.verificationKey.value);
-    const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
-    const inCircuitHash = inCircuitVkHash(circuitVk);
-    if (inCircuitHash !== vk.hash) {
+    let vkIsValid = isValidVk(accountUpdate.update.verificationKey.value);
+    if (!vkIsValid) {
       throw Error(
-        `Transaction verification failed: Cannot update verification key because the hash of the verification key does not match the data.`
+        `Verification key is invalid. The hash of the verification key does not match with the data`
       );
     }
-  
   }
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
@@ -343,6 +343,13 @@ async function verifyAccountUpdate(
 type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
 const isPair = (a: AuthorizationKind, b: AuthorizationKind) => !a.isProved && !b.isProved;
+
+const isValidVk = (vk: any )  => {
+  const verificationKey = VerificationKey.fromValue(vk);
+  const circuitVk = Pickles.sideLoaded.vkToCircuit(() => verificationKey.data);
+  const inCircuitHash = inCircuitVkHash(circuitVk);
+  return inCircuitHash.equals(verificationKey.hash).toBoolean();
+}
 
 function filterPairs(xs: AuthorizationKind[]): {
   xs: { isProved: boolean; isSigned: boolean }[];
