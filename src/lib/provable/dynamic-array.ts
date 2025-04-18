@@ -45,7 +45,7 @@ type DynamicArray<T = any, V = any> = DynamicArrayBase<T, V>;
 function DynamicArray<
   A extends ProvableType,
   T extends InferProvable<A> = InferProvable<A>,
-  V extends InferValue<A> = InferValue<A>,
+  V extends InferValue<A> = InferValue<A>
 >(
   type: A,
   {
