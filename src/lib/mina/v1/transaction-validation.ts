@@ -245,12 +245,12 @@ async function verifyAccountUpdate(
         publicOutput: [],
       };
 
-      let verificationKey = account.zkapp?.verificationKey?.data;
+      let verificationKeyRaw = account.zkapp?.verificationKey;
+      assert(verificationKeyRaw !== undefined, 'Account does not have a verification key');
+      let verificationKey = verificationKeyRaw.data;
       assert(verificationKey !== undefined, 'Account does not have a verification key');
 
-      //let vkIsValid =
-      await isValidVk(account.zkapp?.verificationKey!);
-      //assert(vkIsValid, 'Verification key is invalid');
+      await isValidVk(verificationKeyRaw);
 
       isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
@@ -313,15 +313,7 @@ async function verifyAccountUpdate(
   });
 
   if (accountUpdate.update.verificationKey.isSome.toBoolean()) {
-    //let vkIsValid =
     await isValidVk(accountUpdate.update.verificationKey.value);
-    /*
-    if (!vkIsValid) {
-      throw Error(
-        `Verification key is invalid. The hash of the verification key does not match with the data`
-      );
-    }
-      */
   }
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
@@ -358,7 +350,7 @@ const isValidVk = async (vk: VerificationKey) => {
       let inCircuitHash = inCircuitVkHash(vk);
       inCircuitHash.assertEquals(verificationKey.hash);
     });
-  } catch (error) {
+  } catch {
     throw Error(`The verification key hash is not consistent with the provided data`);
   }
 };
