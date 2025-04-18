@@ -248,7 +248,7 @@ async function verifyAccountUpdate(
       let verificationKey = account.zkapp?.verificationKey?.data;
       assert(verificationKey !== undefined, 'Account does not have a verification key');
 
-      //let vkIsValid = 
+      //let vkIsValid =
       await isValidVk(account.zkapp?.verificationKey!);
       //assert(vkIsValid, 'Verification key is invalid');
 
@@ -313,7 +313,7 @@ async function verifyAccountUpdate(
   });
 
   if (accountUpdate.update.verificationKey.isSome.toBoolean()) {
-    //let vkIsValid = 
+    //let vkIsValid =
     await isValidVk(accountUpdate.update.verificationKey.value);
     /*
     if (!vkIsValid) {
