@@ -8,6 +8,18 @@ import {
   fieldWithRng,
 } from '../../testing/equivalent.js';
 import { Random } from '../../testing/property.js';
+import exp from 'constants';
+
+function expectThrows(fn: () => void | Promise<void>, msg: string) {
+  let threw = false;
+  try {
+    fn();
+  } catch {
+    threw = true;
+  }
+  assert(threw, msg);
+}
+
 
 let List = ZkProgram({
   name: 'dynamicarrays',
@@ -40,11 +52,9 @@ let List = ZkProgram({
         for (let i = 0; i < 8; i++) {
           bytes.push(new UInt8(i));
         }
-        try {
+        expectThrows(() => {
           bytes.push(new UInt8(8));
-        } catch (error) {
-          console.log('Cannot push more elements than the capacity');
-        }
+        }, 'Cannot push more elements than the capacity');
 
         // Popping zero elements should not change the array
         bytes.pop(new Field(0));
@@ -55,11 +65,9 @@ let List = ZkProgram({
         assert(bytes.length.equals(new Field(0)));
 
         // Cannot pop more elements than the current length
-        try {
+        expectThrows(() => {
           bytes.pop();
-        } catch (error) {
-          console.log('Cannot pop more elements than the length');
-        }
+        }, 'Cannot pop more elements than the length');
 
         // Empty behaviour should be correct
         assert(bytes.isEmpty().toBoolean());
@@ -77,18 +85,14 @@ let List = ZkProgram({
         bytes.getOption(new Field(1)).assertNone();
 
         // Error if getting out-of-bounds index
-        try {
+        expectThrows(() => {
           bytes.get(new Field(1));
-        } catch (error) {
-          console.log('Cannot get out-of-bounds index');
-        }
+        }, 'Cannot get out-of-bounds index');
 
         // Error if setting out-of-bounds index
-        try {
+        expectThrows(() => {
           bytes.set(new Field(1), new UInt8(3));
-        } catch (error) {
-          console.log('Cannot set out-of-bounds index');
-        }
+        }, 'Cannot set out-of-bounds index');
 
         // Growing capacity should work correctly
         let longerArray = bytes.growCapacityTo(10);
@@ -141,11 +145,9 @@ let List = ZkProgram({
         assert(bytes.length.equals(new Field(0)));
 
         // Cannot shift left more elements than the current length
-        try {
+        expectThrows(() => {
           bytes.shiftLeft(new Field(1));
-        } catch (error) {
-          console.log('Cannot shift left further than the length');
-        }
+        }, 'Cannot shift left further than the length');
 
         // Reinstantiating the array for further tests with space for shifting
         bytes = new Bytestring();
@@ -174,11 +176,9 @@ let List = ZkProgram({
         bytes.getOption(new Field(7)).assertNone();
 
         // Cannot shift right more elements than the capacity
-        try {
+        expectThrows(() => {
           bytes.shiftRight(new Field(2));
-        } catch (error) {
-          console.log('Cannot shift right above capacity');
-        }
+        }, 'Cannot shift right above capacity');
 
         // Slicing [0, length) should return the same array
         bytes = new Bytestring();
@@ -222,20 +222,14 @@ let List = ZkProgram({
         );
 
         // Cannot slice out-of-bounds positions
-        try {
+        expectThrows(() => {
           bytes.slice(new Field(1), new Field(5));
-        } catch (error) {
-          console.log('Cannot slice out-of-bounds positions');
-        }
+        }, 'Cannot slice out-of-bounds positions');
 
         // Cannot slice with end position smaller than start position
-        try {
+        expectThrows(() => {
           bytes.slice(new Field(2), new Field(1));
-        } catch (error) {
-          console.log(
-            'Cannot slice with end position smaller than start position'
-          );
-        }
+        }, 'Cannot slice with end position smaller than start position');
 
         // Concatenate two empty arrays gives an empty array
         let emptyLeft = new Bytestring();
@@ -336,19 +330,15 @@ let List = ZkProgram({
         }
 
         // Cannot insert elements exceeding capacity
-        try {
+        expectThrows(() => {
           bytes.insert(new Field(1), new UInt8(0));
-        } catch (error) {
-          console.log('Cannot insert above capacity');
-        }
+        }, 'Cannot insert above capacity');
 
         // Cannot insert elements out-of-bounds
         bytes = new Bytestring([new UInt8(1), new UInt8(2), new UInt8(3)]);
-        try {
+        expectThrows(() => {
           bytes.insert(new Field(4), new UInt8(5));
-        } catch (error) {
-          console.log('Cannot insert out-of-bounds');
-        }
+        }, 'Cannot insert out-of-bounds');
       },
     },
   },
