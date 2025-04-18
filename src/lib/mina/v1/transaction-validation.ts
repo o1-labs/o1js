@@ -247,7 +247,7 @@ async function verifyAccountUpdate(
       let verificationKey = account.zkapp?.verificationKey?.data;
       assert(verificationKey !== undefined, 'Account does not have a verification key');
 
-      let vkIsValid = isValidVk(account.zkapp?.verificationKey);
+      let vkIsValid = isValidVk(account.zkapp?.verificationKey!);
       assert(vkIsValid, 'Verification key is invalid');
 
       isValidProof = await verify(proof, verificationKey);
@@ -344,7 +344,7 @@ type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
 const isPair = (a: AuthorizationKind, b: AuthorizationKind) => !a.isProved && !b.isProved;
 
-const isValidVk = (vk: any )  => {
+const isValidVk = (vk: VerificationKey)  => {
   const verificationKey = VerificationKey.fromValue(vk);
   const circuitVk = Pickles.sideLoaded.vkToCircuit(() => verificationKey.data);
   const inCircuitHash = inCircuitVkHash(circuitVk);
