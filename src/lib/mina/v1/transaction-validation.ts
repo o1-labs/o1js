@@ -356,10 +356,10 @@ const isValidVk = async (vk: VerificationKey) => {
     runAndCheckSync(() => {
       let vk = Pickles.sideLoaded.vkToCircuit(() => verificationKey.data);
       let inCircuitHash = inCircuitVkHash(vk);
-      inCircuitHash.assertEquals(verificationKey.hash, 'Verification key hash mismatch');
+      inCircuitHash.assertEquals(verificationKey.hash);
     });
   } catch (error) {
-    console.error('Verification key validation failed:', error);
+    throw Error(`The verification key hash is not consistent with the provided data`);
   }
 };
 
