@@ -2,6 +2,7 @@ import { initializeBindings, Pickles } from '../../snarky.js';
 import { provable } from '../provable/types/provable-derivers.js';
 import { Struct } from '../provable/types/struct.js';
 import { Field } from '../provable/wrapped.js';
+import { inCircuitVkHash } from './zkprogram.js';
 
 export { VerificationKey };
 
@@ -25,6 +26,21 @@ class VerificationKey extends Struct({
       ...RAW_VERIFICATION_KEY,
       hash: Field(RAW_VERIFICATION_KEY.hash),
     });
+  }
+
+  /**
+   * In-circuit check that data and hash are consistent.
+   */
+  static check(x: VerificationKey) {
+    if (x.hash.isConstant()) {
+      return;
+    }
+    const circuitVk = Pickles.sideLoaded.vkToCircuit(() => x.data);
+    const inCircuitHash = inCircuitVkHash(circuitVk);
+    Field(inCircuitHash).assertEquals(
+      x.hash,
+      'The verification key hash is not consistent with the provided data'
+    );
   }
 }
 
