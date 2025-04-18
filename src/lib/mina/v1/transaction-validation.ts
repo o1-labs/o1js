@@ -21,8 +21,8 @@ import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.
 import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
-import { VerificationKey } from 'src/lib/proof-system/verification-key.js';
-import { Pickles } from 'src/snarky.js';
+import { VerificationKey } from '../../proof-system/verification-key.js';
+import { Pickles } from '../../../snarky.js';
 
 export {
   reportGetAccountError,
