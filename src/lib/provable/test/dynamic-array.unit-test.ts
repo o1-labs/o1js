@@ -1,4 +1,4 @@
-import { UInt8, Field, ZkProgram} from 'o1js';
+import { UInt8, Field, ZkProgram } from 'o1js';
 import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
 
