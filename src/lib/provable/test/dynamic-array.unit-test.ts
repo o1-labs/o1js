@@ -1,9 +1,6 @@
-import { UInt8, Field, ZkProgram, Provable } from 'o1js';
+import { UInt8, Field, ZkProgram} from 'o1js';
 import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
-import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
-import { Random } from '../../testing/property.js';
-import exp from 'constants';
 
 function expectThrows(fn: () => void | Promise<void>, msg: string) {
   let threw = false;
