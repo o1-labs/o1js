@@ -3,7 +3,7 @@
  */
 import {
   SmartContract,
-  VerificationKey,
+  VerificationKeyNext,
   method,
   Permissions,
   Mina,
@@ -20,7 +20,7 @@ class SelfUpdater extends SmartContract {
     });
   }
 
-  @method async replaceVerificationKey(verificationKey: VerificationKey) {
+  @method async replaceVerificationKey(verificationKey: VerificationKeyNext) {
     this.account.verificationKey.set(verificationKey);
   }
 }
@@ -60,7 +60,7 @@ Provable.log('original verification key', fooVerificationKey);
 const { verificationKey: barVerificationKey } = await Bar.compile();
 
 try {
-  const illegalVerificationKey = new VerificationKey({
+  const illegalVerificationKey = new VerificationKeyNext({
     data: fooVerificationKey!.data,
     hash: barVerificationKey.hash,
   });
