@@ -581,6 +581,11 @@ function provable<T, V>(
       return new Class(padded, new Field(value.length));
     },
 
+    toCanonical(value)  {
+      return value    
+    },
+    
+
     // check has to validate length in addition to the other checks
     check(value) {
       PlainArray.check(value);

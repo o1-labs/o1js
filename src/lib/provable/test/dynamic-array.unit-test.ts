@@ -365,7 +365,7 @@ await equivalentAsync({ from: [uint(12)], to: boolean }, { runs: 1 })(
     return true;
   },
   async (_x) => {
-    let proof = await List.pushAndPop();
+    let { proof } = await List.pushAndPop();
     return await List.verify(proof);
   }
 );
