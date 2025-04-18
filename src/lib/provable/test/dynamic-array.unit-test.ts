@@ -344,18 +344,9 @@ let List = ZkProgram({
   },
 });
 
-let uint = (n: number | bigint): Spec<bigint, Field> => {
-  return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
-};
 
 await List.compile();
 
-await equivalentAsync({ from: [uint(12)], to: boolean }, { runs: 1 })(
-  (_x) => {
-    return true;
-  },
-  async (_x) => {
-    let { proof } = await List.pushAndPop();
-    return await List.verify(proof);
-  }
-);
+let { proof } = await List.pushAndPop();
+let isValid = await List.verify(proof);
+assert(isValid, 'Proof for dynamic arrays should be verified');
