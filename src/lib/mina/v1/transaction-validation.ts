@@ -21,9 +21,7 @@ import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.
 import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
-import { VerificationKey } from '../../proof-system/verification-key.js';
-import { Pickles } from '../../../snarky.js';
-import { synchronousRunners } from '../../provable/core/provable-context.js';
+import { checkVkValidity } from '../../proof-system/verification-key.js';
 
 export {
   reportGetAccountError,
@@ -250,7 +248,9 @@ async function verifyAccountUpdate(
       let verificationKey = verificationKeyRaw.data;
       assert(verificationKey !== undefined, 'Account does not have a verification key');
 
-      await isValidVk(verificationKeyRaw);
+      const isVkValid = await checkVkValidity(verificationKeyRaw);
+      if (!isVkValid)
+      throw Error(`The verification key hash is not consistent with the provided data`);
 
       isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
@@ -313,7 +313,9 @@ async function verifyAccountUpdate(
   });
 
   if (accountUpdate.update.verificationKey.isSome.toBoolean()) {
-    await isValidVk(accountUpdate.update.verificationKey.value);
+    const isVkValid = await checkVkValidity(accountUpdate.update.verificationKey.value);
+    if (!isVkValid)
+      throw Error(`The verification key hash is not consistent with the provided data`);
   }
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
@@ -340,20 +342,6 @@ async function verifyAccountUpdate(
 type AuthorizationKind = { isProved: boolean; isSigned: boolean };
 
 const isPair = (a: AuthorizationKind, b: AuthorizationKind) => !a.isProved && !b.isProved;
-
-const isValidVk = async (vk: VerificationKey) => {
-  let { runAndCheckSync } = await synchronousRunners();
-  const verificationKey = VerificationKey.fromValue(vk);
-  try {
-    runAndCheckSync(() => {
-      let vk = Pickles.sideLoaded.vkToCircuit(() => verificationKey.data);
-      let inCircuitHash = inCircuitVkHash(vk);
-      inCircuitHash.assertEquals(verificationKey.hash);
-    });
-  } catch {
-    throw Error(`The verification key hash is not consistent with the provided data`);
-  }
-};
 
 function filterPairs(xs: AuthorizationKind[]): {
   xs: { isProved: boolean; isSigned: boolean }[];
