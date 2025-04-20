@@ -28,7 +28,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144$0
+- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
 
 ### Changed
 
