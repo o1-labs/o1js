@@ -283,7 +283,7 @@ describe('Test network with headers', () => {
   });
 
   it('Archive default headers with per request headers in fetchActions', async () => {
-    await Mina.fetchActions(bobAccount, undefined, undefined, undefined, undefined, {
+    await Mina.fetchActions(bobAccount, undefined, undefined, {}, {
       'X-Test': 'per-request-test',
     });
 
