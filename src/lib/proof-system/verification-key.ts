@@ -38,7 +38,7 @@ const RAW_VERIFICATION_KEY = {
 
 /**
  * Validates a VerificationKey by checking its hash against the hash computed from its data in-circuit.
- * 
+ *
  * Warning: This function is not meant to be used in provable code.
  *
  * @param vk - The verification key to validate
