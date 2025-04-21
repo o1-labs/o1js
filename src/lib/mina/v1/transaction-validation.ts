@@ -245,8 +245,7 @@ async function verifyAccountUpdate(
 
       let verificationKeyRaw = account.zkapp?.verificationKey;
       assert(verificationKeyRaw !== undefined, 'Account does not have a verification key');
-      let verificationKey = verificationKeyRaw?.data;
-      assert(verificationKey !== undefined, 'Account does not have a verification key data');
+      let verificationKey = verificationKeyRaw.data;
 
       const isVkValid = await checkVkValidity(verificationKeyRaw);
       if (!isVkValid)
