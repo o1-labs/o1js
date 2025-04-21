@@ -87,8 +87,7 @@ type Mina = {
     publicKey: PublicKey,
     actionStates?: ActionStates,
     tokenId?: Field,
-    from?: number,
-    to?: number,
+    filterOptions?: EventActionFilterOptions,
     headers?: HeadersInit
   ) => ReturnType<typeof Fetch.fetchActions>;
   getActions: (
@@ -194,11 +193,16 @@ async function fetchActions(
   publicKey: PublicKey,
   actionStates?: ActionStates,
   tokenId?: Field,
-  from?: number,
-  to?: number,
+  filterOptions?: EventActionFilterOptions,
   headers?: HeadersInit
 ) {
-  return await activeInstance.fetchActions(publicKey, actionStates, tokenId, from, to, headers);
+  return await activeInstance.fetchActions(
+    publicKey,
+    actionStates,
+    tokenId,
+    filterOptions,
+    headers
+  );
 }
 
 /**
