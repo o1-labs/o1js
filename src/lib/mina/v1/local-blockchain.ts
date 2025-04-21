@@ -37,6 +37,8 @@ import {
   verifyAccountUpdate,
 } from './transaction-validation.js';
 import { prettifyStacktrace } from '../../util/errors.js';
+import { NetworkValue } from './precondition.js';
+import type { EventActionFilterOptions } from './graphql.js';
 
 export { LocalBlockchain, TestPublicKey };
 
@@ -315,7 +317,12 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
         JSON.stringify(networkState)
       );
     },
-    async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
+    async fetchEvents(
+      publicKey: PublicKey, 
+      tokenId: Field = TokenId.default,
+      filterOptions?: EventActionFilterOptions,
+      _headers?: HeadersInit
+    ) {
       // Return events in reverse chronological order (latest events at the beginning)
       const reversedEvents = (
         events?.[publicKey.toBase58()]?.[TokenId.toBase58(tokenId)] ?? []
@@ -326,8 +333,8 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
       publicKey: PublicKey,
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default,
-      _from?: number,
-      _to?: number
+      filterOptions?: EventActionFilterOptions,
+      _headers?: HeadersInit
     ) {
       return this.getActions(publicKey, actionStates, tokenId);
     },
