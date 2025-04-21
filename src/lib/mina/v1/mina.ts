@@ -350,13 +350,18 @@ function Network(
       filterOptions: EventActionFilterOptions = {},
       headers?: HeadersInit
     ) {
-      const pubKey = publicKey.toBase58();
-      const token = TokenId.toBase58(tokenId);
-      const from = filterOptions.from ? Number(filterOptions.from.toString()) : undefined;
-      const to = filterOptions.to ? Number(filterOptions.to.toString()) : undefined;
+      if (!archiveEndpoint)
+        throw Error(
+          'fetchEvents: Archive endpoint is undefined. Please set the archive node endpoint in Mina.Network(), for example Mina.Network({ mina: "https://proxy.berkeley.minaexplorer.com/graphql", archive: "https://archive.berkeley.minaexplorer.com/graphql", })'
+        );
 
-      return Fetch.fetchEvents(
-        { publicKey: pubKey, tokenId: token, from, to },
+      return await Fetch.fetchEvents(
+        {
+          publicKey: publicKey.toBase58(),
+          tokenId: TokenId.toBase58(tokenId),
+          from: filterOptions.from !== undefined ? Number(filterOptions.from) : undefined,
+          to: filterOptions.to !== undefined ? Number(filterOptions.to) : undefined,
+        },
         archiveEndpoint,
         headers
       );
@@ -365,26 +370,29 @@ function Network(
       publicKey: PublicKey,
       actionStates?: ActionStates,
       tokenId: Field = TokenId.default,
-      from?: number,
-      to?: number,
+      filterOptions: EventActionFilterOptions = {},
       headers?: HeadersInit
     ) {
-      const pubKey = publicKey.toBase58();
-      const token = TokenId.toBase58(tokenId);
-      const { fromActionState, endActionState } = actionStates ?? {};
-      const fromActionStateBase58 = fromActionState ? fromActionState.toString() : undefined;
-      const endActionStateBase58 = endActionState ? endActionState.toString() : undefined;
-
-      return Fetch.fetchActions(
+      if (!archiveEndpoint)
+        throw Error(
+          'fetchActions: Archive endpoint is undefined. Please set the archive node endpoint in Mina.Network(), for example Mina.Network({ mina: "https://proxy.berkeley.minaexplorer.com/graphql", archive: "https://archive.berkeley.minaexplorer.com/graphql", })'
+        );
+      // convert Field to string for the arguments that accept Field
+      let tokenIdBase58 = TokenId.toBase58(tokenId);
+      let actionStatesStringified: Fetch.ActionStatesStringified | undefined = undefined;
+      if (actionStates !== undefined) {
+        actionStatesStringified = {
+          fromActionState: actionStates.fromActionState?.toString(),
+          endActionState: actionStates.endActionState?.toString(),
+        };
+      }
+      return await Fetch.fetchActions(
         {
-          publicKey: pubKey,
-          actionStates: {
-            fromActionState: fromActionStateBase58,
-            endActionState: endActionStateBase58,
-          },
-          from,
-          to,
-          tokenId: token,
+          publicKey: publicKey.toBase58(),
+          tokenId: tokenIdBase58,
+          actionStates: actionStatesStringified,
+          from: filterOptions.from !== undefined ? Number(filterOptions.from) : undefined,
+          to: filterOptions.to !== undefined ? Number(filterOptions.to) : undefined,
         },
         archiveEndpoint,
         headers
