@@ -29,14 +29,14 @@ class VerificationKey extends Struct({
     });
   }
 
-  static async checkValidity(x: VerificationKey): Promise<boolean> {
+  static async checkValidity(key: VerificationKey): Promise<boolean> {
     try {
       let { runAndCheckSync } = await synchronousRunners();
 
       runAndCheckSync(() => {
-        let vk = Pickles.sideLoaded.vkToCircuit(() => x.data);
+        let vk = Pickles.sideLoaded.vkToCircuit(() => key.data);
         let inCircuitHash = inCircuitVkHash(vk);
-        inCircuitHash.assertEquals(x.hash);
+        inCircuitHash.assertEquals(key.hash);
       });
       return true;
     } catch {
