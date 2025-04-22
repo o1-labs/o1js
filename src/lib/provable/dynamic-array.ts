@@ -3,17 +3,12 @@
  * https://github.com/zksecurity/mina-attestations and
  * gretke's at https://github.com/gretzke/zkApp-data-types
  */
-
-import {
-  Bool,
-  Field,
-  type InferProvable,
-  Option,
-  Provable,
-  provable as struct,
-  type ProvableHashable,
-} from 'o1js';
-import { ProvableType } from './types/provable-intf.js';
+import { Bool } from './bool.js';
+import { Field } from './field.js';
+import { Provable } from './provable.js';
+import { type InferProvable, provable as struct } from './types/provable-derivers.js';
+import { Option } from './option.js';
+import { ProvableHashable, ProvableType } from './types/provable-intf.js';
 import { assert } from './gadgets/common.js';
 import { type From, type InferValue } from '../../bindings/lib/provable-generic.js';
 import { zip, pad } from '../util/arrays.js';
@@ -461,7 +456,7 @@ class DynamicArrayBase<T = any, V = any> {
         this.getOrUnconstrained(new Field(i)),
         other.getOrUnconstrained(offset)
       );
-      offset = offset.add(Field(1));
+      offset = offset.add(new Field(1));
     }
     res.length = this.length.add(other.length);
     return res;
