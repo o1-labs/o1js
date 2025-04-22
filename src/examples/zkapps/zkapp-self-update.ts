@@ -60,14 +60,14 @@ Provable.log('original verification key', fooVerificationKey);
 const { verificationKey: barVerificationKey } = await Bar.compile();
 
 try {
-  const illegalVerificationKey = new VerificationKey({
+  const invalidVerificationKey = new VerificationKey({
     data: fooVerificationKey!.data,
     hash: barVerificationKey.hash,
   });
 
   const tx2x = await Mina.transaction(deployer, async () => {
     // VK with mismatched hash and data should throw
-    await contract.replaceVerificationKey(illegalVerificationKey);
+    await contract.replaceVerificationKey(invalidVerificationKey);
   });
   await tx2x.prove();
   await tx2x.sign([deployer.key]).send();
@@ -75,7 +75,7 @@ try {
   if (
     error.message.includes('The verification key hash is not consistent with the provided data')
   ) {
-    console.log('correctly threw on illegal verification key');
+    console.log('correctly threw on invalid verification key');
   } else {
     throw error;
   }
