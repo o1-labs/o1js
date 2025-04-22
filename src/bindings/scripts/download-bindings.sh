@@ -24,5 +24,5 @@ if [ -f ".bindings_download/bindings.tar.gz" ]; then
 fi
 gh run download "$RUN_ID" --dir .bindings_download --name=bindings.tar.gz
 # remove any old bindings
-git clean -fdx src/bindings/compiled src/bindings/mina-transaction/gen
+rm -f src/bindings/mina-transaction/gen/*/*.ts src/bindings/mina-transaction/gen/*/*.js
 tar -xf .bindings_download/bindings.tar.gz -C src/bindings

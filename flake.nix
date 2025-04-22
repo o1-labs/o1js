@@ -210,7 +210,6 @@
             '';
           name = "export_test_vectors";
           version = "0.1.0";
-          cargoSha256 = "";
           CARGO_TARGET_DIR = "./target";
           cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
         };
