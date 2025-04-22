@@ -21,7 +21,7 @@ import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.
 import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
-import { checkVkValidity } from '../../proof-system/verification-key.js';
+import { VerificationKey } from '../../proof-system/verification-key.js';
 
 export {
   reportGetAccountError,
@@ -247,7 +247,7 @@ async function verifyAccountUpdate(
       assert(verificationKeyRaw !== undefined, 'Account does not have a verification key');
       let verificationKey = verificationKeyRaw.data;
 
-      const isVkValid = await checkVkValidity(verificationKeyRaw);
+      const isVkValid = await VerificationKey.checkValidity(verificationKeyRaw);
       if (!isVkValid)
         throw Error(`The verification key hash is not consistent with the provided data`);
 
@@ -312,7 +312,9 @@ async function verifyAccountUpdate(
   });
 
   if (accountUpdate.update.verificationKey.isSome.toBoolean()) {
-    const isVkValid = await checkVkValidity(accountUpdate.update.verificationKey.value);
+    const isVkValid = await VerificationKey.checkValidity(
+      accountUpdate.update.verificationKey.value
+    );
     if (!isVkValid)
       throw Error(`The verification key hash is not consistent with the provided data`);
   }
