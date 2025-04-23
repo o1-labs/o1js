@@ -8,10 +8,6 @@ permissions:
 runs:
   using: "composite"
   steps:
-    - name: Checkout repository with submodules
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
     - name: Set up Nix
       run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
     - name: Disable smudging
