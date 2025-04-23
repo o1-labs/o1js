@@ -9,8 +9,10 @@ runs:
   using: "composite"
   steps:
     - name: Set up Nix
+      shell: bash
       run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
     - name: Disable smudging
+      shell: bash
       run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
     - name: Setup Node
       uses: actions/setup-node@v4
@@ -28,6 +30,7 @@ runs:
 
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
+      shell: bash
       run: |
         set -Eeu
         ./pin.sh
@@ -45,11 +48,13 @@ runs:
 
     - name: Build examples
       if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
       run: |
         npm ci
         npm run build:examples
     - name: Build o1js clean
       if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
       run: |
         rm -fr dist
         npm ci
