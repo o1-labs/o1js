@@ -21,3 +21,4 @@ jobs:
           exclude_file: "./src/lib/provable/test/blake2b.unit-test.ts,./src/mina/README-dev.md"
           check_hidden: false
           ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
+          
