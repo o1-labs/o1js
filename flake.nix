@@ -102,17 +102,6 @@
               ];
               extensions = [ "rust-src" ];
             });
-        rust-channel-direct = builtins.fetchTarball {
-          url = "https://static.rust-lang.org/dist/rust-std-1.79.0-wasm32-unknown-unknown.tar.gz";
-          sha256 =
-            if pkgs.stdenv.isDarwin
-            then "sha256:1mv8skl4l2q782741r1yakbf0y4q6v9358fm91r45gj97j20il1y"
-            else "sha256:0x7h8nggyw3vsvgqv0s2hxzn393l4gzpm3vb2qvsnnm1rf0r86v2";
-        };
-        toolchain = pkgs.symlinkJoin {
-          name = "toolchain";
-          paths = [ rust-channel "${rust-channel-direct}/rust-std-wasm32-unknown-unknown" ];
-        };
         rust-platform = pkgs.makeRustPlatform
           {
             cargo = rust-channel;
@@ -221,10 +210,79 @@
             '';
           name = "export_test_vectors";
           version = "0.1.0";
-          cargoSha256 = "";
           CARGO_TARGET_DIR = "./target";
           cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
         };
+        bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
+          name = "o1js_bindings";
+          src = with pkgs.lib.fileset;
+            (toSource {
+              root = ./.;
+              fileset = unions [
+                ./src/mina
+                ./src/bindings/scripts
+                ./src/bindings/js
+                ./src/bindings/crypto
+                ./src/bindings/lib
+                ./src/bindings/mina-transaction/gen/v1/dune
+                ./src/bindings/mina-transaction/gen/v2/dune
+                (fileFilter (file: file.hasExt "js") ./src/bindings/mina-transaction)
+                ./src/bindings/ocaml/lib
+                ./src/bindings/ocaml/dune
+                ./src/bindings/ocaml/dune-project
+                (fileFilter (file: file.hasExt "ml") ./src/bindings/ocaml)
+                ./package.json
+                ./package-lock.json
+                ./src/bindings/ocaml/jsoo_exports
+                ./dune-project
+                ./.prettierrc.cjs
+                ./src/build
+                ./src/snarky.d.ts
+              ];
+            });
+          inherit (inputs.mina.devShells."${system}".default)
+            PLONK_WASM_NODEJS
+            PLONK_WASM_WEB
+            KIMCHI_STUBS
+            KIMCHI_STUBS_STATIC_LIB
+            ;
+          PREBUILT_KIMCHI_BINDINGS_JS_WEB =
+            "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
+          PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
+            "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
+          EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
+          SKIP_MINA_COMMIT = true;
+          JUST_BINDINGS = true;
+          buildInputs = (with pkgs;
+            [
+              rustupWrapper
+              bash
+            ]) ++ bindings-pkgs;
+          patchPhase = ''
+            patchShebangs ./src/bindings/scripts/
+            patchShebangs ./src/bindings/crypto/test-vectors/
+          '';
+          buildPhase =
+            ''
+              RUSTUP_HOME=$(pwd)/.rustup
+              export RUSTUP_HOME
+              rustup toolchain link nix ${rust-channel}
+              cp -r ${o1js-npm-deps}/lib/node_modules/ .
+
+              mkdir -p src/bindings/compiled/node_bindings
+              echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
+                > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
+
+              npm run build:update-bindings
+
+              mkdir -p $out/mina-transaction
+              pushd ./src/bindings
+                rm -rf ./compiled/_node_bindings
+                cp -Lr ./compiled $out
+                cp -Lr ./mina-transaction/gen $out/mina-transaction/
+              popd
+            '';
+        });
       in
       {
         formatter = pkgs.nixfmt;
@@ -242,7 +300,7 @@
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
-                rustup toolchain link nix ${toolchain}
+                rustup toolchain link nix ${rust-channel}
               '';
             }));
 
@@ -250,80 +308,19 @@
         };
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
-          inherit dune-description;
-          npm-deps = o1js-npm-deps;
-          o1js-bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
-            name = "o1js_bindings";
-            src = with pkgs.lib.fileset;
-              (toSource {
-                root = ./.;
-                fileset = unions [
-                  ./src/mina
-                  ./src/bindings/scripts
-                  ./src/bindings/js
-                  ./src/bindings/crypto
-                  ./src/bindings/lib
-                  ./src/bindings/mina-transaction/gen/v1/dune
-                  ./src/bindings/mina-transaction/gen/v2/dune
-                  (fileFilter (file: file.hasExt "js") ./src/bindings/mina-transaction)
-                  ./src/bindings/ocaml/lib
-                  ./src/bindings/ocaml/dune
-                  ./src/bindings/ocaml/dune-project
-                  (fileFilter (file: file.hasExt "ml") ./src/bindings/ocaml)
-                  ./package.json
-                  ./package-lock.json
-                  ./src/bindings/ocaml/jsoo_exports
-                  ./dune-project
-                  ./.prettierrc.cjs
-                  ./src/build
-                  ./src/snarky.d.ts
-                ];
-              });
-            inherit (inputs.mina.devShells."${system}".default)
-              PLONK_WASM_NODEJS
-              PLONK_WASM_WEB
-              KIMCHI_STUBS
-              KIMCHI_STUBS_STATIC_LIB
-              ;
-            PREBUILT_KIMCHI_BINDINGS_JS_WEB =
-              "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
-            PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
-              "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
-            EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
-            SKIP_MINA_COMMIT = true;
-            JUST_BINDINGS = true;
-            buildInputs = (with pkgs;
-              [
-                rustupWrapper
-                bash
-              ]) ++ bindings-pkgs;
-            patchPhase = ''
-              patchShebangs ./src/bindings/scripts/
-              patchShebangs ./src/bindings/crypto/test-vectors/
+          inherit dune-description bindings;
+          bindings-tar = pkgs.stdenv.mkDerivation {
+            name = "bindings.tar.gz";
+            src = bindings;
+            buildCommand = ''
+                cp -R $src/* .
+                rm env-vars
+                #restore write permisions removed by nix store
+                chmod +w -R .
+                tar czf $out .
             '';
-            buildPhase =
-              ''
-                RUSTUP_HOME=$(pwd)/.rustup
-                export RUSTUP_HOME
-                rustup toolchain link nix ${toolchain}
-                cp -r ${o1js-npm-deps}/lib/node_modules/ .
-
-                mkdir -p src/bindings/compiled/node_bindings
-                echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
-                  > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
-
-                npm run build:update-bindings
-
-                mkdir -p $out/mina-transaction
-                pushd ./src/bindings
-                  rm -rf ./compiled/_node_bindings
-                  cp -Lr ./compiled $out
-                  cp -Lr ./mina-transaction/gen $out/mina-transaction/
-                popd
-              '';
-          });
-          kimchi = pkgs.kimchi-rust-wasm;
-          ocaml-js = prj.pkgs.__ocaml-js__;
+          };
+          npm-deps = o1js-npm-deps;
         };
         apps = {
           update-npm-deps = {
@@ -336,7 +333,7 @@
                 '';
               }}/bin/update-npm-deps";
           };
-          update-bindings = {
+          generate-bindings = {
             type = "app";
             program = "${pkgs.writeShellApplication
               { name = "update-bindings";
@@ -344,11 +341,8 @@
                 checkPhase = if pkgs.stdenv.isDarwin then "" else null;
                 text =
                 ''
-                cp -r ${self.packages."${system}".o1js-bindings}/* ./src/bindings
+                cp -r ${bindings}/* ./src/bindings
                 chmod +w -R src/bindings/compiled
-                MINA_COMMIT=$(git -C src/mina rev-parse HEAD)
-                echo "The mina commit used to generate the backends for node and web is" "$MINA_COMMIT" \
-                  > src/bindings/MINA_COMMIT
                 '';
               }}/bin/update-bindings";
           };
