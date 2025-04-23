@@ -62,7 +62,7 @@ jobs:
             src/bindings/mina-transaction/gen
           key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
 
-  # The upload job is seperate from the build job because
+  # The upload job is separate from the build job because
   # other workflows have to wait for the cache and the await action works with jobs not steps
   # so the split is nesecary to avoid waiting for the artifact upload too
   upload-bindings:
