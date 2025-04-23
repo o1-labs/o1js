@@ -9,6 +9,7 @@ runs:
 
     - name: Count tests
       id: count_tests
+      shell: bash
       run: |
         TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
         echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
@@ -19,6 +20,7 @@ runs:
         TOTAL_TESTS: ${{ count_tests.outputs.test_count }}
         CHUNK: ${{ matrix.chunk }}
         CHUNKS: 8
+      shell: bash
       run: |
         echo "Total tests: $TOTAL_TESTS"
         echo "Current chunk: $CHUNK"

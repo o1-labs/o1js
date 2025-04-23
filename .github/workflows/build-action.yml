@@ -74,6 +74,10 @@ jobs:
             'CommonJS test',
           ]
     steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: "Build-And-Test-Server"
         uses: ./.github/actions/test-server.yml
 
@@ -99,7 +103,6 @@ jobs:
     needs: [Run-Unit-Tests]
     runs-on: ubuntu-latest
     steps:
-
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:
