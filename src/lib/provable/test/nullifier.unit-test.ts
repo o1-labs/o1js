@@ -27,7 +27,7 @@ let jsonNullifier2 = createNullifier(
   sk_faulty
 );
 
-// trying to manipulate the nullifier to take a real pk that it doesnt know the sk to
+// trying to manipulate the nullifier to take a real pk that it does not know the sk to
 let pk = priv.toPublicKey().toGroup();
 jsonNullifier2.publicKey = {
   x: pk.x.toBigInt(),

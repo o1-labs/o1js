@@ -55,7 +55,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - New transaction construction API `new ZkappCommand()`. https://github.com/o1-labs/o1js/pull/2042
 - Bump up Rust version to 1.79.0. Bindings now depends on nightly-2024-06-13.
   https://github.com/o1-labs/o1js/pull/2063
-- `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](httpts://github.com/o1-labs/o1js/pull/2091)
+- `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](https://github.com/o1-labs/o1js/pull/2091)
 - `toBits()` and `fromBits()` methods added for `UInt32` and `UInt64` classes. https://github.com/o1-labs/o1js/pull/2099
 - **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
 
@@ -102,7 +102,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
 - Increased maximum supported amount of methods in a `SmartContract` or `ZkProgram` to 30. https://github.com/o1-labs/o1js/pull/1918
 - Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
-- Expore `maxProofsVerified()` and a `Proof` class directly on ZkPrograms https://github.com/o1-labs/o1js/pull/1933
+- Expose `maxProofsVerified()` and a `Proof` class directly on ZkPrograms https://github.com/o1-labs/o1js/pull/1933
 
 ### Changed
 
@@ -277,7 +277,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Deprecated
 
-- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
+- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indices https://github.com/o1-labs/o1js/pull/1694
 
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
@@ -948,7 +948,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Failing `Mina.transaction` on Berkeley because of unsatisfied constraints caused by dummy data before we fetched account state https://github.com/o1-labs/o1js/pull/807
-  - Previously, you could work around this by calling `fetchAccount()` for every account invovled in a transaction. This is not necessary anymore.
+  - Previously, you could work around this by calling `fetchAccount()` for every account involved in a transaction. This is not necessary anymore.
 - Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/o1js/pull/812
 
 ## [0.9.4](https://github.com/o1-labs/o1js/compare/9acec55...21de489)
