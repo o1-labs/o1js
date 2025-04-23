@@ -39,7 +39,7 @@ This command compiles the TypeScript source files, making them ready for use. Th
 
 Much like the mina repo, we use the nix registry to conveniently handle git submodules.
 You can enter the devshell with `./pin.sh` and `nix develop o1js#default` or by using
-direnv with the `.envrc` provided. This devshell provides all the dependencies required for npm scripts including `npm run:update-bindings`.
+direnv with the `.envrc` provided. This devshell provides all the dependencies required for npm scripts including `npm run build:update-bindings`.
 
 ## Building Bindings
 
@@ -93,7 +93,7 @@ This can also be helpful when the bindings don't build identically, as unfortuna
 
 To use this patch:
 
-- Click details on the `Build o1js bindings / build-bindings-ubunutu` job
+- Click details on the `Build o1js bindings / build-bindings-ubuntu` job
 - Go to the `patch-upload` job and expand the logs for `Upload patch`
 - Download the file linked in the last line of the logs ie.
   `Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
@@ -137,7 +137,7 @@ This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and
 
 1. Check for style violations by running the npm commands `npm run lint path/to/file` and `npm run format:check path/to/file`
 
-- To attempt to fix all style violations in all changed filed, you can run:
+- To attempt to fix all style violations in all changed files, you can run:
   - `git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run format`
   - and `git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|js)$' | xargs npm run lint:fix`
 
@@ -147,7 +147,7 @@ This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and
 
 3. Enable pre-commit hooks
 
-- There is an opt-in pre-commit hook avaibale that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
+- There is an opt-in pre-commit hook available that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
 
 > [!NOTE]  
 > You can opt-out of linting in a PR by tagging it with skip-lint, in case the linting script is legitimately blocking an important PR

@@ -99,7 +99,7 @@ npm run build:update-bindings
 ```
 
 If you need to update the underlying `mina` code, you can also do so with Nix,
-but from the corresopnding subdirectory. In particular, you should build Mina
+but from the corresponding subdirectory. In particular, you should build Mina
 from the o1js subdirectory from a Nix shell. That means,
 
 ```console
@@ -118,14 +118,14 @@ Nix has a garbage collector that **is not used by default** after every run. Ins
 
 Instead, you can try to run `nix-env --delete-generations old` or any other time bound like `7d`. This will not have any effect on MacOS though. Alternatively, the [direnv](https://github.com/direnv/direnv) / [nix-direnv](https://github.com/nix-community/nix-direnv) tool can create garbage collector roots that won't be collected for removal. It just keeps one gc-root to the latest build of the dev shell so that `nix-store --gc` only removes older generations.
 
-On top of that, adding `auto-optimise-store = true` to `/etc/nix/nix.conf` and running `nix-store --optimize` shoud help with disk usage, as it replaces duplicated files with symlinks.
+On top of that, adding `auto-optimise-store = true` to `/etc/nix/nix.conf` and running `nix-store --optimize` should help with disk usage, as it replaces duplicated files with symlinks.
 
 ### Runtime optimization
 
 Other configurations are worth adding into your `/etc/nix/nix.conf`:
 
 ```bash
-keep-otuputs = true
+keep-outputs = true
 max-jobs = 20
 extra-substituters = https://storage.googleapis.com/mina-nix-cache
 extra-trusted-public-keys = nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10=
