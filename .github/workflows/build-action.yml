@@ -23,7 +23,7 @@ jobs:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
-        submodules: recursive
+          submodules: recursive
       - name: Build
         uses: ./.github/actions/build
 
