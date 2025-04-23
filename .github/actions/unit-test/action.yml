@@ -17,7 +17,7 @@ runs:
 
     - name: Run unit tests
       env:
-        TOTAL_TESTS: ${{ count_tests.outputs.test_count }}
+        TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
         CHUNK: ${{ matrix.chunk }}
         CHUNKS: 8
       shell: bash

@@ -25,15 +25,18 @@ runs:
         key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
 
     - name: Prepare for tests
+      shell: bash
       run: touch profiling.md
 
     - name: Execute tests
       env:
         TEST_TYPE: ${{ matrix.test_type }}
+      shell: bash
       run: sh run-ci-tests.sh
 
     - name: Add to job summary
       if: always()
+      shell: bash
       run: |
         echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
         cat profiling.md >> $GITHUB_STEP_SUMMARY
