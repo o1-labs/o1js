@@ -87,6 +87,10 @@ jobs:
       matrix:
         chunk: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: unit-tests
         uses: ./.github/actions/unit-test
 
@@ -95,6 +99,7 @@ jobs:
     needs: [Run-Unit-Tests]
     runs-on: ubuntu-latest
     steps:
+
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:

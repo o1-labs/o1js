@@ -5,10 +5,6 @@ runs:
   using: "composite"
   steps:
     - name: build
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v4
-        with:
-        submodules: recursive
       uses: ./.github/actions/build
 
     - name: Count tests
