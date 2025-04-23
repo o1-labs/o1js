@@ -192,7 +192,7 @@ function wrapMethod(
       const { id, context } = SmartContractContext.enter(this, selfAccountUpdate(this, methodName));
       try {
         if (inCompile() || inProver() || inAnalyze()) {
-          // important to run this with a fresh accountUpdate everytime, otherwise compile messes up our circuits
+          // important to run this with a fresh accountUpdate every time, otherwise compile messes up our circuits
           // because it runs this multiple times
           let proverData = inProver() ? zkAppProver.getData() : undefined;
           let txId = Mina.currentTransaction.enter({
@@ -635,7 +635,7 @@ class SmartContract extends SmartContractBase {
   }
 
   /**
-   * Manually set the verificaiton key.
+   * Manually set the verification key.
    */
   static setVerificationKeyUnsafe(verificationKey: { data: string; hash: Field | string }) {
     SmartContract._verificationKey = {
@@ -776,7 +776,7 @@ super.init();
     let inTransaction = Mina.currentTransaction.has();
     let inSmartContract = smartContractContext.get();
     if (!inTransaction && !inSmartContract) {
-      // TODO: it's inefficient to return a fresh account update everytime, would be better to return a constant "non-writable" account update,
+      // TODO: it's inefficient to return a fresh account update every time, would be better to return a constant "non-writable" account update,
       // or even expose the .get() methods independently of any account update (they don't need one)
       return selfAccountUpdate(this);
     }
