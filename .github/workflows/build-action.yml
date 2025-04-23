@@ -18,73 +18,16 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      test_count: ${{ steps.count_tests.outputs.test_count }}
-      chunk_count: 8 # This is hardcoded to 8, but it can be changed to any number.
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Wait for bindings-cache
-        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be
-        with:
-          checkName: "build-bindings-ubuntu"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Restore bindings-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            src/bindings/compiled
-            src/bindings/mina-transaction/gen
-          key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
-          fail-on-cache-miss: true
-      - name: Cache dependencies and build
-        uses: actions/cache@v4
-        id: cache
-        with:
-          path: |
-            ~/.npm
-            node_modules
-            dist
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
-
-      - name: Build examples
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          npm ci
-          npm run build:examples
-      - name: Build o1js clean
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          rm -fr dist
-          npm ci
-          npm run build
-
-      - name: Count tests
-        id: count_tests
-        run: |
-          TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
-          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
-          echo "Total test count: ${TEST_COUNT}"
-
-      - name: Cache repository
-        uses: actions/cache@v4
-        with:
-          path: .
-          key: repo-${{ github.sha }}
+      - name: Build
+        uses: ./.github/actions/build
 
   Check-mina-commit:
     needs: Prepare
     timeout-minutes: 5
-    runs-on: ubuntu-latest
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+
     strategy:
       fail-fast: false
     steps:
@@ -111,7 +54,7 @@ jobs:
   Build-And-Test-Server:
     needs: Prepare
     timeout-minutes: 210
-    runs-on: ubuntu-latest
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
     strategy:
       fail-fast: false
       matrix:
@@ -127,39 +70,8 @@ jobs:
             'CommonJS test',
           ]
     steps:
-      - name: Restore repository
-        uses: actions/cache@v4
-        with:
-          path: .
-          key: repo-${{ github.sha }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            node_modules
-            dist
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
-
-      - name: Prepare for tests
-        run: touch profiling.md
-
-      - name: Execute tests
-        env:
-          TEST_TYPE: ${{ matrix.test_type }}
-        run: sh run-ci-tests.sh
-
-      - name: Add to job summary
-        if: always()
-        run: |
-          echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
-          cat profiling.md >> $GITHUB_STEP_SUMMARY
+      - name: "Build-And-Test-Server"
+        uses: ./.github/actions/test-server.yml
 
   Run-Unit-Tests:
     needs: Prepare
@@ -171,72 +83,8 @@ jobs:
       matrix:
         chunk: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
-      - name: Restore repository
-        uses: actions/cache@v4
-        with:
-          path: .
-          key: repo-${{ github.sha }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            node_modules
-            dist
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
-
-      - name: Prepare for tests
-        run: touch profiling.md
-
-      - name: Run unit tests
-        env:
-          TOTAL_TESTS: ${{ needs.Prepare.outputs.test_count }}
-          CHUNK: ${{ matrix.chunk }}
-          CHUNKS: 8
-        run: |
-          echo "Total tests: $TOTAL_TESTS"
-          echo "Current chunk: $CHUNK"
-          echo "Total chunks: $CHUNKS"
-
-          if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
-            echo "Error: TOTAL_TESTS is not set or is zero. Exiting."
-            exit 1
-          fi
-
-          start_index=$(( (TOTAL_TESTS * (CHUNK - 1) / CHUNKS) ))
-          end_index=$(( (TOTAL_TESTS * CHUNK / CHUNKS) ))
-
-          echo "Running tests from index $start_index to $end_index"
-
-          shopt -s globstar
-          test_files=(./dist/node/**/*.unit-test.js)
-
-          set -o pipefail
-
-          for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
-              echo "Running test: ${test_files[$i]}"
-              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
-          done
-        continue-on-error: false
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.chunk }}
-          path: profiling.md
-
-      - name: Add to job summary
-        if: always()
-        run: |
-          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
-          cat profiling.md >> $GITHUB_STEP_SUMMARY
+      - name: unit-tests
+        uses: ./.github/actions/unit-test
 
   Build-And-Test-Server-Unit-Tests:
     name: Build-And-Test-Server (Unit tests)

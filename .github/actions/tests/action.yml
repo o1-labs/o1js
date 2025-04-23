@@ -1,0 +1,12 @@
+name: Test o1js
+description: 'All of the tests for o1js'
+
+
+permissions:
+  contents: write
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build
+      uses: ./.github/actions/build

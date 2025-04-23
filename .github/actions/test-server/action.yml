@@ -1,0 +1,39 @@
+name: Test-Server
+description: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore repository
+      uses: actions/cache@v4
+      with:
+        path: .
+        key: repo-${{ github.sha }}
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Restore cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+          dist
+        key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
+
+    - name: Prepare for tests
+      run: touch profiling.md
+
+    - name: Execute tests
+      env:
+        TEST_TYPE: ${{ matrix.test_type }}
+      run: sh run-ci-tests.sh
+
+    - name: Add to job summary
+      if: always()
+      run: |
+        echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
+        cat profiling.md >> $GITHUB_STEP_SUMMARY

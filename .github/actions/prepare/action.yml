@@ -1,0 +1,67 @@
+name: Build o1js
+description: 'All of the building steps for o1js'
+
+
+permissions:
+  contents: write
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository with submodules
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Set up Nix
+      run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+    - name: Disable smudging
+      run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: cache bindings
+      uses: actions/cache@v4
+      id: bindings-cache
+      with:
+        path: |
+          src/bindings/compiled
+          src/bindings/mina-transaction/gen
+        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Build the o1js bindings
+      if: steps.bindings-cache.outputs.cache-hit != 'true'
+      run: |
+        set -Eeu
+        ./pin.sh
+        nix run o1js#generate-bindings --max-jobs auto
+
+    - name: Cache dependencies and build
+      uses: actions/cache@v4
+      id: cache
+      with:
+        path: |
+          ~/.npm
+          node_modules
+          dist
+        key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
+
+    - name: Build examples
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        npm ci
+        npm run build:examples
+    - name: Build o1js clean
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        rm -fr dist
+        npm ci
+        npm run build
+
+    - name: Cache repository
+      uses: actions/cache@v4
+      with:
+        path: .
+        key: repo-${{ github.sha }}
+
