@@ -56,6 +56,7 @@ runs:
 
     - name: Add to job summary
       if: always()
+      shell: bash
       run: |
         echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
         cat profiling.md >> $GITHUB_STEP_SUMMARY
