@@ -1,16 +1,4 @@
-# Purpose:
-# This workflow automatically attempts to merge changes from the 'main' branch into the 'v2' branch
-# whenever changes are pushed to 'main'. If the automatic merge fails due to conflicts, it creates
-# a pull request for manual resolution.
-#
-# Workflow Details:
-# 1. Triggered on every push to the 'main' branch.
-# 2. Checks out the repository with full history.
-# 3. Configures Git with GitHub Actions bot credentials.
-# 4. Attempts to merge 'main' into 'v2' and push the result.
-# 5. If merge fails, creates a pull request for manual conflict resolution.
-
-name: Auto-merge main to v2
+name: Auto-merge main to version-next
 
 on:
   push:
@@ -31,18 +19,18 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-      - name: Try to merge main into v2
+      - name: Try to merge main into version-next
         run: |
-          git checkout v2
+          git checkout version-next
           git merge origin/main
-          git push origin v2
+          git push origin version-next
         continue-on-error: true
 
       - name: Create Pull Request if merge failed
         if: failure()
         uses: peter-evans/create-pull-request@v6
         with:
-          branch: auto-merge-main-to-v2-${{ github.sha }}
-          title: 'Auto-merge main to v2 (commit ${{ github.sha }})'
-          body: 'This PR was automatically created to merge changes from main into v2. Please resolve conflicts and merge manually.'
-          base: v2
+          branch: auto-merge-main-to-version-next-${{ github.sha }}
+          title: 'Auto-merge main to version-next (commit ${{ github.sha }})'
+          body: 'This PR was automatically created to merge changes from main into version-next. Please resolve conflicts and merge manually.'
+          base: version-next
