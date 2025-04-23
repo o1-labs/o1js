@@ -2,10 +2,11 @@
 # community can change them without being scared of breaking things, or
 # needing to do the complicated (without nix) build setup.
 
-name: Build o1js bindings
+name: Build bindings
 
 on:
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,7 +14,8 @@ concurrency:
 
 jobs:
   check-npm-deps:
-    name: check-npm-deps
+    if: github.event_name == 'pull_request'  # Runs only for PRs
+    name: check npmDepsHash is correct
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
       - name: Set up Nix
@@ -23,24 +25,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Try to build
+      - name: fix npmDepsHash
         run: |
           set -Eeu
           ./pin.sh
-          nix build o1js#npm-deps
-  update-npm-deps:
-    needs: check-npm-deps
-    if: ${{ failure() }}
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
-    steps:
-      - name: Set up Nix
-        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
-      - name: update-hash
-        run: nix run o1js#update-npm-deps
-      - uses: parkerbxyz/suggest-changes@v1
+          nix run o1js#update-npm-deps
+      # if the npmDepsHash is out of date auto commit the new one
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          comment: 'please update the npm-deps-hash'
-          event: 'REQUEST_CHANGES'
+          commit_message: "auto update npmDepsHash"
+          file_pattern: "npmDepsHash"
+
 
   nix-build:
     name: build-bindings-ubuntu
@@ -57,32 +52,42 @@ jobs:
         run: |
           set -Eeu
           ./pin.sh
-          nix run o1js#update-bindings --max-jobs 4
-          #fail if this changes any files
-          cd src/bindings
-          echo If this check fails you can download a patch from the patch-upload job
-          echo "https://github.com/o1-labs/o1js/blob/main/README-dev.md#bindings-check-in-ci"
-          git diff --exit-code
+          nix run o1js#generate-bindings --max-jobs 4
+      - name: cache bindings
+        uses: actions/cache@v4
+        id: bindings-cache
+        with:
+          path: |
+            src/bindings/compiled
+            src/bindings/mina-transaction/gen
+          key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
+
+  # The upload job is seperate from the build job because
+  # other workflows have to wait for the cache and the await action works with jobs not steps
+  # so the split is nesecary to avoid waiting for the artifact upload too
+  upload-bindings:
+    name: upload bindings artifact
+    needs: nix-build
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: generate tar
+        run: |
+          set -Eeu
+          ./pin.sh
+          nix build o1js#bindings-tar --out-link bindings.tar.gz
+      - name: Upload bindings
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings.tar.gz
+          path: bindings.tar.gz
       - name: add build to gc-root if on main
         if: github.ref == 'refs/heads/main'
         run: |
           nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
-      - name: Cleanup the Nix store
-        run: |
-          nix-store --gc --print-dead
-          nix-store --optimise
-  patch-upload:
-    needs: nix-build
-    if: ${{ failure() }}
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
-    steps:
-      - name: generate patch
-        run: |
-          cd src/bindings
-          git add .
-          git diff HEAD --textconv --text > ../../bindings.patch
-      - name: Upload patch
-        uses: actions/upload-artifact@v4
-        with:
-          name: bindings.patch
-          path: bindings.patch
