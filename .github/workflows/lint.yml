@@ -78,7 +78,7 @@ jobs:
         with:
           check_filenames: true
           path: ${{ steps.get_changed_files.outputs.files }}
-          skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*,./src/bindings/**/*"
+          skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*"
           check_hidden: false
           ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
 
