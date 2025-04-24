@@ -17,13 +17,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
 
+### Fixed
+
+- Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
+
 ### Added
 
 - [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
-    - o1js-bindings is no longer a submodule (same directory structure)
-    - compiled artifacts are now gitignored
-    - `npm run build:bindings-download` downloads compiled artifacts from github
-    - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
+  - o1js-bindings is no longer a submodule (same directory structure)
+  - compiled artifacts are now gitignored
+  - `npm run build:bindings-download` downloads compiled artifacts from github
+  - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
 
 ### Changed
 

@@ -9,7 +9,7 @@ import { VerificationKey } from '../../proof-system/verification-key.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { UInt32, UInt64, Int64, Sign } from '../../provable/int.js';
-import { PublicKey, PrivateKey } from '../../provable/crypto/signature.js';
+import { PrivateKey } from '../../provable/crypto/signature.js';
 import {
   Actions as V1Actions,
   Events as V1Events,
@@ -24,6 +24,19 @@ import { jsLayout as layoutV1 } from '../../../bindings/mina-transaction/gen/v1/
 import { expect } from 'expect';
 
 import { ZkappConstants } from '../v1/constants.js';
+import {
+  testV1V2ClassEquivalence,
+  testV1V2ValueEquivalence,
+  testV2Encoding,
+} from './test/utils.js';
+import {
+  Signature,
+  signFieldElement,
+  zkAppBodyPrefix,
+} from '../../../mina-signer/src/signature.js';
+
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
+import { packToFields, hashWithPrefix } from '../../../lib/provable/crypto/poseidon.js';
 
 function testHashEquality(v1: TypesV1.AccountUpdate, v2: Authorized) {
   expect(TypesV1.AccountUpdate.toInput(v1)).toEqual(v2.toInput());
@@ -425,17 +438,15 @@ const v2AccountUpdate: Authorized = new Authorized(
 {
   // TODO: the fact that all these extra type-annotation are required means we didn't encode this
   //       type well for typescript's poor type inference
-  //testV2Encoding<Authorized>(Authorized, v2AccountUpdate);
-  /*
+  testV2Encoding<Authorized>(Authorized, v2AccountUpdate);
+
   testV1V2ClassEquivalence<number, TypesV1.AccountUpdate, Authorized>(
     V1AccountUpdate,
     Authorized,
     0
   );
-  */
-  testHashEquality(V1AccountUpdate.empty(), Authorized.empty());
 
-  /*
+  testHashEquality(V1AccountUpdate.empty(), Authorized.empty());
   testV1V2ValueEquivalence<number, TypesV1.AccountUpdate, Authorized>(
     V1AccountUpdate,
     Authorized,
@@ -443,36 +454,23 @@ const v2AccountUpdate: Authorized = new Authorized(
     v2AccountUpdate,
     2
   );
-  */
+
   testHashEquality(v1AccountUpdate, v2AccountUpdate);
 }
 
 // signature test
 {
+  let v1Hash = hashWithPrefix(
+    zkAppBodyPrefix('testnet'),
+    packToFields(Types.AccountUpdate.toInput(v1AccountUpdate))
+  );
+  let v1Signature = signFieldElement(v1Hash.toBigInt(), privateKey.toBigInt(), 'testnet');
+
   const v2Update = v2AccountUpdate.toAccountUpdate();
+  let v2Hash = v2Update.commit('testnet').accountUpdateCommitment.toBigInt();
+  let v2Signature = signFieldElement(v2Hash, privateKey.toBigInt(), 'testnet');
 
-  const v2UpdateSigned = await v2Update.authorize({
-    networkId: 'testnet',
-    async getPrivateKey(pk: PublicKey): Promise<PrivateKey> {
-      if (pk !== publicKey) throw new Error();
-      return privateKey;
-    },
-    accountUpdateForestCommitment: BigInt(0),
-    fullTransactionCommitment: BigInt(0),
-  });
-
-  // TODO: We need to actually ensure the signatures match the old implementation, but the old
-  //       interface makes this test annoying to implement, so skipping for right now.
-  console.log(`signature = ${JSON.stringify(v2UpdateSigned.authorization.signature)}`);
-
-  /*
-  // HACK
-  const v1Update = {...v2AccountUpdate} as unknown as V1AccountUpdateImpl;
-  Object.setPrototypeOf(v1Update, V1AccountUpdateImpl.prototype);
-
-  expect(v2UpdateSigned.authorization.signature)
-    .toEqual(v1Update.authorization.signature);
-  */
+  expect(Signature.toBase58(v1Signature)).toEqual(Signature.toBase58(v2Signature));
 }
 
 console.log('\n:)');

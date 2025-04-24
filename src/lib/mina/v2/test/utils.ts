@@ -57,6 +57,7 @@ export type V1Type<T> = ProvableTypeDef<T> & {
 export type V2Type<InternalReprArg, V1, V2 extends V2Value<any, V1>> = ProvableTypeDef<V2> & {
   fromInternalRepr(x: V1): V2;
   toJSON(x: V2, arg: InternalReprArg): any;
+  toAuxiliary(x: V2, arg?: InternalReprArg): any;
 };
 
 export interface V2Value<InternalReprArg, V1> {
@@ -111,13 +112,15 @@ export function testV1V2ValueEquivalence<
   expect(v2Value.toFields()).toEqual(V1Type.toFields(v1Value));
 
   // auxiliary equality
-  expect(V2Type.toAuxiliary(v2Value)).toEqual(V1Type.toAuxiliary(v1Value));
+  expect(V2Type.toAuxiliary(v2Value, v2InternalReprArg)).toEqual(V1Type.toAuxiliary(v1Value));
 
   // v1 -> v2 via fields
   expect(V2Type.fromFields(V1Type.toFields(v1Value), V1Type.toAuxiliary(v1Value))).toEqual(v2Value);
 
   // v1 -> v2 via fields
-  expect(V1Type.fromFields(V2Type.toFields(v2Value), V2Type.toAuxiliary(v2Value))).toEqual(v1Value);
+  expect(
+    V1Type.fromFields(V2Type.toFields(v2Value), V2Type.toAuxiliary(v2Value, v2InternalReprArg))
+  ).toEqual(v1Value);
 
   // input equality
   expect(V1Type.toInput(v1Value)).toEqual(V2Type.toInput(v2Value));
