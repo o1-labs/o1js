@@ -23,9 +23,8 @@ jobs:
           submodules: recursive
       - name: try to fix bindings corruption
         run: |
-          git submodule deinit -f src/bindings
-          git submodule sync
-          git submodule update --init --recursive
+          ls -R .git/modules/src
+          ls -R .git/modules/
       - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Disable smudging
