@@ -23,8 +23,10 @@ jobs:
           submodules: recursive
       - name: try to fix bindings corruption
         run: |
-          git config -f .git/config --remove-section submodule.src/o1js-bindings
-          #rm -rf .git/modules/o1js-bindings
+          git config -f .git/config --remove-section submodule.src/o1js-bindings || true
+          rm -rf .git/modules/src/o1js-bindings || true
+          ls .git/modules/src
+          cat .git/config
       - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Disable smudging
