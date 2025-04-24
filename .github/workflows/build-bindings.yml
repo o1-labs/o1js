@@ -35,7 +35,7 @@ jobs:
         with:
           commit_message: "auto update npmDepsHash"
           file_pattern: "npmDepsHash"
-          #skip_fetch: true
+          skip_fetch: true
 
 
   nix-build:
