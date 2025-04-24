@@ -117,13 +117,17 @@ class DynamicArrayBase<T = any, V = any> {
   /**
    * Create a new {@link DynamicArrayBase} instance from an optional list of
    * {@link T} elements, and optional length.
-   *
-   * If the length is provided, then it must match the actual length of the
-   * array. If the length is not provided, it will be set to the actual length
-   * of the array. But if the length is provided, then the size of the array
-   * must be at least as large as the length (this is to allow for arrays with
-   * dummy values at the end). Either way, the length must be less than or equal
-   * to the capacity.
+   * 
+   * - If no parameters are passed, it creates an empty array of length 0.
+   * - If only `array` is passed, it creates a new array with the elements
+   *   of the array.
+   * - If only `length` is passed, it creates a dummy array of the given length
+   *   filled with NULL values.
+   * - If both `array` and `length` are passed, it creates a new array with the
+   *   elements of the array, and the length of the dynamic array is set to the 
+   *   `length` passed, which should be less or equal than the length of the
+   *   `array` passed (this is to allow for arrays with dummy values at the end). 
+   * - In any case, if `length` is larger than the capacity, it throws.
    *
    * @example
    * ```ts
@@ -134,16 +138,22 @@ class DynamicArrayBase<T = any, V = any> {
    * Note: this is different from `T[]` because it is a provable type.
    */
   constructor(array?: T[], length?: Field) {
-    let a: T[] = array ?? [];
-    assert(a.length <= this.capacity, 'input length must fit in capacity');
-
-    let l = length ?? new Field(a.length);
+    const NULL = ProvableType.synthesize(this.innerType);
+  
+    const a = array ?? [];
+    const l = length ?? new Field(a.length);
+  
     assert(
-      BigInt(a.length) >= l.toBigInt(),
-      'length of the array should be at least the length provided'
+      a.length <= this.capacity,
+      'Array must not exceed capacity'
     );
+    if (length?.isConstant()) {
+      assert(
+        l.toBigInt() <= BigInt(a.length),
+        'length must be at most as long as the array'
+      );
+    }
 
-    let NULL = ProvableType.synthesize(this.innerType);
     this.array = pad(a, this.capacity, NULL);
     this.length = l;
   }
@@ -556,7 +566,7 @@ function provable<T, V>(
     // make fromFields return a class instance
     fromFields(fields, aux) {
       let raw = PlainArray.fromFields(fields, aux);
-      return new Class(raw.array);
+      return new Class(raw.array, raw.length);
     },
 
     // convert to/from plain array that has the correct length
@@ -582,8 +592,7 @@ function provable<T, V>(
     },
 
     empty() {
-      let raw = PlainArray.empty();
-      return new Class(raw.array);
+      return new Class();
     },
   };
 }
