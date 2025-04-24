@@ -1,4 +1,4 @@
-name: Build o1js
+name: Jobs that run for pull_requests and pushs to branches
 on:
   push:
     branches:
@@ -27,33 +27,53 @@ jobs:
       - name: Build
         uses: ./.github/actions/build
 
-  check-npm-deps:
-    if: github.event_name == 'pull_request'  # Runs only for PRs
-    name: check npmDepsHash is correct
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+  Lint-and-format:
+    if: github.event.pull_request.labels.*.name != 'skip-lint'
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Set up Nix
-        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
-      - name: Disable smudging
-        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          submodules: recursive
-      - name: fix npmDepsHash
+          node-version: 22
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Get Changed Files (Compare with Main)
+        id: get_changed_files
         run: |
-          set -Eeu
-          ./pin.sh
-          nix run o1js#update-npm-deps
-      # if the npmDepsHash is out of date auto commit the new one
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "auto update npmDepsHash"
-          file_pattern: "npmDepsHash"
+          git fetch origin main --depth=1
+          # TODO ideally lint the non-generated files in src/bindings/
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.ref }} | grep -E '\.(ts|js)$' | grep -v 'src/bindings/*' || true)
+
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Files changed:"
+            echo "$CHANGED_FILES"
+            echo "$CHANGED_FILES" > changed_files.txt
+            echo "files_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No relevant files changed."
+            echo "files_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Prettier Check
+        if: steps.get_changed_files.outputs.files_changed == 'true'
+        run: xargs npm run format:check < changed_files.txt
+
+      - name: Run Oxlint
+        if: steps.get_changed_files.outputs.files_changed == 'true'
+        run: xargs npm run lint:strict < changed_files.txt
+
 
   # The upload job is seperate from the build job because
-  # other workflows have to wait for the cache and the await action works with jobs not steps
+  # other workflows have to wait for the cache
   # so the split is nesecary to avoid waiting for the artifact upload too
-  upload-bindings:
+  Upload-bindings:
     name: upload bindings artifact
     needs: Prepare
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
@@ -75,10 +95,6 @@ jobs:
         with:
           name: bindings.tar.gz
           path: bindings.tar.gz
-      - name: add build to gc-root if on main
-        if: github.ref == 'refs/heads/main'
-        run: |
-          nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
 
   Check-mina-commit:
     needs: Prepare
@@ -209,89 +225,58 @@ jobs:
           path: tests/report/
           retention-days: 30
 
-  Release-on-NPM:
-    if: github.ref == 'refs/heads/main'
-    timeout-minutes: 180
-    runs-on: ubuntu-latest
-    needs: [Build-And-Test-Server, Run-Unit-Tests, Build-And-Test-Web]
+  Live-test-master:
+    needs: Prepare
+    timeout-minutes: 45
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:master-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 5432:5432
+          - 8080:8080
+          - 8181:8181
+          - 8282:8282
+        volumes:
+          - /tmp:/root/logs
     steps:
-      - name: Restore repository
-        uses: actions/cache@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: build
+        uses: ./.github/actions/build
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
         with:
-          path: .
-          key: repo-${{ github.sha }}
+          mina-branch-name: master
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build o1js
-        run: |
-          npm ci
-          npm run prepublishOnly
-
-      - name: Publish to NPM if version has changed
-        id: publish
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          strategy: upgrade
+  Live-test-compatible:
+    needs: Prepare
+    timeout-minutes: 45
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:compatible-latest-lightnet
         env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Configure Git
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-      - name: Tag new version
-        if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASED_VERSION: ${{ steps.publish.outputs.version }}
-        run: |
-          git tag $RELEASED_VERSION
-          git push origin $RELEASED_VERSION
-      - name: Create Release
-        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
-        if: success()
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.publish.outputs.version }}
-          generateReleaseNotes: true
-          name: Release ${{ steps.publish.outputs.version }}
-          skipIfReleaseExists: true
-
-  Release-mina-signer-on-NPM:
-    if: github.ref == 'refs/heads/main'
-    timeout-minutes: 180
-    runs-on: ubuntu-latest
-    needs: [Build-And-Test-Server, Run-Unit-Tests, Build-And-Test-Web]
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 5432:5432
+          - 8080:8080
+          - 8181:8181
+          - 8282:8282
+        volumes:
+          - /tmp:/root/logs
     steps:
-      - name: Restore repository
-        uses: actions/cache@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: build
+        uses: ./.github/actions/build
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
         with:
-          path: .
-          key: repo-${{ github.sha }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build mina-signer
-        run: |
-          npm ci
-          cd src/mina-signer
-          npm ci
-          npm run prepublishOnly
-
-      - name: Publish to NPM if version has changed
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          package: './src/mina-signer/package.json'
-          strategy: upgrade
-        env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+          mina-branch-name: compatible
