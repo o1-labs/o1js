@@ -21,16 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          filter: blob:none
-          clean: true
-      - name: try to fix bindings corruption
-        run: |
-          git config -f .git/config --remove-section submodule.src/o1js-bindings || true
-          rm -rf .git/modules/src/o1js-bindings || true
-          ls .git/modules/src
-          cat .git/config
-          git submodule status
-          git fetch --depth=1
+          #filter: blob:none
       - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Disable smudging
