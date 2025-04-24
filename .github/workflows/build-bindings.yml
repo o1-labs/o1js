@@ -23,7 +23,8 @@ jobs:
           submodules: recursive
       - name: try to fix bindings corruption
         run: |
-          git config -f .gitmodules --remove-section submodule."src/bindings"
+          cat .git/config
+          #git config -f .gitmodules --remove-section submodule."src/bindings"
           rm -rf .git/modules/o1js-bindings
       - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
