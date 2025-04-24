@@ -12,6 +12,8 @@ jobs:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no typo check') }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Get changed files
         id: changed-files
         run: |
@@ -29,4 +31,3 @@ jobs:
           skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*,./src/bindings/**/*"
           check_hidden: false
           ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
-          
