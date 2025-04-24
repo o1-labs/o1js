@@ -1,4 +1,4 @@
-name: Jobs that run for pull_requests and pushs to branches
+name: Checks
 on:
   push:
     branches:
@@ -96,38 +96,10 @@ jobs:
           name: bindings.tar.gz
           path: bindings.tar.gz
 
-  Check-mina-commit:
-    needs: Prepare
-    timeout-minutes: 5
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
-
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Restore repository
-        uses: actions/cache@v4
-        with:
-          path: .
-          key: repo-${{ github.sha }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Check Commit
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            node_modules
-            dist
-          key: npm run checkCommit
-
   Build-And-Test-Server:
     needs: Prepare
     timeout-minutes: 210
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -228,7 +200,7 @@ jobs:
   Live-test-master:
     needs: Prepare
     timeout-minutes: 45
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: ubuntu-latest
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -256,7 +228,7 @@ jobs:
   Live-test-compatible:
     needs: Prepare
     timeout-minutes: 45
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: ubuntu-latest
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet

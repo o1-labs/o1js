@@ -1,4 +1,4 @@
-name: Check Changelog for changes
+name: Pr only Checks
 on:
   pull_request:
     types: [assigned, opened, synchronize, reopened, labeled, unlabeled]
@@ -14,7 +14,7 @@ jobs:
           changelog: CHANGELOG.md
 
   Check-npm-deps:
-    name: check npmDepsHash is correct
+    name: Check npmDepsHash is correct
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
       - name: Set up Nix
