@@ -55,8 +55,6 @@ jobs:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no typo check') }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Get Changed Files (Compare with Main)
         id: get_changed_files
         run: |
