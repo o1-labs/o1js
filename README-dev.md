@@ -272,7 +272,7 @@ After the local network is up and running, you can use the [Lightnet](https://gi
 See the corresponding example in [src/examples/zkapps/hello-world/run-live.ts](https://github.com/o1-labs/o1js/blob/ec789794b2067addef6b6f9c9a91c6511e07e37c/src/examples/zkapps/hello-world/run-live.ts).
 
 ### Profiling o1js
-
+s
 To enhance the development experience and optimize the performance of o1js, use the Chrome Debugger alongside Node.js. This setup is particularly useful when you want to profile the performance of your zkApp or o1js.
 
 #### Using the `run-debug` script
