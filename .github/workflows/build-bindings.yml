@@ -22,7 +22,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-          fetch-tags: true
+          clean: true
       - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Disable smudging
