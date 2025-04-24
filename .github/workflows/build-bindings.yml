@@ -27,6 +27,8 @@ jobs:
           rm -rf .git/modules/src/o1js-bindings || true
           ls .git/modules/src
           cat .git/config
+          git submodule status
+          git fetch --depth=1
       - name: Set up Nix
         run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
       - name: Disable smudging
