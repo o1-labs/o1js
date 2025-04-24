@@ -18,7 +18,6 @@ jobs:
         uses: codespell-project/actions-codespell@master
         with:
           skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*,./src/bindings/**/*"
-          exclude_file: "./src/lib/provable/test/blake2b.unit-test.ts,./src/mina/README-dev.md"
+          exclude_file: "./src/lib/provable/test/blake2b.unit-test.ts"
           check_hidden: false
           ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
-          
