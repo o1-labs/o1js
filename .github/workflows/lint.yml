@@ -1,4 +1,4 @@
-name: Lint and Format Check
+name: Lint, Format and Typo Check
 on:
   pull_request:
   push:
