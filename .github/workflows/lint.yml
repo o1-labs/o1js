@@ -48,3 +48,39 @@ jobs:
       - name: Run Oxlint
         if: steps.get_changed_files.outputs.files_changed == 'true'
         run: xargs npm run lint:strict < changed_files.txt
+
+  check-for-typos:
+    runs-on: ubuntu-latest
+    # Skip the job if the PR has the specified tag/label
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no typo check') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get Changed Files (Compare with Main)
+        id: get_changed_files
+        run: |
+          git fetch origin main --depth=1
+          # TODO ideally lint the non-generated files in src/bindings/
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.ref }} | grep -E '\.(ts|js)$' | grep -v 'src/bindings/*' || true)
+
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Files changed:"
+            echo "$CHANGED_FILES"
+            echo "$CHANGED_FILES" > changed_files.txt
+            echo "files_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No relevant files changed."
+            echo "files_changed=false" >> $GITHUB_OUTPUT
+          fi
+    
+      - name: Run codespell on changed files
+        if: steps.get_changed_files.outputs.files_changed == 'true'
+        uses: codespell-project/actions-codespell@master
+        with:
+          check_filenames: true
+          path: ${{ steps.get_changed_files.outputs.files }}
+          skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*,./src/bindings/**/*"
+          check_hidden: false
+          ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
+
