@@ -7,3 +7,6 @@ let cached = VerificationKey.dummySync();
 
 assert(generated.data === cached.data, 'data equals');
 assert(generated.hash.equals(cached.hash).toBoolean(), 'hash equals');
+
+let vkIsValid = await VerificationKey.checkValidity(generated);
+assert(vkIsValid, 'verification key is valid');
