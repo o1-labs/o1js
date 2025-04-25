@@ -356,7 +356,7 @@ function proverMethod<
   // methods are invoked externally.
   //
   // We perform shallow evaluation on the roots of account update trees returned by method
-  // invokations. This requires that all child updates were manually applied before invoking the
+  // invocations. This requires that all child updates were manually applied before invoking the
   // method call. Importantly, with this restriction, methods cannot actually generate new
   // children, the children must be passed in as private inputs and constrained accordingly.
   // Unproven update arguments which are not at the root of the tree returned by a method must be
