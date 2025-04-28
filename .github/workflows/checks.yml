@@ -119,8 +119,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: "Build-And-Test-Server"
-        uses: ./.github/actions/test-server
+
+      - name: build
+        uses: ./.github/actions/build
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Prepare for tests
+        run: touch profiling.md
+      - name: Execute tests
+        env:
+          TEST_TYPE: ${{ matrix.test_type }}
+        run: sh run-ci-tests.sh
+      - name: Add to job summary
+        if: always()
+        run: |
+          echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Run-Unit-Tests:
     needs: Prepare
@@ -136,8 +152,58 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: unit-tests
-        uses: ./.github/actions/unit-test
+      - name: build
+        uses: ./.github/actions/build
+      - name: Count tests
+        id: count_tests
+        run: |
+          TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "Total test count: ${TEST_COUNT}"
+
+      - name: Run unit tests
+        env:
+          TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
+          CHUNK: ${{ matrix.chunk }}
+          CHUNKS: 8
+        shell: bash
+        run: |
+          echo "Total tests: $TOTAL_TESTS"
+          echo "Current chunk: $CHUNK"
+          echo "Total chunks: $CHUNKS"
+
+          if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
+            echo "Error: TOTAL_TESTS is not set or is zero. Exiting."
+            exit 1
+          fi
+
+          start_index=$(( (TOTAL_TESTS * (CHUNK - 1) / CHUNKS) ))
+          end_index=$(( (TOTAL_TESTS * CHUNK / CHUNKS) ))
+
+          echo "Running tests from index $start_index to $end_index"
+
+          shopt -s globstar
+          test_files=(./dist/node/**/*.unit-test.js)
+
+          set -o pipefail
+
+          for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
+              echo "Running test: ${test_files[$i]}"
+              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+          done
+        continue-on-error: false
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.chunk }}
+          path: profiling.md
+      - name: Add to job summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Build-And-Test-Server-Unit-Tests:
     name: Build-And-Test-Server (Unit tests)
