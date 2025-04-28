@@ -9,6 +9,7 @@ runs:
     - name: Build
       uses: ./.github/actions/build
     - name: generate tar
+      shell: bash
       run: |
         set -Eeu
         ./pin.sh
