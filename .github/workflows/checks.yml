@@ -193,9 +193,6 @@ jobs:
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:
-    strategy:
-      matrix:
-        node: [20]
     needs: [Prepare]
     timeout-minutes: 90
     runs-on: ubuntu-latest
@@ -209,7 +206,8 @@ jobs:
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          # TODO us matrix but it requires changing the branch protection rules
+          node-version: 20
 
       - name: Restore npm cache
         uses: actions/cache@v4
