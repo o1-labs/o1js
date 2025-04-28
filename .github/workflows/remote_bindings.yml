@@ -8,7 +8,6 @@ jobs:
     name: upload bindings artifact
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
-    steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive

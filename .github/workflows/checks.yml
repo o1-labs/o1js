@@ -72,7 +72,8 @@ jobs:
   Upload:
     needs: [Prepare]
     runs-on: ubuntu-latest
-    uses: ./.github/workflows/remote_bindings.yml@${{ github.sha }}
+    steps:
+      - uses: ./.github/workflows/remote_bindings.yml@${{ github.sha }}
 
   Build-And-Test-Server:
     needs: [Prepare]
