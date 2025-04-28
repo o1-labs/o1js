@@ -4,7 +4,10 @@ set -e
 (which gh > /dev/null 2>&1) || (echo "Please install gh the github cli tool: https://github.com/cli/cli#installation" && exit 1)
 
 REV=${REV:=$(git rev-parse HEAD)}
-RUN_ID=$(gh run list --commit "$REV" --workflow 'build-bindings.yml' --json databaseId --jq '.[0].databaseId')
+RUN_ID=$( \
+    gh run list --commit $REV --json name,databaseId | \
+    jq -r '.[] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId' \
+  )
 
 if [ -z "$RUN_ID" ]
 then

@@ -15,7 +15,7 @@ on:
     - cron: '0 15 27 * *' # At 15:00 UTC every 27th of each month
 
 jobs:
-  version-bump:
+  Version-bump:
     runs-on: ubuntu-latest
 
     steps:
