@@ -263,7 +263,7 @@ jobs:
           path: tests/report/
           retention-days: 30
 
-  Live-test-master:
+  master:
     needs: Prepare
     timeout-minutes: 45
     runs-on: ubuntu-latest
@@ -291,7 +291,7 @@ jobs:
         with:
           mina-branch-name: master
 
-  Live-test-compatible:
+  compatible:
     needs: Prepare
     timeout-minutes: 45
     runs-on: ubuntu-latest
