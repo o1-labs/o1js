@@ -28,19 +28,19 @@ jobs:
         uses: ./.github/actions/build
 
   Lint-and-format:
+    strategy:
+      matrix:
+        node: [20]
     if: github.event.pull_request.labels.*.name != 'skip-lint'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
+      - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-
+          node-version: ${{ matrix.node }}
       - name: Install Dependencies
         run: npm ci
 
@@ -122,10 +122,6 @@ jobs:
 
       - name: build
         uses: ./.github/actions/build
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -213,6 +209,9 @@ jobs:
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:
+    strategy:
+      matrix:
+        node: [20]
     needs: Prepare
     timeout-minutes: 90
     runs-on: ubuntu-latest
@@ -223,10 +222,10 @@ jobs:
           path: .
           key: repo-${{ github.sha }}
 
-      - name: Setup Node
+      - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
 
       - name: Restore npm cache
         uses: actions/cache@v4
