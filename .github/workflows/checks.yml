@@ -70,7 +70,8 @@ jobs:
         run: xargs npm run lint:strict < changed_files.txt
 
   Upload:
-    needs: Prepare
+    needs: [Prepare]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,7 +80,7 @@ jobs:
         uses: ./.github/workflows/remote_bindings.yml
 
   Build-And-Test-Server:
-    needs: Prepare
+    needs: [Prepare]
     timeout-minutes: 210
     runs-on: ubuntu-latest
     strategy:
@@ -117,7 +118,7 @@ jobs:
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Run-Unit-Tests:
-    needs: Prepare
+    needs: [Prepare]
     name: Run unit tests parallel
     timeout-minutes: 210
     runs-on: ubuntu-latest
@@ -194,7 +195,7 @@ jobs:
     strategy:
       matrix:
         node: [20]
-    needs: Prepare
+    needs: [Prepare]
     timeout-minutes: 90
     runs-on: ubuntu-latest
     steps:
@@ -245,7 +246,7 @@ jobs:
           retention-days: 30
 
   master:
-    needs: Prepare
+    needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
     services:
@@ -273,7 +274,7 @@ jobs:
           mina-branch-name: master
 
   compatible:
-    needs: Prepare
+    needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
     services:
