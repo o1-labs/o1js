@@ -13,6 +13,12 @@ on:
         description: 'proof_systems commit to use'
         required: false
         default: ''
+      target_repo:
+        required: false
+        type: string
+      target_ref:
+        required: false
+        type: string
   workflow_call:
     inputs:
       proof_systems_commit:
@@ -20,10 +26,6 @@ on:
         required: false
         type: string
         default: ''
-
-env:
-  repo: ${{ github.event_name == 'workflow_dispatch' && 'o1-labs/o1js' || github.repository }}
-  ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -59,8 +61,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ env.repo }}
-          ref: ${{ env.ref }}
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
