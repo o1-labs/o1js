@@ -36,14 +36,14 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: [sdk-self-hosted-linux-amd64-build-system,ubuntu-latest]
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ env.repo }}
-          ref: ${{ env.ref }}
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Build
         uses: ./.github/actions/build
         with:
@@ -98,7 +98,7 @@ jobs:
   Upload-bindings:
     name: upload bindings artifact
     needs: [Prepare]
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: [sdk-self-hosted-linux-amd64-build-system,ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -129,8 +129,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ github.workflow_ref }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
 
       - name: build
         uses: ./.github/actions/build
@@ -160,8 +160,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ github.workflow_ref }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
       - name: Count tests
@@ -297,8 +297,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ github.workflow_ref }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
       - name: Use shared steps for live testing jobs
@@ -329,8 +329,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ github.workflow_ref }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
       - name: Use shared steps for live testing jobs
