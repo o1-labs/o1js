@@ -1,7 +1,9 @@
 import { initializeBindings, Pickles } from '../../snarky.js';
+import { synchronousRunners } from '../provable/core/provable-context.js';
 import { provable } from '../provable/types/provable-derivers.js';
 import { Struct } from '../provable/types/struct.js';
 import { Field } from '../provable/wrapped.js';
+import { inCircuitVkHash } from './zkprogram.js';
 
 export { VerificationKey };
 
@@ -25,6 +27,21 @@ class VerificationKey extends Struct({
       ...RAW_VERIFICATION_KEY,
       hash: Field(RAW_VERIFICATION_KEY.hash),
     });
+  }
+
+  static async checkValidity(key: VerificationKey): Promise<boolean> {
+    try {
+      let { runAndCheckSync } = await synchronousRunners();
+
+      runAndCheckSync(() => {
+        let vk = Pickles.sideLoaded.vkToCircuit(() => key.data);
+        let inCircuitHash = inCircuitVkHash(vk);
+        inCircuitHash.assertEquals(key.hash);
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

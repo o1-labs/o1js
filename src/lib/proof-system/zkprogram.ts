@@ -60,6 +60,7 @@ export {
   TupleToInstances,
   PrivateInput,
   Proof,
+  inCircuitVkHash,
 };
 
 type Undefined = undefined;
