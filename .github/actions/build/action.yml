@@ -49,9 +49,9 @@ runs:
 
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ inputs.cache_id }}
-          AWS_SECRET_ACCESS_KEY: ${{ inputs.gcp_secret }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.cache_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.gcp_secret }}
       shell: bash
       run: |
         set -Eeu
