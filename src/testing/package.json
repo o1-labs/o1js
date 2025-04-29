@@ -1,0 +1,41 @@
+{
+  "name": "@o1js/testing",
+  "description": "o1js testing utilities",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.testing.json &&  node scripts/copy-bindings.js",
+    "prepublishOnly": "rimraf ./dist && npm run build"
+  },
+  "keywords": [
+    "o1js",
+    "testing",
+    "zk"
+  ],
+  "author": "o1labs",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/o1-labs/o1js.git",
+    "directory": "src/testing"
+  },
+  "bugs": "https://github.com/o1-labs/o1js/issues",
+  "main": "dist/node/testing/src/index.js",
+  "types": "dist/node/testing/src/index.d.ts",
+  "exports": {
+    "types": "./dist/node/testing/src/index.d.ts",
+    "node": "./dist/node/testing/src/index.js",
+    "default": "./dist/node/testing/src/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "o1js": ">=2.0.0"
+  },
+  "devDependencies": {
+    "pkg-pr-new": "^0.0.9",
+    "rimraf": "^6.0.1"
+  }
+}
