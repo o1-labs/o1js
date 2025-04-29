@@ -11,6 +11,10 @@ runs:
     - name: Set up Nix
       shell: bash
       run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+    - uses: cachix/cachix-action@v14
+      with:
+        name: ${{ secrets.NIX_CACHE_ID }}
+        signingKey: ${{ secrets.NIX_CACHE_NAR_SECRET }}
     - name: Disable smudging
       shell: bash
       run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
@@ -28,12 +32,25 @@ runs:
           src/bindings/mina-transaction/gen
         key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
 
+    - name: Authenticate to Google Cloud Platform
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+
+    - name: Set up Nix cache
+      uses: zombiezen/setup-nix-cache-action@v0.4.0
+      with:
+        substituters: s3://mina-nix-cache?endpoint=https://storage.googleapis.com
+        secret_keys: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         set -Eeu
         ./pin.sh
+        nix build o1js#bindings
+        nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info --closure ./result)
         nix run o1js#generate-bindings --max-jobs auto
 
     - name: Cache dependencies and build
