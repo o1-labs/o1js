@@ -46,7 +46,10 @@ runs:
         set -Eeu
         ./pin.sh
         nix build o1js#bindings --accept-flake-config
-        nix store sign --key-file ${{ inputs.nar_secret }} --recursive ./result
+        temp_key=$(mktemp)
+        echo ${{ inputs.nar_secret }} > "$temp_key"
+        nix store sign --key-file "$temp_key" --recursive ./result
+        rm "$temp_key"
         nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./result)
         nix run o1js#generate-bindings --max-jobs auto
 
