@@ -5,6 +5,14 @@ description: 'All of the building steps for o1js'
 permissions:
   contents: write
 
+inputs:
+  cache_id:
+    required: true
+  nar_secret:
+    required: true
+  gcp_secret:
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -13,7 +21,7 @@ runs:
       run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
     - uses: cachix/cachix-action@v14
       with:
-        name: ${{ secrets.NIX_CACHE_ID }}
+        name: ${{ inputs.cache_id }}
         signingKey: ${{ secrets.NIX_CACHE_NAR_SECRET }}
     - name: Disable smudging
       shell: bash
@@ -35,13 +43,13 @@ runs:
     - name: Authenticate to Google Cloud Platform
       uses: google-github-actions/auth@v1
       with:
-        credentials_json: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+        credentials_json: ${{ inputs.gcp_secret }}
 
     - name: Set up Nix cache
       uses: zombiezen/setup-nix-cache-action@v0.4.0
       with:
         substituters: s3://mina-nix-cache?endpoint=https://storage.googleapis.com
-        secret_keys: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+        secret_keys: ${{ inputs.nar_secret }}
 
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
