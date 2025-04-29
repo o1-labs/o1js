@@ -28,7 +28,7 @@ jobs:
       - name: use proof_systems_commit if provided
         if: ${{ github.event.inputs.proof_systems_commit != '' }}
         run: |
-          git -C src/mina/src/lib/crypto/proof-systems fetch
+          git -C src/mina/src/lib/crypto/proof-systems fetch --all
           git -C src/mina/src/lib/crypto/proof-systems checkout ${{ github.event.inputs.proof_systems_commit }}
           git -C src/mina add src/lib/crypto/proof-systems
       - name: Checkout repository with submodules
