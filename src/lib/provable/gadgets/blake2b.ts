@@ -104,7 +104,7 @@ function G(v: UInt64[], a: number, b: number, c: number, d: number, x: UInt64, y
  */
 function compress(state: State, last: boolean): State {
   const { h, t, buf } = state;
-  const v = h.concat(BLAKE2B.IV); // initalize local work vector. First half from state and second half from IV.
+  const v = h.concat(BLAKE2B.IV); // initialize local work vector. First half from state and second half from IV.
 
   v[12] = v[12].xor(UInt64.from(t[0])); // low word of the offset
   v[13] = v[13].xor(UInt64.from(t[1])); // high word of the offset

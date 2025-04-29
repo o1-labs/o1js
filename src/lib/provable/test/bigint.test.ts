@@ -280,7 +280,7 @@ describe('BigInt17', () => {
       expect(result.toBigInt()).toStrictEqual(0n);
     });
 
-    it('should throw when square root doesnt exist', () => {
+    it('should throw when square root does not exist', () => {
       const a = BigInt17.fromBigInt(5n);
       expect(() => a.sqrt()).toThrowError();
     });
@@ -855,7 +855,7 @@ describe('BigInt255', () => {
       expect(result.toBigInt()).toStrictEqual(0n);
     });
 
-    it('should throw when square root doesnt exist', () => {
+    it('should throw when square root does not exist', () => {
       const a = BigInt255.fromBigInt(5n);
       expect(() => a.sqrt()).toThrowError();
     });
@@ -1489,7 +1489,7 @@ describe('BigInt381', () => {
       expect(result.toBigInt()).toStrictEqual(0n);
     });
 
-    it('should throw when square root doesnt exist', () => {
+    it('should throw when square root does not exist', () => {
       const a = BigInt381.fromBigInt(5n);
       expect(() => a.sqrt()).toThrowError();
     });
@@ -2123,7 +2123,7 @@ describe('BigInt512', () => {
       expect(result.toBigInt()).toStrictEqual(0n);
     });
 
-    it('should throw when square root doesnt exist', () => {
+    it('should throw when square root does not exist', () => {
       const a = BigInt512.fromBigInt(5n);
       expect(() => a.sqrt()).toThrowError();
     });

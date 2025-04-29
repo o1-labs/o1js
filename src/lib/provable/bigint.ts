@@ -314,7 +314,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     /**
      * Subtracts one ProvableBigInt from another
      * Cost: Cheap
-     * @param a The ProvableBigInt to substract
+     * @param a The ProvableBigInt to subtract
      * @returns The difference as a ProvableBigInt
      */
     sub(a: ProvableBigInt_): ProvableBigInt_ {

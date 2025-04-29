@@ -60,6 +60,7 @@ export {
   TupleToInstances,
   PrivateInput,
   Proof,
+  inCircuitVkHash,
 };
 
 type Undefined = undefined;
@@ -101,6 +102,7 @@ function createProgramState() {
 /**
  * Initializes Pickles bindings, serializes the input proof and verification key for use in OCaml, then calls into the Pickles verify function and returns the result.
  *
+ * @note This function is meant to be called in JavaScript, not for use in a circuit.  The verification key data and hash are not confirmed to match.
  * @param proof Either a `Proof` instance or a serialized JSON proof
  * @param verificationKey Either a base64 serialized verification key or a `VerificationKey` instance which will be base64 serialized for use in the bindings.
  * @returns A promise that resolves to a boolean indicating whether the proof is valid.
@@ -561,7 +563,7 @@ function ZkProgram<
     provers
   );
 
-  // Object.assign only shallow-copies, hence we cant use this getter and have to define it explicitly
+  // Object.assign only shallow-copies, hence we can't use this getter and have to define it explicitly
   Object.defineProperty(program, 'proofsEnabled', {
     get: () => doProving,
   });
