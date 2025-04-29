@@ -18,6 +18,7 @@ on:
       proof_systems_commit:
         description: 'proof_systems commit to use'
         required: false
+        type: string
         default: ''
 
 concurrency:
