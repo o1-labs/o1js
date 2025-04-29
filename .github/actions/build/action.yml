@@ -38,6 +38,8 @@ runs:
 
     - name: Install AWS CLI
       uses: unfor19/install-aws-cli-action@v1
+      with:
+        version: 2
 
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
