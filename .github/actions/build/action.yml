@@ -53,7 +53,7 @@ runs:
       run: |
         set -Eeu
         ./pin.sh
-        nix build o1js#bindings
+        nix build o1js#bindings --accept-flake-config
         nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info --closure ./result)
         nix run o1js#generate-bindings --max-jobs auto
 
