@@ -25,6 +25,7 @@ runs:
         node-version: '20'
     - name: use proof_systems_commit if provided
       if: ${{ github.event.inputs.proof_systems_commit != '' }}
+      shell: bash
       run: |
         git -C src/mina/src/lib/crypto/proof-systems fetch origin ${{ github.event.inputs.proof_systems_commit }}
 
