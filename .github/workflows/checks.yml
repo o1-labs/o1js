@@ -21,6 +21,10 @@ on:
         type: string
         default: ''
 
+env:
+  repo: ${{ github.event_name == 'workflow_dispatch' && 'o1-labs/o1js' || github.repository }}
+  ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -36,8 +40,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ github.workflow_ref }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ env.repo }}
+          ref: ${{ env.ref }}
       - name: Build
         uses: ./.github/actions/build
         with:
@@ -55,8 +59,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ github.workflow_ref }}
-          ref: ${{ github.workflow_sha }}
+          repository: ${{ env.repo }}
+          ref: ${{ env.ref }}
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
