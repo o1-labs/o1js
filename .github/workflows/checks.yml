@@ -13,12 +13,6 @@ on:
         description: 'proof_systems commit to use'
         required: false
         default: ''
-      target_repo:
-        required: false
-        type: string
-      target_ref:
-        required: false
-        type: string
   workflow_call:
     inputs:
       proof_systems_commit:
@@ -26,6 +20,12 @@ on:
         required: false
         type: string
         default: ''
+      target_repo:
+        required: false
+        type: string
+      target_ref:
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
