@@ -38,9 +38,6 @@ runs:
 
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
-      env:
-        AWS_ACCESS_KEY_ID: ${{ inputs.cache_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.gcp_secret }}
       shell: bash
       run: |
         set -Eeu
@@ -48,10 +45,16 @@ runs:
         nix build o1js#bindings --accept-flake-config
         temp_key=$(mktemp)
         echo ${{ inputs.nar_secret }} > "$temp_key"
+        mkdir -p $HOME/.aws
+        cat <<EOF> $HOME/.aws/credentials
+        [default]
+        aws_access_key_id=${{ inputs.cache_id }}
+        aws_secret_access_key=${{ inputs.gcp_secret }}
+        EOF
         nix store sign --key-file "$temp_key" --recursive ./result
-        rm "$temp_key"
         NIX_DEBUG=1 nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./result)
         nix run o1js#generate-bindings --max-jobs auto
+        rm "$temp_key"
 
     - name: Cache dependencies and build
       uses: actions/cache@v4
