@@ -373,9 +373,13 @@ async function fetchMissingData(graphqlEndpoint: string, archiveEndpoint?: strin
       (async () => {
         try {
           await fetchLastBlock(graphqlEndpoint);
-          await fetchGenesisConstants(graphqlEndpoint);
-          delete networksToFetch[network[0]];
         } catch {}
+
+        try {
+          await fetchGenesisConstants(graphqlEndpoint);
+        } catch {}
+
+        delete networksToFetch[network[0]];
       })()
     );
   }
