@@ -16,7 +16,8 @@
     "cryptography",
     "blockchain",
     "web3",
-    "zk-snark"
+    "zk-snark",
+    "zero knowledge"
   ],
   "type": "module",
   "exports": {
