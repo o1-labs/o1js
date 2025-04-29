@@ -13,6 +13,12 @@ on:
         description: 'proof_systems commit to use'
         required: false
         default: ''
+  workflow_call:
+    inputs:
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
