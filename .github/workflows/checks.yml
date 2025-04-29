@@ -7,7 +7,12 @@ on:
       - v1
       - v3
   pull_request:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +25,12 @@ jobs:
   Prepare:
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
+      - name: use proof_systems_commit if provided
+        if: ${{ github.event.inputs.submodule_commit != '' }}
+        run: |
+          git -C src/mina/src/lib/crypto/proof-systems fetch
+          git -C src/mina/src/lib/crypto/proof-systems checkout ${{ github.event.inputs.proof_systems_commit }}
+          git -C src/mina add src/lib/crypto/proof-systems
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
