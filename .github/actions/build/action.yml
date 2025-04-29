@@ -36,17 +36,6 @@ runs:
           src/bindings/mina-transaction/gen
         key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
 
-    #- name: Authenticate to Google Cloud Platform
-    #  uses: google-github-actions/auth@v1
-    #  with:
-    #    credentials_json: ${{ inputs.gcp_secret }}
-
-    - name: Set up Nix cache
-      uses: zombiezen/setup-nix-cache-action@v0.4.0
-      with:
-        substituters: s3://mina-nix-cache?endpoint=https://storage.googleapis.com
-        secret_keys: ${{ inputs.nar_secret }}
-
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
       env:
@@ -57,6 +46,7 @@ runs:
         set -Eeu
         ./pin.sh
         nix build o1js#bindings --accept-flake-config
+        nix store sign --key-file ${{ inputs.nar_secret }} --recursive ./result
         nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./result)
         nix run o1js#generate-bindings --max-jobs auto
 
