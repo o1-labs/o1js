@@ -27,7 +27,7 @@ jobs:
       - name: Build
         uses: ./.github/actions/build
 
-  Lint-and-format:
+  Lint-Format-and-TypoCheck:
     strategy:
       matrix:
         node: [20]
@@ -68,6 +68,16 @@ jobs:
       - name: Run Oxlint
         if: steps.get_changed_files.outputs.files_changed == 'true'
         run: xargs npm run lint:strict < changed_files.txt
+      
+      - name: Run codespell
+        if: steps.get_changed_files.outputs.files_changed == 'true' && github.event.pull_request.labels.*.name != 'no-typo-check'
+        uses: codespell-project/actions-codespell@master
+        with:
+          check_filenames: true
+          path: ${{ steps.get_changed_files.outputs.files }}
+          skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*,./src/bindings/compiled/**/*"
+          check_hidden: false
+          ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
 
   Upload-bindings:
     name: upload bindings artifact
