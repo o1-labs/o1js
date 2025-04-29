@@ -49,6 +49,7 @@ runs:
         temp_key=$(mktemp)
         echo ${{ inputs.nar_secret }} > "$temp_key"
         nix store sign --key-file "$temp_key" --recursive ./result
+        aws s3 ls s3://mina-nix-cache --endpoint-url=https://storage.googleapis.com
         rm "$temp_key"
         nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./result)
         nix run o1js#generate-bindings --max-jobs auto
