@@ -36,6 +36,9 @@ runs:
           src/bindings/mina-transaction/gen
         key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
 
+    - name: Install AWS CLI
+      uses: unfor19/install-aws-cli-action@v1
+
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
       env:
