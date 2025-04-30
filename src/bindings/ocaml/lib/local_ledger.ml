@@ -58,8 +58,7 @@ module Ledger : Mina_base.Ledger_intf.S = struct
     in
     Ok res
 
-  let[@warning "-32"] get_or_create_account (t : t) (id : Account_id.t)
-      (a : Account.t) :
+  let get_or_create_account (t : t) (id : Account_id.t) (a : Account.t) :
       (Mina_base.Ledger_intf.account_state * location) Or_error.t =
     match location_of_account t id with
     | Some loc ->
