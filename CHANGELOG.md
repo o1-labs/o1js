@@ -23,6 +23,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
+
 - [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
   - o1js-bindings is no longer a submodule (same directory structure)
   - compiled artifacts are now gitignored
@@ -162,10 +164,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **BLAKE2B hash function** gadget. https://github.com/o1-labs/o1js/pull/1767
 
 ## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
-
-### Added
-
-- Dynamic array provable type https://github.com/o1-labs/o1js/pull/1848
 
 ### Fixes
 
