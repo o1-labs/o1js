@@ -35,7 +35,7 @@ gh auth login #gh is used to download the compiled artifacts
 npm run build
 ```
 
-This command downloads the artifacts from github if they are missing and compiles the TypeScript source files, making them ready for use.
+This command downloads the artifacts from GitHub if they are missing and compiles the TypeScript source files, making them ready for use.
 The compiled OCaml and WebAssembly artifacts are cached for each commit where ci is run.These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both nodejs and web builds.
 These files only have to be regenerated if there are changes to the OCaml or Rust source files.
 
@@ -45,8 +45,8 @@ Unfortunately you generally won't be able to run `npm run build:bindings-downloa
 because the artifacts won't have been built for them, so make sure to run it on main before you start making changes.
 In a fresh git repo `npm run build` also works.
 
-Keep in mind that merging a newer version of o1js may include Ocaml and rust changes so you may need to redownload the artifacts.
-When this happens, as long as you aren't making changes to the Ocaml and rust yourself,
+Keep in mind that merging a newer version of o1js may include OCaml and Rust changes so you may need to redownload the artifacts.
+When this happens, as long as you aren't making changes to the OCaml and Rust yourself,
 you can run `REV=<commit you just merged> npm run build:bindings-download`, this will download the bindings for the commit you merged which should be the same as the ones you need.
 
 ### Internal contributors
@@ -66,7 +66,9 @@ direnv with the `.envrc` provided. This devshell provides all the dependencies r
 
 ## Building Bindings
 
-To regenerate the OCaml and WebAssembly artifacts, you can do so within the o1js repo. The [bindings](https://github.com/o1-labs/o1js-bindings) and [Mina](https://github.com/MinaProtocol/mina) repos are both submodules of o1js so you can build them from within the o1js repo.
+To regenerate the OCaml and WebAssembly artifacts, you can do so within the
+o1js repo. The [Mina](https://github.com/MinaProtocol/mina) repo is a submodule
+of o1js so you can build the bindings from within the o1js repo.
 
 o1js depends on OCaml code that is transpiled to JavaScript using [Js_of_ocaml](https://github.com/ocsigen/js_of_ocaml) and Rust code that is transpiled to WebAssembly using [wasm-pack](https://github.com/rustwasm/wasm-pack). These artifacts allow o1js to call into [Pickles](https://github.com/MinaProtocol/mina/blob/develop/src/lib/pickles/README.md), [snarky](https://github.com/o1-labs/snarky), and [Kimchi](https://github.com/o1-labs/proof-systems) to write zk-SNARKs and zkApps.
 
@@ -143,14 +145,14 @@ Other base branches (currently `develop` only) are used in specific scenarios wh
 
 #### Relationship Between Repositories and Branches
 
-| Repository | o1js &rarr; | o1js-bindings &rarr; | mina       |
-| ---------- | ----------- | -------------------- | ---------- |
-| Branches   | main        | main                 | compatible |
-|            | develop     | develop              | develop    |
+| Repository | o1js &rarr; | mina       |
+| ---------- | ----------- | ---------- |
+| Branches   | main        | compatible |
+|            | develop     | develop    |
 
 Where:
 
-- `compatible`: This is the [Mina repository](https://github.com/MinaProtocol/mina) branch. It corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and soft-fork features are maintained.
+- `compatible`: This is the [Mina repository](https://github.com/MinaProtocol/mina) branch. It corresponds to the `main` branch in o1js. This branch is where stable releases and soft-fork features are maintained.
 
 - `develop`: This branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
 
