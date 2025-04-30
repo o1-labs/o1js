@@ -328,7 +328,7 @@ import { Provable } from '../provable.js';
           bytes.push(v);
           assert(bytes.get(last).value.equals(v.value));
           bytes.pop(last);
-          assert(!bytes.isEmpty());
+          assert(bytes.isEmpty().not());
           bytes.pop();
           assert(bytes.isEmpty());
         },
