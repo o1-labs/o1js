@@ -371,15 +371,18 @@ async function fetchMissingData(graphqlEndpoint: string, archiveEndpoint?: strin
   if (network !== undefined) {
     promises.push(
       (async () => {
-        try {
-          await fetchLastBlock(graphqlEndpoint);
-        } catch {}
+        const [lastBlockOk, genesisOk] = await Promise.all([
+          fetchLastBlock(graphqlEndpoint)
+            .then(() => true)
+            .catch(() => false),
+          fetchGenesisConstants(graphqlEndpoint)
+            .then(() => true)
+            .catch(() => false),
+        ]);
 
-        try {
-          await fetchGenesisConstants(graphqlEndpoint);
-        } catch {}
-
-        delete networksToFetch[network[0]];
+        if (lastBlockOk && genesisOk) {
+          delete networksToFetch[network[0]];
+        }
       })()
     );
   }
