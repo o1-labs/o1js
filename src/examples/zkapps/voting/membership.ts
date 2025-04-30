@@ -94,7 +94,7 @@ export class Membership_ extends SmartContract {
     // Preconditions: Restrict who can vote or who can be a candidate
 
     // since we need to keep this contract "generic", we always assert within a range
-    // even tho voters cant have a maximum balance, only candidates
+    // even tho voters can't have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
@@ -123,7 +123,7 @@ export class Membership_ extends SmartContract {
     );
 
     /*
-    we cant really branch the control flow - we will always have to emit an event no matter what, 
+    we can't really branch the control flow - we will always have to emit an event no matter what, 
     so we emit an empty event if the member already exists
     it the member doesn't exist, emit the "real" member
     */

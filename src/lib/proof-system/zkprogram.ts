@@ -60,6 +60,7 @@ export {
   TupleToInstances,
   PrivateInput,
   Proof,
+  inCircuitVkHash,
 };
 
 type Undefined = undefined;
@@ -565,7 +566,7 @@ function ZkProgram<
     provers
   );
 
-  // Object.assign only shallow-copies, hence we cant use this getter and have to define it explicitly
+  // Object.assign only shallow-copies, hence we can't use this getter and have to define it explicitly
   Object.defineProperty(program, 'proofsEnabled', {
     get: () => doProving,
   });
