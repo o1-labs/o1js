@@ -157,6 +157,7 @@ namespace Experimental {
       Action,
       MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple }
     > = V2_.MinaProgram<State, Event, Action, MethodPrivateInputs>;
+    export type DynamicProvable<P> = V2_.DynamicProvable<P>;
   }
 
   export let memoizeWitness = Experimental_.memoizeWitness;

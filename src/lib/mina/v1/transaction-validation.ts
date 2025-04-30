@@ -21,6 +21,7 @@ import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.
 import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
 import type { NetworkValue } from './precondition.js';
+import { VerificationKey } from '../../proof-system/verification-key.js';
 
 export {
   reportGetAccountError,
@@ -242,8 +243,13 @@ async function verifyAccountUpdate(
         publicOutput: [],
       };
 
-      let verificationKey = account.zkapp?.verificationKey?.data;
-      assert(verificationKey !== undefined, 'Account does not have a verification key');
+      let verificationKeyRaw = account.zkapp?.verificationKey;
+      assert(verificationKeyRaw !== undefined, 'Account does not have a verification key');
+      let verificationKey = verificationKeyRaw.data;
+
+      const isVkValid = await VerificationKey.checkValidity(verificationKeyRaw);
+      if (!isVkValid)
+        throw Error(`The verification key hash is not consistent with the provided data`);
 
       isValidProof = await verify(proof, verificationKey);
       if (!isValidProof) {
@@ -305,6 +311,13 @@ async function verifyAccountUpdate(
     }
   });
 
+  if (accountUpdate.update.verificationKey.isSome.toBoolean()) {
+    const isVkValid = await VerificationKey.checkValidity(
+      accountUpdate.update.verificationKey.value
+    );
+    if (!isVkValid)
+      throw Error(`The verification key hash is not consistent with the provided data`);
+  }
   // checks the sequence events (which result in an updated sequence state)
   if (accountUpdate.body.actions.data.length > 0) {
     let p = permissionForUpdate('actions');

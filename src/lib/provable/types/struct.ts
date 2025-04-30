@@ -102,7 +102,7 @@ type AnyConstructor = Constructor<any>;
  * ```
  *
  * In addition to creating types composed of Field elements, you can also include auxiliary data which does not become part of the proof.
- * This, for example, allows you to re-use the same type outside o1js methods, where you might want to store additional metadata.
+ * This, for example, allows you to reuse the same type outside o1js methods, where you might want to store additional metadata.
  *
  * To declare non-proof values of type `string`, `number`, etc, you can use the built-in objects `String`, `Number`, etc.
  * Here's how we could add the voter's name (a string) as auxiliary data:
