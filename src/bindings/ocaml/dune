@@ -5,7 +5,7 @@
  (modules o1js_types)
  (link_flags (-linkall))
  (modes native)
- (libraries mina_base fields_derivers.zkapps yojson)
+ (libraries fields_derivers.zkapps mina_base yojson)
  (instrumentation
   (backend bisect_ppx))
  (preprocess
@@ -26,18 +26,18 @@
  (link_flags (-linkall))
  (modes native)
  (libraries
-  mina_base
-  core_kernel
   base
-  sponge
-  hash_prefixes
-  mina_signature_kind
   base58_check
+  core_kernel
+  hash_prefixes
+  mina_base
+  mina_signature_kind
   pickles
+  protocol_version
   random_oracle
   random_oracle.permutation.ocaml
-  yojson
-  protocol_version)
+  sponge
+  yojson)
  (instrumentation
   (backend bisect_ppx))
  (preprocess
