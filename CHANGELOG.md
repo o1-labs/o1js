@@ -30,6 +30,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - compiled artifacts are now gitignored
   - `npm run build:bindings-download` downloads compiled artifacts from github
   - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
+- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
 
 ### Changed
 
@@ -41,13 +42,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   [eaca9201](https://github.com/MinaProtocol/mina/tree/eaca9201e0df37f244e341155f253dc9551fb451),
   to include the latest changes reg. the move of the Rust codebase to the
   repository proof-systems.
-
-### Added
-
-- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
-
-### Changed
-
 - Added verification key validity checks to `LocalBlockchain`. https://github.com/o1-labs/o1js/pull/2171
 
 ## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
