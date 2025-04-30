@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: [hetzner-1]
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -98,7 +98,7 @@ jobs:
   Upload-bindings:
     name: upload bindings artifact
     needs: [Prepare]
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: [hetzner-1]
     steps:
       - uses: actions/checkout@v4
         with:
