@@ -86,15 +86,6 @@ module Ledger : Mina_base.Ledger_intf.S = struct
         set t loc a ;
         Ok ()
 
-  let[@warning "-32"] remove_accounts_exn (t : t) (ids : Account_id.t list) :
-      unit =
-    let locs = List.filter_map ids ~f:(fun id -> Map.find !t.locations id) in
-    t :=
-      { !t with
-        locations = List.fold ids ~init:!t.locations ~f:Map.remove
-      ; accounts = List.fold locs ~init:!t.accounts ~f:Map.remove
-      }
-
   (* TODO *)
   let merkle_root (_ : t) : Ledger_hash.t = Field.Constant.zero
 
