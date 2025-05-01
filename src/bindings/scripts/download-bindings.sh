@@ -1,11 +1,12 @@
-# /usr/bin/env bash
+#!/usr/bin/env bash
+
 set -e
 
 (which gh > /dev/null 2>&1) || (echo "Please install gh the github cli tool: https://github.com/cli/cli#installation" && exit 1)
 
 REV=${REV:=$(git rev-parse HEAD)}
 RUN_ID=$( \
-    gh run list --commit $REV --json name,databaseId | \
+    gh run list --commit "${REV}" --json name,databaseId | \
     jq -r '.[0] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId' \
   )
 
@@ -21,7 +22,7 @@ then
 fi
 
 gh run watch "$RUN_ID" --exit-status || echo "Warning: ci failed on this job, trying to download bindings anyway"
-#remove if it exists but don't fail
+# remove if it exists but don't fail
 if [ -f ".bindings_download/bindings.tar.gz" ]; then
   rm .bindings_download/bindings.tar.gz
 fi
