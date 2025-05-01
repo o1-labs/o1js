@@ -7,6 +7,13 @@ if ! command -v gh > /dev/null; then
   exit 1
 fi
 
+# Check for uncommitted changes
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "You have uncommitted changes. Please commit or stash them before continuing."
+  exit 1
+fi
+
+
 # Ensure the current commit is pushed to origin
 BRANCH=$(git branch --show-current)
 REMOTE_COMMIT=$(git ls-remote origin "$BRANCH" | awk '{ print $1 }')
@@ -22,7 +29,6 @@ fi
 gh workflow run remote_bindings.yml --ref "$BRANCH"
 
 # Wait a bit to ensure the job exists
-echo "⏳ Waiting for workflow to initialize..."
 sleep 5
 
 # Run the bindings download script
