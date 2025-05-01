@@ -44,6 +44,8 @@ jobs:
           submodules: recursive
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+      - name: Install Nix
+        uses: cachix/install-nix-action@v23
       - name: Build
         uses: ./.github/actions/build
         with:
