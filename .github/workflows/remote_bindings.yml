@@ -6,7 +6,7 @@ on:
 jobs:
   Upload-bindings:
     name: upload bindings artifact
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    runs-on: [shared-o1labs]
     steps:
       - uses: actions/checkout@v4
         with:
