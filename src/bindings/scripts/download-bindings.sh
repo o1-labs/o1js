@@ -6,8 +6,7 @@ set -e
 REV=${REV:=$(git rev-parse HEAD)}
 RUN_ID=$( \
     gh run list --commit "$REV" --json name,databaseId | \
-    jq -r '.[] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId' | \
-    head -n1 \
+    jq -r '.[] | select((.name == "Build and upload bindings") and (.status == "completed") and (.conclusion == "success")) | .databaseId' | head -n1
 )
 
 
