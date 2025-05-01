@@ -12,7 +12,7 @@ fi
 REV="${REV:-$(git rev-parse HEAD)}"
 
 # Get the run ID for relevant CI jobs
-RUN_ID=$(gh run list --commit "$REV" --json name,databaseId |
+RUN_ID=$(gh run list --commit "$REV" --limit 1 --json name,databaseId |
   jq -r '.[] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId')
 
 # Exit if no relevant run was found
