@@ -327,7 +327,7 @@
             buildCommand = ''
                 cp -R $src/* .
                 rm env-vars
-                #restore write permisions removed by nix store
+                #restore write permissions removed by nix store
                 chmod +w -R .
                 tar czf $out .
             '';
