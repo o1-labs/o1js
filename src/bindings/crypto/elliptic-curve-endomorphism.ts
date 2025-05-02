@@ -140,11 +140,11 @@ function endomorphismProjective(
 }
 
 /**
- * Faster scalar muliplication leveraging the GLV decomposition (see {@link decompose}).
+ * Faster scalar multiplication leveraging the GLV decomposition (see {@link decompose}).
  *
  * This method to speed up plain, non-provable scalar multiplication was the original application of GLV
  *
- * Instead of scaling a single point, we apply the decomposition to scale two points, with two scalars of half the orginal length:
+ * Instead of scaling a single point, we apply the decomposition to scale two points, with two scalars of half the original length:
  *
  * `s*G = s0*G + s1*lambda*G = s0*G + s1*endo(G)`, where endo(G) is cheap to compute
  *
@@ -251,7 +251,7 @@ function computeGlvData(q: bigint, lambda: bigint) {
 type GlvData = ReturnType<typeof computeGlvData>;
 
 /**
- * Extended Euclidian algorithm which stops when r1 < sqrt(p)
+ * Extended Euclidean algorithm which stops when r1 < sqrt(p)
  *
  * Input: positive integers l, p
  *

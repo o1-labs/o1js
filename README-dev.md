@@ -41,7 +41,7 @@ These files only have to be regenerated if there are changes to the OCaml or Rus
 
 ### External contributors
 
-Unfortunatel you generally won't be able to run `npm run build:bindings-download` on your own commits
+Unfortunately you generally won't be able to run `npm run build:bindings-download` on your own commits
 because the artifacts won't have been built for them, so make sure to run it on main before you start making changes.
 In a fresh git repo `npm run build` also works.
 
