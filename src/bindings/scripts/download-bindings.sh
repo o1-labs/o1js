@@ -7,7 +7,7 @@ set -e
 REV=${REV:=$(git rev-parse HEAD)}
 RUN_ID=$( \
     gh run list --commit "${REV}" --json name,databaseId | \
-    jq -r '.[] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId' \
+    jq -r '.[0] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId' \
   )
 
 if [ -z "$RUN_ID" ]

@@ -58,8 +58,7 @@ module Ledger : Mina_base.Ledger_intf.S = struct
     in
     Ok res
 
-  let[@warning "-32"] get_or_create_account (t : t) (id : Account_id.t)
-      (a : Account.t) :
+  let get_or_create_account (t : t) (id : Account_id.t) (a : Account.t) :
       (Mina_base.Ledger_intf.account_state * location) Or_error.t =
     match location_of_account t id with
     | Some loc ->
@@ -86,15 +85,6 @@ module Ledger : Mina_base.Ledger_intf.S = struct
         t := { !t with locations = Map.set !t.locations ~key:id ~data:loc } ;
         set t loc a ;
         Ok ()
-
-  let[@warning "-32"] remove_accounts_exn (t : t) (ids : Account_id.t list) :
-      unit =
-    let locs = List.filter_map ids ~f:(fun id -> Map.find !t.locations id) in
-    t :=
-      { !t with
-        locations = List.fold ids ~init:!t.locations ~f:Map.remove
-      ; accounts = List.fold locs ~init:!t.accounts ~f:Map.remove
-      }
 
   (* TODO *)
   let merkle_root (_ : t) : Ledger_hash.t = Field.Constant.zero
@@ -226,7 +216,8 @@ let protocol_state_of_json =
 let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
     (account_creation_fee : string)
     (network_state : Mina_base.Zkapp_precondition.Protocol_state.View.t) =
-  let txn = Zkapp_command.write_all_proofs_to_disk txn in
+  let proof_cache_db = Proof_cache_tag.create_identity_db () in
+  let txn = Zkapp_command.write_all_proofs_to_disk ~proof_cache_db txn in
   check_account_update_signatures txn ;
   let ledger = l##.value in
   let application_result =
