@@ -44,8 +44,6 @@ jobs:
           submodules: recursive
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
-      - name: Install Nix
-        uses: cachix/install-nix-action@v23
       - name: Build
         uses: ./.github/actions/build
         with:
@@ -96,7 +94,7 @@ jobs:
       - name: Run Oxlint
         if: steps.get_changed_files.outputs.files_changed == 'true'
         run: xargs npm run lint:strict < changed_files.txt
-      
+
       - name: Run codespell
         if: steps.get_changed_files.outputs.files_changed == 'true' && github.event.pull_request.labels.*.name != 'no-typo-check'
         uses: codespell-project/actions-codespell@master
