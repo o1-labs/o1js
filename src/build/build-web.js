@@ -1,3 +1,21 @@
+/**
+ * Build script for creating the browser-compatible version of o1js
+ *
+ * This module handles the complex process of packaging o1js for web 
+ * environments, including preparing WebAssembly bindings, bundling 
+ * dependencies, and optimizing for browser compatibility. It performs 
+ * several key tasks:
+ *
+ * 1. Prepares and bundles the WebAssembly bindings with proper browser loading
+ * 2. Compiles TypeScript using the web-specific configuration
+ * 3. Copies necessary files to the distribution directory
+ * 4. Handles minification of code in production builds
+ * 5. Processes WASM files for browser compatibility
+ * 6. Creates the final bundled ESM output for web usage
+ *
+ * @module build-web
+ */
+
 import esbuild from 'esbuild';
 import fse, { move } from 'fs-extra';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
@@ -11,6 +29,7 @@ export { buildWeb };
 const entry = './src/index.ts';
 const target = 'es2022';
 
+// Determine if this script is being run directly
 let nodePath = path.resolve(process.argv[1]);
 let modulePath = path.resolve(fileURLToPath(import.meta.url));
 let isMain = nodePath === modulePath;
@@ -21,6 +40,18 @@ if (isMain) {
   console.log('finished build');
 }
 
+/**
+ * Builds the web (browser) version of o1js
+ *
+ * This function orchestrates the entire build process for the browser-compatible
+ * version of the library. It handles WebAssembly integration, TypeScript
+ * compilation, file copying, and bundling.
+ *
+ * @param {Object} options - Build configuration options
+ * @param {boolean} options.production - Whether to build in production mode
+ *                                       (enables minification)
+ * @returns {Promise<void>} Resolves when the build process is complete
+ */
 async function buildWeb({ production }) {
   let minify = !!production;
 
@@ -92,6 +123,12 @@ async function buildWeb({ production }) {
   });
 }
 
+/**
+ * Copies files or directories from source locations to target locations
+ *
+ * @param {Object} copyMap - Object mapping source paths to target paths
+ * @returns {Promise<void>} Resolves when all copy operations are complete
+ */
 async function copy(copyMap) {
   let promises = [];
   for (let [source, target] of Object.entries(copyMap)) {
@@ -106,6 +143,12 @@ async function copy(copyMap) {
   await Promise.all(promises);
 }
 
+/**
+ * Promisified version of child_process.exec
+ *
+ * @param {string} cmd - Command to execute
+ * @returns {Promise<string>} Resolves with stdout when the command completes
+ */
 function execPromise(cmd) {
   return new Promise((res, rej) =>
     exec(cmd, (err, stdout) => {
@@ -118,14 +161,33 @@ function execPromise(cmd) {
   );
 }
 
+/**
+ * Rewrites WebAssembly bindings to make them compatible with browser bundling
+ *
+ * This function modifies the auto-generated WebAssembly bindings to support
+ * direct importing of WASM binary data and prepare for worker integration.
+ *
+ * @param {string} src - Original WebAssembly bindings source code
+ * @returns {string} Modified WebAssembly bindings source code
+ */
 function rewriteWasmBindings(src) {
   src = src
     .replace("new URL('plonk_wasm_bg.wasm', import.meta.url)", 'wasmCode')
     .replace('import.meta.url', '"/"');
   return `import wasmCode from './plonk_wasm_bg.wasm';
-  let startWorkers, terminateWorkers;  
+  let startWorkers, terminateWorkers;
 ${src}`;
 }
+
+/**
+ * Rewrites bundled WebAssembly bindings for better browser compatibility
+ *
+ * This function transforms the bundled WASM bindings to export a function that
+ * initializes the WASM module and integrates with the worker system.
+ *
+ * @param {string} src - Bundled WebAssembly bindings source code
+ * @returns {string} Transformed WebAssembly bindings ready for browser use
+ */
 function rewriteBundledWasmBindings(src) {
   let i = src.indexOf('export {');
   let exportSlice = src.slice(i);
@@ -145,6 +207,14 @@ function plonkWasm() {
 plonkWasm.deps = [startWorkers, terminateWorkers]`;
 }
 
+/**
+ * Creates an esbuild plugin to handle WebAssembly imports
+ *
+ * This plugin allows direct importing of .wasm files by loading them
+ * as binary content and making them available to the JavaScript runtime.
+ *
+ * @returns {Object} esbuild plugin for WebAssembly processing
+ */
 function wasmPlugin() {
   return {
     name: 'wasm-plugin',
@@ -159,6 +229,15 @@ function wasmPlugin() {
   };
 }
 
+/**
+ * Creates an esbuild plugin to load files as strings
+ *
+ * This plugin enables importing file contents directly as strings by
+ * using the `string:` prefix in import paths. Useful for loading
+ * templates or other text-based resources.
+ *
+ * @returns {Object} esbuild plugin for string imports
+ */
 function srcStringPlugin() {
   return {
     name: 'src-string-plugin',
@@ -181,6 +260,15 @@ function srcStringPlugin() {
   };
 }
 
+/**
+ * Creates an esbuild plugin to defer execution of imported code
+ *
+ * This plugin allows code to be imported but not executed immediately.
+ * It wraps the imported code in a function that can be called later,
+ * which is useful for conditional loading or environment-specific code.
+ *
+ * @returns {Object} esbuild plugin for deferred execution
+ */
 function deferExecutionPlugin() {
   return {
     name: 'defer-execution-plugin',
@@ -200,8 +288,8 @@ function deferExecutionPlugin() {
         code = code.replace(/function\(\)\s*\{\s*return this\s*\}\(\)/g, 'window');
         code = code.replace(/function\(\)\s*\{\s*return this;\s*\}\(\)/g, 'window');
         let deferedCode = `
-          let require = () => {};
-          export default () => {\n${code}\n};`;
+        let require = () => {};
+        export default () => {\n${code}\n};`;
         return {
           contents: deferedCode,
           loader: 'js',
