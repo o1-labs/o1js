@@ -3,7 +3,7 @@
 o1js is a TypeScript framework designed for zk-SNARKs and zkApps on the Mina blockchain.
 
 - [zkApps Overview](https://docs.minaprotocol.com/zkapps)
-- [Mina README](/src/mina/README.md)
+- [Mina README](/src/mina-signer/README.md)
 
 For more information on our development process and how to contribute, see [CONTRIBUTING.md](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md). This document is meant to guide you through building o1js from source and understanding the development workflow.
 
