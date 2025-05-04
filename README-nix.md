@@ -18,7 +18,7 @@ handle the dependencies required across the codebase, including npm scripts.
 The following command will install Nix on your machine.
 
 ```console
-sh <(curl -L https://nixos.org/nix/install) --daemon
+sh <(curl -L https://releases.nixos.org/nix/nix-2.28.3/install) --daemon
 ```
 
 If you're unsure about your Nix setup, the assistant will guide you towards a
