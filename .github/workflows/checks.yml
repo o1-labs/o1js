@@ -55,6 +55,9 @@ jobs:
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Lint-Format-and-TypoCheck:
     strategy:
@@ -122,6 +125,10 @@ jobs:
           submodules: recursive
       - name: upload
         uses: ./.github/actions/upload
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Build-And-Test-Server:
     needs: [Prepare]
@@ -151,6 +158,10 @@ jobs:
 
       - name: build
         uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -181,6 +192,10 @@ jobs:
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Count tests
         id: count_tests
         run: |
@@ -318,6 +333,10 @@ jobs:
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -350,6 +369,10 @@ jobs:
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:

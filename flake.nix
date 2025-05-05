@@ -14,6 +14,18 @@
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
   };
+  nixConfig = {
+    auto-optimize-store = true;
+    max-jobs = "auto";
+    substituters =
+      [ "https://cache.nixos.org https://cache.nixos.org/"
+        "https://storage.googleapis.com/mina-nix-cache"
+      ];
+    trusted-public-keys =
+      [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        "mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10="
+      ];
+  };
   outputs = { self, nixpkgs-mina, nixpkgs-newer, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let

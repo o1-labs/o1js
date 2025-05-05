@@ -3,11 +3,24 @@ on:
   workflow_dispatch:
   workflow_call:
 
+inputs:
+  cache_id:
+    required: true
+  nar_secret:
+    required: true
+  gcp_secret:
+    required: true
+
 runs:
   using: "composite"
   steps:
     - name: Build
       uses: ./.github/actions/build
+      with:
+          cache_id: ${{ inputs.cache_id }}
+          nar_secret: ${{ inputs.nar_secret }}
+          gcp_secret: ${{ inputs.gcp_secret }}
+
     - name: generate tar
       shell: bash
       run: |
