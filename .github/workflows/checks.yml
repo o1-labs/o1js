@@ -107,6 +107,7 @@ jobs:
 
   Upload-bindings:
     name: upload bindings artifact
+    if: inputs.proof_systems_commit != ''
     needs: [Prepare]
     runs-on: [hetzner-runner-1]
     steps:
