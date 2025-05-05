@@ -48,6 +48,9 @@ jobs:
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Lint-Format-and-TypoCheck:
     strategy:
@@ -150,6 +153,7 @@ jobs:
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -184,6 +188,7 @@ jobs:
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -325,6 +330,7 @@ jobs:
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -361,6 +367,7 @@ jobs:
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
