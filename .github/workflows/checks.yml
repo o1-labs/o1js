@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: [sdk-team-github-runner-x86-04-build]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -44,6 +44,7 @@ jobs:
           submodules: recursive
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+      - uses: cachix/install-nix-action@v25
       - name: Build
         uses: ./.github/actions/build
         with:
