@@ -66,7 +66,8 @@ val pickles :
           ; publicOutputSize : int Js.prop
           ; storable : Cache.js_storable Js.optdef_prop
           ; overrideWrapDomain : int Js.optdef_prop 
-          ; lazy_mode : bool Js.optdef_prop >
+          ; numChunks : int Js.optdef_prop
+          ; lazyMode : bool Js.optdef_prop >
           Js.t
        -> < getVerificationKey :
               (   unit
