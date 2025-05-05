@@ -13,6 +13,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Seems to be installed on the sdk runners but not hetzner
+    - name: Install zstd if needed
+      shell: bash
+      run: command -v unzstd || (sudo apt-get update && sudo apt-get install -y zstd)
     - uses: nixbuild/nix-quick-install-action@v30
       with:
         nix_conf: |
