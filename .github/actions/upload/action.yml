@@ -5,28 +5,36 @@ on:
 
 inputs:
   cache_id:
-    required: true
+    required: false
   nar_secret:
-    required: true
+    required: false
   gcp_secret:
-    required: true
+    required: false
 
 runs:
   using: "composite"
   steps:
     - name: Build
       uses: ./.github/actions/build
-      with:
-          cache_id: ${{ inputs.cache_id }}
-          nar_secret: ${{ inputs.nar_secret }}
-          gcp_secret: ${{ inputs.gcp_secret }}
 
     - name: generate tar
       shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.cache_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.gcp_secret }}
       run: |
         set -Eeu
         ./pin.sh
-        nix build o1js#bindings-tar --out-link bindings.tar.gz
+        nix build o1js#bindings-tar --out-link bindings.tar.gz --accept-flake-config
+        # Upload to nix cache
+        if [ -n "$AWS_ACCESS_KEY_ID" ]; then
+          temp_key=$(mktemp)
+          echo ${{ inputs.nar_secret }} > "$temp_key"
+          nix store sign --key-file "$temp_key" --recursive ./bindings.tar.gz
+          nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./bindings.tar.gz)
+          rm "$temp_key"
+        fi
+
     - name: Upload bindings
       uses: actions/upload-artifact@v4
       with:

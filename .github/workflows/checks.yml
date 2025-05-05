@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: sdk-self-hosted-linux-amd64
+    runs-on: self-hosted
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -44,20 +44,10 @@ jobs:
           submodules: recursive
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
-      - uses: nixbuild/nix-quick-install-action@v30
-        with:
-          nix_conf: |
-            keep-env-derivations = true
-            keep-outputs = true
-            extra-substituters = https://storage.googleapis.com/mina-nix-cache
-            extra-trusted-public-keys = nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10=
       - name: Build
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
-          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Lint-Format-and-TypoCheck:
     strategy:
