@@ -50,7 +50,7 @@ runs:
       if: ${{ inputs.mina_commit != ''}}
       shell: bash
       run: |
-        git -C src/mina fetch orign ${{ inputs.mina_commit }}
+        git -C src/mina fetch origin ${{ inputs.mina_commit }}
         git -C src/mina clean -fdx
         git -C src/mina checkout ${{ inputs.mina_commit }}
         git -C src/mina clean -fdx
