@@ -9,6 +9,12 @@ inputs:
     description: 'proof_systems commit to use'
     required: false
     default: ''
+  cache_id:
+    required: false
+  nar_secret:
+    required: false
+  gcp_secret:
+    required: false
 
 runs:
   using: "composite"
@@ -60,6 +66,11 @@ runs:
         ./pin.sh
         nix build o1js#bindings --accept-flake-config
         nix run o1js#generate-bindings --accept-flake-config
+        temp_key=$(mktemp)
+        echo ${{ inputs.nar_secret }} > "$temp_key"
+        nix store sign --key-file "$temp_key" --recursive ./result
+        nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./result)
+        rm "$temp_key"
 
     - name: Cache dependencies and build
       uses: actions/cache@v4
