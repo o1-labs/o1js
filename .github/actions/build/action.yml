@@ -69,8 +69,13 @@ runs:
       run: |
         set -Eeu
         ./pin.sh
-        nix build o1js#bindings --accept-flake-config
         nix run o1js#generate-bindings --accept-flake-config
+
+    - name: Upload the bindings if keys are available
+      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true'  && inputs.cache_id != '' }}
+      shell: bash
+      run: |
+        nix build o1js#bindings --accept-flake-config
         temp_key=$(mktemp)
         echo ${{ inputs.nar_secret }} > "$temp_key"
         nix store sign --key-file "$temp_key" --recursive ./result
