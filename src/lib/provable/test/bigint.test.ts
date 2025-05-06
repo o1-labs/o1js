@@ -53,6 +53,32 @@ describe('BigInt17', () => {
     });
   });
 
+  describe('Clone', () => {
+    it('should correctly clone a BigInt17 instance', () => {
+      const bigInt = BigInt17.fromBigInt(12n);
+      let clone = bigInt.clone();
+      clone = clone.add(BigInt17.fromBigInt(4n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(12n);
+      expect(clone.toBigInt()).toBe(16n);
+    });
+
+    it('should correctly clone a zero BigInt17 instance', () => {
+      const bigInt = BigInt17.fromBigInt(0n);
+      let clone = bigInt.clone();
+      clone = clone.add(BigInt17.fromBigInt(7n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(0n);
+      expect(clone.toBigInt()).toStrictEqual(7n);
+    });
+
+    it('should correctly clone a maximum BigInt17 instance', () => {
+      const bigInt = BigInt17.fromBigInt(modulus - 1n);
+      let clone = bigInt.clone();
+      clone = clone.sub(BigInt17.fromBigInt(5n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(modulus - 1n);
+      expect(clone.toBigInt()).toStrictEqual(modulus - 1n - 5n);
+    });
+  });
+
   describe('Addition', () => {
     it('should correctly add two BigInt17 numbers', () => {
       const a = BigInt17.fromBigInt(9n);
@@ -625,6 +651,32 @@ describe('BigInt255', () => {
       const fields = bigInt.toFields();
       const newBigInt = BigInt255.Unsafe.fromFields(fields);
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
+    });
+  });
+
+  describe('Clone', () => {
+    it('should correctly clone a BigInt255 instance', () => {
+      const bigInt = BigInt255.fromBigInt(52n);
+      let clone = bigInt.clone();
+      clone = clone.add(BigInt255.fromBigInt(6n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(52n);
+      expect(clone.toBigInt()).toBe(58n);
+    });
+
+    it('should correctly clone a zero BigInt255 instance', () => {
+      const bigInt = BigInt255.fromBigInt(0n);
+      let clone = bigInt.clone();
+      clone = clone.add(BigInt255.fromBigInt(201n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(0n);
+      expect(clone.toBigInt()).toStrictEqual(201n);
+    });
+
+    it('should correctly clone a maximum BigInt255 instance', () => {
+      const bigInt = BigInt255.fromBigInt(modulus - 1n);
+      let clone = bigInt.clone();
+      clone = clone.sub(BigInt255.fromBigInt(5n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(modulus - 1n);
+      expect(clone.toBigInt()).toStrictEqual(modulus - 1n - 5n);
     });
   });
 
@@ -1261,6 +1313,33 @@ describe('BigInt381', () => {
       expect(bigInt.toBigInt()).toStrictEqual(newBigInt.toBigInt());
     });
   });
+
+  describe('Clone', () => {
+    it('should correctly clone a BigInt381 instance', () => {
+      const bigInt = BigInt381.fromBigInt(381n);
+      let clone = bigInt.clone();
+      clone = clone.add(BigInt381.fromBigInt(3n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(381n);
+      expect(clone.toBigInt()).toBe(384n);
+    });
+
+    it('should correctly clone a zero BigInt381 instance', () => {
+      const bigInt = BigInt381.fromBigInt(0n);
+      let clone = bigInt.clone();
+      clone = clone.add(BigInt381.fromBigInt(831n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(0n);
+      expect(clone.toBigInt()).toStrictEqual(831n);
+    });
+
+    it('should correctly clone a maximum BigInt381 instance', () => {
+      const bigInt = BigInt381.fromBigInt(modulus - 1n);
+      let clone = bigInt.clone();
+      clone = clone.sub(BigInt381.fromBigInt(5n)); 
+      expect(bigInt.toBigInt()).toStrictEqual(modulus - 1n);
+      expect(clone.toBigInt()).toStrictEqual(modulus - 1n - 5n);
+    });
+  });
+
 
   describe('Addition', () => {
     it('should correctly add two BigInt381 numbers', () => {
