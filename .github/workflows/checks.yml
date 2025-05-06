@@ -112,7 +112,7 @@ jobs:
     if: ${{ inputs.proof_systems_commit == '' }}
     name: upload bindings artifact
     needs: [Prepare]
-    runs-on: [hetzner-runner-1]
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
