@@ -20,9 +20,6 @@ jobs:
   Prepare:
     runs-on: self-hosted
     steps:
-      - name: Nuke state from last run?
-        shell: bash
-        run: mkdir /home/app/actions-runner/_work/o1js/o1js/
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
