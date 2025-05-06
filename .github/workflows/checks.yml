@@ -1,4 +1,4 @@
-name: ${{ github.event.inputs.mina_commit && format('Checks-mina-{0}', github.event.inputs.mina_commit) || 'Checks' }}
+name: Checks
 on:
   push:
     branches:
