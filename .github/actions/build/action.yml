@@ -57,10 +57,6 @@ runs:
           src/bindings/compiled
           src/bindings/mina-transaction/gen
         key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}
-
-    - run: echo "cache-hit is ${{ steps.bindings-cache.outputs.cache-hit }}"
-      shell: bash
-
     - name: Build the o1js bindings
       if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' }}
       shell: bash
