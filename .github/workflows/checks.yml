@@ -13,10 +13,20 @@ on:
         description: 'proof_systems commit to use'
         required: false
         default: ''
+      mina_commit:
+        description: 'mina commit to use'
+        required: false
+        type: string
+        default: ''
   workflow_call:
     inputs:
       proof_systems_commit:
         description: 'proof_systems commit to use'
+        required: false
+        type: string
+        default: ''
+      mina_commit:
+        description: 'mina commit to use'
         required: false
         type: string
         default: ''
@@ -48,6 +58,7 @@ jobs:
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -109,7 +120,7 @@ jobs:
           ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
 
   Upload-bindings:
-    if: ${{ inputs.proof_systems_commit == '' }}
+    if: ${{ inputs.proof_systems_commit == '' && inputs.mina_commit == ''}}
     name: upload bindings artifact
     needs: [Prepare]
     runs-on: self-hosted
@@ -150,6 +161,7 @@ jobs:
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -185,6 +197,7 @@ jobs:
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -327,6 +340,7 @@ jobs:
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -364,6 +378,7 @@ jobs:
         uses: ./.github/actions/build
         with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
