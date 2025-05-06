@@ -48,7 +48,7 @@ jobs:
   Prepare:
     runs-on: self-hosted
     steps:
-      - uses: AutoModality/action-clean@v1
+      - uses: tiacsys/clean-after-action@v3
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
