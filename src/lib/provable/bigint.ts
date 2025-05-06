@@ -228,7 +228,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns A new ProvableBigInt instance with the same value
      */
     clone(): ProvableBigInt_ {
-      return new ProvableBigInt_(this.fields, this.value);
+      const clonedFields = this.fields.map(f => new Field(f.toBigInt()));
+      const clonedValue = this.value.get();
+      return new ProvableBigInt_(clonedFields,Unconstrained.from(clonedValue));
     }
 
     /**
