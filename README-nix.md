@@ -88,8 +88,10 @@ with all the dependencies required executing `nix develop o1js#default`.
 nix develop o1js#default
 ```
 
-The first time you run this command, you can expect it to take hours (or even a full day) to complete. Then, you will observe that the current devshell becomes a Nix shell with the right
+On macos the first time you run this command, you can expect it to take hours (or even a full day) to complete, due to the lack of cached builds.
+Then, you will observe that the current devshell becomes a Nix shell with the right
 configuration for `o1js` and `mina`.
+
 
 From within the shell, you can build o1js and update the bindings.
 
@@ -114,28 +116,31 @@ nix develop mina
 
 Using Nix can take up a lot of disk space if not optimized. Every time you run `nix develop {SOMETHING}`, Nix will create new generations taking gigabytes of data instead of replacing the old ones. This can soon become a problem in your hard disk if you don't handle it carefully. Here are a few indications that can help with this.
 
-Nix has a garbage collector that **is not used by default** after every run. Instead, artifacts get accumulated in your disk unless configured otherwise. But if the full gargabe collector is executed (`nix-store --gc`), it will get the dependencies removed completely, and you can expect that the next time executing the Nix build will take hours to complete.
+Nix has a garbage collector that **is not used by default** after every run. Instead, artifacts get accumulated in your disk unless configured otherwise.
+This is why we recomend `auto-optimise-store = true` (you will be prompted to accept this). You can also run `nix-store --optimize` retroactively.
 
-Instead, you can try to run `nix-env --delete-generations old` or any other time bound like `7d`. This will not have any effect on MacOS though. Alternatively, the [direnv](https://github.com/direnv/direnv) / [nix-direnv](https://github.com/nix-community/nix-direnv) tool can create garbage collector roots that won't be collected for removal. It just keeps one gc-root to the latest build of the dev shell so that `nix-store --gc` only removes older generations.
-
-On top of that, adding `auto-optimise-store = true` to `/etc/nix/nix.conf` and running `nix-store --optimize` should help with disk usage, as it replaces duplicated files with symlinks.
+If you still need to free up space you can run `nix-store --gc`, unfortunately this can slow down futurue nix builds by forcing you to rebuild dependencies.
+This can be mitigated with [direnv](https://github.com/direnv/direnv) and [nix-direnv](https://github.com/nix-community/nix-direnv) which can create garbage collector roots,
+keeping one gc-root to the latest build of the dev shell so that `nix-store --gc` won't remove it.
+You can also create a gc root any time you run `nix build` (until you remove `./result`) so running `nix build o1js#bindings` before `nix-store --gc` may also help.
 
 ### Runtime optimization
 
-Other configurations are worth adding into your `/etc/nix/nix.conf`:
+We suggest a few settings in `flake.nix`.
+You will be prompted to accept or reject these the first time you use nix in this repo.
+You can also use `--accept-flake-config` to accept all of them.
 
-```bash
-keep-outputs = true
-max-jobs = 20
-extra-substituters = https://storage.googleapis.com/mina-nix-cache
-extra-trusted-public-keys = nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10=
-```
+`max-jobs = auto`
+For some reason the default is `1`.
 
-The first of those flags tells the garbage collector to keep build time dependencies of current gc-roots, which should help reduce the amount of data that gets removed and rebuilt.
+`auto-optimize-store = true;`
+When building slightly different versions of the same repo your nix store can fill up with coppies of the same files.
+This saves space by replacing them with symlinks.
 
-The second flag increases the default number of jobs being 1, so that rebuilding from scratch will take shorter time.
-
-The last two lines tell Nix to use the Mina Foundation's cache whenever possible, which should as well speed things up when building code that has been build in Mina's CI before.
+`substituters = ...`
+`trusted-public-keys = ...`
+These make sure you are using the mina-nix-cache which will save time by downloading any derivations already available.
+Anything built in CI is added to this nix-cache, so it should make a big difference in build times.
 
 ## Common Issues
 
