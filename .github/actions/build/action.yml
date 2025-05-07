@@ -62,8 +62,7 @@ runs:
       shell: bash
       run: |
         set -Eeu
-        ./pin.sh
-        nix run o1js#generate-bindings --accept-flake-config
+        nix run .\?submodules=1#generate-bindings --accept-flake-config
 
     - name: Upload the bindings if keys are available
       if: ${{ steps.bindings-cache.outputs.cache-hit != 'true'  && inputs.cache_id != '' }}
