@@ -7,7 +7,25 @@ on:
       - v1
       - v3
   pull_request:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        default: ''
+  workflow_call:
+    inputs:
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        type: string
+        default: ''
+      target_repo:
+        required: false
+        type: string
+      target_ref:
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,10 +42,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Build
         uses: ./.github/actions/build
         with:
-          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
@@ -41,6 +62,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
@@ -84,6 +109,7 @@ jobs:
           ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
 
   Upload-bindings:
+    if: ${{ inputs.proof_systems_commit == '' }}
     name: upload bindings artifact
     needs: [Prepare]
     runs-on: self-hosted
@@ -93,10 +119,6 @@ jobs:
           submodules: recursive
       - name: upload
         uses: ./.github/actions/upload
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Build-And-Test-Server:
     needs: [Prepare]
@@ -121,10 +143,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
 
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -154,9 +179,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -291,9 +319,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
@@ -323,9 +356,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
