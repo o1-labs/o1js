@@ -6,11 +6,7 @@
 import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable as Provable_, ProvableType } from './types/provable-intf.js';
-import type {
-  FlexibleProvable,
-  FlexibleProvableType,
-  ProvableExtended,
-} from './types/struct.js';
+import type { FlexibleProvable, FlexibleProvableType, ProvableExtended } from './types/struct.js';
 import { Context } from '../util/global-context.js';
 import {
   HashInput,
@@ -33,12 +29,7 @@ import { ToProvable } from '../../lib/provable/types/provable-intf.js';
 export { Provable };
 
 // internal API
-export {
-  memoizationContext,
-  MemoizationContext,
-  memoizeWitness,
-  getBlindingValue,
-};
+export { memoizationContext, MemoizationContext, memoizeWitness, getBlindingValue };
 
 /**
  * `Provable<T>` is the general interface for provable types in o1js.
@@ -61,6 +52,15 @@ const Provable = {
    * However, note that nothing about how the value was created is part of the proof - `Provable.witness`
    * behaves exactly like user input. So, make sure that after receiving the witness you make any assertions
    * that you want to associate with it.
+   *
+   * The only constraints enforced on the witnessed value come from its type. This means
+   * the witnessed value may be anything which satisfies the constraints defined in `Type.check()`.
+   * Note that for composite types like ({@link Struct}s, the
+   * default `Type.check()` method calls `check()` on each {@link Struct} field.
+   *
+   * **Warning:** Be *extremely wary* of any custom `check()` methods, which may have forgotten
+   * to call `check()` on sub-components of the {@link Struct}.
+   *
    * @example
    * Example for re-implementing `Field.inv` with the help of `witness`:
    * ```ts
@@ -70,6 +70,58 @@ const Provable = {
    * }
    * // prove that `invX` is really the inverse of `x`:
    * invX.mul(x).assertEquals(1);
+   * ```
+   *
+   * Example for decomposing a 64-bit integer into two 32-bit limbs. {@link Provable.witness} will
+   * prove that the two limbs are actually 32-bits, ensuring the decomposition is unique.
+   * ```ts
+   * function decompose(value: UInt64) {
+   *   // get two arbitrary 32-bit values from the prover
+   *   let lowerLimb = Provable.witness(UInt32, () => {
+   *     return value.and(new UInt64(0xffffffffn)).toUInt32();
+   *   });
+   *   let upperLimb = Provable.witness(UInt32, () => {
+   *     return value
+   *       .and(new UInt64(0xffffffff00000000n))
+   *       .div(2 ** 32)
+   *       .toUInt32();
+   *   });
+   *   // prove the 32-bit lower and upper limbs match the 64-bit value
+   *   value.assertEquals(
+   *     lowerLimb
+   *       .toUInt64()
+   *       .add(upperLimb.toUInt64().mul(UInt64.from(2n ** 32n)))
+   *   );
+   * }
+   * ```
+   *
+   * Modified example for decomposing a 64-bit integer into two 32-bit limbs.
+   * This time we use a {@link Struct} to get both 32-bit values from the prover at once,
+   * while still proving each limb is actually 32 bits.
+   * ```ts
+   * class Decomposition extends Struct({
+   *   lower: UInt32,
+   *   upper: UInt32,
+   * }) {}
+   *
+   * function decompose(value: UInt64) {
+   *   // get two arbitrary 32-bit values from the prover
+   *   let limbs = Provable.witness(Decomposition, () => {
+   *     return new Decomposition({
+   *       lower: value.and(new UInt64(0xffffffffn)).toUInt32(),
+   *       upper: value
+   *         .and(new UInt64(0xffffffff00000000n))
+   *         .div(2 ** 32)
+   *         .toUInt32(),
+   *     });
+   *   });
+   *   // prove the 32-bit lower and upper limbs match the 64-bit value
+   *   value.assertEquals(
+   *     limbs.lower
+   *       .toUInt64()
+   *       .add(limbs.upper.toUInt64().mul(UInt64.from(2n ** 32n)))
+   *   );
+   * }
    * ```
    */
   witness,
@@ -148,6 +200,7 @@ const Provable = {
    */
   Array: provableArray,
   /**
+   * @internal
    * Check whether a value is constant.
    * See {@link FieldVar} for more information about constants and variables.
    *
@@ -372,9 +425,7 @@ function switch_<T, A extends FlexibleProvableType<T>>(
     if (allowNonExclusive) return;
     let nTrue = mask.filter((b) => b.toBoolean()).length;
     if (nTrue > 1) {
-      throw Error(
-        `Provable.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`
-      );
+      throw Error(`Provable.switch: \`mask\` must have 0 or 1 true element, found ${nTrue}.`);
     }
   };
   if (mask.every((b) => b.toField().isConstant())) checkMask();
@@ -487,10 +538,7 @@ function memoizeWitness<T>(type: FlexibleProvable<T>, compute: () => T) {
       memoized[currentIndex] = currentValue;
     }
     context.currentIndex += 1;
-    return (type as Provable<T>).fromFields(
-      currentValue.fields,
-      currentValue.aux
-    );
+    return (type as Provable<T>).fromFields(currentValue.fields, currentValue.aux);
   });
 }
 
@@ -511,9 +559,7 @@ function provableArray<A extends FlexibleProvableType<any>>(
   type T = InferProvableType<A>;
   type TValue = InferValue<ToProvable<A>>;
   type TJson = InferJson<ToProvable<A>>;
-  let type = ProvableType.get(
-    elementType as ProvableType<T>
-  ) as ProvableExtended<T, TValue, TJson>;
+  let type = ProvableType.get(elementType as ProvableType<T>) as ProvableExtended<T, TValue, TJson>;
   return {
     /**
      * Returns the size of this structure in {@link Field} elements.
@@ -547,10 +593,7 @@ function provableArray<A extends FlexibleProvableType<any>>(
       let size = type.sizeInFields();
       let n = length;
       for (let i = 0, offset = 0; i < n; i++, offset += size) {
-        array[i] = type.fromFields(
-          fields.slice(offset, offset + size),
-          aux?.[i]
-        );
+        array[i] = type.fromFields(fields.slice(offset, offset + size), aux?.[i]);
       }
       return array;
     },
@@ -586,9 +629,7 @@ function provableArray<A extends FlexibleProvableType<any>>(
      */
     fromJSON(json) {
       if (!('fromJSON' in type)) {
-        throw Error(
-          'circuitArray.fromJSON: element type has no fromJSON method'
-        );
+        throw Error('circuitArray.fromJSON: element type has no fromJSON method');
       }
       return json.map((a) => type.fromJSON(a));
     },

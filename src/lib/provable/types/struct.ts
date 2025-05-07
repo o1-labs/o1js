@@ -1,16 +1,6 @@
 import { Field, Bool, Scalar, Group } from '../wrapped.js';
-import {
-  provable,
-  provableTuple,
-  HashInput,
-  NonMethods,
-} from './provable-derivers.js';
-import type {
-  InferJson,
-  InferProvable,
-  InferredProvable,
-  IsPure,
-} from './provable-derivers.js';
+import { provable, provableTuple, HashInput, NonMethods } from './provable-derivers.js';
+import type { InferJson, InferProvable, InferredProvable, IsPure } from './provable-derivers.js';
 import { Provable } from '../provable.js';
 import { ProvablePure, ProvableType } from './provable-intf.js';
 import { From, InferValue } from '../../../bindings/lib/provable-generic.js';
@@ -48,16 +38,11 @@ type ProvableExtension<T, TJson = any> = {
 
 type ProvableExtended<T, TValue = any, TJson = any> = Provable<T, TValue> &
   ProvableExtension<T, TJson>;
-type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<
-  T,
-  TValue
-> &
+type ProvablePureExtended<T, TValue = any, TJson = any> = ProvablePure<T, TValue> &
   ProvableExtension<T, TJson>;
 
-type Struct<T> = ProvableExtended<NonMethods<T>> &
-  Constructor<T> & { _isStruct: true };
-type StructPure<T> = ProvablePureExtended<NonMethods<T>> &
-  Constructor<T> & { _isStruct: true };
+type Struct<T> = ProvableExtended<NonMethods<T>> & Constructor<T> & { _isStruct: true };
+type StructPure<T> = ProvablePureExtended<NonMethods<T>> & Constructor<T> & { _isStruct: true };
 type FlexibleProvable<T> = Provable<T> | Struct<T>;
 type FlexibleProvablePure<T> = ProvablePure<T> | StructPure<T>;
 type FlexibleProvableType<T> = ProvableType<T> | Struct<T>;
@@ -117,7 +102,7 @@ type AnyConstructor = Constructor<any>;
  * ```
  *
  * In addition to creating types composed of Field elements, you can also include auxiliary data which does not become part of the proof.
- * This, for example, allows you to re-use the same type outside o1js methods, where you might want to store additional metadata.
+ * This, for example, allows you to reuse the same type outside o1js methods, where you might want to store additional metadata.
  *
  * To declare non-proof values of type `string`, `number`, etc, you can use the built-in objects `String`, `Number`, etc.
  * Here's how we could add the voter's name (a string) as auxiliary data:
@@ -311,12 +296,9 @@ function cloneCircuitValue<T>(obj: T): T {
 
   // built-in JS datatypes with custom cloning strategies
   if (Array.isArray(obj)) return obj.map(cloneCircuitValue) as any as T;
-  if (obj instanceof Set)
-    return new Set([...obj].map(cloneCircuitValue)) as any as T;
+  if (obj instanceof Set) return new Set([...obj].map(cloneCircuitValue)) as any as T;
   if (obj instanceof Map)
-    return new Map(
-      [...obj].map(([k, v]) => [k, cloneCircuitValue(v)])
-    ) as any as T;
+    return new Map([...obj].map(([k, v]) => [k, cloneCircuitValue(v)])) as any as T;
   if (ArrayBuffer.isView(obj)) return new (obj.constructor as any)(obj);
 
   // o1js primitives and proofs aren't cloned
@@ -342,26 +324,16 @@ function cloneCircuitValue<T>(obj: T): T {
 
 function circuitValueEquals<T>(a: T, b: T): boolean {
   // primitive JS types and functions are checked for exact equality
-  if (
-    typeof a !== 'object' ||
-    a === null ||
-    typeof b !== 'object' ||
-    b === null
-  )
-    return a === b;
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return a === b;
 
   // built-in JS datatypes with custom equality checks
   if (Array.isArray(a)) {
     return (
-      Array.isArray(b) &&
-      a.length === b.length &&
-      a.every((a_, i) => circuitValueEquals(a_, b[i]))
+      Array.isArray(b) && a.length === b.length && a.every((a_, i) => circuitValueEquals(a_, b[i]))
     );
   }
   if (a instanceof Set) {
-    return (
-      b instanceof Set && a.size === b.size && [...a].every((a_) => b.has(a_))
-    );
+    return b instanceof Set && a.size === b.size && [...a].every((a_) => b.has(a_));
   }
   if (a instanceof Map) {
     return (
@@ -402,7 +374,5 @@ function circuitValueEquals<T>(a: T, b: T): boolean {
   let aEntries = Object.entries(a as any).filter(([, v]) => v !== undefined);
   let bEntries = Object.entries(b as any).filter(([, v]) => v !== undefined);
   if (aEntries.length !== bEntries.length) return false;
-  return aEntries.every(
-    ([key, value]) => key in b && circuitValueEquals((b as any)[key], value)
-  );
+  return aEntries.every(([key, value]) => key in b && circuitValueEquals((b as any)[key], value));
 }

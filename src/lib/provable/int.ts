@@ -1,14 +1,13 @@
 import { Field, Bool } from './wrapped.js';
 import { AnyConstructor, Struct } from './types/struct.js';
-import { Types } from '../../bindings/mina-transaction/types.js';
-import * as TypesBigint from '../../bindings/mina-transaction/transaction-leaves-bigint.js';
+import { Types } from '../../bindings/mina-transaction/v1/types.js';
+import * as TypesBigint from '../../bindings/mina-transaction/v1/transaction-leaves-bigint.js';
 import { HashInput } from './crypto/poseidon.js';
 import { Provable } from './provable.js';
 import * as RangeCheck from './gadgets/range-check.js';
 import * as Bitwise from './gadgets/bitwise.js';
 import { addMod32, addMod64 } from './gadgets/arithmetic.js';
-import type { Gadgets } from './gadgets/gadgets.js';
-import { withMessage } from './field.js';
+import { checkBitLength, withMessage } from './field.js';
 import { FieldVar } from './core/fieldvar.js';
 import { CircuitValue, prop } from './types/circuit-value.js';
 import {
@@ -20,6 +19,7 @@ import {
 import { assert } from '../util/assert.js';
 import { TupleN } from '../util/types.js';
 import { bytesToWord, wordToBytes } from './gadgets/bit-slices.js';
+import { BinableFp } from '../../mina-signer/src/field-bigint.js';
 
 // external API
 export { UInt8, UInt32, UInt64, Int64, Sign };
@@ -77,7 +77,7 @@ class UInt64 extends CircuitValue {
     return this.value.toString();
   }
   /**
-   * Turns the {@link UInt64} into a {@link BigInt}.
+   * Turns the {@link UInt64} into a BigInt.
    * @returns
    */
   toBigInt() {
@@ -101,11 +101,7 @@ class UInt64 extends CircuitValue {
    */
   toUInt32Clamped() {
     let max = (1n << 32n) - 1n;
-    let field = Provable.if(
-      this.greaterThan(UInt64.from(max)),
-      Field.from(max),
-      this.value
-    );
+    let field = Provable.if(this.greaterThan(UInt64.from(max)), Field.from(max), this.value);
     return UInt32.Unsafe.fromField(field);
   }
 
@@ -135,9 +131,7 @@ class UInt64 extends CircuitValue {
     if (!x.isConstant()) return x;
     let xBig = x.toBigInt();
     if (xBig < 0n || xBig >= 1n << BigInt(this.NUM_BITS)) {
-      throw Error(
-        `UInt64: Expected number between 0 and 2^64 - 1, got ${xBig}`
-      );
+      throw Error(`UInt64: Expected number between 0 and 2^64 - 1, got ${xBig}`);
     }
     return x;
   }
@@ -186,10 +180,7 @@ class UInt64 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Provable.witness(
-      Field,
-      () => new Field(x.toBigInt() / y_.toBigInt())
-    );
+    let q = Provable.witness(Field, () => new Field(x.toBigInt() / y_.toBigInt()));
 
     RangeCheck.rangeCheckN(UInt64.NUM_BITS, q);
 
@@ -295,7 +286,7 @@ class UInt64 extends CircuitValue {
    * ```ts
    * // NOTing 4 bits with the unchecked version
    * let a = UInt64.from(0b0101);
-   * let b = a.not(false);
+   * let b = a.not();
    *
    * console.log(b.toBigInt().toString(2));
    * // 1111111111111111111111111111111111111111111111111111111111111010
@@ -445,10 +436,7 @@ class UInt64 extends CircuitValue {
   assertLessThanOrEqual(y: UInt64, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 <= y0,
-        message ?? `UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`
-      );
+      return assert(x0 <= y0, message ?? `UInt64.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
     }
     assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
@@ -474,10 +462,7 @@ class UInt64 extends CircuitValue {
   assertLessThan(y: UInt64, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 < y0,
-        message ?? `UInt64.assertLessThan: expected ${x0} < ${y0}`
-      );
+      return assert(x0 < y0, message ?? `UInt64.assertLessThan: expected ${x0} < ${y0}`);
     }
     assertLessThanGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt64.NUM_BITS, v, message)
@@ -516,10 +501,80 @@ class UInt64 extends CircuitValue {
     return x.value.toBigInt();
   }
 
-  static fromValue<T extends AnyConstructor>(
-    x: bigint | UInt64
-  ): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(x: number | bigint | UInt64): InstanceType<T> {
     return UInt64.from(x) as any;
+  }
+
+  /**
+   * Split a UInt64 into 8 UInt8s, in little-endian order.
+   */
+  toBytes() {
+    return TupleN.fromArray(8, wordToBytes(this.value, 8));
+  }
+
+  /**
+   * Split a UInt64 into 8 UInt8s, in big-endian order.
+   */
+  toBytesBE() {
+    return TupleN.fromArray(8, wordToBytes(this.value, 8).reverse());
+  }
+
+  /**
+   * Combine 8 UInt8s into a UInt64, in little-endian order.
+   */
+  static fromBytes(bytes: UInt8[]): UInt64 {
+    assert(bytes.length === 8, '8 bytes needed to create a uint64');
+    return UInt64.Unsafe.fromField(bytesToWord(bytes));
+  }
+
+  /**
+   * Combine 8 UInt8s into a UInt64, in big-endian order.
+   */
+  static fromBytesBE(bytes: UInt8[]): UInt64 {
+    return UInt64.fromBytes([...bytes].reverse());
+  }
+
+  /**
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt64} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt64 element fits in `length` bits.
+   * The `length` has to be between 0 and 64 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 64 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt64}.
+   */
+  toBits(length: number = 64) {
+    checkBitLength('UInt64.toBits()', length, 64);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigInt());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt64.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    return this.value.toBits(length);
+  }
+
+  /**
+   * Convert a bit array into a {@link UInt64} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt64 element. In this case, no more than 64 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt64} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt64} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt64} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt64.fromBits()', length, 64);
+    return UInt64.Unsafe.fromField(Field.fromBits(bits));
   }
 }
 /**
@@ -575,7 +630,7 @@ class UInt32 extends CircuitValue {
     return this.value.toString();
   }
   /**
-   * Turns the {@link UInt32} into a {@link BigInt}.
+   * Turns the {@link UInt32} into a BigInt.
    */
   toBigint() {
     return this.value.toBigInt();
@@ -612,9 +667,7 @@ class UInt32 extends CircuitValue {
     if (!x.isConstant()) return x;
     let xBig = x.toBigInt();
     if (xBig < 0n || xBig >= 1n << BigInt(this.NUM_BITS)) {
-      throw Error(
-        `UInt32: Expected number between 0 and 2^32 - 1, got ${xBig}`
-      );
+      throw Error(`UInt32: Expected number between 0 and 2^32 - 1, got ${xBig}`);
     }
     return x;
   }
@@ -664,10 +717,7 @@ class UInt32 extends CircuitValue {
 
     y_ = y_.seal();
 
-    let q = Provable.witness(
-      Field,
-      () => new Field(x.toBigInt() / y_.toBigInt())
-    );
+    let q = Provable.witness(Field, () => new Field(x.toBigInt() / y_.toBigInt()));
 
     RangeCheck.rangeCheck32(q);
 
@@ -878,7 +928,7 @@ class UInt32 extends CircuitValue {
    * let a = UInt32.from(3);    // ... 000011
    * let b = UInt32.from(5);    // ... 000101
    *
-   * let c = a.and(b, 2);    // ... 000001
+   * let c = a.and(b);    // ... 000001
    * c.assertEquals(1);
    * ```
    */
@@ -921,10 +971,7 @@ class UInt32 extends CircuitValue {
   assertLessThanOrEqual(y: UInt32, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 <= y0,
-        message ?? `UInt32.assertLessThanOrEqual: expected ${x0} <= ${y0}`
-      );
+      return assert(x0 <= y0, message ?? `UInt32.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
     }
     assertLessThanOrEqualGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
@@ -949,10 +996,7 @@ class UInt32 extends CircuitValue {
   assertLessThan(y: UInt32, message?: string) {
     if (this.value.isConstant() && y.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y.value.toBigInt()];
-      return assert(
-        x0 < y0,
-        message ?? `UInt32.assertLessThan: expected ${x0} < ${y0}`
-      );
+      return assert(x0 < y0, message ?? `UInt32.assertLessThan: expected ${x0} < ${y0}`);
     }
     assertLessThanGeneric(this.value, y.value, (v) =>
       RangeCheck.rangeCheckN(UInt32.NUM_BITS, v, message)
@@ -991,9 +1035,7 @@ class UInt32 extends CircuitValue {
     return x.value.toBigInt();
   }
 
-  static fromValue<T extends AnyConstructor>(
-    x: bigint | UInt32
-  ): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(x: number | bigint | UInt32): InstanceType<T> {
     return UInt32.from(x) as any;
   }
 
@@ -1025,6 +1067,49 @@ class UInt32 extends CircuitValue {
   static fromBytesBE(bytes: UInt8[]): UInt32 {
     return UInt32.fromBytes([...bytes].reverse());
   }
+
+  /**
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt32} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt32 element fits in `length` bits.
+   * The `length` has to be between 0 and 32 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 32 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt32}.
+   */
+  toBits(length: number = 32) {
+    checkBitLength('UInt32.toBits()', length, 32);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigint());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt32.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    return this.value.toBits(length);
+  }
+
+  /**
+   * Convert a bit array into a {@link UInt32} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt32 element. In this case, no more than 32 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt32} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt32} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt32} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt32.fromBits()', length, 32);
+    return UInt32.Unsafe.fromField(Field.fromBits(bits));
+  }
 }
 
 class Sign extends CircuitValue {
@@ -1051,9 +1136,7 @@ class Sign extends CircuitValue {
     if (x.neg().toString() === '1') return 'Negative';
     throw Error(`Invalid Sign: ${x}`);
   }
-  static fromJSON<T extends AnyConstructor>(
-    x: 'Positive' | 'Negative'
-  ): InstanceType<T> {
+  static fromJSON<T extends AnyConstructor>(x: 'Positive' | 'Negative'): InstanceType<T> {
     return (x === 'Positive' ? new Sign(Field(1)) : new Sign(Field(-1))) as any;
   }
   neg() {
@@ -1077,9 +1160,7 @@ class Sign extends CircuitValue {
     return x.value.toBigInt() as TypesBigint.Sign;
   }
 
-  static fromValue<T extends AnyConstructor>(
-    x: bigint | Sign
-  ): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(x: number | bigint | Sign): InstanceType<T> {
     if (x instanceof Sign) return x as any;
     return new Sign(Field(x)) as any;
   }
@@ -1206,15 +1287,12 @@ class Int64 extends CircuitValue implements BalanceChange {
     },
   };
 
-  fromObject(obj: {
-    magnitude: UInt64 | number | string | bigint;
-    sgn: Sign | bigint;
-  }) {
+  fromObject(obj: { magnitude: UInt64 | number | string | bigint; sgn: Sign | bigint }) {
     return Int64.create(UInt64.from(obj.magnitude), Sign.fromValue(obj.sgn));
   }
 
   /**
-   * Turns the {@link Int64} into a {@link BigInt}.
+   * Turns the {@link Int64} into a BigInt.
    */
   toBigint() {
     let abs = this.magnitude.toBigInt();
@@ -1287,8 +1365,8 @@ class Int64 extends CircuitValue implements BalanceChange {
    * Int64.from(5).neg();
    * ```
    *
-   * @see {@link Int64#from} for creating Int64 instances
-   * @see {@link Int64#zero} for the zero constant
+   * @see {@link Int64.from} for creating Int64 instances
+   * @see {@link Int64.zero} for the zero constant
    *
    * @throws {Error} Implicitly, if the internal Provable.if condition fails
    */
@@ -1367,11 +1445,7 @@ class Int64 extends CircuitValue implements BalanceChange {
     let y_ = UInt64.from(y);
     let rest = this.magnitude.divMod(y_).rest.value;
     let isNonNegative = this.isNonNegative();
-    rest = Provable.if(
-      isNonNegative.or(rest.equals(0)),
-      rest,
-      y_.value.sub(rest)
-    );
+    rest = Provable.if(isNonNegative.or(rest.equals(0)), rest, y_.value.sub(rest));
     return new Int64(new UInt64(rest.value));
   }
 
@@ -1385,10 +1459,7 @@ class Int64 extends CircuitValue implements BalanceChange {
   /**
    * Asserts that two values are equal.
    */
-  assertEquals(
-    y: Int64 | number | string | bigint | UInt64 | UInt32,
-    message?: string
-  ) {
+  assertEquals(y: Int64 | number | string | bigint | UInt64 | UInt32, message?: string) {
     let y_ = Int64.from(y);
     this.toField().assertEquals(y_.toField(), message);
   }
@@ -1430,9 +1501,7 @@ class Int64 extends CircuitValue implements BalanceChange {
 
     // check unique representation of 0: we can't have magnitude = 0 and sgn = -1
     // magnitude + sign != -1 (this check works because magnitude >= 0)
-    magnitude.value
-      .add(sgn.value)
-      .assertNotEquals(-1, 'Int64: 0 must have positive sign');
+    magnitude.value.add(sgn.value).assertNotEquals(-1, 'Int64: 0 must have positive sign');
   }
 }
 
@@ -1602,6 +1671,106 @@ class UInt8 extends Struct({
   }
 
   /**
+   * Bitwise XOR gadget on {@link Field} elements. Equivalent to the [bitwise XOR `^` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR).
+   * A XOR gate works by comparing two bits and returning `1` if two bits differ, and `0` if two bits are equal.
+   *
+   * This gadget builds a chain of XOR gates recursively.
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#xor-1)
+   *
+   * @param x {@link UInt8} element to XOR.
+   *
+   * @example
+   * ```ts
+   * let a = UInt8.from(0b0101);
+   * let b = UInt8.from(0b0011);
+   *
+   * let c = a.xor(b);
+   * c.assertEquals(0b0110);
+   * ```
+   */
+  xor(x: UInt8) {
+    return new UInt8(Bitwise.xor(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise NOT gate on {@link Field} elements. Similar to the [bitwise
+   * NOT `~` operator in JavaScript](https://developer.mozilla.org/en-US/docs/
+   * Web/JavaScript/Reference/Operators/Bitwise_NOT).
+   *
+   * **Note:** The NOT gate operates over 8 bit for UInt8 types.
+   *
+   * A NOT gate works by returning `1` in each bit position if the
+   * corresponding bit of the operand is `0`, and returning `0` if the
+   * corresponding bit of the operand is `1`.
+   *
+   * NOT is implemented as a subtraction of the input from the all one bitmask
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#not)
+   *
+   * @example
+   * ```ts
+   * // NOTing 4 bits with the unchecked version
+   * let a = UInt8.from(0b0101);
+   * let b = a.not();
+   *
+   * console.log(b.toBigInt().toString(2));
+   * // 11111010
+   *
+   * ```
+   *
+   */
+  not() {
+    return new UInt8(Bitwise.not(this.value, UInt8.NUM_BITS, false).value);
+  }
+
+  /**
+   * Bitwise AND gadget on {@link UInt8} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
+   * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
+   *
+   * It can be checked by a double generic gate that verifies the following relationship between the values below.
+   *
+   * The generic gate verifies:\
+   * `a + b = sum` and the conjunction equation `2 * and = sum - xor`\
+   * Where:\
+   * `a + b = sum`\
+   * `a ^ b = xor`\
+   * `a & b = and`
+   *
+   * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
+   *
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.and(b);    // ... 000001
+   * c.assertEquals(1);
+   * ```
+   */
+  and(x: UInt8) {
+    return new UInt8(Bitwise.and(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
+   * Bitwise OR gadget on {@link UInt8} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
+   * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
+   *
+   * @example
+   * ```typescript
+   * let a = UInt8.from(3);    // ... 000011
+   * let b = UInt8.from(5);    // ... 000101
+   *
+   * let c = a.or(b);    // ... 000111
+   * c.assertEquals(7);
+   * ```
+   */
+  or(x: UInt8) {
+    return new UInt8(Bitwise.or(this.value, x.value, UInt8.NUM_BITS).value);
+  }
+
+  /**
    * Check if this {@link UInt8} is less than or equal to another {@link UInt8} value.
    * Returns a {@link Bool}.
    *
@@ -1615,12 +1784,7 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y_.value.isConstant()) {
       return Bool(this.toBigInt() <= y_.toBigInt());
     }
-    return lessThanOrEqualGeneric(
-      this.value,
-      y_.value,
-      1n << 8n,
-      RangeCheck.rangeCheck8
-    );
+    return lessThanOrEqualGeneric(this.value, y_.value, 1n << 8n, RangeCheck.rangeCheck8);
   }
 
   /**
@@ -1637,12 +1801,7 @@ class UInt8 extends Struct({
     if (this.value.isConstant() && y_.value.isConstant()) {
       return Bool(this.toBigInt() < y_.toBigInt());
     }
-    return lessThanGeneric(
-      this.value,
-      y_.value,
-      1n << 8n,
-      RangeCheck.rangeCheck8
-    );
+    return lessThanGeneric(this.value, y_.value, 1n << 8n, RangeCheck.rangeCheck8);
   }
 
   /**
@@ -1657,10 +1816,7 @@ class UInt8 extends Struct({
     let y_ = UInt8.from(y);
     if (this.value.isConstant() && y_.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y_.value.toBigInt()];
-      return assert(
-        x0 < y0,
-        message ?? `UInt8.assertLessThan: expected ${x0} < ${y0}`
-      );
+      return assert(x0 < y0, message ?? `UInt8.assertLessThan: expected ${x0} < ${y0}`);
     }
     try {
       // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanGeneric`
@@ -1682,18 +1838,11 @@ class UInt8 extends Struct({
     let y_ = UInt8.from(y);
     if (this.value.isConstant() && y_.value.isConstant()) {
       let [x0, y0] = [this.value.toBigInt(), y_.value.toBigInt()];
-      return assert(
-        x0 <= y0,
-        message ?? `UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`
-      );
+      return assert(x0 <= y0, message ?? `UInt8.assertLessThanOrEqual: expected ${x0} <= ${y0}`);
     }
     try {
       // 2^16 < p - 2^8, so we satisfy the assumption of `assertLessThanOrEqualGeneric`
-      assertLessThanOrEqualGeneric(
-        this.value,
-        y_.value,
-        RangeCheck.rangeCheck16
-      );
+      assertLessThanOrEqualGeneric(this.value, y_.value, RangeCheck.rangeCheck16);
     } catch (err) {
       throw withMessage(err, message);
     }
@@ -1839,8 +1988,64 @@ class UInt8 extends Struct({
     return new UInt8(x);
   }
 
+  static fromValue(
+    // we need all the { value } inputs to correctly extend the Struct
+    x: number | UInt8 | { value: string | number | bigint | Field }
+  ) {
+    if (typeof x === 'number') return UInt8.from(x);
+    if (x instanceof UInt8) return x;
+    return UInt8.Unsafe.fromField(Field(x.value));
+  }
+
   private static checkConstant(x: Field) {
     if (!x.isConstant()) return;
     RangeCheck.rangeCheck8(x);
+  }
+
+  isConstant() {
+    return this.value.isConstant();
+  }
+
+  /**
+   * Returns an array of {@link Bool} elements representing [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of this {@link UInt8} element.
+   *
+   * If you use the optional `length` argument, proves that the UInt8 element fits in `length` bits.
+   * The `length` has to be between 0 and 8 and the method throws if it isn't.
+   *
+   * **Warning**: The cost of this operation in a zk proof depends on the `length` you specify,
+   * which by default is 8 bits. Prefer to pass a smaller `length` if possible.
+   *
+   * @param length - the number of bits to fit the element. If the element does not fit in `length` bits, the functions throws an error.
+   *
+   * @return An array of {@link Bool} element representing little endian binary representation of this {@link UInt8}.
+   */
+  toBits(length: number = 8) {
+    checkBitLength('UInt8.toBits()', length, 8);
+    if (this.isConstant()) {
+      let bits = BinableFp.toBits(this.toBigInt());
+      if (bits.slice(length).some((bit) => bit))
+        throw Error(`UInt8.toBits(): ${this} does not fit in ${length} bits`);
+      return bits.slice(0, length).map((b) => new Bool(b));
+    }
+    return this.value.toBits(length);
+  }
+
+  /**
+   * Convert a bit array into a {@link UInt8} element using [little endian binary representation](https://en.wikipedia.org/wiki/Endianness)
+   *
+   * The method throws if the given bits do not fit in a single UInt8 element. In this case, no more than 8 bits are allowed.
+   *
+   * **Important**: If the given `bits` array is an array of `booleans` or {@link Bool} elements that all are `constant`,
+   *  the resulting {@link UInt8} element will be a constant as well. Or else, if the given array is a mixture of constants and variables of {@link Bool} type,
+   *  the resulting {@link UInt8} will be a variable as well.
+   *
+   * @param bits - An array of {@link Bool} or `boolean` type.
+   *
+   * @return A {@link UInt8} element matching the [little endian binary representation](https://en.wikipedia.org/wiki/Endianness) of the given `bits` array.
+   */
+  static fromBits(bits: (Bool | boolean)[]) {
+    const length = bits.length;
+    checkBitLength('UInt8.fromBits()', length, 8);
+    return UInt8.Unsafe.fromField(Field.fromBits(bits));
   }
 }

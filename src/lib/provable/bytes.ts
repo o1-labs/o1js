@@ -9,10 +9,10 @@ import { Field } from './field.js';
 import { Bool } from './bool.js';
 
 // external API
-export { Bytes };
+export { Bytes, FlexibleBytes };
 
 // internal API
-export { createBytes, FlexibleBytes };
+export { createBytes };
 
 type FlexibleBytes = Bytes | (UInt8 | bigint | number)[] | Uint8Array;
 
@@ -26,16 +26,10 @@ class Bytes {
     let size = (this.constructor as typeof Bytes).size;
 
     // assert that data is not too long
-    assert(
-      bytes.length <= size,
-      `Expected at most ${size} bytes, got ${bytes.length}`
-    );
+    assert(bytes.length <= size, `Expected at most ${size} bytes, got ${bytes.length}`);
 
     // pad the data with zeros
-    let padding = Array.from(
-      { length: size - bytes.length },
-      () => new UInt8(0)
-    );
+    let padding = Array.from({ length: size - bytes.length }, () => new UInt8(0));
     this.bytes = bytes.concat(padding);
   }
 
@@ -44,7 +38,7 @@ class Bytes {
    *
    * Inputs smaller than `this.size` are padded with zero bytes.
    */
-  static from(data: (UInt8 | bigint | number)[] | Uint8Array | Bytes): Bytes {
+  static from(data: FlexibleBytes): Bytes {
     if (data instanceof Bytes) return data;
     if (this._size === undefined) {
       let Bytes_ = createBytes(data.length);
@@ -93,9 +87,7 @@ class Bytes {
    * Convert {@link Bytes} to a hex string.
    */
   toHex(): string {
-    return this.bytes
-      .map((x) => x.toBigInt().toString(16).padStart(2, '0'))
-      .join('');
+    return this.bytes.map((x) => x.toBigInt().toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -105,13 +97,10 @@ class Bytes {
     const uint8Bytes = this.bytes;
 
     // Convert each byte to its 8-bit binary representation and reverse endianness
-    let plainBits: Bool[] = uint8Bytes
-      .map((b) => b.value.toBits(8).reverse())
-      .flat();
+    let plainBits: Bool[] = uint8Bytes.map((b) => b.value.toBits(8).reverse()).flat();
 
     // Calculate the bit padding required to make the total bits length a multiple of 6
-    const bitPadding =
-      plainBits.length % 6 !== 0 ? 6 - (plainBits.length % 6) : 0;
+    const bitPadding = plainBits.length % 6 !== 0 ? 6 - (plainBits.length % 6) : 0;
 
     // Add the required bit padding with 0 bits
     plainBits.push(...Array(bitPadding).fill(new Bool(false)));
@@ -131,8 +120,7 @@ class Bytes {
     }
 
     // Add '=' padding to the encoded output if required
-    const paddingLength =
-      uint8Bytes.length % 3 !== 0 ? 3 - (uint8Bytes.length % 3) : 0;
+    const paddingLength = uint8Bytes.length % 3 !== 0 ? 3 - (uint8Bytes.length % 3) : 0;
     encodedBytes.push(...Array(paddingLength).fill(UInt8.from(61)));
 
     return Bytes.from(encodedBytes);
@@ -152,10 +140,7 @@ class Bytes {
     const encodedB64Bytes = this.bytes;
 
     const charLength = encodedB64Bytes.length;
-    assert(
-      charLength % 4 === 0,
-      'Input base64 byte length should be a multiple of 4!'
-    );
+    assert(charLength % 4 === 0, 'Input base64 byte length should be a multiple of 4!');
 
     let decodedB64Bytes: UInt8[] = new Array(byteLength).fill(UInt8.from(0));
 
@@ -183,9 +168,7 @@ class Bytes {
 
       for (let j = 0; j < 3; j++) {
         if (idx + j < byteLength) {
-          decodedB64Bytes[idx + j] = UInt8.Unsafe.fromField(
-            Field.fromBits(bitsOut[i][j])
-          );
+          decodedB64Bytes[idx + j] = UInt8.Unsafe.fromField(Field.fromBits(bitsOut[i][j]));
         }
       }
       idx += 3;
@@ -280,10 +263,7 @@ function base64DecodeLookup(input: UInt8): Field {
 
   // '/' character
   const equal_slash = input.value.equals(47);
-  const sum_slash = equal_slash
-    .toField()
-    .mul(input.value.add(16))
-    .add(sum_plus);
+  const sum_slash = equal_slash.toField().mul(input.value.add(16)).add(sum_plus);
   isValidBase64Chars = isValidBase64Chars.add(equal_slash.toField());
 
   // '=' character
@@ -336,10 +316,7 @@ function base64EncodeLookup(input: UInt8): UInt8 {
 
   // '/'
   const equal_slash = input.value.equals(63);
-  const sum_slash = equal_slash
-    .toField()
-    .mul(input.value.sub(16))
-    .add(sum_plus);
+  const sum_slash = equal_slash.toField().mul(input.value.sub(16)).add(sum_plus);
   isValidBase64Chars = isValidBase64Chars.add(equal_slash.toField());
 
   // Validate if input contains only valid base64 characters

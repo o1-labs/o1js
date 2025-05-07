@@ -4,16 +4,7 @@
  *
  * We implement this as a self-recursive ZkProgram, using `proveRecursivelyIf()`
  */
-import {
-  assert,
-  Bool,
-  Experimental,
-  Field,
-  Poseidon,
-  Provable,
-  Struct,
-  ZkProgram,
-} from 'o1js';
+import { assert, Bool, Experimental, Field, Poseidon, Provable, Struct, ZkProgram } from 'o1js';
 
 const HASHES_PER_PROOF = 30;
 
@@ -61,7 +52,7 @@ await hashChain.compile();
 let n = 100;
 let x = Field.random();
 
-let { proof } = await hashChain.chain({ x, n: Field(n) });
+let { proof } = await hashChain.chain({ x, n });
 
 assert(await hashChain.verify(proof), 'Proof invalid');
 

@@ -31,7 +31,7 @@ enum FieldType {
 }
 
 /**
- * `FieldVar` is the core data type in snarky. It is eqivalent to `Cvar.t` in OCaml.
+ * `FieldVar` is the core data type in snarky. It is equivalent to `Cvar.t` in OCaml.
  * It represents a field element that is part of provable code - either a constant or a variable.
  *
  * **Variables** end up filling the witness columns of a constraint system.
@@ -87,11 +87,7 @@ const FieldVar = {
       return FieldVar.constant(Fp.mul(c0[1], x[1][1]));
     }
     if (FieldVar.isScale(x)) {
-      return [
-        FieldType.Scale,
-        FieldConst.fromBigint(Fp.mul(c0[1], x[1][1])),
-        x[2],
-      ];
+      return [FieldType.Scale, FieldConst.fromBigint(Fp.mul(c0[1], x[1][1])), x[2]];
     }
     return [FieldType.Scale, c0, x];
   },

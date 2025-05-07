@@ -1,8 +1,8 @@
 # Purpose:
-# Automatically bumps the project's patch version bi-weekly on Tuesdays.
+# Automatically bumps the project's patch version every month.
 #
 # Details:
-# - Triggered at 00:00 UTC every Tuesday; runs on even weeks of the year.
+# - Triggered at 15:00 UTC every 27th of each month
 # - Sets up the environment by checking out the repo and setting up Node.js.
 # - Bumps patch version using `npm version patch`, then creates a new branch 'release/x.x.x'.
 # - Pushes changes and creates a PR to `main` using GitHub CLI.
@@ -12,23 +12,13 @@ name: Version Bump
 on:
   workflow_dispatch: # Allow to manually trigger the workflow
   schedule:
-    - cron: '0 0 * * 2' # At 00:00 UTC every Tuesday
+    - cron: '0 15 27 * *' # At 15:00 UTC every 27th of each month
 
 jobs:
-  version-bump:
+  Version-bump:
     runs-on: ubuntu-latest
 
     steps:
-      # Since cronjob syntax doesn't support bi-weekly schedule, we need to check if it's an even week or not
-      - name: Check if it's an even week
-        run: |
-          WEEK_NUM=$(date +'%V')
-          WEEK_NUM=$((10#$WEEK_NUM))
-          if [ $((WEEK_NUM % 2)) -ne 0 ]; then
-            echo "Odd week number ($WEEK_NUM), terminating job."
-            exit 1
-          fi
-
       - name: Check out the repository
         uses: actions/checkout@v4
 

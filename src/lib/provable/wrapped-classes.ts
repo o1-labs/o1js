@@ -1,6 +1,6 @@
-import { Bytes as InternalBytes, createBytes } from './bytes.js';
+import { Bytes as InternalBytes, createBytes, FlexibleBytes } from './bytes.js';
 
-export { Bytes };
+export { Bytes, FlexibleBytes };
 
 type Bytes = InternalBytes;
 
@@ -20,5 +20,5 @@ Bytes.from = InternalBytes.from;
 Bytes.fromHex = InternalBytes.fromHex;
 Bytes.fromString = InternalBytes.fromString;
 
-// expore base class so that we can detect Bytes with `instanceof`
+// expose base class so that we can detect Bytes with `instanceof`
 Bytes.Base = InternalBytes;

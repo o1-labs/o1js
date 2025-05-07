@@ -1,4 +1,4 @@
-import type { Account as JsonAccount } from './bindings/mina-transaction/gen/transaction-json.js';
+import type { Account as JsonAccount } from './bindings/mina-transaction/gen/v1/transaction-json.ts';
 import type { Field } from './lib/provable/field.js';
 import type {
   FieldVar,
@@ -97,6 +97,7 @@ declare const Snarky: {
      * Check whether we are inside an asProver or exists block
      */
     inProverBlock(): boolean;
+
     /**
      * Setting that controls whether snarky throws an exception on violated constraint.
      */

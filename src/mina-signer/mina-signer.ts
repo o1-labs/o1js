@@ -11,12 +11,9 @@ import {
   isStakeDelegation,
   isZkappCommand,
 } from './src/utils.js';
-import * as TransactionJson from '../bindings/mina-transaction/gen/transaction-json.js';
-import { ZkappCommand } from '../bindings/mina-transaction/gen/transaction-bigint.js';
-import {
-  signZkappCommand,
-  verifyZkappCommandSignature,
-} from './src/sign-zkapp-command.js';
+import * as TransactionJson from '../bindings/mina-transaction/gen/v1/transaction-json.js';
+import { ZkappCommand } from '../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import { signZkappCommand, verifyZkappCommandSignature } from './src/sign-zkapp-command.js';
 import {
   signPayment,
   signStakeDelegation,
@@ -65,9 +62,7 @@ class Client {
    * @returns True if the `keypair` is a verifiable key pair, otherwise throw an exception
    */
   verifyKeypair({ privateKey, publicKey }: Json.Keypair): boolean {
-    let derivedPublicKey = PrivateKey.toPublicKey(
-      PrivateKey.fromBase58(privateKey)
-    );
+    let derivedPublicKey = PrivateKey.toPublicKey(PrivateKey.fromBase58(privateKey));
     let originalPublicKey = PublicKey.fromBase58(publicKey);
     if (
       derivedPublicKey.x !== originalPublicKey.x ||
@@ -183,10 +178,7 @@ class Client {
    * @param privateKey The private key used to sign the message
    * @returns A signed message
    */
-  signMessage(
-    message: string,
-    privateKey: Json.PrivateKey
-  ): SignedLegacy<string> {
+  signMessage(message: string, privateKey: Json.PrivateKey): SignedLegacy<string> {
     let privateKey_ = PrivateKey.fromBase58(privateKey);
     let publicKey = PublicKey.toBase58(PrivateKey.toPublicKey(privateKey_));
     return {
@@ -243,10 +235,7 @@ class Client {
    * @param privateKey The private key used to sign the transaction
    * @returns A signed payment transaction
    */
-  signPayment(
-    payment: Json.Payment,
-    privateKey: Json.PrivateKey
-  ): SignedLegacy<Json.Payment> {
+  signPayment(payment: Json.Payment, privateKey: Json.PrivateKey): SignedLegacy<Json.Payment> {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(payment);
     let amount = String(payment.amount);
     let signature = signPayment(
@@ -270,11 +259,7 @@ class Client {
    * @param signedPayment A signed payment transaction
    * @returns True if the `signedPayment` is a verifiable payment
    */
-  verifyPayment({
-    data,
-    signature,
-    publicKey,
-  }: SignedLegacy<Json.Payment>): boolean {
+  verifyPayment({ data, signature, publicKey }: SignedLegacy<Json.Payment>): boolean {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
     let amount = validNonNegative(data.amount);
     return verifyPayment(
@@ -427,11 +412,7 @@ class Client {
    * @param signedZkappCommand A signed zkApp transaction
    * @returns True if the signature is valid
    */
-  verifyZkappCommand({
-    data,
-    publicKey,
-    signature,
-  }: Signed<Json.ZkappCommand>): boolean {
+  verifyZkappCommand({ data, publicKey, signature }: Signed<Json.ZkappCommand>): boolean {
     return (
       signature === data.zkappCommand.feePayer.authorization &&
       verifyZkappCommandSignature(data.zkappCommand, publicKey, this.network)
@@ -513,9 +494,7 @@ class Client {
    * @param signedPayload A signed payload
    * @returns True if the signature is valid
    */
-  verifyTransaction(
-    signed: SignedLegacy<Json.SignableData> | Signed<Json.ZkappCommand>
-  ): boolean {
+  verifyTransaction(signed: SignedLegacy<Json.SignableData> | Signed<Json.ZkappCommand>): boolean {
     if (isSignedString(signed)) {
       return this.verifyMessage(signed);
     }
@@ -528,9 +507,7 @@ class Client {
     if (isSignedZkappCommand(signed)) {
       return this.verifyZkappCommand(signed);
     } else {
-      throw Error(
-        `Expected signable payload, got '${JSON.stringify(signed.data)}'.`
-      );
+      throw Error(`Expected signable payload, got '${JSON.stringify(signed.data)}'.`);
     }
   }
 
@@ -552,10 +529,7 @@ class Client {
    * @param privateKeyBase58 The private key used to create the nullifier
    * @returns A nullifier
    */
-  createNullifier(
-    message: bigint[],
-    privateKeyBase58: Json.PrivateKey
-  ): Json.Nullifier {
+  createNullifier(message: bigint[], privateKeyBase58: Json.PrivateKey): Json.Nullifier {
     let sk = PrivateKey.fromBase58(privateKeyBase58);
     return createNullifier(message, sk);
   }
@@ -594,8 +568,7 @@ function validFeePayer(
 ): Json.StrictFeePayer {
   if (feePayer.fee === undefined) throw Error('Missing fee in fee payer');
   let fee = validNonNegative(feePayer.fee);
-  if (Number(fee) < minimumFee)
-    throw Error(`Fee must be greater than ${minimumFee}`);
+  if (Number(fee) < minimumFee) throw Error(`Fee must be greater than ${minimumFee}`);
   return {
     feePayer: feePayer.feePayer,
     fee,

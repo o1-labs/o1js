@@ -1,0 +1,184 @@
+name: Jobs for new commits on main (and similar branches)
+on:
+  workflow_run:
+    workflows: ["checks"]
+    types:
+      - completed
+    branches:
+      - main
+      - v1
+      - v2
+      - v3
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  Build-Doc:
+    strategy:
+      matrix:
+        node: [20]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run typedoc
+        run: |
+          GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
+          npm ci
+          npx typedoc --tsconfig tsconfig.node.json src/index.ts
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+
+
+  Auto-merge:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for all branches and tags
+
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: Try to merge main into version-next
+        run: |
+          git checkout version-next
+          git merge origin/main
+          git push origin version-next
+        continue-on-error: true
+
+      - name: Create Pull Request if merge failed
+        if: failure()
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: auto-merge-main-to-version-next-${{ github.sha }}
+          title: 'Auto-merge main to version-next (commit ${{ github.sha }})'
+          body: 'This PR was automatically created to merge changes from main into version-next. Please resolve conflicts and merge manually.'
+          base: version-next
+
+
+  Pkg-pr-new:
+    strategy:
+      matrix:
+        node: [20]
+
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+      - name: Build o1js and mina-signer
+        run: |
+          npm run prepublishOnly
+          cd src/mina-signer
+          npm ci
+          npm run prepublishOnly
+      - name: Publish o1js and mina-signer on pkg-pr-new
+        run: npx pkg-pr-new publish ./ ./src/mina-signer # Enable `--compact` once published to NPM with `repository` in package.json
+
+        # TODO is this redundant with the last step?
+      - name: Publish to NPM if version has changed
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          package: './src/mina-signer/package.json'
+          strategy: upgrade
+        env:
+          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+
+  Gc-root-bindings:
+    name: add a gc root for the latest bindings build
+    if: github.ref == 'refs/heads/main'
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+      - name: add build to gc-root if on main
+        run: |
+          nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
+
+
+  Release-on-NPM:
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 180
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore repository
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build o1js
+        run: |
+          npm ci
+          npm run prepublishOnly
+
+      - name: Publish to NPM if version has changed
+        id: publish
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          strategy: upgrade
+        env:
+          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Tag new version
+        if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASED_VERSION: ${{ steps.publish.outputs.version }}
+        run: |
+          git tag $RELEASED_VERSION
+          git push origin $RELEASED_VERSION
+      - name: Create Release
+        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
+        if: success()
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.publish.outputs.version }}
+          generateReleaseNotes: true
+          name: Release ${{ steps.publish.outputs.version }}
+          skipIfReleaseExists: true
+

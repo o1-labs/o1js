@@ -1,22 +1,16 @@
-import {
-  areBindingsInitialized,
-  initializeBindings,
-  withThreadPool,
-} from '../../snarky.js';
+import { areBindingsInitialized, initializeBindings, withThreadPool } from '../../snarky.js';
 import { Pickles, Base64ProofString } from '../../snarky.js';
 import { Field, Bool } from '../provable/wrapped.js';
-import type {
-  FlexibleProvable,
-  InferProvable,
-} from '../provable/types/struct.js';
+import type { FlexibleProvable, InferProvable } from '../provable/types/struct.js';
 import { FeatureFlags } from './feature-flags.js';
-import type { VerificationKey, JsonProof } from './zkprogram.js';
+import type { JsonProof } from './zkprogram.js';
 import { Subclass } from '../util/types.js';
 import type { Provable } from '../provable/provable.js';
 import { assert } from '../util/assert.js';
 import { Unconstrained } from '../provable/types/unconstrained.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
 import { ZkProgramContext } from './zkprogram-context.js';
+import { VerificationKey } from './verification-key.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof, ProofClass };
@@ -92,10 +86,7 @@ class ProofBase<Input = any, Output = any> {
   }
 
   static get provable(): Provable<any> {
-    if (
-      this.publicInputType === undefined ||
-      this.publicOutputType === undefined
-    ) {
+    if (this.publicInputType === undefined || this.publicOutputType === undefined) {
       throw Error(
         `You cannot use the \`Proof\` class directly. Instead, define a subclass:\n` +
           `class MyProof extends Proof<PublicInput, PublicOutput> { ... }`
@@ -121,10 +112,7 @@ class ProofBase<Input = any, Output = any> {
     return (this.constructor as typeof ProofBase).publicFields(this);
   }
 
-  static _proofFromBase64(
-    proofString: Base64ProofString,
-    maxProofsVerified: 0 | 1 | 2
-  ) {
+  static _proofFromBase64(proofString: Base64ProofString, maxProofsVerified: 0 | 1 | 2) {
     assertBindingsInitialized();
     return Pickles.proofOfBase64(proofString, maxProofsVerified)[1];
   }
@@ -135,9 +123,22 @@ class ProofBase<Input = any, Output = any> {
 }
 
 class Proof<Input, Output> extends ProofBase<Input, Output> {
+  /**
+   * Sets the `shouldVerify` flag to `true`
+   * The downstream effect of this is that the proof will be verified when the circuit is run
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   */
   verify() {
     this.shouldVerify = Bool(true);
   }
+  /**
+   * Sets the `shouldVerify` flag to the given condition param
+   * If set to `Bool(true)`, the proof will be verified when the circuit is run
+   * If set to `Bool(false)`, the proof will not be verified when the circuit is run
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   */
   verifyIf(condition: Bool) {
     this.shouldVerify = condition;
   }
@@ -150,20 +151,11 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
       publicInput: publicInputJson,
       publicOutput: publicOutputJson,
     }: JsonProof
-  ): Promise<
-    Proof<
-      InferProvable<S['publicInputType']>,
-      InferProvable<S['publicOutputType']>
-    >
-  > {
+  ): Promise<Proof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>> {
     await initializeBindings();
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
-    return this.provable.fromFields(fields, [
-      [],
-      [],
-      [proof, maxProofsVerified],
-    ]) as any;
+    return this.provable.fromFields(fields, [[], [], [proof, maxProofsVerified]]) as any;
   }
 
   /**
@@ -210,7 +202,7 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
 let sideloadedKeysCounter = 0;
 
 /**
- * The `DynamicProof` class enables circuits to verify proofs using in-ciruit verfication keys.
+ * The `DynamicProof` class enables circuits to verify proofs using in-ciruit verification keys.
  * This is opposed to the baked-in verification keys of the `Proof` class.
  *
  * In order to use this, a subclass of DynamicProof that specifies the public input and output types along with the maxProofsVerified number has to be created.
@@ -275,13 +267,29 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
   usedVerificationKey?: VerificationKey;
 
   /**
-   * Verifies this DynamicProof using a given verification key
+   * Sets the `shouldVerify` flag to `true`
+   * The downstream effect of this is that the proof will be verified when the circuit is run
+   *
    * @param vk The verification key this proof will be verified against
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   * @note The vk parameter will have its auxiliary data checked in the circuit, so the hash must match the data, or else the proof will fail
    */
   verify(vk: VerificationKey) {
     this.shouldVerify = Bool(true);
     this.usedVerificationKey = vk;
   }
+  /**
+   * Sets the `shouldVerify` flag to the given condition param
+   * If set to `Bool(true)`, the proof will be verified when the circuit is run
+   * If set to `Bool(false)`, the proof will not be verified when the circuit is run
+   *
+   * @param vk The verification key this proof will be verified against
+   * @param condition The condition to set the shouldVerify flag to
+   *
+   * @note This method is meant to be called in a circuit.  Executing it outside of a circuit will have no effect.
+   * @note The vk parameter will have its auxiliary data checked in the circuit, so the hash must match the data, or else the proof will fail
+   */
   verifyIf(vk: VerificationKey, condition: Bool) {
     this.shouldVerify = condition;
     this.usedVerificationKey = vk;
@@ -296,19 +304,12 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
       publicOutput: publicOutputJson,
     }: JsonProof
   ): Promise<
-    DynamicProof<
-      InferProvable<S['publicInputType']>,
-      InferProvable<S['publicOutputType']>
-    >
+    DynamicProof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>
   > {
     await initializeBindings();
     let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
     let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
-    return this.provable.fromFields(fields, [
-      [],
-      [],
-      [proof, maxProofsVerified],
-    ]) as any;
+    return this.provable.fromFields(fields, [[], [], [proof, maxProofsVerified]]) as any;
   }
 
   static async dummy<S extends Subclass<typeof DynamicProof>>(
@@ -319,10 +320,12 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
     domainLog2: number = 14
   ): Promise<InstanceType<S>> {
     return this.fromProof(
-      await Proof.dummy<
-        InferProvable<S['publicInputType']>,
-        InferProvable<S['publicOutputType']>
-      >(publicInput, publicOutput, maxProofsVerified, domainLog2)
+      await Proof.dummy<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>(
+        publicInput,
+        publicOutput,
+        maxProofsVerified,
+        domainLog2
+      )
     );
   }
 
@@ -333,10 +336,7 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
    */
   static fromProof<S extends Subclass<typeof DynamicProof>>(
     this: S,
-    proof: Proof<
-      InferProvable<S['publicInputType']>,
-      InferProvable<S['publicOutputType']>
-    >
+    proof: Proof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>
   ): InstanceType<S> {
     return new this({
       publicInput: proof.publicInput,
@@ -353,9 +353,7 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
 
 async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   await initializeBindings();
-  return withThreadPool(
-    async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]
-  );
+  return withThreadPool(async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]);
 }
 
 type ProofValue<Input, Output> = {
@@ -365,11 +363,10 @@ type ProofValue<Input, Output> = {
   maxProofsVerified: 0 | 1 | 2;
 };
 
-type ProvableProof<
-  Proof extends ProofBase,
-  InputV = any,
-  OutputV = any
-> = Provable<Proof, ProofValue<InputV, OutputV>>;
+type ProvableProof<Proof extends ProofBase, InputV = any, OutputV = any> = Provable<
+  Proof,
+  ProofValue<InputV, OutputV>
+>;
 
 function provableProof<
   Class extends Subclass<typeof ProofBase<Input, Output>>,
@@ -388,9 +385,7 @@ function provableProof<
       return input.sizeInFields() + output.sizeInFields();
     },
     toFields(value) {
-      return input
-        .toFields(value.publicInput)
-        .concat(output.toFields(value.publicOutput));
+      return input.toFields(value.publicInput).concat(output.toFields(value.publicOutput));
     },
     toAuxiliary(value) {
       let inputAux = input.toAuxiliary(value?.publicInput);

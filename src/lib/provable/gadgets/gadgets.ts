@@ -10,6 +10,11 @@ import {
   rangeCheck64,
   rangeCheckN,
   isDefinitelyInRangeN,
+  l2Mask,
+  lMask,
+  l2,
+  l,
+  l3,
 } from './range-check.js';
 import {
   not,
@@ -23,16 +28,14 @@ import {
   leftShift32,
 } from './bitwise.js';
 import { Field } from '../wrapped.js';
-import {
-  ForeignField,
-  Field3,
-  Sum as ForeignFieldSum,
-} from './foreign-field.js';
+import { ForeignField, Field3, Sum as ForeignFieldSum } from './foreign-field.js';
 import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
+import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
 import { BLAKE2B } from './blake2b.js';
-import { rangeCheck3x12 } from './lookup.js';
-import { arrayGet } from './basic.js';
+import { rangeCheck3x12, inTable } from './lookup.js';
+import { arrayGet, arrayGetGeneric } from './basic.js';
+import { sliceField3 } from './bit-slices.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 
@@ -54,6 +57,12 @@ const Gadgets = {
    * **Note**: This saves n constraints compared to `Provable.switch(array.map((_, i) => index.equals(i)), type, array)`.
    */
   arrayGet,
+  /**
+   * Get value from array in O(n) constraints.
+   *
+   * Assumes that index is in [0, n), returns an unconstrained result otherwise.
+   */
+  arrayGetGeneric,
 
   /**
    * Asserts that the input value is in the range [0, 2^64).
@@ -439,7 +448,7 @@ const Gadgets = {
    * Bitwise AND gadget on {@link Field} elements. Equivalent to the [bitwise AND `&` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_AND).
    * The AND gate works by comparing two bits and returning `1` if both bits are `1`, and `0` otherwise.
    *
-   * It can be checked by a double generic gate that verifies the following relationship between the values 
+   * It can be checked by a double generic gate that verifies the following relationship between the values
    * below (in the process it also invokes the {@link Gadgets.xor} gadget which will create additional constraints depending on `length`).
    *
    * The generic gate verifies:\
@@ -452,7 +461,7 @@ const Gadgets = {
    * You can find more details about the implementation in the [Mina book](https://o1-labs.github.io/proof-systems/specs/kimchi.html?highlight=gates#and)
    *
    * The `length` parameter lets you define how many bits should be compared. `length` is rounded
-   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values
    * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
@@ -476,8 +485,8 @@ const Gadgets = {
    * Bitwise OR gadget on {@link Field} elements. Equivalent to the [bitwise OR `|` operator in JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_OR).
    * The OR gate works by comparing two bits and returning `1` if at least one bit is `1`, and `0` otherwise.
    *
-   * The `length` parameter lets you define how many bits should be compared. `length` is rounded 
-   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values 
+   * The `length` parameter lets you define how many bits should be compared. `length` is rounded
+   * to the nearest multiple of 16, `paddedLength = ceil(length / 16) * 16`, and both input values
    * are constrained to fit into `paddedLength` bits. The output is guaranteed to have at most `paddedLength` bits as well.
    *
    * **Note:** Specifying a larger `length` parameter adds additional constraints.
@@ -578,6 +587,28 @@ const Gadgets = {
   },
 
   /**
+   * In-circuit check that up to 3 pairs of index and value are in the runtime
+   * table given by the identifier. Each given pair is a tuple composed of a
+   * bigint and a Field.
+   *
+   * Internally, it creates a lookup gate for the three pairs. If fewer pairs are
+   * given, the remaining pairs are duplicates of the first one.
+   *
+   * @param id
+   * @param pair0
+   * @param pair1
+   * @param pair2
+   */
+  inTable(
+    id: number,
+    pair0: [bigint, Field],
+    pair1?: [bigint, Field] | undefined,
+    pair2?: [bigint, Field] | undefined
+  ) {
+    return inTable(id, pair0, pair1, pair2);
+  },
+
+  /**
    * Gadgets for foreign field operations.
    *
    * A _foreign field_ is a finite field different from the native field of the proof system.
@@ -627,6 +658,17 @@ const Gadgets = {
      */
     add(x: Field3, y: Field3, f: bigint) {
       return ForeignField.add(x, y, f);
+    },
+
+    /**
+     * Check whether `x = c mod f`
+     *
+     * `c` is a constant, and we require `c` in `[0, f)`
+     *
+     * Assumes that `x` is almost reduced modulo `f`, so we know that `x` might be `c` or `c + f`, but not `c + 2f`, `c + 3f`, ...
+     */
+    equals(x: Field3, c: bigint, f: bigint) {
+      return ForeignField.equals(x, c, f);
     },
 
     /**
@@ -685,6 +727,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field multiplication: `x * y mod f`
      *
      * The modulus `f` does not need to be prime, but has to be smaller than 2^259.
@@ -722,6 +766,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field inverse: `x^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -733,6 +779,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Foreign field division: `x * y^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -746,6 +794,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
      *
      * Note: This is much more efficient than using {@link Gadgets.ForeignField.add} and {@link Gadgets.ForeignField.sub} separately to
@@ -783,12 +833,15 @@ const Gadgets = {
       x: Field3 | ForeignFieldSum,
       y: Field3 | ForeignFieldSum,
       z: Field3 | ForeignFieldSum,
-      f: bigint
+      f: bigint,
+      message?: string
     ) {
-      return ForeignField.assertMul(x, y, z, f);
+      return ForeignField.assertMul(x, y, z, f, message);
     },
 
     /**
+     * @internal
+     *
      * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
      */
     Sum(x: Field3) {
@@ -796,6 +849,8 @@ const Gadgets = {
     },
 
     /**
+     * @internal
+     *
      * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
      * i.e., satisfies the assumptions required by {@link Gadgets.ForeignField.mul} and other gadgets:
      * - each limb is in the range [0, 2^88)
@@ -862,6 +917,12 @@ const Gadgets = {
     },
 
     /**
+     * Proves that x is equal to y.
+     */
+    assertEquals(x: Field3, y: Field3) {
+      ForeignField.assertEquals(x, y);
+    },
+    /**
      * Convert x, which may be unreduced, to a canonical representative xR < f
      * such that x = xR mod f
      *
@@ -871,6 +932,12 @@ const Gadgets = {
     toCanonical(x: Field3, f: bigint) {
       return ForeignField.toCanonical(x, f);
     },
+    /**
+     * Provable method for slicing a 3x88-bit bigint into smaller bit chunks of length `chunkSize`
+     *
+     * This serves as a range check that the input is in [0, 2^maxBits)
+     */
+    sliceField3,
   },
 
   /**
@@ -879,6 +946,7 @@ const Gadgets = {
    * **Note:** This interface does not contain any provable methods.
    */
   Field3,
+
   /**
    * Division modulo 2^32. The operation decomposes a {@link Field} element in the range [0, 2^64) into two 32-bit limbs, `remainder` and `quotient`, using the following equation: `n = quotient * 2^32 + remainder`.
    *
@@ -954,6 +1022,7 @@ const Gadgets = {
   addMod64,
 
   /**
+   *
    * Implementation of the [SHA256 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function with 256bit output.
    *
    * Applies the SHA2-256 hash function to a list of byte-sized elements.
@@ -969,9 +1038,30 @@ const Gadgets = {
    * let preimage = Bytes.fromString("hello world");
    * let digest = Gadgets.SHA256.hash(preimage);
    * ```
-   *
+   * @deprecated {@link SHA256} is deprecated in favor of {@link SHA2}, which supports more variants of the hash function.
    */
   SHA256: SHA256,
+
+  /**
+   * Implementation of the [SHA2 hash function.](https://en.wikipedia.org/wiki/SHA-2) Hash function
+   * with 224 | 256 | 384 | 512 bit output.
+   *
+   * Applies the SHA2 hash function to a list of byte-sized elements.
+   *
+   * The function accepts {@link Bytes} as the input message, which is a type that represents a static-length list of byte-sized field elements (range-checked using {@link Gadgets.rangeCheck8}).
+   * Alternatively, you can pass plain `number[]`, `bigint[]` or `Uint8Array` to perform a hash outside provable code.
+   *
+   * Produces an output of {@link Bytes} that conforms to the chosen bit length.
+   *
+   * @param length - 224 | 256 | 384 | 512 representing the length of the hash.
+   * @param data - {@link Bytes} representing the message to hash.
+   *
+   * ```ts
+   * let preimage = Bytes.fromString("hello world");
+   * let digest = Gadgets.SHA2.hash(512, preimage);
+   * ```
+   *   */
+  SHA2: SHA2,
 
   /**
    * Implementation of the [BLAKE2b hash function.](https://en.wikipedia.org/wiki/BLAKE_(hash_function)#BLAKE2) Hash function with arbitrary length output.
@@ -992,4 +1082,15 @@ const Gadgets = {
    *
    */
   BLAKE2B: BLAKE2B,
+
+  /**
+   * Default limb size constants mostly used in range checks.
+   */
+  Constants: {
+    l2Mask,
+    l,
+    l2,
+    l3,
+    lMask,
+  },
 };

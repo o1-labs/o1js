@@ -1,5 +1,5 @@
 import { expect } from 'expect';
-import { jsLayout } from '../../bindings/mina-transaction/gen/js-layout.js';
+import { jsLayout } from '../../bindings/mina-transaction/gen/v1/js-layout.js';
 import { Signature } from '../../mina-signer/src/signature.js';
 import {
   AccountUpdate,
@@ -9,17 +9,14 @@ import {
   signableFromLayout,
   ZkappCommand,
   Json,
-} from '../../bindings/mina-transaction/gen/transaction-bigint.js';
+} from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
 import { test, Random } from './property.js';
 
 // some trivial roundtrip tests
 test(Random.accountUpdate, (accountUpdate, assert) => {
   let json = AccountUpdate.toJSON(accountUpdate);
   let jsonString = JSON.stringify(json);
-  assert(
-    jsonString ===
-      JSON.stringify(AccountUpdate.toJSON(AccountUpdate.fromJSON(json)))
-  );
+  assert(jsonString === JSON.stringify(AccountUpdate.toJSON(AccountUpdate.fromJSON(json))));
   // TODO add back using `fromValue`
   // let fields = AccountUpdate.toFields(accountUpdate);
   // let auxiliary = AccountUpdate.toAuxiliary(accountUpdate);
@@ -28,9 +25,7 @@ test(Random.accountUpdate, (accountUpdate, assert) => {
 });
 test(Random.json.accountUpdate, (json) => {
   let jsonString = JSON.stringify(json);
-  expect(jsonString).toEqual(
-    JSON.stringify(AccountUpdate.toJSON(AccountUpdate.fromJSON(json)))
-  );
+  expect(jsonString).toEqual(JSON.stringify(AccountUpdate.toJSON(AccountUpdate.fromJSON(json))));
 });
 
 // check that test fails for a property that does not hold in general
@@ -53,9 +48,8 @@ test.custom({ negative: true, timeBudget: 1000 })(
   AccountUpdate.fromJSON
 );
 
-const FeePayer = signableFromLayout<
-  ZkappCommand['feePayer'],
-  Json.ZkappCommand['feePayer']
->(jsLayout.ZkappCommand.entries.feePayer as any);
+const FeePayer = signableFromLayout<ZkappCommand['feePayer'], Json.ZkappCommand['feePayer']>(
+  jsLayout.ZkappCommand.entries.feePayer as any
+);
 
 test.negative(Random.json.feePayer.invalid!, FeePayer.fromJSON);

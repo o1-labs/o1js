@@ -1,8 +1,8 @@
 /*
- * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()` 
- * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively 
+ * Warning: The reducer API in o1js is currently not safe to use in production applications. The `reduce()`
+ * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
  * in progress to mitigate this limitation.
- */ 
+ */
 import {
   Field,
   SmartContract,
@@ -34,9 +34,7 @@ type MembershipParams = {
  * Returns a new contract instance that based on a set of preconditions.
  * @param params {@link MembershipParams}
  */
-export async function Membership(
-  params: MembershipParams
-): Promise<Membership_> {
+export async function Membership(params: MembershipParams): Promise<Membership_> {
   participantPreconditions = params.participantPreconditions;
 
   let contract = new Membership_(params.contractAddress);
@@ -96,25 +94,17 @@ export class Membership_ extends SmartContract {
     // Preconditions: Restrict who can vote or who can be a candidate
 
     // since we need to keep this contract "generic", we always assert within a range
-    // even tho voters cant have a maximum balance, only candidates
+    // even tho voters can't have a maximum balance, only candidates
     // but for a voter we simply use UInt64.MAXINT() as the maximum
 
     let accountUpdate = AccountUpdate.create(member.publicKey);
 
-    accountUpdate.account.balance.requireEquals(
-      accountUpdate.account.balance.get()
-    );
+    accountUpdate.account.balance.requireEquals(accountUpdate.account.balance.get());
 
     let balance = accountUpdate.account.balance.get();
 
-    balance.assertGreaterThanOrEqual(
-      participantPreconditions.minMina,
-      'Balance not high enough!'
-    );
-    balance.assertLessThanOrEqual(
-      participantPreconditions.maxMina,
-      'Balance too high!'
-    );
+    balance.assertGreaterThanOrEqual(participantPreconditions.minMina, 'Balance not high enough!');
+    balance.assertLessThanOrEqual(participantPreconditions.maxMina, 'Balance too high!');
 
     let accumulatedMembers = this.accumulatedMembers.get();
     this.accumulatedMembers.requireEquals(accumulatedMembers);
@@ -133,7 +123,7 @@ export class Membership_ extends SmartContract {
     );
 
     /*
-    we cant really branch the control flow - we will always have to emit an event no matter what, 
+    we can't really branch the control flow - we will always have to emit an event no matter what, 
     so we emit an empty event if the member already exists
     it the member doesn't exist, emit the "real" member
     */
@@ -158,9 +148,7 @@ export class Membership_ extends SmartContract {
     let committedMembers = this.committedMembers.get();
     this.committedMembers.requireEquals(committedMembers);
 
-    return member.witness
-      .calculateRoot(member.getHash())
-      .equals(committedMembers);
+    return member.witness.calculateRoot(member.getHash()).equals(committedMembers);
   }
 
   /**
@@ -192,11 +180,7 @@ export class Membership_ extends SmartContract {
 
         // if the member is real and not empty, we calculate and return the new merkle root
         // otherwise, we simply return the unmodified state - this is our way of branching
-        return Provable.if(
-          isRealMember,
-          action.witness.calculateRoot(action.getHash()),
-          state
-        );
+        return Provable.if(isRealMember, action.witness.calculateRoot(action.getHash()), state);
       },
       // initial state
       committedMembers,

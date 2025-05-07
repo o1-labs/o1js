@@ -7,17 +7,7 @@ import { rangeCheck32, rangeCheck64 } from './range-check.js';
 import { divMod32 } from './arithmetic.js';
 import { exists } from '../../provable/core/exists.js';
 
-export {
-  xor,
-  not,
-  rotate64,
-  rotate32,
-  and,
-  or,
-  rightShift64,
-  leftShift64,
-  leftShift32,
-};
+export { xor, not, rotate64, rotate32, and, or, rightShift64, leftShift64, leftShift32 };
 
 function not(a: Field, length: number, checked: boolean = false) {
   // Validate at 240 bits to ensure padLength (next multiple of 16) doesn't exceed 254 bits,
@@ -30,10 +20,7 @@ function not(a: Field, length: number, checked: boolean = false) {
   // handle constant case
   if (a.isConstant()) {
     let max = 1n << BigInt(padLength);
-    assert(
-      a.toBigInt() < max,
-      `${a.toBigInt()} does not fit into ${padLength} bits`
-    );
+    assert(a.toBigInt() < max, `${a.toBigInt()} does not fit into ${padLength} bits`);
     return new Field(Fp.not(a.toBigInt(), length));
   }
 
@@ -178,16 +165,9 @@ function or(a: Field, b: Field, length: number) {
   return not(and(not(a, length), not(b, length), length), length);
 }
 
-function rotate64(
-  field: Field,
-  bits: number,
-  direction: 'left' | 'right' = 'left'
-) {
+function rotate64(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
   // Check that the rotation bits are in range
-  assert(
-    bits >= 0 && bits <= 64,
-    `rotation: expected bits to be between 0 and 64, got ${bits}`
-  );
+  assert(bits >= 0 && bits <= 64, `rotation: expected bits to be between 0 and 64, got ${bits}`);
 
   if (field.isConstant()) {
     assert(
@@ -200,11 +180,7 @@ function rotate64(
   return rotated;
 }
 
-function rotate32(
-  field: Field,
-  bits: number,
-  direction: 'left' | 'right' = 'left'
-) {
+function rotate32(field: Field, bits: number, direction: 'left' | 'right' = 'left') {
   assert(bits <= 32 && bits > 0, 'bits must be between 0 and 32');
 
   if (field.isConstant()) {
@@ -235,25 +211,22 @@ function rot64(
   const big2Power64 = 1n << 64n;
   const big2PowerRot = 1n << BigInt(rotationBits);
 
-  const [rotated, excess, shifted, bound] = Provable.witness(
-    Provable.Array(Field, 4),
-    () => {
-      const f = field.toBigInt();
+  const [rotated, excess, shifted, bound] = Provable.witness(Provable.Array(Field, 4), () => {
+    const f = field.toBigInt();
 
-      // Obtain rotated output, excess, and shifted for the equation:
-      // f * 2^rot = excess * 2^64 + shifted
-      const { quotient: excess, remainder: shifted } = divideWithRemainder(
-        f * big2PowerRot,
-        big2Power64
-      );
+    // Obtain rotated output, excess, and shifted for the equation:
+    // f * 2^rot = excess * 2^64 + shifted
+    const { quotient: excess, remainder: shifted } = divideWithRemainder(
+      f * big2PowerRot,
+      big2Power64
+    );
 
-      // Compute rotated value as: rotated = excess + shifted
-      const rotated = shifted + excess;
-      // Compute bound to check excess < 2^rot
-      const bound = excess + big2Power64 - big2PowerRot;
-      return [rotated, excess, shifted, bound];
-    }
-  );
+    // Compute rotated value as: rotated = excess + shifted
+    const rotated = shifted + excess;
+    // Compute bound to check excess < 2^rot
+    const bound = excess + big2Power64 - big2PowerRot;
+    return [rotated, excess, shifted, bound];
+  });
 
   // flush zero var to prevent broken gate chain (zero is used in rangeCheck64)
   // TODO this is an abstraction leak, but not clear to me how to improve
@@ -299,10 +272,7 @@ function rot64(
 }
 
 function rightShift64(field: Field, bits: number) {
-  assert(
-    bits >= 0 && bits <= 64,
-    `rightShift: expected bits to be between 0 and 64, got ${bits}`
-  );
+  assert(bits >= 0 && bits <= 64, `rightShift: expected bits to be between 0 and 64, got ${bits}`);
 
   if (field.isConstant()) {
     assert(
@@ -316,10 +286,7 @@ function rightShift64(field: Field, bits: number) {
 }
 
 function leftShift64(field: Field, bits: number) {
-  assert(
-    bits >= 0 && bits <= 64,
-    `rightShift: expected bits to be between 0 and 64, got ${bits}`
-  );
+  assert(bits >= 0 && bits <= 64, `rightShift: expected bits to be between 0 and 64, got ${bits}`);
 
   if (field.isConstant()) {
     assert(
@@ -346,11 +313,7 @@ function leftShift32(field: Field, bits: number) {
  *
  * @throws {Error} If the input length is not positive or exceeds the maximum length.
  */
-function validateBitLength(
-  length: number,
-  maxLength: number,
-  functionName: string
-) {
+function validateBitLength(length: number, maxLength: number, functionName: string) {
   // check that both input lengths are positive
   assert(length > 0, `${functionName}: Input length must be a positive value.`);
   // check that length does not exceed maximum `maxLength` size in bits
