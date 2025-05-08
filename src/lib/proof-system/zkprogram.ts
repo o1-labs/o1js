@@ -233,7 +233,7 @@ function ZkProgram<
       [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
-    chunks?: number;
+    numChunks?: number;
   }
 ): {
   name: string;
