@@ -24,6 +24,7 @@ runs:
         nix_conf: |
           keep-env-derivations = true
           keep-outputs = true
+          accept-flake-config = true
     - name: Fallback to persistant nix
       # only available on some runners
       shell: bash
@@ -55,7 +56,7 @@ runs:
       run: |
         set -Eeu
         ./pin.sh
-        nix build o1js#bindings --accept-flake-config
+        nix build o1js#bindings
         temp_key=$(mktemp)
         echo ${{ inputs.nar_secret }} > "$temp_key"
         nix store sign --key-file "$temp_key" --recursive ./result
