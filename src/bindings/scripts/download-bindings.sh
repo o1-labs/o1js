@@ -7,12 +7,8 @@ set -e
 REV=${REV:=$(git rev-parse HEAD)}
 RUN_ID=$( \
     gh run list --commit "${REV}" --json name,databaseId | \
-    jq -r '.[] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId' \
+    jq -r 'last(.[] | select(.name == "Checks" or .name == "Build and upload bindings") | .databaseId)' \
   )
-
-# In case gh returns multiple runs, extract the last one
-WORKFLOW_COUNT=$(echo $RUN_ID | wc -w)
-RUN_ID=$(echo $RUN_ID | cut -d " " -f $WORKFLOW_COUNT)
 
 if [ -z "$RUN_ID" ]
 then
