@@ -17,6 +17,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/4e23a60...HEAD)
 
+### Added
+
+- [PR! 1905](https://github.com/o1-labs/o1js/pull/1905) API support for circuit chunking
+  - Includes fix of zero knowledge rows mismatch across Kimchi WASM bindings
+  - But still requires memory optimizations to be fully functional
+
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
 ### Fixed
