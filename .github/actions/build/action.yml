@@ -25,8 +25,8 @@ runs:
           keep-env-derivations = true
           keep-outputs = true
           accept-flake-config = true
-          trusted-substituters = https://storage.googleapis.com/mina-nix-cache https://cache.nixos.org
-          trusted-public-keys = nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c=
+          trusted-substituters = "https://storage.googleapis.com/mina-nix-cache https://cache.nixos.org"
+          trusted-public-keys = "nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4="
     - name: Fallback to persistant nix
       # only available on some runners
       shell: bash
