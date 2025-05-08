@@ -233,6 +233,7 @@ function ZkProgram<
       [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
+    numChunks?: number;
   }
 ): {
   name: string;
@@ -388,6 +389,7 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
         lazyMode,
@@ -693,6 +695,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  numChunks,
   state,
   withRuntimeTables,
   lazyMode,
@@ -707,6 +710,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
   lazyMode?: boolean;
@@ -765,6 +769,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           publicOutputSize: publicOutputType.sizeInFields(),
           storable: picklesCache,
           overrideWrapDomain,
+          numChunks: numChunks ?? 1,
           lazyMode: lazyMode ?? false,
         });
         let { getVerificationKey, provers, verify, tag } = result;
