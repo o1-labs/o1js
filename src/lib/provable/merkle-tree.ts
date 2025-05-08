@@ -68,8 +68,8 @@ class MerkleTree {
    * @param index Index of the leaf.
    * @returns The data of the leaf.
    */
-  getLeaf(key: bigint) {
-    return this.getNode(0, key);
+  getLeaf(index: bigint) {
+    return this.getNode(0, index);
   }
 
   /**
@@ -93,9 +93,7 @@ class MerkleTree {
    */
   setLeaf(index: bigint, leaf: Field) {
     if (index >= this.leafCount) {
-      throw new Error(
-        `index ${index} is out of range for ${this.leafCount} leaves.`
-      );
+      throw new Error(`index ${index} is out of range for ${this.leafCount} leaves.`);
     }
     this.setNode(0, index, leaf);
     let currIndex = index;
@@ -116,9 +114,7 @@ class MerkleTree {
    */
   getWitness(index: bigint): Witness {
     if (index >= this.leafCount) {
-      throw new Error(
-        `index ${index} is out of range for ${this.leafCount} leaves.`
-      );
+      throw new Error(`index ${index} is out of range for ${this.leafCount} leaves.`);
     }
     const witness = [];
     for (let level = 0; level < this.height - 1; level++) {
@@ -140,9 +136,7 @@ class MerkleTree {
     const path = this.getWitness(index);
     let hash = this.getNode(0, index);
     for (const node of path) {
-      hash = Poseidon.hash(
-        node.isLeft ? [hash, node.sibling] : [node.sibling, hash]
-      );
+      hash = Poseidon.hash(node.isLeft ? [hash, node.sibling] : [node.sibling, hash]);
     }
 
     return hash.toString() === this.getRoot().toString();

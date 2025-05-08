@@ -1,10 +1,5 @@
 import { Bigint2048, rsaVerify65537 } from './rsa.js';
-import {
-  sha256Bigint,
-  generateRsaParams,
-  rsaSign,
-  randomPrime,
-} from './utils.js';
+import { sha256Bigint, generateRsaParams, rsaSign, randomPrime } from './utils.js';
 import { expect } from 'expect';
 import { it, describe } from 'node:test';
 
@@ -27,8 +22,7 @@ describe('RSA65537 verification tests', () => {
       q: 0x00aee3f86b66087abc069b8b1736e38ad6af624f7ea80e70b95f4ff2bf77cd90fdn,
       dmp1: 0x008112f5a969fcb56f4e3a4c51a60dcdebec157ee4a7376b843487b53844e8ac85n,
       dmq1: 0x1a7370470e0f8a4095df40922a430fe498720e03e1f70d257c3ce34202249d21n,
-      coeff:
-        0x00b399675e5e81506b729a777cc03026f0b2119853dfc5eb124610c0ab82999e45n,
+      coeff: 0x00b399675e5e81506b729a777cc03026f0b2119853dfc5eb124610c0ab82999e45n,
     };
 
     const message = Bigint2048.from(13n);

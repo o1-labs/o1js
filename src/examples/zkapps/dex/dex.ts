@@ -22,9 +22,7 @@ export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
 
 class UInt64x2 extends Struct({ values: [UInt64, UInt64] }) {}
 
-function createDex({
-  lockedLiquiditySlots,
-}: { lockedLiquiditySlots?: number } = {}) {
+function createDex({ lockedLiquiditySlots }: { lockedLiquiditySlots?: number } = {}) {
   class Dex extends BaseTokenContract {
     // addresses of token contracts are constants
     tokenX = addresses.tokenX;
@@ -61,16 +59,10 @@ function createDex({
       let tokenY = new TokenContract(this.tokenY);
 
       // get balances of X and Y token
-      let dexXUpdate = AccountUpdate.create(
-        this.address,
-        tokenX.deriveTokenId()
-      );
+      let dexXUpdate = AccountUpdate.create(this.address, tokenX.deriveTokenId());
       let dexXBalance = dexXUpdate.account.balance.getAndRequireEquals();
 
-      let dexYUpdate = AccountUpdate.create(
-        this.address,
-        tokenY.deriveTokenId()
-      );
+      let dexYUpdate = AccountUpdate.create(this.address, tokenY.deriveTokenId());
       let dexYBalance = dexYUpdate.account.balance.getAndRequireEquals();
 
       // assert dy === [dx * y/x], or x === 0
@@ -126,14 +118,8 @@ function createDex({
      */
     async supplyLiquidity(dx: UInt64) {
       // calculate dy outside circuit
-      let x = Mina.getAccount(
-        this.address,
-        TokenId.derive(this.tokenX)
-      ).balance;
-      let y = Mina.getAccount(
-        this.address,
-        TokenId.derive(this.tokenY)
-      ).balance;
+      let x = Mina.getAccount(this.address, TokenId.derive(this.tokenX)).balance;
+      let y = Mina.getAccount(this.address, TokenId.derive(this.tokenY)).balance;
       if (x.value.isConstant() && x.value.equals(0).toBoolean()) {
         throw Error(
           'Cannot call `supplyLiquidity` when reserves are zero. Use `supplyLiquidityBase`.'
@@ -158,11 +144,7 @@ function createDex({
       let sender = this.sender.getUnconstrained(); // unconstrained because redeemLiquidity() requires the signature anyway
       let tokenX = new TokenContract(this.tokenX);
       let dexX = new DexTokenHolder(this.address, tokenX.deriveTokenId());
-      let { values: dxdy } = await dexX.redeemLiquidity(
-        sender,
-        dl,
-        this.tokenY
-      );
+      let { values: dxdy } = await dexX.redeemLiquidity(sender, dl, this.tokenY);
       let dx = dxdy[0];
       await tokenX.transfer(dexX.self, sender, dx);
       return dxdy;
@@ -235,10 +217,7 @@ function createDex({
     async swapX(dx: UInt64) {
       let sender = this.sender.getUnconstrained(); // unconstrained because swap() requires the signature anyway
       let tokenY = new TokenContract(this.tokenY);
-      let dexY = new ModifiedDexTokenHolder(
-        this.address,
-        tokenY.deriveTokenId()
-      );
+      let dexY = new ModifiedDexTokenHolder(this.address, tokenY.deriveTokenId());
       let dy = await dexY.swap(sender, dx, this.tokenX);
       await tokenY.transfer(dexY.self, sender, dy);
       return dy;
@@ -273,11 +252,7 @@ function createDex({
 
     // more complicated circuit, where we trigger the Y(other)-lqXY trade in our child account updates and then add the X(our) part
     @method.returns(UInt64x2)
-    async redeemLiquidity(
-      user: PublicKey,
-      dl: UInt64,
-      otherTokenAddress: PublicKey
-    ) {
+    async redeemLiquidity(user: PublicKey, dl: UInt64, otherTokenAddress: PublicKey) {
       // first call the Y token holder, approved by the Y token contract; this makes sure we get dl, the user's lqXY
       let tokenY = new TokenContract(otherTokenAddress);
       let dexY = new DexTokenHolder(this.address, tokenY.deriveTokenId());
@@ -298,11 +273,7 @@ function createDex({
 
     // this works for both directions (in our case where both tokens use the same contract)
     @method.returns(UInt64)
-    async swap(
-      user: PublicKey,
-      otherTokenAmount: UInt64,
-      otherTokenAddress: PublicKey
-    ) {
+    async swap(user: PublicKey, otherTokenAmount: UInt64, otherTokenAddress: PublicKey) {
       // we're writing this as if our token === y and other token === x
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
@@ -325,11 +296,7 @@ function createDex({
      * This swap method has a slightly changed formula
      */
     @method.returns(UInt64)
-    async swap(
-      user: PublicKey,
-      otherTokenAmount: UInt64,
-      otherTokenAddress: PublicKey
-    ) {
+    async swap(user: PublicKey, otherTokenAmount: UInt64, otherTokenAddress: PublicKey) {
       let dx = otherTokenAmount;
       let tokenX = new TokenContract(otherTokenAddress);
       // get balances
@@ -360,15 +327,11 @@ function createDex({
     };
     for (let user of ['user', 'user2'] as const) {
       try {
-        balances[user].MINA =
-          Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
+        balances[user].MINA = Mina.getBalance(addresses[user]).toBigInt() / 1_000_000_000n;
       } catch {}
       for (let token of ['X', 'Y', 'lqXY'] as const) {
         try {
-          balances[user][token] = Mina.getBalance(
-            addresses[user],
-            tokenIds[token]
-          ).toBigInt();
+          balances[user][token] = Mina.getBalance(addresses[user], tokenIds[token]).toBigInt();
         } catch {}
       }
     }
@@ -379,16 +342,10 @@ function createDex({
       balances.dex.Y = Mina.getBalance(addresses.dex, tokenIds.Y).toBigInt();
     } catch {}
     try {
-      balances.tokenContract.X = Mina.getBalance(
-        addresses.tokenX,
-        tokenIds.X
-      ).toBigInt();
+      balances.tokenContract.X = Mina.getBalance(addresses.tokenX, tokenIds.X).toBigInt();
     } catch {}
     try {
-      balances.tokenContract.Y = Mina.getBalance(
-        addresses.tokenY,
-        tokenIds.Y
-      ).toBigInt();
+      balances.tokenContract.Y = Mina.getBalance(addresses.tokenY, tokenIds.Y).toBigInt();
     } catch {}
     try {
       let dex = new Dex(addresses.dex);

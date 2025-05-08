@@ -13,3 +13,6 @@ src/config.mlh
 .direnv
 .rustup
 result
+# precompiled bindings
+src/bindings/compiled
+.bindings_download

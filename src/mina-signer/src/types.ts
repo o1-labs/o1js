@@ -1,4 +1,4 @@
-import type { ZkappCommand as ZkappCommandJson } from '../../bindings/mina-transaction/gen/transaction-json.js';
+import type { ZkappCommand as ZkappCommandJson } from '../../bindings/mina-transaction/gen/v1/transaction-json.js';
 import type { SignatureJson } from './signature.js';
 
 export type UInt32 = number | bigint | string;
@@ -9,7 +9,9 @@ export type Field = number | bigint | string;
 export type PublicKey = string;
 export type PrivateKey = string;
 export type Signature = SignatureJson;
-export type NetworkId = 'mainnet' | 'testnet' | { custom: string };
+
+// testnet is deprecated in favor of devnet
+export type NetworkId = 'mainnet' | 'devnet' | 'testnet' | { custom: string };
 
 export const NetworkId = {
   toString(network: NetworkId) {

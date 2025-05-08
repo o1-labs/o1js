@@ -7,10 +7,7 @@ import { rangeCheck32, rangeCheck64, rangeCheckN } from './range-check.js';
 export { divMod32, addMod32, divMod64, addMod64 };
 
 function divMod32(n: Field, nBits = 64) {
-  assert(
-    nBits >= 0 && nBits < 255,
-    `nBits must be in the range [0, 255), got ${nBits}`
-  );
+  assert(nBits >= 0 && nBits < 255, `nBits must be in the range [0, 255), got ${nBits}`);
   const quotientBits = Math.max(0, nBits - 32);
   if (n.isConstant()) {
     assert(
@@ -27,16 +24,13 @@ function divMod32(n: Field, nBits = 64) {
     };
   }
 
-  let [quotient, remainder] = Provable.witness(
-    provableTuple([Field, Field]),
-    () => {
-      let nBigInt = n.toBigInt();
-      let q = nBigInt >> 32n;
-      let r = nBigInt - (q << 32n);
-      // why do we have to do this?
-      return [q, r] satisfies [bigint, bigint];
-    }
-  );
+  let [quotient, remainder] = Provable.witness(provableTuple([Field, Field]), () => {
+    let nBigInt = n.toBigInt();
+    let q = nBigInt >> 32n;
+    let r = nBigInt - (q << 32n);
+    // why do we have to do this?
+    return [q, r] satisfies [bigint, bigint];
+  });
 
   if (quotientBits === 1) {
     quotient.assertBool();
@@ -58,10 +52,7 @@ function addMod32(x: Field, y: Field) {
 }
 
 function divMod64(n: Field, nBits = 128) {
-  assert(
-    nBits >= 0 && nBits < 255,
-    `nBits must be in the range [0, 255), got ${nBits}`
-  );
+  assert(nBits >= 0 && nBits < 255, `nBits must be in the range [0, 255), got ${nBits}`);
 
   // calculate the number of bits allowed for the quotient to avoid overflow
   const quotientBits = Math.max(0, nBits - 64);
@@ -80,15 +71,12 @@ function divMod64(n: Field, nBits = 128) {
     };
   }
 
-  let [quotient, remainder] = Provable.witness(
-    provableTuple([Field, Field]),
-    () => {
-      let nBigInt = n.toBigInt();
-      let q = nBigInt >> 64n;
-      let r = nBigInt - (q << 64n);
-      return [q, r] satisfies [bigint, bigint];
-    }
-  );
+  let [quotient, remainder] = Provable.witness(provableTuple([Field, Field]), () => {
+    let nBigInt = n.toBigInt();
+    let q = nBigInt >> 64n;
+    let r = nBigInt - (q << 64n);
+    return [q, r] satisfies [bigint, bigint];
+  });
 
   if (quotientBits === 1) {
     quotient.assertBool();

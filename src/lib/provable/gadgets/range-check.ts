@@ -75,12 +75,7 @@ function rangeCheck64(x: Field): TupleN<Field, 4> {
   // 12-bit limbs
   let [x16, x28, x40, x52] = exists(4, () => {
     let xx = x.toBigInt();
-    return [
-      bitSlice(xx, 16, 12),
-      bitSlice(xx, 28, 12),
-      bitSlice(xx, 40, 12),
-      bitSlice(xx, 52, 12),
-    ];
+    return [bitSlice(xx, 16, 12), bitSlice(xx, 28, 12), bitSlice(xx, 40, 12), bitSlice(xx, 52, 12)];
   });
 
   Gates.rangeCheck0(
@@ -130,9 +125,7 @@ function compactMultiRangeCheck(xy: Field, z: Field): [Field, Field, Field] {
   // constant case
   if (xy.isConstant() && z.isConstant()) {
     if (xy.toBigInt() >> l2 || z.toBigInt() >> l) {
-      throw Error(
-        `Expected fields to fit in ${l2} and ${l} bits respectively, got ${xy}, ${z}`
-      );
+      throw Error(`Expected fields to fit in ${l2} and ${l} bits respectively, got ${xy}, ${z}`);
     }
     let [x, y] = splitCompactLimb(xy.toBigInt());
     return [createField(x), createField(y), z];
@@ -205,25 +198,24 @@ function rangeCheck1Helper(inputs: {
   let { x64, x76, y64, y76, z, yz } = inputs;
 
   // create limbs for current row
-  let [z22, z24, z26, z28, z30, z32, z34, z36, z38, z50, z62, z74, z86] =
-    exists(13, () => {
-      let zz = z.toBigInt();
-      return [
-        bitSlice(zz, 22, 2),
-        bitSlice(zz, 24, 2),
-        bitSlice(zz, 26, 2),
-        bitSlice(zz, 28, 2),
-        bitSlice(zz, 30, 2),
-        bitSlice(zz, 32, 2),
-        bitSlice(zz, 34, 2),
-        bitSlice(zz, 36, 2),
-        bitSlice(zz, 38, 12),
-        bitSlice(zz, 50, 12),
-        bitSlice(zz, 62, 12),
-        bitSlice(zz, 74, 12),
-        bitSlice(zz, 86, 2),
-      ];
-    });
+  let [z22, z24, z26, z28, z30, z32, z34, z36, z38, z50, z62, z74, z86] = exists(13, () => {
+    let zz = z.toBigInt();
+    return [
+      bitSlice(zz, 22, 2),
+      bitSlice(zz, 24, 2),
+      bitSlice(zz, 26, 2),
+      bitSlice(zz, 28, 2),
+      bitSlice(zz, 30, 2),
+      bitSlice(zz, 32, 2),
+      bitSlice(zz, 34, 2),
+      bitSlice(zz, 36, 2),
+      bitSlice(zz, 38, 12),
+      bitSlice(zz, 50, 12),
+      bitSlice(zz, 62, 12),
+      bitSlice(zz, 74, 12),
+      bitSlice(zz, 86, 2),
+    ];
+  });
 
   // create limbs for next row
   let [z0, z2, z4, z6, z8, z10, z12, z14, z16, z18, z20] = exists(11, () => {
@@ -261,10 +253,7 @@ function rangeCheck1Helper(inputs: {
  * with the initial value to prove a range check.
  */
 function rangeCheckHelper(length: number, x: Field) {
-  assert(
-    length <= Fp.sizeInBits,
-    `bit length must be ${Fp.sizeInBits} or less, got ${length}`
-  );
+  assert(length <= Fp.sizeInBits, `bit length must be ${Fp.sizeInBits} or less, got ${length}`);
   assert(length > 0, `bit length must be positive, got ${length}`);
   assert(length % 16 === 0, '`length` has to be a multiple of 16.');
 
@@ -283,18 +272,13 @@ function rangeCheckHelper(length: number, x: Field) {
  * Asserts that x is in the range [0, 2^n)
  */
 function rangeCheckN(n: number, x: Field, message: string = '') {
-  assert(
-    n <= Fp.sizeInBits,
-    `bit length must be ${Fp.sizeInBits} or less, got ${n}`
-  );
+  assert(n <= Fp.sizeInBits, `bit length must be ${Fp.sizeInBits} or less, got ${n}`);
   assert(n > 0, `bit length must be positive, got ${n}`);
   assert(n % 16 === 0, '`length` has to be a multiple of 16.');
 
   if (x.isConstant()) {
     if (x.toBigInt() >= 1n << BigInt(n)) {
-      throw Error(
-        `rangeCheckN: expected field to fit in ${n} bits, got ${x}.\n${message}`
-      );
+      throw Error(`rangeCheckN: expected field to fit in ${n} bits, got ${x}.\n${message}`);
     }
     return;
   }
@@ -313,10 +297,7 @@ function rangeCheckN(n: number, x: Field, message: string = '') {
  * for gadgets which need a weakened form of range check.
  */
 function isDefinitelyInRangeN(n: number, x: Field) {
-  assert(
-    n <= Fp.sizeInBits,
-    `bit length must be ${Fp.sizeInBits} or less, got ${n}`
-  );
+  assert(n <= Fp.sizeInBits, `bit length must be ${Fp.sizeInBits} or less, got ${n}`);
   assert(n > 0, `bit length must be positive, got ${n}`);
   assert(n % 16 === 0, '`length` has to be a multiple of 16.');
 
@@ -330,10 +311,7 @@ function isDefinitelyInRangeN(n: number, x: Field) {
 
 function rangeCheck16(x: Field) {
   if (x.isConstant()) {
-    assert(
-      x.toBigInt() < 1n << 16n,
-      `rangeCheck16: expected field to fit in 8 bits, got ${x}`
-    );
+    assert(x.toBigInt() < 1n << 16n, `rangeCheck16: expected field to fit in 16 bits, got ${x}`);
     return;
   }
   // check that x fits in 16 bits
@@ -342,10 +320,7 @@ function rangeCheck16(x: Field) {
 
 function rangeCheck8(x: Field) {
   if (x.isConstant()) {
-    assert(
-      x.toBigInt() < 1n << 8n,
-      `rangeCheck8: expected field to fit in 8 bits, got ${x}`
-    );
+    assert(x.toBigInt() < 1n << 8n, `rangeCheck8: expected field to fit in 8 bits, got ${x}`);
     return;
   }
 

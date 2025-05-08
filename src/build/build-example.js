@@ -36,11 +36,7 @@ async function build(srcPath, isWeb = false) {
     logLevel: 'error',
     plugins: isWeb
       ? [typescriptPlugin(tsConfig), makeO1jsExternal()]
-      : [
-          typescriptPlugin(tsConfig),
-          makeNodeModulesExternal(),
-          makeJsooExternal(),
-        ],
+      : [typescriptPlugin(tsConfig), makeNodeModulesExternal(), makeJsooExternal()],
     dropLabels: ['CJS'],
   });
 
@@ -57,10 +53,7 @@ async function buildOne(srcPath) {
   // but `tsc` demands it to be `nodenext`
   tsConfig.compilerOptions.module = 'esnext';
 
-  let outfile = path.resolve(
-    './dist/node',
-    srcPath.replace('.ts', '.js').replace('src', '.')
-  );
+  let outfile = path.resolve('./dist/node', srcPath.replace('.ts', '.js').replace('src', '.'));
 
   await esbuild.build({
     entryPoints: [srcPath],

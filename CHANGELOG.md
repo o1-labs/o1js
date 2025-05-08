@@ -15,7 +15,103 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/e1bac02...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/4e23a60...HEAD)
+
+## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
+
+### Fixed
+
+- Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
+
+### Added
+
+- [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
+  - o1js-bindings is no longer a submodule (same directory structure)
+  - compiled artifacts are now gitignored
+  - `npm run build:bindings-download` downloads compiled artifacts from github
+  - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
+- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
+
+### Changed
+
+- [PR !2126](https://github.com/o1-labs/o1js/pull/2126) Bump up Mina to the
+  commit
+  [5a9145feaba3138cd1a1090d8421a8e67a5485e1](https://github.com/MinaProtocol/mina/blob/5a9145feaba3138cd1a1090d8421a8e67a5485e1)
+- [PR !2128](https://github.com/o1-labs/o1js/pull/2128) Bump up Mina to the
+  commit
+  [eaca9201](https://github.com/MinaProtocol/mina/tree/eaca9201e0df37f244e341155f253dc9551fb451),
+  to include the latest changes reg. the move of the Rust codebase to the
+  repository proof-systems.
+- Added verification key validity checks to `LocalBlockchain`. https://github.com/o1-labs/o1js/pull/2171
+
+## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
+
+### Added
+
+- Support of runtime tables https://github.com/o1-labs/o1js/pull/1858
+- _Experimental_ Introducing `MinaProgram`, a new powerful API for interacting with Mina Protocol. https://github.com/o1-labs/o1js/pull/2095
+  - New functions and types for `MinaProgram`
+- Export various internal functions and types. https://github.com/o1-labs/o1js/pull/2083
+- Export part of the core cryptography layer via the `Core` namespace. https://github.com/o1-labs/o1js/pull/2083
+- _Experimental_ New bindings layer for new API types. https://github.com/o1-labs/o1js/pull/2032
+- _Experimental_ New API types for https://github.com/o1-labs/o1js/pull/2042
+  - `AccountUpdate`, `Account`, `Authorization`, `Permissions` etc.
+  - New transaction construction API `new ZkappCommand()`. https://github.com/o1-labs/o1js/pull/2042
+- Bump up Rust version to 1.79.0. Bindings now depends on nightly-2024-06-13.
+  https://github.com/o1-labs/o1js/pull/2063
+- `setVerificationKeyUnsafe` static method to `SmartContract` [#2091](https://github.com/o1-labs/o1js/pull/2091)
+- `toBits()` and `fromBits()` methods added for `UInt32` and `UInt64` classes. https://github.com/o1-labs/o1js/pull/2099
+- **Provable BigInt** exposed through the `createProvableBigInt()` class factory https://github.com/o1-labs/o1js/pull/2008
+
+## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
+
+### Added
+
+- `to` and `from` are added as query parameters for `fetchActions` and `fetchEvents` https://github.com/o1-labs/o1js/pull/2066
+- Exported the type `FlexibleBytes`, previously being used only internally
+  https://github.com/o1-labs/o1js/pull/2015.
+- Gadgets for 224, 384 and 512 bit variants of SHA2 https://github.com/o1-labs/o1js/pull/1957
+- `setFee` and `setFeePerSnarkCost` for `Transaction` and `PendingTransaction` https://github.com/o1-labs/o1js/pull/1968
+- Doc comments for various ZkProgram methods https://github.com/o1-labs/o1js/pull/1974
+- `MerkleList.popOption()` for popping the last element and also learning if there was one https://github.com/o1-labs/o1js/pull/1997
+- Added custom header support for `Fetch` methods such as `fetchEvents`, `fetchActions` etc. and to `Mina` instance. Also added two new methods `setMinaDefaultHeaders` and `setArchiveDefaultHeaders` https://github.com/o1-labs/o1js/pull/2004
+- Added new method `CircuitString.setEncoding()` to change default behavior of the `CircuitString` encoding, possible value is `"ascii" | "uft-8"` default to `"ascii"`. Also added an optional `encoding: CircuitStringEncoding` parameter in `.toString()` and `.fromString()` to switch encoding temporary.
+- Added style rules for contributors https://github.com/o1-labs/o1js/pull/2012
+- Add new helper functions `Bool.anyTrue(xs)` and `Bool.allTrue(xs)`. https://github.com/o1-labs/o1js/pull/2038
+
+### Changed
+
+- Sort order for actions now includes the transaction sequence number and the exact account id sequence https://github.com/o1-labs/o1js/pull/1917
+- Updated typedoc version for generating docs https://github.com/o1-labs/o1js/pull/1973
+- Enable to pass normal JS values (e.g., `bigint` instead of `Field`) to ZkProgram provers https://github.com/o1-labs/o1js/pull/1934
+  - Also improves the supported JS values for a few important types like `Signature` and `UIntX`
+- ECDSA `verifySignedHash()` accepts hash `Bytes` directly for easy use with alternative hash functions https://github.com/o1-labs/o1js/pull/2005
+
+### Fixed
+
+- Fix behavior of `initializeBindings()` when called concurrently, to improve error messages in common failure scenarios https://github.com/o1-labs/o1js/pull/1996
+- Fix `ZkProgram` public input/output types https://github.com/o1-labs/o1js/pull/1998
+
+## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
+
+### Added
+
+- `ZkProgram` to support non-pure provable types as inputs and outputs https://github.com/o1-labs/o1js/pull/1828
+- APIs for recursively proving a ZkProgram method from within another https://github.com/o1-labs/o1js/pull/1931 https://github.com/o1-labs/o1js/pull/1932
+  - `let recursive = Experimental.Recursive(program);`
+  - `recursive.<methodName>(...args): Promise<PublicOutput>`
+  - `recursive.<methodName>.if(condition, ...args): Promise<PublicOutput>`
+  - This also works within the same program, as long as the return value is type-annotated
+- Add `enforceTransactionLimits` parameter on Network https://github.com/o1-labs/o1js/issues/1910
+- Method for optional types to assert none https://github.com/o1-labs/o1js/pull/1922
+- Increased maximum supported amount of methods in a `SmartContract` or `ZkProgram` to 30. https://github.com/o1-labs/o1js/pull/1918
+- Expose low-level conversion methods `Proof.{_proofToBase64,_proofFromBase64}` https://github.com/o1-labs/o1js/pull/1928
+- Expose `maxProofsVerified()` and a `Proof` class directly on ZkPrograms https://github.com/o1-labs/o1js/pull/1933
+
+### Changed
+
+- Changed an internal type to improve IntelliSense on ZkProgram methods https://github.com/o1-labs/o1js/pull/1933
+- Updated o1js nix devshell to build rust on all executions of `npm run build:update-bindings`
 
 ### Added
 
@@ -24,6 +120,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Compiling stuck in the browser for recursive zkprograms https://github.com/o1-labs/o1js/pull/1906
+- Error message in `rangeCheck16` gadget https://github.com/o1-labs/o1js/pull/1920
+- Deprecate `testnet` `networkId` in favor of `devnet` https://github.com/o1-labs/o1js/pull/1938
+- Fix event data type inconsistency between LocalBlockchain and Mina https://github.com/o1-labs/o1js/pull/1975
 
 ## [2.1.0](https://github.com/o1-labs/o1js/compare/b04520d...e1bac02) - 2024-11-13
 
@@ -60,7 +159,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `divMod64()` division modulo 2^64 that returns the remainder and quotient of the operation
 - `addMod64()` addition modulo 2^64
 - Bitwise OR via `{UInt32, UInt64}.or()`
-- **BLAKE2B hash function** gadget [#1285](https://github.com/o1-labs/o1js/pull/1285)
+- **BLAKE2B hash function** gadget. https://github.com/o1-labs/o1js/pull/1767
 
 ## [1.9.1](https://github.com/o1-labs/o1js/compare/f15293a69...7e9394) - 2024-10-15
 
@@ -186,7 +285,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Deprecated
 
-- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indicies https://github.com/o1-labs/o1js/pull/1694
+- `MerkleMap.computeRootAndKey()` deprecated in favor of `MerkleMap.computeRootAndKeyV2()` due to a potential issue of computing hash collisions in key indices https://github.com/o1-labs/o1js/pull/1694
 
 ## [1.3.1](https://github.com/o1-labs/o1js/compare/1ad7333e9e...40c597775) - 2024-06-11
 
@@ -346,8 +445,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `this.sender.getAndRequireSignature()` which requires a signature from the sender's public key and therefore proves that whoever created the transaction really owns the sender account
 - `Reducer.reduce()` requires the maximum number of actions per method as an explicit (optional) argument https://github.com/o1-labs/o1js/pull/1450
   - The default value is 1 and should work for most existing contracts
-- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)  
-   As a replacement, `UInt64.Unsafe.fromField()` was introduced
+- `new UInt64()` and `UInt64.from()` no longer unsafely accept a field element as input. https://github.com/o1-labs/o1js/pull/1438 [@julio4](https://github.com/julio4)
+  As a replacement, `UInt64.Unsafe.fromField()` was introduced
   - This prevents you from accidentally creating a `UInt64` without proving that it fits in 64 bits
   - Equivalent changes were made to `UInt32`
 - Fixed vulnerability in `Field.to/fromBits()` outlined in [#1023](https://github.com/o1-labs/o1js/issues/1023) by imposing a limit of 254 bits https://github.com/o1-labs/o1js/pull/1461
@@ -857,7 +956,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Failing `Mina.transaction` on Berkeley because of unsatisfied constraints caused by dummy data before we fetched account state https://github.com/o1-labs/o1js/pull/807
-  - Previously, you could work around this by calling `fetchAccount()` for every account invovled in a transaction. This is not necessary anymore.
+  - Previously, you could work around this by calling `fetchAccount()` for every account involved in a transaction. This is not necessary anymore.
 - Update the zkApp verification key from within one of its own methods, via proof https://github.com/o1-labs/o1js/pull/812
 
 ## [0.9.4](https://github.com/o1-labs/o1js/compare/9acec55...21de489)
@@ -1121,7 +1220,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Recursive proofs**. RFC: https://github.com/o1-labs/o1js/issues/89, PRs: https://github.com/o1-labs/o1js/pull/245 https://github.com/o1-labs/o1js/pull/250 https://github.com/o1-labs/o1js/pull/261
   - Enable smart contract methods to take previous proofs as arguments, and verify them in the circuit
-  - Add `ZkProgram`, a new primitive which represents a collection of circuits that produce instances of the same proof. So, it's a more general version of `SmartContract`, without any of the Mina-related API.  
+  - Add `ZkProgram`, a new primitive which represents a collection of circuits that produce instances of the same proof. So, it's a more general version of `SmartContract`, without any of the Mina-related API.
     `ZkProgram` is suitable for rollup-type systems and offchain usage of Pickles + Kimchi.
 - **zkApp composability** -- calling other zkApps from inside zkApps. RFC: https://github.com/o1-labs/o1js/issues/303, PRs: https://github.com/o1-labs/o1js/pull/285, https://github.com/o1-labs/o1js/pull/296, https://github.com/o1-labs/o1js/pull/294, https://github.com/o1-labs/o1js/pull/297
 - **Events** support via `SmartContract.events`, `this.emitEvent`. RFC: https://github.com/o1-labs/o1js/issues/248, PR: https://github.com/o1-labs/o1js/pull/272

@@ -1,0 +1,24 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # once per day at midnight
+  workflow_dispatch: # can be run with gh workflow run nightly.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # This is the slowest part of the CI now so I think it's better to just do it daily
+  # instead of every commit
+  Nix-cleanup:
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Cleanup the Nix store
+        run: |
+          nix-store --gc
+          nix-store --optimise
+

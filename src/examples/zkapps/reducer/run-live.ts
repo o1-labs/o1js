@@ -1,9 +1,4 @@
-import {
-  AccountUpdate,
-  Lightnet,
-  Mina,
-  PrivateKey,
-} from 'o1js';
+import { AccountUpdate, Lightnet, Mina, PrivateKey } from 'o1js';
 import { DEFAULT_LIGHTNET_CONFIG } from '../../utils/network-configuration.js';
 import { randomAccounts } from '../../utils/random-accounts.js';
 import { tic, toc } from '../../utils/tic-toc.node.js';
@@ -19,10 +14,10 @@ let { keys, addresses } = randomAccounts('contract', 'user1', 'user2');
 let pendingTx: Mina.PendingTransaction;
 
 // compile contracts & wait for fee payer to be funded
-const senderKey = (await Lightnet.acquireKeyPair()).privateKey
+const senderKey = (await Lightnet.acquireKeyPair()).privateKey;
 const sender = senderKey.toPublicKey();
 
-const sender2Key = (await Lightnet.acquireKeyPair()).privateKey
+const sender2Key = (await Lightnet.acquireKeyPair()).privateKey;
 const sender2 = sender2Key.toPublicKey();
 
 tic('Compiling Merkle List Reducer Smart Contract');
@@ -52,10 +47,7 @@ let dispatchTx = await Mina.transaction(senderSpec, async () => {
   await merkleListReducerContract.postAddress(addresses.contract);
   await merkleListReducerContract.postTwoAddresses(addresses.user2, sender);
   await merkleListReducerContract.postAddress(addresses.user2);
-  await merkleListReducerContract.postTwoAddresses(
-    addresses.contract,
-    addresses.user1
-  );
+  await merkleListReducerContract.postTwoAddresses(addresses.contract, addresses.user1);
 });
 await dispatchTx.prove();
 pendingTx = await dispatchTx.sign([senderKey]).send();
@@ -86,10 +78,7 @@ await dispatchTx1.prove();
 txs.push({ tx: dispatchTx1, privateKey: senderKey });
 
 let dispatchTx2 = await Mina.transaction(sender2Spec, async () => {
-  await merkleListReducerContract.postTwoAddresses(
-    addresses.user2,
-    addresses.contract
-  );
+  await merkleListReducerContract.postTwoAddresses(addresses.user2, addresses.contract);
 });
 await dispatchTx2.prove();
 txs.push({ tx: dispatchTx2, privateKey: sender2Key });

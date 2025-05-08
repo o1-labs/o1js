@@ -158,10 +158,6 @@ try {
   console.log('Transaction failed with error', err.message);
 }
 
-console.log(
-  `should still be the same final balance: ${zkapp.account.balance
-    .get()
-    .div(1e9)} MINA`
-);
+console.log(`should still be the same final balance: ${zkapp.account.balance.get().div(1e9)} MINA`);
 
 SimpleProfiler.stop().store();

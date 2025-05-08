@@ -50,10 +50,7 @@ export function vote(
 /**
  * Prints the voting results of an election
  */
-export function getResults(
-  voting: Voting_,
-  votesStore: OffchainStorage<Member>
-) {
+export function getResults(voting: Voting_, votesStore: OffchainStorage<Member>) {
   if (!voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
     throw new Error('On-chain root is not up to date with the off-chain tree');
   }

@@ -13,7 +13,12 @@ describe('Client Class Initialization', () => {
     expect(client).toBeDefined();
   });
 
-  it('should throw an error if a value that is not `mainnet` or `testnet` is specified', () => {
+  it('should accept `devnet` as a valid network parameter', () => {
+    client = new Client({ network: 'devnet' });
+    expect(client).toBeDefined();
+  });
+
+  it('should throw an error if a value that is not `mainnet`, `devnet`, or `testnet` is specified', () => {
     try {
       //@ts-ignore
       client = new Client({ network: 'new-network' });

@@ -23,13 +23,16 @@ import { RandomTransaction } from './random-transaction.js';
 import { NetworkId } from './types.js';
 
 let { privateKey, publicKey } = keypair;
-let networks: NetworkId[] = ['testnet', 'mainnet'];
+let networks: NetworkId[] = ['devnet', 'testnet', 'mainnet'];
 
 // test hard-coded cases against reference signature
 
 for (let network of networks) {
   let i = 0;
-  let reference = signatures[NetworkId.toString(network)];
+  let reference =
+    NetworkId.toString(network) === 'testnet'
+      ? signatures['devnet']
+      : signatures[NetworkId.toString(network)];
 
   for (let payment of payments) {
     let signature = signPayment(payment, privateKey, network);
@@ -73,16 +76,26 @@ test(
       verifyPayment(payment, sig, publicKey, network);
 
     // valid signatures & verification matrix
+    let devnet = signPayment(payment, privateKey, 'devnet');
     let testnet = signPayment(payment, privateKey, 'testnet');
     let mainnet = signPayment(payment, privateKey, 'mainnet');
+    assert(verify(devnet, 'testnet') === true);
+    assert(verify(testnet, 'devnet') === true);
+
     assert(verify(testnet, 'testnet') === true);
     assert(verify(testnet, 'mainnet') === false);
     assert(verify(mainnet, 'testnet') === false);
+
+    assert(verify(devnet, 'devnet') === true);
+    assert(verify(devnet, 'mainnet') === false);
+    assert(verify(mainnet, 'devnet') === false);
     assert(verify(mainnet, 'mainnet') === true);
 
     // fails when signing with wrong private key
     let testnetWrong = signPayment(payment, otherKey, 'testnet');
+    let devnetWrong = signPayment(payment, otherKey, 'devnet');
     let mainnetWrong = signPayment(payment, otherKey, 'mainnet');
+    assert(verify(devnetWrong, 'devnet') === false);
     assert(verify(testnetWrong, 'testnet') === false);
     assert(verify(mainnetWrong, 'mainnet') === false);
   }
@@ -112,9 +125,7 @@ let signature = Signature.toJSON({ r: Field.random(), s: Scalar.random() });
 expect(() => signPayment(amountTooLarge, privateKey, 'mainnet')).toThrow(
   `inputs larger than ${2n ** 64n - 1n} are not allowed`
 );
-expect(verifyPayment(amountTooLarge, signature, publicKey, 'mainnet')).toEqual(
-  false
-);
+expect(verifyPayment(amountTooLarge, signature, publicKey, 'mainnet')).toEqual(false);
 
 // negative tests with invalid signatures
 
@@ -128,17 +139,9 @@ let signatureScalarTooLarge = Signature.toJSON({
   s: Scalar.modulus,
 });
 
-expect(
-  verifyPayment(validPayment, garbageSignature, publicKey, 'mainnet')
-).toEqual(false);
-expect(
-  verifyPayment(validPayment, signatureFieldTooLarge, publicKey, 'mainnet')
-).toEqual(false);
-expect(
-  verifyPayment(validPayment, signatureScalarTooLarge, publicKey, 'mainnet')
-).toEqual(false);
+expect(verifyPayment(validPayment, garbageSignature, publicKey, 'mainnet')).toEqual(false);
+expect(verifyPayment(validPayment, signatureFieldTooLarge, publicKey, 'mainnet')).toEqual(false);
+expect(verifyPayment(validPayment, signatureScalarTooLarge, publicKey, 'mainnet')).toEqual(false);
 
-console.log(
-  'legacy signatures match the test vectors and successfully verify! 🎉'
-);
+console.log('legacy signatures match the test vectors and successfully verify! 🎉');
 process.exit(0);

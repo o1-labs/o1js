@@ -3,46 +3,25 @@
  */
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import type { Field, VarField } from '../field.js';
-import {
-  FieldType,
-  FieldVar,
-  FieldConst,
-  VarFieldVar,
-} from '../core/fieldvar.js';
+import { FieldType, FieldVar, FieldConst, VarFieldVar } from '../core/fieldvar.js';
 import { toVar } from './common.js';
 import { Gates, fieldVar } from '../gates.js';
 import { TupleN } from '../../util/types.js';
 import { exists, existsOne } from '../core/exists.js';
 import { createField } from '../core/field-constructor.js';
 import { assert } from '../../util/assert.js';
+import { ProvableType } from '../types/provable-intf.js';
+import { Provable } from '../provable.js';
 
-export {
-  assertMul,
-  assertBilinear,
-  arrayGet,
-  assertOneOf,
-  assertNotVectorEquals,
-};
+export { assertMul, assertBilinear, arrayGet, assertOneOf, assertNotVectorEquals, arrayGetGeneric };
 
 // internal
-export {
-  reduceToScaledVar,
-  toLinearCombination,
-  emptyCell,
-  linear,
-  bilinear,
-  ScaledVar,
-  Constant,
-};
+export { reduceToScaledVar, toLinearCombination, emptyCell, linear, bilinear, ScaledVar, Constant };
 
 /**
  * Assert multiplication constraint, `x * y === z`
  */
-function assertMul(
-  x: Field | FieldVar,
-  y: Field | FieldVar,
-  z: Field | FieldVar
-) {
+function assertMul(x: Field | FieldVar, y: Field | FieldVar, z: Field | FieldVar) {
   // simpler version of assertMulCompatible that currently uses the same amount of constraints but is not compatible
   // also, doesn't handle all-constant case (handled by calling gadgets already)
 
@@ -223,10 +202,7 @@ function bilinear(
     return a * x0 * y0 + b * x0 + c * y0 + d;
   });
   // b*x + c*y - z + a*x*y + d === 0
-  Gates.generic(
-    { left: b, right: c, out: -1n, mul: a, const: d },
-    { left: x, right: y, out: z }
-  );
+  Gates.generic({ left: b, right: c, out: -1n, mul: a, const: d }, { left: x, right: y, out: z });
   return z;
 }
 
@@ -389,3 +365,25 @@ function getLinear(x: ScaledVar | Constant): [[bigint, VarFieldVar], bigint] {
 }
 
 const ScaledVar = { isVar, getVar, isConst, getConst };
+
+/**
+ * Get value from array in O(n) constraints.
+ *
+ * Assumes that index is in [0, n), returns an unconstrained result otherwise.
+ */
+function arrayGetGeneric<T>(type: ProvableType<T>, array: T[], index: Field) {
+  type = ProvableType.get(type);
+  // witness result
+  let a = Provable.witness(type, () => array[Number(index)]);
+  let aFields = type.toFields(a);
+
+  // constrain each field of the result
+  let size = type.sizeInFields();
+  let arrays = array.map(type.toFields);
+
+  for (let j = 0; j < size; j++) {
+    let arrayFieldsJ = arrays.map((x) => x[j]);
+    arrayGet(arrayFieldsJ, index).assertEquals(aFields[j]);
+  }
+  return a;
+}

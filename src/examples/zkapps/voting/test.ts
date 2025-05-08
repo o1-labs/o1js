@@ -1,13 +1,4 @@
-import {
-  Mina,
-  AccountUpdate,
-  Field,
-  PrivateKey,
-  UInt64,
-  UInt32,
-  Permissions,
-  Reducer,
-} from 'o1js';
+import { Mina, AccountUpdate, Field, PrivateKey, UInt64, UInt32, Permissions, Reducer } from 'o1js';
 import { deployContracts, deployInvalidContracts } from './deploy-contracts.js';
 import { DummyContract } from './dummy-contract.js';
 import { VotingAppParams } from './factory.js';
@@ -15,12 +6,7 @@ import { Member, MyMerkleWitness } from './member.js';
 import { Membership_ } from './membership.js';
 import { OffchainStorage } from './off-chain-storage.js';
 import { Voting_ } from './voting.js';
-import {
-  assertValidTx,
-  getResults,
-  registerMember,
-  vote,
-} from './voting-lib.js';
+import { assertValidTx, getResults, registerMember, vote } from './voting-lib.js';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;
@@ -97,9 +83,7 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        let vkUpdate = AccountUpdate.createSigned(
-          params.votingKey.toPublicKey()
-        );
+        let vkUpdate = AccountUpdate.createSigned(params.votingKey.toPublicKey());
         vkUpdate.account.verificationKey.set({
           ...verificationKey,
           hash: Field(verificationKey.hash),
@@ -145,13 +129,7 @@ export async function testSet(
   */
     console.log('deploying testing phase 2 contracts');
 
-    let permissionedSet = await deployContracts(
-      contracts,
-      params,
-      Field(0),
-      Field(0),
-      Field(0)
-    );
+    let permissionedSet = await deployContracts(contracts, params, Field(0), Field(0), Field(0));
     console.log('checking that the tx is valid using default permissions');
 
     let m = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(15));
@@ -170,9 +148,7 @@ export async function testSet(
     await assertValidTx(
       true,
       async () => {
-        let permUpdate = AccountUpdate.createSigned(
-          params.voterKey.toPublicKey()
-        );
+        let permUpdate = AccountUpdate.createSigned(params.voterKey.toPublicKey());
 
         permUpdate.account.permissions.set({
           ...Permissions.default(),
@@ -233,19 +209,14 @@ export async function testSet(
     invalidSet.Local.addAccount(m.publicKey, m.balance.toString());
 
     try {
-      let tx = await Mina.transaction(
-        invalidSet.feePayer.toPublicKey(),
-        async () => {
-          await invalidSet.voting.voterRegistration(m);
-        }
-      );
+      let tx = await Mina.transaction(invalidSet.feePayer.toPublicKey(), async () => {
+        await invalidSet.voting.voterRegistration(m);
+      });
       await tx.prove();
       await tx.sign([invalidSet.feePayer]).send();
     } catch (err: any) {
       if (!err.toString().includes('fromActionState not found')) {
-        throw Error(
-          `Transaction should have failed, but failed with an unexpected error! ${err}`
-        );
+        throw Error(`Transaction should have failed, but failed with an unexpected error! ${err}`);
       }
     }
   }
@@ -280,27 +251,19 @@ export async function testSet(
 
     console.log('trying to overflow actions (custom max: 2)');
 
-    console.log(
-      'emitting more than 2 actions without periodically updating them'
-    );
+    console.log('emitting more than 2 actions without periodically updating them');
     for (let index = 0; index <= 3; index++) {
       try {
-        let tx = await Mina.transaction(
-          sequenceOverflowSet.feePayer.toPublicKey(),
-          async () => {
-            let m = Member.from(
-              PrivateKey.random().toPublicKey(),
+        let tx = await Mina.transaction(sequenceOverflowSet.feePayer.toPublicKey(), async () => {
+          let m = Member.from(
+            PrivateKey.random().toPublicKey(),
 
-              UInt64.from(15)
-            );
-            sequenceOverflowSet.Local.addAccount(
-              m.publicKey,
-              m.balance.toString()
-            );
+            UInt64.from(15)
+          );
+          sequenceOverflowSet.Local.addAccount(m.publicKey, m.balance.toString());
 
-            await sequenceOverflowSet.voting.voterRegistration(m);
-          }
-        );
+          await sequenceOverflowSet.voting.voterRegistration(m);
+        });
         await tx.prove();
         await tx.sign([sequenceOverflowSet.feePayer]).send();
       } catch (error) {
@@ -317,19 +280,14 @@ export async function testSet(
     }
 
     try {
-      let tx = await Mina.transaction(
-        sequenceOverflowSet.feePayer.toPublicKey(),
-        async () => {
-          await sequenceOverflowSet.voting.approveRegistrations();
-        }
-      );
+      let tx = await Mina.transaction(sequenceOverflowSet.feePayer.toPublicKey(), async () => {
+        await sequenceOverflowSet.voting.approveRegistrations();
+      });
       await tx.prove();
       await tx.sign([sequenceOverflowSet.feePayer]).send();
     } catch (err: any) {
       if (!err.toString().includes('the maximum number of lists of actions')) {
-        throw Error(
-          `Transaction should have failed but went through! Error: ${err}`
-        );
+        throw Error(`Transaction should have failed but went through! Error: ${err}`);
       }
     }
   }
@@ -337,14 +295,13 @@ export async function testSet(
   if (runTestingPhases[5]) {
     console.log('deploying testing phase 5 contracts');
 
-    let { voterContract, candidateContract, voting, feePayer, Local } =
-      await deployContracts(
-        contracts,
-        params,
-        votersStore.getRoot(),
-        candidatesStore.getRoot(),
-        votesStore.getRoot()
-      );
+    let { voterContract, candidateContract, voting, feePayer, Local } = await deployContracts(
+      contracts,
+      params,
+      votersStore.getRoot(),
+      candidatesStore.getRoot(),
+      votesStore.getRoot()
+    );
 
     /*
     test case description:
@@ -373,9 +330,7 @@ export async function testSet(
         .sub(1)
         .toString()}, before election has started`
     );
-    Local.setGlobalSlot(
-      UInt32.from(params.electionPreconditions.startElection.sub(1))
-    );
+    Local.setGlobalSlot(UInt32.from(params.electionPreconditions.startElection.sub(1)));
 
     console.log('attempting to register a valid voter... ');
 
@@ -396,18 +351,12 @@ export async function testSet(
     );
 
     if (actionsLength(voterContract) !== 1) {
-      throw Error(
-        'Should have emitted 1 event after registering only one valid voter'
-      );
+      throw Error('Should have emitted 1 event after registering only one valid voter');
     }
 
     if (
-      !initialAccumulatedMembers
-        .equals(voterContract.accumulatedMembers.get())
-        .toBoolean() ||
-      !initialCommittedMembers
-        .equals(voterContract.committedMembers.get())
-        .toBoolean()
+      !initialAccumulatedMembers.equals(voterContract.accumulatedMembers.get()).toBoolean() ||
+      !initialCommittedMembers.equals(voterContract.committedMembers.get()).toBoolean()
     ) {
       throw Error('State changed, but should not have!');
     }
@@ -480,9 +429,7 @@ export async function testSet(
     );
 
     if (actionsLength(voterContract) !== 1) {
-      throw Error(
-        'Should have emitted 1 event after registering only one valid voter'
-      );
+      throw Error('Should have emitted 1 event after registering only one valid voter');
     }
 
     /*
@@ -556,10 +503,8 @@ export async function testSet(
     }
 
     // the merkle roots of both membership contract should still be the initial ones because publish hasn't been invoked
-    // therefor the state should not have changes
-    if (
-      !candidateContract.committedMembers.get().equals(initialRoot).toBoolean()
-    ) {
+    // therefore the state should not have changes
+    if (!candidateContract.committedMembers.get().equals(initialRoot).toBoolean()) {
       throw Error('candidate merkle root is not the initialroot');
     }
 
@@ -601,26 +546,12 @@ export async function testSet(
       throw Error('voter contract state changed, but should not have');
     }
 
-    if (
-      !candidateContract.committedMembers
-        .get()
-        .equals(candidatesStore.getRoot())
-        .toBoolean()
-    ) {
-      throw Error(
-        'candidatesStore merkle root does not match on-chain committed members'
-      );
+    if (!candidateContract.committedMembers.get().equals(candidatesStore.getRoot()).toBoolean()) {
+      throw Error('candidatesStore merkle root does not match on-chain committed members');
     }
 
-    if (
-      !voterContract.committedMembers
-        .get()
-        .equals(votersStore.getRoot())
-        .toBoolean()
-    ) {
-      throw Error(
-        'votersStore merkle root does not match on-chain committed members'
-      );
+    if (!voterContract.committedMembers.get().equals(votersStore.getRoot()).toBoolean()) {
+      throw Error('votersStore merkle root does not match on-chain committed members');
     }
 
     /*
@@ -639,18 +570,13 @@ export async function testSet(
       - no state changes
   */
 
-    console.log(
-      'attempting to register a candidate within the election period ...'
-    );
+    console.log('attempting to register a candidate within the election period ...');
     Local.setGlobalSlot(params.electionPreconditions.startElection.add(1));
 
     let previousEventsVoter = actionsLength(voterContract);
     let previousEventsCandidate = actionsLength(candidateContract);
 
-    let lateCandidate = Member.from(
-      PrivateKey.random().toPublicKey(),
-      UInt64.from(200)
-    );
+    let lateCandidate = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(200));
     addAccount(lateCandidate);
 
     await assertValidTx(
@@ -663,14 +589,9 @@ export async function testSet(
       'Outside of election period!'
     );
 
-    console.log(
-      'attempting to register a voter within the election period ...'
-    );
+    console.log('attempting to register a voter within the election period ...');
 
-    let lateVoter = Member.from(
-      PrivateKey.random().toPublicKey(),
-      UInt64.from(50)
-    );
+    let lateVoter = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(50));
     addAccount(lateVoter);
 
     await assertValidTx(
@@ -690,26 +611,12 @@ export async function testSet(
       throw Error('events emitted but should not have been');
     }
 
-    if (
-      !candidateContract.committedMembers
-        .get()
-        .equals(candidatesStore.getRoot())
-        .toBoolean()
-    ) {
-      throw Error(
-        'candidatesStore merkle root does not match on-chain committed members'
-      );
+    if (!candidateContract.committedMembers.get().equals(candidatesStore.getRoot()).toBoolean()) {
+      throw Error('candidatesStore merkle root does not match on-chain committed members');
     }
 
-    if (
-      !voterContract.committedMembers
-        .get()
-        .equals(votersStore.getRoot())
-        .toBoolean()
-    ) {
-      throw Error(
-        'votersStore merkle root does not match on-chain committed members'
-      );
+    if (!voterContract.committedMembers.get().equals(votersStore.getRoot()).toBoolean()) {
+      throw Error('votersStore merkle root does not match on-chain committed members');
     }
 
     /*
@@ -770,12 +677,8 @@ export async function testSet(
       async () => {
         // attempting to vote for the registered candidate
         currentCandidate = candidatesStore.get(0n)!;
-        currentCandidate.witness = new MyMerkleWitness(
-          candidatesStore.getWitness(0n)
-        );
-        currentCandidate.votesWitness = new MyMerkleWitness(
-          votesStore.getWitness(0n)
-        );
+        currentCandidate.witness = new MyMerkleWitness(candidatesStore.getWitness(0n));
+        currentCandidate.votesWitness = new MyMerkleWitness(votesStore.getWitness(0n));
 
         let v = votersStore.get(0n)!;
         v.witness = new MyMerkleWitness(votersStore.getWitness(0n));
@@ -833,10 +736,7 @@ export async function testSet(
 
     console.log('unregistered voter attempting to vote');
 
-    let fakeVoter = Member.from(
-      PrivateKey.random().toPublicKey(),
-      UInt64.from(50)
-    );
+    let fakeVoter = Member.from(PrivateKey.random().toPublicKey(), UInt64.from(50));
     addAccount(fakeVoter);
 
     await assertValidTx(
@@ -887,9 +787,7 @@ export async function testSet(
     );
 
     if (!voting.committedVotes.get().equals(votesStore.getRoot()).toBoolean()) {
-      throw Error(
-        'votesStore merkle root does not match on-chain committed votes'
-      );
+      throw Error('votesStore merkle root does not match on-chain committed votes');
     }
 
     console.log('election is over, printing results');

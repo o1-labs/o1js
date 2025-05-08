@@ -1,0 +1,335 @@
+name: Checks
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - v1
+      - v3
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  Prepare:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+
+  Lint-Format-and-TypoCheck:
+    strategy:
+      matrix:
+        node: [20]
+    if: github.event.pull_request.labels.*.name != 'skip-lint'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Get Changed Files (Compare with Main)
+        id: get_changed_files
+        run: |
+          git fetch origin main --depth=1
+          # TODO ideally lint the non-generated files in src/bindings/
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.ref }} | grep -E '\.(ts|js)$' | grep -v 'src/bindings/*' || true)
+
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Files changed:"
+            echo "$CHANGED_FILES"
+            echo "$CHANGED_FILES" > changed_files.txt
+            echo "files_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No relevant files changed."
+            echo "files_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Prettier Check
+        if: steps.get_changed_files.outputs.files_changed == 'true'
+        run: xargs npm run format:check < changed_files.txt
+
+      - name: Run Oxlint
+        if: steps.get_changed_files.outputs.files_changed == 'true'
+        run: xargs npm run lint:strict < changed_files.txt
+
+      - name: Run codespell
+        if: steps.get_changed_files.outputs.files_changed == 'true' && github.event.pull_request.labels.*.name != 'no-typo-check'
+        uses: codespell-project/actions-codespell@master
+        with:
+          check_filenames: true
+          path: ${{ steps.get_changed_files.outputs.files }}
+          skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*,./src/bindings/compiled/**/*"
+          check_hidden: false
+          ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
+
+  Upload-bindings:
+    name: upload bindings artifact
+    needs: [Prepare]
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: upload
+        uses: ./.github/actions/upload
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+
+  Build-And-Test-Server:
+    needs: [Prepare]
+    timeout-minutes: 210
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_type:
+          [
+            'Simple integration tests',
+            'Reducer integration tests',
+            'DEX integration tests',
+            'DEX integration test with proofs',
+            'Voting integration tests',
+            'Verification Key Regression Check 1',
+            'Verification Key Regression Check 2',
+            'CommonJS test',
+          ]
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+      - name: Prepare for tests
+        run: touch profiling.md
+      - name: Execute tests
+        env:
+          TEST_TYPE: ${{ matrix.test_type }}
+        run: sh run-ci-tests.sh
+      - name: Add to job summary
+        if: always()
+        run: |
+          echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
+
+  Run-Unit-Tests:
+    needs: [Prepare]
+    name: Run unit tests parallel
+    timeout-minutes: 210
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+      - name: Count tests
+        id: count_tests
+        run: |
+          TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "Total test count: ${TEST_COUNT}"
+
+      - name: Run unit tests
+        env:
+          TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
+          CHUNK: ${{ matrix.chunk }}
+          CHUNKS: 8
+        shell: bash
+        run: |
+          echo "Total tests: $TOTAL_TESTS"
+          echo "Current chunk: $CHUNK"
+          echo "Total chunks: $CHUNKS"
+
+          if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
+            echo "Error: TOTAL_TESTS is not set or is zero. Exiting."
+            exit 1
+          fi
+
+          start_index=$(( (TOTAL_TESTS * (CHUNK - 1) / CHUNKS) ))
+          end_index=$(( (TOTAL_TESTS * CHUNK / CHUNKS) ))
+
+          echo "Running tests from index $start_index to $end_index"
+
+          shopt -s globstar
+          test_files=(./dist/node/**/*.unit-test.js)
+
+          set -o pipefail
+
+          for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
+              echo "Running test: ${test_files[$i]}"
+              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+          done
+        continue-on-error: false
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.chunk }}
+          path: profiling.md
+      - name: Add to job summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
+
+  Build-And-Test-Server-Unit-Tests:
+    name: Build-And-Test-Server (Unit tests)
+    needs: [Run-Unit-Tests]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All unit tests completed successfully"
+
+  Build-And-Test-Web:
+    needs: [Prepare]
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore repository
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Setup Node.JS ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          # TODO matrixing this requires changing branch protection rules
+
+      - name: Restore npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.OS }}-playwright-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npm run e2e:install
+
+      - name: Build o1js and prepare the web server
+        run: |
+          npm run build:web
+          npm run e2e:prepare-server
+
+      - name: Execute E2E tests
+        run: npm run test:e2e
+
+      - name: Upload E2E test artifacts
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        if: always()
+        with:
+          if-no-files-found: ignore
+          name: e2e-tests-report
+          path: tests/report/
+          retention-days: 30
+
+  master:
+    needs: [Prepare]
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:master-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 5432:5432
+          - 8080:8080
+          - 8181:8181
+          - 8282:8282
+        volumes:
+          - /tmp:/root/logs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
+        with:
+          mina-branch-name: master
+
+  compatible:
+    needs: [Prepare]
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:compatible-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 5432:5432
+          - 8080:8080
+          - 8181:8181
+          - 8282:8282
+        volumes:
+          - /tmp:/root/logs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
+        with:
+          mina-branch-name: compatible

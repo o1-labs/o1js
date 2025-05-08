@@ -1,0 +1,23 @@
+{
+  "extends": "oxlint/recommended",
+  "rules": {
+    "erasing-op": "off",
+    "no-new-array": "off",
+    "no-this-alias": "off",
+    "no-unsafe-finally": "off",
+    "no-unused-labels": "off",
+    "no-useless-escape": "off",
+    "no-wrapper-object-types": "off"
+  },
+  "ignorePatterns": [
+    "_build/",
+    ".github/",
+    "benchmark/",
+    "dist/",
+    "node_modules/",
+    "o1js-reference/",
+    "src/bindings/",
+    "src/mina/",
+    "**/*.d.ts"
+  ]
+}

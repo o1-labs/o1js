@@ -79,23 +79,13 @@ const BLAKE2B = {
   },
 };
 
-function G(
-  v: UInt64[],
-  a: number,
-  b: number,
-  c: number,
-  d: number,
-  x: UInt64,
-  y: UInt64
-) {
+function G(v: UInt64[], a: number, b: number, c: number, d: number, x: UInt64, y: UInt64) {
   v[a] = UInt64.Unsafe.fromField(
     Gadgets.divMod64(v[a].value.add(v[b].value.add(x.value)), 128).remainder
   );
   v[d] = v[d].xor(v[a]).rotate(32, 'right');
 
-  v[c] = UInt64.Unsafe.fromField(
-    Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder
-  );
+  v[c] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder);
   v[b] = v[b].xor(v[c]).rotate(24, 'right');
 
   v[a] = UInt64.Unsafe.fromField(
@@ -103,9 +93,7 @@ function G(
   );
   v[d] = v[d].xor(v[a]).rotate(16, 'right');
 
-  v[c] = UInt64.Unsafe.fromField(
-    Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder
-  );
+  v[c] = UInt64.Unsafe.fromField(Gadgets.divMod64(v[c].value.add(v[d].value), 128).remainder);
   v[b] = v[b].xor(v[c]).rotate(63, 'right');
 }
 
@@ -116,7 +104,7 @@ function G(
  */
 function compress(state: State, last: boolean): State {
   const { h, t, buf } = state;
-  const v = h.concat(BLAKE2B.IV); // initalize local work vector. First half from state and second half from IV.
+  const v = h.concat(BLAKE2B.IV); // initialize local work vector. First half from state and second half from IV.
 
   v[12] = v[12].xor(UInt64.from(t[0])); // low word of the offset
   v[13] = v[13].xor(UInt64.from(t[1])); // high word of the offset
@@ -194,9 +182,7 @@ function update(state: State, input: UInt8[]): State {
   for (let i = 0; i < input.length; i++) {
     if (state.buflen === 128) {
       // buffer full ?
-      state.t[0] = UInt64.from(state.t[0])
-        .addMod64(UInt64.from(state.buflen))
-        .toBigInt(); // add counters
+      state.t[0] = UInt64.from(state.t[0]).addMod64(UInt64.from(state.buflen)).toBigInt(); // add counters
       if (state.t[0] < state.buflen) {
         // carry overflow ?
         state.t[1] = UInt64.from(state.t[1]).addMod64(UInt64.one).toBigInt(); // high word
@@ -215,9 +201,7 @@ function update(state: State, input: UInt8[]): State {
  * @returns {UInt8[]} digest
  */
 function final(state: State): UInt8[] {
-  state.t[0] = UInt64.from(state.t[0])
-    .addMod64(UInt64.from(state.buflen))
-    .toBigInt(); // add counters
+  state.t[0] = UInt64.from(state.t[0]).addMod64(UInt64.from(state.buflen)).toBigInt(); // add counters
   if (state.t[0] < state.buflen) {
     // carry overflow ?
     state.t[1] = UInt64.from(state.t[1]).addMod64(UInt64.one).toBigInt(); // high word
@@ -229,8 +213,6 @@ function final(state: State): UInt8[] {
   compress(state, true);
 
   // little endian convert and store
-  const out: UInt8[] = state.h
-    .slice(0, state.outlen / 8)
-    .flatMap((x) => wordToBytes(x.value));
+  const out: UInt8[] = state.h.slice(0, state.outlen / 8).flatMap((x) => wordToBytes(x.value));
   return out;
 }

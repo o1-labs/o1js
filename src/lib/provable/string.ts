@@ -42,15 +42,20 @@ class Character extends Struct({ value: Field }) {
   }
 }
 
+const stringEncoder = new TextEncoder();
+
+const stringDecoder = new TextDecoder('utf-8');
+
+// Encoding and decoding of CircuitString default is `ascii`
+// to keep backward compatibility
+export type CircuitStringEncoding = 'utf-8' | 'ascii';
+
 // construct a provable with a `string` js type
 const RawCircuitString = {
   ...provable({ values: Provable.Array(Character, DEFAULT_STRING_LENGTH) }),
 
   toValue({ values }) {
-    return values
-      .map((x) => x.toString())
-      .join('')
-      .replace(/[^ -~]+/g, '');
+    return stringDecoder.decode(new Uint8Array(values.map((x) => Number(x.toField().toBigInt()))));
   },
 
   fromValue(value) {
@@ -69,6 +74,8 @@ const RawCircuitString = {
 // TODO: create an API for this that is better integrated with `Struct`
 // TODO support other maxLengths
 class CircuitString extends Struct(RawCircuitString) {
+  static encoding: CircuitStringEncoding = 'ascii';
+
   static maxLength = DEFAULT_STRING_LENGTH;
 
   // this is the publicly accessible constructor
@@ -130,9 +137,7 @@ class CircuitString extends Struct(RawCircuitString) {
     let possibleResults = [];
     for (let length = 0; length < n + 1; length++) {
       // if the first string has this `length`, then this is the result:
-      possibleResults[length] = chars
-        .slice(0, length)
-        .concat(otherChars.slice(0, n - length));
+      possibleResults[length] = chars.slice(0, length).concat(otherChars.slice(0, n - length));
     }
     // compute the actual result, by always picking the char which corresponds to the actual length
     let result: Character[] = [];
@@ -152,15 +157,42 @@ class CircuitString extends Struct(RawCircuitString) {
     return CircuitString.fromCharacters(this.values.slice(start, end));
   }
 
-  toString(): string {
-    return CircuitString.toValue(this);
+  toString(encoding?: CircuitStringEncoding): string {
+    const textEncoding = encoding ?? CircuitString.encoding;
+    if (textEncoding === 'ascii') {
+      return CircuitString.toValue(this).replace(/[^ -~]+/g, '');
+    } else if (textEncoding === 'utf-8') {
+      return CircuitString.toValue(this);
+    }
+    throw Error('CircuitString: unsupported encoding, only ascii and utf-8 are supported');
   }
 
-  static fromString(str: string): CircuitString {
+  private static fromValueUtf8(value: string | { values: Character[] }) {
+    if (typeof value === 'object') return value;
+    const utf8Characters = Array.from(stringEncoder.encode(value)).map((x) => {
+      return new Character(x);
+    });
+    return {
+      values: fillWithNull(utf8Characters, DEFAULT_STRING_LENGTH),
+    };
+  }
+
+  // Change default encoding of all CircuitString
+  static setEncoding(encoding: CircuitStringEncoding) {
+    CircuitString.encoding = encoding;
+  }
+
+  static fromString(str: string, encoding?: CircuitStringEncoding): CircuitString {
+    const textEncoding = encoding ?? CircuitString.encoding;
     if (str.length > this.maxLength) {
       throw Error('CircuitString.fromString: input string exceeds max length!');
     }
-    return new CircuitString(CircuitString.fromValue(str));
+    if (textEncoding === 'ascii') {
+      return new CircuitString(CircuitString.fromValue(str));
+    } else if (textEncoding === 'utf-8') {
+      return new CircuitString(CircuitString.fromValueUtf8(str));
+    }
+    throw Error('CircuitString: unsupported encoding, only ascii and utf-8 are supported');
   }
 }
 

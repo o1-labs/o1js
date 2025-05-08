@@ -118,10 +118,7 @@ class PrivateKey extends CircuitValue {
   static toValue(v: PrivateKey) {
     return v.toBigInt();
   }
-  static fromValue<T extends AnyConstructor>(
-    this: T,
-    v: bigint | PrivateKey
-  ): InstanceType<T> {
+  static fromValue<T extends AnyConstructor>(this: T, v: bigint | PrivateKey): InstanceType<T> {
     if (v instanceof PrivateKey) return v as any;
     return PrivateKey.fromBigInt(v) as any;
   }
@@ -266,7 +263,7 @@ class Signature extends CircuitValue {
     let publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     let d = privKey.s;
 
-    // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
+    // we chose an arbitrary prefix for the signature
     // there's no consequences in practice and the signatures can be used with any network
     // if there needs to be a custom nonce, include it in the message itself
     let kPrime = Scalar.from(
@@ -274,16 +271,13 @@ class Signature extends CircuitValue {
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
         d.toBigInt(),
-        'testnet'
+        'devnet'
       )
     );
 
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     let k = ry.isOdd().toBoolean() ? kPrime.neg() : kPrime;
-    let h = hashWithPrefix(
-      signaturePrefix('testnet'),
-      msg.concat([publicKey.x, publicKey.y, r])
-    );
+    let h = hashWithPrefix(signaturePrefix('devnet'), msg.concat([publicKey.x, publicKey.y, r]));
     let e = Scalar.fromField(h);
     let s = e.mul(d).add(k);
     return new Signature(r, s);
@@ -296,13 +290,10 @@ class Signature extends CircuitValue {
   verify(publicKey: PublicKey, msg: Field[]): Bool {
     let point = publicKey.toGroup();
 
-    // we chose an arbitrary prefix for the signature, and it happened to be 'testnet'
+    // we chose an arbitrary prefix for the signature
     // there's no consequences in practice and the signatures can be used with any network
     // if there needs to be a custom nonce, include it in the message itself
-    let h = hashWithPrefix(
-      signaturePrefix('testnet'),
-      msg.concat([point.x, point.y, this.r])
-    );
+    let h = hashWithPrefix(signaturePrefix('devnet'), msg.concat([point.x, point.y, this.r]));
 
     let r = point.scale(h).neg().add(Group.generator.scale(this.s));
     return r.x.equals(this.r).and(r.y.isEven());
@@ -322,5 +313,12 @@ class Signature extends CircuitValue {
     let r = this.r.toBigInt();
     let s = this.s.toBigInt();
     return SignatureBigint.toBase58({ r, s });
+  }
+
+  static fromValue<T extends AnyConstructor>(
+    this: T,
+    { r, s }: { r: Field | bigint; s: Scalar | bigint }
+  ): InstanceType<T> {
+    return Signature.fromObject({ r: Field.from(r), s: Scalar.from(s) }) as any;
   }
 }

@@ -202,10 +202,7 @@ describe('group', () => {
     describe('toJSON', () => {
       it('fromJSON(g.toJSON) should be the same as g', async () => {
         await Provable.runAndCheck(() => {
-          const x = Provable.witness(
-            Group,
-            () => Group.fromJSON(Group.generator.toJSON())!
-          );
+          const x = Provable.witness(Group, () => Group.fromJSON(Group.generator.toJSON())!);
           Provable.asProver(() => {
             expect(x.equals(Group.generator).toBoolean()).toEqual(true);
           });
@@ -356,17 +353,13 @@ describe('group', () => {
     });
 
     it('sub', () => {
-      let y = Provable.witness(Group, () => g).sub(
-        Provable.witness(Group, () => Group.generator)
-      );
+      let y = Provable.witness(Group, () => g).sub(Provable.witness(Group, () => Group.generator));
       let z = g.sub(Group.generator);
       y.assertEquals(z);
     });
 
     it('sub', () => {
-      let y = Provable.witness(Group, () => g).assertEquals(
-        Provable.witness(Group, () => g)
-      );
+      let y = Provable.witness(Group, () => g).assertEquals(Provable.witness(Group, () => g));
       g.assertEquals(g);
     });
   });

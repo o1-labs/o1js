@@ -50,6 +50,19 @@ const Hash = {
   },
 
   /**
+   * The SHA2 hash function with an output length of 224 | 256 | 384 | 512 bits.
+   */
+  SHA2: {
+    /**
+     * Hashes the given bytes using SHA2.
+     *
+     * This is an alias for `Gadgets.SHA2.hash(length,bytes)`.\
+     * See {@link Gadgets.SHA2.hash} for details and usage examples.
+     */
+    hash: Gadgets.SHA2.hash,
+  },
+
+  /**
    * The SHA3 hash function with an output length of 256 bits.
    */
   SHA3_256: {

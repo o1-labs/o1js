@@ -27,9 +27,7 @@ let MyProgram = ZkProgram({
 
 await MyProgram.compile();
 console.log('compile done');
-let result = await MyProgram.baseCase(
-  new MyStruct({ label: 'input-struct', value: Field(2) })
-);
+let result = await MyProgram.baseCase(new MyStruct({ label: 'input-struct', value: Field(2) }));
 
 Provable.log('auxiliary result', result.auxiliaryOutput);
 

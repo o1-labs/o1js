@@ -1,8 +1,0 @@
-{
-  "ignorePatterns": [
-    "src/bindings/compiled/web_bindings",
-    "src/bindings/compiled/node_bindings",
-    "node_modules",
-    "dist"
-  ]
-}

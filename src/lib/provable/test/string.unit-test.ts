@@ -121,17 +121,13 @@ describe('Circuit String', () => {
       const str = CircuitString.fromString(
         'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
       );
-      expect(str.substring(46, 80).toString()).toBe(
-        'Everything we see is a perspective'
-      );
+      expect(str.substring(46, 80).toString()).toBe('Everything we see is a perspective');
 
       await Provable.runAndCheck(() => {
         const str = CircuitString.fromString(
           'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
         );
-        expect(str.substring(46, 80).toString()).toBe(
-          'Everything we see is a perspective'
-        );
+        expect(str.substring(46, 80).toString()).toBe('Everything we see is a perspective');
       });
     });
   });

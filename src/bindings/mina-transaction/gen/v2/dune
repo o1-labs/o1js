@@ -1,0 +1,13 @@
+(rule
+ (targets
+  js-layout.ts)
+ (mode promote)
+ (enabled_if
+  (<> %{env:NO_JS_BUILD=0} 1))
+ (deps
+  (:script ../../../../build/js-layout-to-types-v2.mjs)
+  (:data ../../../ocaml/jsLayout.json)
+  ../../../../../.prettierrc.cjs
+  (glob_files ../../../../../node_modules/prettier/*))
+ (action
+  (run node %{script} %{data} js-layout.ts)))

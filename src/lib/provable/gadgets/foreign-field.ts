@@ -1,10 +1,7 @@
 /**
  * Foreign field arithmetic gadgets.
  */
-import {
-  inverse as modInverse,
-  mod,
-} from '../../../bindings/crypto/finite-field.js';
+import { inverse as modInverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { provableTuple } from '../types/provable-derivers.js';
 import { Unconstrained } from '../types/unconstrained.js';
 import type { Field } from '../field.js';
@@ -23,11 +20,7 @@ import {
   l3,
   compactMultiRangeCheck,
 } from './range-check.js';
-import {
-  createBool,
-  createField,
-  getField,
-} from '../core/field-constructor.js';
+import { createBool, createField, getField } from '../core/field-constructor.js';
 import type { Bool } from '../bool.js';
 import { ProvablePureExtended } from '../types/struct.js';
 
@@ -35,16 +28,7 @@ import { ProvablePureExtended } from '../types/struct.js';
 export { ForeignField, Field3 };
 
 // internal API
-export {
-  bigint3,
-  Sign,
-  split,
-  combine,
-  weakBound,
-  Sum,
-  assertMul,
-  field3FromBits,
-};
+export { bigint3, Sign, split, combine, weakBound, Sum, assertMul, field3FromBits };
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -77,6 +61,7 @@ const ForeignField = {
 
   assertLessThan,
   assertLessThanOrEqual,
+  assertEquals,
 
   equals,
   toCanonical,
@@ -196,12 +181,7 @@ function inverse(x: Field3, f: bigint): Field3 {
   return xInv;
 }
 
-function divide(
-  x: Field3,
-  y: Field3,
-  f: bigint,
-  { allowZeroOverZero = false } = {}
-) {
+function divide(x: Field3, y: Field3, f: bigint, { allowZeroOverZero = false } = {}) {
   assert(f < 1n << 259n, 'Foreign modulus fits in 259 bits');
 
   // constant case
@@ -234,13 +214,7 @@ function divide(
 /**
  * Common logic for gadgets that expect a certain multiplication result a priori, instead of just using the remainder.
  */
-function assertMulInternal(
-  x: Field3,
-  y: Field3,
-  xy: Field3 | Field2,
-  f: bigint,
-  message?: string
-) {
+function assertMulInternal(x: Field3, y: Field3, xy: Field3 | Field2, f: bigint, message?: string) {
   let { r01, r2, q } = multiplyNoRangeCheck(x, y, f);
 
   // range check on quotient
@@ -433,6 +407,19 @@ function equals(x: Field3, c: bigint, f: bigint) {
   }
 }
 
+// Field3 equality checking that each of the 3 limbs are exactly the same (not modular equality).
+function assertEquals(x: Field3, y: Field3) {
+  // constant case
+  if (Field3.isConstant(x) && Field3.isConstant(y)) {
+    assert(Field3.toBigint(x) === Field3.toBigint(y), 'assertEqual: got x != y');
+    return;
+  }
+  //provable case
+  x[0].assertEquals(y[0]);
+  x[1].assertEquals(y[1]);
+  x[2].assertEquals(y[2]);
+}
+
 /**
  * Convert x, which may be unreduced, to a canonical representative < f.
  *
@@ -498,6 +485,10 @@ const Field3 = {
       return x;
     },
   } satisfies ProvablePureExtended<Field3, bigint, [string, string, string]>,
+  /**
+   * Splits a bigint into three limbs using bitwise operations.
+   */
+  split,
 };
 
 type Field2 = [Field, Field];
@@ -566,18 +557,11 @@ function assertMul(
   let x0 = x.finishForMulInput(f, true);
 
   // constant case
-  if (
-    Field3.isConstant(x0) &&
-    Field3.isConstant(y0) &&
-    Field3.isConstant(xy0)
-  ) {
+  if (Field3.isConstant(x0) && Field3.isConstant(y0) && Field3.isConstant(xy0)) {
     let x_ = Field3.toBigint(x0);
     let y_ = Field3.toBigint(y0);
     let xy_ = Field3.toBigint(xy0);
-    assert(
-      mod(x_ * y_, f) === xy_,
-      message ?? 'assertMul(): incorrect multiplication result'
-    );
+    assert(mod(x_ * y_, f) === xy_, message ?? 'assertMul(): incorrect multiplication result');
     return;
   }
 
@@ -585,6 +569,8 @@ function assertMul(
 }
 
 /**
+ * @internal
+ *
  * Lazy sum of {@link Field3} elements, which can be used as input to `Gadgets.ForeignField.assertMul()`.
  */
 class Sum {
@@ -756,10 +742,7 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
   // constant case, y = constant, x = constant
 
   if (Field3.isConstant(x) && Field3.isConstant(y_)) {
-    assert(
-      Field3.toBigint(x) < Field3.toBigint(y_),
-      'assertLessThan: got x >= y'
-    );
+    assert(Field3.toBigint(x) < Field3.toBigint(y_), 'assertLessThan: got x >= y');
     return;
   }
 
@@ -787,18 +770,12 @@ function assertLessThan(x: Field3, y: bigint | Field3) {
 }
 
 function assertLessThanOrEqual(x: Field3, y: bigint | Field3) {
-  assert(
-    typeof y !== 'bigint' || y >= 0n,
-    'assertLessThanOrEqual: upper bound must be positive'
-  );
+  assert(typeof y !== 'bigint' || y >= 0n, 'assertLessThanOrEqual: upper bound must be positive');
   let y_ = Field3.from(y);
 
   // constant case
   if (Field3.isConstant(x) && Field3.isConstant(y_)) {
-    assert(
-      Field3.toBigint(x) <= Field3.toBigint(y_),
-      'assertLessThan: got x > y'
-    );
+    assert(Field3.toBigint(x) <= Field3.toBigint(y_), 'assertLessThan: got x > y');
     return;
   }
 
@@ -827,10 +804,7 @@ function field3FromBits(bits: Bool[]): Field3 {
  * This is a hack to get an error when the constraint fails, around the fact that multiRangeCheck
  * is not checked by snarky.
  */
-function indirectMultiRangeChange(
-  x: Field3,
-  message = 'multi-range check failed'
-) {
+function indirectMultiRangeChange(x: Field3, message = 'multi-range check failed') {
   let xTrunc = exists(3, () => {
     let [x0, x1, x2] = toBigint3(x);
     return [x0 & lMask, x1 & lMask, x2 & lMask];

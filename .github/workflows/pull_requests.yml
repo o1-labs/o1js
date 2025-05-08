@@ -1,0 +1,36 @@
+name: Pr only Checks
+on:
+  pull_request:
+    types: [assigned, opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - main
+jobs:
+  Check-Changelog:
+    name: Check Changelog Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tarides/changelog-check-action@v2
+        with:
+          changelog: CHANGELOG.md
+
+  Check-npm-deps:
+    name: Check npmDepsHash is correct
+    runs-on: [sdk-self-hosted-linux-amd64-build-system]
+    steps:
+      - name: Set up Nix
+        run: echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: fix npmDepsHash
+        run: |
+          set -Eeu
+          ./pin.sh
+          nix run o1js#update-npm-deps
+      # if the npmDepsHash is out of date auto commit the new one
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "auto update npmDepsHash"
+          file_pattern: "npmDepsHash"

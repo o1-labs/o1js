@@ -40,9 +40,7 @@ let Berkeley = Mina.Network('https://proxy.berkeley.minaexplorer.com/graphql');
 Mina.setActiveInstance(Berkeley);
 
 // to use this test, change this private key to an account which has enough MINA to pay fees
-let feePayerKey = PrivateKey.fromBase58(
-  'EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD'
-);
+let feePayerKey = PrivateKey.fromBase58('EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD');
 let feePayerAddress = feePayerKey.toPublicKey();
 let response = await fetchAccount({ publicKey: feePayerAddress });
 if (response.error) throw Error(response.error.statusText);
@@ -53,9 +51,7 @@ console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);
 // https://berkeley.minaexplorer.com/wallet/B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan
 // replace this with a new zkapp key if you want to deploy another zkapp
 // and please never expose actual private keys in public code repositories like this!
-let zkappKey = PrivateKey.fromBase58(
-  'EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY'
-);
+let zkappKey = PrivateKey.fromBase58('EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY');
 let zkappAddress = zkappKey.toPublicKey();
 
 let transactionFee = 100_000_000;
@@ -94,9 +90,8 @@ if (!isDeployed) {
 if (isDeployed) {
   let x = zkapp.x.get();
   console.log(`Found deployed zkapp, updating state ${x} -> ${x.add(10)}.`);
-  let transaction = await Mina.transaction(
-    { sender: feePayerAddress, fee: transactionFee },
-    () => zkapp.update(Field(10))
+  let transaction = await Mina.transaction({ sender: feePayerAddress, fee: transactionFee }, () =>
+    zkapp.update(Field(10))
   );
   // fill in the proof - this can take a while...
   console.log('Creating an execution proof...');

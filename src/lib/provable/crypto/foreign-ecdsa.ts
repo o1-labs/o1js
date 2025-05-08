@@ -1,12 +1,7 @@
 import { provableFromClass } from '../types/provable-derivers.js';
 import { CurveParams } from '../../../bindings/crypto/elliptic-curve.js';
 import { ProvablePureExtended } from '../types/struct.js';
-import {
-  FlexiblePoint,
-  ForeignCurve,
-  createForeignCurve,
-  toPoint,
-} from './foreign-curve.js';
+import { FlexiblePoint, ForeignCurve, createForeignCurve, toPoint } from './foreign-curve.js';
 import { AlmostForeignField } from '../foreign-field.js';
 import { assert } from '../gadgets/common.js';
 import { Field3 } from '../gadgets/foreign-field.js';
@@ -104,8 +99,7 @@ class EcdsaSignature {
    */
   verify(message: Bytes, publicKey: FlexiblePoint): Bool {
     let msgHashBytes = Keccak.ethereum(message);
-    let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
-    return this.verifySignedHash(msgHash, publicKey);
+    return this.verifySignedHash(msgHashBytes, publicKey);
   }
 
   /**
@@ -155,22 +149,20 @@ class EcdsaSignature {
       ...Bytes.fromString(String(message.length)).bytes, // message length as string
       ...message.bytes, // actual message bytes
     ]);
-
-    let msgHash = keccakOutputToScalar(msgHashBytes, this.Constructor.Curve);
-    return this.verifySignedHash(msgHash, publicKey);
+    return this.verifySignedHash(msgHashBytes, publicKey);
   }
 
   /**
    * Verify the ECDSA signature given the message hash (a {@link Scalar}) and public key (a {@link Curve} point).
    *
    * This is a building block of {@link EcdsaSignature.verify}, where the input message is also hashed.
-   * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
-   * choosing the hashing algorithm.
+   * In contrast, this method just takes the message hash (a curve scalar, or the output bytes of a hash function)
+   * as input, giving you flexibility in choosing the hashing algorithm.
    */
-  verifySignedHash(
-    msgHash: AlmostForeignField | bigint,
-    publicKey: FlexiblePoint
-  ): Bool {
+  verifySignedHash(msgHash: AlmostForeignField | bigint | Bytes, publicKey: FlexiblePoint): Bool {
+    if (msgHash instanceof Bytes.Base)
+      msgHash = keccakOutputToScalar(msgHash, this.Constructor.Curve);
+
     let msgHash_ = this.Constructor.Curve.Scalar.from(msgHash);
     let publicKey_ = this.Constructor.Curve.from(publicKey);
     return Ecdsa.verify(
@@ -196,12 +188,15 @@ class EcdsaSignature {
    * Create an {@link EcdsaSignature} by signing a message hash with a private key.
    *
    * This is a building block of {@link EcdsaSignature.sign}, where the input message is also hashed.
-   * In contrast, this method just takes the message hash (a curve scalar) as input, giving you flexibility in
-   * choosing the hashing algorithm.
+   * In contrast, this method just takes the message hash (a curve scalar, or the output bytes of a hash function)
+   * as input, giving you flexibility in choosing the hashing algorithm.
    *
-   * Note: This method is not provable, and only takes JS bigints as input.
+   * Note: This method is not provable, and only takes JS bigints or constant Bytes as input.
    */
-  static signHash(msgHash: bigint, privateKey: bigint) {
+  static signHash(msgHash: bigint | Bytes, privateKey: bigint) {
+    if (msgHash instanceof Bytes.Base)
+      msgHash = keccakOutputToScalar(msgHash, this.Curve).toBigInt();
+
     let { r, s } = Ecdsa.sign(this.Curve.Bigint, msgHash, privateKey);
     return new this({ r, s });
   }
@@ -243,11 +238,8 @@ class EcdsaSignature {
 /**
  * Create a class {@link EcdsaSignature} for verifying ECDSA signatures on the given curve.
  */
-function createEcdsa(
-  curve: CurveParams | typeof ForeignCurve
-): typeof EcdsaSignature {
-  let Curve0: typeof ForeignCurve =
-    'b' in curve ? createForeignCurve(curve) : curve;
+function createEcdsa(curve: CurveParams | typeof ForeignCurve): typeof EcdsaSignature {
+  let Curve0: typeof ForeignCurve = 'b' in curve ? createForeignCurve(curve) : curve;
   class Curve extends Curve0 {}
 
   class Signature extends EcdsaSignature {

@@ -33,7 +33,7 @@ assert(z instanceof SmallField.Unreduced);
 // note: "unreduced" doesn't usually mean that the underlying witness is larger than the modulus.
 // it just means we haven't _proved_ so.. which means a malicious prover _could_ have managed to make it larger.
 
-// unreduced fields can be added and subtracted, but not be used in multiplcation:
+// unreduced fields can be added and subtracted, but not be used in multiplication:
 
 z.add(1).sub(x).assertEquals(0); // works
 
