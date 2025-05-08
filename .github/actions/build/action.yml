@@ -24,6 +24,7 @@ runs:
         nix_conf: |
           keep-env-derivations = true
           keep-outputs = true
+          accept-flake-config = true
     - name: Fallback to persistant nix
       # only available on some runners
       shell: bash
