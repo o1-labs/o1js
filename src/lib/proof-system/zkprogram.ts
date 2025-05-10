@@ -5,8 +5,8 @@ import {
   Snarky,
   initializeBindings,
   withThreadPool,
-} from '../../snarky.js';
-import { Pickles, Gate } from '../../snarky.js';
+} from '../../bindings.js';
+import { Pickles, Gate } from '../../bindings.js';
 import { Field } from '../provable/wrapped.js';
 import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
 import { InferProvableType } from '../provable/types/provable-derivers.js';

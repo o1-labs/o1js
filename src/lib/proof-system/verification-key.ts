@@ -1,4 +1,4 @@
-import { initializeBindings, Pickles } from '../../snarky.js';
+import { initializeBindings, Pickles } from '../../bindings.js';
 import { synchronousRunners } from '../provable/core/provable-context.js';
 import { provable } from '../provable/types/provable-derivers.js';
 import { Struct } from '../provable/types/struct.js';

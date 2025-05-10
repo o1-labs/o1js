@@ -8,7 +8,7 @@ import { exists } from '../core/exists.js';
 import { assert, bit, bitSlice, isConstant } from './common.js';
 import { l, multiRangeCheck, rangeCheck64, rangeCheckLessThan64 } from './range-check.js';
 import { createBool, createBoolUnsafe, createField, getField } from '../core/field-constructor.js';
-import { Snarky } from '../../../snarky.js';
+import { Snarky } from '../../../bindings.js';
 import { Provable } from '../provable.js';
 import { MlPair } from '../../ml/base.js';
 import { provable } from '../types/provable-derivers.js';

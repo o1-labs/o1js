@@ -2,7 +2,7 @@
  * this file contains conversion functions between JS and OCaml
  */
 
-import type { MlPublicKey, MlPublicKeyVar } from '../../snarky.js';
+import type { MlPublicKey, MlPublicKeyVar } from '../../bindings.js';
 import { HashInput } from '../provable/types/struct.js';
 import { Bool, Field } from '../provable/wrapped.js';
 import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';

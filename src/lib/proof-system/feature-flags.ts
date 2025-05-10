@@ -1,4 +1,4 @@
-import { MlFeatureFlags, Gate, GateType } from '../../snarky.js';
+import { MlFeatureFlags, Gate, GateType } from '../../bindings.js';
 import { MlBool, MlOption, MlArrayOptionalElements } from '../ml/base.js';
 import type { analyzeMethod } from './zkprogram.js';
 

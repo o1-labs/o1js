@@ -1,4 +1,4 @@
-import { Snarky } from '../../../snarky.js';
+import { Snarky } from '../../../bindings.js';
 import type { Field } from '../field.js';
 import type { Provable } from '../provable.js';
 import { assert } from '../../util/errors.js';

@@ -1,5 +1,5 @@
-import { areBindingsInitialized, initializeBindings, withThreadPool } from '../../snarky.js';
-import { Pickles, Base64ProofString } from '../../snarky.js';
+import { areBindingsInitialized, initializeBindings, withThreadPool } from '../../bindings.js';
+import { Pickles, Base64ProofString } from '../../bindings.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import type { FlexibleProvable, InferProvable } from '../provable/types/struct.js';
 import { FeatureFlags } from './feature-flags.js';

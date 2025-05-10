@@ -1,4 +1,4 @@
-import { Snarky } from '../../../snarky.js';
+import { Snarky } from '../../../bindings.js';
 import { FieldConst, VarFieldVar } from './fieldvar.js';
 import type { VarField } from '../field.js';
 import { MlArray, MlOption } from '../../ml/base.js';
