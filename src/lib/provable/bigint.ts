@@ -763,7 +763,7 @@ function rangeCheck(x: Field, bits: number, signed?: boolean) {
       Gadgets.rangeCheck32(x);
       break;
     case 48:
-      rangeCheck48(x);
+      Gadgets.rangeCheckN(48, x);
       break;
     case 64:
       Gadgets.rangeCheck64(x);
@@ -779,17 +779,6 @@ function rangeCheck(x: Field, bits: number, signed?: boolean) {
       }
       break;
   }
-}
-
-function rangeCheck48(x: Field) {
-  let [x0, x1] = Provable.witnessFields(2, () => [
-    x.toBigInt() & ((1n << 32n) - 1n),
-    x.toBigInt() >> 32n,
-  ]);
-
-  Gadgets.rangeCheck32(x0); // 32 bits
-  Gadgets.rangeCheck16(x1); // 16 bits
-  x0.add(x1.mul(1n << 32n)).assertEquals(x); // 48 bits
 }
 
 function rangeCheck116(x: Field) {
