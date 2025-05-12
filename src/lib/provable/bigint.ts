@@ -142,6 +142,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       return ProvableBigInt_.fromBigInt(BigInt(x));
     }
 
+    static toCanonical(x: ProvableBigInt_): ProvableBigInt_ {
+      return x.mul(ProvableBigInt_.one());
+    }
     /**
      * Creates a ProvableBigInt instance from a JS bigint
      * @param x
@@ -599,10 +602,12 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      *
      */
     greaterThan(a: ProvableBigInt_): Bool {
-      return this.fields
+      const canonicalThis = ProvableBigInt_.toCanonical(this);
+      const canonicalA = ProvableBigInt_.toCanonical(a);
+      return canonicalThis.fields
         .map((field, i) => ({
-          isGreater: field.greaterThan(a.fields[i]),
-          isEqual: field.equals(a.fields[i]),
+          isGreater: field.greaterThan(canonicalA.fields[i]),
+          isEqual: field.equals(canonicalA.fields[i]),
         }))
         .reduce(
           (result, { isGreater, isEqual }) => isGreater.or(result.and(isEqual)),
@@ -615,21 +620,20 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is greater than or equal to b
-     *
-     * TODO: @see {@link greaterThan}
-     *
      */
     greaterThanOrEqual(a: ProvableBigInt_): Bool {
-      return this.fields
+      const canonicalThis = ProvableBigInt_.toCanonical(this);
+      const canonicalA = ProvableBigInt_.toCanonical(a);
+      return canonicalThis.fields
         .map((field, i) => ({
-          isGreater: field.greaterThan(a.fields[i]),
-          isEqual: field.equals(a.fields[i]),
+          isGreater: field.greaterThan(canonicalA.fields[i]),
+          isEqual: field.equals(canonicalA.fields[i]),
         }))
         .reduce(
           (result, { isGreater, isEqual }) => isGreater.or(result.and(isEqual)),
           new Bool(false)
         )
-        .or(this.equals(a));
+        .or(canonicalThis.equals(canonicalA));
     }
 
     /**
@@ -637,15 +641,14 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than b
-     *
-     * TODO: @see {@link greaterThan}
-     *
      */
     lessThan(a: ProvableBigInt_): Bool {
-      return this.fields
+      const canonicalThis = ProvableBigInt_.toCanonical(this);
+      const canonicalA = ProvableBigInt_.toCanonical(a);
+      return canonicalThis.fields
         .map((field, i) => ({
-          isLess: field.lessThan(a.fields[i]),
-          isEqual: field.equals(a.fields[i]),
+          isLess: field.lessThan(canonicalA.fields[i]),
+          isEqual: field.equals(canonicalA.fields[i]),
         }))
         .reduce((result, { isLess, isEqual }) => isLess.or(result.and(isEqual)), new Bool(false));
     }
@@ -655,17 +658,17 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Moderate
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
-     *
-     * TODO: @see {@link greaterThan}
      */
     lessThanOrEqual(a: ProvableBigInt_): Bool {
-      return this.fields
+      const canonicalThis = ProvableBigInt_.toCanonical(this);
+      const canonicalA = ProvableBigInt_.toCanonical(a);
+      return canonicalThis.fields
         .map((field, i) => ({
-          isLess: field.lessThan(a.fields[i]),
-          isEqual: field.equals(a.fields[i]),
+          isLess: field.lessThan(canonicalA.fields[i]),
+          isEqual: field.equals(canonicalA.fields[i]),
         }))
         .reduce((result, { isLess, isEqual }) => isLess.or(result.and(isEqual)), new Bool(false))
-        .or(this.equals(a));
+        .or(canonicalThis.equals(canonicalA));
     }
 
     /**
