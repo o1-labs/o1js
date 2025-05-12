@@ -672,13 +672,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is equal to b
-     *
-     * TODO: @see {@link greaterThan}
      */
     equals(a: ProvableBigInt_): Bool {
-      return this.fields
-        .map((field, i) => field.equals(a.fields[i]))
-        .reduce((result, isEqual) => result.and(isEqual), new Bool(true));
+      return Provable.equal(ProvableBigInt_, this, a);
     }
 
     /**
@@ -686,11 +682,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
-     *
-     * TODO: @see {@link greaterThan}
      */
     assertEquals(a: ProvableBigInt_) {
-      this.equals(a).assertTrue('ProvableBigInts are not equal');
+      return Provable.assertEqual(ProvableBigInt_, this, a);
     }
   }
   return ProvableBigInt_;
