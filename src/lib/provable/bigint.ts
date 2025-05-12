@@ -520,9 +520,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         // Case 2: If p ≡ 3 (mod 4), we can use a simpler formula
         // In this case, the square root is a^((p+1)/4) mod p
         if (p % 4n === 3n) {
-          const pplusonedivfour = (p + 1n) / 4n;
-          const pplusonedivfour_reduced = pplusonedivfour % p;
-          const sqrt = modularExponentiation(this.toBigInt(), pplusonedivfour_reduced, p);
+          const pPlusOneDivFour = (p + 1n) / 4n;
+          const pPlusOneDivFourReduced = pPlusOneDivFour % p;
+          const sqrt = modularExponentiation(this.toBigInt(), pPlusOneDivFourReduced, p);
           return ProvableBigInt_.fromBigInt(sqrt);
         }
 
