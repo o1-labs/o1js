@@ -113,7 +113,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Returns a ProvableBigInt representing zero
      * @returns A ProvableBigInt representing zero
      */
-    static zero(): ProvableBigInt_ {
+    static get zero(): ProvableBigInt_ {
       return ProvableBigInt_.fromBigInt(0n);
     }
 
@@ -121,7 +121,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Returns a ProvableBigInt representing one
      * @returns A ProvableBigInt representing one
      */
-    static one(): ProvableBigInt_ {
+    static get one(): ProvableBigInt_ {
       return ProvableBigInt_.fromBigInt(1n);
     }
 
@@ -129,7 +129,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Returns a ProvableBigInt representing one
      * @returns A ProvableBigInt representing one
      */
-    static max(): ProvableBigInt_ {
+    static get max(): ProvableBigInt_ {
       return ProvableBigInt_.fromBigInt(modulus - 1n);
     }
 
@@ -143,7 +143,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     }
 
     static toCanonical(x: ProvableBigInt_): ProvableBigInt_ {
-      return x.mul(ProvableBigInt_.one());
+      return x.mul(ProvableBigInt_.one);
     }
     /**
      * Creates a ProvableBigInt instance from a JS bigint
@@ -454,7 +454,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         }
       );
 
-      res.mul(this).assertEquals(ProvableBigInt_.one());
+      res.mul(this).assertEquals(ProvableBigInt_.one);
 
       return res;
     }
@@ -477,7 +477,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         };
       });
 
-      this.add(negation).assertEquals(ProvableBigInt_.zero());
+      this.add(negation).assertEquals(ProvableBigInt_.zero);
 
       return negation;
     }
@@ -496,7 +496,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         }
       };
 
-      let result = ProvableBigInt_.one();
+      let result = ProvableBigInt_.one;
       let base = this.clone();
 
       for (const chunk of processChunk(exponentBits, 100)) {
@@ -597,9 +597,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      *       e.g.
      *       ```ts
      *       let delta = x.sub(x); // not guaranteed to be < p, could be = p
-     *       delta.greaterThan(ProvableBigInt.zero()).assertTrue(); // (p > 0) = true, (0 > 0) = false
+     *       delta.greaterThan(ProvableBigInt.zero).assertTrue(); // (p > 0) = true, (0 > 0) = false
      *       ```
-     *
      */
     greaterThan(a: ProvableBigInt_): Bool {
       const canonicalThis = ProvableBigInt_.toCanonical(this);
