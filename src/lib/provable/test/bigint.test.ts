@@ -163,14 +163,14 @@ describe('BigInt17', () => {
     });
 
     it('should correctly subtract max BigInt17 from zero BigInt17', () => {
-      const a = BigInt17.zero();
+      const a = BigInt17.zero;
       const b = BigInt17.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(1n);
     });
 
     it('should correctly subtract max BigInt17 from one BigInt17', () => {
-      const a = BigInt17.one();
+      const a = BigInt17.one;
       const b = BigInt17.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(2n);
@@ -764,14 +764,14 @@ describe('BigInt255', () => {
     });
 
     it('should correctly subtract max BigInt255 from zero BigInt255', () => {
-      const a = BigInt255.zero();
+      const a = BigInt255.zero;
       const b = BigInt255.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(a.toBigInt() - b.toBigInt() + modulus);
     });
 
     it('should correctly subtract max BigInt255 from one BigInt255', () => {
-      const a = BigInt255.one();
+      const a = BigInt255.one;
       const b = BigInt255.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(a.toBigInt() - b.toBigInt() + modulus);
@@ -1424,14 +1424,14 @@ describe('BigInt381', () => {
     });
 
     it('should correctly subtract max BigInt381 from zero BigInt381', () => {
-      const a = BigInt381.zero();
+      const a = BigInt381.zero;
       const b = BigInt381.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(BigInt(a.toBigInt() - b.toBigInt()) + modulus);
     });
 
     it('should correctly subtract max BigInt381 from one BigInt381', () => {
-      const a = BigInt381.one();
+      const a = BigInt381.one;
       const b = BigInt381.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(BigInt(a.toBigInt() - b.toBigInt()) + modulus);
@@ -2058,14 +2058,14 @@ describe('BigInt512', () => {
     });
 
     it('should correctly subtract max BigInt512 from zero BigInt512', () => {
-      const a = BigInt512.zero();
+      const a = BigInt512.zero;
       const b = BigInt512.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(BigInt(a.toBigInt() - b.toBigInt()) + modulus);
     });
 
     it('should correctly subtract max BigInt512 from one BigInt512', () => {
-      const a = BigInt512.one();
+      const a = BigInt512.one;
       const b = BigInt512.fromBigInt(modulus - 1n);
       const result = a.sub(b);
       expect(result.toBigInt()).toStrictEqual(BigInt(a.toBigInt() - b.toBigInt()) + modulus);
