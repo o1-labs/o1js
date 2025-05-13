@@ -310,7 +310,7 @@
             then { packages = bindings-pkgs; }
             # on linux wrap rustup like in the derivation
             else {
-              packages = [ rustupWrapper ] ++ bindings-pkgs;
+              packages = [ rustupWrapper pkgs.ocamlPackages.ocaml-lsp ] ++ bindings-pkgs;
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
