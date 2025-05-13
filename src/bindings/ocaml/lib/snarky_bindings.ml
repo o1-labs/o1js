@@ -388,7 +388,7 @@ module Circuit = struct
     let input_typ = typ public_input_size in
     let return_typ = Impl.Typ.unit in
     let cs = Impl.constraint_system ~input_typ ~return_typ (Main.of_js main) in
-    Impl.Keypair.generate ~lazy_mode:true ~prev_challenges:0 cs
+    Impl.Keypair.generate ~lazy_mode:false ~prev_challenges:0 cs
 
   let prove main public_input_size public_input keypair =
     let pk = Impl.Keypair.pk keypair in
