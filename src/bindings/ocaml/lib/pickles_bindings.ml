@@ -618,7 +618,7 @@ let pickles_compile (choices : pickles_rule_js array)
       ; publicOutputSize : int Js.prop
       ; storable : Cache.js_storable Js.optdef_prop
       ; overrideWrapDomain : int Js.optdef_prop
-      ; lazy_mode : bool Js.optdef_prop >
+      ; lazyMode : bool Js.optdef_prop >
       Js.t ) =
   (* translate number of branches and recursively verified proofs from JS *)
   let branches = Array.length choices in
@@ -637,9 +637,9 @@ let pickles_compile (choices : pickles_rule_js array)
     Js.Optdef.to_option config##.overrideWrapDomain
     |> Option.map ~f:Pickles_base.Proofs_verified.of_int_exn
   in
-  let lazy_mode = 
-    Js.Optdef.get config##.lazy_mode (fun () -> false)
-  in
+  let lazy_mode = Js.Optdef.get config##.lazyMode (fun () -> false) in
+
+  (* translate choices from JS *)
   let (Choices choices) =
     Choices.of_js ~public_input_size ~public_output_size choices
   in
