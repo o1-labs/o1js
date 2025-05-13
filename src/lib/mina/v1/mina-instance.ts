@@ -40,7 +40,7 @@ const defaultNetworkConstants: NetworkConstants = {
   accountCreationFee: UInt64.from(defaultAccountCreationFee),
 };
 
-const ZkappStateLength = 8;
+const ZkappStateLength = 32;
 
 /**
  * Allows you to specify information about the fee payer account and the transaction.
