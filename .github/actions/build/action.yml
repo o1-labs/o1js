@@ -15,23 +15,22 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install zstd if needed
-      shell: bash
-      run: command -v unzstd || (sudo apt-get update && sudo apt-get install -y zstd)
-    - uses: nixbuild/nix-quick-install-action@v30
-      continue-on-error: true
+    - uses: DeterminateSystems/nix-installer-action@main
       with:
-        nix_conf: |
+        reinstall: true
+        extra-conf: |
           keep-env-derivations = true
           keep-outputs = true
-    - name: Fallback to persistant nix
-      # only available on some runners
-      shell: bash
-      run: command -v nix || echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
+          accept-flake-config = true
+          extra-trusted-substituters = https://storage.googleapis.com/mina-nix-cache https://cache.nixos.org
+          extra-trusted-public-keys = mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4=
+          require-sigs = false
 
     - name: Disable smudging
       shell: bash
-      run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      run: |
+        nix show-config | grep trusted-public-keys
+        echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
@@ -59,7 +58,7 @@ runs:
         temp_key=$(mktemp)
         echo ${{ inputs.nar_secret }} > "$temp_key"
         nix store sign --key-file "$temp_key" --recursive ./result
-        nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./result)
+        nix path-info ./result --recursive | xargs nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com"
         nix run o1js#generate-bindings --max-jobs auto
         rm "$temp_key"
 
