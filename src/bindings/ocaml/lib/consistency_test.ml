@@ -89,12 +89,12 @@ let account_update_of_json, _account_update_to_json =
       @@ Fields_derivers_zkapps.Derivers.o () )
   in
   let account_update_of_json (account_update : Js.js_string Js.t) :
-      Account_update.t =
+      Account_update.Stable.V1.t =
     Fields_derivers_zkapps.of_json (Lazy.force deriver)
       (account_update |> Js.to_string |> Yojson.Safe.from_string)
     |> Account_update.of_graphql_repr
   in
-  let account_update_to_json (account_update : Account_update.t) :
+  let account_update_to_json (account_update : Account_update.Stable.V1.t) :
       Js.js_string Js.t =
     Fields_derivers_zkapps.to_json (Lazy.force deriver)
       (Account_update.to_graphql_repr account_update ~call_depth:0)
@@ -169,7 +169,7 @@ module Hash_from_json = struct
       Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
     in
     let get_account_updates_hash xs =
-      let hash_account_update (p : Account_update.t) =
+      let hash_account_update (p : Account_update.Stable.V1.t) =
         Zkapp_command.Digest.Account_update.create ~chain p
       in
       Zkapp_command.Call_forest.accumulate_hashes ~hash_account_update xs
@@ -210,7 +210,7 @@ module Hash_from_json = struct
       ; account_updates =
           tx.account_updates
           |> Call_forest.accumulate_hashes
-               ~hash_account_update:(fun (p : Account_update.t) ->
+               ~hash_account_update:(fun (p : Account_update.Stable.V1.t) ->
                  Digest.Account_update.create p )
       }
     in
