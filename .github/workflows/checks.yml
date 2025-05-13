@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: ubuntu-latest
+    runs-on: sdk-team-github-runner-x86-04-build
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
