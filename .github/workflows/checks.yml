@@ -20,11 +20,8 @@ jobs:
   Prepare:
     runs-on: self-hosted
     steps:
-      - name: WHERE ARE YOU
-        run: |
-          ip a
-          exit 1
-      - name: Build
+      - name: Install Dependencies
+        run: ip a && exit 1
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
