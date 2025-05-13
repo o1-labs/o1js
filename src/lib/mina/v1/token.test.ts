@@ -452,7 +452,7 @@ describe('Token', () => {
 
       /*
       test case description:
-      token contract can burn tokens with a proof 
+      token contract can burn tokens with a proof
       tested cases:
         - burns and updates the token balance of the receiver
     */

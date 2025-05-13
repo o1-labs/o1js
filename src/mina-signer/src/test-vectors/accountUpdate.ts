@@ -9,7 +9,7 @@ let accountUpdateExample: Json.AccountUpdate = {
     publicKey: 'B62qmfmZrxjfRHfnx1QJLHUyStQxSkqao9civMXPaymkknX5PCiZT7J',
     tokenId: 'yEWUTZqtT8PmCFU32EXwCwudK4gtxCWkjcAC7eTwj2riWhCV8M',
     update: {
-      appState: ['9', null, null, null, null, null, null, null],
+      appState: ['9', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
       delegate: 'B62qrja1a2wu3ciKygrqNiNoDZUsHCcE1VfF4LZQtQkzszWhogpWN9i',
       verificationKey: null,
       permissions: {
