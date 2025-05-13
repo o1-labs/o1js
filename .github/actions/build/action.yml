@@ -25,10 +25,11 @@ runs:
           trusted-substituters = https://storage.googleapis.com/mina-nix-cache https://cache.nixos.org
           trusted-public-keys = mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10= nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c= nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
 
-
     - name: Disable smudging
       shell: bash
-      run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      run: |
+        nix show-config | grep trusted-public-keys
+        echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
