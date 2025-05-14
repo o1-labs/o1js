@@ -226,7 +226,11 @@ let protocol_state_of_json =
 let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
     (account_creation_fee : string)
     (network_state : Mina_base.Zkapp_precondition.Protocol_state.View.t) =
-  let txn = Zkapp_command.write_all_proofs_to_disk txn in
+  let txn =
+    Zkapp_command.write_all_proofs_to_disk
+      ~proof_cache_db:(Proof_cache_tag.create_identity_db ())
+      txn
+  in
   check_account_update_signatures txn ;
   let ledger = l##.value in
   let application_result =
