@@ -169,7 +169,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     toBigInt(): bigint {
       let bigintFromFields = 0n;
       for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        bigintFromFields |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i);
+        bigintFromFields |=
+          this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i);
       }
       let value = this.value.get();
       assert(bigintFromFields === value, 'ProvableBigInt: value mismatch');
@@ -267,6 +268,12 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         r.fields,
         this.Constructor.modulus.fields,
       ];
+
+      // compute X + Y limb-by-limb
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
+        if (isDouble) delta[i] = X[i].mul(2);
+        else delta[i] = X[i].add(Y[i]);
+      }
 
       // subtract q*p limb-by-limb
       for (let i = 0; i < this.Constructor.config.limbNum; i++) {
