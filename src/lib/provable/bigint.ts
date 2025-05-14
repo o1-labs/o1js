@@ -167,11 +167,13 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns JS bigint representation of the ProvableBigInt
      */
     toBigInt(): bigint {
-      let result = 0n;
+      let bigintFromFields = 0n;
       for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        result |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i);
+        bigintFromFields |= this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i);
       }
-      return result;
+      let value = this.value.get();
+      assert(bigintFromFields === value, 'ProvableBigInt: value mismatch');
+      return value;
     }
 
     /**
@@ -266,19 +268,9 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         this.Constructor.modulus.fields,
       ];
 
-      // compute X + Y limb-by-limb
-      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        if (isDouble) delta[i] = X[i].mul(2);
-        else delta[i] = X[i].add(Y[i]);
-      }
-
       // subtract q*p limb-by-limb
       for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-        for (let j = 0; j < this.Constructor.config.limbNum; j++) {
-          if (i + j < this.Constructor.config.limbNum) {
-            delta[i + j] = delta[i + j].sub(Q[i].mul(P[j]));
-          }
-        }
+        delta[i] = delta[i].sub(Q[i].mul(P[i]));
       }
 
       // subtract r limb-by-limb
