@@ -21,7 +21,6 @@ runs:
     - uses: nixbuild/nix-quick-install-action@v30
       continue-on-error: true
       with:
-        github_access_token = ${{ secrets.GITHUB_TOKEN }}
         nix_conf: |
           keep-env-derivations = true
           keep-outputs = true
