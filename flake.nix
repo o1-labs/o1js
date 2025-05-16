@@ -1,16 +1,16 @@
 {
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
-    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-23.11-small";
-    nixpkgs-newer.url = "github:nixos/nixpkgs/nixos-24.11-small";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11-small";
     mina.url = "git+file:src/mina?submodules=1";
+    mina.inputs.nixpkgs.follows="nixpkgs";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
-    describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
+    describe-dune.inputs.nixpkgs.follows = "nixpkgs";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
     dune-nix.url = "github:o1-labs/dune-nix";
-    dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
+    dune-nix.inputs.nixpkgs.follows = "nixpkgs";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -28,14 +28,14 @@
         "nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c="
       ];
   };
-  outputs = { self, nixpkgs-mina, nixpkgs-newer, flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
-          (import inputs.nixpkgs-mozilla)).extend
-          inputs.mina.overlays.rust).extend
-          (final: prev: { inherit (nixpkgs-newer.legacyPackages."${system}")
-            nodePackages nodejs; });
+        pkgs = nixpkgs.legacyPackages.${system}.extend
+          (nixpkgs.lib.composeManyExtensions
+          [ (import inputs.mina.inputs.nixpkgs-mozilla)
+            inputs.mina.overlays.rust
+          ]);
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
@@ -123,16 +123,17 @@
           };
         bindings-pkgs = with pkgs;
           [
-            nodejs
-            nodePackages.npm
+            #nodejs
+            #nodePackages.npm
             #nodePackages.prettier
-            typescript
-            nodePackages.typescript-language-server
-            rustup
-            wasm-pack
-            binaryen # provides wasm-opt
+            #typescript
+            #nodePackages.typescript-language-server
+            #rustup
+            #wasm-pack
+            #binaryen # provides wasm-opt
             dune_3
-          ] ++ commonOverrides.buildInputs;
+          ] #++ commonOverrides.buildInputs
+          ;
 
         inherit (pkgs) lib;
         # All the submodules required by .gitmodules
@@ -166,31 +167,31 @@
               command "nix-shell"
             }.
           '';
-        o1js-npm-deps = pkgs.buildNpmPackage
-          {
-            name = "o1js";
-            src = with pkgs.lib.fileset;
-              (toSource {
-                root = ./.;
-                fileset = unions [
-                  ./package.json
-                  ./package-lock.json
-                ];
-              });
-            # If you get ERROR: npmDepsHash is out of date
-            # you can update the hash with `nix run o1js#update-npm-deps`.
-            # Failing that you can remove the hash from ./npmDepsHash and try again
-            # which should get an error message with the correct hash
-            # You can also just push and CI should suggest a fix which updates the hash
-            npmDepsHash = builtins.readFile ./npmDepsHash;
-            dontNpmBuild = true;
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out/lib
-              cp -r node_modules $out/lib
-              runHook postInstall
-            '';
-          };
+        #o1js-npm-deps = pkgs.buildNpmPackage
+        #  {
+        #    name = "o1js";
+        #    src = with pkgs.lib.fileset;
+        #      (toSource {
+        #        root = ./.;
+        #        fileset = unions [
+        #          ./package.json
+        #          ./package-lock.json
+        #        ];
+        #      });
+        #    # If you get ERROR: npmDepsHash is out of date
+        #    # you can update the hash with `nix run o1js#update-npm-deps`.
+        #    # Failing that you can remove the hash from ./npmDepsHash and try again
+        #    # which should get an error message with the correct hash
+        #    # You can also just push and CI should suggest a fix which updates the hash
+        #    npmDepsHash = builtins.readFile ./npmDepsHash;
+        #    dontNpmBuild = true;
+        #    installPhase = ''
+        #      runHook preInstall
+        #      mkdir -p $out/lib
+        #      cp -r node_modules $out/lib
+        #      runHook postInstall
+        #    '';
+        #  };
 
         #Rustup doesn't allow local toolchains to contain 'nightly' in the name
         #so the toolchain is linked with the name nix and rustup is wrapped in a shellscript
@@ -218,6 +219,7 @@
               "^lib(/crypto(/proof-systems(/.*)?)?)?$"
             ];
           sourceRoot = "source/lib/crypto/proof-systems/poseidon/export_test_vectors";
+          targetPlatforms = [];
           patchPhase =
             ''
               cp ${./src/mina/src/lib/crypto/proof-systems/Cargo.lock} .
@@ -225,7 +227,7 @@
           name = "export_test_vectors";
           version = "0.1.0";
           CARGO_TARGET_DIR = "./target";
-          cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
+          cargoLock.lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
         };
         bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
           name = "o1js_bindings";
@@ -254,22 +256,22 @@
                 ./src/snarky.d.ts
               ];
             });
-          inherit (inputs.mina.devShells."${system}".default)
-            PLONK_WASM_NODEJS
-            PLONK_WASM_WEB
-            KIMCHI_STUBS
-            KIMCHI_STUBS_STATIC_LIB
-            ;
-          PREBUILT_KIMCHI_BINDINGS_JS_WEB =
-            "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
-          PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
-            "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
-          EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
+          #inherit (inputs.mina.devShells."${system}".default)
+          #PLONK_WASM_NODEJS
+          #PLONK_WASM_WEB
+          #KIMCHI_STUBS
+          #KIMCHI_STUBS_STATIC_LIB
+          #  ;
+          #PREBUILT_KIMCHI_BINDINGS_JS_WEB =
+          #  "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
+          #PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
+          #  "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
+          #EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
           JUST_BINDINGS = true;
           buildInputs = (with pkgs;
             [
-              rustupWrapper
+              #rustupWrapper
               bash
             ]) ++ bindings-pkgs;
           patchPhase = ''
@@ -280,8 +282,6 @@
             ''
               RUSTUP_HOME=$(pwd)/.rustup
               export RUSTUP_HOME
-              rustup toolchain link nix ${rust-channel}
-              cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
               mkdir -p src/bindings/compiled/node_bindings
               echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
@@ -334,19 +334,19 @@
                 tar czf $out .
             '';
           };
-          npm-deps = o1js-npm-deps;
+                #npm-deps = o1js-npm-deps;
         };
         apps = {
-          update-npm-deps = {
-            type = "app";
-            program = "${pkgs.writeShellApplication
-              { name = "update-npm-deps";
-                text =
-                ''
-                ${pkgs.prefetch-npm-deps}/bin/prefetch-npm-deps ./package-lock.json > npmDepsHash
-                '';
-              }}/bin/update-npm-deps";
-          };
+                #update-npm-deps = {
+                #  type = "app";
+                #  program = "${pkgs.writeShellApplication
+                #    { name = "update-npm-deps";
+                #      text =
+                #      ''
+                #      ${pkgs.prefetch-npm-deps}/bin/prefetch-npm-deps ./package-lock.json > npmDepsHash
+                #      '';
+                #    }}/bin/update-npm-deps";
+                #};
           generate-bindings = {
             type = "app";
             program = "${pkgs.writeShellApplication
