@@ -265,8 +265,8 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1746120802,
-        "narHash": "sha256-p9WFGWGocBefqgz5l1ivnLjlO+FSgUzyTswLrTUjx6c=",
+        "lastModified": 1747226952,
+        "narHash": "sha256-MI2QYEe259HRB2N1Wc9P1i5YJWdC7mYXzEh/fX1wVKY=",
         "path": "src/mina",
         "type": "path"
       },
@@ -442,11 +442,11 @@
     },
     "nixpkgs-newer": {
       "locked": {
-        "lastModified": 1743703532,
-        "narHash": "sha256-s1KLDALEeqy+ttrvqV3jx9mBZEvmthQErTVOAzbjHZs=",
+        "lastModified": 1747375575,
+        "narHash": "sha256-FQmc8T0JaLzdbVglulli0az8Z27GUQKg0ZKPzRmW3+U=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "bdb91860de2f719b57eef819b5617762f7120c70",
+        "rev": "288a96500445cddb1613dfd3b6fcc9d5b32fa7ad",
         "type": "github"
       },
       "original": {
