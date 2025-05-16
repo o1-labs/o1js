@@ -22,8 +22,10 @@ runs:
       continue-on-error: true
       with:
         nix_conf: |
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
           keep-env-derivations = true
           keep-outputs = true
+          
     - name: Fallback to persistant nix
       # only available on some runners
       shell: bash
