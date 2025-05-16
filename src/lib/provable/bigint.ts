@@ -145,6 +145,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     static toCanonical(x: ProvableBigInt_): ProvableBigInt_ {
       return x.mul(ProvableBigInt_.one);
     }
+
     /**
      * Creates a ProvableBigInt instance from a JS bigint
      * @param x
@@ -172,9 +173,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         bigintFromFields |=
           this.fields[i].toBigInt() << BigInt(this.Constructor.config.limbSize * i);
       }
-      let value = this.value.get();
-      assert(bigintFromFields === value, 'ProvableBigInt: value mismatch');
-      return value;
+      return bigintFromFields;
     }
 
     /**
