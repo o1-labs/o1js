@@ -515,6 +515,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Computes the square root of a Provable BigInt
      * Cost: Cheap
      * @returns The square root as a ProvableBigInt
+     * Note: This method is has relatively low constraint cost, but computationally expensive in relative to other methods.
      */
     sqrt(): ProvableBigInt_ {
       let r = Provable.witness(ProvableBigInt_, () => {
