@@ -3,7 +3,7 @@
   inputs = {
     nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-23.11-small";
     nixpkgs-newer.url = "github:nixos/nixpkgs/nixos-24.11-small";
-    mina.url = "git+file:src/mina?submodules=1";
+    mina.url = "git+file:./src/mina?submodules=1";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
@@ -30,6 +30,22 @@
   };
   outputs = { self, nixpkgs-mina, nixpkgs-newer, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
+
+      let
+        # grab the stock c-ares
+        oldCares = pkgs."c-ares";
+
+        # override it to a newer version
+        newerCares = oldCares.overrideAttrs (old: {
+          version = "1.18.1";  # ← pick the latest upstream release
+          src = pkgs.fetchurl {
+            url = "https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz";
+            # you can run `nix-prefetch-url --unpack https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz`
+            # to get the sha256, or temporarily put sha256 = lib.fakeHash to have Nix tell you the right one.
+            sha256 = "0v...your-hash-here...";  
+          };
+        });
+      in
       let
         pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
           (import inputs.nixpkgs-mozilla)).extend
