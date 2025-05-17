@@ -42,7 +42,7 @@
               version = "1.18.1";  
               src = pkgs.fetchurl {
                 url = "https://github.com/c-ares/c-ares/releases/download/cares-1_18_1/c-ares-1.18.1.tar.gz";
-                sha256 = "sha256-1d3yzzlbxz6hsxqxwh9gvbbzg3f66v7wrfr5wb4ybj66qs50rdq5";  
+                sha256 = "sha256-1kxviskwsaa7dcgscvssxa8ps88pdq7kq4z93gxvz7sam2l54z8s";  
               };
             });
         dune-nix = inputs.dune-nix.lib.${system};
