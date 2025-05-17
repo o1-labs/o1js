@@ -88,7 +88,7 @@
           (builtins.attrNames minaDeps_));
         commonOverrides = {
           DUNE_PROFILE = "dev";
-          buildInputs = [ mina.base-libs ] ++ newerCares ++ mina.external-libs
+          buildInputs = [ mina.base-libs newerCares] ++ mina.external-libs
             ++ pkgs.lib.attrVals minaDeps mina.pkgs;
         };
         info = dune-nix.info desc;
