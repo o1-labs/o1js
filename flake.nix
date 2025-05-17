@@ -36,15 +36,6 @@
           inputs.mina.overlays.rust).extend
           (final: prev: { inherit (nixpkgs-newer.legacyPackages."${system}")
             nodePackages nodejs; });
-            oldCares = pkgs."c-ares";
-
-            newerCares = oldCares.overrideAttrs (old: {
-              version = "1.18.1";  
-              src = pkgs.fetchurl {
-                url = "https://github.com/c-ares/c-ares/releases/download/cares-1_18_1/c-ares-1.18.1.tar.gz";
-                sha256 = "1kxviskwsaa7dcgscvssxa8ps88pdq7kq4z93gxvz7sam2l54z8s";  
-              };
-            });
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
@@ -84,7 +75,7 @@
           (builtins.attrNames minaDeps_));
         commonOverrides = {
           DUNE_PROFILE = "dev";
-          buildInputs = [ mina.base-libs newerCares] ++ mina.external-libs
+          buildInputs = [ mina.base-libs ] ++ mina.external-libs
             ++ pkgs.lib.attrVals minaDeps mina.pkgs;
         };
         info = dune-nix.info desc;
