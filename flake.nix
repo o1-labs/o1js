@@ -36,17 +36,13 @@
           inputs.mina.overlays.rust).extend
           (final: prev: { inherit (nixpkgs-newer.legacyPackages."${system}")
             nodePackages nodejs; });
-            # grab the stock c-ares
             oldCares = pkgs."c-ares";
 
-            # override it to a newer version
             newerCares = oldCares.overrideAttrs (old: {
-              version = "1.18.1";  # ← pick the latest upstream release
+              version = "1.18.1";  
               src = pkgs.fetchurl {
-                url = "https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz";
-                # you can run `nix-prefetch-url --unpack https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz`
-                # to get the sha256, or temporarily put sha256 = lib.fakeHash to have Nix tell you the right one.
-                sha256 = "0v...your-hash-here...";  
+                url = "https://github.com/c-ares/c-ares/releases/download/cares-1_18_1/c-ares-1.18.1.tar.gz";
+                sha256 = "sha256-1d3yzzlbxz6hsxqxwh9gvbbzg3f66v7wrfr5wb4ybj66qs50rdq5";  
               };
             });
         dune-nix = inputs.dune-nix.lib.${system};
