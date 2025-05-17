@@ -3,7 +3,7 @@
   inputs = {
     nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-23.11-small";
     nixpkgs-newer.url = "github:nixos/nixpkgs/nixos-24.11-small";
-    mina.url = "git+file:./src/mina?submodules=1";
+    mina.url = "git+file:src/mina?submodules=1";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
