@@ -30,28 +30,25 @@
   };
   outputs = { self, nixpkgs-mina, nixpkgs-newer, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
-
-      let
-        # grab the stock c-ares
-        oldCares = pkgs."c-ares";
-
-        # override it to a newer version
-        newerCares = oldCares.overrideAttrs (old: {
-          version = "1.18.1";  # ← pick the latest upstream release
-          src = pkgs.fetchurl {
-            url = "https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz";
-            # you can run `nix-prefetch-url --unpack https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz`
-            # to get the sha256, or temporarily put sha256 = lib.fakeHash to have Nix tell you the right one.
-            sha256 = "0v...your-hash-here...";  
-          };
-        });
-      in
       let
         pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
           (import inputs.nixpkgs-mozilla)).extend
           inputs.mina.overlays.rust).extend
           (final: prev: { inherit (nixpkgs-newer.legacyPackages."${system}")
             nodePackages nodejs; });
+            # grab the stock c-ares
+            oldCares = pkgs."c-ares";
+
+            # override it to a newer version
+            newerCares = oldCares.overrideAttrs (old: {
+              version = "1.18.1";  # ← pick the latest upstream release
+              src = pkgs.fetchurl {
+                url = "https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz";
+                # you can run `nix-prefetch-url --unpack https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz`
+                # to get the sha256, or temporarily put sha256 = lib.fakeHash to have Nix tell you the right one.
+                sha256 = "0v...your-hash-here...";  
+              };
+            });
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
@@ -91,7 +88,7 @@
           (builtins.attrNames minaDeps_));
         commonOverrides = {
           DUNE_PROFILE = "dev";
-          buildInputs = [ mina.base-libs ] ++ mina.external-libs
+          buildInputs = [ mina.base-libs ] ++ newerCares ++ mina.external-libs
             ++ pkgs.lib.attrVals minaDeps mina.pkgs;
         };
         info = dune-nix.info desc;
