@@ -10,7 +10,7 @@ import { Option, TokenId, Update, ZkappUri, mapUndefined } from './core.js';
 import { Permissions, PermissionsDescription } from './permissions.js';
 import { Preconditions, PreconditionsDescription } from './preconditions.js';
 import { GenericStateUpdates, StateDefinition, StateLayout, StateUpdates } from './state.js';
-import { Pickles } from '../../../snarky.js';
+import { Pickles } from '../../../bindings.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, UInt64 } from '../../provable/int.js';

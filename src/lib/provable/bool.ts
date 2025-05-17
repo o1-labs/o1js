@@ -1,4 +1,4 @@
-import { Snarky } from '../../snarky.js';
+import { Snarky } from '../../bindings.js';
 import { Field, readVarMessage, withMessage } from './field.js';
 import { FieldVar, FieldConst, FieldType } from './core/fieldvar.js';
 import { defineBinable } from '../../bindings/lib/binable.js';

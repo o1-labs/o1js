@@ -1,4 +1,4 @@
-import { Snarky } from '../../snarky.js';
+import { Snarky } from '../../bindings.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
 import { BinableFp, SignableFp } from '../../mina-signer/src/field-bigint.js';
 import { defineBinable } from '../../bindings/lib/binable.js';

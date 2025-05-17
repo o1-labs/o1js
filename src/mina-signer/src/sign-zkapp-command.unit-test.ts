@@ -22,7 +22,7 @@ import {
 import { Random, test, withHardCoded } from '../../lib/testing/property.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
-import { Pickles, Test } from '../../snarky.js';
+import { Pickles, Test } from '../../bindings.js';
 import { Memo } from './memo.js';
 import { RandomTransaction } from './random-transaction.js';
 import {

@@ -1,4 +1,4 @@
-import { Test } from '../../snarky.js';
+import { Test } from '../../bindings.js';
 import {
   Common,
   hashPayment,

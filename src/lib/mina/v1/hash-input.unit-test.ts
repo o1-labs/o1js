@@ -6,7 +6,7 @@ import { packToFields } from '../../provable/crypto/poseidon.js';
 import { Random, test } from '../../testing/property.js';
 import { MlHashInput } from '../../ml/conversion.js';
 import { MlFieldConstArray } from '../../ml/fields.js';
-import { Test } from '../../../snarky.js';
+import { Test } from '../../../bindings.js';
 
 let { hashInputFromJson } = await Test();
 
