@@ -299,7 +299,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         carry = Provable.witness(Field, () =>
           deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
         );
-        rangeCheck(carry, 128, true);
+        rangeCheckHelper(carry, 128, true);
 
         // ensure that after adding the carry, the limb is a multiple of 2^limbSize
         deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
@@ -389,7 +389,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         carry = Provable.witness(Field, () =>
           deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
         );
-        rangeCheck(carry, 128, true);
+        rangeCheckHelper(carry, 128, true);
 
         deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
       }
@@ -755,7 +755,7 @@ abstract class ProvableBigInt<T> {
   abstract assertEquals(a: T): void;
 }
 
-function rangeCheck(x: Field, bits: number, signed?: boolean) {
+function rangeCheckHelper(x: Field, bits: number, signed?: boolean) {
   const supportedBits = new Set([32, 48, 64, 116, 128]);
   if (!supportedBits.has(bits)) {
     throw new Error(`Unsupported bit size: ${bits}`);
