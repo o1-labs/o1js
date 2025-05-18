@@ -225,9 +225,11 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns An array of bits representing the ProvableBigInt
      */
     toBits(): Bool[] {
-      return this.fields.flatMap((field) => {
+      const bits = this.fields.flatMap((field) => {
         return field.toBits(this.Constructor.config.limbSize);
       });
+      ProvableBigInt_.Unsafe.fromBits(bits).assertEquals(this);
+      return bits;
     }
 
     /**
