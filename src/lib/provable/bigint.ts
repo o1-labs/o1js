@@ -278,11 +278,11 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       }
 
       // subtract q*p limb-by-limb
-        for (let i = 0; i < this.Constructor.config.limbNum; i++) {
-          if (i < this.Constructor.config.limbNum) {
-            delta[i] = delta[i].sub(Q[0].mul(P[i]));
-          }
+      for (let i = 0; i < this.Constructor.config.limbNum; i++) {
+        if (i < this.Constructor.config.limbNum) {
+          delta[i] = delta[i].sub(Q[0].mul(P[i]));
         }
+      }
 
       // subtract r limb-by-limb
       for (let i = 0; i < this.Constructor.config.limbNum; i++) {
