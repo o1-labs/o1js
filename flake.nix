@@ -115,10 +115,14 @@
               ];
               extensions = [ "rust-src" ];
             });
-        rust-platform = pkgs.makeRustPlatform
-          {
-            cargo = rust-channel;
-            rustc = rust-channel;
+        rust-channel' = rust-channel // {
+          # Ensure compatibility with nixpkgs >= 24.11
+          targetPlatforms = pkgs.lib.platforms.all;
+          badTargetPlatforms = [ ];
+        };
+        rust-platform = pkgs.makeRustPlatform {
+            cargo = rust-channel';
+            rustc = rust-channel';
           };
         bindings-pkgs = with pkgs;
           [
@@ -279,7 +283,7 @@
             ''
               RUSTUP_HOME=$(pwd)/.rustup
               export RUSTUP_HOME
-              rustup toolchain link nix ${rust-channel}
+              rustup toolchain link nix ${rust-channel'}
               cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
               mkdir -p src/bindings/compiled/node_bindings
@@ -313,7 +317,7 @@
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
-                rustup toolchain link nix ${rust-channel}
+                rustup toolchain link nix ${rust-channel'}
               '';
             }));
 
