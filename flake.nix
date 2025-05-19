@@ -1,8 +1,7 @@
 {
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
-    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-23.11-small";
-    nixpkgs-newer.url = "github:nixos/nixpkgs/nixos-24.11-small";
+    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-24.11-small";
     mina.url = "git+file:src/mina?submodules=1";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
@@ -28,13 +27,13 @@
         "nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c="
       ];
   };
-  outputs = { self, nixpkgs-mina, nixpkgs-newer, flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs-mina, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
           (import inputs.nixpkgs-mozilla)).extend
           inputs.mina.overlays.rust).extend
-          (final: prev: { inherit (nixpkgs-newer.legacyPackages."${system}")
+          (final: prev: { inherit (nixpkgs-mina.legacyPackages."${system}")
             nodePackages nodejs; });
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
