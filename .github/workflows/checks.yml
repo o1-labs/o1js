@@ -26,10 +26,6 @@ jobs:
           submodules: recursive
       - name: Build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Lint-Format-and-TypoCheck:
     strategy:
@@ -124,10 +120,6 @@ jobs:
 
       - name: build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -156,10 +148,6 @@ jobs:
           submodules: recursive
       - name: build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Count tests
         id: count_tests
         run: |
@@ -293,10 +281,6 @@ jobs:
         uses: actions/checkout@v4
       - name: build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -325,10 +309,6 @@ jobs:
         uses: actions/checkout@v4
       - name: build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:

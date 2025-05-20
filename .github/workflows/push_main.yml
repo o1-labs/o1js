@@ -85,10 +85,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Build o1js and mina-signer
         run: |
           npm run prepublishOnly
@@ -120,10 +116,6 @@ jobs:
 
       - name: build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: add build to gc-root if on main
         run: |
           nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot

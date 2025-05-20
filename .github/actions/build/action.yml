@@ -4,14 +4,6 @@ description: 'All of the building steps for o1js'
 permissions:
   contents: write
 
-inputs:
-  cache_id:
-    required: true
-  nar_secret:
-    required: true
-  gcp_secret:
-    required: true
-
 runs:
   using: "composite"
   steps:
@@ -40,23 +32,11 @@ runs:
         key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
-      env:
-        AWS_ACCESS_KEY_ID: ${{ inputs.cache_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.gcp_secret }}
       shell: bash
       run: |
         set -Eeu
         ./pin.sh
-        nix build o1js#bindings --accept-flake-config
-        ( temp_key=$(mktemp)
-          echo ${{ inputs.nar_secret }} > "$temp_key"
-          nix store sign --key-file "$temp_key" --recursive ./result
-          outs=$(nix-store --query --requisites --include-outputs $(nix path-info --derivation ./result))
-          nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $outs
-          rm "$temp_key"
-        ) &
         nix run o1js#generate-bindings --max-jobs auto
-        wait
     - name: Cache dependencies and build
       uses: actions/cache@v4
       id: cache
