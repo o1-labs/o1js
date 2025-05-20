@@ -274,6 +274,8 @@
             [
               rustupWrapper
               bash
+              # Needed to use correct version of dune
+              mina.base-libs
             ]) ++ bindings-pkgs;
           patchPhase = ''
             patchShebangs ./src/bindings/scripts/
