@@ -42,6 +42,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Build
         uses: ./.github/actions/build
         with:
@@ -58,6 +60,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
@@ -109,6 +114,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: upload
         uses: ./.github/actions/upload
         with:
@@ -139,6 +146,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
 
       - name: build
         uses: ./.github/actions/build
@@ -171,6 +180,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
@@ -307,6 +318,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
@@ -338,6 +352,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
