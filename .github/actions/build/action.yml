@@ -15,20 +15,13 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install zstd if needed
-      shell: bash
-      run: command -v unzstd || (sudo apt-get update && sudo apt-get install -y zstd)
     - uses: nixbuild/nix-quick-install-action@v30
       continue-on-error: true
       with:
         nix_conf: |
           keep-env-derivations = true
           keep-outputs = true
-    - name: Fallback to persistant nix
-      # only available on some runners
-      shell: bash
-      run: command -v nix || echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
-
+          require-sigs = false
     - name: Disable smudging
       shell: bash
       run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
