@@ -38,7 +38,6 @@ runs:
           src/bindings/compiled
           src/bindings/mina-transaction/gen
         key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
-
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
       env:
@@ -49,14 +48,15 @@ runs:
         set -Eeu
         ./pin.sh
         nix build o1js#bindings --accept-flake-config
-        temp_key=$(mktemp)
-        echo ${{ inputs.nar_secret }} > "$temp_key"
-        nix store sign --key-file "$temp_key" --recursive ./result
-        nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix-store --query --requisites --include-outputs $(nix path-info --derivation ./result))
-
+        ( temp_key=$(mktemp)
+          echo ${{ inputs.nar_secret }} > "$temp_key"
+          nix store sign --key-file "$temp_key" --recursive ./result
+          outs=$(nix-store --query --requisites --include-outputs $(nix path-info --derivation ./result))
+          nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $outs
+          rm "$temp_key"
+        ) &
         nix run o1js#generate-bindings --max-jobs auto
-        rm "$temp_key"
-
+        wait
     - name: Cache dependencies and build
       uses: actions/cache@v4
       id: cache
@@ -66,7 +66,6 @@ runs:
           node_modules
           dist
         key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
-
     - name: Build examples
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
