@@ -6,8 +6,26 @@ on:
       - develop
       - v1
       - v3
-  pull_request:
-  workflow_dispatch: {}
+  pull_request: {}
+  workflow_dispatch:
+    inputs:
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        default: ''
+  workflow_call:
+    inputs:
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        type: string
+        default: ''
+      target_repo:
+        required: false
+        type: string
+      target_ref:
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +44,9 @@ jobs:
           submodules: recursive
       - name: Build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
 
   Lint-Format-and-TypoCheck:
     strategy:
@@ -81,6 +102,7 @@ jobs:
 
   Upload-bindings:
     name: upload bindings artifact
+    if: ${{ inputs.proof_systems_commit == '' }}
     needs: [Prepare]
     runs-on: ubuntu-latest
     steps:
@@ -120,6 +142,9 @@ jobs:
 
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -148,6 +173,9 @@ jobs:
           submodules: recursive
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Count tests
         id: count_tests
         run: |
@@ -281,6 +309,9 @@ jobs:
         uses: actions/checkout@v4
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -309,6 +340,9 @@ jobs:
         uses: actions/checkout@v4
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
