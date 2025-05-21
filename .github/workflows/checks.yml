@@ -49,6 +49,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
 
   Lint-Format-and-TypoCheck:
     strategy:
