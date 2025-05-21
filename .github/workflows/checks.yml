@@ -6,8 +6,35 @@ on:
       - develop
       - v1
       - v3
-  pull_request:
-  workflow_dispatch: {}
+  pull_request: {}
+  workflow_dispatch:
+    inputs:
+      mina_commit:
+        description: 'mina commit to use'
+        required: false
+        default: ''
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        default: ''
+  workflow_call:
+    inputs:
+      mina_commit:
+        description: 'mina commit to use'
+        required: false
+        default: ''
+        type: string
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        type: string
+        default: ''
+      target_repo:
+        required: false
+        type: string
+      target_ref:
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,8 +51,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
 
   Lint-Format-and-TypoCheck:
     strategy:
@@ -37,6 +71,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
@@ -81,12 +118,15 @@ jobs:
 
   Upload-bindings:
     name: upload bindings artifact
+    if: ${{ inputs.proof_systems_commit == ''  && inputs.mina_commit == ''}}
     needs: [Prepare]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: upload
         uses: ./.github/actions/upload
         with:
@@ -117,9 +157,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
 
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -146,8 +193,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
       - name: Count tests
         id: count_tests
         run: |
@@ -279,8 +333,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -307,8 +369,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          mina_commit: ${{ inputs.mina_commit }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:

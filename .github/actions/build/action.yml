@@ -4,6 +4,16 @@ description: 'All of the building steps for o1js'
 permissions:
   contents: write
 
+inputs:
+  proof_systems_commit:
+    description: 'proof_systems commit to use'
+    required: false
+    default: ''
+  mina_commit:
+    description: 'mina commit to use'
+    required: false
+    default: ''
+
 runs:
   using: "composite"
   steps:
@@ -22,6 +32,25 @@ runs:
       with:
         node-version: '20'
 
+    - name: use mina_commit if provided
+      if: ${{ inputs.mina_commit != ''}}
+      shell: bash
+      run: |
+        git -C src/mina fetch origin ${{ inputs.mina_commit }}
+        git -C src/mina clean -fdx
+        git -C src/mina checkout ${{ inputs.mina_commit }}
+        git -C src/mina clean -fdx
+        git add src/mina
+    - name: use proof_systems_commit if provided
+      if: ${{ inputs.proof_systems_commit != '' }}
+      shell: bash
+      run: |
+        git -C src/mina/src/lib/crypto/proof-systems fetch origin ${{ inputs.proof_systems_commit }}
+        git -C src/mina/src/lib/crypto/proof-systems clean -fdx
+        git -C src/mina/src/lib/crypto/proof-systems checkout ${{ inputs.proof_systems_commit }}
+        git -C src/mina/src/lib/crypto/proof-systems clean -fdx
+        git -C src/mina add src/lib/crypto/proof-systems
+
     - name: cache bindings
       uses: actions/cache@v4
       id: bindings-cache
@@ -29,9 +58,9 @@ runs:
         path: |
           src/bindings/compiled
           src/bindings/mina-transaction/gen
-        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
+        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}-${{inputs.mina_commit }}
     - name: Build the o1js bindings
-      if: steps.bindings-cache.outputs.cache-hit != 'true'
+      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         set -Eeu
@@ -47,13 +76,13 @@ runs:
           dist
         key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
     - name: Build examples
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         npm ci
         npm run build:examples
     - name: Build o1js clean
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         rm -fr dist
