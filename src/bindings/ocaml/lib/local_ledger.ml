@@ -156,7 +156,8 @@ let check_account_update_signatures zkapp_command =
     | Some pk_ ->
         if
           not
-            (Signature_lib.Schnorr.Chunked.verify s
+            (Signature_lib.Schnorr.Chunked.verify
+               ~signature_kind:Mina_signature_kind.t_DEPRECATED s
                (Kimchi_pasta.Pasta.Pallas.of_affine pk_)
                (Random_oracle_input.Chunked.field msg) )
         then
@@ -223,10 +224,12 @@ let protocol_state_of_json =
     json |> Js.to_string |> Yojson.Safe.from_string
     |> Fields_derivers_zkapps.of_json (Lazy.force deriver)
 
+let proof_cache_db = Proof_cache_tag.create_identity_db ()
+
 let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
     (account_creation_fee : string)
     (network_state : Mina_base.Zkapp_precondition.Protocol_state.View.t) =
-  let txn = Zkapp_command.write_all_proofs_to_disk ~proof_cache_db:(Proof_cache_tag.For_tests.create_db ()) txn in
+  let txn = Zkapp_command.write_all_proofs_to_disk ~proof_cache_db txn in
   check_account_update_signatures txn ;
   let ledger = l##.value in
   let application_result =
