@@ -155,6 +155,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -188,6 +189,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
       - name: Count tests
         id: count_tests
         run: |
@@ -327,6 +329,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -361,6 +364,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
