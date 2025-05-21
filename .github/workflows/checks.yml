@@ -262,6 +262,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.base.ref == 'main' }}
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -290,6 +291,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.base.ref == 'main' }}
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet
@@ -318,6 +320,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.base.ref == 'develop' }}
     services:
       mina-local-network:
         image: o1labs/mina-local-network:develop-latest-lightnet
