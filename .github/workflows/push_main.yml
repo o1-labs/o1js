@@ -85,10 +85,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: build
         uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Build o1js and mina-signer
         run: |
           npm run prepublishOnly
@@ -107,27 +103,6 @@ jobs:
           strategy: upgrade
         env:
           INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-
-  Gc-root-bindings:
-    name: add a gc root for the latest bindings build
-    if: github.ref == 'refs/heads/main'
-    runs-on: [sdk-self-hosted-linux-amd64-build-system]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: build
-        uses: ./.github/actions/build
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
-      - name: add build to gc-root if on main
-        run: |
-          nix build o1js#o1js-bindings --out-link /home/app/actions-runner/nix-cache/main-bindings-gcroot
-
 
   Release-on-NPM:
     if: github.ref == 'refs/heads/main'
