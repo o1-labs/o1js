@@ -293,7 +293,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-${runner.arch }}-node-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -327,12 +327,7 @@ jobs:
   master:
     needs: [Prepare]
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
-
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -367,12 +362,7 @@ jobs:
   compatible:
     needs: [Prepare]
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
-
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet
