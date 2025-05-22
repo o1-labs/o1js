@@ -35,8 +35,15 @@ permissions:
   contents: write
 
 jobs:
+  find:
+    runs-on: self-hosted
+    steps:
+      - name: find
+        run: ip a
+
   Prepare:
     runs-on: ubuntu-latest
+    if: false
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
