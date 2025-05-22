@@ -165,12 +165,12 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * duplicated when doing it on the same variable multiple times.
    */
   assertIndexInRange(i: Field): void {
-    if (!this._indicesInRange.has(i)) {
+    if (!this.#indicesInRange.has(i)) {
       if (i.isConstant() && this.length.isConstant()) {
         assert(i.toBigInt() < this.length.toBigInt(), 'assertIndexInRange');
       }
       i.lessThan(this.length).assertTrue();
-      this._indicesInRange.add(i);
+      this.#indicesInRange.add(i);
     }
   }
 
@@ -235,7 +235,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * Sets a value at index i, or does nothing if the index is not in the array
    */
   setOrDoNothing(i: Field, value: ProvableValue): void {
-    zip(this.array, this._indexMask(i)).forEach(([t, equalsIJ], i) => {
+    zip(this.array, this.#indexMask(i)).forEach(([t, equalsIJ], i) => {
       this.array[i] = Provable.if(equalsIJ, this.innerType, value, t);
     });
   }
@@ -255,9 +255,9 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     let newArray = new Array(array, this.length);
 
     // new array has same length/capacity, so it can use the same cached masks
-    newArray._indexMasks = this._indexMasks;
-    newArray._indicesInRange = this._indicesInRange;
-    newArray._dummies = this._dummies;
+    newArray.#indexMasks = this.#indexMasks;
+    newArray.#indicesInRange = this.#indicesInRange;
+    newArray.#dummies = this.#dummies;
     return newArray;
   }
 
@@ -268,7 +268,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * whether the value is part of the actual array.
    */
   forEach(f: (t: ProvableValue, isDummy: Bool) => void) {
-    zip(this.array, this._dummyMask()).forEach(([t, isDummy]) => {
+    zip(this.array, this.#dummyMask()).forEach(([t, isDummy]) => {
       f(t, isDummy);
     });
   }
@@ -500,9 +500,9 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
 
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
-  _indexMasks: Map<Field, Bool[]> = new Map();
-  _indicesInRange: Set<Field> = new Set();
-  _dummies?: Bool[];
+  #indexMasks: Map<Field, Bool[]> = new Map();
+  #indicesInRange: Set<Field> = new Set();
+  #dummies?: Bool[];
 
   /**
    * Compute i.equals(j) for all indices j in the static-size array.
@@ -512,10 +512,10 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    *         ^
    *         i
    */
-  _indexMask(i: Field): Bool[] {
-    let mask = this._indexMasks.get(i);
+  #indexMask(i: Field): Bool[] {
+    let mask = this.#indexMasks.get(i);
     mask ??= this.array.map((_, j) => i.equals(j));
-    this._indexMasks.set(i, mask);
+    this.#indexMasks.set(i, mask);
     return mask;
   }
 
@@ -526,16 +526,16 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    *       ^
    *       length
    */
-  _dummyMask(): Bool[] {
-    if (this._dummies !== undefined) return this._dummies;
-    let isLength = this._indexMask(this.length);
+  #dummyMask(): Bool[] {
+    if (this.#dummies !== undefined) return this.#dummies;
+    let isLength = this.#indexMask(this.length);
     let wasLength = new Bool(false);
 
     let mask = isLength.map((isLength) => {
       wasLength = wasLength.or(isLength);
       return wasLength;
     });
-    this._dummies = mask;
+    this.#dummies = mask;
     return mask;
   }
 
