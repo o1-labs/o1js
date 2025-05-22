@@ -135,6 +135,8 @@
             wasm-pack
             binaryen # provides wasm-opt
             dune_3
+
+            hello # temporary change to force new upload
           ] ++ commonOverrides.buildInputs;
 
         inherit (pkgs) lib;
