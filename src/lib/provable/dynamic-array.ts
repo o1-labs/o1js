@@ -176,6 +176,8 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
 
   /**
    * Gets value at index i, and proves that the index is in the array.
+   * It uses an internal cache to avoid duplication of constraints when the
+   * same index is used multiple times.
    */
   get(i: Field): ProvableValue {
     this.assertIndexInRange(i);
