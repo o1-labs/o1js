@@ -373,7 +373,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * @returns true or false depending on whether the dynamic array is empty
    */
   isEmpty(): Bool {
-    return this.length.equals(new Field(0));
+    return this.length.equals(0);
   }
 
   /**
