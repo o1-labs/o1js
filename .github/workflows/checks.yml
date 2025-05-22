@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: sdk-self-hosted-linux-amd64
+    runs-on: self-hosted
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -109,7 +109,7 @@ jobs:
   Upload-bindings:
     name: upload bindings artifact
     if: ${{ inputs.proof_systems_commit == '' }}
-    runs-on: sdk-self-hosted-linux-amd64
+    runs-on:  self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
