@@ -61,10 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         node: [20]
-        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
-    if: github.event.pull_request.labels.*.name != 'skip-lint'
-    runs-on: ${{ matrix.runner }}
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

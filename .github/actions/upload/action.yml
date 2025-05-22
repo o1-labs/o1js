@@ -41,5 +41,6 @@ runs:
     - name: Upload bindings
       uses: actions/upload-artifact@v4
       with:
+        overwrite: true
         name: bindings.tar.gz
         path: bindings.tar.gz
