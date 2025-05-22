@@ -322,6 +322,19 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   }
 
   /**
+   * Sets the length of the current array to a new value, checking that the
+   * new length is less or equal than the capacity.
+   * 
+   * @param newLength 
+   * 
+   * **Warning**: This does not change (add nor remove) the values of the array.
+   */
+  setLengthTo(n: Field): void {
+    n.assertLessThanOrEqual(new Field(this.capacity));
+    this.length = n;
+  }
+
+  /**
    * Push a value, without changing the capacity.
    *
    * Proves that the new length is still within the capacity, fails otherwise.
