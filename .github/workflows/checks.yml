@@ -46,7 +46,7 @@ jobs:
       - name: Clean up repository if exists
         run: |
           if [ -d "$GITHUB_WORKSPACE/.git" ]; then
-            rm -rf "$GITHUB_WORKSPACE"
+            rm -rf "$GITHUB_WORKSPACE/*"
           fi
 
       - name: Checkout repository with submodules
@@ -131,7 +131,7 @@ jobs:
       - name: Clean up repository if exists
         run: |
           if [ -d "$GITHUB_WORKSPACE/.git" ]; then
-            rm -rf "$GITHUB_WORKSPACE"
+            rm -rf "$GITHUB_WORKSPACE/*"
           fi
       - uses: actions/checkout@v4
         with:
