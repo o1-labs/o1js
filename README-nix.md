@@ -117,7 +117,7 @@ nix develop mina
 Using Nix can take up a lot of disk space if not optimized. Every time you run `nix develop {SOMETHING}`, Nix will create new generations taking gigabytes of data instead of replacing the old ones. This can soon become a problem in your hard disk if you don't handle it carefully. Here are a few indications that can help with this.
 
 Nix has a garbage collector that **is not used by default** after every run. Instead, artifacts get accumulated in your disk unless configured otherwise.
-This is why we recomend `auto-optimise-store = true` (you will be prompted to accept this). You can also run `nix-store --optimize` retroactively.
+This is why we recommend `auto-optimise-store = true` (you will be prompted to accept this). You can also run `nix-store --optimize` retroactively.
 
 If you still need to free up space you can run `nix-store --gc`, unfortunately this can slow down futurue nix builds by forcing you to rebuild dependencies.
 This can be mitigated with [direnv](https://github.com/direnv/direnv) and [nix-direnv](https://github.com/nix-community/nix-direnv) which can create garbage collector roots,
@@ -134,7 +134,7 @@ You can also use `--accept-flake-config` to accept all of them.
 For some reason the default is `1`.
 
 `auto-optimize-store = true;`
-When building slightly different versions of the same repo your nix store can fill up with coppies of the same files.
+When building slightly different versions of the same repo your nix store can fill up with copies, coppices of the same files.
 This saves space by replacing them with symlinks.
 
 `substituters = ...`
