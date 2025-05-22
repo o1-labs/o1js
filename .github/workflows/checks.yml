@@ -36,7 +36,11 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -55,8 +59,9 @@ jobs:
     strategy:
       matrix:
         node: [20]
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
     if: github.event.pull_request.labels.*.name != 'skip-lint'
-    runs-on: self-hosted
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout Repository
@@ -109,7 +114,11 @@ jobs:
   Upload-bindings:
     name: upload bindings artifact
     if: ${{ inputs.proof_systems_commit == '' }}
-    runs-on:  self-hosted
+    strategy:
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -126,7 +135,6 @@ jobs:
   Build-And-Test-Server:
     needs: [Prepare]
     timeout-minutes: 210
-    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -141,6 +149,10 @@ jobs:
             'Verification Key Regression Check 2',
             'CommonJS test',
           ]
+
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -171,11 +183,12 @@ jobs:
     needs: [Prepare]
     name: Run unit tests parallel
     timeout-minutes: 210
-    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
         chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -243,14 +256,22 @@ jobs:
   Build-And-Test-Server-Unit-Tests:
     name: Build-And-Test-Server (Unit tests)
     needs: [Run-Unit-Tests]
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:
     needs: [Prepare]
     timeout-minutes: 90
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -302,7 +323,11 @@ jobs:
   master:
     needs: [Prepare]
     timeout-minutes: 45
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -337,7 +362,11 @@ jobs:
   compatible:
     needs: [Prepare]
     timeout-minutes: 45
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet
