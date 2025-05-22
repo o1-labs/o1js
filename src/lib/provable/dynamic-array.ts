@@ -419,7 +419,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   }
 
   /**
-   * @returns a  new DynamicArray instance with the same values as the current
+   * @returns a new DynamicArray instance with the same values as the current
    */
   copy(): this {
     let newArr = new (<any>this.constructor)();
