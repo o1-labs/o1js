@@ -109,7 +109,6 @@ jobs:
   Upload-bindings:
     name: upload bindings artifact
     if: ${{ inputs.proof_systems_commit == '' }}
-    needs: [Prepare]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -24,8 +24,8 @@ runs:
       shell: bash
       run: |
         set -Eeu
-        echo $AWS_SECRET_ACCESS_KEY | sha256
-        echo $AWS_ACCESS_KEY_ID | sha256
+        echo $AWS_SECRET_ACCESS_KEY | sha256sum
+        echo $AWS_ACCESS_KEY_ID | sha256sum
         ./pin.sh
         nix build o1js#bindings --accept-flake-config
         temp_key=$(mktemp)
