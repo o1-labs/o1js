@@ -56,7 +56,7 @@ jobs:
       matrix:
         node: [20]
     if: github.event.pull_request.labels.*.name != 'skip-lint'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Repository
@@ -126,7 +126,7 @@ jobs:
   Build-And-Test-Server:
     needs: [Prepare]
     timeout-minutes: 210
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -171,7 +171,7 @@ jobs:
     needs: [Prepare]
     name: Run unit tests parallel
     timeout-minutes: 210
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -243,14 +243,14 @@ jobs:
   Build-And-Test-Server-Unit-Tests:
     name: Build-And-Test-Server (Unit tests)
     needs: [Run-Unit-Tests]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:
     needs: [Prepare]
     timeout-minutes: 90
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -302,7 +302,7 @@ jobs:
   master:
     needs: [Prepare]
     timeout-minutes: 45
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -337,7 +337,7 @@ jobs:
   compatible:
     needs: [Prepare]
     timeout-minutes: 45
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet
