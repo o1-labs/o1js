@@ -440,7 +440,6 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     let newArr = new (<any>this.constructor)();
     newArr.array = this.array.slice();
     newArr.length = this.length;
-    // TODO: assert equality of the two arrays?
     return newArr;
   }
 
@@ -509,9 +508,6 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
       );
     }
   }
-
-  // TODO: when we can check .equals on arrays eleemnts we can implement:
-  // - includes
 
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
