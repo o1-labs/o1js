@@ -38,18 +38,18 @@ type DynamicArray<T = any, V = any> = DynamicArrayBase<T, V>;
  * integrity of array operations _within_ the actual length.
  */
 function DynamicArray<
-  A extends ProvableType,
-  T extends InferProvable<A> = InferProvable<A>,
-  V extends InferValue<A> = InferValue<A>
+  ElementType extends ProvableType,
+  ProvableValue extends InferProvable<ElementType> = InferProvable<ElementType>,
+  Value extends InferValue<ElementType> = InferValue<ElementType>
 >(
-  type: A,
+  type: ElementType,
   {
     capacity,
   }: {
     capacity: number;
   }
-): typeof DynamicArrayBase<T, V> & {
-  provable: ProvableHashable<DynamicArrayBase<T, V>, V[]>;
+): typeof DynamicArrayBase<ProvableValue, Value> & {
+  provable: ProvableHashable<DynamicArrayBase<ProvableValue, Value>, Value[]>;
 
   /**
    * Create a new DynamicArray from an array of values.
@@ -57,15 +57,15 @@ function DynamicArray<
    * Note: Both the actual length and the values beyond the original ones will
    * be constant.
    */
-  from(v: (T | V)[] | DynamicArrayBase<T, V>): DynamicArrayBase<T, V>;
+  from(v: (ProvableValue | Value)[] | DynamicArrayBase<ProvableValue, Value>): DynamicArrayBase<ProvableValue, Value>;
 } {
-  let innerType: Provable<T, V> = ProvableType.get(type);
+  let innerType: Provable<ProvableValue, Value> = ProvableType.get(type);
 
   // assert capacity bounds
   assert(capacity >= 0, 'capacity must be >= 0');
   assert(capacity < 2 ** 16, 'capacity must be < 2^16');
 
-  class DynamicArray_ extends DynamicArrayBase<T, V> {
+  class DynamicArray_ extends DynamicArrayBase<ProvableValue, Value> {
     get innerType() {
       return innerType;
     }
@@ -76,21 +76,21 @@ function DynamicArray<
       return provableArray;
     }
 
-    static from(input: (T | V)[] | DynamicArrayBase<T, V>) {
+    static from(input: (ProvableValue | Value)[] | DynamicArrayBase<ProvableValue, Value>) {
       return provableArray.fromValue(input);
     }
   }
-  const provableArray = provable<T, V>(innerType, DynamicArray_);
+  const provableArray = provable<ProvableValue, Value>(innerType, DynamicArray_);
 
   return DynamicArray_;
 }
 
-class DynamicArrayBase<T = any, V = any> {
+class DynamicArrayBase<ProvableValue = any, Value = any> {
   /**
    * The internal array, which includes the actual values, padded up to
    * `capacity` with unconstrained values.
    */
-  array: T[];
+  array: ProvableValue[];
 
   /**
    * Length of the array. Guaranteed to be in [0, capacity].
@@ -98,7 +98,7 @@ class DynamicArrayBase<T = any, V = any> {
   length: Field;
 
   // properties to override in subclass
-  get innerType(): Provable<T, V> {
+  get innerType(): Provable<ProvableValue, Value> {
     throw Error('Inner type must be defined in a subclass.');
   }
   static get capacity(): number {
@@ -116,7 +116,7 @@ class DynamicArrayBase<T = any, V = any> {
 
   /**
    * Create a new {@link DynamicArrayBase} instance from an optional list of
-   * {@link T} elements, and optional length.
+   * {@link ProvableValue} elements, and optional length.
    * 
    * - If no parameters are passed, it creates an empty array of length 0.
    * - If only `array` is passed, it creates a new array with the elements
@@ -135,9 +135,9 @@ class DynamicArrayBase<T = any, V = any> {
    * let empty = new DynamicArray();
    * ```
    *
-   * Note: this is different from `T[]` because it is a provable type.
+   * Note: this is different from `ProvableValue[]` because it is a provable type.
    */
-  constructor(array?: T[], length?: Field) {
+  constructor(array?: ProvableValue[], length?: Field) {
     const NULL = ProvableType.synthesize(this.innerType);
   
     const a = array ?? [];
@@ -177,7 +177,7 @@ class DynamicArrayBase<T = any, V = any> {
   /**
    * Gets value at index i, and proves that the index is in the array.
    */
-  get(i: Field): T {
+  get(i: Field): ProvableValue {
     this.assertIndexInRange(i);
     return this.getOrUnconstrained(i);
   }
@@ -189,7 +189,7 @@ class DynamicArrayBase<T = any, V = any> {
    * Note: The correct type for `i` is actually UInt16 which doesn't exist. The
    * method is not complete (but sound) for i >= 2^16.
    */
-  getOption(i: Field): Option<T> {
+  getOption(i: Field): Option<ProvableValue> {
     let type = this.innerType;
     let isContained = i.lessThan(this.length);
     let value = this.getOrUnconstrained(i);
@@ -206,7 +206,7 @@ class DynamicArrayBase<T = any, V = any> {
    * **Warning**: Only use this if you already know/proved by other means that
    * the index is within bounds.
    */
-  getOrUnconstrained(i: Field): T {
+  getOrUnconstrained(i: Field): ProvableValue {
     let type = this.innerType;
     let NULL = ProvableType.synthesize(type);
     let ai = Provable.witness(type, () => this.array[Number(i)] ?? NULL);
@@ -226,7 +226,7 @@ class DynamicArrayBase<T = any, V = any> {
   /**
    * Sets a value at index i and proves that the index is in the array.
    */
-  set(i: Field, value: T): void {
+  set(i: Field, value: ProvableValue): void {
     this.assertIndexInRange(i);
     this.setOrDoNothing(i, value);
   }
@@ -234,7 +234,7 @@ class DynamicArrayBase<T = any, V = any> {
   /**
    * Sets a value at index i, or does nothing if the index is not in the array
    */
-  setOrDoNothing(i: Field, value: T): void {
+  setOrDoNothing(i: Field, value: ProvableValue): void {
     zip(this.array, this._indexMask(i)).forEach(([t, equalsIJ], i) => {
       this.array[i] = Provable.if(equalsIJ, this.innerType, value, t);
     });
@@ -245,10 +245,10 @@ class DynamicArrayBase<T = any, V = any> {
    *
    * **Warning**: The callback will be passed unconstrained dummy values.
    */
-  map<S extends ProvableType>(
-    type: S,
-    f: (t: T) => From<S>
-  ): DynamicArray<InferProvable<S>, InferValue<S>> {
+  map<MapType extends ProvableType>(
+    type: MapType,
+    f: (t: ProvableValue) => From<MapType>
+  ): DynamicArray<InferProvable<MapType>, InferValue<MapType>> {
     let Array = DynamicArray(type, { capacity: this.capacity });
     let provable = ProvableType.get(type);
     let array = this.array.map((x) => provable.fromValue(f(x)));
@@ -267,7 +267,7 @@ class DynamicArrayBase<T = any, V = any> {
    * The callback will be passed an element and a boolean `isDummy` indicating
    * whether the value is part of the actual array.
    */
-  forEach(f: (t: T, isDummy: Bool) => void) {
+  forEach(f: (t: ProvableValue, isDummy: Bool) => void) {
     zip(this.array, this._dummyMask()).forEach(([t, isDummy]) => {
       f(t, isDummy);
     });
@@ -281,7 +281,7 @@ class DynamicArrayBase<T = any, V = any> {
    * **Note**: this doesn't cost constraints, but currently doesn't preserve any
    * cached constraints.
    */
-  growCapacityTo(capacity: number): DynamicArray<T, V> {
+  growCapacityTo(capacity: number): DynamicArray<ProvableValue, Value> {
     assert(capacity >= this.capacity, 'new capacity must be greater or equal');
     let NewArray = DynamicArray(this.innerType, { capacity });
     let NULL = ProvableType.synthesize(this.innerType);
@@ -297,7 +297,7 @@ class DynamicArrayBase<T = any, V = any> {
    * **Note**: this doesn't cost constraints, but currently doesn't preserve any
    * cached constraints.
    */
-  growCapacityBy(increment: number): DynamicArray<T> {
+  growCapacityBy(increment: number): DynamicArray<ProvableValue> {
     return this.growCapacityTo(this.capacity + increment);
   }
 
@@ -333,7 +333,7 @@ class DynamicArrayBase<T = any, V = any> {
    * array.push(value);
    * ```
    */
-  push(value: T): void {
+  push(value: ProvableValue): void {
     let oldLength = this.length;
     this.increaseLengthBy(new Field(1));
     this.setOrDoNothing(oldLength, value);
@@ -350,7 +350,7 @@ class DynamicArrayBase<T = any, V = any> {
     let dec = n !== undefined ? n : new Field(1);
     this.decreaseLengthBy(dec);
 
-    let NULL: T = ProvableType.synthesize(this.innerType);
+    let NULL: ProvableValue = ProvableType.synthesize(this.innerType);
     if (n !== undefined) {
       // set the last n elements to NULL
       for (let i = 0; i < this.capacity; i++) {
@@ -439,7 +439,7 @@ class DynamicArrayBase<T = any, V = any> {
    * @param end
    * @returns
    */
-  slice(start?: Field, end?: Field): DynamicArray<T, V> {
+  slice(start?: Field, end?: Field): DynamicArray<ProvableValue, Value> {
     start ??= new Field(0);
     end ??= this.length;
     let sliced = this.copy();
@@ -456,7 +456,7 @@ class DynamicArrayBase<T = any, V = any> {
    * @param other
    * @returns
    */
-  concat(other: DynamicArray<T, V>): DynamicArray<T, V> {
+  concat(other: DynamicArray<ProvableValue, Value>): DynamicArray<ProvableValue, Value> {
     let res = this.growCapacityTo(this.capacity + other.capacity);
     let offset = new Field(0).sub(new Field(this.length));
     for (let i = 0; i < res.capacity; i++) {
@@ -480,7 +480,7 @@ class DynamicArrayBase<T = any, V = any> {
    * @param i
    * @param value
    */
-  insert(index: Field, value: T): void {
+  insert(index: Field, value: ProvableValue): void {
     const right = this.slice(index, this.length);
     this.increaseLengthBy(new Field(1));
     this.set(index, value);
@@ -539,8 +539,8 @@ class DynamicArrayBase<T = any, V = any> {
     return mask;
   }
 
-  toValue(): V[] {
-    return (this.constructor as any as { provable: Provable<any, V[]> }).provable.toValue(this);
+  toValue(): Value[] {
+    return (this.constructor as any as { provable: Provable<any, Value[]> }).provable.toValue(this);
   }
 }
 
@@ -549,10 +549,10 @@ class DynamicArrayBase<T = any, V = any> {
  */
 DynamicArray.Base = DynamicArrayBase;
 
-function provable<T, V>(
-  type: Provable<T, V>,
-  Class: typeof DynamicArrayBase<T, V>
-): ProvableHashable<DynamicArrayBase<T, V>, V[]> {
+function provable<ProvableValue, Value>(
+  type: Provable<ProvableValue, Value>,
+  Class: typeof DynamicArrayBase<ProvableValue, Value>
+): ProvableHashable<DynamicArrayBase<ProvableValue, Value>, Value[]> {
   let capacity = Class.capacity;
   let NULL = ProvableType.synthesize(type);
 
