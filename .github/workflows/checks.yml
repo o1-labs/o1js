@@ -42,6 +42,13 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
     steps:
+        # only needed for self hosted runners
+      - name: Clean up repository if exists
+        run: |
+          if [ -d "$GITHUB_WORKSPACE/.git" ]; then
+            rm -rf "$GITHUB_WORKSPACE"
+          fi
+
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
@@ -120,6 +127,12 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
     steps:
+        # only needed for self hosted runners
+      - name: Clean up repository if exists
+        run: |
+          if [ -d "$GITHUB_WORKSPACE/.git" ]; then
+            rm -rf "$GITHUB_WORKSPACE"
+          fi
       - uses: actions/checkout@v4
         with:
           submodules: recursive
