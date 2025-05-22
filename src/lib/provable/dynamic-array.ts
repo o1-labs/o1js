@@ -189,7 +189,9 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * the array.
    *
    * Note: The correct type for `i` is actually UInt16 which doesn't exist. The
-   * method is not complete (but sound) for i >= 2^16.
+   * method is not complete (but sound) for i >= 2^16. This means that if the 
+   * index is larger than 2^16, the constraints could be satisfiable but the
+   * result is not correct (because the capacity can at most be 2^16).
    */
   getOption(i: Field): Option<ProvableValue> {
     let type = this.innerType;
