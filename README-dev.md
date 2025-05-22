@@ -170,7 +170,7 @@ This repo uses minimal [oxlint](https://oxc.rs/docs/guide/usage/linter.html) and
 
 3. Enable pre-commit hooks
 
-- There is an opt-in pre-commit hook available that will attempt to fix styling for all diffed files. Enable it by running `git config husky.optin true`
+- There is an opt-in pre-commit hook available that will attempt to fix styling for all diffed files. Enable it by running `git config husky.option true`
 
 > [!NOTE]
 > You can opt-out of linting in a PR by tagging it with skip-lint, in case the linting script is legitimately blocking an important PR
