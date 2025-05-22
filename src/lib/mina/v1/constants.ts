@@ -28,7 +28,7 @@ export namespace TransactionLimits {
 }
 
 export namespace ZkappConstants {
-  export const MAX_ZKAPP_STATE_FIELDS = 8 as const;
+  export const MAX_ZKAPP_STATE_FIELDS = 32 as const;
   export const ACCOUNT_ACTION_STATE_BUFFER_SIZE = 5 as const;
   export const ACCOUNT_CREATION_FEE = 1000000000n as const;
 }
