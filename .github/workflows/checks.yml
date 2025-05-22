@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   find:
-    runs-on: self-hosted
+    runs-on: [sdk-team-github-runner-x86-04-build]
     steps:
       - name: find
         run: ip a
@@ -115,7 +115,7 @@ jobs:
 
   Upload-bindings:
     name: upload bindings artifact
-    if: ${{ inputs.proof_systems_commit == '' }}
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
