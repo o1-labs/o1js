@@ -39,7 +39,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build]
+# sdk-team-github-runner-arm-01-benchmarks is really slow? doesn't seem to use nix cache
+# sdk-team-github-runner-x86-04-build has the weird 401 issue
+        runner: [sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build]
 
     runs-on: ${{ matrix.runner }}
     steps:
@@ -116,7 +118,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build]
+        runner: [sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build]
 
     runs-on: ${{ matrix.runner }}
     steps:
