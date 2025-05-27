@@ -312,6 +312,10 @@ import { Provable } from '../provable.js';
   expectThrows(() => {
     bytes.insert(new Field(4), new UInt8(5));
   }, 'Cannot insert out-of-bounds');
+
+  // Checking inclusion of elements
+  assert(bytes.includes(new UInt8(1)).toBoolean());
+  assert(bytes.includes(new UInt8(20)).not().toBoolean());
 }
 
 // Using dynamic arrays as private input
@@ -561,6 +565,10 @@ await Provable.runAndCheck(() => {
           for (let i = 0; i < 8; i++) {
             assert(bytes.get(new Field(i)).value.equals(new Field(i + 1)));
           }
+
+          // Checking inclusion of elements
+          assert(bytes.includes(new UInt8(1)).toBoolean());
+          assert(bytes.includes(new UInt8(20)).not().toBoolean());
         },
       },
     },

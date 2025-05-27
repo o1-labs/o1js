@@ -511,6 +511,20 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     }
   }
 
+  /**
+   * Checks whether the dynamic array includes a value.
+   * 
+   * @param value 
+   * @returns
+   */
+  includes(value: ProvableValue): Bool {
+    let type = this.innerType;
+    let isIncluded = this.array.map((t) => Provable.equal(this.innerType, t, value));
+    let isSome = isIncluded.reduce((acc, curr) => acc.or(curr), new Bool(false));
+    return isSome;
+  }
+
+
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
   #indexMasks: Map<Field, Bool[]> = new Map();
