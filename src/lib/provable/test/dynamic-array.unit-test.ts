@@ -567,8 +567,8 @@ await Provable.runAndCheck(() => {
           }
 
           // Checking inclusion of elements
-          assert(bytes.includes(new UInt8(1)).toBoolean());
-          assert(bytes.includes(new UInt8(20)).not().toBoolean());
+          assert(bytes.includes(new UInt8(1)));
+          assert(bytes.includes(new UInt8(20)).not());
         },
       },
     },

@@ -519,7 +519,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    */
   includes(value: ProvableValue): Bool {
     let type = this.innerType;
-    let isIncluded = this.array.map((t) => Provable.equal(this.innerType, t, value));
+    let isIncluded = this.array.map((t) => Provable.equal(type, t, value));
     let isSome = isIncluded.reduce((acc, curr) => acc.or(curr), new Bool(false));
     return isSome;
   }
