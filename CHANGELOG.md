@@ -32,6 +32,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
+
 - [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
   - o1js-bindings is no longer a submodule (same directory structure)
   - compiled artifacts are now gitignored
