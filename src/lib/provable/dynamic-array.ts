@@ -57,7 +57,9 @@ function DynamicArray<
    * Note: Both the actual length and the values beyond the original ones will
    * be constant.
    */
-  from(v: (ProvableValue | Value)[] | DynamicArrayBase<ProvableValue, Value>): DynamicArrayBase<ProvableValue, Value>;
+  from(
+    v: (ProvableValue | Value)[] | DynamicArrayBase<ProvableValue, Value>
+  ): DynamicArrayBase<ProvableValue, Value>;
 } {
   let innerType: Provable<ProvableValue, Value> = ProvableType.get(type);
 
@@ -308,32 +310,56 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   /**
    * Increments the length of the current array by n elements, checking that the
    * new length is within the capacity.
+   *
+   * An optional error message can be provided to be used in case the inner
+   * assertion fails.
+   *
+   * @param n
+   * @param message
    */
-  increaseLengthBy(n: Field): void {
+  increaseLengthBy(n: Field, message?: string): void {
+    let errorMessage =
+      message ??
+      `increaseLengthBy: cannot increase length because provided n would exceed capacity ${this.capacity}.`;
+
     let newLength = this.length.add(n).seal();
-    newLength.lessThanOrEqual(new Field(this.capacity)).assertTrue();
+    newLength.assertLessThanOrEqual(new Field(this.capacity), errorMessage);
     this.length = newLength;
   }
 
   /**
-   * Decrements the length of the current array by n elements, checking that the
-   * n is less or equal than the current length.
+   * Decrements the length of the current array by `n` elements, checking that
+   * the `n` is less or equal than the current length.
+   *
+   * An optional error message can be provided to be used in case the inner
+   * assertion fails.
+   *
+   * @param n
+   * @param message
    */
-  decreaseLengthBy(n: Field): void {
+  decreaseLengthBy(n: Field, message?: string): void {
+    let errorMessage =
+      message ??
+      `decreaseLengthBy: cannot decrease length because provided n is larger than current array length ${this.length}`;
+
     let oldLength = this.length;
-    n.assertLessThanOrEqual(this.length);
+    n.assertLessThanOrEqual(this.length, errorMessage);
     this.length = oldLength.sub(n).seal();
   }
 
   /**
    * Sets the length of the current array to a new value, checking that the
    * new length is less or equal than the capacity.
-   * 
-   * @param newLength 
-   * 
+   *
+   * An optional error message can be provided to be used in case the inner
+   * assertion fails.
+   *
+   * @param newLength
+   * @param message
+   *
    * **Warning**: This does not change (add nor remove) the values of the array.
    */
-  setLengthTo(n: Field): void {
+  setLengthTo(n: Field, message?: string): void {
     n.assertLessThanOrEqual(new Field(this.capacity));
     this.length = n;
   }
@@ -436,7 +462,11 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   }
 
   /**
-   * @returns a new DynamicArray instance with the same values as the current
+   * Copies the current dynamic array, returning a new instance with the same
+   * values and length.
+   *
+   * @returns a new DynamicArray instance with the same values as the current.
+   *
    */
   copy(): this {
     let newArr = new (<any>this.constructor)();

@@ -27,7 +27,7 @@ import { Provable } from '../provable.js';
   assert(fromArray.capacity === 8);
 
   let fromLength = new Bytestring(undefined, new Field(0));
-  assert(fromLength.length.equals(new Field(0)))
+  assert(fromLength.length.equals(new Field(0)));
   assert(fromLength.capacity === 8);
 
   let fromArrayLength = new Bytestring(
@@ -38,7 +38,18 @@ import { Provable } from '../provable.js';
   assert(fromArrayLength.get(new Field(1)).value.equals(new Field(2)));
   assert(fromArrayLength.get(new Field(2)).value.equals(new Field(3)));
   fromArrayLength.getOption(new Field(3)).assertNone();
-  
+
+  // Copy into new dynamic arrays
+  let copySame = fromArray.copy();
+  assert(copySame.length.equals(fromArray.length));
+  assert(copySame.capacity === fromArray.capacity);
+  assert(copySame.get(new Field(0)).value.equals(fromArray.get(new Field(1)).value));
+  assert(copySame.get(new Field(1)).value.equals(fromArray.get(new Field(2)).value));
+  assert(copySame.get(new Field(2)).value.equals(fromArray.get(new Field(3)).value));
+  for (let i = 3; i < 8; i++) {
+    copySame.getOption(new Field(i)).assertNone();
+  }
+
   // Initialize an empty dynamic array
   let bytes = new Bytestring();
 
@@ -349,17 +360,16 @@ import { Provable } from '../provable.js';
 
 // Provable behaviour
 {
-class Bytestring extends DynamicArray(UInt8, { capacity: 8 }) {}
+  class Bytestring extends DynamicArray(UInt8, { capacity: 8 }) {}
 
-await Provable.runAndCheck(() => {
-  let b = Provable.witness(Bytestring, () => new Bytestring());
-  b.push(UInt8.from(1));
-});
+  await Provable.runAndCheck(() => {
+    let b = Provable.witness(Bytestring, () => new Bytestring());
+    b.push(UInt8.from(1));
+  });
 }
 
 // In-circuit test for dynamic arrays
 {
-
   let List = ZkProgram({
     name: 'dynamicarrays-circuit',
     methods: {
@@ -415,7 +425,6 @@ await Provable.runAndCheck(() => {
 
           assert(longerArray.get(new Field(0)).value.equals(sameArray.get(new Field(0)).value));
           assert(otherArray.get(new Field(0)).value.equals(bytes.get(new Field(0)).value));
-
 
           // Mapping over elements should work correctly
           bytes.push(v0.add(new UInt8(1)));
