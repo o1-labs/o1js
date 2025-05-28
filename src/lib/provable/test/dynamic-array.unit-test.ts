@@ -43,9 +43,9 @@ import { Provable } from '../provable.js';
   let copySame = fromArray.copy();
   assert(copySame.length.equals(fromArray.length));
   assert(copySame.capacity === fromArray.capacity);
-  assert(copySame.get(new Field(0)).value.equals(fromArray.get(new Field(1)).value));
-  assert(copySame.get(new Field(1)).value.equals(fromArray.get(new Field(2)).value));
-  assert(copySame.get(new Field(2)).value.equals(fromArray.get(new Field(3)).value));
+  assert(copySame.get(new Field(0)).value.equals(new Field(1)));
+  assert(copySame.get(new Field(1)).value.equals(new Field(2)));
+  assert(copySame.get(new Field(2)).value.equals(new Field(3)));
   for (let i = 3; i < 8; i++) {
     copySame.getOption(new Field(i)).assertNone();
   }
