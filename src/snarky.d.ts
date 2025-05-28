@@ -702,7 +702,6 @@ declare const Pickles: {
       publicOutputSize: number;
       storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
-      numChunks?: number;
     }
   ) => {
     provers: MlArray<Pickles.Prover>;

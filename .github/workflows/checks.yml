@@ -6,26 +6,8 @@ on:
       - develop
       - v1
       - v3
-  pull_request: {}
-  workflow_dispatch:
-    inputs:
-      proof_systems_commit:
-        description: 'proof_systems commit to use'
-        required: false
-        default: ''
-  workflow_call:
-    inputs:
-      proof_systems_commit:
-        description: 'proof_systems commit to use'
-        required: false
-        type: string
-        default: ''
-      target_repo:
-        required: false
-        type: string
-      target_ref:
-        required: false
-        type: string
+  pull_request:
+  workflow_dispatch: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,20 +18,18 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
       - name: Build
         uses: ./.github/actions/build
         with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Lint-Format-and-TypoCheck:
     strategy:
@@ -61,9 +41,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
@@ -108,18 +85,16 @@ jobs:
 
   Upload-bindings:
     name: upload bindings artifact
-    if: ${{ inputs.proof_systems_commit == '' }}
-    runs-on: ubuntu-latest
+    needs: [Prepare]
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
       - name: upload
         uses: ./.github/actions/upload
         with:
-          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
@@ -146,15 +121,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
 
       - name: build
         uses: ./.github/actions/build
         with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -181,14 +154,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Count tests
         id: count_tests
         run: |
@@ -320,15 +291,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -355,15 +323,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
       - name: build
         uses: ./.github/actions/build
         with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:

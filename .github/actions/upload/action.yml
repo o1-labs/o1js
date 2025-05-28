@@ -16,22 +16,11 @@ runs:
   steps:
     - name: Build
       uses: ./.github/actions/build
-    - name: Build the o1js bindings
-      if: steps.bindings-cache.outputs.cache-hit != 'true'
-      env:
-        AWS_ACCESS_KEY_ID: ${{ inputs.cache_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.gcp_secret }}
-      shell: bash
-      run: |
-        set -Eeu
-        ./pin.sh
-        nix build o1js#bindings --accept-flake-config
-        temp_key=$(mktemp)
-        echo ${{ inputs.nar_secret }} > "$temp_key"
-        nix store sign --key-file "$temp_key" --recursive ./result
-        outs=$(nix-store --query --requisites --include-outputs $(nix path-info --derivation ./result))
-        nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $outs
-        rm "$temp_key"
+      with:
+          cache_id: ${{ inputs.cache_id }}
+          nar_secret: ${{ inputs.nar_secret }}
+          gcp_secret: ${{ inputs.gcp_secret }}
+
     - name: generate tar
       shell: bash
       run: |
