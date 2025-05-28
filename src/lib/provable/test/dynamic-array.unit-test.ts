@@ -38,35 +38,6 @@ import { Provable } from '../provable.js';
   assert(fromArrayLength.get(new Field(1)).value.equals(new Field(2)));
   assert(fromArrayLength.get(new Field(2)).value.equals(new Field(3)));
   fromArrayLength.getOption(new Field(3)).assertNone();
-
-  // Copy into new dynamic arrays of different capacities
-  let copySame = fromArray.copy();
-  assert(copySame.length.equals(fromArray.length));
-  assert(copySame.capacity === fromArray.capacity);
-  assert(copySame.get(new Field(0)).value.equals(fromArray.get(new Field(1)).value));
-  assert(copySame.get(new Field(1)).value.equals(fromArray.get(new Field(2)).value));
-  assert(copySame.get(new Field(2)).value.equals(fromArray.get(new Field(3)).value));
-  for (let i = 3; i < 8; i++) {
-    copySame.getOption(new Field(i)).assertNone();
-  }
-
-  let copyLonger = fromArray.copy(16);
-  assert(copyLonger.length.equals(fromArray.length));
-  assert(copyLonger.capacity === 16);
-  assert(copyLonger.get(new Field(0)).value.equals(fromArray.get(new Field(1)).value));
-  assert(copyLonger.get(new Field(1)).value.equals(fromArray.get(new Field(2)).value));
-  assert(copyLonger.get(new Field(2)).value.equals(fromArray.get(new Field(3)).value));
-  for (let i = 3; i < 16; i++) {
-    copyLonger.getOption(new Field(i)).assertNone();
-  }
-
-  let copyShorter = fromArray.copy(4);
-  assert(copyShorter.length.equals(fromArray.length));
-  assert(copyShorter.capacity === 4);
-  assert(copyShorter.get(new Field(0)).value.equals(fromArray.get(new Field(1)).value));
-  assert(copyShorter.get(new Field(1)).value.equals(fromArray.get(new Field(2)).value));
-  assert(copyShorter.get(new Field(2)).value.equals(fromArray.get(new Field(3)).value));
-  copyShorter.getOption(new Field(3)).assertNone();
   
   // Initialize an empty dynamic array
   let bytes = new Bytestring();

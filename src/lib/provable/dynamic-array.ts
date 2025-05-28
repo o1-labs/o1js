@@ -417,10 +417,6 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * Shifts all elements of the array to the right by n positions, increasing
    * the length by n, which must result in less than or equal to the capacity.
    * The new elements on the left are set to NULL values.
-   * 
-   * **Warning**: This does not extend the capacity of the array, so if the
-   * array cannot be extended with `n` elements, it will fail. Consider copying
-   * the array into a new one that has larger capacity first.
    *
    * @param n
    */
@@ -440,25 +436,13 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   }
 
   /**
-   * Copies the current dynamic array, returning a new instance with the same
-   * values and length. Optionally, one can specify a different `capacity` to 
-   * set the new array's capacity. If it is larger than the current capacity, 
-   * the copy can be done without failing. If it is smaller, the current length 
-   * must be less than or equal to the new capacity.
-   * 
-   * @returns a new DynamicArray instance with the same values as the current.
-   * 
+   * @returns a new DynamicArray instance with the same values as the current
    */
-  copy(capacity?: number): DynamicArray<ProvableValue, Value> {
-    const newCapacity = capacity ?? this.capacity;
-
-    if (newCapacity < this.capacity) {
-      this.length.assertLessThanOrEqual(new Field(newCapacity));
-    }
-
-    const CopiedArray = DynamicArray(this.innerType, { capacity: newCapacity });
-
-    return new CopiedArray(this.array, this.length);
+  copy(): this {
+    let newArr = new (<any>this.constructor)();
+    newArr.array = this.array.slice();
+    newArr.length = this.length;
+    return newArr;
   }
 
   /**
