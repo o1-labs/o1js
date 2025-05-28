@@ -171,7 +171,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * @param message - optional error message to use in case the assertion fails
    */
   assertIndexInRange(i: Field, message?: string): void {
-    let errorMessage = message ?? `assertIndexInRange(): index ${i} must be in range [0, length]`;
+    let errorMessage = message ?? `assertIndexInRange(): index must be in range [0, length]`;
     if (!this.#indicesInRange.has(i)) {
       if (i.isConstant() && this.length.isConstant()) {
         assert(i.toBigInt() < this.length.toBigInt(), errorMessage);
@@ -238,7 +238,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * Sets a value at index i and proves that the index is in the array.
    */
   set(i: Field, value: ProvableValue, message?: string): void {
-    let errorMessage = message ?? `set(): index ${i} must be in range [0, length]`;
+    let errorMessage = message ?? `set(): index must be in range [0, length]`;
     this.assertIndexInRange(i, errorMessage);
     this.setOrDoNothing(i, value);
   }
@@ -370,7 +370,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   setLengthTo(n: Field, message?: string): void {
     let errorMessage =
       message ??
-      `setLengthTo: cannot set length to ${n} because it exceeds capacity ${this.capacity}`;
+      `setLengthTo: cannot set length to n because it exceeds capacity ${this.capacity}`;
     n.assertLessThanOrEqual(new Field(this.capacity), errorMessage);
     this.length = n;
   }
@@ -410,7 +410,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   pop(n?: Field, message?: string): void {
     let errorMessage =
       message ??
-      `pop(): cannot pop ${n} elements because the length is smaller`;
+      `pop(): cannot pop n elements because the length is smaller`;
 
     let dec = n !== undefined ? n : new Field(1);
     this.decreaseLengthBy(dec, errorMessage);
@@ -564,7 +564,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   insert(index: Field, value: ProvableValue, message?: string): void {
     let errorMessage =
       message ??
-      `insert(): cannot insert value at index ${index} because it would exceed capacity ${this.capacity}.`;
+      `insert(): cannot insert value at index because it would exceed capacity ${this.capacity}.`;
     const right = this.slice(index, this.length);
     this.increaseLengthBy(new Field(1), errorMessage);
     this.set(index, value);
