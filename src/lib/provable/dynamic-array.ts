@@ -171,7 +171,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * @param message - optional error message to use in case the assertion fails
    */
   assertIndexInRange(i: Field, message?: string): void {
-    let errorMessage = message ?? `assertIndexInRange(): index ${i} must be in range [0, ${this.length}]`;
+    let errorMessage = message ?? `assertIndexInRange(): index ${i} must be in range [0, length]`;
     if (!this.#indicesInRange.has(i)) {
       if (i.isConstant() && this.length.isConstant()) {
         assert(i.toBigInt() < this.length.toBigInt(), errorMessage);
@@ -238,7 +238,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * Sets a value at index i and proves that the index is in the array.
    */
   set(i: Field, value: ProvableValue, message?: string): void {
-    let errorMessage = message ?? `set(): index ${i} must be in range [0, ${this.length}]`;
+    let errorMessage = message ?? `set(): index ${i} must be in range [0, length]`;
     this.assertIndexInRange(i, errorMessage);
     this.setOrDoNothing(i, value);
   }
@@ -348,7 +348,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   decreaseLengthBy(n: Field, message?: string): void {
     let errorMessage =
       message ??
-      `decreaseLengthBy: cannot decrease length because provided n is larger than current array length ${this.length}`;
+      `decreaseLengthBy: cannot decrease length because provided n is larger than current array length`;
 
     let oldLength = this.length;
     n.assertLessThanOrEqual(this.length, errorMessage);
