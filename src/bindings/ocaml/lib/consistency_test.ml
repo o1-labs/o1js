@@ -160,17 +160,18 @@ end
 module Hash_from_json = struct
   let account_update (p : Js.js_string Js.t) (network_id : Js.js_string Js.t) =
     p |> account_update_of_json
-    |> Account_update.digest ~chain:(get_network_id_of_js_string network_id)
+    |> Account_update.digest
+         ~signature_kind:(get_network_id_of_js_string network_id)
 
   let transaction_commitments (tx_json : Js.js_string Js.t)
       (network_id : Js.js_string Js.t) =
-    let chain = get_network_id_of_js_string network_id in
+    let signature_kind = get_network_id_of_js_string network_id in
     let tx =
       Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
     in
     let get_account_updates_hash xs =
       let hash_account_update (p : Account_update.Stable.Latest.t) =
-        Zkapp_command.Digest.Account_update.create ~chain p
+        Zkapp_command.Digest.Account_update.create ~signature_kind p
       in
       Zkapp_command.Call_forest.accumulate_hashes ~hash_account_update xs
     in
@@ -183,7 +184,7 @@ module Hash_from_json = struct
     in
     let fee_payer = Account_update.of_fee_payer tx.fee_payer in
     let fee_payer_hash =
-      Zkapp_command.Digest.Account_update.create ~chain fee_payer
+      Zkapp_command.Digest.Account_update.create ~signature_kind fee_payer
     in
     let full_commitment =
       Zkapp_command.Transaction_commitment.create_complete commitment
@@ -291,7 +292,7 @@ module Transaction_hash = struct
       |> Signed_command.of_yojson |> ok_exn
     in
     Mina_transaction.Transaction_hash.(
-      command |> hash_signed_command |> to_base58_check |> Js.string)
+      command |> hash_signed_command |> to_base58_check |> Js.string )
 
   let hash_zkapp_command (command : Js.js_string Js.t) =
     let command : Zkapp_command.Stable.Latest.t =
@@ -299,7 +300,7 @@ module Transaction_hash = struct
       |> Zkapp_command.of_json
     in
     Mina_transaction.Transaction_hash.(
-      command |> hash_zkapp_command |> to_base58_check |> Js.string)
+      command |> hash_zkapp_command |> to_base58_check |> Js.string )
 
   let hash_payment_v1 (command : Js.js_string Js.t) =
     let command : Signed_command.Stable.V1.t =
