@@ -25,6 +25,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - work in progress - still requires memory optimizations to be fully functional
 - [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
 
+- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
+
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
 ### Fixed
