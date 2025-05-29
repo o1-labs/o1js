@@ -24,6 +24,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - proof-systems version still needs to be updated to include [this commit](https://github.com/o1-labs/proof-systems/pull/3222/commits/8c37c293f8159eed3676964ba47fc5dc0ae6ea1e) 
     - that fixed the zero knowledge rows mismatch across Kimchi WASM bindings
 
+- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
+
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
 ### Fixed
@@ -31,8 +33,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
 
 ### Added
-
-- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
 
 - [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
   - o1js-bindings is no longer a submodule (same directory structure)
