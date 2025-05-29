@@ -208,7 +208,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
        */
       fromBits(bits: Bool[]): ProvableBigInt_ {
         let value = 0n;
-        let bigint = Provable.witness(ProvableBigInt_, () => {
+        let bigInt = Provable.witness(ProvableBigInt_, () => {
           for (let i = 0; i < bits.length; i++) {
             if (bits[i].toBoolean()) {
               value |= 1n << BigInt(i);
@@ -216,7 +216,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
           }
           return ProvableBigInt_.fromBigInt(value);
         });
-        return bigint;
+        return bigInt;
       },
     };
 
