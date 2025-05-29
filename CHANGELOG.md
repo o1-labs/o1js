@@ -28,8 +28,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - API support for circuit chunking. https://github.com/o1-labs/o1js/pull/1905
-  - still requires memory optimizations to be fully functional, and
-  - proof-systems version still needs to be updated to include [this commit](https://github.com/o1-labs/proof-systems/pull/3222/commits/8c37c293f8159eed3676964ba47fc5dc0ae6ea1e)
+  - still requires memory optimizations to be fully functional
+  
 - Dynamic array provable type. https://github.com/o1-labs/o1js/pull/1848
 
 - [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
