@@ -5,30 +5,21 @@ permissions:
   contents: write
 
 inputs:
-  cache_id:
-    required: true
-  nar_secret:
-    required: true
-  gcp_secret:
-    required: true
+  proof_systems_commit:
+    description: 'proof_systems commit to use'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
   steps:
-    - name: Install zstd if needed
-      shell: bash
-      run: command -v unzstd || (sudo apt-get update && sudo apt-get install -y zstd)
     - uses: nixbuild/nix-quick-install-action@v30
       continue-on-error: true
       with:
         nix_conf: |
           keep-env-derivations = true
           keep-outputs = true
-    - name: Fallback to persistant nix
-      # only available on some runners
-      shell: bash
-      run: command -v nix || echo "PATH=$PATH:/nix/var/nix/profiles/default/bin" >> $GITHUB_ENV
-
+          require-sigs = false
     - name: Disable smudging
       shell: bash
       run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
@@ -37,6 +28,16 @@ runs:
       with:
         node-version: '20'
 
+    - name: use proof_systems_commit if provided
+      if: ${{ inputs.proof_systems_commit != '' }}
+      shell: bash
+      run: |
+        git -C src/mina/src/lib/crypto/proof-systems fetch origin ${{ inputs.proof_systems_commit }}
+        git -C src/mina/src/lib/crypto/proof-systems clean -fdx
+        git -C src/mina/src/lib/crypto/proof-systems checkout ${{ inputs.proof_systems_commit }}
+        git -C src/mina/src/lib/crypto/proof-systems clean -fdx
+        git -C src/mina add src/lib/crypto/proof-systems
+
     - name: cache bindings
       uses: actions/cache@v4
       id: bindings-cache
@@ -44,25 +45,14 @@ runs:
         path: |
           src/bindings/compiled
           src/bindings/mina-transaction/gen
-        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}
-
+        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}
     - name: Build the o1js bindings
-      if: steps.bindings-cache.outputs.cache-hit != 'true'
-      env:
-        AWS_ACCESS_KEY_ID: ${{ inputs.cache_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.gcp_secret }}
+      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         set -Eeu
         ./pin.sh
-        nix build o1js#bindings --accept-flake-config
-        temp_key=$(mktemp)
-        echo ${{ inputs.nar_secret }} > "$temp_key"
-        nix store sign --key-file "$temp_key" --recursive ./result
-        nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" $(nix path-info ./result)
         nix run o1js#generate-bindings --max-jobs auto
-        rm "$temp_key"
-
     - name: Cache dependencies and build
       uses: actions/cache@v4
       id: cache
@@ -72,15 +62,14 @@ runs:
           node_modules
           dist
         key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
-
     - name: Build examples
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         npm ci
         npm run build:examples
     - name: Build o1js clean
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         rm -fr dist

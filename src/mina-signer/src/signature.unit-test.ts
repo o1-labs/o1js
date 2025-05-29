@@ -1,7 +1,7 @@
 // unit tests dedicated to testing consistency of the signature algorithm
 import { expect } from 'expect';
 import { sign, Signature, signFieldElement, verify, verifyFieldElement } from './signature.js';
-import { Test } from '../../snarky.js';
+import { Test } from '../../bindings.js';
 import { Field } from './field-bigint.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
 import { PrivateKey as PrivateKeySnarky } from '../../lib/provable/crypto/signature.js';

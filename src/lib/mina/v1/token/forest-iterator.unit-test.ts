@@ -8,7 +8,7 @@ import {
   hashAccountUpdate,
 } from '../account-update.js';
 import { TypesBigint } from '../../../../bindings/mina-transaction/v1/types.js';
-import { Pickles, initializeBindings } from '../../../../snarky.js';
+import { Pickles, initializeBindings } from '../../../../bindings.js';
 import {
   accountUpdatesToCallForest,
   callForestHash,

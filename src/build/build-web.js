@@ -48,8 +48,8 @@ async function buildWeb({ production }) {
   // copy over pure js files
   await copy({
     './src/bindings/compiled/web_bindings/': './dist/web/web_bindings/',
-    './src/snarky.d.ts': './dist/web/snarky.d.ts',
-    './src/snarky.web.js': './dist/web/snarky.js',
+    './src/bindings.d.ts': './dist/web/bindings.d.ts',
+    './src/bindings.web.js': './dist/web/bindings.js',
     './src/bindings/js/web/': './dist/web/bindings/js/web/',
   });
 
