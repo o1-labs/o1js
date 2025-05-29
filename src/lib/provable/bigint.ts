@@ -39,7 +39,7 @@ type BigIntParameter = {
  *
  * Internally, a ProvableBigInt is represented as an array of Field elements (limbs),
  * where each limb holds 116 bits as default. The number 116 originates from the calculation of 116 x 2 = 232,
- * with additional overhead that ensures the operations remains within the size of the pasta field.
+ * with additional overhead that ensures the operations remain within the size of the pasta field.
  * The total size is determined by the configuration, with preset options supporting different bit lengths:
  * - 348 bits (3 limbs)
  * - 464 bits (4 limbs)
