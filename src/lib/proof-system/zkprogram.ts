@@ -782,6 +782,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           storable: picklesCache,
           overrideWrapDomain,
           numChunks: numChunks ?? 1,
+          lazyMode: false,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);

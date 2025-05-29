@@ -703,6 +703,7 @@ declare const Pickles: {
       storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
       numChunks?: number;
+      lazyMode?: boolean;
     }
   ) => {
     provers: MlArray<Pickles.Prover>;
