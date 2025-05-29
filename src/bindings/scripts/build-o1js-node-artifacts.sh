@@ -46,6 +46,10 @@ dune b src/bindings/mina-transaction/gen/v1/js-layout.ts \
 rm -rf "src/config" \
 && rm "src/config.mlh" || exit 1
 
+mkdir -p src/bindings/compiled/node_bindings
+echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
+  > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
+
 BINDINGS_PATH=src/bindings/compiled/_node_bindings/
 mkdir -p "${BINDINGS_PATH}"
 chmod -R 777 "${BINDINGS_PATH}"
@@ -73,3 +77,5 @@ sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){thro
 
 chmod 777 "${BINDINGS_PATH}"/*
 node "src/build/fix-wasm-bindings-node.js" "${BINDINGS_PATH}"/plonk_wasm.cjs
+
+cp -R "${BINDINGS_PATH}"/* "src/bindings/compiled/node_bindings"/

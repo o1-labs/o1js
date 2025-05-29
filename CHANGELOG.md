@@ -15,7 +15,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/6ff7f8470a...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/4e23a60...HEAD)
+
+### Added
+
+- [PR! 1905](https://github.com/o1-labs/o1js/pull/1905) API support for circuit chunking
+  - still requires memory optimizations to be fully functional, and
+  - proof-systems version still needs to be updated to include [this commit](https://github.com/o1-labs/proof-systems/pull/3222/commits/8c37c293f8159eed3676964ba47fc5dc0ae6ea1e) 
+    - that fixed the zero knowledge rows mismatch across Kimchi WASM bindings
+
+## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
 ### Fixed
 
@@ -23,11 +32,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
+
 - [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
   - o1js-bindings is no longer a submodule (same directory structure)
   - compiled artifacts are now gitignored
   - `npm run build:bindings-download` downloads compiled artifacts from github
   - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
+- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
 
 ### Changed
 
@@ -39,13 +51,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   [eaca9201](https://github.com/MinaProtocol/mina/tree/eaca9201e0df37f244e341155f253dc9551fb451),
   to include the latest changes reg. the move of the Rust codebase to the
   repository proof-systems.
-
-### Added
-
-- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
-
-### Changed
-
 - Added verification key validity checks to `LocalBlockchain`. https://github.com/o1-labs/o1js/pull/2171
 
 ## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01

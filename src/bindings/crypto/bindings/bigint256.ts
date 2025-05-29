@@ -102,7 +102,7 @@ function caml_bytes_unsafe_set(s: MlBytes, i: number, c: number) {
   if (s.t != 4 /* ARRAY */) {
     if (i == s.c.length) {
       s.c += String.fromCharCode(c);
-      if (i + 1 == s.l) s.t = 0; /*BYTES | UNKOWN*/
+      if (i + 1 == s.l) s.t = 0; /*BYTES | UNKNOWN*/
       return 0;
     }
     caml_convert_bytes_to_array(s);
