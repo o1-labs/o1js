@@ -5,6 +5,7 @@ module Other_impl = Pickles.Impls.Wrap
 module Field = Impl.Field
 module Account_update = Mina_base.Account_update
 module Zkapp_command = Mina_base.Zkapp_command
+(*module Signed_command = Mina_base.Signed_command*)
 
 (* Test - functions that have a ts implementation, exposed for ts-ml consistency tests *)
 
@@ -339,7 +340,8 @@ module Transaction_hash = struct
           }
       }
     in
-    let payment = Signed_command.sign kp payload in
+    let signature_kind = Mina_signature_kind.t_DEPRECATED in
+    let payment = Signed_command.sign ~signature_kind kp payload in
     (payment :> Signed_command.t)
     |> Signed_command.to_yojson |> Yojson.Safe.to_string |> Js.string
 end
