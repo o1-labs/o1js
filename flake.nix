@@ -254,7 +254,7 @@
                 ./dune-project
                 ./.prettierrc.cjs
                 ./src/build
-                ./src/snarky.d.ts
+                ./src/bindings.d.ts
               ];
             });
           inherit (inputs.mina.devShells."${system}".default)

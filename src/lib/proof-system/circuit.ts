@@ -1,7 +1,7 @@
 import 'reflect-metadata';
-import { Snarky, initializeBindings } from '../../snarky.js';
+import { Snarky, initializeBindings } from '../../bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
-import { withThreadPool } from '../../snarky.js';
+import { withThreadPool } from '../../bindings.js';
 import { Provable } from '../provable/provable.js';
 import { snarkContext, gatesFromJson } from '../provable/core/provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';

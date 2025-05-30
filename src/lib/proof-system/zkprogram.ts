@@ -5,8 +5,8 @@ import {
   Snarky,
   initializeBindings,
   withThreadPool,
-} from '../../snarky.js';
-import { Pickles, Gate } from '../../snarky.js';
+} from '../../bindings.js';
+import { Pickles, Gate } from '../../bindings.js';
 import { Field } from '../provable/wrapped.js';
 import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
 import { InferProvableType } from '../provable/types/provable-derivers.js';
@@ -233,6 +233,7 @@ function ZkProgram<
       [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
+    numChunks?: number;
   }
 ): {
   name: string;
@@ -243,6 +244,7 @@ function ZkProgram<
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
+    numChunks?: number;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -386,6 +388,7 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
       });
@@ -690,6 +693,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  numChunks,
   state,
   withRuntimeTables,
 }: {
@@ -703,6 +707,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
 }) {
@@ -760,6 +765,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           publicOutputSize: publicOutputType.sizeInFields(),
           storable: picklesCache,
           overrideWrapDomain,
+          numChunks: numChunks ?? 1,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);

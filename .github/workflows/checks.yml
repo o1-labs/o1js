@@ -303,6 +303,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref != 'develop' 
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -338,6 +339,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref != 'develop' 
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet
@@ -368,3 +370,39 @@ jobs:
         uses: ./.github/actions/live-tests-shared
         with:
           mina-branch-name: compatible
+
+  develop:
+    needs: [Prepare]
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref == 'develop'
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:develop-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 5432:5432
+          - 8080:8080
+          - 8181:8181
+          - 8282:8282
+        volumes:
+          - /tmp:/root/logs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
+        with:
+          mina-branch-name: develop

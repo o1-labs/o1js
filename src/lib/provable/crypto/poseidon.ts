@@ -1,5 +1,5 @@
 import { HashInput, ProvableExtended, Struct } from '../types/struct.js';
-import { Snarky } from '../../../snarky.js';
+import { Snarky } from '../../../bindings.js';
 import { Field } from '../wrapped.js';
 import { createHashHelpers } from './hash-generic.js';
 import { Provable } from '../provable.js';
