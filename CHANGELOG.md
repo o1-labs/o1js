@@ -23,6 +23,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - [PR! 1905](https://github.com/o1-labs/o1js/pull/1905) API support for circuit chunking [WIP]
   - still requires memory optimizations to be fully functional
+- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
 
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
@@ -31,8 +32,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
 
 ### Added
-
-- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
 
 - [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
   - o1js-bindings is no longer a submodule (same directory structure)
