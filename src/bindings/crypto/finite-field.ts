@@ -11,16 +11,12 @@ const p = 0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001n;
 const q = 0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001n;
 
 // this is `t`, where p = 2^32 * t + 1
-const pMinusOneOddFactor =
-  0x40000000000000000000000000000000224698fc094cf91b992d30edn;
-const qMinusOneOddFactor =
-  0x40000000000000000000000000000000224698fc0994a8dd8c46eb21n;
+const pMinusOneOddFactor = 0x40000000000000000000000000000000224698fc094cf91b992d30edn;
+const qMinusOneOddFactor = 0x40000000000000000000000000000000224698fc0994a8dd8c46eb21n;
 
 // primitive roots of unity, computed as (5^t mod p). this works because 5 generates the multiplicative group mod p
-const twoadicRootFp =
-  0x2bce74deac30ebda362120830561f81aea322bf2b7bb7584bdad6fabd87ea32fn;
-const twoadicRootFq =
-  0x2de6a9b8746d3f589e5c4dfd492ae26e9bb97ea3c106f049a70e2c1102b6d05fn;
+const twoadicRootFp = 0x2bce74deac30ebda362120830561f81aea322bf2b7bb7584bdad6fabd87ea32fn;
+const twoadicRootFq = 0x2de6a9b8746d3f589e5c4dfd492ae26e9bb97ea3c106f049a70e2c1102b6d05fn;
 
 // GENERAL FINITE FIELD ALGORITHMS
 
@@ -69,13 +65,7 @@ function inverse(a: bigint, p: bigint) {
 // faster inversion algorithm based on
 // Thomas Pornin, "Optimized Binary GCD for Modular Inversion", https://eprint.iacr.org/2020/972.pdf
 // about 3x faster than `inverse()`
-function fastInverse(
-  x: bigint,
-  p: bigint,
-  n: number,
-  kmax: bigint,
-  twoToMinusKmax: bigint
-) {
+function fastInverse(x: bigint, p: bigint, n: number, kmax: bigint, twoToMinusKmax: bigint) {
   x = mod(x, p);
   if (x === 0n) return undefined;
 
@@ -249,8 +239,7 @@ function createField(
   p: bigint,
   constants?: { oddFactor: bigint; twoadicRoot: bigint; twoadicity: bigint }
 ) {
-  let { oddFactor, twoadicRoot, twoadicity } =
-    constants ?? computeFieldConstants(p);
+  let { oddFactor, twoadicRoot, twoadicity } = constants ?? computeFieldConstants(p);
   let sizeInBits = log2(p);
   let sizeInBytes = Math.ceil(sizeInBits / 8);
   let sizeHighestByte = sizeInBits - 8 * (sizeInBytes - 1);
@@ -336,12 +325,7 @@ function createField(
     fromBigint(x: bigint) {
       return mod(x, p);
     },
-    rot(
-      x: bigint,
-      bits: bigint,
-      direction: 'left' | 'right' = 'left',
-      maxBits = 64n
-    ) {
+    rot(x: bigint, bits: bigint, direction: 'left' | 'right' = 'left', maxBits = 64n) {
       if (direction === 'right') bits = maxBits - bits;
       let full = x << bits;
       let excess = full >> maxBits;

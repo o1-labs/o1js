@@ -74,7 +74,5 @@ async function startWorkers(src, memory, builder) {
 }
 
 async function terminateWorkers() {
-  return Promise.all(wasmWorkers.map((w) => w.terminate())).then(
-    () => (wasmWorkers = undefined)
-  );
+  return Promise.all(wasmWorkers.map((w) => w.terminate())).then(() => (wasmWorkers = undefined));
 }
