@@ -106,7 +106,7 @@ function option<T, S>(spec: Spec<T, S>): Spec<MlOption<T>, S | undefined> {
   };
 }
 
-equivalentRecord(Bigint256Bindings, wasm, {
+equivalentRecord(Bigint256Bindings as Omit<typeof Bigint256Bindings, "caml_bigint_256_print" | "caml_bigint_256_to_string">, wasm, {
   caml_bigint_256_of_numeral: undefined, // TODO
   caml_bigint_256_of_decimal_string: { from: [decimalString], to: bigint256 },
   caml_bigint_256_num_limbs: { from: [], to: number },
