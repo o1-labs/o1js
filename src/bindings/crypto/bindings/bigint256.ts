@@ -38,9 +38,6 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
     if (x === y) return 0;
     return 1;
   },
-  print([, x]: Bigint256): void {
-    console.log(x.toString());
-  },
   to_string(x: Bigint256) {
     return toMlStringAscii(x[1].toString());
   },
