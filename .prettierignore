@@ -4,6 +4,6 @@ benchmark/
 dist/
 node_modules/
 o1js-reference/
-src/bindings/
+src/bindings/mina-transaction/gen/
 src/mina/
 **/*.d.ts
