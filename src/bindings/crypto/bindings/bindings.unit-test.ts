@@ -16,13 +16,7 @@ import {
   toMlStringAscii,
 } from './bigint256.js';
 import { wasm } from '../../js/node/node-backend.js';
-import {
-  Spec,
-  ToSpec,
-  FromSpec,
-  defaultAssertEqual,
-  id,
-} from '../../../lib/testing/equivalent.js';
+import { Spec, ToSpec, FromSpec, defaultAssertEqual, id } from '../../../lib/testing/equivalent.js';
 import { Random } from '../../../lib/testing/property.js';
 import {
   WasmAffine,
@@ -35,18 +29,8 @@ import {
 import { equivalentRecord } from './test-utils.js';
 import { Field, FpBindings, FqBindings } from './field.js';
 import { MlBool, MlOption } from '../../../lib/ml/base.js';
-import {
-  OrInfinity,
-  PallasBindings,
-  VestaBindings,
-  toMlOrInfinity,
-} from './curve.js';
-import {
-  GroupProjective,
-  Pallas,
-  ProjectiveCurve,
-  Vesta,
-} from '../elliptic-curve.js';
+import { OrInfinity, PallasBindings, VestaBindings, toMlOrInfinity } from './curve.js';
+import { GroupProjective, Pallas, ProjectiveCurve, Vesta } from '../elliptic-curve.js';
 import {
   WasmGPallas,
   WasmGVesta,
@@ -280,13 +264,7 @@ function projective<WasmP extends WasmProjective, WasmA extends WasmAffine>(
   let randomScaled = Random(() => Curve.scale(Curve.one, Scalar.random()));
 
   return {
-    rng: Random.oneOf(
-      Curve.zero,
-      Curve.one,
-      randomScaled,
-      randomScaled,
-      randomScaled
-    ),
+    rng: Random.oneOf(Curve.zero, Curve.one, randomScaled, randomScaled, randomScaled),
     // excessively expensive to work around limited Rust API - only use for tests
     there(p: GroupProjective): WasmP {
       let { x, y, infinity } = Curve.toAffine(p);
@@ -324,13 +302,7 @@ function affine<WasmA extends WasmAffine>(
   affineOne: () => WasmA
 ): Spec<OrInfinity, WasmA> {
   let randomScaled = Random(() => Curve.scale(Curve.one, Scalar.random()));
-  let rngProjective = Random.oneOf(
-    Curve.zero,
-    Curve.one,
-    randomScaled,
-    randomScaled,
-    randomScaled
-  );
+  let rngProjective = Random.oneOf(Curve.zero, Curve.one, randomScaled, randomScaled, randomScaled);
   let rng = Random.map(rngProjective, (p) => toMlOrInfinity(Curve.toAffine(p)));
 
   return {
