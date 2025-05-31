@@ -38,9 +38,6 @@ const Bigint256Bindings = withPrefix('caml_bigint_256', {
     if (x === y) return 0;
     return 1;
   },
-  to_string(x: Bigint256) {
-    return toMlStringAscii(x[1].toString());
-  },
   // TODO performance critical
   test_bit(b: Bigint256, i: number): MlBool {
     return MlBool(!!(b[1] & (1n << BigInt(i))));

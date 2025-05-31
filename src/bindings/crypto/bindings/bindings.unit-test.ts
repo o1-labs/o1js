@@ -113,7 +113,6 @@ equivalentRecord(Bigint256Bindings, wasm, {
   caml_bigint_256_bytes_per_limb: { from: [], to: number },
   caml_bigint_256_div: { from: [bigint256, bigint256], to: bigint256 },
   caml_bigint_256_compare: { from: [bigint256, bigint256], to: number },
-  caml_bigint_256_to_string: { from: [bigint256], to: decimalString },
   caml_bigint_256_test_bit: {
     from: [bigint256, numberLessThan(256)],
     to: boolean,
