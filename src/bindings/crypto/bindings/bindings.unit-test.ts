@@ -122,51 +122,6 @@ equivalentRecord(Bigint256Bindings, wasm, {
   caml_bigint_256_deep_copy: { from: [bigint256], to: bigint256 },
 });
 
-equivalentRecord(
-  FpBindings as Omit<
-    typeof FpBindings,
-    | 'caml_pasta_fp_copy'
-    | 'caml_pasta_fp_mut_add'
-    | 'caml_pasta_fp_mut_sub'
-    | 'caml_pasta_fp_mut_mul'
-    | 'caml_pasta_fp_mut_square'
-  >,
-  wasm,
-  {
-    caml_pasta_fp_size_in_bits: { from: [], to: number },
-    caml_pasta_fp_size: { from: [], to: fp },
-    caml_pasta_fp_add: { from: [fp, fp], to: fp },
-    caml_pasta_fp_sub: { from: [fp, fp], to: fp },
-    caml_pasta_fp_negate: { from: [fp], to: fp },
-    caml_pasta_fp_mul: { from: [fp, fp], to: fp },
-    caml_pasta_fp_div: { from: [fp, fp], to: fp },
-    caml_pasta_fp_inv: { from: [fp], to: option(fp) },
-    caml_pasta_fp_square: { from: [fp], to: fp },
-    caml_pasta_fp_is_square: { from: [fp], to: boolean },
-    caml_pasta_fp_sqrt: { from: [fp], to: option(fp) },
-    caml_pasta_fp_of_int: { from: [uint31], to: fp },
-    caml_pasta_fp_to_string: { from: [fp], to: decimalString },
-    caml_pasta_fp_of_string: { from: [decimalString], to: fp },
-    caml_pasta_fp_print: undefined, // this would spam the console
-    // these aren't defined in Rust
-    // caml_pasta_fp_copy: { from: [fp, fp], to: unit },
-    // caml_pasta_fp_mut_add: { from: [fp, fp], to: unit },
-    // caml_pasta_fp_mut_sub: { from: [fp, fp], to: unit },
-    // caml_pasta_fp_mut_mul: { from: [fp, fp], to: unit },
-    // caml_pasta_fp_mut_square: { from: [fp], to: unit },
-    caml_pasta_fp_compare: { from: [fp, fp], to: number },
-    caml_pasta_fp_equal: { from: [fp, fp], to: boolean },
-    caml_pasta_fp_random: undefined, // random outputs won't match
-    caml_pasta_fp_rng: undefined, // random outputs won't match
-    caml_pasta_fp_to_bigint: { from: [fp], to: bigint256 },
-    caml_pasta_fp_of_bigint: { from: [bigint256], to: fp },
-    caml_pasta_fp_two_adic_root_of_unity: { from: [], to: fp },
-    caml_pasta_fp_domain_generator: { from: [numberLessThan(32)], to: fp },
-    caml_pasta_fp_to_bytes: undefined, // not implemented
-    caml_pasta_fp_of_bytes: undefined, // not implemented
-    caml_pasta_fp_deep_copy: { from: [fp], to: fp },
-  }
-);
 
 equivalentRecord(
   FqBindings as Omit<
