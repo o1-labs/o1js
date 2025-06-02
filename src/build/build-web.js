@@ -86,6 +86,7 @@ async function buildWeb({ production }) {
     dropLabels: ['CJS'],
     external: ['*.bc.js'],
     target,
+    platform: 'browser',
     allowOverwrite: true,
     logLevel: 'error',
     minify,

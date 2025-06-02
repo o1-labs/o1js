@@ -2,6 +2,13 @@
   "extends": "./tsconfig.json",
   "include": ["./src/index.ts", "./src/snarky.js", "./src/**/*.web.ts"],
   "compilerOptions": {
-    "outDir": "dist/web"
-  }
+    "declaration": false,
+    "inlineSourceMap": false,
+    "outDir": "dist/web",
+    "sourceMap": false,
+  },
+  "exclude": [
+    "./src/mina-signer",
+    "./src/examples",
+  ]
 }
