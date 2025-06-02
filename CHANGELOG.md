@@ -17,15 +17,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3eef10d...HEAD)
 
+- [PR !2143]( https://github.com/o1-labs/o1js/pull/2143) Lazy mode for prover index computation
+
 ## [2.6.0](https://github.com/o1-labs/o1js/compare/4e23a60...3eef10d) - 2025-05-30
 
 ### Added
 
-- [PR !2143]( https://github.com/o1-labs/o1js/pull/2143) Lazy mode for prover index computation
-
 - [PR! 1905](https://github.com/o1-labs/o1js/pull/1905) API support for circuit chunking
-  - work in progress - still requires memory optimizations to be fully functional
-- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
+  - work in progress, still requires memory optimizations to be fully functional
 
 - [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
 
