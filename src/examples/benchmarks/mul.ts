@@ -1,12 +1,12 @@
 /**
  * benchmark a circuit filled with generic gates
  */
-import { Circuit, Field, Provable, circuitMain, ZkProgram } from 'o1js';
+import { ZkFunction, Field, Provable, ZkProgram, Undefined } from 'o1js';
 import { tic, toc } from '../utils/tic-toc.node.js';
 
 // parameters
 let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
-let withPickles = true;
+let withPickles = false;
 
 // the circuit: multiply a number with itself n times
 let xConst = Field.random();
@@ -25,13 +25,14 @@ async function getRows(nMuls: number) {
 }
 
 function simpleKimchiCircuit(nMuls: number) {
-  class MulChain extends Circuit {
-    @circuitMain
-    static run() {
+  return ZkFunction({
+    name: 'mul-chain',
+    publicInputType: Undefined,
+    privateInputTypes: [],
+    main: () => {
       main(nMuls);
-    }
-  }
-  return MulChain;
+    },
+  });
 }
 
 function picklesCircuit(nMuls: number) {
@@ -80,11 +81,11 @@ if (withPickles) {
   toc();
 
   tic('prove');
-  let p = await circuit.prove([], [], kp);
+  let p = await circuit.prove([], Undefined.empty(), kp);
   toc();
 
   tic('verify');
-  let ok = await circuit.verify([], kp.verificationKey(), p);
+  let ok = await circuit.verify(Undefined.empty(), kp.verificationKey(), p);
   toc();
   if (!ok) throw Error('invalid proof');
 }
