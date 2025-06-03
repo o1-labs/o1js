@@ -1,29 +1,22 @@
-import {
-  Circuit,
-  circuitMain,
-  public_,
-  Crypto,
-  createForeignCurve,
-  Bytes,
-  assert,
-  createEcdsa,
-} from 'o1js';
+import { ZkFunction, Crypto, createForeignCurve, Bytes, assert, createEcdsa } from 'o1js';
 
-export { Secp256k1, Ecdsa, Bytes32, Reserves };
+export { Secp256k1, Ecdsa, Bytes32, reserves };
 
 class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class Ecdsa extends createEcdsa(Secp256k1) {}
 class Bytes32 extends Bytes(32) {}
 
-class Reserves extends Circuit {
-  @circuitMain
-  static main(@public_ message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
+const reserves = ZkFunction({
+  name: 'Reserves',
+  publicInputType: Bytes32.provable,
+  privateInputTypes: [Ecdsa.provable, Secp256k1.provable],
+  main: (message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) => {
     assert(signature.verify(message, publicKey));
-  }
-}
+  },
+});
 
 console.time('generateKeypair');
-let kp = await Reserves.generateKeypair();
+let kp = await reserves.generateKeypair();
 console.timeEnd('generateKeypair');
 
 let message = Bytes32.random();
@@ -32,10 +25,10 @@ let publicKey = Secp256k1.generator.scale(privateKey);
 let signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
 
 console.time('prove');
-let proof = await Reserves.prove([signature, publicKey], [message], kp);
+let proof = await reserves.prove([signature, publicKey], message, kp);
 console.timeEnd('prove');
 
 console.time('verify');
-let isValid = await Reserves.verify([message], kp.verificationKey(), proof);
+let isValid = await reserves.verify(message, kp.verificationKey(), proof);
 assert(isValid, 'verifies');
 console.timeEnd('verify');
