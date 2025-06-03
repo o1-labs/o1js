@@ -17,20 +17,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3eef10d...HEAD)
 
+- [PR !2143]( https://github.com/o1-labs/o1js/pull/2143) Lazy mode for prover index computation
+
 ## [2.6.0](https://github.com/o1-labs/o1js/compare/4e23a60...3eef10d) - 2025-05-30
 
 ### Added
 
 - [PR! 1905](https://github.com/o1-labs/o1js/pull/1905) API support for circuit chunking
-  - still requires memory optimizations to be fully functional, and
-  - proof-systems version still needs to be updated to include [this commit](https://github.com/o1-labs/proof-systems/pull/3222/commits/8c37c293f8159eed3676964ba47fc5dc0ae6ea1e)
+  - work in progress, still requires memory optimizations to be fully functional
+
 - [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
 
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
 ### Fixed
 
-- Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
+- [PR !2134](https://github.com/o1-labs/o1js/pull/2134)Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API
 
 ### Added
 
@@ -39,7 +41,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - compiled artifacts are now gitignored
   - `npm run build:bindings-download` downloads compiled artifacts from github
   - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
-- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
+- [PR !2144](https://github.com/o1-labs/o1js/pull/2144)Added bitwise operation methods (xor, not, and, or) to `UInt8` class.
 
 ### Changed
 
