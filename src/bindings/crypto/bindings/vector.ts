@@ -24,9 +24,7 @@ const FieldVectorBindings = {
   get(v: FieldVector, i: number): Field {
     let value = v[i + 1] as Field | undefined;
     if (value === undefined) {
-      throw Error(
-        `FieldVector.get(): Index out of bounds, got ${i}/${v.length - 1}`
-      );
+      throw Error(`FieldVector.get(): Index out of bounds, got ${i}/${v.length - 1}`);
     }
     // copying to a new array to break mutable reference
     return [...value];

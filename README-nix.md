@@ -92,7 +92,6 @@ On macos the first time you run this command, you can expect it to take hours (o
 Then, you will observe that the current devshell becomes a Nix shell with the right
 configuration for `o1js` and `mina`.
 
-
 From within the shell, you can build o1js and update the bindings.
 
 ```console

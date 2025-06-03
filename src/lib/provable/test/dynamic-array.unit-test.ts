@@ -5,7 +5,6 @@ import { DynamicArray } from '../dynamic-array.js';
 import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 
-
 // Out-of-circuit checks of dynamic arrays
 {
   function expectThrows(fn: () => void | Promise<void>, msg: string) {
@@ -31,7 +30,9 @@ import { Provable } from '../provable.js';
   assert(fromLength.capacity === 8);
 
   let fromArrayLength = new Bytestring(
-    [new UInt8(1), new UInt8(2), new UInt8(3), new UInt8(0)], new Field(3));
+    [new UInt8(1), new UInt8(2), new UInt8(3), new UInt8(0)],
+    new Field(3)
+  );
   assert(fromArrayLength.length.equals(new Field(3)));
   assert(fromArrayLength.capacity === 8);
   assert(fromArrayLength.get(new Field(0)).value.equals(new Field(1)));
@@ -332,7 +333,7 @@ import { Provable } from '../provable.js';
 // Using dynamic arrays as private input
 {
   class Bytestring extends DynamicArray(UInt8, { capacity: 8 }) {}
-  
+
   let AsPrivateInput = ZkProgram({
     name: 'dynamicarrays',
     methods: {
@@ -350,11 +351,11 @@ import { Provable } from '../provable.js';
       },
     },
   });
-  
+
   await AsPrivateInput.compile();
-  
+
   let bytes = new Bytestring([new UInt8(1), new UInt8(2), new UInt8(3)]);
-  
+
   await AsPrivateInput.pushAndPop(bytes, UInt8.from(4));
 }
 
@@ -430,7 +431,9 @@ import { Provable } from '../provable.js';
           bytes.push(v0.add(new UInt8(1)));
           bytes.push(v0.mul(new UInt8(0)));
           let mapped = bytes.map(UInt8, (value) => value.add(UInt8.from(1)));
-          assert(mapped.get(new Field(0)).value.equals(v0.value.mul(new Field(2)).add(new Field(1))));
+          assert(
+            mapped.get(new Field(0)).value.equals(v0.value.mul(new Field(2)).add(new Field(1)))
+          );
           assert(mapped.get(new Field(1)).value.equals(v0.value.add(new Field(2))));
           assert(mapped.get(new Field(2)).value.equals(new Field(1)));
 
