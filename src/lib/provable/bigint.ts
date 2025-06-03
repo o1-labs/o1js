@@ -6,7 +6,7 @@ import { Gadgets } from './gadgets/gadgets.js';
 import { assert } from './gadgets/common.js';
 import { provable, provableFromClass } from './types/provable-derivers.js';
 import { Unconstrained } from './types/unconstrained.js';
-import { isPrime, modularExponentiation } from '../util/bigint.js';
+import { isPrime, modularExponentiation } from '../../bindings/crypto/bigint-helpers.js';
 
 export { createProvableBigInt, ProvableBigInt };
 
@@ -208,7 +208,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
        */
       fromBits(bits: Bool[]): ProvableBigInt_ {
         let value = 0n;
-        let bigInt = Provable.witness(ProvableBigInt_, () => {
+        let provableBigint = Provable.witness(ProvableBigInt_, () => {
           for (let i = 0; i < bits.length; i++) {
             if (bits[i].toBoolean()) {
               value |= 1n << BigInt(i);
@@ -216,7 +216,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
           }
           return ProvableBigInt_.fromBigInt(value);
         });
-        return bigInt;
+        return provableBigint;
       },
     };
 
