@@ -7,7 +7,7 @@ import { withVersionNumber } from '../../lib/binable.js';
 import { Bool } from '../../../lib/provable/bool.js';
 import { Field } from '../../../lib/provable/field.js';
 import { Provable } from '../../../lib/provable/provable.js';
-import { HashInput } from '../../../lib/provable/types/provable-derivers.js'
+import { HashInput } from '../../../lib/provable/types/provable-derivers.js';
 import { Struct } from '../../../lib/provable/types/struct.js';
 import { toBase58Check } from '../../../lib/util/base58.js';
 
@@ -17,7 +17,9 @@ export { Int64, UInt32, UInt64, Sign } from '../../../lib/provable/int.js';
 export { PublicKey } from '../../../lib/provable/crypto/signature.js';
 
 // for now, we erase the value conversion in the proxy, as it is currently not utilized
-function proxyProvableSerializable<T, Val>(T: ProvableSerializable<T, Val>): ProvableSerializable<T, T> {
+function proxyProvableSerializable<T, Val>(
+  T: ProvableSerializable<T, Val>
+): ProvableSerializable<T, T> {
   return {
     sizeInFields(): number {
       return T.sizeInFields();
@@ -53,8 +55,8 @@ function proxyProvableSerializable<T, Val>(T: ProvableSerializable<T, Val>): Pro
 
     check(x: T) {
       T.check(x);
-    }
-  }
+    },
+  };
 }
 
 export interface Option<T> {
@@ -77,15 +79,12 @@ export function Option<T>(T: ProvableSerializable<T>) {
       const valueInput = T.toInput(x.value);
       return {
         fields: valueInput.fields,
-        packed: flagInput.packed!.concat(valueInput.packed ?? [])
-      }
+        packed: flagInput.packed!.concat(valueInput.packed ?? []),
+      };
     },
 
     toFields(x: Option<T>): Field[] {
-      return [
-        ...Bool.toFields(x.isSome),
-        ...T.toFields(x.value)
-      ];
+      return [...Bool.toFields(x.isSome), ...T.toFields(x.value)];
     },
 
     toAuxiliary(x?: Option<T>): any[] {
@@ -108,24 +107,24 @@ export function Option<T>(T: ProvableSerializable<T>) {
     },
 
     check(_x: Option<T>) {
-      throw new Error('TODO')
-    }
-  }
-};
+      throw new Error('TODO');
+    },
+  };
+}
 
 Option.map = <A, B>(option: Option<A>, f: (value: A) => B): Option<B> => ({
   isSome: option.isSome,
-  value: f(option.value)
+  value: f(option.value),
 });
 
 Option.none = <T>(defaultValue: T): Option<T> => ({
   isSome: new Bool(false),
-  value: defaultValue
+  value: defaultValue,
 });
 
 Option.some = <T>(value: T): Option<T> => ({
   isSome: new Bool(true),
-  value
+  value,
 });
 
 export interface Range<T> {
@@ -136,7 +135,7 @@ export interface Range<T> {
 export function Range<T>(T: Provable<T>) {
   return Struct({
     lower: T,
-    upper: T
+    upper: T,
   });
 }
 
@@ -163,13 +162,14 @@ export const CommittedList: ProvableSerializable<CommittedList> = {
   },
 
   toAuxiliary(x?: CommittedList): any[] {
-    if(x === undefined) throw new Error('cannot convert undefined CommittedList into auxiliary data');
+    if (x === undefined)
+      throw new Error('cannot convert undefined CommittedList into auxiliary data');
     return [x.data];
   },
 
   fromFields(fields: Field[], aux: any[]): CommittedList {
     // TODO: runtime type-check the aux data
-    return {data: aux[0], hash: fields[0]};
+    return { data: aux[0], hash: fields[0] };
   },
 
   toValue(x: CommittedList): CommittedList {
@@ -182,7 +182,7 @@ export const CommittedList: ProvableSerializable<CommittedList> = {
 
   check(_x: CommittedList) {
     throw new Error('TODO');
-  }
+  },
 };
 
 export type Events = CommittedList;
@@ -193,13 +193,8 @@ export type Actions = CommittedList;
 
 export const Actions = CommittedList;
 
-export type AuthRequiredIdentifier =
-  | 'Impossible'
-  | 'None'
-  | 'Proof'
-  | 'Signature'
-  | 'Either'
-  // TODO: Both
+export type AuthRequiredIdentifier = 'Impossible' | 'None' | 'Proof' | 'Signature' | 'Either';
+// TODO: Both
 
 export interface AuthRequired {
   constant: Bool;
@@ -208,66 +203,52 @@ export interface AuthRequired {
 }
 
 export const AuthRequired = {
-  ...proxyProvableSerializable<AuthRequired, any>(Struct({constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool})),
+  ...proxyProvableSerializable<AuthRequired, any>(
+    Struct({ constant: Bool, signatureNecessary: Bool, signatureSufficient: Bool })
+  ),
 
   empty(): AuthRequired {
     return {
       constant: new Bool(true),
       signatureNecessary: new Bool(false),
-      signatureSufficient: new Bool(true)
-    }
+      signatureSufficient: new Bool(true),
+    };
   },
 
   isImpossible(x: AuthRequired): Bool {
-    return Bool.allTrue([
-      x.constant,
-      x.signatureNecessary,
-      x.signatureSufficient.not()
-    ]);
+    return Bool.allTrue([x.constant, x.signatureNecessary, x.signatureSufficient.not()]);
   },
 
   isNone(x: AuthRequired): Bool {
-    return Bool.allTrue([
-      x.constant,
-      x.signatureNecessary.not(),
-      x.signatureSufficient
-    ]);
+    return Bool.allTrue([x.constant, x.signatureNecessary.not(), x.signatureSufficient]);
   },
 
   isProof(x: AuthRequired): Bool {
     return Bool.allTrue([
       x.constant.not(),
       x.signatureNecessary.not(),
-      x.signatureSufficient.not()
+      x.signatureSufficient.not(),
     ]);
   },
 
   isSignature(x: AuthRequired): Bool {
-    return Bool.allTrue([
-      x.constant.not(),
-      x.signatureNecessary,
-      x.signatureSufficient
-    ]);
+    return Bool.allTrue([x.constant.not(), x.signatureNecessary, x.signatureSufficient]);
   },
 
   isEither(x: AuthRequired): Bool {
-    return Bool.allTrue([
-      x.constant.not(),
-      x.signatureNecessary.not(),
-      x.signatureSufficient
-    ]);
+    return Bool.allTrue([x.constant.not(), x.signatureNecessary.not(), x.signatureSufficient]);
   },
 
   identifier(x: AuthRequired): AuthRequiredIdentifier {
-    if(AuthRequired.isImpossible(x).toBoolean()) {
+    if (AuthRequired.isImpossible(x).toBoolean()) {
       return 'Impossible';
-    } else if(AuthRequired.isNone(x).toBoolean()) {
+    } else if (AuthRequired.isNone(x).toBoolean()) {
       return 'None';
-    } else if(AuthRequired.isProof(x).toBoolean()) {
+    } else if (AuthRequired.isProof(x).toBoolean()) {
       return 'Proof';
-    } else if(AuthRequired.isSignature(x).toBoolean()) {
+    } else if (AuthRequired.isSignature(x).toBoolean()) {
       return 'Signature';
-    } else if(AuthRequired.isEither(x).toBoolean()) {
+    } else if (AuthRequired.isEither(x).toBoolean()) {
       return 'Either';
     } else {
       throw new Error('invariant broken: invalid authorization level encoding');
@@ -276,7 +257,7 @@ export const AuthRequired = {
 
   toJSON(x: AuthRequired): any {
     return AuthRequired.identifier(x);
-  }
+  },
 };
 
 AuthRequired satisfies ProvableSerializable<AuthRequired>;
@@ -289,7 +270,7 @@ export const StateHash: ProvableSerializable<StateHash> = {
   toJSON(x: StateHash): any {
     const bytes = withVersionNumber(Field, 1).toBytes(x);
     return toBase58Check(bytes, versionBytes.stateHash);
-  }
+  },
 };
 
 export type TokenId = Field;
@@ -297,12 +278,12 @@ export type TokenId = Field;
 export const TokenId = Field;
 
 export interface TokenSymbol {
-  field: Field,
-  symbol: string
+  field: Field;
+  symbol: string;
 }
 
 export const TokenSymbol: ProvableSerializable<TokenSymbol> = {
-  ...proxyProvableSerializable<TokenSymbol, any>(Struct({field: Field, symbol: String})),
+  ...proxyProvableSerializable<TokenSymbol, any>(Struct({ field: Field, symbol: String })),
 
   toJSON(x: TokenSymbol): any {
     return x.symbol;
@@ -310,16 +291,16 @@ export const TokenSymbol: ProvableSerializable<TokenSymbol> = {
 
   toInput(x: TokenSymbol): HashInput {
     return { packed: [[x.field, 48]] };
-  }
+  },
 };
 
 export interface ZkappUri {
-  data: string,
-  hash: Field
+  data: string;
+  hash: Field;
 }
 
 export const ZkappUri: ProvableSerializable<ZkappUri> = {
-  ...proxyProvableSerializable<ZkappUri, any>(Struct({data: String, hash: Field})),
+  ...proxyProvableSerializable<ZkappUri, any>(Struct({ data: String, hash: Field })),
 
   toJSON(x: ZkappUri): any {
     return x.data;
@@ -334,5 +315,5 @@ export const ZkappUri: ProvableSerializable<ZkappUri> = {
       data: aux[0],
       hash: fields[0],
     };
-  }
+  },
 };
