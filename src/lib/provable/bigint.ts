@@ -91,7 +91,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     `ProvableBigInt: modulus exceeds the max supported size of 2^${config_.max}`
   );
   assert(isPrime(modulus), 'ProvableBigInt: modulus must be prime');
-  let fields = bigIntToLimbs(modulus, config_);
+  let fields = bigintToLimbs(modulus, config_);
 
   class ProvableBigInt_ extends ProvableBigInt<ProvableBigInt_> {
     constructor(fields: Field[], value: Unconstrained<bigint>) {
@@ -160,7 +160,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       if (value >= ProvableBigInt_.modulus.toBigInt()) {
         value = value % modulus;
       }
-      let fields = bigIntToLimbs(value, ProvableBigInt_.config);
+      let fields = bigintToLimbs(value, ProvableBigInt_.config);
       return new ProvableBigInt_(fields, Unconstrained.from(value));
     }
 
@@ -823,7 +823,7 @@ function findConfig(modulus: bigint): BigIntParameter {
   };
 }
 
-function bigIntToLimbs(x: bigint, config: BigIntParameter): Field[] {
+function bigintToLimbs(x: bigint, config: BigIntParameter): Field[] {
   let fields = [];
   for (let i = 0; i < config.limbNum; i++) {
     fields.push(Field.from(x & config.mask)); // fields[i] = x & mask
