@@ -761,13 +761,13 @@ function rangeCheckHelper(x: Field, bits: number, signed?: boolean) {
 
   switch (bits) {
     case 32:
-      Gadgets.rangeCheck32(x);
+      Gadgets.rangeCheckN(32, x);
       break;
     case 48:
       Gadgets.rangeCheckN(48, x);
       break;
     case 64:
-      Gadgets.rangeCheck64(x);
+      Gadgets.rangeCheckN(64, x);
       break;
     case 116:
       rangeCheck116(x);
