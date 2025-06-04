@@ -35,7 +35,7 @@ export { provable, provablePure } from './lib/provable/types/provable-derivers.j
 export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';
 export { Provable } from './lib/provable/provable.js';
-export { ZkFunction, Keypair } from './lib/proof-system/zkFunction.js';
+export { ZkFunction, Keypair } from './lib/proof-system/zkfunction.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
 export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';

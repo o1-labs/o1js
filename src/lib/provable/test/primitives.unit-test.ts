@@ -1,4 +1,4 @@
-import { ZkFunction } from '../../proof-system/zkFunction.js';
+import { ZkFunction } from '../../proof-system/zkfunction.js';
 import { UInt64, UInt32 } from '../int.js';
 import { expect } from 'expect';
 import { Provable } from '../provable.js';
