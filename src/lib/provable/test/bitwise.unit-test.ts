@@ -18,7 +18,7 @@ import {
   and,
   withoutGenerics,
 } from '../../testing/constraint-system.js';
-import { GateType } from '../../../snarky.js';
+import { GateType } from '../../../bindings.js';
 
 const maybeField = {
   ...field,

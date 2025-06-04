@@ -1,13 +1,5 @@
 import { bigIntToBits } from './bigint-helpers.js';
-import {
-  FiniteField,
-  Fp,
-  createField,
-  inverse,
-  mod,
-  p,
-  q,
-} from './finite-field.js';
+import { FiniteField, Fp, createField, inverse, mod, p, q } from './finite-field.js';
 import { Endomorphism } from './elliptic-curve-endomorphism.js';
 export {
   Pallas,
@@ -42,8 +34,7 @@ const vestaGeneratorProjective = {
   x: 1n,
   y: 11426906929455361843568202299992114520848200991084027513389447476559454104162n,
 };
-const vestaEndoBase =
-  2942865608506852014473558576493638302197734138389222805617480874486368177743n;
+const vestaEndoBase = 2942865608506852014473558576493638302197734138389222805617480874486368177743n;
 const pallasEndoBase =
   20444556541222657078399132219657928148671392403212669005631716460534733845831n;
 const vestaEndoScalar =
@@ -195,12 +186,7 @@ function projectiveNeg({ x, y, z }: GroupProjective, p: bigint) {
   return { x, y: y === 0n ? 0n : p - y, z };
 }
 
-function projectiveAdd(
-  g: GroupProjective,
-  h: GroupProjective,
-  p: bigint,
-  a: bigint
-) {
+function projectiveAdd(g: GroupProjective, h: GroupProjective, p: bigint, a: bigint) {
   if (g.z === 0n) return h;
   if (h.z === 0n) return g;
   let X1 = g.x,
@@ -329,21 +315,11 @@ function getProjectiveDouble(p: bigint, a: bigint) {
   );
 }
 
-function projectiveSub(
-  g: GroupProjective,
-  h: GroupProjective,
-  p: bigint,
-  a: bigint
-) {
+function projectiveSub(g: GroupProjective, h: GroupProjective, p: bigint, a: bigint) {
   return projectiveAdd(g, projectiveNeg(h, p), p, a);
 }
 
-function projectiveScale(
-  g: GroupProjective,
-  x: bigint | boolean[],
-  p: bigint,
-  a: bigint
-) {
+function projectiveScale(g: GroupProjective, x: bigint | boolean[], p: bigint, a: bigint) {
   let double = getProjectiveDouble(p, a);
   let bits = typeof x === 'bigint' ? bigIntToBits(x) : x;
   let h = projectiveZero;
@@ -354,11 +330,7 @@ function projectiveScale(
   return h;
 }
 
-function projectiveFromAffine({
-  x,
-  y,
-  infinity,
-}: GroupAffine): GroupProjective {
+function projectiveFromAffine({ x, y, infinity }: GroupAffine): GroupProjective {
   if (infinity) return projectiveZero;
   return { x, y, z: 1n };
 }
@@ -395,12 +367,7 @@ function projectiveEqual(g: GroupProjective, h: GroupProjective, p: bigint) {
   return mod(g.y * hz3, p) === mod(h.y * gz3, p);
 }
 
-function projectiveOnCurve(
-  { x, y, z }: GroupProjective,
-  p: bigint,
-  b: bigint,
-  a: bigint
-) {
+function projectiveOnCurve({ x, y, z }: GroupProjective, p: bigint, b: bigint, a: bigint) {
   // substitution x -> x/z^2 and y -> y/z^3 gives
   // the equation y^2 = x^3 + a*x*z^4 + b*z^6
   // (note: we allow a restricted set of x,y for z==0; this seems fine)
@@ -413,12 +380,7 @@ function projectiveOnCurve(
 }
 
 // checks whether the elliptic curve point g is in the subgroup defined by [order]g = 0
-function projectiveInSubgroup(
-  g: GroupProjective,
-  p: bigint,
-  order: bigint,
-  a: bigint
-) {
+function projectiveInSubgroup(g: GroupProjective, p: bigint, order: bigint, a: bigint) {
   let orderTimesG = projectiveScale(g, order, p, a);
   return projectiveEqual(orderTimesG, projectiveZero, p);
 }
@@ -449,13 +411,11 @@ function createCurveProjective({
     one: { ...generator, z: 1n },
     hasEndomorphism: endoBase !== undefined && endoScalar !== undefined,
     get endoBase() {
-      if (endoBase === undefined)
-        throw Error('`endoBase` for this curve was not provided.');
+      if (endoBase === undefined) throw Error('`endoBase` for this curve was not provided.');
       return endoBase;
     },
     get endoScalar() {
-      if (endoScalar === undefined)
-        throw Error('`endoScalar` for this curve was not provided.');
+      if (endoScalar === undefined) throw Error('`endoScalar` for this curve was not provided.');
       return endoScalar;
     },
     a,
@@ -487,8 +447,7 @@ function createCurveProjective({
       return projectiveScale(g, s, p, a);
     },
     endomorphism({ x, y, z }: GroupProjective) {
-      if (endoBase === undefined)
-        throw Error('endomorphism needs `endoBase` parameter.');
+      if (endoBase === undefined) throw Error('endomorphism needs `endoBase` parameter.');
       return { x: mod(endoBase * x, p), y, z };
     },
     toAffine(g: GroupProjective) {
@@ -525,24 +484,14 @@ const Vesta = createCurveProjective({
 
 const affineZero: PointAtInfinity = { x: 0n, y: 0n, infinity: true };
 
-function affineOnCurve(
-  { x, y, infinity }: GroupAffine,
-  p: bigint,
-  a: bigint,
-  b: bigint
-) {
+function affineOnCurve({ x, y, infinity }: GroupAffine, p: bigint, a: bigint, b: bigint) {
   if (infinity) return true;
   // y^2 = x^3 + ax + b
   let x2 = mod(x * x, p);
   return mod(y * y - x * x2 - a * x - b, p) === 0n;
 }
 
-function affineAdd(
-  g: GroupAffine,
-  h: GroupAffine,
-  p: bigint,
-  a: bigint
-): GroupAffine {
+function affineAdd(g: GroupAffine, h: GroupAffine, p: bigint, a: bigint): GroupAffine {
   if (g.infinity) return h;
   if (h.infinity) return g;
 
@@ -566,11 +515,7 @@ function affineAdd(
   return { x: x3, y: y3, infinity: false };
 }
 
-function affineDouble(
-  { x, y, infinity }: GroupAffine,
-  p: bigint,
-  a: bigint
-): GroupAffine {
+function affineDouble({ x, y, infinity }: GroupAffine, p: bigint, a: bigint): GroupAffine {
   if (infinity) return affineZero;
   // m = (3*x^2 + a) / 2y
   let d = inverse(2n * y, p);
@@ -588,12 +533,7 @@ function affineNegate({ x, y, infinity }: GroupAffine, p: bigint): GroupAffine {
   return { x, y: y === 0n ? 0n : p - y, infinity };
 }
 
-function affineScale(
-  g: GroupAffine,
-  s: bigint | boolean[],
-  p: bigint,
-  a: bigint
-) {
+function affineScale(g: GroupAffine, s: bigint | boolean[], p: bigint, a: bigint) {
   let gProj = projectiveFromAffine(g);
   let sgProj = projectiveScale(gProj, s, p, a);
   return projectiveToAffine(sgProj, p);
@@ -664,9 +604,7 @@ function createCurveAffine({
 
     fromNonzero(g: { x: bigint; y: bigint }): GroupAffine {
       if (g.x === 0n && g.y === 0n) {
-        throw Error(
-          'fromNonzero: got (0, 0), which is reserved for the zero point'
-        );
+        throw Error('fromNonzero: got (0, 0), which is reserved for the zero point');
       }
       return { ...g, infinity: false };
     },

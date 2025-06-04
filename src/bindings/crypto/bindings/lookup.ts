@@ -15,12 +15,7 @@ type LookupFeatures = [
   joint_lookup_used: MlBool,
   uses_runtime_tables: MlBool
 ];
-type LookupInfo = [
-  _: 0,
-  max_per_row: number,
-  max_joint_size: number,
-  features: LookupFeatures
-];
+type LookupInfo = [_: 0, max_per_row: number, max_joint_size: number, features: LookupFeatures];
 type LookupSelectors<PolyComm> = [
   _: 0,
   lookup: MlOption<PolyComm>,
