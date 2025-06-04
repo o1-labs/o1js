@@ -255,13 +255,19 @@ function ZkProgram<
   digest: () => Promise<string>;
   /**
    * Analyze the constraint system created by each method in the program.
+   * Every method is executed in a circuit, and the constraints are analyzed.
    *
    * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
    */
   analyzeMethods: () => Promise<{
     [I in keyof Config['methods']]: MethodAnalysis;
   }>;
-
+  /**
+   * Analyze the constraint system created by a single method in the program without analyzing any other methods and executing them.
+   *
+   * @returns A summary of this method, with a value of the {@link MethodAnalysis} for that method
+   */
+  analyzeSingleMethod<K extends keyof Config['methods']>(methodName: K): Promise<MethodAnalysis>;
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
   privateInputTypes: InferPrivateInput<Config>;
@@ -346,6 +352,14 @@ function ZkProgram<
     return methodsMeta as {
       [I in keyof Methods]: MethodAnalysis;
     };
+  }
+
+  async function analyzeSingleMethod<K extends keyof Methods>(
+    methodName: K
+  ): Promise<MethodAnalysis> {
+    let methodIntf = methodIntfs[methodKeys.indexOf(methodName)];
+    let methodImpl = methodFunctions[methodKeys.indexOf(methodName)];
+    return await analyzeMethod(publicInputType, methodIntf, methodImpl);
   }
 
   let compileOutput:
@@ -543,7 +557,9 @@ function ZkProgram<
       compile,
       verify,
       digest,
+
       analyzeMethods,
+      analyzeSingleMethod,
 
       publicInputType: publicInputType as ProvableOrUndefined<Get<Config, 'publicInput'>>,
       publicOutputType: publicOutputType as ProvableOrVoid<Get<Config, 'publicOutput'>>,
