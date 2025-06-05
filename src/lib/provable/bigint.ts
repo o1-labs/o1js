@@ -2,11 +2,12 @@ import { Bool } from './bool.js';
 import { Field } from './field.js';
 import { Provable } from './provable.js';
 import { ProvablePureExtended } from './types/struct.js';
-import { Gadgets } from './gadgets/gadgets.js';
+import { rangeCheck128Signed } from './gadgets/range-check.js';
 import { assert } from './gadgets/common.js';
 import { provable, provableFromClass } from './types/provable-derivers.js';
 import { Unconstrained } from './types/unconstrained.js';
 import { isPrime, modularExponentiation } from '../../bindings/crypto/bigint-helpers.js';
+import { Gadgets } from './gadgets/gadgets.js';
 
 export { createProvableBigInt, ProvableBigInt };
 
@@ -49,7 +50,10 @@ type BigIntParameter = {
  * - 4176 bits (36 limbs)
  *
  * Each arithmetic operation ensures the result is a valid element of the prime field.
- *
+ * 
+ * Note: If you use a custom configuration, know that not all limb sizes are supported.
+ * Only 32-, 64-, 96-, and 116-bit limbs are supported.
+ * 
  * @example
  * ```ts
  * // Create a Provable BigInt class with modulus 2^521 - 1
@@ -89,6 +93,10 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
   assert(
     modulus < config_.max,
     `ProvableBigInt: modulus exceeds the max supported size of 2^${config_.max}`
+  );
+  assert(
+    [32, 64, 96, 116].includes(config_.limbSize),
+    `Unsupported limb size, got ${config_.limbSize}`
   );
   assert(isPrime(modulus), 'ProvableBigInt: modulus must be prime');
   let fields = bigintToLimbs(modulus, config_);
@@ -297,7 +305,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         carry = Provable.witness(Field, () =>
           deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
         );
-        rangeCheckHelper(carry, 128, true);
+        // ensure the line below will not overflow
+        rangeCheck128Signed(carry);
 
         // ensure that after adding the carry, the limb is a multiple of 2^limbSize
         deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
@@ -387,7 +396,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         carry = Provable.witness(Field, () =>
           deltaPlusCarry.div(1n << BigInt(this.Constructor.config.limbSize))
         );
-        rangeCheckHelper(carry, 128, true);
+        rangeCheck128Signed(carry);
 
         deltaPlusCarry.assertEquals(carry.mul(1n << BigInt(this.Constructor.config.limbSize)));
       }
@@ -753,61 +762,6 @@ abstract class ProvableBigInt<T> {
   abstract assertEquals(a: T): void;
 }
 
-function rangeCheckHelper(x: Field, bits: number, signed?: boolean) {
-  const supportedBits = new Set([32, 48, 64, 116, 128]);
-  if (!supportedBits.has(bits)) {
-    throw new Error(`Unsupported bit size: ${bits}`);
-  }
-
-  switch (bits) {
-    case 32:
-      Gadgets.rangeCheckN(32, x);
-      break;
-    case 48:
-      Gadgets.rangeCheckN(48, x);
-      break;
-    case 64:
-      Gadgets.rangeCheckN(64, x);
-      break;
-    case 116:
-      rangeCheck116(x);
-      break;
-    case 128:
-      if (signed) {
-        rangeCheck128Signed(x);
-      } else {
-        throw new Error('128-bit unsigned range check not implemented');
-      }
-      break;
-  }
-}
-
-function rangeCheck116(x: Field) {
-  let [x0, x1] = Provable.witnessFields(2, () => [
-    x.toBigInt() & ((1n << 64n) - 1n),
-    x.toBigInt() >> 64n,
-  ]);
-
-  Gadgets.rangeCheck64(x0); // 64 bits
-  let [x52] = Gadgets.rangeCheck64(x1);
-  x52.assertEquals(0n); // 52 bits
-  x0.add(x1.mul(1n << 64n)).assertEquals(x);
-}
-
-function rangeCheck128Signed(xSigned: Field) {
-  let x = xSigned.add(1n << 127n);
-
-  let [x0, x1] = Provable.witnessFields(2, () => {
-    const x0 = x.toBigInt() & ((1n << 64n) - 1n);
-    const x1 = x.toBigInt() >> 64n;
-    return [x0, x1];
-  });
-
-  Gadgets.rangeCheck64(x0);
-  Gadgets.rangeCheck64(x1);
-
-  x0.add(x1.mul(1n << 64n)).assertEquals(x);
-}
 
 function findConfig(modulus: bigint): BigIntParameter {
   const bitLength = modulus.toString(2).length;
