@@ -15,19 +15,9 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { MlBool, MlArray, MlOption } from '../../../lib/ml/base.js';
-import {
-  Field,
-  VerifierIndex,
-  Domain,
-  VerificationEvals,
-  PolyComm,
-} from './kimchi-types.js';
+import { Field, VerifierIndex, Domain, VerificationEvals, PolyComm } from './kimchi-types.js';
 import { fieldFromRust, fieldToRust } from './conversion-base.js';
-import {
-  ConversionCore,
-  ConversionCores,
-  freeOnFinalize,
-} from './conversion-core.js';
+import { ConversionCore, ConversionCores, freeOnFinalize } from './conversion-core.js';
 import { Lookup, LookupInfo, LookupSelectors } from './lookup.js';
 
 export { verifierIndexConversion };
@@ -35,29 +25,19 @@ export { verifierIndexConversion };
 type wasm = typeof wasmNamespace;
 
 type WasmDomain = WasmFpDomain | WasmFqDomain;
-type WasmVerificationEvals =
-  | WasmFpPlonkVerificationEvals
-  | WasmFqPlonkVerificationEvals;
+type WasmVerificationEvals = WasmFpPlonkVerificationEvals | WasmFqPlonkVerificationEvals;
 type WasmShifts = WasmFpShifts | WasmFqShifts;
 type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
 
-type WasmLookupVerifierIndex =
-  | WasmFpLookupVerifierIndex
-  | WasmFqLookupVerifierIndex;
+type WasmLookupVerifierIndex = WasmFpLookupVerifierIndex | WasmFqLookupVerifierIndex;
 type WasmLookupSelector = WasmFpLookupSelectors | WasmFqLookupSelectors;
 
 type WasmClasses = {
   Domain: typeof WasmFpDomain | typeof WasmFqDomain;
-  VerificationEvals:
-    | typeof WasmFpPlonkVerificationEvals
-    | typeof WasmFqPlonkVerificationEvals;
+  VerificationEvals: typeof WasmFpPlonkVerificationEvals | typeof WasmFqPlonkVerificationEvals;
   Shifts: typeof WasmFpShifts | typeof WasmFqShifts;
-  VerifierIndex:
-    | typeof WasmFpPlonkVerifierIndex
-    | typeof WasmFqPlonkVerifierIndex;
-  LookupVerifierIndex:
-    | typeof WasmFpLookupVerifierIndex
-    | typeof WasmFqLookupVerifierIndex;
+  VerifierIndex: typeof WasmFpPlonkVerifierIndex | typeof WasmFqPlonkVerifierIndex;
+  LookupVerifierIndex: typeof WasmFpLookupVerifierIndex | typeof WasmFqLookupVerifierIndex;
   LookupSelector: typeof WasmFpLookupSelectors | typeof WasmFqLookupSelectors;
 };
 
@@ -104,9 +84,7 @@ function verifierIndexConversionPerField(
     return [0, logSizeOfGroup, groupGen];
   }
 
-  function verificationEvalsToRust(
-    evals: VerificationEvals
-  ): WasmVerificationEvals {
+  function verificationEvalsToRust(evals: VerificationEvals): WasmVerificationEvals {
     let sigmaComm = core.polyCommsToRust(evals[1]);
     let coefficientsComm = core.polyCommsToRust(evals[2]);
     let genericComm = core.polyCommToRust(evals[3]);
@@ -138,9 +116,7 @@ function verifierIndexConversionPerField(
       rotComm
     );
   }
-  function verificationEvalsFromRust(
-    evals: WasmVerificationEvals
-  ): VerificationEvals {
+  function verificationEvalsFromRust(evals: WasmVerificationEvals): VerificationEvals {
     let mlEvals: VerificationEvals = [
       0,
       core.polyCommsFromRust(evals.sigma_comm),
@@ -162,9 +138,7 @@ function verifierIndexConversionPerField(
     return mlEvals;
   }
 
-  function lookupVerifierIndexToRust(
-    lookup: Lookup<PolyComm>
-  ): WasmLookupVerifierIndex {
+  function lookupVerifierIndexToRust(lookup: Lookup<PolyComm>): WasmLookupVerifierIndex {
     let [
       ,
       joint_lookup_used,
@@ -183,9 +157,7 @@ function verifierIndexConversionPerField(
       MlOption.mapFrom(runtime_tables_selector, core.polyCommToRust)
     );
   }
-  function lookupVerifierIndexFromRust(
-    lookup: WasmLookupVerifierIndex
-  ): Lookup<PolyComm> {
+  function lookupVerifierIndexFromRust(lookup: WasmLookupVerifierIndex): Lookup<PolyComm> {
     let mlLookup: Lookup<PolyComm> = [
       0,
       MlBool(lookup.joint_lookup_used),
@@ -213,26 +185,16 @@ function verifierIndexConversionPerField(
       MlOption.mapFrom(ffmul, core.polyCommToRust)
     );
   }
-  function lookupSelectorsFromRust(
-    selector: WasmLookupSelector
-  ): LookupSelectors<PolyComm> {
+  function lookupSelectorsFromRust(selector: WasmLookupSelector): LookupSelectors<PolyComm> {
     let lookup = MlOption.mapTo(selector.lookup, core.polyCommFromRust);
     let xor = MlOption.mapTo(selector.xor, core.polyCommFromRust);
-    let range_check = MlOption.mapTo(
-      selector.range_check,
-      core.polyCommFromRust
-    );
+    let range_check = MlOption.mapTo(selector.range_check, core.polyCommFromRust);
     let ffmul = MlOption.mapTo(selector.ffmul, core.polyCommFromRust);
     selector.free();
     return [0, lookup, xor, range_check, ffmul];
   }
 
-  function lookupInfoToRust([
-    ,
-    maxPerRow,
-    maxJointSize,
-    features,
-  ]: LookupInfo): WasmLookupInfo {
+  function lookupInfoToRust([, maxPerRow, maxJointSize, features]: LookupInfo): WasmLookupInfo {
     let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
     let [, xor, lookup, range_check, foreign_field_mul] = patterns;
     let wasmPatterns = new wasm.LookupPatterns(
@@ -302,7 +264,7 @@ function verifierIndexConversionPerField(
         evals,
         shifts,
         lookupIndex,
-        zkRows,
+        zkRows
       );
     },
     verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
@@ -316,7 +278,7 @@ function verifierIndexConversionPerField(
         verificationEvalsFromRust(vk.evals),
         self.shiftsFromRust(vk.shifts),
         MlOption.mapTo(vk.lookup_index, lookupVerifierIndexFromRust),
-        vk.zk_rows
+        vk.zk_rows,
       ];
       vk.free();
       return mlVk;

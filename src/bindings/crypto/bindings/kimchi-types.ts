@@ -5,10 +5,7 @@ import type { Lookup } from './lookup.js';
 import type { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
 import type { OrInfinity } from './curve.js';
 import type { Field } from './field.js';
-import type {
-  WasmFpSrs,
-  WasmFqSrs,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type { WasmFpSrs, WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
 
 export {
   Field,
@@ -50,10 +47,7 @@ type Gate = [
   coeffs: MlArray<Field>
 ];
 
-type PolyComm = [
-  _: 0,
-  elems: MlArray<OrInfinity>,
-];
+type PolyComm = [_: 0, elems: MlArray<OrInfinity>];
 
 // verifier index
 
@@ -87,7 +81,7 @@ type VerifierIndex = [
   evals: VerificationEvals,
   shifts: MlArray<Field>,
   lookup_index: MlOption<Lookup<PolyComm>>,
-  zkRows: number,
+  zkRows: number
 ];
 
 // oracles
@@ -138,11 +132,7 @@ type OpeningProof = [
   z2: Field,
   sg: OrInfinity
 ];
-type PointEvaluations<Field> = [
-  _: 0,
-  zeta: MlArray<Field>,
-  zeta_omega: MlArray<Field>
-];
+type PointEvaluations<Field> = [_: 0, zeta: MlArray<Field>, zeta_omega: MlArray<Field>];
 
 type nColumns = 15;
 type nPermutsMinus1 = 6;
@@ -188,11 +178,7 @@ type ProverProof = [
   prev_challenges: MlArray<RecursionChallenge>
 ];
 
-type ProofWithPublic = [
-  _: 0,
-  public_evals: MlOption<PointEvaluations<Field>>,
-  proof: ProverProof
-];
+type ProofWithPublic = [_: 0, public_evals: MlOption<PointEvaluations<Field>>, proof: ProverProof];
 
 // tables
 

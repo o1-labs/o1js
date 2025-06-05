@@ -78,10 +78,7 @@ function affineFromRust<A extends WasmAffine>(pt: A): OrInfinity {
 
 const tmpBytes = new Uint8Array(32);
 
-function affineToRust<A extends WasmAffine>(
-  pt: OrInfinity,
-  makeAffine: () => A
-) {
+function affineToRust<A extends WasmAffine>(pt: OrInfinity, makeAffine: () => A) {
   let res = makeAffine();
   if (pt === Infinity) {
     res.infinity = true;
