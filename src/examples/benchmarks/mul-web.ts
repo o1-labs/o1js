@@ -75,11 +75,11 @@ if (withPickles) {
   let circuit = simpleKimchiCircuit(nMuls);
 
   tic('compile 1 (includes srs creation)');
-  let vKey = await circuit.generateKeypair();
+  let vKey = await circuit.compile();
   toc();
 
   tic('compile 2');
-  vKey = await circuit.generateKeypair();
+  vKey = await circuit.compile();
   toc();
 
   tic('prove');

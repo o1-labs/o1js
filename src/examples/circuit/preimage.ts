@@ -15,8 +15,8 @@ const main = ZkFunction({
   },
 });
 
-console.log('generating keypair...');
-await main.generateKeypair();
+console.log('compile...');
+await main.compile();
 
 const preimage = Field(1);
 const hash = Poseidon.hash([preimage]);

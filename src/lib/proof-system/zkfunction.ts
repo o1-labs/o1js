@@ -29,11 +29,11 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      *
      * @example
      * ```ts
-     * const verificationKey = await zkf.generateKeypair();
+     * const verificationKey = await zkf.compile();
      * ```
      * @warning Must be called before `prove` or `verify`.
      */
-    async generateKeypair() {
+    async compile() {
       const main = mainFromCircuitData(config);
       const publicInputSize = publicInputType.sizeInFields();
       await initializeBindings();
@@ -53,16 +53,16 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      * @param publicInput The public input to the circuit.
      * @returns The generated proof.
      *
-     * @throws If `generateKeypair` has not been called.
+     * @throws If `compile` has not been called.
      *
      * @example
      * ```ts
-     * await zkf.generateKeypair();
+     * await zkf.compile();
      * const proof = await zkf.prove([privateInput], publicInput);
      * ```
      */
     async prove(privateInputs: W, publicInput: P) {
-      if (!_keypair) throw new Error('Cannot find Keypair. Please call generateKeypair() first!');
+      if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
       const publicInputSize = publicInputType.sizeInFields();
       const publicInputFields = publicInputType.toFields(publicInput);
       const main = mainFromCircuitData(config, privateInputs);
@@ -85,19 +85,18 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      * @param proof The proof to verify.
      * @returns `true` if the proof is valid, otherwise `false`.
      *
-     * @throws If `generateKeypair` has not been called.
+     * @throws If `compile` has not been called.
      *
      * @example
      * ```ts
-     * const verificationKey = await zkf.generateKeypair();
+     * const verificationKey = await zkf.compile();
      * const proof = await zkf.prove([privateInput], publicInput);
      * const isValid = await zkf.verify(publicInput, proof, verificationKey);
      * ```
      */
     async verify(publicInput: P, proof: Proof, verificationKey?: VerificationKey) {
       verificationKey = verificationKey ?? _keypair!.verificationKey();
-      if (!_keypair)
-        throw new Error('Cannot find verificationKey. Please call generateKeypair() first!');
+      if (!_keypair) throw new Error('Cannot find VerificationKey. Please call compile() first!');
       const publicInputFields = publicInputType.toFields(publicInput);
       await initializeBindings();
       return prettifyStacktracePromise(
@@ -129,7 +128,7 @@ class Keypair {
    * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
    * @example
    * ```ts
-   * const keypair = await zkf.generateKeypair();
+   * const keypair = await zkf.compile();
    * const json = MyProvable.witnessFromKeypair(keypair);
    * ```
    */

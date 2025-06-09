@@ -17,9 +17,9 @@ const main = ZkFunction({
   },
 });
 
-console.time('generating keypair...');
-const vKey = await main.generateKeypair();
-console.timeEnd('generating keypair...');
+console.time('compile...');
+const vKey = await main.compile();
+console.timeEnd('compile...');
 
 console.time('prove...');
 const x = Field(8);

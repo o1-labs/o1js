@@ -15,9 +15,9 @@ const reserves = ZkFunction({
   },
 });
 
-console.time('generateKeypair');
-let vKey = await reserves.generateKeypair();
-console.timeEnd('generateKeypair');
+console.time('compile');
+let vKey = await reserves.compile();
+console.timeEnd('compile');
 
 let message = Bytes32.random();
 let privateKey = Secp256k1.Scalar.random();

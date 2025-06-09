@@ -17,7 +17,7 @@ const primitives = ZkFunction({
   },
 });
 
-await primitives.generateKeypair();
+await primitives.compile();
 let proof = await primitives.prove([], Undefined.empty());
 let ok = await primitives.verify(Undefined.empty(), proof);
 
