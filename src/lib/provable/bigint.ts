@@ -152,7 +152,11 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
     }
 
     static toCanonical(x: ProvableBigInt_): ProvableBigInt_ {
-      return x.mul(ProvableBigInt_.one);
+      const xR = x.mul(ProvableBigInt_.one);
+
+      // assert xR is canonical
+      xR.lessThanOrEqual(ProvableBigInt_.max).assertTrue();
+      return xR;
     }
 
     /**
@@ -236,7 +240,6 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       const bits = this.fields.flatMap((field) => {
         return field.toBits(this.Constructor.config.limbSize);
       });
-      ProvableBigInt_.Unsafe.fromBits(bits).assertEquals(this);
       return bits;
     }
 
