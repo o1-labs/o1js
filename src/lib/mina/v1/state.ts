@@ -269,7 +269,7 @@ function createState<T>(defaultValue?: T): InternalStateType<T> {
       if (this._contract === undefined)
         throw Error('get can only be called when the State is assigned to a SmartContract @state.');
       // inside the circuit, we have to cache variables, so there's only one unique variable per on-chain state.
-      // if we'd return a fresh variable everytime, developers could easily end up linking just *one* of them to the precondition,
+      // if we'd return a fresh variable every time, developers could easily end up linking just *one* of them to the precondition,
       // while using an unconstrained variable elsewhere, which would create a loophole in the proof.
       if (
         this._contract.cachedVariable !== undefined &&

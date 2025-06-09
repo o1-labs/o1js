@@ -10,7 +10,7 @@ import { Option, TokenId, Update, ZkappUri, mapUndefined } from './core.js';
 import { Permissions, PermissionsDescription } from './permissions.js';
 import { Preconditions, PreconditionsDescription } from './preconditions.js';
 import { GenericStateUpdates, StateDefinition, StateLayout, StateUpdates } from './state.js';
-import { Pickles } from '../../../snarky.js';
+import { Pickles } from '../../../bindings.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Int64, UInt64 } from '../../provable/int.js';
@@ -38,8 +38,6 @@ import { VerificationKey } from '../../../lib/proof-system/verification-key.js';
 
 // TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
 // TODO: replay checks
-// TODO: make private abstractions over many fields (eg new apis for Update and Constraint.*)
-// TODO: replay checks
 export {
   AccountUpdate,
   Authorized,
@@ -50,6 +48,9 @@ export {
   ContextFreeAccountUpdate,
   DynamicProvable,
   AccountUpdateCommitment,
+  CommittedList,
+  EventsHashConfig,
+  ActionsHashConfig,
 };
 class AccountUpdateCommitment extends Struct({
   accountUpdateCommitment: Field,
@@ -79,7 +80,8 @@ const GenericData: DynamicProvable<Field[]> = {
   },
 
   fromFieldsDynamic(fields: Field[], aux: any[]): { value: Field[]; fieldsConsumed: number } {
-    const [len] = aux;
+    const [_len] = aux;
+    let len = _len ?? fields.length;
     return { value: fields.slice(0, len), fieldsConsumed: len };
   },
 };
@@ -185,7 +187,6 @@ class CommittedList<Item> {
           return result;
         });
       }
-
       //hash = value.hash;
     }
 
@@ -813,8 +814,8 @@ class AccountUpdate<
     return Bindings.Layout.AccountUpdateBody.toFields(x.toInternalRepr(0));
   }
 
-  static toAuxiliary(x?: AccountUpdate): any[] {
-    return Bindings.Layout.AccountUpdateBody.toAuxiliary(x?.toInternalRepr(0));
+  static toAuxiliary(x?: AccountUpdate, callDepth?: number): any[] {
+    return Bindings.Layout.AccountUpdateBody.toAuxiliary(x?.toInternalRepr(callDepth ?? 0));
   }
 
   static fromFields(fields: Field[], aux: any[]): AccountUpdate {
@@ -1011,9 +1012,10 @@ class Authorized<State extends StateLayout = 'GenericState', Event = Field[], Ac
   }
 
   static toAuxiliary<State extends StateLayout = 'GenericState', Event = Field[], Action = Field[]>(
-    x?: Authorized<State, Event, Action>
+    x?: Authorized<State, Event, Action>,
+    callDepth?: number
   ): any[] {
-    return Bindings.Layout.ZkappAccountUpdate.toAuxiliary(x?.toInternalRepr(0));
+    return Bindings.Layout.ZkappAccountUpdate.toAuxiliary(x?.toInternalRepr(callDepth ?? 0));
   }
 
   static fromFields(fields: Field[], aux: any[]): Authorized {

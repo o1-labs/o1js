@@ -12,6 +12,12 @@ class MerkleMap {
 
   /**
    * Creates a new, empty Merkle Map.
+   *
+   * A Merkle Map is a data structure that allows for efficient storage and
+   * retrieval of key-value pairs. The values are stored in a Merkle tree,
+   * and the keys are formed by using the first 254 bits of the key as an index.
+   * The inner Merkle tree has a height of 256.
+   *
    * @returns A new MerkleMap
    * @example
    * ```ts

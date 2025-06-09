@@ -470,7 +470,7 @@ const StateValues = {
       (values, preconditions) => {
         for (const i in values.values) {
           if (preconditions.preconditions[i].isSatisfied(values.values[i]).not().toBoolean())
-            throw new Error(`precondition for state field ${i} not satisified`);
+            throw new Error(`precondition for state field ${i} not satisfied`);
         }
       },
       () => {
@@ -495,7 +495,7 @@ const StateValues = {
 
     //   for(const i in state) {
     //     if(statePreconditions.preconditions[i].isSatisfied(state[i]).not().toBoolean())
-    //       throw new Error(`precondition for state field ${i} not satisified`);
+    //       throw new Error(`precondition for state field ${i} not satisfied`);
     //   }
     // } else {
     //   // TODO: evaluate these directly on the custom state representation and give meaningful errors

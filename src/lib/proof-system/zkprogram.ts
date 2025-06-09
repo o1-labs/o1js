@@ -5,8 +5,8 @@ import {
   Snarky,
   initializeBindings,
   withThreadPool,
-} from '../../snarky.js';
-import { Pickles, Gate } from '../../snarky.js';
+} from '../../bindings.js';
+import { Pickles, Gate } from '../../bindings.js';
 import { Field } from '../provable/wrapped.js';
 import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
 import { InferProvableType } from '../provable/types/provable-derivers.js';
@@ -60,6 +60,7 @@ export {
   TupleToInstances,
   PrivateInput,
   Proof,
+  inCircuitVkHash,
 };
 
 type Undefined = undefined;
@@ -101,6 +102,7 @@ function createProgramState() {
 /**
  * Initializes Pickles bindings, serializes the input proof and verification key for use in OCaml, then calls into the Pickles verify function and returns the result.
  *
+ * @note This function is meant to be called in JavaScript, not for use in a circuit.  The verification key data and hash are not confirmed to match.
  * @param proof Either a `Proof` instance or a serialized JSON proof
  * @param verificationKey Either a base64 serialized verification key or a `VerificationKey` instance which will be base64 serialized for use in the bindings.
  * @returns A promise that resolves to a boolean indicating whether the proof is valid.
@@ -231,6 +233,7 @@ function ZkProgram<
       [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
+    numChunks?: number;
   }
 ): {
   name: string;
@@ -241,6 +244,7 @@ function ZkProgram<
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
+    numChunks?: number;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -384,6 +388,7 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
       });
@@ -561,7 +566,7 @@ function ZkProgram<
     provers
   );
 
-  // Object.assign only shallow-copies, hence we cant use this getter and have to define it explicitly
+  // Object.assign only shallow-copies, hence we can't use this getter and have to define it explicitly
   Object.defineProperty(program, 'proofsEnabled', {
     get: () => doProving,
   });
@@ -688,6 +693,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  numChunks,
   state,
   withRuntimeTables,
 }: {
@@ -701,6 +707,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
 }) {
@@ -758,6 +765,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           publicOutputSize: publicOutputType.sizeInFields(),
           storable: picklesCache,
           overrideWrapDomain,
+          numChunks: numChunks ?? 1,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);

@@ -1,4 +1,4 @@
-import { Test } from '../../../snarky.js';
+import { Test } from '../../../bindings.js';
 import { Field } from '../../provable/wrapped.js';
 import { UInt64 } from '../../provable/int.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
@@ -331,7 +331,7 @@ function Network(
     },
     transaction(sender: FeePayerSpec, f: () => Promise<void>) {
       return toTransactionPromise(async () => {
-        // TODO we run the transcation twice to be able to fetch data in between
+        // TODO we run the transaction twice to be able to fetch data in between
         let tx = await createTransaction(sender, f, 0, {
           fetchMode: 'test',
           isFinalRunOutsideCircuit: false,

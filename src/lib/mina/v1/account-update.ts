@@ -2,7 +2,7 @@ import { cloneCircuitValue, FlexibleProvable, StructNoJson } from '../../provabl
 import { provable, provableExtends, provablePure } from '../../provable/types/provable-derivers.js';
 import { memoizationContext, memoizeWitness, Provable } from '../../provable/provable.js';
 import { Field, Bool } from '../../provable/wrapped.js';
-import { Pickles } from '../../../snarky.js';
+import { Pickles } from '../../../bindings.js';
 import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
 import { Types, toJSONEssential } from '../../../bindings/mina-transaction/v1/types.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
@@ -1129,7 +1129,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * This function acts as the `check()` method on an `AccountUpdate` that is sent to the Mina node as part of a transaction.
    *
    * Background: the Mina node performs most necessary validity checks on account updates, both in- and outside of circuits.
-   * To save constraints, we don't repeat these checks in zkApps in places where we can be sure the checked account udpates
+   * To save constraints, we don't repeat these checks in zkApps in places where we can be sure the checked account updates
    * will be part of a transaction.
    *
    * However, there are a few checks skipped by the Mina node, that could cause vulnerabilities in zkApps if
