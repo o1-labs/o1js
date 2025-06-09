@@ -183,8 +183,7 @@ module Choices = struct
              , 'auxiliary_value )
              t
 
-    let rec should_verifys :
-        type prev_vars prev_values widths heights.
+    let rec should_verifys : type prev_vars prev_values widths heights.
            int
         -> (prev_vars, prev_values, widths, heights) H4.T(Pickles.Tag).t
         -> Boolean.var array
@@ -280,8 +279,7 @@ module Choices = struct
             js_result##.previousStatements
         in
         let previous_proof_statements =
-          let rec go :
-              type prev_vars prev_values widths heights.
+          let rec go : type prev_vars prev_values widths heights.
                  int
               -> prev_vars H1.T(Id).t
               -> prev_vars H1.T(E01(Pickles.Inductive_rule.B)).t
@@ -617,7 +615,7 @@ let pickles_compile (choices : pickles_rule_js array)
       < publicInputSize : int Js.prop
       ; publicOutputSize : int Js.prop
       ; storable : Cache.js_storable Js.optdef_prop
-      ; overrideWrapDomain : int Js.optdef_prop 
+      ; overrideWrapDomain : int Js.optdef_prop
       ; numChunks : int Js.optdef_prop >
       Js.t ) =
   (* translate number of branches and recursively verified proofs from JS *)
@@ -637,9 +635,7 @@ let pickles_compile (choices : pickles_rule_js array)
     Js.Optdef.to_option config##.overrideWrapDomain
     |> Option.map ~f:Pickles_base.Proofs_verified.of_int_exn
   in
-  let num_chunks =
-    Js.Optdef.get config##.numChunks (fun () -> 1)
-  in
+  let num_chunks = Js.Optdef.get config##.numChunks (fun () -> 1) in
   let (Choices choices) =
     Choices.of_js ~public_input_size ~public_output_size choices
   in
@@ -675,8 +671,7 @@ let pickles_compile (choices : pickles_rule_js array)
     in
     prove
   in
-  let rec to_js_provers :
-      type a b c.
+  let rec to_js_provers : type a b c.
          ( a
          , b
          , c
@@ -762,17 +757,28 @@ let load_srs_fp () = Backend.Tick.Keypair.load_urs ()
 
 let load_srs_fq () = Backend.Tock.Keypair.load_urs ()
 
-let dummy_proof (max_proofs_verified : int) (domain_log2 : int) : some_proof =
+let dummy_proof (max_proofs_verified : int) (domain_log2 : int)
+    (feature_flags_js : bool option Pickles_types.Plonk_types.Features.t) :
+    some_proof =
+  let feature_flags =
+    Pickles_types.Plonk_types.Features.map feature_flags_js ~f:(function
+      | Some true ->
+          true
+      | Some false ->
+          false
+      | None ->
+          false )
+  in
   match max_proofs_verified with
   | 0 ->
       let n = Pickles_types.Nat.N0.n in
-      Proof0 (Pickles.Proof.dummy n n ~domain_log2)
+      Proof0 (Pickles.Proof.dummy n n ~domain_log2 ~feature_flags)
   | 1 ->
       let n = Pickles_types.Nat.N1.n in
-      Proof1 (Pickles.Proof.dummy n n ~domain_log2)
+      Proof1 (Pickles.Proof.dummy n n ~domain_log2 ~feature_flags)
   | 2 ->
       let n = Pickles_types.Nat.N2.n in
-      Proof2 (Pickles.Proof.dummy n n ~domain_log2)
+      Proof2 (Pickles.Proof.dummy n n ~domain_log2 ~feature_flags)
   | _ ->
       failwith "invalid"
 
