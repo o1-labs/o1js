@@ -8,8 +8,8 @@ class Bytes32 extends Bytes(32) {}
 
 const reserves = ZkFunction({
   name: 'Reserves',
-  publicInputType: Bytes32.provable,
-  privateInputTypes: [Ecdsa.provable, Secp256k1.provable],
+  publicInputType: Bytes32,
+  privateInputTypes: [Ecdsa, Secp256k1],
   main: (message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) => {
     assert(signature.verify(message, publicKey));
   },

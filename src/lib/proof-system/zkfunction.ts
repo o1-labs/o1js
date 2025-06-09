@@ -4,20 +4,21 @@ import { withThreadPool } from '../../snarky.js';
 import { Provable } from '../provable/provable.js';
 import { snarkContext, gatesFromJson } from '../provable/core/provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
+import { ProvableTypePure } from '../provable/types/provable-intf.js';
+import { provablePure } from '../provable/types/provable-derivers.js';
 
 // external API
 export { ZkFunction, Keypair, Proof, VerificationKey };
 
 type ZkFunctionConfig<P, W extends any[]> = {
   name: string;
-  publicInputType: ProvablePure<P>;
-  privateInputTypes: { [K in keyof W]: ProvablePure<W[K]> };
+  publicInputType: ProvableTypePure<P>;
+  privateInputTypes: { [K in keyof W]: ProvableTypePure<W[K]> };
   main: (publicInput: P, ...privateInputs: W) => void;
 };
 
 function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
-  const { publicInputType } = config;
+  const publicInputType = provablePure(config.publicInputType);
   return {
     /**
      * Generates a proving key and a verification key for this circuit(ZkFunction).
@@ -28,7 +29,7 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      */
     async generateKeypair() {
       const main = mainFromCircuitData(config);
-      const publicInputSize = config.publicInputType.sizeInFields();
+      const publicInputSize = publicInputType.sizeInFields();
       await initializeBindings();
       return prettifyStacktracePromise(
         withThreadPool(async () => {
@@ -48,7 +49,7 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      */
     async prove(privateInputs: W, publicInput: P, keypair: Keypair) {
       const publicInputSize = publicInputType.sizeInFields();
-      const publicInputFields = config.publicInputType.toFields(publicInput);
+      const publicInputFields = publicInputType.toFields(publicInput);
       const main = mainFromCircuitData(config, privateInputs);
       await initializeBindings();
       return withThreadPool(async () => {
@@ -72,7 +73,7 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      * ```
      */
     async verify(publicInput: P, verificationKey: VerificationKey, proof: Proof) {
-      const publicInputFields = config.publicInputType.toFields(publicInput);
+      const publicInputFields = publicInputType.toFields(publicInput);
       await initializeBindings();
       return prettifyStacktracePromise(
         withThreadPool(async () =>
@@ -144,8 +145,11 @@ function mainFromCircuitData<P, W extends any[]>(
 ): Snarky.Main {
   return function main(publicInputFields: MlFieldArray) {
     let id = snarkContext.enter({ inCheckedComputation: true });
+
     try {
-      const publicInput = config.publicInputType.fromFields(MlFieldArray.from(publicInputFields));
+      const publicInput = provablePure(config.publicInputType).fromFields(
+        MlFieldArray.from(publicInputFields)
+      );
       const privateInputs_ = config.privateInputTypes.map((typ, i) =>
         Provable.witness(typ, () => (privateInputs ? privateInputs[i] : undefined))
       ) as W;
