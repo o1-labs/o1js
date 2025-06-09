@@ -18,18 +18,17 @@ const main = ZkFunction({
 });
 
 console.time('generating keypair...');
-const kp = await main.generateKeypair();
+const vKey = await main.generateKeypair();
 console.timeEnd('generating keypair...');
 
 console.time('prove...');
 const x = Field(8);
 const y = Field(2);
-const proof = await main.prove([y], x, kp);
+const proof = await main.prove([y], x);
 console.timeEnd('prove...');
 
 console.time('verify...');
-let vk = kp.verificationKey();
-let ok = await main.verify(x, vk, proof);
+let ok = await main.verify(x, proof, vKey);
 console.timeEnd('verify...');
 
 console.log('ok?', ok);

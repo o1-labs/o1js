@@ -19,35 +19,50 @@ type ZkFunctionConfig<P, W extends any[]> = {
 
 function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
   const publicInputType = provablePure(config.publicInputType);
+  let _keypair: Keypair | undefined;
+
   return {
     /**
-     * Generates a proving key and a verification key for this circuit(ZkFunction).
+     * Generates and stores a proving key and a verification key for this circuit(ZkFunction).
+     *
+     * @returns The generated verification key.
+     *
      * @example
      * ```ts
-     * const keypair = await zkf.generateKeypair();
+     * const verificationKey = await zkf.generateKeypair();
      * ```
+     * @warning Must be called before `prove` or `verify`.
      */
     async generateKeypair() {
       const main = mainFromCircuitData(config);
       const publicInputSize = publicInputType.sizeInFields();
       await initializeBindings();
-      return prettifyStacktracePromise(
+      _keypair = await prettifyStacktracePromise(
         withThreadPool(async () => {
           let keypair = Snarky.circuit.compile(main, publicInputSize);
           return new Keypair(keypair);
         })
       );
+      return _keypair.verificationKey();
     },
 
     /**
-     * Proves a statement using the public input, private input, and the {@link Keypair} of the circuit(ZkFunction).
+     * Proves a statement using the public input and private inputs of the circuit(ZkFunction).
+     *
+     * @param privateInputs The private inputs to the circuit.
+     * @param publicInput The public input to the circuit.
+     * @returns The generated proof.
+     *
+     * @throws If `generateKeypair` has not been called.
+     *
      * @example
      * ```ts
-     * const keypair = await zkf.generateKeypair();
-     * const proof = await zkf.prove([privateInput], publicInput, keypair);
+     * await zkf.generateKeypair();
+     * const proof = await zkf.prove([privateInput], publicInput);
      * ```
      */
-    async prove(privateInputs: W, publicInput: P, keypair: Keypair) {
+    async prove(privateInputs: W, publicInput: P) {
+      if (!_keypair) throw new Error('Cannot find Keypair. Please call generateKeypair() first!');
       const publicInputSize = publicInputType.sizeInFields();
       const publicInputFields = publicInputType.toFields(publicInput);
       const main = mainFromCircuitData(config, privateInputs);
@@ -57,22 +72,32 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
           main,
           publicInputSize,
           MlFieldConstArray.to(publicInputFields),
-          keypair.value
+          _keypair!.value
         );
         return new Proof(proof);
       });
     },
 
     /**
-     * Verifies a proof using the public input, the proof, and the initial {@link Keypair} of the circuit(ZkFunction).
+     * Verifies a proof using the public input, the proof, and optionally a verification key of the circuit(ZkFunction).
+     *
+     * @param publicInput The public input to the circuit.
+     * @param proof The proof to verify.
+     * @returns `true` if the proof is valid, otherwise `false`.
+     *
+     * @throws If `generateKeypair` has not been called.
+     *
      * @example
      * ```ts
-     * const keypair = await zkf.generateKeypair();
-     * const proof = await zkf.prove([privateInput], publicInput, keypair);
-     * const isValid = await zkf.verify(publicInput, keypair.verificationKey(), proof);
+     * const verificationKey = await zkf.generateKeypair();
+     * const proof = await zkf.prove([privateInput], publicInput);
+     * const isValid = await zkf.verify(publicInput, proof, verificationKey);
      * ```
      */
-    async verify(publicInput: P, verificationKey: VerificationKey, proof: Proof) {
+    async verify(publicInput: P, proof: Proof, verificationKey?: VerificationKey) {
+      verificationKey = verificationKey ?? _keypair!.verificationKey();
+      if (!_keypair)
+        throw new Error('Cannot find verificationKey. Please call generateKeypair() first!');
       const publicInputFields = publicInputType.toFields(publicInput);
       await initializeBindings();
       return prettifyStacktracePromise(

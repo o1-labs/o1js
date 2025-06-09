@@ -16,7 +16,7 @@ const reserves = ZkFunction({
 });
 
 console.time('generateKeypair');
-let kp = await reserves.generateKeypair();
+let vKey = await reserves.generateKeypair();
 console.timeEnd('generateKeypair');
 
 let message = Bytes32.random();
@@ -25,10 +25,10 @@ let publicKey = Secp256k1.generator.scale(privateKey);
 let signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
 
 console.time('prove');
-let proof = await reserves.prove([signature, publicKey], message, kp);
+let proof = await reserves.prove([signature, publicKey], message);
 console.timeEnd('prove');
 
 console.time('verify');
-let isValid = await reserves.verify(message, kp.verificationKey(), proof);
+let isValid = await reserves.verify(message, proof, vKey);
 assert(isValid, 'verifies');
 console.timeEnd('verify');
