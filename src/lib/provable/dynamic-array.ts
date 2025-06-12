@@ -270,8 +270,6 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     return newArray;
   }
 
-  forEach(f: (t: ProvableValue, isDummy: Bool) => void): void;
-  forEach(f: (t: ProvableValue, isDummy: Bool, i: number) => void): void;
   /**
    * Iterate over all elements of the array.
    *
@@ -279,14 +277,8 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * whether the value is part of the actual array. Optionally, an index can be
    * passed as a third argument (used in `forEachReversed`)
    */
-  forEach(f: (...args: any[]) => void): void {
-    zip(this.array, this.#dummyMask()).forEach(([t, isDummy], i) => {
-      if (f.length === 2) {
-        f(t, isDummy);
-      } else {
-        f(t, isDummy, i); 
-      }
-    });
+  forEach(f: (t: ProvableValue, isDummy: Bool, i?: number) => void): void {
+    zip(this.array, this.#dummyMask()).forEach(([t, isDummy], i) => f(t, isDummy, i));
   }
 
   /**
