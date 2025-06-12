@@ -2,7 +2,7 @@ import { areBindingsInitialized, initializeBindings, withThreadPool } from '../.
 import { Pickles, Base64ProofString } from '../../bindings.js';
 import { Field, Bool } from '../provable/wrapped.js';
 import type { FlexibleProvable, InferProvable } from '../provable/types/struct.js';
-import { FeatureFlags } from './feature-flags.js';
+import { FeatureFlags, featureFlagsToMlOption } from './feature-flags.js';
 import type { JsonProof } from './zkprogram.js';
 import { Subclass } from '../util/types.js';
 import type { Provable } from '../provable/provable.js';
@@ -353,7 +353,23 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
 
 async function dummyProof(maxProofsVerified: 0 | 1 | 2, domainLog2: number) {
   await initializeBindings();
-  return withThreadPool(async () => Pickles.dummyProof(maxProofsVerified, domainLog2)[1]);
+  return withThreadPool(
+    async () =>
+      Pickles.dummyProof(
+        maxProofsVerified,
+        domainLog2,
+        featureFlagsToMlOption({
+          rangeCheck0: true,
+          rangeCheck1: true,
+          foreignFieldAdd: true,
+          foreignFieldMul: false,
+          xor: false,
+          rot: false,
+          lookup: false,
+          runtimeTables: false,
+        })
+      )[1]
+  );
 }
 
 type ProofValue<Input, Output> = {
