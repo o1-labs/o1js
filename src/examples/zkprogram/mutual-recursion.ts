@@ -51,7 +51,7 @@ const multiply = ZkProgram({
   },
 });
 
-console.log('Compiling circuits....');
+console.log('Compiling circuits...');
 const addVk = (await add.compile()).verificationKey;
 const multiplyVk = (await multiply.compile()).verificationKey;
 
