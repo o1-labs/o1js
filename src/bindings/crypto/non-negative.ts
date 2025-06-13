@@ -26,9 +26,7 @@ function asPositiveInteger<N extends number>(n: PositiveInteger<N>) {
 function isInteger<N extends number>(n: N): n is Integer<N> {
   return Number.isInteger(n);
 }
-function isNonNegativeInteger<N extends number>(
-  n: N
-): n is NonNegativeInteger<N> {
+function isNonNegativeInteger<N extends number>(n: N): n is NonNegativeInteger<N> {
   return Number.isInteger(n) && n >= 0;
 }
 function isPositiveInteger<N extends number>(n: N): n is PositiveInteger<N> {
@@ -57,10 +55,6 @@ type NonNegativeInteger<T extends number> = number extends T
   : T;
 type PositiveInteger<T extends number> = number extends T
   ? never
-  : `${T}` extends
-      | `-${string}`
-      | `${string}.${string}`
-      | `${string}e-${string}`
-      | `0`
+  : `${T}` extends `-${string}` | `${string}.${string}` | `${string}e-${string}` | `0`
   ? never
   : T;

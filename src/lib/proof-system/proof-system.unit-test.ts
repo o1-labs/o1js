@@ -11,7 +11,7 @@ import {
 } from './zkprogram.js';
 import { Proof } from './proof.js';
 import { expect } from 'expect';
-import { Pickles, Snarky } from '../../snarky.js';
+import { Pickles, Snarky } from '../../bindings.js';
 import { AnyFunction } from '../util/types.js';
 import { snarkContext } from '../provable/core/provable-context.js';
 import { it } from 'node:test';

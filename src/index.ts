@@ -1,6 +1,6 @@
 export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
-export { Ledger, initializeBindings } from './snarky.js';
+export { Ledger, initializeBindings } from './bindings.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
@@ -41,6 +41,7 @@ export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
 export { Types } from './bindings/mina-transaction/v1/types.js';
+export { DynamicArray } from './lib/provable/dynamic-array.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
 import { IndexedMerkleMap, IndexedMerkleMapBase } from './lib/provable/merkle-tree-indexed.js';
