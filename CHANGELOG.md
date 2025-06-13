@@ -20,7 +20,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Lazy mode for prover index computation. https://github.com/o1-labs/o1js/pull/2143
-
 - Added `ZkProgram.analyzeSingleMethod(methodName: string)` to analyze a single method of a ZkProgram. https://github.com/o1-labs/o1js/pull/2217
   - This is an addition to `ZkProgram.analyzeMethods()` which analyzes all methods of a ZkProgram by executing them.
   - Now only a single method is analyzed at a time.
@@ -31,14 +30,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - API support for circuit chunking. https://github.com/o1-labs/o1js/pull/1905
   - work in progress, still requires memory optimizations to be fully functional
-  
 - Dynamic array provable type. https://github.com/o1-labs/o1js/pull/1848
 
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
 ### Fixed
 
-- [PR !2134](https://github.com/o1-labs/o1js/pull/2134)Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API
+- Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
 
 ### Added
 
@@ -47,7 +45,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - compiled artifacts are now gitignored
   - `npm run build:bindings-download` downloads compiled artifacts from github
   - `npm run build:bindings-remote` triggers a github workflow to build the compiled artifacts then downloads them
-- [PR !2144](https://github.com/o1-labs/o1js/pull/2144)Added bitwise operation methods (xor, not, and, or) to `UInt8` class.
+- Added bitwise operation methods (xor, not, and, or) to `UInt8` class. https://github.com/o1-labs/o1js/pull/2144
 
 ### Changed
 
