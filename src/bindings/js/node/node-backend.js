@@ -20,11 +20,24 @@ let workersReady;
 globalThis.startWorkers = startWorkers;
 globalThis.terminateWorkers = terminateWorkers;
 
+// patch rayon's workers to get access to parentPort
+globalThis.postMessage = (msg) => {
+  if (!isMainThread && parentPort) {
+    parentPort.postMessage({
+      type: 'wasm_bindgen_worker_debug',
+      message: msg,
+    });
+  } else {
+    // we don't have a parentPort in the main thread - this happens when someone calls postMessage
+    // in wasm from the main thread (eg _before_ crate::rayon::run_in_pool)
+    console.warn('postMessage called outside of worker thread:', msg);
+  }
+};
+
 if (!isMainThread) {
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
   wasm.wbg_rayon_start_worker(workerData.receiver);
 }
-
 // state machine to enable calling multiple functions that need a thread pool at once
 const withThreadPool = WithThreadPool({ initThreadPool, exitThreadPool });
 
@@ -62,6 +75,10 @@ async function startWorkers(src, memory, builder) {
       return new Promise((resolve) => {
         let done = false;
         target.on('message', function onMsg(data) {
+          if (data.type === 'wasm_bindgen_worker_debug') {
+            workerDebug(data.message);
+            return;
+          }
           if (data == null || data.type !== type || done) return;
           done = true;
           resolve(worker);
@@ -71,6 +88,10 @@ async function startWorkers(src, memory, builder) {
   );
   builder.build();
   workersReadyResolve();
+}
+
+function workerDebug(msg) {
+  console.debug(`[Message from worker]`, msg);
 }
 
 async function terminateWorkers() {
