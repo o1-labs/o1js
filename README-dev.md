@@ -35,7 +35,7 @@ gh auth login #gh is used to download the compiled artifacts
 npm run build
 ```
 
-This command downloads the artifacts from github if they are missing and compiles the TypeScript source files, making them ready for use.
+This command downloads the artifacts from GitHub if they are missing and compiles the TypeScript source files, making them ready for use.
 The compiled OCaml and WebAssembly artifacts are cached for each commit where ci is run.These artifacts are stored under `src/bindings/compiled` and `src/bindings/mina-transaction/gen` and contain the artifacts needed for both nodejs and web builds.
 These files only have to be regenerated if there are changes to the OCaml or Rust source files.
 
@@ -45,8 +45,8 @@ Unfortunately you generally won't be able to run `npm run build:bindings-downloa
 because the artifacts won't have been built for them, so make sure to run it on main before you start making changes.
 In a fresh git repo `npm run build` also works.
 
-Keep in mind that merging a newer version of o1js may include Ocaml and rust changes so you may need to redownload the artifacts.
-When this happens, as long as you aren't making changes to the Ocaml and rust yourself,
+Keep in mind that merging a newer version of o1js may include OCaml and Rust changes so you may need to redownload the artifacts.
+When this happens, as long as you aren't making changes to the OCaml and Rust yourself,
 you can run `REV=<commit you just merged> npm run build:bindings-download`, this will download the bindings for the commit you merged which should be the same as the ones you need.
 
 ### Internal contributors
@@ -63,66 +63,6 @@ This will trigger our self-hosted runner to build the bindings for your commit a
 Much like the mina repo, we use the nix registry to conveniently handle git submodules.
 You can enter the devshell with `./pin.sh` and `nix develop o1js#default` or by using
 direnv with the `.envrc` provided. This devshell provides all the dependencies required for npm scripts including `npm run build:update-bindings`.
-
-## Building Bindings
-
-To regenerate the OCaml and WebAssembly artifacts, you can do so within the o1js repo. The [bindings](https://github.com/o1-labs/o1js-bindings) and [Mina](https://github.com/MinaProtocol/mina) repos are both submodules of o1js so you can build them from within the o1js repo.
-
-o1js depends on OCaml code that is transpiled to JavaScript using [Js_of_ocaml](https://github.com/ocsigen/js_of_ocaml) and Rust code that is transpiled to WebAssembly using [wasm-pack](https://github.com/rustwasm/wasm-pack). These artifacts allow o1js to call into [Pickles](https://github.com/MinaProtocol/mina/blob/develop/src/lib/pickles/README.md), [snarky](https://github.com/o1-labs/snarky), and [Kimchi](https://github.com/o1-labs/proof-systems) to write zk-SNARKs and zkApps.
-
-The compiled artifacts are stored under `src/bindings/compiled` and are version-controlled to simplify the build process for end-users.
-
-If you want to rebuild the OCaml and Rust artifacts, you must be able to build the mina repo before building the bindings. See the [Mina Dev Readme](https://github.com/MinaProtocol/mina/blob/develop/README-dev.md) for more information. After you have configured your environment to build mina, you can build the bindings:
-
-```sh
-npm run build:update-bindings
-```
-
-This command builds the OCaml and Rust artifacts and copies them to the `src/bindings/compiled` directory.
-
-### Build Scripts
-
-The root build script which kicks off the build process is under `src/bindings/scripts/update-o1js-bindings.sh`. This script is responsible for building the Node.js and web artifacts for o1js, and places them under `src/bindings/compiled`, to be used by o1js.
-
-### OCaml Bindings
-
-o1js depends on Pickles, snarky, and parts of the Mina transaction logic, all of which are compiled to JavaScript and stored as artifacts to be used by o1js natively. The OCaml bindings are located under `src/bindings`. See the [OCaml Bindings README](https://github.com/o1-labs/o1js-bindings/blob/main/README.md) for more information.
-
-To compile the OCaml code, a build tool called Dune is used. Dune is a build system for OCaml projects, and is used in addition with Js_of_ocaml to compile the OCaml code to JavaScript. The dune file that is responsible for compiling the OCaml code is located under `src/bindings/ocaml/dune`. There are two build targets: `o1js_node` and `o1js_web`, which compile the Mina dependencies as well as link the wasm artifacts to build the Node.js and web artifacts, respectively. The output file is `o1js_node.bc.js`, which is used by o1js.
-
-### WebAssembly Bindings
-
-o1js additionally depends on Kimchi, which is compiled to WebAssembly. Kimchi is located in the Mina repo under `src/mina`. See the [Kimchi README](https://github.com/o1-labs/proof-systems/blob/master/README.md) for more information.
-
-To compile the Wasm code, a combination of Cargo and Dune is used. Both build files are located under `src/mina/src/lib/crypto/kimchi`, where the `wasm` folder contains the Rust code that is compiled to Wasm, and the `js` folder that contains a wrapper around the Wasm code which allows Js_of_ocaml to compile against the Wasm backend.
-
-For the Wasm build, the output files are:
-
-- `plonk_wasm_bg.wasm`: The compiled WebAssembly binary.
-- `plonk_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types of .wasm or .js files.
-- `plonk_wasm.js`: JavaScript file that wraps the Wasm code for use in Node.js.
-- `plonk_wasm.d.ts`: TypeScript definition file for plonk_wasm.js.
-
-### Generated Constant Types
-
-In addition to building the OCaml and Rust code, the build script also generates TypeScript types for constants used in the Mina protocol. These types are generated from the OCaml source files, and are located under `src/bindings/crypto/constants.ts` and `src/bindings/mina-transaction/gen`. When building the bindings, these constants are auto-generated by Dune. If you wish to add a new constant, you can edit the `src/bindings/ocaml/o1js_constants` file, and then run `npm run build:bindings` to regenerate the TypeScript files.
-
-o1js uses these types to ensure that the constants used in the protocol are consistent with the OCaml source files.
-
-### Bindings check in ci
-
-If the bindings check fails in CI it will upload a patch you can use to update the bindings without having to rebuild locally.
-This can also be helpful when the bindings don't build identically, as unfortunately often happens.
-
-To use this patch:
-
-- Click details on the `Build o1js bindings / build-bindings-ubuntu` job
-- Go to the `patch-upload` job and expand the logs for `Upload patch`
-- Download the file linked in the last line of the logs ie.
-  `Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
-- unzip it
-- navigate to `src/bindings`
-- run `git apply path/to/bindings.patch`
 
 ## Development
 
@@ -143,14 +83,14 @@ Other base branches (currently `develop` only) are used in specific scenarios wh
 
 #### Relationship Between Repositories and Branches
 
-| Repository | o1js &rarr; | o1js-bindings &rarr; | mina       |
-| ---------- | ----------- | -------------------- | ---------- |
-| Branches   | main        | main                 | compatible |
-|            | develop     | develop              | develop    |
+| Repository | o1js &rarr; | mina       |
+| ---------- | ----------- | ---------- |
+| Branches   | main        | compatible |
+|            | develop     | develop    |
 
 Where:
 
-- `compatible`: This is the [Mina repository](https://github.com/MinaProtocol/mina) branch. It corresponds to the `main` branch in both o1js and o1js-bindings repositories. This branch is where stable releases and soft-fork features are maintained.
+- `compatible`: This is the [Mina repository](https://github.com/MinaProtocol/mina) branch. It corresponds to the `main` branch in o1js. This branch is where stable releases and soft-fork features are maintained.
 
 - `develop`: This branch is maintained across all three repositories. It is used for ongoing (next hard-fork) development, testing new features and integration work.
 
