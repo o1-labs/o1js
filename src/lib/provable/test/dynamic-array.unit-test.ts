@@ -581,6 +581,14 @@ import { Provable } from '../provable.js';
           // Checking inclusion of elements
           assert(bytes.includes(new UInt8(1)));
           assert(bytes.includes(new UInt8(20)).not());
+
+          // Reverse the array
+          let reversed = bytes.reverse();
+          for (let i = 0; i < 8; i++) {
+            assert(reversed.get(new Field(i)).value.equals(new Field(8 - i)));
+            // the original array is not modified
+            assert(bytes.get(new Field(i)).value.equals(new Field(i + 1)));
+          }
         },
       },
     },
