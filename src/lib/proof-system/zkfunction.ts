@@ -37,7 +37,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      *
      * @example
      * ```ts
-     * const verificationKey = await zkf.compile();
+     * const { verificationKey } = await zkf.compile();
      * ```
      * @warning Must be called before `prove` or `verify`.
      */
@@ -51,7 +51,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
           return new Keypair(keypair);
         })
       );
-      return _keypair.verificationKey();
+      return { verificationKey: _keypair.verificationKey() };
     },
 
     /**
@@ -97,7 +97,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      *
      * @example
      * ```ts
-     * const verificationKey = await zkf.compile();
+     * const { verificationKey } = await zkf.compile();
      * const proof = await zkf.prove(publicInput, privateInput1, privateInput2);
      * const isValid = await zkf.verify(publicInput, proof, verificationKey);
      * ```

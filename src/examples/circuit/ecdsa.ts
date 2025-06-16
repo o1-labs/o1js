@@ -16,7 +16,7 @@ const reserves = ZkFunction({
 });
 
 console.time('compile');
-let vKey = await reserves.compile();
+let { verificationKey } = await reserves.compile();
 console.timeEnd('compile');
 
 let message = Bytes32.random();
@@ -29,6 +29,6 @@ let proof = await reserves.prove(message, signature, publicKey);
 console.timeEnd('prove');
 
 console.time('verify');
-let isValid = await reserves.verify(message, proof, vKey);
+let isValid = await reserves.verify(message, proof, verificationKey);
 assert(isValid, 'verifies');
 console.timeEnd('verify');

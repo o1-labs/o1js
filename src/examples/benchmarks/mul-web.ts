@@ -75,11 +75,11 @@ if (withPickles) {
   let circuit = simpleKimchiCircuit(nMuls);
 
   tic('compile 1 (includes srs creation)');
-  let vKey = await circuit.compile();
+  let { verificationKey } = await circuit.compile();
   toc();
 
   tic('compile 2');
-  vKey = await circuit.compile();
+  verificationKey = (await circuit.compile()).verificationKey;
   toc();
 
   tic('prove');
@@ -87,7 +87,7 @@ if (withPickles) {
   toc();
 
   tic('verify');
-  let ok = await circuit.verify(Undefined.empty(), p, vKey);
+  let ok = await circuit.verify(Undefined.empty(), p, verificationKey);
   toc();
   if (!ok) throw Error('invalid proof');
 }

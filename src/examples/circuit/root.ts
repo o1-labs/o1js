@@ -18,7 +18,7 @@ const main = ZkFunction({
 });
 
 console.time('compile...');
-const vKey = await main.compile();
+const { verificationKey } = await main.compile();
 console.timeEnd('compile...');
 
 console.time('prove...');
@@ -28,7 +28,7 @@ const proof = await main.prove(x, y);
 console.timeEnd('prove...');
 
 console.time('verify...');
-let ok = await main.verify(x, proof, vKey);
+let ok = await main.verify(x, proof, verificationKey);
 console.timeEnd('verify...');
 
 console.log('ok?', ok);
