@@ -18,7 +18,7 @@ const primitives = ZkFunction({
 });
 
 await primitives.compile();
-let proof = await primitives.prove([], Undefined.empty());
+let proof = await primitives.prove(Undefined.empty());
 let ok = await primitives.verify(Undefined.empty(), proof);
 
 expect(ok).toEqual(true);

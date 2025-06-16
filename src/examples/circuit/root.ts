@@ -24,7 +24,7 @@ console.timeEnd('compile...');
 console.time('prove...');
 const x = Field(8);
 const y = Field(2);
-const proof = await main.prove([y], x);
+const proof = await main.prove(x, y);
 console.timeEnd('prove...');
 
 console.time('verify...');

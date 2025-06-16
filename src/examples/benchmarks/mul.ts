@@ -81,7 +81,7 @@ if (withPickles) {
   toc();
 
   tic('prove');
-  let p = await circuit.prove([], Undefined.empty());
+  let p = await circuit.prove(Undefined.empty());
   toc();
 
   tic('verify');

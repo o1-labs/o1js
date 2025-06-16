@@ -25,7 +25,7 @@ let publicKey = Secp256k1.generator.scale(privateKey);
 let signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
 
 console.time('prove');
-let proof = await reserves.prove([signature, publicKey], message);
+let proof = await reserves.prove(message, signature, publicKey);
 console.timeEnd('prove');
 
 console.time('verify');

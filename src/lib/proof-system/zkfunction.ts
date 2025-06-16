@@ -5,19 +5,27 @@ import { Provable } from '../provable/provable.js';
 import { snarkContext, gatesFromJson } from '../provable/core/provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
 import { ProvableTypePure } from '../provable/types/provable-intf.js';
-import { provablePure } from '../provable/types/provable-derivers.js';
+import { provablePure, InferProvable } from '../provable/types/provable-derivers.js';
+import { Tuple } from '../util/types.js';
+import { TupleToInstances } from './zkprogram.js';
 
 // external API
 export { ZkFunction, Keypair, Proof, VerificationKey };
 
-type ZkFunctionConfig<P, W extends any[]> = {
+type PublicInput<Config extends ZkFunctionConfig> = InferProvable<Config['publicInputType']>;
+type PrivateInputs<Config extends ZkFunctionConfig> = TupleToInstances<Config['privateInputTypes']>;
+
+type ZkFunctionConfig = {
   name: string;
-  publicInputType: ProvableTypePure<P>;
-  privateInputTypes: { [K in keyof W]: ProvableTypePure<W[K]> };
-  main: (publicInput: P, ...privateInputs: W) => void;
+  publicInputType: ProvableTypePure;
+  privateInputTypes: Tuple<ProvableTypePure>;
 };
 
-function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
+function ZkFunction<Config extends ZkFunctionConfig>(
+  config: Config & {
+    main: (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => void;
+  }
+) {
   const publicInputType = provablePure(config.publicInputType);
   let _keypair: Keypair | undefined;
 
@@ -58,10 +66,10 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      * @example
      * ```ts
      * await zkf.compile();
-     * const proof = await zkf.prove([privateInput], publicInput);
+     * const proof = await zkf.prove(publicInput, privateInput1, privateInput2);
      * ```
      */
-    async prove(privateInputs: W, publicInput: P) {
+    async prove(publicInput: PublicInput<Config>, ...privateInputs: PrivateInputs<Config>) {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
       const publicInputSize = publicInputType.sizeInFields();
       const publicInputFields = publicInputType.toFields(publicInput);
@@ -90,11 +98,15 @@ function ZkFunction<P, W extends any[]>(config: ZkFunctionConfig<P, W>) {
      * @example
      * ```ts
      * const verificationKey = await zkf.compile();
-     * const proof = await zkf.prove([privateInput], publicInput);
+     * const proof = await zkf.prove(publicInput, privateInput1, privateInput2);
      * const isValid = await zkf.verify(publicInput, proof, verificationKey);
      * ```
      */
-    async verify(publicInput: P, proof: Proof, verificationKey?: VerificationKey) {
+    async verify(
+      publicInput: PublicInput<Config>,
+      proof: Proof,
+      verificationKey?: VerificationKey
+    ) {
       verificationKey = verificationKey ?? _keypair!.verificationKey();
       if (!_keypair) throw new Error('Cannot find VerificationKey. Please call compile() first!');
       const publicInputFields = publicInputType.toFields(publicInput);
@@ -163,9 +175,11 @@ class VerificationKey {
   }
 }
 
-function mainFromCircuitData<P, W extends any[]>(
-  config: ZkFunctionConfig<P, W>,
-  privateInputs?: W
+function mainFromCircuitData<Config extends ZkFunctionConfig>(
+  config: Config & {
+    main: (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => void;
+  },
+  privateInputs?: PrivateInputs<Config>
 ): Snarky.Main {
   return function main(publicInputFields: MlFieldArray) {
     let id = snarkContext.enter({ inCheckedComputation: true });
@@ -176,7 +190,7 @@ function mainFromCircuitData<P, W extends any[]>(
       );
       const privateInputs_ = config.privateInputTypes.map((typ, i) =>
         Provable.witness(typ, () => (privateInputs ? privateInputs[i] : undefined))
-      ) as W;
+      ) as PrivateInputs<Config>;
       config.main(publicInput, ...privateInputs_);
     } finally {
       snarkContext.leave(id);

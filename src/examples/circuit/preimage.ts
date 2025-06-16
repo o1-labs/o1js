@@ -22,7 +22,7 @@ const preimage = Field(1);
 const hash = Poseidon.hash([preimage]);
 
 console.log('prove...');
-const pi = await main.prove([preimage], hash);
+const pi = await main.prove(hash, preimage);
 
 console.log('verify...');
 let ok = await main.verify(hash, pi);
