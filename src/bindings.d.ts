@@ -730,7 +730,8 @@ declare const Pickles: {
 
   dummyProof: <N extends 0 | 1 | 2>(
     maxProofsVerified: N,
-    domainLog2: number
+    domainLog2: number,
+    featureFlags: MlArrayOptionalElements<MlFeatureFlags>
   ) => [N, Pickles.Proof];
 
   /**

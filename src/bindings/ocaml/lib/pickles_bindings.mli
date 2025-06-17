@@ -86,7 +86,7 @@ val pickles :
       Js.readonly_prop
   ; loadSrsFp : (unit -> Kimchi_bindings.Protocol.SRS.Fp.t) Js.readonly_prop
   ; loadSrsFq : (unit -> Kimchi_bindings.Protocol.SRS.Fq.t) Js.readonly_prop
-  ; dummyProof : (int -> int -> some_proof) Js.readonly_prop
+  ; dummyProof : (int -> int -> bool option Pickles_types.Plonk_types.Features.t -> some_proof) Js.readonly_prop
   ; dummyVerificationKey :
       (unit -> Js.js_string Js.t * Impl.field) Js.readonly_prop
   ; encodeVerificationKey :
