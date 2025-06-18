@@ -2,11 +2,9 @@ import { ZkFunction } from '../../proof-system/zkfunction.js';
 import { UInt64, UInt32 } from '../int.js';
 import { expect } from 'expect';
 import { Provable } from '../provable.js';
-import { Undefined } from '../../proof-system/zkprogram.js';
 
 const primitives = ZkFunction({
   name: 'Primitives',
-  publicInputType: Undefined,
   privateInputTypes: [],
   main: () => {
     // division
@@ -18,8 +16,8 @@ const primitives = ZkFunction({
 });
 
 await primitives.compile();
-let proof = await primitives.prove(Undefined.empty());
-let ok = await primitives.verify(Undefined.empty(), proof);
+let proof = await primitives.prove();
+let ok = await primitives.verify(proof);
 
 expect(ok).toEqual(true);
 
