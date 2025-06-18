@@ -1,5 +1,5 @@
 import { Context } from '../../util/global-context.js';
-import { Gate, GateType, JsonGate, Snarky, initializeBindings } from '../../../snarky.js';
+import { Gate, GateType, JsonGate, Snarky, initializeBindings } from '../../../bindings.js';
 import { parseHexString32 } from '../../../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from '../../util/errors.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';

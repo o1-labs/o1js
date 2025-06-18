@@ -5,6 +5,7 @@ module Other_impl = Pickles.Impls.Wrap
 module Field = Impl.Field
 module Account_update = Mina_base.Account_update
 module Zkapp_command = Mina_base.Zkapp_command
+(*module Signed_command = Mina_base.Signed_command*)
 
 (* Test - functions that have a ts implementation, exposed for ts-ml consistency tests *)
 
@@ -89,12 +90,12 @@ let account_update_of_json, _account_update_to_json =
       @@ Fields_derivers_zkapps.Derivers.o () )
   in
   let account_update_of_json (account_update : Js.js_string Js.t) :
-      Account_update.t =
+      Account_update.Stable.Latest.t =
     Fields_derivers_zkapps.of_json (Lazy.force deriver)
       (account_update |> Js.to_string |> Yojson.Safe.from_string)
     |> Account_update.of_graphql_repr
   in
-  let account_update_to_json (account_update : Account_update.t) :
+  let account_update_to_json (account_update : Account_update.Stable.Latest.t) :
       Js.js_string Js.t =
     Fields_derivers_zkapps.to_json (Lazy.force deriver)
       (Account_update.to_graphql_repr account_update ~call_depth:0)
@@ -157,20 +158,25 @@ module To_fields = struct
     fields_of_json (Mina_base.Account_update.Body.typ ()) body_of_json
 end
 
+let proof_cache_db = Proof_cache_tag.For_tests.create_db ()
+
 module Hash_from_json = struct
   let account_update (p : Js.js_string Js.t) (network_id : Js.js_string Js.t) =
     p |> account_update_of_json
-    |> Account_update.digest ~chain:(get_network_id_of_js_string network_id)
+    |> Account_update.digest
+         ~signature_kind:(get_network_id_of_js_string network_id)
 
   let transaction_commitments (tx_json : Js.js_string Js.t)
       (network_id : Js.js_string Js.t) =
-    let chain = get_network_id_of_js_string network_id in
+    let signature_kind = get_network_id_of_js_string network_id in
     let tx =
-      Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
+      Zkapp_command.write_all_proofs_to_disk ~proof_cache_db
+      @@ Zkapp_command.of_json @@ Yojson.Safe.from_string
+      @@ Js.to_string tx_json
     in
     let get_account_updates_hash xs =
       let hash_account_update (p : Account_update.t) =
-        Zkapp_command.Digest.Account_update.create ~chain p
+        Zkapp_command.Digest.Account_update.create ~signature_kind p
       in
       Zkapp_command.Call_forest.accumulate_hashes ~hash_account_update xs
     in
@@ -183,7 +189,7 @@ module Hash_from_json = struct
     in
     let fee_payer = Account_update.of_fee_payer tx.fee_payer in
     let fee_payer_hash =
-      Zkapp_command.Digest.Account_update.create ~chain fee_payer
+      Zkapp_command.Digest.Account_update.create ~signature_kind fee_payer
     in
     let full_commitment =
       Zkapp_command.Transaction_commitment.create_complete commitment
@@ -201,18 +207,9 @@ module Hash_from_json = struct
   let zkapp_public_input (tx_json : Js.js_string Js.t)
       (account_update_index : int) =
     let tx =
-      Zkapp_command.of_json @@ Yojson.Safe.from_string @@ Js.to_string tx_json
-    in
-    let tx =
-      let open Zkapp_command in
-      { Poly.fee_payer = tx.fee_payer
-      ; memo = tx.memo
-      ; account_updates =
-          tx.account_updates
-          |> Call_forest.accumulate_hashes
-               ~hash_account_update:(fun (p : Account_update.t) ->
-                 Digest.Account_update.create p )
-      }
+      Zkapp_command.write_all_proofs_to_disk ~proof_cache_db
+      @@ Zkapp_command.of_json @@ Yojson.Safe.from_string
+      @@ Js.to_string tx_json
     in
     let account_update = List.nth_exn tx.account_updates account_update_index in
     object%js
@@ -343,7 +340,8 @@ module Transaction_hash = struct
           }
       }
     in
-    let payment = Signed_command.sign kp payload in
+    let signature_kind = Mina_signature_kind.t_DEPRECATED in
+    let payment = Signed_command.sign ~signature_kind kp payload in
     (payment :> Signed_command.t)
     |> Signed_command.to_yojson |> Yojson.Safe.to_string |> Js.string
 end

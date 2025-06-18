@@ -1,4 +1,4 @@
-import { Test } from '../../../snarky.js';
+import { Test } from '../../../bindings.js';
 import { Field } from '../../provable/wrapped.js';
 import { UInt64 } from '../../provable/int.js';
 import { PublicKey } from '../../provable/crypto/signature.js';

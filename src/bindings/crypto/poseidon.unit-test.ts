@@ -4,7 +4,7 @@ import { testPoseidonLegacyFp } from './test-vectors/poseidon-legacy.js';
 import { expect } from 'expect';
 import { bigIntToBytes, parseHexString32 } from './bigint-helpers.js';
 import { test, Random } from '../../lib/testing/property.js';
-import { Test } from '../../snarky.js';
+import { Test } from '../../bindings.js';
 import { FieldConst } from '../../lib/provable/core/fieldvar.js';
 import { MlArray } from '../../lib/ml/base.js';
 import { Fp } from './finite-field.js';
@@ -45,9 +45,7 @@ console.log('poseidon implementation matches the test vectors! 🎉');
 
 test(Random.array(Random.field, Random.nat(20)), (xs) => {
   let g1 = Poseidon.hashToGroup(xs)!;
-  let [, g2x, g2y] = mlTest.poseidon.hashToGroup(
-    MlArray.to(xs.map(FieldConst.fromBigint))
-  );
+  let [, g2x, g2y] = mlTest.poseidon.hashToGroup(MlArray.to(xs.map(FieldConst.fromBigint)));
 
   expect(g1).toBeDefined();
   expect(g1.x).toEqual(FieldConst.toBigint(g2x));

@@ -8,7 +8,7 @@ import { FieldVar } from '../core/fieldvar.js';
 import { assert } from './common.js';
 import { Gates } from '../gates.js';
 import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
-import { Snarky } from '../../../snarky.js';
+import { Snarky } from '../../../bindings.js';
 
 export {
   assertMulCompatible as assertMul,
