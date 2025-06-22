@@ -1,5 +1,7 @@
 import { Field, ZkProgram, verify } from 'o1js';
 
+export { MyProgram };
+
 let MyProgram = ZkProgram({
   name: 'example-with-output',
   publicOutput: Field,
