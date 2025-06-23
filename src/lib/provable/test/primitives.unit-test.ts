@@ -15,9 +15,9 @@ const primitives = ZkFunction({
   },
 });
 
-await primitives.compile();
+const { verificationKey } = await primitives.compile();
 let proof = await primitives.prove();
-let ok = await primitives.verify(proof);
+let ok = await primitives.verify(proof, verificationKey);
 
 expect(ok).toEqual(true);
 

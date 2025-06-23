@@ -45,11 +45,11 @@ type VerifyMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? (proof: Proof, verificationKey?: VerificationKey) => Promise<boolean>
+  ? (proof: Proof, verificationKey: VerificationKey) => Promise<boolean>
   : (
       publicInput: PublicInput<Config>,
       proof: Proof,
-      verificationKey?: VerificationKey
+      verificationKey: VerificationKey
     ) => Promise<boolean>;
 
 function ZkFunction<Config extends ZkFunctionConfig>(
@@ -101,7 +101,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      *
      * @example
      * ```ts
-     * await zkf.compile();
+     * const { verificationKey } = await zkf.compile();
      * const proof = await zkf.prove(publicInput, privateInput1, privateInput2);
      * ```
      */
@@ -147,17 +147,16 @@ function ZkFunction<Config extends ZkFunctionConfig>(
 
       let publicInput: PublicInput<Config>;
       let proof: Proof;
-      let verificationKey: VerificationKey | undefined;
+      let verificationKey: VerificationKey;
       if (hasPublicInput) {
         publicInput = args[0] as PublicInput<Config>;
         proof = args[1] as Proof;
-        verificationKey = args[2] as VerificationKey | undefined;
+        verificationKey = args[2] as VerificationKey;
       } else {
         publicInput = Undefined.empty() as PublicInput<Config>;
         proof = args[0] as Proof;
-        verificationKey = args[1] as VerificationKey | undefined;
+        verificationKey = args[1] as VerificationKey;
       }
-      verificationKey = verificationKey ?? _keypair!.verificationKey();
 
       const publicInputFields = publicInputType.toFields(publicInput);
       await initializeBindings();
