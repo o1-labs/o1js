@@ -34,25 +34,33 @@ type InferMainType<Config extends ZkFunctionConfig> = MainType<
   Config['privateInputTypes']
 >;
 
-type ProveMethodArgs<Config extends ZkFunctionConfig> = Get<
+type ProveMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? PrivateInputs<Config>
-  : [PublicInput<Config>, ...PrivateInputs<Config>];
+  ? (...args: PrivateInputs<Config>) => Promise<Proof>
+  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<Proof>;
 
-type VerifyMethodArgs<Config extends ZkFunctionConfig> = Get<
+type VerifyMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? [Proof, VerificationKey?]
-  : [PublicInput<Config>, Proof, VerificationKey?];
+  ? (proof: Proof, verificationKey?: VerificationKey) => Promise<boolean>
+  : (
+      publicInput: PublicInput<Config>,
+      proof: Proof,
+      verificationKey?: VerificationKey
+    ) => Promise<boolean>;
 
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {
     main: InferMainType<Config>;
   }
-) {
+): {
+  compile: () => Promise<{ verificationKey: VerificationKey }>;
+  prove: ProveMethodType<Config>;
+  verify: VerifyMethodType<Config>;
+} {
   const publicInputType = provablePure(config.publicInputType ?? Undefined);
   const hasPublicInput = config.publicInputType !== undefined;
   let _keypair: Keypair | undefined;
@@ -97,7 +105,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * const proof = await zkf.prove(publicInput, privateInput1, privateInput2);
      * ```
      */
-    async prove(...args: ProveMethodArgs<Config>) {
+    async prove(...args: any[]) {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
 
       const publicInput = hasPublicInput ? args[0] : Undefined.empty();
@@ -134,7 +142,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * const isValid = await zkf.verify(publicInput, proof, verificationKey);
      * ```
      */
-    async verify(...args: VerifyMethodArgs<Config>) {
+    async verify(...args: any[]) {
       if (!_keypair) throw new Error('Cannot find VerificationKey. Please call compile() first!');
 
       let publicInput: PublicInput<Config>;
@@ -145,7 +153,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
         proof = args[1] as Proof;
         verificationKey = args[2] as VerificationKey | undefined;
       } else {
-        publicInput = Undefined.empty() as any;
+        publicInput = Undefined.empty() as PublicInput<Config>;
         proof = args[0] as Proof;
         verificationKey = args[1] as VerificationKey | undefined;
       }
