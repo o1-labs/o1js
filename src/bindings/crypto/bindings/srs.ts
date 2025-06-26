@@ -82,7 +82,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   let getLagrangeBasis = (srs: WasmSrs, n: number) =>
     wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
   let getCommitmentsWholeDomainByPtr =
-    wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_read_from_ptr`];
+    wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_take`];
   return {
     /**
      * returns existing stored SRS or falls back to creating a new one
