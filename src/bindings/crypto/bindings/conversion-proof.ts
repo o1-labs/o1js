@@ -234,12 +234,15 @@ function proofConversionPerField(
 
       let ftEval1 = fieldFromRust(wasmProof.ft_eval1);
       let public_ = fieldsFromRustFlat(wasmProof.public_);
+      // The getter clones the entire Vec<Vec<Fp>> structure, so we need to free the clone
       let prevChallengeScalars = wasmProof.prev_challenges_scalars;
       let [, ...prevChallengeComms] = core.polyCommsFromRust(wasmProof.prev_challenges_comms);
       let prevChallenges = prevChallengeComms.map<RecursionChallenge>((comms, i) => {
         let scalars = fieldsFromRustFlat(prevChallengeScalars.get(i));
         return [0, scalars, comms];
       });
+      // Free the cloned WasmVecVecFp object
+      prevChallengeScalars.free();
       wasmProof.free();
       let proof: ProverProof = [
         0,
