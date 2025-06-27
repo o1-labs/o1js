@@ -9,7 +9,7 @@ KIMCHI_BINDINGS="$MINA_PATH/src/lib/crypto/kimchi_bindings"
 WEB_BINDINGS="src/bindings/compiled/web_bindings"
 
 dune b "${DUNE_PATH}"/o1js_web.bc.js
-cp _build/default/"${KIMCHI_BINDINGS}"/js/web/plonk_wasm* "${WEB_BINDINGS}"/
+cp _build/default/"${KIMCHI_BINDINGS}"/backend/web/plonk_wasm* "${WEB_BINDINGS}"/
 cp "${BUILD_PATH}"/o1js_web*.js "${WEB_BINDINGS}"/
 
 # better error messages

@@ -15,7 +15,7 @@ import {
   mlBytesToUint8Array,
   toMlStringAscii,
 } from './bigint256.js';
-import { wasm } from '../../js/node/node-backend.js';
+import { wasm } from '../../backend/node/node-backend.js';
 import { Spec, ToSpec, FromSpec, defaultAssertEqual, id } from '../../../lib/testing/equivalent.js';
 import { Random } from '../../../lib/testing/property.js';
 import {
@@ -90,24 +90,28 @@ function option<T, S>(spec: Spec<T, S>): Spec<MlOption<T>, S | undefined> {
   };
 }
 
-equivalentRecord(Bigint256Bindings as Omit<typeof Bigint256Bindings, "caml_bigint_256_print" | "caml_bigint_256_to_string">, wasm, {
-  caml_bigint_256_of_numeral: undefined, // TODO
-  caml_bigint_256_of_decimal_string: { from: [decimalString], to: bigint256 },
-  caml_bigint_256_num_limbs: { from: [], to: number },
-  caml_bigint_256_bytes_per_limb: { from: [], to: number },
-  caml_bigint_256_div: { from: [bigint256, bigint256], to: bigint256 },
-  caml_bigint_256_compare: { from: [bigint256, bigint256], to: number },
-  caml_bigint_256_test_bit: {
-    from: [bigint256, numberLessThan(256)],
-    to: boolean,
-  },
-  caml_bigint_256_to_bytes: { from: [bigint256], to: bytes },
-  caml_bigint_256_of_bytes: { from: [bytes], to: bigint256 },
-  caml_bigint_256_deep_copy: { from: [bigint256], to: bigint256 },
-});
-
-
-
+equivalentRecord(
+  Bigint256Bindings as Omit<
+    typeof Bigint256Bindings,
+    'caml_bigint_256_print' | 'caml_bigint_256_to_string'
+  >,
+  wasm,
+  {
+    caml_bigint_256_of_numeral: undefined, // TODO
+    caml_bigint_256_of_decimal_string: { from: [decimalString], to: bigint256 },
+    caml_bigint_256_num_limbs: { from: [], to: number },
+    caml_bigint_256_bytes_per_limb: { from: [], to: number },
+    caml_bigint_256_div: { from: [bigint256, bigint256], to: bigint256 },
+    caml_bigint_256_compare: { from: [bigint256, bigint256], to: number },
+    caml_bigint_256_test_bit: {
+      from: [bigint256, numberLessThan(256)],
+      to: boolean,
+    },
+    caml_bigint_256_to_bytes: { from: [bigint256], to: bytes },
+    caml_bigint_256_of_bytes: { from: [bytes], to: bigint256 },
+    caml_bigint_256_deep_copy: { from: [bigint256], to: bigint256 },
+  }
+);
 
 // elliptic curve
 

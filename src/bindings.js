@@ -1,5 +1,5 @@
 import './bindings/crypto/bindings.js';
-import { wasm, withThreadPool } from './bindings/js/node/node-backend.js';
+import { wasm, withThreadPool } from './bindings/backend/node/node-backend.js';
 
 let Snarky, Ledger, Pickles, Test_;
 let isInitialized = false;

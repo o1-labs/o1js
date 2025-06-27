@@ -93,7 +93,7 @@
           pkgs = prj_.pkgs // {
             __ocaml-js__ = prj_.pkgs.__ocaml-js__.overrideAttrs {
               PREBUILT_KIMCHI_BINDINGS_JS_WEB =
-                "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
+                "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/backend/web";
               PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
                 "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
             };
@@ -264,7 +264,7 @@
             KIMCHI_STUBS_STATIC_LIB
             ;
           PREBUILT_KIMCHI_BINDINGS_JS_WEB =
-            "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
+            "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/backend/web";
           PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
             "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";

@@ -50,7 +50,7 @@ async function buildWeb({ production }) {
     './src/bindings/compiled/web_bindings/': './dist/web/web_bindings/',
     './src/bindings.d.ts': './dist/web/bindings.d.ts',
     './src/bindings.web.js': './dist/web/bindings.js',
-    './src/bindings/js/web/': './dist/web/bindings/js/web/',
+    './src/bindings/backend/web/': './dist/web/bindings/backend/web/',
   });
 
   if (minify) {
@@ -137,7 +137,7 @@ function rewriteBundledWasmBindings(src) {
 
   src = src.replace('var startWorkers;\n', '');
   src = src.replace('var terminateWorkers;\n', '');
-  return `import { startWorkers, terminateWorkers } from '../bindings/js/web/worker-helpers.js'
+  return `import { startWorkers, terminateWorkers } from '../bindings/backend/web/worker-helpers.js'
 export {plonkWasm as default};
 function plonkWasm() {
   ${src}
