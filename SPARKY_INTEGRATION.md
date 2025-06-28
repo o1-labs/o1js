@@ -160,6 +160,7 @@ git commit -m "Update Sparky submodule"
 
 ## Testing
 
+### Rust Tests
 Run Sparky tests within the submodule:
 
 ```bash
@@ -167,12 +168,34 @@ cd src/sparky
 cargo test --workspace
 ```
 
+### WASM Integration Tests
 Run WASM integration tests:
 
 ```bash
 cd src/sparky/sparky-wasm
 npm test
 ```
+
+### JavaScript Integration Tests
+Run the demo and test scripts:
+
+```bash
+# Simple demo
+npx tsx src/examples/sparky-demo.ts
+
+# Comprehensive test
+npx tsx src/examples/sparky-test.ts
+```
+
+### Test Results
+The integration has been verified with the following functionality:
+- ✅ Field arithmetic operations (constant, add, scale)
+- ✅ Poseidon hash computation
+- ✅ Prover/constraint mode switching
+- ✅ Elliptic curve operations (point addition, doubling)
+- ✅ Constraint system tracking
+
+Note: Some field operations (mul, sub) are implemented in Rust but need to be exposed in the WASM bindings.
 
 ## Troubleshooting
 

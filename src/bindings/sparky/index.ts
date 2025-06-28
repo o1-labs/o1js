@@ -5,9 +5,14 @@
  * as a potential replacement for the OCaml-based snarky backend.
  */
 
-import type { Snarky as SparkyWasm } from '../compiled/sparky_web/sparky_wasm';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-let sparkyInstance: SparkyWasm | undefined;
+// Determine if we're in Node.js or browser environment
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+let sparkyInstance: any;
 let initPromise: Promise<void> | undefined;
 
 /**
@@ -18,15 +23,33 @@ export async function initSparky(): Promise<void> {
   
   initPromise = (async () => {
     try {
-      // Dynamic import for web compatibility
-      const sparkyModule = await import('../compiled/sparky_web/sparky_wasm.js');
-      const { default: init, Snarky } = sparkyModule;
-      
-      // Initialize WASM
-      await init();
-      
-      // Create Sparky instance
-      sparkyInstance = new Snarky();
+      if (isNode) {
+        // Node.js environment
+        const sparkyModule = await import('../compiled/sparky_node/sparky_wasm.js');
+        const { default: init, Snarky } = sparkyModule;
+        
+        // Read WASM file for Node.js
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
+        const wasmPath = join(__dirname, '../compiled/sparky_node/sparky_wasm_bg.wasm');
+        const wasmBuffer = readFileSync(wasmPath);
+        
+        // Initialize with WASM buffer
+        await init(wasmBuffer);
+        
+        // Create Sparky instance
+        sparkyInstance = new Snarky();
+      } else {
+        // Browser environment
+        const sparkyModule = await import('../compiled/sparky_web/sparky_wasm.js');
+        const { default: init, Snarky } = sparkyModule;
+        
+        // Initialize WASM (will fetch automatically in browser)
+        await init();
+        
+        // Create Sparky instance
+        sparkyInstance = new Snarky();
+      }
     } catch (error) {
       console.error('Failed to initialize Sparky WASM:', error);
       throw error;
@@ -39,7 +62,7 @@ export async function initSparky(): Promise<void> {
 /**
  * Get the initialized Sparky instance
  */
-export function getSparky(): SparkyWasm {
+export function getSparky(): any {
   if (!sparkyInstance) {
     throw new Error('Sparky not initialized. Call initSparky() first.');
   }
@@ -76,5 +99,5 @@ export async function runAsProver<T>(fn: () => T): Promise<T> {
   return run.asProver(fn as any) as T;
 }
 
-// Export types
-export type { Snarky as SparkyInstance } from '../compiled/sparky_web/sparky_wasm';
+// Export types (conditionally based on environment)
+export type SparkyInstance = any; // Will be properly typed once we have consistent types for both environments

@@ -21,10 +21,10 @@ pushd "$SPARKY_WASM_PATH"
     wasm-pack build --target web --out-dir pkg-web
 popd
 
-# Build Sparky WASM for Node.js
+# Build Sparky WASM for Node.js (ES modules)
 echo "Building Sparky WASM for Node.js..."
 pushd "$SPARKY_WASM_PATH"
-    wasm-pack build --target nodejs --out-dir pkg-node
+    wasm-pack build --target web --out-dir pkg-node
 popd
 
 # Create directories if they don't exist
