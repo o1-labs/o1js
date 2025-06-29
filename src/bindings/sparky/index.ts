@@ -24,24 +24,23 @@ export async function initSparky(): Promise<void> {
   initPromise = (async () => {
     try {
       if (isNode) {
-        // Node.js environment
-        const sparkyModule = await import('../compiled/sparky_node/sparky_wasm.js');
-        const { default: init, Snarky } = sparkyModule;
+        // Check if we're in a bundled environment (bundler creates tmp files)
+        const isBundled = import.meta.url?.includes('.tmp.js') || globalThis.__bundled;
         
-        // Read WASM file for Node.js
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = dirname(__filename);
-        const wasmPath = join(__dirname, '../compiled/sparky_node/sparky_wasm_bg.wasm');
-        const wasmBuffer = readFileSync(wasmPath);
-        
-        // Initialize with WASM buffer
-        await init(wasmBuffer);
-        
-        // Create Sparky instance
-        sparkyInstance = new Snarky();
+        if (isBundled) {
+          // Use bundler-compatible ES module version
+          const sparkyModule = await import('../../compiled/sparky_bundler/sparky_wasm.js');
+          const { Snarky } = sparkyModule;
+          sparkyInstance = new Snarky();
+        } else {
+          // Node.js environment - WASM is auto-initialized on import
+          const sparkyModule = await import('../../compiled/sparky_node/sparky_wasm.js');
+          const { Snarky } = sparkyModule;
+          sparkyInstance = new Snarky();
+        }
       } else {
         // Browser environment
-        const sparkyModule = await import('../compiled/sparky_web/sparky_wasm.js');
+        const sparkyModule = await import('../../compiled/sparky_web/sparky_wasm.js');
         const { default: init, Snarky } = sparkyModule;
         
         // Initialize WASM (will fetch automatically in browser)

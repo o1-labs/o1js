@@ -131,3 +131,7 @@ This is a git submodule containing the Mina protocol implementation, including:
 - Most development happens in the TypeScript layer without touching bindings
 - Test files use `.test.ts` suffix and are run with Jest
 - Examples are in `src/examples/` with various zkApp patterns
+
+## Development Memories
+
+- You must run all examples for o1js2 from the project root so it can find the compiled bindings

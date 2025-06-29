@@ -12,7 +12,7 @@ import {
 } from '../bindings.js';
 import { Field } from '../lib/provable/field.js';
 
-async function testFieldOperations(backendName) {
+async function testFieldOperations(backendName: string) {
   console.log(`\n=== Testing ${backendName} Backend ===`);
   
   try {
@@ -59,13 +59,13 @@ async function testFieldOperations(backendName) {
     
     console.log(`✓ ${backendName} backend tests passed`);
     
-  } catch (error) {
+  } catch (error: any) {
     console.error(`✗ ${backendName} backend tests failed:`, error.message);
     throw error;
   }
 }
 
-async function testPoseidonHash(backendName) {
+async function testPoseidonHash(backendName: string) {
   console.log(`\n=== Testing Poseidon Hash with ${backendName} ===`);
   
   try {
@@ -86,7 +86,7 @@ async function testPoseidonHash(backendName) {
     
     console.log(`✓ Poseidon hash test passed`);
     
-  } catch (error) {
+  } catch (error: any) {
     console.error(`✗ Poseidon hash test failed:`, error.message);
   }
 }
@@ -125,7 +125,7 @@ async function main() {
     console.log('\n📋 Environment Variable Test:');
     console.log(`O1JS_BACKEND=${process.env.O1JS_BACKEND || 'not set'}`);
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('\n❌ Test failed:', error);
     console.error(error.stack);
     process.exit(1);

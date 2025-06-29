@@ -19,6 +19,8 @@ let workersReady;
 // expose this globally so that it can be referenced from wasm
 globalThis.startWorkers = startWorkers;
 globalThis.terminateWorkers = terminateWorkers;
+// expose workersReadyResolve globally for bundled environments
+globalThis.workersReadyResolve = () => workersReadyResolve && workersReadyResolve();
 
 if (!isMainThread) {
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
@@ -70,7 +72,8 @@ async function startWorkers(src, memory, builder) {
     })
   );
   builder.build();
-  workersReadyResolve();
+  // Use global wrapper to handle bundled environments
+  globalThis.workersReadyResolve();
 }
 
 async function terminateWorkers() {
