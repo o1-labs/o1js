@@ -8,12 +8,26 @@ export { buildAndImport, build, buildOne };
 
 async function buildAndImport(srcPath, { keepFile = false }) {
   let absPath = await build(srcPath);
-  let importedModule;
-  try {
-    importedModule = await import(absPath);
-  } finally {
-    if (!keepFile) await fs.unlink(absPath.replace(/^file:\/\/\/*/, ''));
+  let importedModule = await import(absPath);
+  
+  // Don't clean up immediately - o1js may use worker threads that need the file
+  // Schedule cleanup for later if not keeping the file
+  if (!keepFile) {
+    let filePath = absPath;
+    if (filePath.startsWith('file://')) {
+      filePath = new URL(filePath).pathname;
+    }
+    
+    // Clean up after a significant delay to allow worker threads to finish
+    setTimeout(async () => {
+      try {
+        await fs.unlink(filePath);
+      } catch (err) {
+        // Ignore cleanup errors - file might have been deleted already
+      }
+    }, 5000); // 5 second delay
   }
+  
   return importedModule;
 }
 
@@ -29,7 +43,7 @@ async function build(srcPath, isWeb = false) {
     entryPoints: [srcPath],
     bundle: true,
     format: 'esm',
-    platform: isWeb ? 'node' : 'browser',
+    platform: isWeb ? 'browser' : 'node',
     outfile,
     target: 'esnext',
     resolveExtensions: ['.node.js', '.ts', '.js'],
