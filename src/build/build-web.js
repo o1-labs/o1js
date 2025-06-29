@@ -53,6 +53,16 @@ async function buildWeb({ production }) {
     './src/bindings/js/web/': './dist/web/bindings/js/web/',
   });
 
+  // Copy Sparky web bindings if they exist
+  try {
+    await copy({
+      './src/bindings/compiled/sparky_web/': './dist/web/sparky_web/',
+      './src/bindings/sparky-adapter.js': './dist/web/bindings/sparky-adapter.js',
+    });
+  } catch (error) {
+    console.log('Some Sparky web files not found, continuing without them...');
+  }
+
   if (minify) {
     let o1jsWebPath = './dist/web/web_bindings/o1js_web.bc.js';
     let o1jsWeb = await readFile(o1jsWebPath, 'utf8');

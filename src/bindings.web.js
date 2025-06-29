@@ -1,20 +1,81 @@
 import './bindings/crypto/bindings.js';
-import { initializeBindings as init, withThreadPool, wasm } from './bindings/js/web/web-backend.js';
+import { initializeBindings as initOcaml, withThreadPool, wasm } from './bindings/js/web/web-backend.js';
 
 let Snarky, Ledger, Pickles, Test_;
 let isInitialized = false;
+let initializingPromise;
+let activeBackend = 'snarky'; // Track active backend
 
-async function initializeBindings() {
-  if (isInitialized) return;
-  isInitialized = true;
-
-  await init();
-  ({ Snarky, Ledger, Pickles, Test: Test_ } = globalThis.__snarky);
+async function initializeBindings(backend = null) {
+  // Use environment variable if no backend specified
+  if (!backend) {
+    backend = (typeof process !== 'undefined' && process.env?.O1JS_BACKEND?.toLowerCase()) || 'snarky';
+  }
+  
+  // Return early if already initialized with same backend
+  if (isInitialized && activeBackend === backend) return;
+  
+  // Reset if switching backends
+  if (activeBackend !== backend && isInitialized) {
+    console.log(`Switching backend from ${activeBackend} to ${backend}`);
+    isInitialized = false;
+    initializingPromise = undefined;
+  }
+  
+  if (initializingPromise) {
+    await initializingPromise;
+    return;
+  }
+  
+  let resolve;
+  initializingPromise = new Promise((r) => (resolve = r));
+  
+  try {
+    if (backend === 'sparky') {
+      // Load Sparky adapter that implements Snarky interface
+      console.log('Loading Sparky backend...');
+      const sparkyAdapter = await import('./bindings/sparky-adapter.js');
+      
+      // Initialize Sparky WASM
+      await sparkyAdapter.initializeSparky();
+      
+      ({ Snarky, Ledger, Pickles, Test: Test_ } = sparkyAdapter);
+      console.log('✓ Sparky backend loaded');
+    } else {
+      // Load OCaml Snarky (default)
+      console.log('Loading Snarky backend...');
+      await initOcaml();
+      ({ Snarky, Ledger, Pickles, Test: Test_ } = globalThis.__snarky);
+      console.log('✓ Snarky backend loaded');
+    }
+    
+    activeBackend = backend;
+    resolve();
+    initializingPromise = undefined;
+    isInitialized = true;
+  } catch (error) {
+    console.error(`Failed to initialize ${backend} backend:`, error);
+    resolve(); // Resolve to prevent hanging
+    throw error;
+  }
 }
 
 async function Test() {
   await initializeBindings();
   return Test_;
+}
+
+// Backend switching API
+export async function switchBackend(backend) {
+  if (!['snarky', 'sparky'].includes(backend)) {
+    throw new Error(`Unknown backend: ${backend}. Valid options are 'snarky' and 'sparky'.`);
+  }
+  
+  await initializeBindings(backend);
+}
+
+export function getCurrentBackend() {
+  return activeBackend;
 }
 
 export {

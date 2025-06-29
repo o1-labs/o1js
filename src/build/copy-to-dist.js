@@ -10,3 +10,18 @@ await copyFromTo(
   'src/',
   'dist/node/'
 );
+
+// Copy Sparky bindings if they exist
+try {
+  await copyFromTo(
+    [
+      'src/bindings/compiled/sparky_node',
+      'src/bindings/compiled/sparky_web',
+      'src/bindings/sparky-adapter.js',
+    ],
+    'src/',
+    'dist/node/'
+  );
+} catch (error) {
+  console.log('Some Sparky files not found, continuing without them...');
+}

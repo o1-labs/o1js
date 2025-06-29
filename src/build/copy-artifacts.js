@@ -3,3 +3,12 @@
 import { copyFromTo } from './utils.js';
 
 await copyFromTo(['src/bindings/compiled/node_bindings/'], 'node_bindings', '_node_bindings');
+
+// Copy Sparky WASM artifacts if they exist
+await copyFromTo(['src/bindings/compiled/sparky_node/'], 'sparky_node', 'sparky_node').catch(() => {
+  console.log('Sparky node bindings not found, skipping...');
+});
+
+await copyFromTo(['src/bindings/compiled/sparky_web/'], 'sparky_web', 'sparky_web').catch(() => {
+  console.log('Sparky web bindings not found, skipping...');
+});
