@@ -13,6 +13,7 @@ This document consolidates all technical documentation for o1js development, inc
 5. [Implementation Plans](#implementation-plans)
 6. [Performance Benchmarks](#performance-benchmarks)
 7. [Build System](#build-system)
+8. [Test Suite Organization](#test-suite-organization)
 
 ---
 
@@ -375,6 +376,82 @@ When working with backend switching:
 3. Both backends should produce identical results for basic operations
 4. Sparky is missing some advanced features (lookup, foreign fields)
 5. Proof generation currently only works with Snarky
+
+---
+
+## Test Suite Organization
+
+### Overview (June 29, 2025)
+
+The o1js test suite has been reorganized to separate proper unit tests from temporary debugging code. This cleanup converted 9 valuable test files into proper Jest tests and removed 31 unnecessary files.
+
+### Test Structure
+
+#### Backend Compatibility Tests
+**Location**: `tests/backend-compatibility/`
+
+- **vk-matching.test.ts** - Comprehensive VK comparison for programs with 0-5 private inputs
+  - Tests both odd and even private input counts
+  - Verifies backend switching functionality
+  - Ensures Poseidon hash consistency
+
+- **sparky-integration.test.ts** - Integration tests for Sparky backend
+  - Edge cases (0, 1, 2, 5, 6, 15, 20 private inputs)
+  - Cross-backend proof verification
+  - Poseidon fix validation
+
+#### EC Operation Tests
+**Location**: `src/lib/provable/gadgets/elliptic-curve/test/`
+
+- **ecadd-constraints.test.ts** - Constraint generation tests for Group operations
+- **backend-ec-comparison.test.ts** - Backend VK comparison for EC operations
+- **mathematical-correctness.spec.ts** - Mathematical property specifications (documentation)
+
+### Benchmark Organization
+
+Moved benchmarks to appropriate locations:
+
+#### Compilation Benchmarks
+**Location**: `benchmark/suites/microbenchmarks/`
+- `compilation-complexity.cjs` - Various complexity levels
+- `compilation-streamlined.cjs` - Focused benchmark suite
+- `compilation-no-cache.cjs` - True compilation performance
+- `compilation-with-cache.cjs` - Cache benefit analysis
+
+#### Merkle Proof Benchmarks
+**Location**: `benchmark/suites/holistic/`
+- `merkle-proof-complex.cjs` - Complex membership proofs
+- `merkle-proof-simple.cjs` - Basic merkle operations
+
+### Benchmark Results
+
+**Sparky Compilation Performance**:
+- Average speedup: **3.2x** faster than Snarky
+- Simple programs: **4.9x** faster (13s → 2.6s)
+- Poseidon hash: **1.5x** faster (4.2s → 2.7s)
+- Missing features: `rotate` and `xor` gates cause failures
+
+### Files Removed (31 total)
+
+Deleted temporary debugging and exploration files including:
+- Minimal reproductions (`test-sparky-minimal-repro.ts`, etc.)
+- Debugging utilities (`test-debug-exists.ts`, `test-debug-passthrough.ts`)
+- Implementation explorations (`test-ec-basic.ts`, `test-sparky-basic.ts`)
+- Temporary verification files
+
+### Testing Guidelines
+
+1. **Unit Tests**: Use Jest with proper describe blocks and assertions
+2. **Integration Tests**: Place in `tests/` directory at project root
+3. **Benchmarks**: Use existing benchmark framework structure
+4. **Import Paths**: Use `'o1js'` for imports in test files
+
+### CI Integration
+
+To add these tests to CI:
+1. Backend compatibility tests should run with extended timeouts
+2. EC operation tests can use standard timeouts
+3. Benchmarks should be optional or run separately
 
 ---
 
