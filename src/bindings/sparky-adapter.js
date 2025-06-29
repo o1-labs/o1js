@@ -969,23 +969,29 @@ export const Snarky = {
       if (state && state.length > 0) {
         gatesModule.rangeCheck64(state[0]);
       }
+    },
+    
+    rangeCheck0(x) {
+      // Range check that a value is exactly 0
+      gatesModule.rangeCheck0(fieldVarToCvar(x));
+    },
+    
+    rangeCheck1(v2, v12, v2c0, v2p0, v2p1, v2p2, v2p3, v2c1, v2c2, v2c3, v2c4, v2c5, v2c6, v2c7, v2c8, v2c9, v2c10, v2c11, v0p0, v0p1, v1p0, v1p1, v2c12, v2c13, v2c14, v2c15, v2c16, v2c17, v2c18, v2c19) {
+      // Range check implementation for complex multi-variable constraints
+      // Convert all field variables to Cvar format
+      gatesModule.rangeCheck1(
+        fieldVarToCvar(v2), fieldVarToCvar(v12),
+        fieldVarToCvar(v2c0), fieldVarToCvar(v2p0), fieldVarToCvar(v2p1), fieldVarToCvar(v2p2), fieldVarToCvar(v2p3),
+        fieldVarToCvar(v2c1), fieldVarToCvar(v2c2), fieldVarToCvar(v2c3), fieldVarToCvar(v2c4), fieldVarToCvar(v2c5),
+        fieldVarToCvar(v2c6), fieldVarToCvar(v2c7), fieldVarToCvar(v2c8),
+        fieldVarToCvar(v2c9), fieldVarToCvar(v2c10), fieldVarToCvar(v2c11),
+        fieldVarToCvar(v0p0), fieldVarToCvar(v0p1), fieldVarToCvar(v1p0), fieldVarToCvar(v1p1),
+        fieldVarToCvar(v2c12), fieldVarToCvar(v2c13), fieldVarToCvar(v2c14), fieldVarToCvar(v2c15),
+        fieldVarToCvar(v2c16), fieldVarToCvar(v2c17), fieldVarToCvar(v2c18), fieldVarToCvar(v2c19)
+      );
     }
   },
   
-  /**
-   * Poseidon hash function
-   */
-  poseidon(inputs) {
-    if (inputs.length === 2) {
-      const input0 = fieldVarToCvar(inputs[0]);
-      const input1 = fieldVarToCvar(inputs[1]);
-      const result = gatesModule.poseidonHash2(input0, input1);
-      return cvarToFieldVar(result);
-    }
-    const convertedInputs = inputs.map(fieldVarToCvar);
-    const result = gatesModule.poseidonHashArray(convertedInputs);
-    return cvarToFieldVar(result);
-  },
   
   /**
    * Circuit APIs
@@ -1045,6 +1051,58 @@ export const Snarky = {
       vars.push(cvarToFieldVar(constantVar));
     }
     return vars;
+  },
+  
+  /**
+   * Poseidon object with sponge construction methods
+   */
+  poseidon: {
+    update(state, input) {
+      try {
+        // Convert inputs to the right format for WASM
+        // The state and input should already be in MlArray format: [0, ...fieldVars]
+        if (!Array.isArray(state) || state[0] !== 0) {
+          throw new Error('State must be in MlArray format [0, ...fieldVars]');
+        }
+        if (!Array.isArray(input) || input[0] !== 0) {
+          throw new Error('Input must be in MlArray format [0, ...fieldVars]');
+        }
+        
+        // Extract FieldVars and convert to Cvar format
+        const stateArray = state.slice(1).map(fieldVarToCvar);
+        const inputArray = input.slice(1).map(fieldVarToCvar);
+        
+        // Create MlArray format for WASM: [0, [elements]]
+        // The WASM expects nested array format: [0, actual_array]
+        const stateMlArray = [0, stateArray];
+        const inputMlArray = [0, inputArray];
+        
+        // Call the WASM poseidon.update method
+        const newStateArray = sparkyInstance.poseidon.update(stateMlArray, inputMlArray);
+        
+        // Convert result back to FieldVar format
+        // Result should be [0, field1, field2, field3], so we skip the first element
+        if (!Array.isArray(newStateArray) || newStateArray.length < 4) {
+          throw new Error('Invalid poseidon.update result format');
+        }
+        
+        return newStateArray.slice(1).map(cvarToFieldVar);
+      } catch (error) {
+        console.error('Poseidon.update error:', error);
+        throw error;
+      }
+    },
+    
+    hashToGroup(input) {
+      // Convert input to the right format
+      const inputArray = input.map(fieldVarToCvar);
+      
+      // Call the WASM poseidon.hashToGroup method
+      const groupPoint = sparkyInstance.poseidon.hashToGroup([0, ...inputArray]);
+      
+      // Return as [x, y] pair converted to FieldVar format
+      return [0, cvarToFieldVar(groupPoint[0]), cvarToFieldVar(groupPoint[1])];
+    }
   },
   
   asProver(f) {

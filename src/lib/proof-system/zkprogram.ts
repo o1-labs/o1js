@@ -4,6 +4,7 @@ import {
   Base64VerificationKeyString,
   Snarky,
   initializeBindings,
+  getCurrentBackend,
   withThreadPool,
 } from '../../bindings.js';
 import { Pickles, Gate } from '../../bindings.js';
@@ -111,7 +112,7 @@ async function verify(
   proof: ProofBase<any, any> | JsonProof,
   verificationKey: Base64VerificationKeyString | VerificationKey
 ) {
-  await initializeBindings();
+  await initializeBindings(getCurrentBackend());
   let picklesProof: Pickles.Proof;
   let statement: Pickles.Statement<FieldConst>;
   if (typeof proof.proof === 'string') {
@@ -727,7 +728,7 @@ async function compileProgram({
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
 }) {
-  await initializeBindings();
+  await initializeBindings(getCurrentBackend());
   if (methodIntfs.length === 0)
     throw Error(`The Program you are trying to compile has no methods.
 Try adding a method to your ZkProgram or SmartContract.

@@ -5,8 +5,8 @@
 
 async function loadModules() {
   // Use require for CJS modules
-  const { Field, Bool, Poseidon, Struct, Provable, Gadgets, ZkProgram, switchBackend, getCurrentBackend } = require('./dist/node/index.cjs');
-  const { MerkleMembershipProgram } = await import('./dist/examples/zkprogram/merkle-membership-proof.js');
+  const { Field, Bool, Poseidon, Struct, Provable, Gadgets, ZkProgram, switchBackend, getCurrentBackend } = require('../../../dist/node/index.cjs');
+  const { MerkleMembershipProgram } = await import('../../../dist/examples/zkprogram/merkle-membership-proof.js');
   
   return {
     Field,

@@ -4,8 +4,8 @@
  */
 
 async function loadModules() {
-  const o1js = await import('./dist/node/index.js');
-  const bindings = await import('./dist/node/bindings.js');
+  const o1js = await import('../../../dist/node/index.js');
+  const bindings = await import('../../../dist/node/bindings.js');
   return {
     Field: o1js.Field,
     Poseidon: o1js.Poseidon,

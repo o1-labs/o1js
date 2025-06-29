@@ -6,7 +6,7 @@
 const { 
   Field, Bool, Poseidon, Struct, Provable, Gadgets, ZkProgram, SelfProof,
   switchBackend, getCurrentBackend 
-} = require('./dist/node/index.cjs');
+} = require('../../../dist/node/index.cjs');
 
 // Inline the MerkleWitness8 class
 class MerkleWitness8 extends Struct({

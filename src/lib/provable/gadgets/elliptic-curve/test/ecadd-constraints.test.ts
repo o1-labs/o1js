@@ -1,4 +1,4 @@
-import { Field, Group, ZkProgram } from '../../../../../index.js';
+import { Field, Group, ZkProgram } from 'o1js';
 
 describe('EC Add Constraint Generation', () => {
   it('should generate constraints for basic Group operations', async () => {
@@ -9,7 +9,7 @@ describe('EC Add Constraint Generation', () => {
       methods: {
         testBasicGroupOps: {
           privateInputs: [],
-          method(publicInput: Field) {
+          async method(publicInput: Field) {
             // Use Group operations that should trigger ecAdd
             const g = Group.generator;
             
@@ -56,7 +56,7 @@ describe('EC Add Constraint Generation', () => {
       methods: {
         testInfinity: {
           privateInputs: [],
-          method(publicInput: Field) {
+          async method(publicInput: Field) {
             const g = Group.generator;
             const zero = Group.zero;
             
@@ -90,7 +90,7 @@ describe('EC Add Constraint Generation', () => {
       methods: {
         testComplex: {
           privateInputs: [Field],
-          method(publicInput: Field, scalar: Field) {
+          async method(publicInput: Field, scalar: Field) {
             const g = Group.generator;
             
             // Combination of add and scale operations
