@@ -8,6 +8,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { Fp } from './crypto/finite-field.js';
 
 // Determine if we're in Node.js or browser environment
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
@@ -76,6 +77,56 @@ function toSparkyField(field) {
     return field; // Already a Sparky field var
   }
   return field;
+}
+
+/**
+ * Convert o1js FieldVar format to Sparky Cvar format
+ */
+function fieldVarToCvar(fieldVar) {
+  if (!Array.isArray(fieldVar)) {
+    throw new Error('Invalid FieldVar format - expected array');
+  }
+  
+  const [type, ...data] = fieldVar;
+  
+  switch (type) {
+    case 0: // Constant
+      if (!Array.isArray(data[0]) || data[0][0] !== 0) {
+        throw new Error('Invalid constant FieldVar format');
+      }
+      const [, bigintValue] = data[0]; // data[0] is [0, bigint]
+      return {
+        type: 'constant',
+        value: bigintValue.toString()
+      };
+      
+    case 1: // Var
+      return {
+        type: 'var',
+        id: data[0] // variable index
+      };
+      
+    case 2: // Add
+      return {
+        type: 'add',
+        left: fieldVarToCvar(data[0]),
+        right: fieldVarToCvar(data[1])
+      };
+      
+    case 3: // Scale
+      if (!Array.isArray(data[0]) || data[0][0] !== 0) {
+        throw new Error('Invalid scale FieldVar format');
+      }
+      const [, scalarBigint] = data[0]; // data[0] is [0, bigint]
+      return {
+        type: 'scale',
+        scalar: scalarBigint.toString(),
+        cvar: fieldVarToCvar(data[1])
+      };
+      
+    default:
+      throw new Error(`Unknown FieldVar type: ${type}`);
+  }
 }
 
 /**
@@ -204,24 +255,70 @@ export const Snarky = {
    * Field APIs
    */
   field: {
+    // Add fromNumber for compatibility
+    fromNumber(x) {
+      // Create a constant field variable from a number
+      // This matches the OCaml API expectation
+      return [0, [0, BigInt(x)]]; // [FieldType.Constant, [0, bigint]]
+    },
+    
+    // Add random for compatibility - now cryptographically secure!
+    random() {
+      // Generate a cryptographically secure random field element using Fp.random()
+      // This uses rejection sampling with crypto.randomBytes under the hood
+      const randomBigInt = Fp.random();
+      return [0, [0, randomBigInt]]; // [FieldType.Constant, [0, bigint]]
+    },
+    
     readVar(x) {
-      return sparkyInstance.field.readVar(toSparkyField(x));
+      try {
+        // Check if sparkyInstance is available
+        if (!sparkyInstance || !sparkyInstance.field || !sparkyInstance.field.readVar) {
+          throw new Error('Sparky readVar not available - ensure Sparky is initialized');
+        }
+        
+        // Convert o1js FieldVar to Sparky Cvar format
+        const cvar = fieldVarToCvar(x);
+        
+        // Call Sparky's readVar implementation
+        // Note: Sparky returns the value as a string
+        const resultString = sparkyInstance.field.readVar(cvar);
+        
+        // Convert string result back to bigint for o1js compatibility
+        return BigInt(resultString);
+      } catch (error) {
+        // If we're not in prover mode, Sparky will throw an error
+        // Re-throw with a more descriptive message
+        if (error.message && error.message.includes('prover mode')) {
+          throw new Error('readVar can only be called in prover mode (inside asProver or witness blocks)');
+        }
+        throw error;
+      }
     },
     
     assertEqual(x, y) {
-      sparkyInstance.field.assertEqual(toSparkyField(x), toSparkyField(y));
+      // Convert o1js FieldVars to Sparky Cvars
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      sparkyInstance.field.assertEqual(xCvar, yCvar);
     },
     
     assertMul(x, y, z) {
-      sparkyInstance.field.assertMul(toSparkyField(x), toSparkyField(y), toSparkyField(z));
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      const zCvar = fieldVarToCvar(z);
+      sparkyInstance.field.assertMul(xCvar, yCvar, zCvar);
     },
     
     assertSquare(x, y) {
-      sparkyInstance.field.assertSquare(toSparkyField(x), toSparkyField(y));
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      sparkyInstance.field.assertSquare(xCvar, yCvar);
     },
     
     assertBoolean(x) {
-      sparkyInstance.field.assertBoolean(toSparkyField(x));
+      const xCvar = fieldVarToCvar(x);
+      sparkyInstance.field.assertBoolean(xCvar);
     },
     
     truncateToBits16(lengthDiv16, x) {
