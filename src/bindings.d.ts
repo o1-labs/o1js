@@ -35,7 +35,7 @@ import type { KimchiGateType } from './lib/provable/gates.ts';
 import type { MlConstraintSystem } from './lib/provable/core/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
-export { Ledger, Pickles, Gate, GateType, wasm, initializeBindings };
+export { Ledger, Pickles, Gate, GateType, wasm, initializeBindings, switchBackend, getCurrentBackend };
 
 // internal
 export {
@@ -788,6 +788,15 @@ declare const Pickles: {
  */
 declare function initializeBindings(backend?: string): Promise<void>;
 
+/**
+ * Switch between different backend implementations.
+ */
+declare function switchBackend(backend: 'snarky' | 'sparky'): Promise<void>;
+
+/**
+ * Get the currently active backend.
+ */
+declare function getCurrentBackend(): string;
 
 declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;
 

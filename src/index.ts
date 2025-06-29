@@ -1,6 +1,6 @@
 export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
-export { Ledger, initializeBindings } from './bindings.js';
+export { Ledger, initializeBindings, switchBackend, getCurrentBackend } from './bindings.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export {
   createForeignField,
