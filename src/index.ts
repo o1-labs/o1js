@@ -2,17 +2,14 @@ export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings, switchBackend, getCurrentBackend } from './bindings.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
-export {
-  createForeignField,
-  ForeignField,
-  AlmostForeignField,
-  CanonicalForeignField,
-} from './lib/provable/foreign-field.js';
+export { createForeignField } from './lib/provable/foreign-field.js';
+export type { ForeignField, AlmostForeignField, CanonicalForeignField } from './lib/provable/foreign-field.js';
 export { createForeignCurve, ForeignCurve, toPoint } from './lib/provable/crypto/foreign-curve.js';
 export type { FlexiblePoint } from './lib/provable/crypto/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/provable/crypto/foreign-ecdsa.js';
 export { ScalarField } from './lib/provable/scalar-field.js';
-export { Poseidon, TokenSymbol, ProvableHashable } from './lib/provable/crypto/poseidon.js';
+export { Poseidon, TokenSymbol } from './lib/provable/crypto/poseidon.js';
+export type { ProvableHashable } from './lib/provable/crypto/poseidon.js';
 export { Keccak } from './lib/provable/crypto/keccak.js';
 export { Hash } from './lib/provable/crypto/hash.js';
 
@@ -29,7 +26,7 @@ export type {
 export { provableFromClass } from './lib/provable/types/provable-derivers.js';
 export type { ProvablePureExtended } from './lib/provable/types/struct.js';
 
-export { From, InferValue, InferJson, IsPure } from './bindings/lib/provable-generic.js';
+export type { From, InferValue, InferJson, IsPure } from './bindings/lib/provable-generic.js';
 export { ProvableType } from './lib/provable/types/provable-intf.js';
 export { provable, provablePure } from './lib/provable/types/provable-derivers.js';
 export { Struct } from './lib/provable/types/struct.js';
@@ -66,7 +63,8 @@ export { SelfProof, verify, Empty, Undefined, Void } from './lib/proof-system/zk
 export { VerificationKey } from './lib/proof-system/verification-key.js';
 export { type ProofBase, Proof, DynamicProof } from './lib/proof-system/proof.js';
 export { FeatureFlags } from './lib/proof-system/feature-flags.js';
-export { Cache, CacheHeader } from './lib/proof-system/cache.js';
+export { Cache } from './lib/proof-system/cache.js';
+export type { CacheHeader } from './lib/proof-system/cache.js';
 
 export { Account } from './lib/mina/v1/account.js';
 export {

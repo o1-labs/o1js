@@ -2,7 +2,8 @@ import { writeFileSync, readFileSync, mkdirSync, resolve, cacheDir } from '../ut
 import { jsEnvironment } from '../../bindings/crypto/bindings/env.js';
 
 // external API
-export { Cache, CacheHeader };
+export { Cache };
+export type { CacheHeader };
 
 // internal API
 export { readCache, writeCache, withVersion, cacheHeaderVersion, LAGRANGE_BASIS_PREFIX };

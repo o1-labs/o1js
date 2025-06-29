@@ -1,6 +1,8 @@
-import { Bytes as InternalBytes, createBytes, FlexibleBytes } from './bytes.js';
+import { Bytes as InternalBytes, createBytes } from './bytes.js';
+import type { FlexibleBytes } from './bytes.js';
 
-export { Bytes, FlexibleBytes };
+export { Bytes };
+export type { FlexibleBytes };
 
 type Bytes = InternalBytes;
 

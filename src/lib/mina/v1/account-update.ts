@@ -37,10 +37,10 @@ import {
 import { MlFieldConstArray } from '../../ml/fields.js';
 import {
   accountUpdatesToCallForest,
-  CallForest,
   callForestHashGeneric,
   transactionCommitments,
 } from '../../../mina-signer/src/sign-zkapp-command.js';
+import type { CallForest } from '../../../mina-signer/src/sign-zkapp-command.js';
 import { currentTransaction } from './transaction-context.js';
 import { isSmartContract } from './smart-contract-base.js';
 import { activeInstance } from './mina-instance.js';
@@ -74,7 +74,6 @@ export {
   Events,
   Actions,
   TokenId,
-  CallForest,
   zkAppProver,
   dummySignature,
   LazyProof,
@@ -83,6 +82,7 @@ export {
   hashAccountUpdate,
   HashedAccountUpdate,
 };
+export type { CallForest };
 
 const TransactionVersion = {
   current: () => UInt32.from(protocolVersions.txnVersion),
