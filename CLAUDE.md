@@ -132,6 +132,47 @@ This is a git submodule containing the Mina protocol implementation, including:
 - Test files use `.test.ts` suffix and are run with Jest
 - Examples are in `src/examples/` with various zkApp patterns
 
+## Backend Switching (Added June 2025)
+
+o1js now supports runtime switching between OCaml Snarky and Rust Sparky backends:
+
+```javascript
+import { switchBackend, getCurrentBackend } from './dist/node/index.js';
+
+// Check current backend
+console.log(getCurrentBackend()); // 'snarky' (default)
+
+// Switch to Sparky backend
+await switchBackend('sparky');
+
+// Switch back to Snarky
+await switchBackend('snarky');
+```
+
+### Backend Feature Status
+- ✅ Basic field operations work with both backends
+- ✅ Poseidon hash produces identical results
+- ✅ EC operations (ecScale, ecEndoscale) implemented in Sparky
+- ✅ Range check operations available
+- ❌ Lookup tables not fully implemented in Sparky
+- ❌ Foreign field operations missing in Sparky
+- ❌ Proof generation has module resolution errors with Sparky
+
+## Technical Documentation
+
+For detailed technical documentation including:
+- Backend switching implementation
+- Sparky integration details
+- Security issues and fixes
+- EC operations status
+- Performance benchmarks
+- Build system information
+
+See **[DEV.md](./DEV.md)**
+
 ## Development Memories
 
 - You must run all examples for o1js2 from the project root so it can find the compiled bindings
+- Sparky integration adds 1.2GB to the repository (mostly build artifacts in src/sparky/target/)
+- The sparky-adapter.js file (1,150 lines) handles compatibility between backends
+- All technical documentation has been consolidated into DEV.md (June 29, 2025)
