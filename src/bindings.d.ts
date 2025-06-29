@@ -786,6 +786,8 @@ declare const Pickles: {
 /**
  * A function that has to finish before any bindings exports can be used.
  */
-declare function initializeBindings(): Promise<void>;
+declare function initializeBindings(backend?: string): Promise<void>;
+
 
 declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;
+

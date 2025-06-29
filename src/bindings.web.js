@@ -7,7 +7,11 @@ let initializingPromise;
 let activeBackend = 'snarky'; // Track active backend
 
 async function initializeBindings(backend = null) {
-  // Use environment variable if no backend specified
+  // Use current backend if already initialized and no backend specified
+  if (!backend && isInitialized) {
+    backend = activeBackend;
+  }
+  // Otherwise use environment variable or default
   if (!backend) {
     backend = (typeof process !== 'undefined' && process.env?.O1JS_BACKEND?.toLowerCase()) || 'snarky';
   }
@@ -34,7 +38,7 @@ async function initializeBindings(backend = null) {
     if (backend === 'sparky') {
       // Load Sparky adapter that implements Snarky interface
       console.log('Loading Sparky backend...');
-      const sparkyAdapter = await import('./bindings/sparky-adapter.js');
+      const sparkyAdapter = await import('./bindings/sparky-adapter.web.js');
       
       // Initialize Sparky WASM
       await sparkyAdapter.initializeSparky();

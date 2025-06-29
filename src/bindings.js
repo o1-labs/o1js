@@ -7,7 +7,11 @@ let initializingPromise;
 let activeBackend = 'snarky'; // Track active backend
 
 async function initializeBindings(backend = null) {
-  // Use environment variable if no backend specified
+  // Use current backend if already initialized and no backend specified
+  if (!backend && isInitialized) {
+    backend = activeBackend;
+  }
+  // Otherwise use environment variable or default
   if (!backend) {
     backend = process.env.O1JS_BACKEND?.toLowerCase() || 'snarky';
   }
