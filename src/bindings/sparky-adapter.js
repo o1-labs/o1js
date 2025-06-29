@@ -19,11 +19,6 @@ let readFileSync, fileURLToPath, dirname, join;
 
 let sparkyWasm;
 let sparkyInstance;
-let runModule;
-let fieldModule;
-let gatesModule;
-let constraintSystemModule;
-let circuitModule;
 let initPromise;
 
 /**
@@ -126,13 +121,8 @@ async function initSparkyWasm() {
     // ModeHandle, OptimizationHints, Run, RunState, Snarky, WasmFeatures
     sparkyInstance = new sparkyWasm.Snarky();
     
-    // Cache the sub-modules to ensure consistent state
-    // Each getter returns a new wrapped instance, so we need to cache them
-    runModule = sparkyInstance.run;
-    fieldModule = sparkyInstance.field;
-    gatesModule = sparkyInstance.gates;
-    constraintSystemModule = sparkyInstance.constraintSystem;
-    circuitModule = sparkyInstance.circuit;
+    // Note: DO NOT cache sub-modules - they should be accessed fresh each time
+    // to maintain proper state management with the optimized Sparky implementation
   })();
   
   return initPromise;
@@ -149,13 +139,36 @@ async function ensureInitialized() {
 }
 
 /**
+ * Helper functions to get fresh module instances
+ */
+function getRunModule() {
+  return sparkyInstance.run;
+}
+
+function getFieldModule() {
+  return sparkyInstance.field;
+}
+
+function getGatesModule() {
+  return sparkyInstance.gates;
+}
+
+function getConstraintSystemModule() {
+  return sparkyInstance.constraintSystem;
+}
+
+function getCircuitModule() {
+  return sparkyInstance.circuit;
+}
+
+/**
  * Helper to convert between Sparky and Snarky field representations
  */
 function toSparkyField(field) {
   if (Array.isArray(field)) {
     // Handle [FieldType, value] format
     if (field[0] === 0 || field[0] === 1) {
-      return fieldModule.constant(field[1]);
+      return getFieldModule().constant(field[1]);
     }
     return field; // Already a Sparky field var
   }
@@ -281,27 +294,27 @@ export const Snarky = {
    */
   run: {
     inProver() {
-      return runModule.inProver;
+      return getRunModule().inProver;
     },
     
     asProver(f) {
-      return runModule.asProver(f);
+      return getRunModule().asProver(f);
     },
     
     inProverBlock() {
-      return runModule.inProverBlock;
+      return getRunModule().inProverBlock;
     },
     
     setEvalConstraints(value) {
-      runModule.setEvalConstraints(value);
+      getRunModule().setEvalConstraints(value);
     },
     
     enterConstraintSystem() {
       // Use the actual enterConstraintSystem method from the Run module
-      const handle = runModule.enterConstraintSystem();
+      const handle = getRunModule().enterConstraintSystem();
       return () => {
-        // Get the constraint system JSON from the constraintSystemModule
-        const json = constraintSystemModule.toJson({});
+        // Get the constraint system JSON from the constraint system module
+        const json = getConstraintSystemModule().toJson({});
         handle.exit(); // Exit the mode
         return json;
       };
@@ -309,7 +322,7 @@ export const Snarky = {
     
     enterGenerateWitness() {
       // Use the actual enterGenerateWitness method
-      const handle = runModule.enterGenerateWitness();
+      const handle = getRunModule().enterGenerateWitness();
       return () => {
         // TODO: Get actual witness data from Sparky
         const result = [0, [], []]; // Placeholder - need to implement witness extraction
@@ -320,7 +333,7 @@ export const Snarky = {
     
     enterAsProver(size) {
       // Enter prover mode with the specified size
-      const handle = runModule.enterAsProver(size);
+      const handle = getRunModule().enterAsProver(size);
       return (fields) => {
         try {
           // OCaml option type: 0 = None, [0, values] = Some(values)
@@ -328,7 +341,7 @@ export const Snarky = {
             // We have Some(values) - extract the actual values from fields[1]
             const actualValues = fields[1];
             const result = actualValues.map(f => {
-              const constantCvar = fieldModule.constant(f);
+              const constantCvar = getFieldModule().constant(f);
               // Convert Cvar back to FieldVar format
               return cvarToFieldVar(constantCvar);
             });
@@ -340,8 +353,8 @@ export const Snarky = {
           // This happens during circuit compilation
           const vars = [];
           for (let i = 0; i < size; i++) {
-            // Create a witness variable using fieldModule.exists
-            const sparkyVar = fieldModule.exists(null);
+            // Create a witness variable using field module exists
+            const sparkyVar = getFieldModule().exists(null);
             // Convert Cvar back to FieldVar format
             const o1jsVar = cvarToFieldVar(sparkyVar);
             vars.push(o1jsVar);
@@ -357,38 +370,38 @@ export const Snarky = {
     state: {
       allocVar(state) {
         // Get the run state and allocate a variable
-        const runState = runModule.state;
+        const runState = getRunModule().state;
         const varIndex = runState.allocVar();
         return [1, varIndex]; // [FieldType.Var, index]
       },
       
       storeFieldElt(state, x) {
-        const runState = runModule.state;
+        const runState = getRunModule().state;
         // Store the field element value for the variable
         if (Array.isArray(state) && state[0] === 1) {
           runState.storeFieldElt(state[1], x);
         }
-        return fieldModule.constant(x);
+        return getFieldModule().constant(x);
       },
       
       getVariableValue(state, x) {
-        return fieldModule.readVar(toSparkyField(x));
+        return getFieldModule().readVar(toSparkyField(x));
       },
       
       asProver(state) {
-        return runModule.inProver;
+        return getRunModule().inProver;
       },
       
       setAsProver(state, value) {
         if (value) {
-          runModule.witnessMode();
+          getRunModule().witnessMode();
         } else {
-          runModule.constraintMode();
+          getRunModule().constraintMode();
         }
       },
       
       hasWitness(state) {
-        return runModule.inProver;
+        return getRunModule().inProver;
       }
     }
   },
@@ -398,15 +411,15 @@ export const Snarky = {
    */
   constraintSystem: {
     rows(system) {
-      return constraintSystemModule.rows(system);
+      return getConstraintSystemModule().rows(system);
     },
     
     digest(system) {
-      return constraintSystemModule.digest(system);
+      return getConstraintSystemModule().digest(system);
     },
     
     toJson(system) {
-      const json = constraintSystemModule.toJson(system);
+      const json = getConstraintSystemModule().toJson(system);
       
       // Ensure the JSON has the expected structure
       if (!json.gates) {
@@ -443,7 +456,7 @@ export const Snarky = {
       try {
         // Convert o1js FieldVar to Sparky Cvar format
         const cvar = fieldVarToCvar(x);
-        return fieldModule.readVar(cvar);
+        return getFieldModule().readVar(cvar);
       } catch (error) {
         // If we're not in prover mode, Sparky will throw an error
         // Re-throw with a more descriptive message
@@ -458,7 +471,7 @@ export const Snarky = {
       // Convert o1js FieldVar arrays to Sparky Cvar objects
       const xCvar = fieldVarToCvar(x);
       const yCvar = fieldVarToCvar(y);
-      fieldModule.assertEqual(xCvar, yCvar);
+      getFieldModule().assertEqual(xCvar, yCvar);
     },
     
     assertMul(x, y, z) {
@@ -466,26 +479,26 @@ export const Snarky = {
       const xCvar = fieldVarToCvar(x);
       const yCvar = fieldVarToCvar(y);
       const zCvar = fieldVarToCvar(z);
-      fieldModule.assertMul(xCvar, yCvar, zCvar);
+      getFieldModule().assertMul(xCvar, yCvar, zCvar);
     },
     
     assertSquare(x, y) {
       // Convert o1js FieldVar arrays to Sparky Cvar objects
       const xCvar = fieldVarToCvar(x);
       const yCvar = fieldVarToCvar(y);
-      fieldModule.assertSquare(xCvar, yCvar);
+      getFieldModule().assertSquare(xCvar, yCvar);
     },
     
     assertBoolean(x) {
       // Convert o1js FieldVar array to Sparky Cvar object
       const xCvar = fieldVarToCvar(x);
-      fieldModule.assertBoolean(xCvar);
+      getFieldModule().assertBoolean(xCvar);
     },
     
     truncateToBits16(lengthDiv16, x) {
       // Implement using range check
       const bits = lengthDiv16 * 16;
-      gatesModule.rangeCheckN(x, bits);
+      getGatesModule().rangeCheckN(x, bits);
       return x;
     },
     
@@ -494,16 +507,16 @@ export const Snarky = {
       // Convert inputs and get result as Cvar, then convert back to FieldVar format
       const xCvar = fieldVarToCvar(x);
       const yCvar = fieldVarToCvar(y);
-      const resultCvar = fieldModule.add(xCvar, yCvar);
+      const resultCvar = getFieldModule().add(xCvar, yCvar);
       return cvarToFieldVar(resultCvar);
     },
     
     mul(x, y) {
       // Create a witness for the result
-      const result = fieldModule.exists(null);
+      const result = getFieldModule().exists(null);
       const xCvar = fieldVarToCvar(x);
       const yCvar = fieldVarToCvar(y);
-      fieldModule.assertMul(xCvar, yCvar, result);
+      getFieldModule().assertMul(xCvar, yCvar, result);
       return cvarToFieldVar(result);
     },
     
@@ -511,48 +524,48 @@ export const Snarky = {
       // sub(x, y) = add(x, scale(-1, y))
       const xCvar = fieldVarToCvar(x);
       const yCvar = fieldVarToCvar(y);
-      const neg_y = fieldModule.scale(-1, yCvar);
-      const resultCvar = fieldModule.add(xCvar, neg_y);
+      const neg_y = getFieldModule().scale(-1, yCvar);
+      const resultCvar = getFieldModule().add(xCvar, neg_y);
       return cvarToFieldVar(resultCvar);
     },
     
     div(x, y) {
       // div(x, y): find result such that y * result = x
-      const result = fieldModule.exists(null);
+      const result = getFieldModule().exists(null);
       const xCvar = fieldVarToCvar(x);
       const yCvar = fieldVarToCvar(y);
-      fieldModule.assertMul(yCvar, result, xCvar);
+      getFieldModule().assertMul(yCvar, result, xCvar);
       return cvarToFieldVar(result);
     },
     
     negate(x) {
       const xCvar = fieldVarToCvar(x);
-      const resultCvar = fieldModule.scale(-1, xCvar);
+      const resultCvar = getFieldModule().scale(-1, xCvar);
       return cvarToFieldVar(resultCvar);
     },
     
     inv(x) {
       // inv(x): find result such that x * result = 1
-      const result = fieldModule.exists(null);
-      const one = fieldModule.constant(1);
+      const result = getFieldModule().exists(null);
+      const one = getFieldModule().constant(1);
       const xCvar = fieldVarToCvar(x);
-      fieldModule.assertMul(xCvar, result, one);
+      getFieldModule().assertMul(xCvar, result, one);
       return cvarToFieldVar(result);
     },
     
     square(x) {
       // square(x): find result such that result = x * x
-      const result = fieldModule.exists(null);
+      const result = getFieldModule().exists(null);
       const xCvar = fieldVarToCvar(x);
-      fieldModule.assertSquare(xCvar, result);
+      getFieldModule().assertSquare(xCvar, result);
       return cvarToFieldVar(result);
     },
     
     sqrt(x) {
       // sqrt(x): find result such that result * result = x
-      const result = fieldModule.exists(null);
+      const result = getFieldModule().exists(null);
       const xCvar = fieldVarToCvar(x);
-      fieldModule.assertSquare(result, xCvar);
+      getFieldModule().assertSquare(result, xCvar);
       return cvarToFieldVar(result);
     },
     
@@ -561,14 +574,14 @@ export const Snarky = {
       const diff = this.sub(x, y);
       // TODO: Implement proper zero check
       // For now, create a boolean witness
-      const isZero = fieldModule.exists(null);
-      fieldModule.assertBoolean(isZero);
+      const isZero = getFieldModule().exists(null);
+      getFieldModule().assertBoolean(isZero);
       return isZero;
     },
     
     toConstant(x) {
-      const value = fieldModule.readVar(x);
-      return fieldModule.constant(value);
+      const value = getFieldModule().readVar(x);
+      return getFieldModule().constant(value);
     }
   },
   
@@ -577,34 +590,34 @@ export const Snarky = {
    */
   bool: {
     and(x, y) {
-      const result = fieldModule.exists(null);
-      fieldModule.assertMul(x, y, result);
-      fieldModule.assertBoolean(result);
+      const result = getFieldModule().exists(null);
+      getFieldModule().assertMul(x, y, result);
+      getFieldModule().assertBoolean(result);
       return result;
     },
     
     or(x, y) {
       // x OR y = x + y - x*y
-      const xy = fieldModule.exists(null);
-      fieldModule.assertMul(x, y, xy);
-      const sum = fieldModule.add(x, y);
+      const xy = getFieldModule().exists(null);
+      getFieldModule().assertMul(x, y, xy);
+      const sum = getFieldModule().add(x, y);
       const result = Snarky.field.sub(sum, xy); // Use the sub method we defined
-      fieldModule.assertBoolean(result);
+      getFieldModule().assertBoolean(result);
       return result;
     },
     
     not(x) {
       // NOT x = 1 - x
-      const one = fieldModule.constant(1);
+      const one = getFieldModule().constant(1);
       const result = Snarky.field.sub(one, x); // Use the sub method we defined
-      fieldModule.assertBoolean(result);
+      getFieldModule().assertBoolean(result);
       return result;
     },
     
     assertEqual(x, y) {
-      fieldModule.assertEqual(x, y);
-      fieldModule.assertBoolean(x);
-      fieldModule.assertBoolean(y);
+      getFieldModule().assertEqual(x, y);
+      getFieldModule().assertBoolean(x);
+      getFieldModule().assertBoolean(y);
     }
   },
   
@@ -613,11 +626,11 @@ export const Snarky = {
    */
   gates: {
     zero(in1, in2, out) {
-      gatesModule.zero(in1, in2, out);
+      getGatesModule().zero(in1, in2, out);
     },
     
     generic(sl, l, sr, r, so, o, sm, sc) {
-      gatesModule.generic(
+      getGatesModule().generic(
         Number(sl), l,
         Number(sr), r,
         Number(so), o,
@@ -626,7 +639,7 @@ export const Snarky = {
     },
     
     poseidon(state) {
-      return gatesModule.poseidon(state);
+      return getGatesModule().poseidon(state);
     },
     
     ecAdd(p1, p2, p3, inf, same_x, slope, inf_z, x21_inv) {
@@ -663,7 +676,7 @@ export const Snarky = {
         // - Same x-coordinate case (same_x)
         // - Slope constraints for addition
         // - Inverse constraints (x21_inv)
-        gatesModule.ecAdd(
+        getGatesModule().ecAdd(
           [p1xCvar, p1yCvar],  // First point
           [p2xCvar, p2yCvar],  // Second point
           [p3xCvar, p3yCvar],  // Result point
@@ -720,18 +733,18 @@ export const Snarky = {
           
           // Ensure bit is boolean (0 or 1)
           const bitCvar = fieldVarToCvar(bit);
-          fieldModule.assertBoolean(bitCvar);
+          getFieldModule().assertBoolean(bitCvar);
           
           // Create witness variables for the EC addition result
-          const addResultX = fieldModule.exists(null);
-          const addResultY = fieldModule.exists(null);
+          const addResultX = getFieldModule().exists(null);
+          const addResultY = getFieldModule().exists(null);
           const addResult = [cvarToFieldVar(addResultX), cvarToFieldVar(addResultY)];
           
           // Create witness variables for auxiliary constraints
-          const inf = fieldModule.exists(null);        // Point at infinity flag
-          const same_x = fieldModule.exists(null);     // Same x-coordinate flag  
-          const inf_z = fieldModule.exists(null);      // Infinity z-coordinate
-          const x21_inv = fieldModule.exists(null);    // Inverse of (x2 - x1)
+          const inf = getFieldModule().exists(null);        // Point at infinity flag
+          const same_x = getFieldModule().exists(null);     // Same x-coordinate flag  
+          const inf_z = getFieldModule().exists(null);      // Infinity z-coordinate
+          const x21_inv = getFieldModule().exists(null);    // Inverse of (x2 - x1)
           
           // Use proper elliptic curve addition: addResult = acc + base
           this.ecAdd(
@@ -740,7 +753,7 @@ export const Snarky = {
             addResult,                                // Result point
             cvarToFieldVar(inf),                      // Infinity flag
             cvarToFieldVar(same_x),                   // Same x flag
-            slope || cvarToFieldVar(fieldModule.exists(null)), // Slope
+            slope || cvarToFieldVar(getFieldModule().exists(null)), // Slope
             cvarToFieldVar(inf_z),                    // Infinity z
             cvarToFieldVar(x21_inv)                   // Inverse
           );
@@ -750,7 +763,7 @@ export const Snarky = {
           // if bit == 0: result = acc (unchanged)
           
           // For x-coordinate: resultX = bit * addResult.x + (1 - bit) * acc.x
-          const one = fieldModule.constant(1);
+          const one = getFieldModule().constant(1);
           const oneCvar = cvarToFieldVar(one);
           const invBit = Snarky.field.sub(oneCvar, bit);
           
@@ -766,18 +779,18 @@ export const Snarky = {
           // Update accumulator for next iteration (if there's a next one)
           if (i + 1 < accs.length) {
             // Connect the result to the next accumulator
-            fieldModule.assertEqual(fieldVarToCvar(accs[i + 1][0]), fieldVarToCvar(resultX));
-            fieldModule.assertEqual(fieldVarToCvar(accs[i + 1][1]), fieldVarToCvar(resultY));
+            getFieldModule().assertEqual(fieldVarToCvar(accs[i + 1][0]), fieldVarToCvar(resultX));
+            getFieldModule().assertEqual(fieldVarToCvar(accs[i + 1][1]), fieldVarToCvar(resultY));
           }
         }
         
         // Process counter progression: nNext = nPrev + 1
         if (nPrev !== undefined && nNext !== undefined) {
-          const prevField = fieldModule.constant(Number(nPrev));
-          const nextField = fieldModule.constant(Number(nNext));
-          const oneField = fieldModule.constant(1);
-          const expected = fieldModule.add(prevField, oneField);
-          fieldModule.assertEqual(nextField, expected);
+          const prevField = getFieldModule().constant(Number(nPrev));
+          const nextField = getFieldModule().constant(Number(nNext));
+          const oneField = getFieldModule().constant(1);
+          const expected = getFieldModule().add(prevField, oneField);
+          getFieldModule().assertEqual(nextField, expected);
         }
         
       } catch (error) {
@@ -804,11 +817,11 @@ export const Snarky = {
         
         // λ (lambda) for Pallas curve endomorphism - cube root of unity
         // λ = 0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547
-        const lambda = fieldModule.constant(BigInt('0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547'));
+        const lambda = getFieldModule().constant(BigInt('0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547'));
         const lambdaCvar = cvarToFieldVar(lambda);
         
         // Validate that all points satisfy curve equation y² = x³ + 5
-        const five = fieldModule.constant(5);
+        const five = getFieldModule().constant(5);
         const fiveCvar = cvarToFieldVar(five);
         
         // Validate base point (xp, yp): yp² = xp³ + 5
@@ -834,42 +847,42 @@ export const Snarky = {
         const b3Cvar = fieldVarToCvar(b3);
         const b4Cvar = fieldVarToCvar(b4);
         
-        fieldModule.assertBoolean(b1Cvar);
-        fieldModule.assertBoolean(b2Cvar);
-        fieldModule.assertBoolean(b3Cvar);
-        fieldModule.assertBoolean(b4Cvar);
+        getFieldModule().assertBoolean(b1Cvar);
+        getFieldModule().assertBoolean(b2Cvar);
+        getFieldModule().assertBoolean(b3Cvar);
+        getFieldModule().assertBoolean(b4Cvar);
         
         // Implement dual scalar multiplication: k₁*P + k₂*λ(P)
         // where k₁ is represented by bits [b1, b2] and k₂ by bits [b3, b4]
         
         // Create intermediate witness points for the computation
-        const k1PointX = fieldModule.exists(null);
-        const k1PointY = fieldModule.exists(null);
+        const k1PointX = getFieldModule().exists(null);
+        const k1PointY = getFieldModule().exists(null);
         const k1Point = [cvarToFieldVar(k1PointX), cvarToFieldVar(k1PointY)];
         
-        const k2PointX = fieldModule.exists(null);
-        const k2PointY = fieldModule.exists(null);
+        const k2PointX = getFieldModule().exists(null);
+        const k2PointY = getFieldModule().exists(null);
         const k2Point = [cvarToFieldVar(k2PointX), cvarToFieldVar(k2PointY)];
         
         // Scalar multiply P by k₁ (using bits b1, b2)
         // Simplified 2-bit scalar multiplication: k₁ = 2*b1 + b2
         
         // Step 1: Compute 2*P (point doubling)
-        const doubleP_X = fieldModule.exists(null);
-        const doubleP_Y = fieldModule.exists(null);
+        const doubleP_X = getFieldModule().exists(null);
+        const doubleP_Y = getFieldModule().exists(null);
         const doubleP = [cvarToFieldVar(doubleP_X), cvarToFieldVar(doubleP_Y)];
         
         // Use ecAdd for point doubling: 2*P = P + P
-        const inf_double = fieldModule.exists(null);
-        const same_x_double = fieldModule.exists(null);
-        const inf_z_double = fieldModule.exists(null);
-        const x21_inv_double = fieldModule.exists(null);
+        const inf_double = getFieldModule().exists(null);
+        const same_x_double = getFieldModule().exists(null);
+        const inf_z_double = getFieldModule().exists(null);
+        const x21_inv_double = getFieldModule().exists(null);
         
         this.ecAdd(
           [xp, yp], [xp, yp], doubleP,
           cvarToFieldVar(inf_double),
           cvarToFieldVar(same_x_double),
-          s1 || cvarToFieldVar(fieldModule.exists(null)),
+          s1 || cvarToFieldVar(getFieldModule().exists(null)),
           cvarToFieldVar(inf_z_double),
           cvarToFieldVar(x21_inv_double)
         );
@@ -882,27 +895,27 @@ export const Snarky = {
         // k₁*P = b1*(2*P) + b2*P
         
         // Similarly for k₂*λ(P)
-        const doubleEndoP_X = fieldModule.exists(null);
-        const doubleEndoP_Y = fieldModule.exists(null);
+        const doubleEndoP_X = getFieldModule().exists(null);
+        const doubleEndoP_Y = getFieldModule().exists(null);
         const doubleEndoP = [cvarToFieldVar(doubleEndoP_X), cvarToFieldVar(doubleEndoP_Y)];
         
         this.ecAdd(
           endoPoint, endoPoint, doubleEndoP,
-          cvarToFieldVar(fieldModule.exists(null)),
-          cvarToFieldVar(fieldModule.exists(null)),
-          cvarToFieldVar(fieldModule.exists(null)),
-          cvarToFieldVar(fieldModule.exists(null)),
-          cvarToFieldVar(fieldModule.exists(null))
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null))
         );
         
         // Final addition: result = k₁*P + k₂*λ(P)
         this.ecAdd(
           k1Point, k2Point, [xr, yr],
-          cvarToFieldVar(fieldModule.exists(null)),
-          cvarToFieldVar(fieldModule.exists(null)),
-          s3 || cvarToFieldVar(fieldModule.exists(null)),
-          cvarToFieldVar(fieldModule.exists(null)),
-          cvarToFieldVar(fieldModule.exists(null))
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          s3 || cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null))
         );
         
         // Validate result point: yr² = xr³ + 5
@@ -949,7 +962,7 @@ export const Snarky = {
           if (element && typeof element === 'object') {
             // If element looks like a field variable, ensure it's boolean for scalar bits
             if (Array.isArray(element) && element.length >= 2) {
-              fieldModule.assertBoolean(element);
+              getFieldModule().assertBoolean(element);
             }
           }
         }
@@ -967,19 +980,19 @@ export const Snarky = {
     rangeCheck(state) {
       // Use Sparky's range check
       if (state && state.length > 0) {
-        gatesModule.rangeCheck64(state[0]);
+        getGatesModule().rangeCheck64(state[0]);
       }
     },
     
     rangeCheck0(x) {
       // Range check that a value is exactly 0
-      gatesModule.rangeCheck0(fieldVarToCvar(x));
+      getGatesModule().rangeCheck0(fieldVarToCvar(x));
     },
     
     rangeCheck1(v2, v12, v2c0, v2p0, v2p1, v2p2, v2p3, v2c1, v2c2, v2c3, v2c4, v2c5, v2c6, v2c7, v2c8, v2c9, v2c10, v2c11, v0p0, v0p1, v1p0, v1p1, v2c12, v2c13, v2c14, v2c15, v2c16, v2c17, v2c18, v2c19) {
       // Range check implementation for complex multi-variable constraints
       // Convert all field variables to Cvar format
-      gatesModule.rangeCheck1(
+      getGatesModule().rangeCheck1(
         fieldVarToCvar(v2), fieldVarToCvar(v12),
         fieldVarToCvar(v2c0), fieldVarToCvar(v2p0), fieldVarToCvar(v2p1), fieldVarToCvar(v2p2), fieldVarToCvar(v2p3),
         fieldVarToCvar(v2c1), fieldVarToCvar(v2c2), fieldVarToCvar(v2c3), fieldVarToCvar(v2c4), fieldVarToCvar(v2c5),
@@ -998,16 +1011,16 @@ export const Snarky = {
    */
   circuit: {
     compile(main, publicInputSize) {
-      return circuitModule.compile(main);
+      return getCircuitModule().compile(main);
     },
     
     prove(main, publicInputSize, publicInput, keypair) {
-      const witness = circuitModule.generateWitness(publicInput);
-      return circuitModule.prove(witness);
+      const witness = getCircuitModule().generateWitness(publicInput);
+      return getCircuitModule().prove(witness);
     },
     
     verify(publicInput, proof, verificationKey) {
-      return circuitModule.verify(proof, publicInput);
+      return getCircuitModule().verify(proof, publicInput);
     },
     
     keypair: {
@@ -1016,7 +1029,7 @@ export const Snarky = {
       },
       
       getConstraintSystemJSON(keypair) {
-        return constraintSystemModule.toJson({});
+        return getConstraintSystemModule().toJson({});
       }
     }
   },
@@ -1030,11 +1043,11 @@ export const Snarky = {
     
     // If compute is not provided or we're in compile mode,
     // just create witness variables
-    if (!compute || !runModule.inProver) {
+    if (!compute || !getRunModule().inProver) {
       const vars = [];
       for (let i = 0; i < size; i++) {
         // Create a witness variable
-        const witnessVar = fieldModule.exists(null);
+        const witnessVar = getFieldModule().exists(null);
         // Convert Cvar result back to FieldVar format
         vars.push(cvarToFieldVar(witnessVar));
       }
@@ -1046,7 +1059,7 @@ export const Snarky = {
     const vars = [];
     for (let i = 0; i < size; i++) {
       const value = values[i] || 0n;
-      const constantVar = fieldModule.constant(value);
+      const constantVar = getFieldModule().constant(value);
       // Convert Cvar result back to FieldVar format
       vars.push(cvarToFieldVar(constantVar));
     }
@@ -1106,7 +1119,7 @@ export const Snarky = {
   },
   
   asProver(f) {
-    return runModule.asProver(f);
+    return getRunModule().asProver(f);
   }
 };
 
