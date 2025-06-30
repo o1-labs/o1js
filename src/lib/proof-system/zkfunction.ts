@@ -1,4 +1,4 @@
-import { Snarky, initializeBindings } from '../../snarky.js';
+import { Gate, Snarky, initializeBindings } from '../../snarky.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { withThreadPool } from '../../snarky.js';
 import { Provable } from '../provable/provable.js';
@@ -10,7 +10,7 @@ import { Tuple } from '../util/types.js';
 import { TupleToInstances, Undefined } from './zkprogram.js';
 
 // external API
-export { ZkFunction, Keypair, Proof, VerificationKey };
+export { ZkFunction, Proof, VerificationKey };
 
 type Get<T, Key extends string> = T extends { [K in Key]: infer _Value } ? _Value : undefined;
 type PublicInput<Config extends ZkFunctionConfig> = InferProvable<Get<Config, 'publicInputType'>>;
@@ -58,11 +58,14 @@ function ZkFunction<Config extends ZkFunctionConfig>(
   }
 ): {
   compile: () => Promise<{ verificationKey: VerificationKey }>;
+  constraintSystem: () => Promise<Gate[]>;
   prove: ProveMethodType<Config>;
   verify: VerifyMethodType<Config>;
 } {
   const publicInputType = provablePure(config.publicInputType ?? Undefined);
   const hasPublicInput = config.publicInputType !== undefined;
+
+  type Keypair = Snarky.Keypair;
   let _keypair: Keypair | undefined;
 
   return {
@@ -83,11 +86,34 @@ function ZkFunction<Config extends ZkFunctionConfig>(
       await initializeBindings();
       _keypair = await prettifyStacktracePromise(
         withThreadPool(async () => {
-          let keypair = Snarky.circuit.compile(main, publicInputSize);
-          return new Keypair(keypair);
+          return Snarky.circuit.compile(main, publicInputSize);
         })
       );
-      return { verificationKey: _keypair.verificationKey() };
+      const verificationKey = new VerificationKey(
+        Snarky.circuit.keypair.getVerificationKey(_keypair)
+      );
+      return { verificationKey };
+    },
+
+    /**
+     * Returns a low-level JSON representation of the constraint system (gates)
+     *
+     * @throws If compile() has not been called yet.
+     *
+     * @example
+     * ```ts
+     * await zkf.compile();
+     * const cs = await zkf.constraintSystem();
+     * console.log(cs);
+     * ```
+     */
+    async constraintSystem() {
+      if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
+      try {
+        return gatesFromJson(Snarky.circuit.keypair.getConstraintSystemJSON(_keypair)).gates;
+      } catch (error) {
+        throw prettifyStacktrace(error);
+      }
     },
 
     /**
@@ -120,7 +146,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
           main,
           publicInputSize,
           MlFieldConstArray.to(publicInputFields),
-          _keypair!.value
+          _keypair!
         );
         return new Proof(proof);
       });
@@ -171,35 +197,6 @@ function ZkFunction<Config extends ZkFunctionConfig>(
       );
     },
   };
-}
-
-class Keypair {
-  value: Snarky.Keypair;
-
-  constructor(value: Snarky.Keypair) {
-    this.value = value;
-  }
-
-  verificationKey() {
-    return new VerificationKey(Snarky.circuit.keypair.getVerificationKey(this.value));
-  }
-
-  /**
-   * Returns a low-level JSON representation of the {@link ZkFunction} from its {@link Keypair}:
-   * a list of gates, each of which represents a row in a table, with certain coefficients and wires to other (row, column) pairs
-   * @example
-   * ```ts
-   * const keypair = await zkf.compile();
-   * const json = MyProvable.witnessFromKeypair(keypair);
-   * ```
-   */
-  constraintSystem() {
-    try {
-      return gatesFromJson(Snarky.circuit.keypair.getConstraintSystemJSON(this.value)).gates;
-    } catch (error) {
-      throw prettifyStacktrace(error);
-    }
-  }
 }
 
 /**
