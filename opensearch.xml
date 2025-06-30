@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>o1Labs Documentation</ShortName>
+  <Description>Search o1Labs Documentation</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/x-icon">https://documentation.o1labs.org/o1js/img/favicon.svg</Image>
+  <Url type="text/html" method="get" template="https://documentation.o1labs.org/o1js/search?q={searchTerms}"/>
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://documentation.o1labs.org/o1js/opensearch.xml" />
+  <moz:SearchForm>https://documentation.o1labs.org/o1js/</moz:SearchForm>
+</OpenSearchDescription>
