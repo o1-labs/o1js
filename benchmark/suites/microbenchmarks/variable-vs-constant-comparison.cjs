@@ -33,7 +33,7 @@ const BENCHMARK_ROUNDS = 3;
 
 /**
  * Create ZkProgram with CONSTANT operations (optimized)
- * These operations use constants during compilation, triggering our optimization
+ * These operations use TRUE constants - no privateInputs, triggering our optimization
  */
 function createConstantProgram() {
   return ZkProgram({
@@ -42,20 +42,25 @@ function createConstantProgram() {
     
     methods: {
       constantOperations: {
-        privateInputs: [Field, Field, Field],
+        privateInputs: [],  // NO private inputs - everything is constant!
         
-        async method(input1, input2, input3) {
+        async method() {
           console.log('[CONSTANT] Running constant operations - should trigger PoseidonBigint optimization');
           
-          // These are treated as constants during compilation
-          const hash1 = Poseidon.hash([input1, input2]);
-          const hash2 = Poseidon.hash([input2, input3]);
+          // These are TRUE constants - known at compile time
+          const const1 = Field.from(100);
+          const const2 = Field.from(200);
+          const const3 = Field.from(300);
           
-          // Arithmetic operations
+          // These should trigger constant optimization (PoseidonBigint)
+          const hash1 = Poseidon.hash([const1, const2]);
+          const hash2 = Poseidon.hash([const2, const3]);
+          
+          // Arithmetic operations with constants
           const sum = hash1.add(hash2);
           const product = hash1.mul(hash2);
           
-          // Final hash with constants
+          // Final hash with constants - should also be optimized
           const result = Poseidon.hash([sum, product]);
           return { publicOutput: result };
         },

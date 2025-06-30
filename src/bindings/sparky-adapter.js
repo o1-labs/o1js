@@ -1093,9 +1093,33 @@ export const Snarky = {
         const stateFields = state.slice(1);
         const inputFields = input.slice(1);
         
+        // 🔍 INVESTIGATION: Debug which code path is taken
+        console.log('🔍 [POSEIDON DEBUG] poseidon.update() called');
+        console.log('   State fields count:', stateFields.length);
+        console.log('   Input fields count:', inputFields.length);
+        console.log('   State field types:', stateFields.map(f => {
+          if (Array.isArray(f) && f.length >= 1) {
+            return `[${f[0]}, ...]`;
+          }
+          return typeof f;
+        }));
+        console.log('   Input field types:', inputFields.map(f => {
+          if (Array.isArray(f) && f.length >= 1) {
+            return `[${f[0]}, ...]`;
+          }
+          return typeof f;
+        }));
+        
+        const isConstantState = isConstant(stateFields);
+        const isConstantInput = isConstant(inputFields);
+        
+        console.log(`   isConstant(state): ${isConstantState}`);
+        console.log(`   isConstant(input): ${isConstantInput}`);
+        
         // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
         // This is the exact same pattern as Snarky uses
-        if (isConstant(stateFields) && isConstant(inputFields)) {
+        if (isConstantState && isConstantInput) {
+          console.log('✅ [OPTIMIZATION] Using PoseidonBigint (JavaScript) path - NO WASM');
           // Pure JavaScript computation - no WASM boundary crossing!
           let newState = PoseidonBigint.update(toBigints(stateFields), toBigints(inputFields));
           let newStateFields = createFieldVar(newState);
@@ -1104,6 +1128,8 @@ export const Snarky = {
         }
         
         // ❌ Only call WASM when variables are involved
+        console.log('🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED');
+        console.log('   This should be slower due to WASM overhead!');
         // Call the WASM poseidon.update method with the original MlArray format
         const newStateArray = sparkyInstance.poseidon.update(state, input);
         
@@ -1129,9 +1155,23 @@ export const Snarky = {
     },
     
     hashToGroup(input) {
+      // 🔍 INVESTIGATION: Debug hashToGroup path
+      console.log('🔍 [POSEIDON DEBUG] hashToGroup() called');
+      console.log('   Input count:', input.length);
+      console.log('   Input types:', input.map(f => {
+        if (Array.isArray(f) && f.length >= 1) {
+          return `[${f[0]}, ...]`;
+        }
+        return typeof f;
+      }));
+      
+      const isConstantInput = isConstant(input);
+      console.log(`   isConstant(input): ${isConstantInput}`);
+      
       // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
       // This is the exact same pattern as Snarky uses
-      if (isConstant(input)) {
+      if (isConstantInput) {
+        console.log('✅ [OPTIMIZATION] Using PoseidonBigint.hashToGroup (JavaScript) - NO WASM');
         // Pure JavaScript computation - no WASM boundary crossing!
         let result = PoseidonBigint.hashToGroup(toBigints(input));
         if (result === undefined) {
@@ -1145,6 +1185,7 @@ export const Snarky = {
       }
       
       // ❌ Only call WASM when variables are involved
+      console.log('🔥 [WASM] Using Sparky WASM hashToGroup - VARIABLES DETECTED');
       // Convert input to the right format
       const inputArray = input.map(fieldVarToCvar);
       
