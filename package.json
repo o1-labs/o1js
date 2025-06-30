@@ -73,6 +73,8 @@
     "test": "./run-jest-tests.sh",
     "test:integration": "./run-integration-tests.sh",
     "test:unit": "./run-unit-tests.sh",
+    "test:sparky": "npm test -- src/test/integration/sparky-*.test.ts",
+    "test:sparky:report": "npx tsx src/test/integration/run-sparky-integration-tests.ts",
     "test:e2e": "rimraf ./tests/report && rimraf ./tests/test-artifacts && npx playwright test",
     "test:all": "./run-all-local-tests.sh",
     "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2e-tests-build-helper.js && cp -rf src/examples/plain-html/index.html src/examples/plain-html/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",

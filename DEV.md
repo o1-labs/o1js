@@ -162,10 +162,13 @@ npm run build:sparky
 - **NEW**: HybridPoseidon always generates constraints for Snarky compatibility
 - **NEW**: Comprehensive lookup table support
 - **NEW**: Reduced build warnings by 85% (84→12 warnings)
+- **NEW**: Foreign field operations fully implemented (June 30, 2025)
+- **NEW**: Comprehensive integration test suite validating feature parity
 
 ❌ **Not Working**:
-- Foreign field operations
 - Full proof generation pipeline (module resolution errors)
+- XOR gate (pending lookup table completion)
+- Rotate gate (pending lookup table completion)
 
 ⚠️ **Issues**:
 - 1.2GB disk usage (mostly target/ directory)
@@ -388,6 +391,41 @@ The o1js test suite has been reorganized to separate proper unit tests from temp
 ### Test Structure
 
 #### Backend Compatibility Tests
+
+##### Comprehensive Integration Test Suite (NEW - June 30, 2025)
+**Location**: `src/test/integration/`
+
+- **sparky-backend-integration.test.ts** - High-level integration tests
+  - Field operations, Boolean operations, Poseidon hashing
+  - EC operations, range checks, foreign fields
+  - Complex cryptographic operations (SHA256, Keccak)
+  - Complete zkApp compilation and proving
+
+- **sparky-gate-tests.test.ts** - Low-level gate operation tests
+  - Individual gate constraint generation
+  - VK (verification key) comparison
+  - Constraint system analysis
+  - Edge cases and error handling
+
+- **sparky-performance-benchmarks.test.ts** - Performance comparison
+  - Field operation throughput
+  - Poseidon hashing benchmarks
+  - EC operation performance
+  - Foreign field operation speed
+  - Target: Sparky within 1.5x of Snarky
+
+- **run-sparky-integration-tests.ts** - Test runner with reporting
+  - Executes all test suites
+  - Generates comprehensive reports
+  - Tracks performance metrics
+
+**Running tests**:
+```bash
+npm run test:sparky           # Run all Sparky integration tests
+npm run test:sparky:report    # Generate comprehensive test report
+```
+
+##### Legacy Tests
 **Location**: `tests/backend-compatibility/`
 
 - **vk-matching.test.ts** - Comprehensive VK comparison for programs with 0-5 private inputs

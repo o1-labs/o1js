@@ -1054,9 +1054,17 @@ export const Snarky = {
       throw new Error('xor gate not yet implemented in Sparky adapter');
     },
     
-    rotate(in1, out, bits, direction) {
-      // TODO: Implement rotate gate when available in Sparky
-      throw new Error('rotate gate not yet implemented in Sparky adapter');
+    rotate(field, rotated, excess, limbs, crumbs, two_to_rot) {
+      // Rotate gate for 64-bit rotation
+      try {
+        getGatesModule().rotate(field, rotated, excess, limbs, crumbs, two_to_rot);
+      } catch (error) {
+        // Enhanced error reporting to debug the undefined issue
+        const errorMsg = error.message || error.toString() || JSON.stringify(error) || 'unknown error';
+        const errorType = typeof error;
+        const errorKeys = Object.keys(error || {});
+        throw new Error(`rotate gate failed: ${errorMsg} (type: ${errorType}, keys: [${errorKeys.join(', ')}])`);
+      }
     },
     
     raw(kind, values, coefficients) {
