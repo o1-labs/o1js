@@ -4,7 +4,7 @@
  */
 
 const { 
-  Field, Bool, Poseidon, Struct, Provable, Gadgets, ZkProgram, SelfProof,
+  Field, Bool, Poseidon, Struct, Provable, Gadgets, ZkProgram, SelfProof, Cache,
   switchBackend, getCurrentBackend 
 } = require('../../../dist/node/index.cjs');
 
@@ -114,7 +114,7 @@ async function runBenchmark(backend, program) {
     
     try {
       console.time(`⏱️  ${backend} compilation`);
-      await program.compile({ cache: createNullCache() });
+      await program.compile({ cache: Cache.None, forceRecompile: true });
       console.timeEnd(`⏱️  ${backend} compilation`);
       
       const endTime = process.hrtime.bigint();

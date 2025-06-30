@@ -5,7 +5,7 @@
 
 async function loadModules() {
   // Use require for CJS modules
-  const { Field, Bool, Poseidon, Struct, Provable, Gadgets, ZkProgram, switchBackend, getCurrentBackend } = require('../../../dist/node/index.cjs');
+  const { Field, Bool, Poseidon, Struct, Provable, Gadgets, ZkProgram, Cache, switchBackend, getCurrentBackend } = require('../../../dist/node/index.cjs');
   const { MerkleMembershipProgram } = await import('../../../dist/examples/zkprogram/merkle-membership-proof.js');
   
   return {
@@ -15,6 +15,7 @@ async function loadModules() {
     Struct,
     Provable,
     Gadgets,
+    Cache,
     switchBackend,
     getCurrentBackend,
     MerkleMembershipProgram
@@ -51,7 +52,7 @@ async function runBenchmark(backend, program) {
     
     try {
       console.time(`⏱️  ${backend} compilation`);
-      await program.compile({ cache: createNullCache() });
+      await program.compile({ cache: Cache.None, forceRecompile: true });
       console.timeEnd(`⏱️  ${backend} compilation`);
       
       const endTime = process.hrtime.bigint();

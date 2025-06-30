@@ -18,12 +18,13 @@ async function loadModules() {
     DynamicProof: o1js.DynamicProof,
     VerificationKey: o1js.VerificationKey,
     Undefined: o1js.Undefined,
+    Cache: o1js.Cache,
     switchBackend: bindings.switchBackend,
     getCurrentBackend: bindings.getCurrentBackend
   };
 }
 
-let Field, Poseidon, ZkProgram, Gadgets, Provable, MerkleTree, MerkleWitness, SelfProof, DynamicProof, VerificationKey, Undefined, switchBackend, getCurrentBackend;
+let Field, Poseidon, ZkProgram, Gadgets, Provable, MerkleTree, MerkleWitness, SelfProof, DynamicProof, VerificationKey, Undefined, Cache, switchBackend, getCurrentBackend;
 
 // Test 1: Simple ZkProgram (baseline)
 function createSimpleProgram() {
@@ -234,7 +235,7 @@ async function benchmarkProgram(name, program, backend) {
   
   try {
     console.time(`⏱️  ${backend} ${name} compile`);
-    await program.compile();
+    await program.compile({ cache: Cache.None, forceRecompile: true });
     console.timeEnd(`⏱️  ${backend} ${name} compile`);
     
     const endTime = process.hrtime.bigint();
@@ -344,7 +345,7 @@ async function main() {
     
     // Load modules
     const modules = await loadModules();
-    ({ Field, Poseidon, ZkProgram, Gadgets, Provable, MerkleTree, MerkleWitness, SelfProof, DynamicProof, VerificationKey, Undefined, switchBackend, getCurrentBackend } = modules);
+    ({ Field, Poseidon, ZkProgram, Gadgets, Provable, MerkleTree, MerkleWitness, SelfProof, DynamicProof, VerificationKey, Undefined, Cache, switchBackend, getCurrentBackend } = modules);
     
     console.log('✅ Modules loaded successfully');
     

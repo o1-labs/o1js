@@ -13,6 +13,7 @@ async function loadModules() {
     Gadgets: o1js.Gadgets,
     Provable: o1js.Provable,
     SelfProof: o1js.SelfProof,
+    Cache: o1js.Cache,
     switchBackend: bindings.switchBackend,
     getCurrentBackend: bindings.getCurrentBackend
   };
@@ -232,7 +233,7 @@ async function benchmarkProgram(name, program, backend) {
     console.time(`⏱️  ${backend} ${name} compile`);
     
     // Force compilation with null cache
-    await program.compile({ cache: createNullCache() });
+    await program.compile({ cache: Cache.None, forceRecompile: true });
     
     console.timeEnd(`⏱️  ${backend} ${name} compile`);
     

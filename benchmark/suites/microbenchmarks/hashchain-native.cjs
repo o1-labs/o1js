@@ -11,12 +11,13 @@ async function loadModules() {
     ZkProgram: o1js.ZkProgram,
     SelfProof: o1js.SelfProof,
     Provable: o1js.Provable,
+    Cache: o1js.Cache,
     switchBackend: bindings.switchBackend,
     getCurrentBackend: bindings.getCurrentBackend
   };
 }
 
-let Field, Poseidon, ZkProgram, SelfProof, Provable, switchBackend, getCurrentBackend;
+let Field, Poseidon, ZkProgram, SelfProof, Provable, Cache, switchBackend, getCurrentBackend;
 let HashChainSparky;
 
 async function createHashChainProgram() {
@@ -59,7 +60,7 @@ async function testWithSnarky() {
   
   console.log('\n📊 Compiling with Snarky...');
   console.time('⏱️  Snarky compile');
-  const { verificationKey } = await HashChainSparky.compile();
+  const { verificationKey } = await HashChainSparky.compile({ cache: Cache.None, forceRecompile: true });
   console.timeEnd('⏱️  Snarky compile');
   
   console.log('\n🚀 Proving with Snarky...');
@@ -96,7 +97,7 @@ async function testWithSparky() {
     
     console.log('\n📊 Compiling with Sparky...');
     console.time('⏱️  Sparky compile');
-    const { verificationKey } = await HashChainSparky.compile();
+    const { verificationKey } = await HashChainSparky.compile({ cache: Cache.None, forceRecompile: true });
     console.timeEnd('⏱️  Sparky compile');
     
     console.log('\n🚀 Proving with Sparky...');

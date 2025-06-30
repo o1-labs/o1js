@@ -13,12 +13,13 @@ async function loadModules() {
     Gadgets: o1js.Gadgets,
     Provable: o1js.Provable,
     SelfProof: o1js.SelfProof,
+    Cache: o1js.Cache,
     switchBackend: bindings.switchBackend,
     getCurrentBackend: bindings.getCurrentBackend
   };
 }
 
-let Field, Poseidon, ZkProgram, Gadgets, Provable, SelfProof, switchBackend, getCurrentBackend;
+let Field, Poseidon, ZkProgram, Gadgets, Provable, SelfProof, Cache, switchBackend, getCurrentBackend;
 
 function createNullCache() {
   return {
@@ -126,7 +127,7 @@ async function benchmarkProgram(name, program, backend) {
   
   try {
     console.time(`${backend} ${name}`);
-    await program.compile({ cache: createNullCache() });
+    await program.compile({ cache: Cache.None, forceRecompile: true });
     console.timeEnd(`${backend} ${name}`);
     
     const endTime = process.hrtime.bigint();
