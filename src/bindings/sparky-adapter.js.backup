@@ -6,37 +6,6 @@
  */
 
 import { Fp } from './crypto/finite-field.js';
-import { FieldVar } from '../lib/provable/core/fieldvar.js';
-import { Poseidon as PoseidonBigint } from './crypto/poseidon.js';
-
-// Helper functions for constant optimization
-function isConstant(fields) {
-  return fields.every((x) => isFieldConstant(x));
-}
-
-function isFieldConstant(x) {
-  if (Array.isArray(x) && x.length >= 2) {
-    // FieldVar format: [type, ...]
-    return x[0] === 0; // FieldType.Constant
-  }
-  return false;
-}
-
-function toBigints(fields) {
-  return fields.map((x) => {
-    if (Array.isArray(x) && x.length >= 2 && x[0] === 0) {
-      // FieldVar constant: [0, [0, bigint]]
-      if (Array.isArray(x[1]) && x[1].length >= 2) {
-        return x[1][1]; // Extract the bigint value
-      }
-    }
-    throw new Error('toBigints: expected constant FieldVar');
-  });
-}
-
-function createFieldVar(bigints) {
-  return bigints.map((x) => [0, [0, x]]); // Create FieldVar constants
-}
 
 // We need to import Pickles and Test from the OCaml bindings
 // since Sparky only replaces the Snarky constraint generation part
@@ -451,8 +420,9 @@ export const Snarky = {
     
     readVar(x) {
       try {
-        // Pass FieldVar array directly - WASM will handle conversion
-        return getFieldModule().readVar(x);
+        // Convert o1js FieldVar to Sparky Cvar format
+        const cvar = fieldVarToCvar(x);
+        return getFieldModule().readVar(cvar);
       } catch (error) {
         // If we're not in prover mode, Sparky will throw an error
         // Re-throw with a more descriptive message
@@ -464,23 +434,31 @@ export const Snarky = {
     },
     
     assertEqual(x, y) {
-      // Pass FieldVar arrays directly - WASM will handle conversion
-      getFieldModule().assertEqual(x, y);
+      // Convert o1js FieldVar arrays to Sparky Cvar objects
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      getFieldModule().assertEqual(xCvar, yCvar);
     },
     
     assertMul(x, y, z) {
-      // Pass FieldVar arrays directly - WASM will handle conversion
-      getFieldModule().assertMul(x, y, z);
+      // Convert o1js FieldVar arrays to Sparky Cvar objects
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      const zCvar = fieldVarToCvar(z);
+      getFieldModule().assertMul(xCvar, yCvar, zCvar);
     },
     
     assertSquare(x, y) {
-      // Pass FieldVar arrays directly - WASM will handle conversion
-      getFieldModule().assertSquare(x, y);
+      // Convert o1js FieldVar arrays to Sparky Cvar objects
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      getFieldModule().assertSquare(xCvar, yCvar);
     },
     
     assertBoolean(x) {
-      // Pass FieldVar array directly - WASM will handle conversion
-      getFieldModule().assertBoolean(x);
+      // Convert o1js FieldVar array to Sparky Cvar object
+      const xCvar = fieldVarToCvar(x);
+      getFieldModule().assertBoolean(xCvar);
     },
     
     truncateToBits16(lengthDiv16, x) {
@@ -492,63 +470,69 @@ export const Snarky = {
     
     // Additional field operations for compatibility
     add(x, y) {
-      // Use FieldVar.add() like Snarky does - no WASM boundary crossing
-      return FieldVar.add(x, y);
+      // Convert inputs and get result as Cvar, then convert back to FieldVar format
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      const resultCvar = getFieldModule().add(xCvar, yCvar);
+      return cvarToFieldVar(resultCvar);
     },
     
     mul(x, y) {
       // Create a witness for the result
-      const resultCvar = getFieldModule().exists(null);
-      // Convert witness result to FieldVar if needed
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      // Pass FieldVar arrays directly
-      getFieldModule().assertMul(x, y, result);
-      return result;
+      const result = getFieldModule().exists(null);
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      getFieldModule().assertMul(xCvar, yCvar, result);
+      return cvarToFieldVar(result);
     },
     
     sub(x, y) {
       // sub(x, y) = add(x, scale(-1, y))
-      const neg_y = FieldVar.scale(-1n, y);  // Use FieldVar.scale() like Snarky
-      return FieldVar.add(x, neg_y);         // Use FieldVar.add() like Snarky
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      const neg_y = getFieldModule().scale(-1, yCvar);
+      const resultCvar = getFieldModule().add(xCvar, neg_y);
+      return cvarToFieldVar(resultCvar);
     },
     
     div(x, y) {
       // div(x, y): find result such that y * result = x
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      getFieldModule().assertMul(y, result, x);
-      return result;
+      const result = getFieldModule().exists(null);
+      const xCvar = fieldVarToCvar(x);
+      const yCvar = fieldVarToCvar(y);
+      getFieldModule().assertMul(yCvar, result, xCvar);
+      return cvarToFieldVar(result);
     },
     
     negate(x) {
-      // Use FieldVar.scale() like Snarky does - no WASM boundary crossing
-      return FieldVar.scale(-1n, x);
+      const xCvar = fieldVarToCvar(x);
+      const resultCvar = getFieldModule().scale(-1, xCvar);
+      return cvarToFieldVar(resultCvar);
     },
     
     inv(x) {
       // inv(x): find result such that x * result = 1
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      const oneCvar = getFieldModule().constant(1);
-      const one = Array.isArray(oneCvar) ? oneCvar : cvarToFieldVar(oneCvar);
-      getFieldModule().assertMul(x, result, one);
-      return result;
+      const result = getFieldModule().exists(null);
+      const one = getFieldModule().constant(1);
+      const xCvar = fieldVarToCvar(x);
+      getFieldModule().assertMul(xCvar, result, one);
+      return cvarToFieldVar(result);
     },
     
     square(x) {
       // square(x): find result such that result = x * x
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      getFieldModule().assertSquare(x, result);
-      return result;
+      const result = getFieldModule().exists(null);
+      const xCvar = fieldVarToCvar(x);
+      getFieldModule().assertSquare(xCvar, result);
+      return cvarToFieldVar(result);
     },
     
     sqrt(x) {
       // sqrt(x): find result such that result * result = x
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      getFieldModule().assertSquare(result, x);
-      return result;
+      const result = getFieldModule().exists(null);
+      const xCvar = fieldVarToCvar(x);
+      getFieldModule().assertSquare(result, xCvar);
+      return cvarToFieldVar(result);
     },
     
     equal(x, y) {
@@ -556,16 +540,14 @@ export const Snarky = {
       const diff = this.sub(x, y);
       // TODO: Implement proper zero check
       // For now, create a boolean witness
-      const isZeroCvar = getFieldModule().exists(null);
-      const isZero = Array.isArray(isZeroCvar) ? isZeroCvar : cvarToFieldVar(isZeroCvar);
+      const isZero = getFieldModule().exists(null);
       getFieldModule().assertBoolean(isZero);
       return isZero;
     },
     
     toConstant(x) {
       const value = getFieldModule().readVar(x);
-      const constantCvar = getFieldModule().constant(value);
-      return Array.isArray(constantCvar) ? constantCvar : cvarToFieldVar(constantCvar);
+      return getFieldModule().constant(value);
     }
   },
   
@@ -584,7 +566,7 @@ export const Snarky = {
       // x OR y = x + y - x*y
       const xy = getFieldModule().exists(null);
       getFieldModule().assertMul(x, y, xy);
-      const sum = FieldVar.add(x, y);
+      const sum = getFieldModule().add(x, y);
       const result = Snarky.field.sub(sum, xy); // Use the sub method we defined
       getFieldModule().assertBoolean(result);
       return result;
@@ -640,21 +622,35 @@ export const Snarky = {
         const [p2x, p2y] = p2;
         const [p3x, p3y] = p3;
         
-        // Pass FieldVar arrays directly - WASM will handle conversion
+        // Convert all inputs to Sparky Cvar format
+        const p1xCvar = fieldVarToCvar(p1x);
+        const p1yCvar = fieldVarToCvar(p1y);
+        const p2xCvar = fieldVarToCvar(p2x);
+        const p2yCvar = fieldVarToCvar(p2y);
+        const p3xCvar = fieldVarToCvar(p3x);
+        const p3yCvar = fieldVarToCvar(p3y);
+        
+        const infCvar = fieldVarToCvar(inf);
+        const sameXCvar = fieldVarToCvar(same_x);
+        const slopeCvar = fieldVarToCvar(slope);
+        const infZCvar = fieldVarToCvar(inf_z);
+        const x21InvCvar = fieldVarToCvar(x21_inv);
+        
+        // Use Sparky's ecAdd with complete constraint generation
         // This generates the proper elliptic curve addition constraints including:
         // - Point at infinity handling (inf, inf_z)
         // - Same x-coordinate case (same_x)
         // - Slope constraints for addition
         // - Inverse constraints (x21_inv)
         getGatesModule().ecAdd(
-          [p1x, p1y],          // First point
-          [p2x, p2y],          // Second point
-          [p3x, p3y],          // Result point
-          inf,                 // Infinity flag
-          same_x,              // Same x-coordinate flag
-          slope,               // Slope of line
-          inf_z,               // Infinity z-coordinate
-          x21_inv              // Inverse of (x2 - x1)
+          [p1xCvar, p1yCvar],  // First point
+          [p2xCvar, p2yCvar],  // Second point
+          [p3xCvar, p3yCvar],  // Result point
+          infCvar,             // Infinity flag
+          sameXCvar,           // Same x-coordinate flag
+          slopeCvar,           // Slope of line
+          infZCvar,            // Infinity z-coordinate
+          x21InvCvar           // Inverse of (x2 - x1)
         );
         
         // Return the result point
@@ -702,42 +698,30 @@ export const Snarky = {
           }
           
           // Ensure bit is boolean (0 or 1)
-          getFieldModule().assertBoolean(bit);
+          const bitCvar = fieldVarToCvar(bit);
+          getFieldModule().assertBoolean(bitCvar);
           
           // Create witness variables for the EC addition result
-          const addResultXCvar = getFieldModule().exists(null);
-          const addResultYCvar = getFieldModule().exists(null);
-          const addResultX = Array.isArray(addResultXCvar) ? addResultXCvar : cvarToFieldVar(addResultXCvar);
-          const addResultY = Array.isArray(addResultYCvar) ? addResultYCvar : cvarToFieldVar(addResultYCvar);
-          const addResult = [addResultX, addResultY];
+          const addResultX = getFieldModule().exists(null);
+          const addResultY = getFieldModule().exists(null);
+          const addResult = [cvarToFieldVar(addResultX), cvarToFieldVar(addResultY)];
           
           // Create witness variables for auxiliary constraints
-          const infCvar = getFieldModule().exists(null);        // Point at infinity flag
-          const same_xCvar = getFieldModule().exists(null);     // Same x-coordinate flag  
-          const inf_zCvar = getFieldModule().exists(null);      // Infinity z-coordinate
-          const x21_invCvar = getFieldModule().exists(null);    // Inverse of (x2 - x1)
-          
-          const inf = Array.isArray(infCvar) ? infCvar : cvarToFieldVar(infCvar);
-          const same_x = Array.isArray(same_xCvar) ? same_xCvar : cvarToFieldVar(same_xCvar);
-          const inf_z = Array.isArray(inf_zCvar) ? inf_zCvar : cvarToFieldVar(inf_zCvar);
-          const x21_inv = Array.isArray(x21_invCvar) ? x21_invCvar : cvarToFieldVar(x21_invCvar);
+          const inf = getFieldModule().exists(null);        // Point at infinity flag
+          const same_x = getFieldModule().exists(null);     // Same x-coordinate flag  
+          const inf_z = getFieldModule().exists(null);      // Infinity z-coordinate
+          const x21_inv = getFieldModule().exists(null);    // Inverse of (x2 - x1)
           
           // Use proper elliptic curve addition: addResult = acc + base
-          let slopeVar = slope;
-          if (!slopeVar) {
-            const slopeCvar = getFieldModule().exists(null);
-            slopeVar = Array.isArray(slopeCvar) ? slopeCvar : cvarToFieldVar(slopeCvar);
-          }
-          
           this.ecAdd(
             acc,                                      // First point (accumulator)
             base,                                     // Second point (base)
             addResult,                                // Result point
-            inf,                                      // Infinity flag
-            same_x,                                   // Same x flag
-            slopeVar,                                 // Slope
-            inf_z,                                    // Infinity z
-            x21_inv                                   // Inverse
+            cvarToFieldVar(inf),                      // Infinity flag
+            cvarToFieldVar(same_x),                   // Same x flag
+            slope || cvarToFieldVar(getFieldModule().exists(null)), // Slope
+            cvarToFieldVar(inf_z),                    // Infinity z
+            cvarToFieldVar(x21_inv)                   // Inverse
           );
           
           // Conditional selection based on bit:
@@ -745,9 +729,9 @@ export const Snarky = {
           // if bit == 0: result = acc (unchanged)
           
           // For x-coordinate: resultX = bit * addResult.x + (1 - bit) * acc.x
-          const oneCvar = getFieldModule().constant(1);
-          const one = Array.isArray(oneCvar) ? oneCvar : cvarToFieldVar(oneCvar);
-          const invBit = Snarky.field.sub(one, bit);
+          const one = getFieldModule().constant(1);
+          const oneCvar = cvarToFieldVar(one);
+          const invBit = Snarky.field.sub(oneCvar, bit);
           
           const addX_scaled = Snarky.field.mul(bit, addResult[0]);
           const accX_scaled = Snarky.field.mul(invBit, acc[0]);
@@ -761,8 +745,8 @@ export const Snarky = {
           // Update accumulator for next iteration (if there's a next one)
           if (i + 1 < accs.length) {
             // Connect the result to the next accumulator
-            getFieldModule().assertEqual(accs[i + 1][0], resultX);
-            getFieldModule().assertEqual(accs[i + 1][1], resultY);
+            getFieldModule().assertEqual(fieldVarToCvar(accs[i + 1][0]), fieldVarToCvar(resultX));
+            getFieldModule().assertEqual(fieldVarToCvar(accs[i + 1][1]), fieldVarToCvar(resultY));
           }
         }
         
@@ -771,7 +755,7 @@ export const Snarky = {
           const prevField = getFieldModule().constant(Number(nPrev));
           const nextField = getFieldModule().constant(Number(nNext));
           const oneField = getFieldModule().constant(1);
-          const expected = FieldVar.add(prevField, oneField);
+          const expected = getFieldModule().add(prevField, oneField);
           getFieldModule().assertEqual(nextField, expected);
         }
         
@@ -799,86 +783,74 @@ export const Snarky = {
         
         // λ (lambda) for Pallas curve endomorphism - cube root of unity
         // λ = 0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547
-        const lambdaCvar = getFieldModule().constant(BigInt('0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547'));
-        const lambda = Array.isArray(lambdaCvar) ? lambdaCvar : cvarToFieldVar(lambdaCvar);
+        const lambda = getFieldModule().constant(BigInt('0x2D33357CB532458ED3552A23A8554E5005270D29D19FC7D27B7FD22F0201B547'));
+        const lambdaCvar = cvarToFieldVar(lambda);
         
         // Validate that all points satisfy curve equation y² = x³ + 5
-        const fiveCvar = getFieldModule().constant(5);
-        const five = Array.isArray(fiveCvar) ? fiveCvar : cvarToFieldVar(fiveCvar);
+        const five = getFieldModule().constant(5);
+        const fiveCvar = cvarToFieldVar(five);
         
         // Validate base point (xp, yp): yp² = xp³ + 5
         const xpSquared = Snarky.field.square(xp);
         const xpCubed = Snarky.field.mul(xp, xpSquared);
-        const xpRhs = Snarky.field.add(xpCubed, five);
+        const xpRhs = Snarky.field.add(xpCubed, fiveCvar);
         const ypSquared = Snarky.field.square(yp);
         Snarky.field.assertEqual(ypSquared, xpRhs);
         
         // Apply endomorphism: λ(P) = (λ*xp, yp)
-        const endoXp = Snarky.field.mul(lambda, xp);
+        const endoXp = Snarky.field.mul(lambdaCvar, xp);
         const endoPoint = [endoXp, yp];
         
         // Validate endomorphism point: yp² = (λ*xp)³ + 5
         const endoXpSquared = Snarky.field.square(endoXp);
         const endoXpCubed = Snarky.field.mul(endoXp, endoXpSquared);
-        const endoRhs = Snarky.field.add(endoXpCubed, five);
+        const endoRhs = Snarky.field.add(endoXpCubed, fiveCvar);
         Snarky.field.assertEqual(ypSquared, endoRhs);
         
         // Validate boolean constraints for decomposed scalar bits
-        getFieldModule().assertBoolean(b1);
-        getFieldModule().assertBoolean(b2);
-        getFieldModule().assertBoolean(b3);
-        getFieldModule().assertBoolean(b4);
+        const b1Cvar = fieldVarToCvar(b1);
+        const b2Cvar = fieldVarToCvar(b2);
+        const b3Cvar = fieldVarToCvar(b3);
+        const b4Cvar = fieldVarToCvar(b4);
+        
+        getFieldModule().assertBoolean(b1Cvar);
+        getFieldModule().assertBoolean(b2Cvar);
+        getFieldModule().assertBoolean(b3Cvar);
+        getFieldModule().assertBoolean(b4Cvar);
         
         // Implement dual scalar multiplication: k₁*P + k₂*λ(P)
         // where k₁ is represented by bits [b1, b2] and k₂ by bits [b3, b4]
         
         // Create intermediate witness points for the computation
-        const k1PointXCvar = getFieldModule().exists(null);
-        const k1PointYCvar = getFieldModule().exists(null);
-        const k1PointX = Array.isArray(k1PointXCvar) ? k1PointXCvar : cvarToFieldVar(k1PointXCvar);
-        const k1PointY = Array.isArray(k1PointYCvar) ? k1PointYCvar : cvarToFieldVar(k1PointYCvar);
-        const k1Point = [k1PointX, k1PointY];
+        const k1PointX = getFieldModule().exists(null);
+        const k1PointY = getFieldModule().exists(null);
+        const k1Point = [cvarToFieldVar(k1PointX), cvarToFieldVar(k1PointY)];
         
-        const k2PointXCvar = getFieldModule().exists(null);
-        const k2PointYCvar = getFieldModule().exists(null);
-        const k2PointX = Array.isArray(k2PointXCvar) ? k2PointXCvar : cvarToFieldVar(k2PointXCvar);
-        const k2PointY = Array.isArray(k2PointYCvar) ? k2PointYCvar : cvarToFieldVar(k2PointYCvar);
-        const k2Point = [k2PointX, k2PointY];
+        const k2PointX = getFieldModule().exists(null);
+        const k2PointY = getFieldModule().exists(null);
+        const k2Point = [cvarToFieldVar(k2PointX), cvarToFieldVar(k2PointY)];
         
         // Scalar multiply P by k₁ (using bits b1, b2)
         // Simplified 2-bit scalar multiplication: k₁ = 2*b1 + b2
         
         // Step 1: Compute 2*P (point doubling)
-        const doubleP_XCvar = getFieldModule().exists(null);
-        const doubleP_YCvar = getFieldModule().exists(null);
-        const doubleP_X = Array.isArray(doubleP_XCvar) ? doubleP_XCvar : cvarToFieldVar(doubleP_XCvar);
-        const doubleP_Y = Array.isArray(doubleP_YCvar) ? doubleP_YCvar : cvarToFieldVar(doubleP_YCvar);
-        const doubleP = [doubleP_X, doubleP_Y];
+        const doubleP_X = getFieldModule().exists(null);
+        const doubleP_Y = getFieldModule().exists(null);
+        const doubleP = [cvarToFieldVar(doubleP_X), cvarToFieldVar(doubleP_Y)];
         
         // Use ecAdd for point doubling: 2*P = P + P
-        const inf_doubleCvar = getFieldModule().exists(null);
-        const same_x_doubleCvar = getFieldModule().exists(null);
-        const inf_z_doubleCvar = getFieldModule().exists(null);
-        const x21_inv_doubleCvar = getFieldModule().exists(null);
-        
-        const inf_double = Array.isArray(inf_doubleCvar) ? inf_doubleCvar : cvarToFieldVar(inf_doubleCvar);
-        const same_x_double = Array.isArray(same_x_doubleCvar) ? same_x_doubleCvar : cvarToFieldVar(same_x_doubleCvar);
-        const inf_z_double = Array.isArray(inf_z_doubleCvar) ? inf_z_doubleCvar : cvarToFieldVar(inf_z_doubleCvar);
-        const x21_inv_double = Array.isArray(x21_inv_doubleCvar) ? x21_inv_doubleCvar : cvarToFieldVar(x21_inv_doubleCvar);
-        
-        let s1Var = s1;
-        if (!s1Var) {
-          const s1Cvar = getFieldModule().exists(null);
-          s1Var = Array.isArray(s1Cvar) ? s1Cvar : cvarToFieldVar(s1Cvar);
-        }
+        const inf_double = getFieldModule().exists(null);
+        const same_x_double = getFieldModule().exists(null);
+        const inf_z_double = getFieldModule().exists(null);
+        const x21_inv_double = getFieldModule().exists(null);
         
         this.ecAdd(
           [xp, yp], [xp, yp], doubleP,
-          inf_double,
-          same_x_double,
-          s1Var,
-          inf_z_double,
-          x21_inv_double
+          cvarToFieldVar(inf_double),
+          cvarToFieldVar(same_x_double),
+          s1 || cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(inf_z_double),
+          cvarToFieldVar(x21_inv_double)
         );
         
         // Step 2: Conditional addition for k₁*P
@@ -889,47 +861,33 @@ export const Snarky = {
         // k₁*P = b1*(2*P) + b2*P
         
         // Similarly for k₂*λ(P)
-        const doubleEndoP_XCvar = getFieldModule().exists(null);
-        const doubleEndoP_YCvar = getFieldModule().exists(null);
-        const doubleEndoP_X = Array.isArray(doubleEndoP_XCvar) ? doubleEndoP_XCvar : cvarToFieldVar(doubleEndoP_XCvar);
-        const doubleEndoP_Y = Array.isArray(doubleEndoP_YCvar) ? doubleEndoP_YCvar : cvarToFieldVar(doubleEndoP_YCvar);
-        const doubleEndoP = [doubleEndoP_X, doubleEndoP_Y];
-        
-        // Helper function to create witness var
-        const createWitnessVar = () => {
-          const cvar = getFieldModule().exists(null);
-          return Array.isArray(cvar) ? cvar : cvarToFieldVar(cvar);
-        };
+        const doubleEndoP_X = getFieldModule().exists(null);
+        const doubleEndoP_Y = getFieldModule().exists(null);
+        const doubleEndoP = [cvarToFieldVar(doubleEndoP_X), cvarToFieldVar(doubleEndoP_Y)];
         
         this.ecAdd(
           endoPoint, endoPoint, doubleEndoP,
-          createWitnessVar(),
-          createWitnessVar(),
-          createWitnessVar(),
-          createWitnessVar(),
-          createWitnessVar()
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null))
         );
         
         // Final addition: result = k₁*P + k₂*λ(P)
-        let s3Var = s3;
-        if (!s3Var) {
-          const s3Cvar = getFieldModule().exists(null);
-          s3Var = Array.isArray(s3Cvar) ? s3Cvar : cvarToFieldVar(s3Cvar);
-        }
-        
         this.ecAdd(
           k1Point, k2Point, [xr, yr],
-          createWitnessVar(),
-          createWitnessVar(),
-          s3Var,
-          createWitnessVar(),
-          createWitnessVar()
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          s3 || cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null)),
+          cvarToFieldVar(getFieldModule().exists(null))
         );
         
         // Validate result point: yr² = xr³ + 5
         const xrSquared = Snarky.field.square(xr);
         const xrCubed = Snarky.field.mul(xr, xrSquared);
-        const xrRhs = Snarky.field.add(xrCubed, five);
+        const xrRhs = Snarky.field.add(xrCubed, fiveCvar);
         const yrSquared = Snarky.field.square(yr);
         Snarky.field.assertEqual(yrSquared, xrRhs);
         
@@ -994,21 +952,21 @@ export const Snarky = {
     
     rangeCheck0(x) {
       // Range check that a value is exactly 0
-      getGatesModule().rangeCheck0(x);
+      getGatesModule().rangeCheck0(fieldVarToCvar(x));
     },
     
     rangeCheck1(v2, v12, v2c0, v2p0, v2p1, v2p2, v2p3, v2c1, v2c2, v2c3, v2c4, v2c5, v2c6, v2c7, v2c8, v2c9, v2c10, v2c11, v0p0, v0p1, v1p0, v1p1, v2c12, v2c13, v2c14, v2c15, v2c16, v2c17, v2c18, v2c19) {
       // Range check implementation for complex multi-variable constraints
-      // Pass FieldVar arrays directly - WASM will handle conversion
+      // Convert all field variables to Cvar format
       getGatesModule().rangeCheck1(
-        v2, v12,
-        v2c0, v2p0, v2p1, v2p2, v2p3,
-        v2c1, v2c2, v2c3, v2c4, v2c5,
-        v2c6, v2c7, v2c8,
-        v2c9, v2c10, v2c11,
-        v0p0, v0p1, v1p0, v1p1,
-        v2c12, v2c13, v2c14, v2c15,
-        v2c16, v2c17, v2c18, v2c19
+        fieldVarToCvar(v2), fieldVarToCvar(v12),
+        fieldVarToCvar(v2c0), fieldVarToCvar(v2p0), fieldVarToCvar(v2p1), fieldVarToCvar(v2p2), fieldVarToCvar(v2p3),
+        fieldVarToCvar(v2c1), fieldVarToCvar(v2c2), fieldVarToCvar(v2c3), fieldVarToCvar(v2c4), fieldVarToCvar(v2c5),
+        fieldVarToCvar(v2c6), fieldVarToCvar(v2c7), fieldVarToCvar(v2c8),
+        fieldVarToCvar(v2c9), fieldVarToCvar(v2c10), fieldVarToCvar(v2c11),
+        fieldVarToCvar(v0p0), fieldVarToCvar(v0p1), fieldVarToCvar(v1p0), fieldVarToCvar(v1p1),
+        fieldVarToCvar(v2c12), fieldVarToCvar(v2c13), fieldVarToCvar(v2c14), fieldVarToCvar(v2c15),
+        fieldVarToCvar(v2c16), fieldVarToCvar(v2c17), fieldVarToCvar(v2c18), fieldVarToCvar(v2c19)
       );
     }
   },
@@ -1089,39 +1047,25 @@ export const Snarky = {
           throw new Error('Input must be in MlArray format [0, ...fieldVars]');
         }
         
-        // Extract the actual FieldVar arrays (skip the MlArray marker)
-        const stateFields = state.slice(1);
-        const inputFields = input.slice(1);
+        // Extract FieldVars and convert to Cvar format
+        const stateArray = state.slice(1).map(fieldVarToCvar);
+        const inputArray = input.slice(1).map(fieldVarToCvar);
         
-        // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
-        // This is the exact same pattern as Snarky uses
-        if (isConstant(stateFields) && isConstant(inputFields)) {
-          // Pure JavaScript computation - no WASM boundary crossing!
-          let newState = PoseidonBigint.update(toBigints(stateFields), toBigints(inputFields));
-          let newStateFields = createFieldVar(newState);
-          // Return in MlArray format: [0, field1, field2, field3]
-          return [0, ...newStateFields];
-        }
+        // Create MlArray format for WASM: [0, [elements]]
+        // The WASM expects nested array format: [0, actual_array]
+        const stateMlArray = [0, stateArray];
+        const inputMlArray = [0, inputArray];
         
-        // ❌ Only call WASM when variables are involved
-        // Call the WASM poseidon.update method with the original MlArray format
-        const newStateArray = sparkyInstance.poseidon.update(state, input);
+        // Call the WASM poseidon.update method
+        const newStateArray = sparkyInstance.poseidon.update(stateMlArray, inputMlArray);
         
-        // The result is in MlArray format: [0, cvar1, cvar2, cvar3]
-        // Each cvar might be either a FieldVar array or a Cvar object
+        // Convert result back to FieldVar format
+        // Result should be [0, field1, field2, field3], so we skip the first element
         if (!Array.isArray(newStateArray) || newStateArray.length < 4) {
           throw new Error('Invalid poseidon.update result format');
         }
         
-        // Convert each element - handle both Cvar objects and FieldVar arrays
-        return newStateArray.slice(1).map(element => {
-          // If it's already a FieldVar array, return as-is
-          if (Array.isArray(element)) {
-            return element;
-          }
-          // Otherwise convert from Cvar object to FieldVar array
-          return cvarToFieldVar(element);
-        });
+        return newStateArray.slice(1).map(cvarToFieldVar);
       } catch (error) {
         console.error('Poseidon.update error:', error);
         throw error;
@@ -1129,22 +1073,6 @@ export const Snarky = {
     },
     
     hashToGroup(input) {
-      // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
-      // This is the exact same pattern as Snarky uses
-      if (isConstant(input)) {
-        // Pure JavaScript computation - no WASM boundary crossing!
-        let result = PoseidonBigint.hashToGroup(toBigints(input));
-        if (result === undefined) {
-          throw new Error('hashToGroup failed to find a valid group point');
-        }
-        // Create FieldVar constants for x and y coordinates
-        let xFieldVar = [0, [0, result.x]]; // [FieldType.Constant, [0, bigint]]
-        let yFieldVar = [0, [0, result.y]]; // [FieldType.Constant, [0, bigint]]
-        // Return in MlArray format: [0, x, y]
-        return [0, xFieldVar, yFieldVar];
-      }
-      
-      // ❌ Only call WASM when variables are involved
       // Convert input to the right format
       const inputArray = input.map(fieldVarToCvar);
       

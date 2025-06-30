@@ -9,7 +9,7 @@
  */
 
 // Dynamic import for ES modules
-let Field, Bool, ZkProgram, Poseidon, initializeBindings, switchBackend, getCurrentBackend;
+let Field, Bool, ZkProgram, Poseidon, Cache, initializeBindings, switchBackend, getCurrentBackend;
 
 async function loadO1js() {
   const o1js = await import('../../../dist/node/index.js');
@@ -18,6 +18,7 @@ async function loadO1js() {
   Bool = o1js.Bool;
   ZkProgram = o1js.ZkProgram;
   Poseidon = o1js.Poseidon;
+  Cache = o1js.Cache;
   initializeBindings = bindings.initializeBindings;
   switchBackend = bindings.switchBackend;
   getCurrentBackend = bindings.getCurrentBackend;
@@ -129,7 +130,7 @@ async function benchmarkBackend(backendName, program, rounds = BENCHMARK_ROUNDS)
   console.log(`🔥 Warmup compilation...`);
   try {
     const warmupStart = performance.now();
-    await program.compile();
+    await program.compile({ cache: Cache.None, forceRecompile: true });
     const warmupTime = performance.now() - warmupStart;
     console.log(`   Warmup completed in ${warmupTime.toFixed(2)}ms`);
   } catch (error) {
@@ -144,7 +145,7 @@ async function benchmarkBackend(backendName, program, rounds = BENCHMARK_ROUNDS)
   for (let i = 0; i < rounds; i++) {
     try {
       const startTime = performance.now();
-      const compilationResult = await program.compile();
+      const compilationResult = await program.compile({ cache: Cache.None, forceRecompile: true });
       const endTime = performance.now();
       
       const compilationTime = endTime - startTime;
