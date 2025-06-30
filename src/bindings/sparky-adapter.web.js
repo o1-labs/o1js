@@ -467,22 +467,22 @@ export const Snarky = {
     ecScale(state) {
       // Handle EC scale operation
       // This is a complex operation that would need proper implementation
-      console.warn('ecScale not fully implemented in Sparky adapter');
+      // ecScale not fully implemented in Sparky adapter
     },
     
     ecEndoscale(state, xs, ys, nAcc) {
       // Handle EC endoscale operation
-      console.warn('ecEndoscale not fully implemented in Sparky adapter');
+      // ecEndoscale not fully implemented in Sparky adapter
     },
     
     ecEndoscalar(state) {
       // Handle EC endoscalar operation
-      console.warn('ecEndoscalar not fully implemented in Sparky adapter');
+      // ecEndoscalar not fully implemented in Sparky adapter
     },
     
     lookup(sorted, original, table) {
       // Lookup gate implementation would go here
-      console.warn('lookup not fully implemented in Sparky adapter');
+      // lookup not fully implemented in Sparky adapter
     },
     
     rangeCheck(state) {

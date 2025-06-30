@@ -95,7 +95,7 @@ async function initSparkyWasm() {
       
       // CommonJS modules built with wasm-pack --target nodejs self-initialize
       // when loaded - there should never be an init method
-      console.log('[SPARKY] Node.js WASM module loaded (self-initialized)');
+      // Node.js WASM module loaded (self-initialized)
     } else {
       // Browser environment
       const snarky = await import('./compiled/web_bindings/o1js_web.bc.js');
@@ -982,7 +982,7 @@ export const Snarky = {
     
     lookup(sorted, original, table) {
       // TODO: Implement when available in WASM
-      console.warn('lookup not fully implemented in Sparky adapter');
+      // lookup not fully implemented in Sparky adapter
     },
     
     rangeCheck(state) {
@@ -1094,32 +1094,20 @@ export const Snarky = {
         const inputFields = input.slice(1);
         
         // 🔍 INVESTIGATION: Debug which code path is taken
-        console.log('🔍 [POSEIDON DEBUG] poseidon.update() called');
-        console.log('   State fields count:', stateFields.length);
-        console.log('   Input fields count:', inputFields.length);
-        console.log('   State field types:', stateFields.map(f => {
-          if (Array.isArray(f) && f.length >= 1) {
-            return `[${f[0]}, ...]`;
-          }
-          return typeof f;
-        }));
-        console.log('   Input field types:', inputFields.map(f => {
-          if (Array.isArray(f) && f.length >= 1) {
-            return `[${f[0]}, ...]`;
-          }
-          return typeof f;
-        }));
+        // Poseidon.update() called
+        // State fields count: ${stateFields.length}
+        // Input fields count: ${inputFields.length}
+        // State field types and input field types debug info removed
         
         const isConstantState = isConstant(stateFields);
         const isConstantInput = isConstant(inputFields);
         
-        console.log(`   isConstant(state): ${isConstantState}`);
-        console.log(`   isConstant(input): ${isConstantInput}`);
+        // isConstant debug info removed
         
         // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
         // This is the exact same pattern as Snarky uses
         if (isConstantState && isConstantInput) {
-          console.log('✅ [OPTIMIZATION] Using PoseidonBigint (JavaScript) path - NO WASM');
+          // Using PoseidonBigint (JavaScript) path
           // Pure JavaScript computation - no WASM boundary crossing!
           let newState = PoseidonBigint.update(toBigints(stateFields), toBigints(inputFields));
           let newStateFields = createFieldVar(newState);
@@ -1128,8 +1116,7 @@ export const Snarky = {
         }
         
         // ❌ Only call WASM when variables are involved
-        console.log('🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED');
-        console.log('   This should be slower due to WASM overhead!');
+        // Using Sparky WASM boundary crossing - VARIABLES DETECTED
         // Call the WASM poseidon.update method with the original MlArray format
         const newStateArray = sparkyInstance.poseidon.update(state, input);
         
@@ -1149,29 +1136,21 @@ export const Snarky = {
           return cvarToFieldVar(element);
         });
       } catch (error) {
-        console.error('Poseidon.update error:', error);
+        // Poseidon.update error - rethrowing
         throw error;
       }
     },
     
     hashToGroup(input) {
       // 🔍 INVESTIGATION: Debug hashToGroup path
-      console.log('🔍 [POSEIDON DEBUG] hashToGroup() called');
-      console.log('   Input count:', input.length);
-      console.log('   Input types:', input.map(f => {
-        if (Array.isArray(f) && f.length >= 1) {
-          return `[${f[0]}, ...]`;
-        }
-        return typeof f;
-      }));
+      // hashToGroup() debug info removed
       
       const isConstantInput = isConstant(input);
-      console.log(`   isConstant(input): ${isConstantInput}`);
       
       // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
       // This is the exact same pattern as Snarky uses
       if (isConstantInput) {
-        console.log('✅ [OPTIMIZATION] Using PoseidonBigint.hashToGroup (JavaScript) - NO WASM');
+        // Using PoseidonBigint.hashToGroup (JavaScript)
         // Pure JavaScript computation - no WASM boundary crossing!
         let result = PoseidonBigint.hashToGroup(toBigints(input));
         if (result === undefined) {
@@ -1185,7 +1164,7 @@ export const Snarky = {
       }
       
       // ❌ Only call WASM when variables are involved
-      console.log('🔥 [WASM] Using Sparky WASM hashToGroup - VARIABLES DETECTED');
+      // Using Sparky WASM hashToGroup - VARIABLES DETECTED
       // Convert input to the right format
       const inputArray = input.map(fieldVarToCvar);
       
