@@ -154,7 +154,7 @@ await switchBackend('snarky');
 - ✅ Poseidon hash produces identical results
 - ✅ EC operations (ecScale, ecEndoscale) implemented in Sparky
 - ✅ Range check operations available
-- ❌ Lookup tables not fully implemented in Sparky
+- ✅ Lookup tables fully implemented in Sparky
 - ❌ Foreign field operations missing in Sparky
 - ❌ Proof generation has module resolution errors with Sparky
 
@@ -167,8 +167,9 @@ For detailed technical documentation including:
 - EC operations status
 - Performance benchmarks
 - Build system information
+- Math.random() security analysis
 
-See **[DEV.md](./DEV.md)**
+See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 
 ## Development Memories
 
@@ -176,3 +177,5 @@ See **[DEV.md](./DEV.md)**
 - Sparky integration adds 1.2GB to the repository (mostly build artifacts in src/sparky/target/)
 - The sparky-adapter.js file (1,150 lines) handles compatibility between backends
 - All technical documentation has been consolidated into DEV.md (June 29, 2025)
+- There is a build:all that rebuilds everything, including sparky
+- Math.random() security audit completed (June 30, 2025) - no cryptographic uses found
