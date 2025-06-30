@@ -100,7 +100,7 @@ console.log(
   expect(map.length.toBigInt()).toEqual(1n);
   let initialTree = new MerkleTree(3);
   initialTree.setLeaf(0n, Leaf.hashNode(IndexedMerkleMap(3)._firstLeaf));
-  // The root now combines the internal root with the length for security
+  // The merkle root is combined with length for safety
   let expectedRoot = Poseidon.hash([initialTree.getRoot(), Field(1)]);
   expect(map.root).toEqual(expectedRoot);
 
