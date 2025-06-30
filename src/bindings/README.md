@@ -4,7 +4,7 @@ This directory collects code required by o1js to bind to lower layers of the pro
 
 **Directory structure**
 
-- `/compiled` - compiled JS and Wasm artifacts produced by `js_of_ocaml` and `wasm-bindgen` from Rust and OCaml source code. We keep these artifacts in the source tree so that developing on o1js can be done with standard JS tooling and doesn't require setting up the full OCaml/Rust build pipeline.
+- `/compiled` - compiled JS and Wasm artifacts produced by `js_of_ocaml` and `wasm-bindgen` from Rust and OCaml source code. These artifacts can be compiled locally or compiled remote (ir downloaded from a cache). See `build:bindings-remote`
 - `/crypto` - pure TS implementations of a subset of the crypto primitives we use, including finite field and elliptic curve arithmetic. This is used by mina-signer (a pure TS package) to hash and sign transactions.
 - `/backend` - JS-side wrappers for the artifacts located in `/compiled`, which differs between the Node.js and web versions of o1js. Includes code for setting up workers to support using `rayon` in Rust.
 - `/lib` - miscellaneous low-level TypeScript, which underpins o1js and provides generic ways to connect with a proof system and blockchain protocol.
