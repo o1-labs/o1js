@@ -60,45 +60,11 @@ async function initSparkyWasm() {
       join = path.join;
       
       const sparkyModule = await import('./compiled/sparky_node/sparky_wasm.js');
-      const { default: init } = sparkyModule;
       sparkyWasm = sparkyModule;
       
-      // Read WASM file for Node.js
-      // Try multiple path strategies for different environments
-      let wasmBuffer;
-      const possiblePaths = [
-        // Bundled environment (relative to cwd)
-        join(process.cwd(), 'dist/node/bindings/compiled/sparky_node/sparky_wasm_bg.wasm'),
-        // Development environment (relative to this file)
-        join(dirname(fileURLToPath(import.meta.url || 'file://' + __filename)), 'compiled/sparky_node/sparky_wasm_bg.wasm'),
-        // Alternative bundled paths
-        './dist/node/bindings/compiled/sparky_node/sparky_wasm_bg.wasm',
-        './compiled/sparky_node/sparky_wasm_bg.wasm',
-      ];
-      
-      let wasmPath;
-      for (const path of possiblePaths) {
-        try {
-          if (readFileSync && typeof readFileSync === 'function') {
-            wasmBuffer = readFileSync(path);
-            wasmPath = path;
-            console.log(`[SPARKY] Successfully loaded WASM from: ${path}`);
-            break;
-          }
-        } catch (error) {
-          // Try next path
-          continue;
-        }
-      }
-      
-      if (!wasmBuffer) {
-        console.warn('[SPARKY] Could not load WASM file, trying default initialization');
-        // Fall back to letting the WASM module find its own file
-        await init();
-      } else {
-        // Initialize with WASM buffer  
-        await init(wasmBuffer);
-      }
+      // CommonJS modules built with wasm-pack --target nodejs self-initialize
+      // when loaded - there should never be an init method
+      console.log('[SPARKY] Node.js WASM module loaded (self-initialized)');
     } else {
       // Browser environment
       const snarky = await import('./compiled/web_bindings/o1js_web.bc.js');
