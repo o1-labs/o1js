@@ -55,7 +55,7 @@ function makeNodeModulesExternal() {
 }
 
 function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
+  let isJsoo = /(bc.cjs|plonk_wasm.cjs|sparky_wasm.js|sparky_wasm_bg.wasm)$/;
   return {
     name: 'plugin-external',
     setup(build) {

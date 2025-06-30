@@ -1,0 +1,29 @@
+🚀 Complex Merkle Membership Proof - Compilation Benchmark
+=========================================================
+Program features:
+• Merkle tree membership verification with witness
+• Recursive proof aggregation
+• Cross-tree verification logic
+• Extensive range checks and bitwise operations
+• Complex hash chains and conditional logic
+
+
+❌ Fatal error: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/fizzixnerd/src/o1labs/o1js2/dist/bindings.js' imported from /home/fizzixnerd/src/o1labs/o1js2/dist/index.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:924:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1148:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:541:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:510:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:126:49) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///home/fizzixnerd/src/o1labs/o1js2/dist/bindings.js'
+}
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/home/fizzixnerd/src/o1labs/o1js2/dist/bindings.js' imported from /home/fizzixnerd/src/o1labs/o1js2/dist/index.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:924:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1148:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:541:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:510:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:126:49)

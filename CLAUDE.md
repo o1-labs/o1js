@@ -155,7 +155,7 @@ await switchBackend('snarky');
 - ✅ EC operations (ecScale, ecEndoscale) implemented in Sparky
 - ✅ Range check operations available
 - ✅ Lookup tables fully implemented in Sparky
-- ❌ Foreign field operations missing in Sparky
+- ✅ Foreign field operations fully implemented in Sparky (June 30, 2025)
 - ❌ Proof generation has module resolution errors with Sparky
 
 ## Technical Documentation

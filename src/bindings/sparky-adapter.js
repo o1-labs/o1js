@@ -7,36 +7,7 @@
 
 import { Fp } from './crypto/finite-field.js';
 import { FieldVar } from '../lib/provable/core/fieldvar.js';
-import { Poseidon as PoseidonBigint } from './crypto/poseidon.js';
 
-// Helper functions for constant optimization
-function isConstant(fields) {
-  return fields.every((x) => isFieldConstant(x));
-}
-
-function isFieldConstant(x) {
-  if (Array.isArray(x) && x.length >= 2) {
-    // FieldVar format: [type, ...]
-    return x[0] === 0; // FieldType.Constant
-  }
-  return false;
-}
-
-function toBigints(fields) {
-  return fields.map((x) => {
-    if (Array.isArray(x) && x.length >= 2 && x[0] === 0) {
-      // FieldVar constant: [0, [0, bigint]]
-      if (Array.isArray(x[1]) && x[1].length >= 2) {
-        return x[1][1]; // Extract the bigint value
-      }
-    }
-    throw new Error('toBigints: expected constant FieldVar');
-  });
-}
-
-function createFieldVar(bigints) {
-  return bigints.map((x) => [0, [0, x]]); // Create FieldVar constants
-}
 
 // We need to import Pickles and Test from the OCaml bindings
 // since Sparky only replaces the Snarky constraint generation part
@@ -980,10 +951,6 @@ export const Snarky = {
       }
     },
     
-    lookup(sorted, original, table) {
-      // TODO: Implement when available in WASM
-      // lookup not fully implemented in Sparky adapter
-    },
     
     rangeCheck(state) {
       // Use Sparky's range check
@@ -1010,6 +977,106 @@ export const Snarky = {
         v2c12, v2c13, v2c14, v2c15,
         v2c16, v2c17, v2c18, v2c19
       );
+    },
+    
+    foreignFieldAdd(left, right, overflow, carry, modulus, sign, result, remainder) {
+      // Foreign field addition gate
+      // Implements: left + sign * right = quotient * modulus + result
+      // Where sign is -1 or 1 for subtraction or addition
+      try {
+        // Convert inputs to proper format
+        // Each foreign field element is [low, mid, high] (3 limbs)
+        const leftArray = Array.isArray(left) ? left : [left.low, left.mid, left.high];
+        const rightArray = Array.isArray(right) ? right : [right.low, right.mid, right.high];
+        const modulusArray = Array.isArray(modulus) ? modulus : [modulus.low, modulus.mid, modulus.high];
+        const resultArray = Array.isArray(result) ? result : [result.low, result.mid, result.high];
+        const remainderArray = Array.isArray(remainder) ? remainder : [remainder.low, remainder.mid, remainder.high];
+        
+        // Call WASM foreign field add
+        sparkyInstance.foreignFieldAdd(
+          leftArray,
+          rightArray,
+          overflow,
+          carry,
+          modulusArray,
+          sign,
+          resultArray,
+          remainderArray
+        );
+      } catch (error) {
+        throw new Error(`foreignFieldAdd failed: ${error.message}`);
+      }
+    },
+    
+    foreignFieldMul(left, right, remainder, quotient, quotientHiBound, carry0, carry1p, carry1c, carry2p, carry2c, carry3p, carry4p, carry5p, carry6p, carry7p, carry8p, carry9p, carry10p, carry10c, carry11p, carry12c, carry13p, carry14p, carry15p, carry16p, carry17p, carry18c, foreignFieldModulus2, negForeignFieldModulus2, sign) {
+      // Foreign field multiplication gate
+      // Implements: left * right = quotient * modulus + remainder
+      try {
+        // Convert 3-limb foreign field elements
+        const leftArray = Array.isArray(left) ? left : [left.low, left.mid, left.high];
+        const rightArray = Array.isArray(right) ? right : [right.low, right.mid, right.high];
+        const remainderArray = Array.isArray(remainder) ? remainder : [remainder.low, remainder.mid, remainder.high];
+        const quotientArray = Array.isArray(quotient) ? quotient : [quotient.low, quotient.mid, quotient.high];
+        const foreignFieldModulus2Array = Array.isArray(foreignFieldModulus2) ? foreignFieldModulus2 : [foreignFieldModulus2.low, foreignFieldModulus2.mid, foreignFieldModulus2.high];
+        const negForeignFieldModulus2Array = Array.isArray(negForeignFieldModulus2) ? negForeignFieldModulus2 : [negForeignFieldModulus2.low, negForeignFieldModulus2.mid, negForeignFieldModulus2.high];
+        
+        // Call WASM foreign field multiply
+        sparkyInstance.foreignFieldMul(
+          leftArray,
+          rightArray,
+          remainderArray,
+          quotientArray,
+          quotientHiBound,
+          carry0, carry1p, carry1c,
+          carry2p, carry2c, carry3p,
+          carry4p, carry5p, carry6p,
+          carry7p, carry8p, carry9p,
+          carry10p, carry10c, carry11p,
+          carry12c, carry13p, carry14p,
+          carry15p, carry16p, carry17p,
+          carry18c,
+          foreignFieldModulus2Array,
+          negForeignFieldModulus2Array,
+          sign
+        );
+      } catch (error) {
+        throw new Error(`foreignFieldMul failed: ${error.message}`);
+      }
+    },
+    
+    lookup(sorted, original, table) {
+      // TODO: Implement lookup table operations when available in Sparky
+      throw new Error('lookup gate not yet implemented in Sparky adapter');
+    },
+    
+    xor(in1, in2, out, bits) {
+      // TODO: Implement XOR gate when available in Sparky
+      throw new Error('xor gate not yet implemented in Sparky adapter');
+    },
+    
+    rotate(in1, out, bits, direction) {
+      // TODO: Implement rotate gate when available in Sparky
+      throw new Error('rotate gate not yet implemented in Sparky adapter');
+    },
+    
+    raw(kind, values, coefficients) {
+      // Raw gate interface for direct gate specification
+      // This is used for advanced custom gates
+      try {
+        getGatesModule().raw(kind, values, coefficients);
+      } catch (error) {
+        throw new Error(`raw gate failed: ${error.message}`);
+      }
+    },
+    
+    addFixedLookupTable(id, data) {
+      // TODO: Implement fixed lookup table addition when available in Sparky
+      throw new Error('addFixedLookupTable not yet implemented in Sparky adapter');
+    },
+    
+    addRuntimeTableConfig(id, firstColumn) {
+      // TODO: Implement runtime table configuration when available in Sparky
+      throw new Error('addRuntimeTableConfig not yet implemented in Sparky adapter');
     }
   },
   
@@ -1075,6 +1142,41 @@ export const Snarky = {
   },
   
   /**
+   * Foreign field operations
+   */
+  foreignField: {
+    fromHex(hex) {
+      // Convert hex string to foreign field element (3 limbs)
+      try {
+        // The foreign field functions are on the main Snarky instance, not gates
+        return sparkyInstance.foreignFieldFromHex(hex);
+      } catch (error) {
+        throw new Error(`foreignField.fromHex failed: ${error.message}`);
+      }
+    },
+    
+    fromDecimal(decimal) {
+      // Convert decimal string to foreign field element (3 limbs)
+      try {
+        // The foreign field functions are on the main Snarky instance, not gates
+        return sparkyInstance.foreignFieldFromDecimal(decimal);
+      } catch (error) {
+        throw new Error(`foreignField.fromDecimal failed: ${error.message}`);
+      }
+    },
+    
+    rangeCheck(foreignField) {
+      // Range check a foreign field element
+      try {
+        // The foreign field functions are on the main Snarky instance, not gates
+        sparkyInstance.foreignFieldRangeCheck(foreignField);
+      } catch (error) {
+        throw new Error(`foreignField.rangeCheck failed: ${error.message}`);
+      }
+    }
+  },
+  
+  /**
    * Poseidon object with sponge construction methods
    */
   poseidon: {
@@ -1089,34 +1191,6 @@ export const Snarky = {
           throw new Error('Input must be in MlArray format [0, ...fieldVars]');
         }
         
-        // Extract the actual FieldVar arrays (skip the MlArray marker)
-        const stateFields = state.slice(1);
-        const inputFields = input.slice(1);
-        
-        // 🔍 INVESTIGATION: Debug which code path is taken
-        // Poseidon.update() called
-        // State fields count: ${stateFields.length}
-        // Input fields count: ${inputFields.length}
-        // State field types and input field types debug info removed
-        
-        const isConstantState = isConstant(stateFields);
-        const isConstantInput = isConstant(inputFields);
-        
-        // isConstant debug info removed
-        
-        // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
-        // This is the exact same pattern as Snarky uses
-        if (isConstantState && isConstantInput) {
-          // Using PoseidonBigint (JavaScript) path
-          // Pure JavaScript computation - no WASM boundary crossing!
-          let newState = PoseidonBigint.update(toBigints(stateFields), toBigints(inputFields));
-          let newStateFields = createFieldVar(newState);
-          // Return in MlArray format: [0, field1, field2, field3]
-          return [0, ...newStateFields];
-        }
-        
-        // ❌ Only call WASM when variables are involved
-        // Using Sparky WASM boundary crossing - VARIABLES DETECTED
         // Call the WASM poseidon.update method with the original MlArray format
         const newStateArray = sparkyInstance.poseidon.update(state, input);
         
@@ -1142,29 +1216,6 @@ export const Snarky = {
     },
     
     hashToGroup(input) {
-      // 🔍 INVESTIGATION: Debug hashToGroup path
-      // hashToGroup() debug info removed
-      
-      const isConstantInput = isConstant(input);
-      
-      // ✅ CRITICAL OPTIMIZATION: Use pure JavaScript for constants!
-      // This is the exact same pattern as Snarky uses
-      if (isConstantInput) {
-        // Using PoseidonBigint.hashToGroup (JavaScript)
-        // Pure JavaScript computation - no WASM boundary crossing!
-        let result = PoseidonBigint.hashToGroup(toBigints(input));
-        if (result === undefined) {
-          throw new Error('hashToGroup failed to find a valid group point');
-        }
-        // Create FieldVar constants for x and y coordinates
-        let xFieldVar = [0, [0, result.x]]; // [FieldType.Constant, [0, bigint]]
-        let yFieldVar = [0, [0, result.y]]; // [FieldType.Constant, [0, bigint]]
-        // Return in MlArray format: [0, x, y]
-        return [0, xFieldVar, yFieldVar];
-      }
-      
-      // ❌ Only call WASM when variables are involved
-      // Using Sparky WASM hashToGroup - VARIABLES DETECTED
       // Convert input to the right format
       const inputArray = input.map(fieldVarToCvar);
       

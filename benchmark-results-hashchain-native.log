@@ -1,0 +1,106 @@
+🎯 Hash Chain Backend Comparison
+================================
+
+🔗 Testing Hash Chain with Snarky (Baseline)
+==================================================
+Loading Snarky backend...
+✓ Snarky backend loaded
+✅ Backend: snarky
+
+📊 Compiling with Snarky...
+⏱️  Snarky compile: 1:09.935 (m:ss.mmm)
+
+🚀 Proving with Snarky...
+⏱️  Snarky start proof: 21.475s
+⏱️  Snarky step proof: 31.693s
+✅ Snarky hash chain completed
+✅ Snarky proof valid: true
+
+⚡ Testing Hash Chain with Sparky
+==================================================
+Switching backend from snarky to sparky
+Loading Sparky backend...
+[SPARKY] Node.js WASM module loaded (self-initialized)
+✓ Sparky backend loaded
+✅ Backend: sparky
+
+📊 Compiling with Sparky...
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 1
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 1
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 1
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+⏱️  Sparky compile: 14.663s
+
+🚀 Proving with Sparky...
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 1
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+❌ Sparky test failed: FieldVector.get(): Index out of bounds, got 4593/86
+
+============================================================
+📊 FINAL COMPARISON RESULTS
+============================================================
+
+🔵 Snarky Results:
+   • Valid: true
+   • Output: 19415686717571931338799339138384163746857374893562335811700416321798913796906
+
+⚡ Sparky Results:
+   • Valid: false
+   • Error: FieldVector.get(): Index out of bounds, got 4593/86

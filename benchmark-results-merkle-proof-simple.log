@@ -1,0 +1,71 @@
+🚀 Complex Merkle Membership Proof - Compilation Benchmark
+=========================================================
+Program features:
+• Merkle tree membership verification
+• Range checks and bitwise operations
+• Complex hash chains
+
+
+🔵 Phase 1: Snarky Backend (No Cache)
+
+🔧 Testing Snarky Backend
+============================================================
+Loading Snarky backend...
+✓ Snarky backend loaded
+✅ Active backend: snarky
+
+📊 Run 1/3:
+⏱️  Snarky compilation: 23.533s
+✅ Compilation successful: 23.53s
+
+📊 Run 2/3:
+⏱️  Snarky compilation: 6.214s
+✅ Compilation successful: 6.21s
+
+📊 Run 3/3:
+⏱️  Snarky compilation: 6.233s
+✅ Compilation successful: 6.23s
+
+🧹 Clearing state between backends...
+
+⚡ Phase 2: Sparky Backend (No Cache)
+
+🔧 Testing Sparky Backend
+============================================================
+Switching backend from snarky to sparky
+Loading Sparky backend...
+Failed to initialize sparky backend: Error: ENOENT: no such file or directory, open '/home/fizzixnerd/src/o1labs/o1js2/dist/node/sparky_wasm_bg.wasm'
+    at Object.openSync (node:fs:573:18)
+    at Object.readFileSync (node:fs:452:35)
+    at dist/node/bindings/compiled/sparky_node/sparky_wasm.js (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:5636:31)
+    at __require (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:12:51)
+    at /home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:213837:71
+    at async /home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:213837:28
+    at async Object.ensureInitialized (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:213857:5)
+    at async initializeBindings (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:216267:7)
+    at async switchBackend (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:216297:3)
+    at async runBenchmark (/home/fizzixnerd/src/o1labs/o1js2/benchmark/suites/holistic/merkle-proof-simple.cjs:104:3)
+    at async main (/home/fizzixnerd/src/o1labs/o1js2/benchmark/suites/holistic/merkle-proof-simple.cjs:162:27) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/fizzixnerd/src/o1labs/o1js2/dist/node/sparky_wasm_bg.wasm'
+}
+
+❌ Fatal error: Error: ENOENT: no such file or directory, open '/home/fizzixnerd/src/o1labs/o1js2/dist/node/sparky_wasm_bg.wasm'
+    at Object.openSync (node:fs:573:18)
+    at Object.readFileSync (node:fs:452:35)
+    at dist/node/bindings/compiled/sparky_node/sparky_wasm.js (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:5636:31)
+    at __require (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:12:51)
+    at /home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:213837:71
+    at async /home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:213837:28
+    at async Object.ensureInitialized (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:213857:5)
+    at async initializeBindings (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:216267:7)
+    at async switchBackend (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:216297:3)
+    at async runBenchmark (/home/fizzixnerd/src/o1labs/o1js2/benchmark/suites/holistic/merkle-proof-simple.cjs:104:3)
+    at async main (/home/fizzixnerd/src/o1labs/o1js2/benchmark/suites/holistic/merkle-proof-simple.cjs:162:27) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/fizzixnerd/src/o1labs/o1js2/dist/node/sparky_wasm_bg.wasm'
+}

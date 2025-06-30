@@ -1,0 +1,108 @@
+🧪 SPARKY vs SNARKY COMPILATION BENCHMARK
+════════════════════════════════════════════════════════════
+Testing ZkProgram: Backend Compilation Comparison
+Operations: 3 Poseidon hashes + field arithmetic | Rounds: 3 per backend
+
+📦 Loading o1js modules...
+✓ o1js modules loaded successfully
+
+🔧 Initializing o1js bindings...
+Loading Snarky backend...
+✓ Snarky backend loaded
+✓ Bindings initialized successfully
+
+🏗️  Creating ZkProgram...
+✓ ZkProgram created (backend comparison benchmark)
+
+📝 Generating test data...
+✓ Test data generated
+
+📊 Benchmarking SPARKY Backend
+──────────────────────────────────────────────────
+Switching backend from snarky to sparky
+Loading Sparky backend...
+[SPARKY] Node.js WASM module loaded (self-initialized)
+✓ Sparky backend loaded
+✓ Switched to sparky backend
+🔥 Warmup compilation...
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[2, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[2, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[1, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!
+🔍 [POSEIDON DEBUG] poseidon.update() called
+   State fields count: 3
+   Input fields count: 2
+   State field types: [ '[0, ...]', '[0, ...]', '[0, ...]' ]
+   Input field types: [ '[2, ...]', '[1, ...]' ]
+   isConstant(state): true
+   isConstant(input): false
+🔥 [WASM] Using Sparky WASM boundary crossing - VARIABLES DETECTED
+   This should be slower due to WASM overhead!

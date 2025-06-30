@@ -47,6 +47,8 @@
   "scripts": {
     "dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",
     "build": "npm run checkForBindings && node src/build/copy-artifacts.js && rimraf ./dist/node && npm run dev && node src/build/build-node.js",
+    "build:all": "npm run build:update-bindings && npm run build:sparky && npm run build",
+    "build:all-safe": "npm run build:update-bindings && (npm run build:sparky || echo 'Sparky build failed, continuing...') && npm run build",
     "build:bindings": "./src/bindings/scripts/build-o1js-node.sh",
     "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:bindings-remote": "./src/bindings/scripts/remote-build-bindings.sh && npm run build",

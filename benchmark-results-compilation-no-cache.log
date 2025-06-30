@@ -1,0 +1,117 @@
+🚀 ZkProgram Compilation Benchmark Suite (NO CACHE)
+===================================================
+Testing TRUE compilation performance without caching interference
+⚠️  This will take significantly longer but provides accurate results
+
+✅ Modules loaded successfully
+💡 Consider running with --expose-gc for better memory management
+
+🔵 Phase 1: Testing Snarky Backend (Fresh Compilation)
+
+🔧 Testing Snarky Backend (NO CACHE)
+======================================================================
+Loading Snarky backend...
+✓ Snarky backend loaded
+✅ Active backend: snarky
+
+🎯 Creating Simple Program (Low complexity) - Fresh Instance
+
+📊 Testing Simple Program with Snarky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Snarky Simple compilation...
+❌ Simple compilation failed: Cache is not defined
+
+🎯 Creating Gadgets Program (Medium complexity) - Fresh Instance
+
+📊 Testing Gadgets Program with Snarky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Snarky Gadgets compilation...
+❌ Gadgets compilation failed: Cache is not defined
+
+🎯 Creating Poseidon Program (Medium-High complexity) - Fresh Instance
+
+📊 Testing Poseidon Program with Snarky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Snarky Poseidon compilation...
+❌ Poseidon compilation failed: Cache is not defined
+
+🎯 Creating Recursive Program (High complexity) - Fresh Instance
+
+📊 Testing Recursive Program with Snarky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Snarky Recursive compilation...
+❌ Recursive compilation failed: Cache is not defined
+
+🎯 Creating Complex Program (Very High complexity) - Fresh Instance
+
+📊 Testing Complex Program with Snarky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Snarky Complex compilation...
+❌ Complex compilation failed: Cache is not defined
+
+🧹 Clearing state between backend tests...
+
+⚡ Phase 2: Testing Sparky Backend (Fresh Compilation)
+
+🔧 Testing Sparky Backend (NO CACHE)
+======================================================================
+Switching backend from snarky to sparky
+Loading Sparky backend...
+[SPARKY] Node.js WASM module loaded (self-initialized)
+✓ Sparky backend loaded
+✅ Active backend: sparky
+
+🎯 Creating Simple Program (Low complexity) - Fresh Instance
+
+📊 Testing Simple Program with Sparky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Sparky Simple compilation...
+❌ Simple compilation failed: Cache is not defined
+
+🎯 Creating Gadgets Program (Medium complexity) - Fresh Instance
+
+📊 Testing Gadgets Program with Sparky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Sparky Gadgets compilation...
+❌ Gadgets compilation failed: Cache is not defined
+
+🎯 Creating Poseidon Program (Medium-High complexity) - Fresh Instance
+
+📊 Testing Poseidon Program with Sparky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Sparky Poseidon compilation...
+❌ Poseidon compilation failed: Cache is not defined
+
+🎯 Creating Recursive Program (High complexity) - Fresh Instance
+
+📊 Testing Recursive Program with Sparky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Sparky Recursive compilation...
+❌ Recursive compilation failed: Cache is not defined
+
+🎯 Creating Complex Program (Very High complexity) - Fresh Instance
+
+📊 Testing Complex Program with Sparky (NO CACHE)
+------------------------------------------------------------
+⏰ Starting Sparky Complex compilation...
+❌ Complex compilation failed: Cache is not defined
+
+==========================================================================================
+📊 NO-CACHE COMPILATION BENCHMARK RESULTS
+==========================================================================================
+
+🔍 Detailed Results:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Program   │ Complexity │ Snarky Time │ Sparky Time │ Speedup │ Time Saved │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Simple    │ Low        │      FAILED │      FAILED │     N/A │      N/A │
+│ Gadgets   │ Medium     │      FAILED │      FAILED │     N/A │      N/A │
+│ Poseidon  │ Medium-High │      FAILED │      FAILED │     N/A │      N/A │
+│ Recursive │ High       │      FAILED │      FAILED │     N/A │      N/A │
+│ Complex   │ Very High  │      FAILED │      FAILED │     N/A │      N/A │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+⚠️  Note: This benchmark disables ALL caching for true compilation performance comparison
+
+🎉 No-cache benchmark completed successfully!
+🔬 These results show TRUE compilation performance differences

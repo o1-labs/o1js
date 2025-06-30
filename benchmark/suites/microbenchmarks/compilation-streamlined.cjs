@@ -238,7 +238,7 @@ async function main() {
     console.log('Testing TRUE compilation performance (no cache interference)');
     
     const modules = await loadModules();
-    ({ Field, Poseidon, ZkProgram, Gadgets, Provable, SelfProof, switchBackend, getCurrentBackend } = modules);
+    ({ Field, Poseidon, ZkProgram, Gadgets, Provable, SelfProof, Cache, switchBackend, getCurrentBackend } = modules);
     
     console.log('✅ Modules loaded');
     
