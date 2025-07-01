@@ -1,0 +1,19 @@
+{
+  "testCase": "boolean_operations",
+  "description": "Boolean AND, OR, NOT",
+  "snarky": {
+    "rows": 0,
+    "digest": "4f5ddea76d29cfcfd8c595f14e31f21b",
+    "gates": 0
+  },
+  "sparky": {
+    "rows": 6,
+    "digest": "2624999ce9def3a3",
+    "gates": 6
+  },
+  "matches": {
+    "digest": false,
+    "rows": false,
+    "gates": false
+  }
+}

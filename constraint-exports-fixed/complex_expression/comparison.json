@@ -1,0 +1,19 @@
+{
+  "testCase": "complex_expression",
+  "description": "3*x + 2*x = 5*x",
+  "snarky": {
+    "rows": 0,
+    "digest": "4f5ddea76d29cfcfd8c595f14e31f21b",
+    "gates": 0
+  },
+  "sparky": {
+    "rows": 3,
+    "digest": "7e2640256b3ca1e",
+    "gates": 3
+  },
+  "matches": {
+    "digest": false,
+    "rows": false,
+    "gates": false
+  }
+}

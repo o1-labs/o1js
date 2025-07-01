@@ -195,3 +195,4 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 - ALWAYS update SPARKY_CALLGRAPH_TEXT.md with your changes
 - ALWAYS read SPARKY_CALLGRAPH_TEXT.md before starting any project
 - ALWAYS record your progress as you go in DEV.md
+- NEVER change the structure of sparky-adapter.js UNLESS explicitly told to do so.  It is meant to exactly match the exports of Snarky

@@ -1,0 +1,17 @@
+{
+  "backend": "snarky",
+  "testCase": "simple_multiplication",
+  "description": "x * y = z",
+  "timestamp": "2025-07-01T18:28:13.032Z",
+  "constraintSystem": {
+    "public_input_size": 0,
+    "num_gates": 0,
+    "gates": []
+  },
+  "digest": "4f5ddea76d29cfcfd8c595f14e31f21b",
+  "rows": 0,
+  "rawJSON": {
+    "public_input_size": 0,
+    "gates": []
+  }
+}

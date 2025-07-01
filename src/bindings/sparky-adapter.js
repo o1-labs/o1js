@@ -281,9 +281,11 @@ export const Snarky = {
       // Use the actual enterConstraintSystem method from the Run module
       const handle = getRunModule().enterConstraintSystem();
       return () => {
-        // Get the constraint system that was built during execution
-        const constraintSystem = handle(); // Call the handle to get the constraint system
-        return constraintSystem;
+        // In Sparky, we need to get the constraint system from the global state
+        // The handle just manages the mode, it doesn't return the constraint system
+        const cs = getRunModule().getConstraintSystem();
+        handle.exit(); // Exit the constraint generation mode
+        return cs;
       };
     },
     
@@ -337,6 +339,29 @@ export const Snarky = {
           handle.exit(); // Always exit the mode
         }
       };
+    },
+    
+    getConstraintSystem() {
+      // Expose the getConstraintSystem method from the underlying WASM module
+      return getRunModule().getConstraintSystem();
+    },
+    
+    exists(size, compute) {
+      // Delegate to the WASM implementation
+      const result = getRunModule().exists(size, compute);
+      // Convert each Cvar result to FieldVar format
+      const vars = [];
+      for (let i = 0; i < result.length; i++) {
+        vars.push(cvarToFieldVar(result[i]));
+      }
+      return vars;
+    },
+    
+    existsOne(compute) {
+      // Delegate to the WASM implementation
+      const result = getRunModule().existsOne(compute);
+      // Convert Cvar result to FieldVar format
+      return cvarToFieldVar(result);
     },
     
     state: {
@@ -409,21 +434,6 @@ export const Snarky = {
    * Field APIs
    */
   field: {
-    // Add fromNumber for compatibility
-    fromNumber(x) {
-      // Create a constant field variable from a number
-      // This matches the OCaml API expectation
-      return [0, [0, BigInt(x)]]; // [FieldType.Constant, [0, bigint]]
-    },
-    
-    // Add random for compatibility - now cryptographically secure!
-    random() {
-      // Generate a cryptographically secure random field element using Fp.random()
-      // This uses rejection sampling with crypto.randomBytes under the hood
-      const randomBigInt = Fp.random();
-      return [0, [0, randomBigInt]]; // [FieldType.Constant, [0, bigint]]
-    },
-    
     readVar(x) {
       try {
         // Pass FieldVar array directly - WASM will handle conversion
@@ -458,125 +468,28 @@ export const Snarky = {
       getFieldModule().assertBoolean(x);
     },
     
+    compare(bitLength, x, y) {
+      // Implement comparison
+      // TODO: This needs proper implementation
+      throw new Error('compare not yet implemented in Sparky adapter');
+    },
+    
     truncateToBits16(lengthDiv16, x) {
       // Implement using range check
       const bits = lengthDiv16 * 16;
       getGatesModule().rangeCheckN(x, bits);
       return x;
-    },
-    
-    // Additional field operations for compatibility
-    add(x, y) {
-      // Use FieldVar.add() like Snarky does - no WASM boundary crossing
-      return FieldVar.add(x, y);
-    },
-    
-    mul(x, y) {
-      // Create a witness for the result
-      const resultCvar = getFieldModule().exists(null);
-      // Convert witness result to FieldVar if needed
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      // Pass FieldVar arrays directly
-      getFieldModule().assertMul(x, y, result);
-      return result;
-    },
-    
-    sub(x, y) {
-      // sub(x, y) = add(x, scale(-1, y))
-      const neg_y = FieldVar.scale(-1n, y);  // Use FieldVar.scale() like Snarky
-      return FieldVar.add(x, neg_y);         // Use FieldVar.add() like Snarky
-    },
-    
-    div(x, y) {
-      // div(x, y): find result such that y * result = x
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      getFieldModule().assertMul(y, result, x);
-      return result;
-    },
-    
-    negate(x) {
-      // Use FieldVar.scale() like Snarky does - no WASM boundary crossing
-      return FieldVar.scale(-1n, x);
-    },
-    
-    inv(x) {
-      // inv(x): find result such that x * result = 1
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      const oneCvar = getFieldModule().constant(1);
-      const one = Array.isArray(oneCvar) ? oneCvar : cvarToFieldVar(oneCvar);
-      getFieldModule().assertMul(x, result, one);
-      return result;
-    },
-    
-    square(x) {
-      // square(x): find result such that result = x * x
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      getFieldModule().assertSquare(x, result);
-      return result;
-    },
-    
-    sqrt(x) {
-      // sqrt(x): find result such that result * result = x
-      const resultCvar = getFieldModule().exists(null);
-      const result = Array.isArray(resultCvar) ? resultCvar : cvarToFieldVar(resultCvar);
-      getFieldModule().assertSquare(result, x);
-      return result;
-    },
-    
-    equal(x, y) {
-      // Check if x - y = 0 by creating a boolean witness
-      const diff = this.sub(x, y);
-      // TODO: Implement proper zero check
-      // For now, create a boolean witness
-      const isZeroCvar = getFieldModule().exists(null);
-      const isZero = Array.isArray(isZeroCvar) ? isZeroCvar : cvarToFieldVar(isZeroCvar);
-      getFieldModule().assertBoolean(isZero);
-      return isZero;
-    },
-    
-    toConstant(x) {
-      const value = getFieldModule().readVar(x);
-      const constantCvar = getFieldModule().constant(value);
-      return Array.isArray(constantCvar) ? constantCvar : cvarToFieldVar(constantCvar);
     }
   },
   
+  
   /**
-   * Bool operations (implemented as field operations with boolean constraints)
+   * Group APIs
    */
-  bool: {
-    and(x, y) {
-      const result = getFieldModule().exists(null);
-      getFieldModule().assertMul(x, y, result);
-      getFieldModule().assertBoolean(result);
-      return result;
-    },
-    
-    or(x, y) {
-      // x OR y = x + y - x*y
-      const xy = getFieldModule().exists(null);
-      getFieldModule().assertMul(x, y, xy);
-      const sum = FieldVar.add(x, y);
-      const result = Snarky.field.sub(sum, xy); // Use the sub method we defined
-      getFieldModule().assertBoolean(result);
-      return result;
-    },
-    
-    not(x) {
-      // NOT x = 1 - x
-      const one = getFieldModule().constant(1);
-      const result = Snarky.field.sub(one, x); // Use the sub method we defined
-      getFieldModule().assertBoolean(result);
-      return result;
-    },
-    
-    assertEqual(x, y) {
-      getFieldModule().assertEqual(x, y);
-      getFieldModule().assertBoolean(x);
-      getFieldModule().assertBoolean(y);
+  group: {
+    scaleFastUnpack(base, scalar, numBits) {
+      // TODO: Implement scale_fast_unpack when available in Sparky
+      throw new Error('scaleFastUnpack not yet implemented in Sparky adapter');
     }
   },
   
@@ -1121,72 +1034,6 @@ export const Snarky = {
     }
   },
   
-  /**
-   * Additional utilities
-   */
-  exists(size, compute) {
-    // The exists function should return an array of field variables
-    // of the specified size
-    
-    // If compute is not provided or we're in compile mode,
-    // just create witness variables
-    if (!compute || !getRunModule().inProver) {
-      const vars = [];
-      for (let i = 0; i < size; i++) {
-        // Create a witness variable
-        const witnessVar = getFieldModule().exists(null);
-        // Convert Cvar result back to FieldVar format
-        vars.push(cvarToFieldVar(witnessVar));
-      }
-      return vars;
-    }
-    
-    // In prover mode, compute the values and create constants
-    const values = compute();
-    const vars = [];
-    for (let i = 0; i < size; i++) {
-      const value = values[i] || 0n;
-      const constantVar = getFieldModule().constant(value);
-      // Convert Cvar result back to FieldVar format
-      vars.push(cvarToFieldVar(constantVar));
-    }
-    return vars;
-  },
-  
-  /**
-   * Foreign field operations
-   */
-  foreignField: {
-    fromHex(hex) {
-      // Convert hex string to foreign field element (3 limbs)
-      try {
-        // The foreign field functions are on the main Snarky instance, not gates
-        return sparkyInstance.foreignFieldFromHex(hex);
-      } catch (error) {
-        throw new Error(`foreignField.fromHex failed: ${error.message}`);
-      }
-    },
-    
-    fromDecimal(decimal) {
-      // Convert decimal string to foreign field element (3 limbs)
-      try {
-        // The foreign field functions are on the main Snarky instance, not gates
-        return sparkyInstance.foreignFieldFromDecimal(decimal);
-      } catch (error) {
-        throw new Error(`foreignField.fromDecimal failed: ${error.message}`);
-      }
-    },
-    
-    rangeCheck(foreignField) {
-      // Range check a foreign field element
-      try {
-        // The foreign field functions are on the main Snarky instance, not gates
-        sparkyInstance.foreignFieldRangeCheck(foreignField);
-      } catch (error) {
-        throw new Error(`foreignField.rangeCheck failed: ${error.message}`);
-      }
-    }
-  },
   
   /**
    * Poseidon object with sponge construction methods
@@ -1236,11 +1083,24 @@ export const Snarky = {
       
       // Return as [x, y] pair converted to FieldVar format
       return [0, cvarToFieldVar(groupPoint[0]), cvarToFieldVar(groupPoint[1])];
+    },
+    
+    sponge: {
+      create(isChecked) {
+        // TODO: Implement sponge construction when available in Sparky
+        throw new Error('poseidon.sponge.create not yet implemented in Sparky adapter');
+      },
+      
+      absorb(sponge, field) {
+        // TODO: Implement sponge absorption when available in Sparky
+        throw new Error('poseidon.sponge.absorb not yet implemented in Sparky adapter');
+      },
+      
+      squeeze(sponge) {
+        // TODO: Implement sponge squeeze when available in Sparky
+        throw new Error('poseidon.sponge.squeeze not yet implemented in Sparky adapter');
+      }
     }
-  },
-  
-  asProver(f) {
-    return getRunModule().asProver(f);
   }
 };
 
