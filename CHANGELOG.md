@@ -19,6 +19,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
+### Changed
+
+- Replace the `Circuit` API with the `ZkFunction` API, which provides the same functionality with a more ergonomic and consistent structure, inspired by `ZkProgram`. https://github.com/o1-labs/o1js/pull/2245
+
 ### Fixed
 
 - Correct handling of actions and events lists as well as internal `AccountUpdate` consistency tests for the new V2 API. https://github.com/o1-labs/o1js/pull/2134
