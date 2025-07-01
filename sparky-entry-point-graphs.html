@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 Sparky Entry Point Call Graphs</title>
+    <script src="./d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            overflow: auto;
+            min-height: 100vh;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            z-index: 1000;
+            border-bottom: 2px solid #4a90e2;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4a90e2;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #4a90e2, #357abd);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.active {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+        }
+
+        #visualization {
+            margin-top: 100px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            width: 100%;
+            max-width: 1800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .entry-point-container {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #4a90e2;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .entry-point-title {
+            color: #f39c12;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            padding: 10px;
+            background: rgba(243, 156, 18, 0.2);
+            border-radius: 8px;
+            border: 1px solid #f39c12;
+        }
+
+        .graph-container {
+            flex: 1;
+            position: relative;
+            min-height: 250px;
+        }
+
+        .node {
+            cursor: pointer;
+        }
+
+        .node-circle {
+            stroke-width: 2;
+            stroke: white;
+            transition: all 0.2s ease;
+        }
+
+        .node:hover .node-circle {
+            stroke-width: 4;
+            filter: brightness(1.2) drop-shadow(0 0 8px currentColor);
+        }
+
+        .node-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-anchor: middle;
+            fill: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+
+        .link {
+            fill: none;
+            stroke-width: 2;
+            opacity: 0.8;
+            marker-end: url(#arrowhead);
+        }
+
+        .link:hover {
+            stroke-width: 3;
+            opacity: 1;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 1001;
+            border: 1px solid #4a90e2;
+            max-width: 300px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .legend {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #4a90e2;
+            z-index: 1000;
+        }
+
+        .legend h3 {
+            color: #4a90e2;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+        }
+
+        .stats {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #4a90e2;
+            z-index: 1000;
+            font-size: 12px;
+        }
+
+        @media (max-width: 1200px) {
+            #visualization {
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            #visualization {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔥 Sparky Entry Point Call Graphs</h1>
+        <div class="controls">
+            <button class="btn active" id="show-all">👁️ Show All Entry Points</button>
+            <button class="btn" id="show-field">🔢 Field Operations</button>
+            <button class="btn" id="show-gates">🚪 Gate Operations</button>
+            <button class="btn" id="show-poseidon">🔐 Poseidon</button>
+            <button class="btn" id="show-run">▶️ Run Control</button>
+            <button class="btn" id="show-constraint">📋 Constraint System</button>
+        </div>
+    </div>
+
+    <div class="legend">
+        <h3>Node Types</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span>WASM Entry Point</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4a90e2;"></div>
+            <span>Core Function</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #2ecc71;"></div>
+            <span>Implementation</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9b59b6;"></div>
+            <span>Helper Function</span>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div>Entry Points: <span id="entry-count">0</span></div>
+        <div>Total Graphs: <span id="graph-count">0</span></div>
+        <div>Visible: <span id="visible-count">0</span></div>
+    </div>
+
+    <div id="visualization"></div>
+
+    <script>
+        console.log('🚀 Starting Sparky Entry Point Graphs...');
+
+        // Comprehensive call graph data for each entry point
+        const entryPointGraphs = {
+            // Field Operations
+            fieldExists: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'exists_impl', type: 'core', level: 1 },
+                    { target: 'alloc_var', type: 'impl', level: 2, parent: 'exists_impl' },
+                    { target: 'cvar_to_js', type: 'helper', level: 2, parent: 'exists_impl' },
+                    { target: 'has_witness', type: 'helper', level: 3, parent: 'alloc_var' },
+                    { target: 'set_variable_value', type: 'helper', level: 3, parent: 'alloc_var' }
+                ]
+            },
+            
+            fieldConstant: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'constant', type: 'core', level: 1 },
+                    { target: 'from_str', type: 'helper', level: 2, parent: 'constant' },
+                    { target: 'cvar_to_js', type: 'helper', level: 2, parent: 'constant' }
+                ]
+            },
+            
+            fieldAdd: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'linear_combination', type: 'core', level: 1 },
+                    { target: 'add', type: 'impl', level: 2, parent: 'linear_combination' },
+                    { target: 'scale', type: 'helper', level: 2, parent: 'linear_combination' },
+                    { target: 'var', type: 'helper', level: 2, parent: 'linear_combination' }
+                ]
+            },
+            
+            fieldScale: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'scale', type: 'core', level: 1 },
+                    { target: 'linear_combination', type: 'core', level: 2, parent: 'scale' },
+                    { target: 'mul', type: 'impl', level: 2, parent: 'scale' }
+                ]
+            },
+            
+            fieldAssertEqual: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 1 },
+                    { target: 'assert_equal', type: 'impl', level: 1 },
+                    { target: 'linear_combination', type: 'core', level: 2, parent: 'add_constraint' },
+                    { target: 'get_constraint_system', type: 'helper', level: 2, parent: 'add_constraint' }
+                ]
+            },
+            
+            fieldAssertMul: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'assert_r1cs', type: 'core', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'assert_r1cs' },
+                    { target: 'linear_combination', type: 'impl', level: 2, parent: 'assert_r1cs' },
+                    { target: 'mul', type: 'impl', level: 2, parent: 'assert_r1cs' }
+                ]
+            },
+            
+            fieldAssertSquare: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'assert_r1cs', type: 'core', level: 1 },
+                    { target: 'square', type: 'impl', level: 2, parent: 'assert_r1cs' },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'assert_r1cs' }
+                ]
+            },
+            
+            fieldAssertBoolean: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'assert_r1cs', type: 'core', level: 1 },
+                    { target: 'is_zero', type: 'impl', level: 2, parent: 'assert_r1cs' },
+                    { target: 'one', type: 'helper', level: 2, parent: 'assert_r1cs' }
+                ]
+            },
+            
+            fieldReadVar: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state_ref', type: 'core', level: 1 },
+                    { target: 'get_variable_value', type: 'core', level: 1 },
+                    { target: 'to_string', type: 'helper', level: 2, parent: 'get_variable_value' }
+                ]
+            },
+            
+            // Gate Operations
+            gatesZero: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'zero_gate', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'zero_gate' },
+                    { target: 'linear_combination', type: 'helper', level: 3, parent: 'add_constraint' }
+                ]
+            },
+            
+            gatesGeneric: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'generic_gate', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'generic_gate' },
+                    { target: 'linear_combination', type: 'core', level: 2, parent: 'generic_gate' },
+                    { target: 'constant', type: 'helper', level: 3, parent: 'linear_combination' }
+                ]
+            },
+            
+            gatesEcAdd: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'ec_add_gate', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'ec_add_gate' },
+                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'ec_add_gate' },
+                    { target: 'linear_combination', type: 'helper', level: 3, parent: 'ec_add_gate' }
+                ]
+            },
+            
+            gatesEcDouble: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'ec_double_gate', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'ec_double_gate' },
+                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'ec_double_gate' }
+                ]
+            },
+            
+            gatesEcScalarMult: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'ec_scalar_mult_gate', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'ec_scalar_mult_gate' },
+                    { target: 'range_check_0', type: 'helper', level: 2, parent: 'ec_scalar_mult_gate' }
+                ]
+            },
+            
+            gatesRangeCheck0: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'range_check_0', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'range_check_0' },
+                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'range_check_0' }
+                ]
+            },
+            
+            gatesRangeCheck1: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'range_check_1', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'range_check_1' }
+                ]
+            },
+            
+            gatesRangeCheck64: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'range_check_64', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'range_check_64' },
+                    { target: 'range_check_0', type: 'helper', level: 3, parent: 'range_check_64' }
+                ]
+            },
+            
+            gatesRaw: {
+                category: 'gates',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'raw_gate_impl', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'raw_gate_impl' }
+                ]
+            },
+            
+            // Poseidon Operations
+            poseidonUpdate: {
+                category: 'poseidon',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'absorb_input_into_state', type: 'impl', level: 1 },
+                    { target: 'permute', type: 'impl', level: 1 },
+                    { target: 'round_function', type: 'core', level: 2, parent: 'permute' },
+                    { target: 's_box', type: 'impl', level: 3, parent: 'round_function' },
+                    { target: 'mix_layer', type: 'impl', level: 3, parent: 'round_function' },
+                    { target: 'add_round_constants', type: 'helper', level: 3, parent: 'round_function' }
+                ]
+            },
+            
+            poseidonHashToGroup: {
+                category: 'poseidon',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'poseidon_hash', type: 'core', level: 1 },
+                    { target: 'HybridPoseidon', type: 'impl', level: 2, parent: 'poseidon_hash' },
+                    { target: 'permute', type: 'impl', level: 3, parent: 'HybridPoseidon' },
+                    { target: 'round_function', type: 'core', level: 3, parent: 'HybridPoseidon' }
+                ]
+            },
+            
+            gatesPoseidonHash2: {
+                category: 'poseidon',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'poseidon_hash', type: 'core', level: 1 },
+                    { target: 'round_function', type: 'core', level: 2, parent: 'poseidon_hash' },
+                    { target: 's_box', type: 'impl', level: 3, parent: 'round_function' },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'poseidon_hash' }
+                ]
+            },
+            
+            gatesPoseidonHashArray: {
+                category: 'poseidon',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'poseidon_hash', type: 'core', level: 1 },
+                    { target: 'absorb_input_into_state', type: 'impl', level: 2, parent: 'poseidon_hash' },
+                    { target: 'permute', type: 'impl', level: 2, parent: 'poseidon_hash' },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'poseidon_hash' }
+                ]
+            },
+            
+            // Run Control
+            runAsProver: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'get_mode', type: 'core', level: 1 },
+                    { target: 'set_mode', type: 'core', level: 1 },
+                    { target: 'run_state', type: 'helper', level: 2, parent: 'with_run_state' }
+                ]
+            },
+            
+            runInProver: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state_ref', type: 'core', level: 1 },
+                    { target: 'get_mode', type: 'core', level: 1 }
+                ]
+            },
+            
+            runInProverBlock: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state_ref', type: 'core', level: 1 },
+                    { target: 'get_mode', type: 'core', level: 1 }
+                ]
+            },
+            
+            runConstraintMode: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'set_mode', type: 'core', level: 1 }
+                ]
+            },
+            
+            runWitnessMode: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'set_mode', type: 'core', level: 1 }
+                ]
+            },
+            
+            runSetEvalConstraints: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'set_eval_constraints', type: 'core', level: 1 }
+                ]
+            },
+            
+            runReset: {
+                category: 'run',
+                calls: [
+                    { target: 'reset_run_state', type: 'core', level: 1 },
+                    { target: 'clear_constraint_system', type: 'helper', level: 2, parent: 'reset_run_state' }
+                ]
+            },
+            
+            runEnterConstraintSystem: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'set_mode', type: 'core', level: 1 },
+                    { target: 'get_constraint_system', type: 'helper', level: 2, parent: 'with_run_state' }
+                ]
+            },
+            
+            runEnterGenerateWitness: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'set_mode', type: 'core', level: 1 },
+                    { target: 'has_witness', type: 'helper', level: 2, parent: 'set_mode' }
+                ]
+            },
+            
+            runEnterAsProver: {
+                category: 'run',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'set_mode', type: 'core', level: 1 }
+                ]
+            },
+            
+            // Constraint System Operations
+            constraintSystemRows: {
+                category: 'constraint',
+                calls: [
+                    { target: 'with_run_state_ref', type: 'core', level: 1 },
+                    { target: 'get_constraint_system', type: 'core', level: 1 },
+                    { target: 'num_constraints', type: 'helper', level: 2, parent: 'get_constraint_system' }
+                ]
+            },
+            
+            constraintSystemDigest: {
+                category: 'constraint',
+                calls: [
+                    { target: 'with_run_state_ref', type: 'core', level: 1 },
+                    { target: 'get_constraint_system', type: 'core', level: 1 },
+                    { target: 'digest', type: 'impl', level: 2, parent: 'get_constraint_system' },
+                    { target: 'poseidon_hash', type: 'helper', level: 3, parent: 'digest' }
+                ]
+            },
+            
+            constraintSystemToJson: {
+                category: 'constraint',
+                calls: [
+                    { target: 'with_run_state_ref', type: 'core', level: 1 },
+                    { target: 'get_constraint_system', type: 'core', level: 1 },
+                    { target: 'serialize_constraints', type: 'impl', level: 2, parent: 'get_constraint_system' },
+                    { target: 'to_json', type: 'helper', level: 3, parent: 'serialize_constraints' }
+                ]
+            },
+            
+            // Foreign Field Operations
+            foreignFieldFromHex: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'foreign_field_from_hex_impl', type: 'impl', level: 1 },
+                    { target: 'from_str', type: 'helper', level: 2, parent: 'foreign_field_from_hex_impl' }
+                ]
+            },
+            
+            foreignFieldFromDecimal: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'foreign_field_from_decimal_impl', type: 'impl', level: 1 },
+                    { target: 'from_str', type: 'helper', level: 2, parent: 'foreign_field_from_decimal_impl' }
+                ]
+            },
+            
+            foreignFieldRangeCheck: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'range_check_foreign_field_impl', type: 'impl', level: 1 },
+                    { target: 'limb_decomposition', type: 'helper', level: 2, parent: 'range_check_foreign_field_impl' },
+                    { target: 'range_check_0', type: 'helper', level: 3, parent: 'limb_decomposition' }
+                ]
+            },
+            
+            foreignFieldAdd: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'foreign_field_add_impl', type: 'impl', level: 1 },
+                    { target: 'add_constraint', type: 'core', level: 2, parent: 'foreign_field_add_impl' },
+                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'foreign_field_add_impl' },
+                    { target: 'limb_decomposition', type: 'helper', level: 2, parent: 'foreign_field_add_impl' }
+                ]
+            },
+            
+            foreignFieldMul: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'foreign_field_mul_impl', type: 'impl', level: 1 },
+                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'foreign_field_mul_impl' },
+                    { target: 'limb_decomposition', type: 'helper', level: 2, parent: 'foreign_field_mul_impl' },
+                    { target: 'range_check_0', type: 'helper', level: 3, parent: 'foreign_field_mul_impl' }
+                ]
+            },
+            
+            testSecp256k1Field: {
+                category: 'field',
+                calls: [
+                    { target: 'with_run_state', type: 'core', level: 1 },
+                    { target: 'foreign_field_mul_impl', type: 'impl', level: 1 },
+                    { target: 'foreign_field_add_impl', type: 'impl', level: 1 }
+                ]
+            }
+        };
+
+        // Global state
+        let currentFilter = 'all';
+        const tooltip = d3.select("body")
+            .append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+        // Node color mapping
+        function getNodeColor(type) {
+            switch (type) {
+                case 'entry': return '#f39c12';  // Orange for entry points
+                case 'core': return '#4a90e2';    // Blue for core
+                case 'impl': return '#2ecc71';    // Green for implementation
+                case 'helper': return '#9b59b6';  // Purple for helpers
+                default: return '#95a5a6';        // Gray default
+            }
+        }
+
+        // Create individual graph for each entry point
+        function createEntryPointGraph(container, entryPoint, data) {
+            const width = 380;
+            const height = 250;
+            
+            const svg = d3.select(container)
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            // Add arrow marker
+            const defs = svg.append("defs");
+            defs.append("marker")
+                .attr("id", `arrowhead-${entryPoint}`)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 8)
+                .attr("refY", 0)
+                .attr("markerWidth", 5)
+                .attr("markerHeight", 5)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#4a90e2");
+            
+            // Create nodes
+            const nodes = [
+                { id: entryPoint, name: entryPoint, type: 'entry', level: 0, x: width / 2, y: 30 }
+            ];
+            
+            // Add call targets as nodes
+            const levelHeight = 60;
+            const nodesByLevel = {};
+            
+            data.calls.forEach(call => {
+                if (!nodesByLevel[call.level]) {
+                    nodesByLevel[call.level] = [];
+                }
+                nodesByLevel[call.level].push(call);
+                
+                nodes.push({
+                    id: call.target,
+                    name: call.target,
+                    type: call.type,
+                    level: call.level,
+                    parent: call.parent || entryPoint
+                });
+            });
+            
+            // Position nodes by level
+            Object.keys(nodesByLevel).forEach(level => {
+                const levelNodes = nodesByLevel[level];
+                const levelY = 30 + parseInt(level) * levelHeight;
+                const spacing = width / (levelNodes.length + 1);
+                
+                levelNodes.forEach((node, i) => {
+                    const nodeObj = nodes.find(n => n.id === node.target);
+                    if (nodeObj) {
+                        nodeObj.x = spacing * (i + 1);
+                        nodeObj.y = levelY;
+                    }
+                });
+            });
+            
+            // Create links
+            const links = data.calls.map(call => ({
+                source: nodes.find(n => n.id === (call.parent || entryPoint)),
+                target: nodes.find(n => n.id === call.target)
+            })).filter(l => l.source && l.target);
+            
+            // Draw links
+            const linkGroup = svg.append("g");
+            linkGroup.selectAll("path")
+                .data(links)
+                .enter()
+                .append("path")
+                .attr("class", "link")
+                .attr("d", d => {
+                    const dx = d.target.x - d.source.x;
+                    const dy = d.target.y - d.source.y;
+                    const dr = Math.sqrt(dx * dx + dy * dy) * 0.7;
+                    return `M${d.source.x},${d.source.y + 10}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y - 10}`;
+                })
+                .attr("stroke", "#4a90e2")
+                .attr("marker-end", `url(#arrowhead-${entryPoint})`);
+            
+            // Draw nodes
+            const nodeGroup = svg.append("g");
+            const nodeElements = nodeGroup.selectAll("g")
+                .data(nodes)
+                .enter()
+                .append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.x}, ${d.y})`);
+            
+            nodeElements.append("circle")
+                .attr("class", "node-circle")
+                .attr("r", d => d.type === 'entry' ? 12 : 8)
+                .attr("fill", d => getNodeColor(d.type));
+            
+            nodeElements.append("text")
+                .attr("class", "node-label")
+                .attr("y", d => d.type === 'entry' ? 25 : 20)
+                .text(d => {
+                    const maxLen = 15;
+                    return d.name.length > maxLen ? d.name.substring(0, maxLen - 2) + '..' : d.name;
+                });
+            
+            // Add hover effects
+            nodeElements.on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(`
+                    <strong>${d.name}</strong><br/>
+                    Type: ${d.type}<br/>
+                    Level: ${d.level}
+                `)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+        }
+
+        // Render all graphs
+        function renderGraphs() {
+            const container = document.getElementById('visualization');
+            container.innerHTML = '';
+            
+            let visibleCount = 0;
+            let graphCount = 0;
+            
+            Object.entries(entryPointGraphs).forEach(([entryPoint, data]) => {
+                if (currentFilter === 'all' || data.category === currentFilter) {
+                    visibleCount++;
+                    graphCount++;
+                    
+                    const graphContainer = document.createElement('div');
+                    graphContainer.className = 'entry-point-container';
+                    
+                    const title = document.createElement('div');
+                    title.className = 'entry-point-title';
+                    title.textContent = entryPoint;
+                    graphContainer.appendChild(title);
+                    
+                    const svgContainer = document.createElement('div');
+                    svgContainer.className = 'graph-container';
+                    graphContainer.appendChild(svgContainer);
+                    
+                    container.appendChild(graphContainer);
+                    
+                    createEntryPointGraph(svgContainer, entryPoint, data);
+                }
+            });
+            
+            // Update stats
+            document.getElementById('entry-count').textContent = Object.keys(entryPointGraphs).length;
+            document.getElementById('graph-count').textContent = graphCount;
+            document.getElementById('visible-count').textContent = visibleCount;
+        }
+
+        // Event listeners
+        document.getElementById('show-all').addEventListener('click', function() {
+            currentFilter = 'all';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-field').addEventListener('click', function() {
+            currentFilter = 'field';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-gates').addEventListener('click', function() {
+            currentFilter = 'gates';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-poseidon').addEventListener('click', function() {
+            currentFilter = 'poseidon';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-run').addEventListener('click', function() {
+            currentFilter = 'run';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-constraint').addEventListener('click', function() {
+            currentFilter = 'constraint';
+            updateButtons();
+            renderGraphs();
+        });
+
+        function updateButtons() {
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            
+            switch(currentFilter) {
+                case 'field':
+                    document.getElementById('show-field').classList.add('active');
+                    break;
+                case 'gates':
+                    document.getElementById('show-gates').classList.add('active');
+                    break;
+                case 'poseidon':
+                    document.getElementById('show-poseidon').classList.add('active');
+                    break;
+                case 'run':
+                    document.getElementById('show-run').classList.add('active');
+                    break;
+                case 'constraint':
+                    document.getElementById('show-constraint').classList.add('active');
+                    break;
+                default:
+                    document.getElementById('show-all').classList.add('active');
+            }
+        }
+
+        // Initialize
+        console.log('🎯 Initializing entry point graphs...');
+        renderGraphs();
+        console.log('✅ Sparky Entry Point Graphs ready!');
+    </script>
+</body>
+</html>

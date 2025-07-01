@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 Sparky Call Graph - Grid Layout</title>
+    <script src="./d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            overflow: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            z-index: 1000;
+            border-bottom: 2px solid #4a90e2;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4a90e2;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #4a90e2, #357abd);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn.active {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .legend {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a90e2;
+            z-index: 1000;
+            min-width: 220px;
+        }
+
+        .legend h3 {
+            margin-bottom: 15px;
+            color: #4a90e2;
+            font-size: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+        }
+
+        .stats {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid #4a90e2;
+            z-index: 1000;
+        }
+
+        .stats h3 {
+            color: #4a90e2;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .stat-item {
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .grid-info {
+            position: fixed;
+            top: 120px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #4a90e2;
+            z-index: 1000;
+            max-width: 250px;
+            font-size: 11px;
+        }
+
+        .grid-info h3 {
+            color: #4a90e2;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        #visualization {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        #visualization:active {
+            cursor: grabbing;
+        }
+
+        .node {
+            cursor: pointer;
+            stroke-width: 2;
+            transition: stroke-width 0.2s ease, filter 0.2s ease;
+        }
+
+        .node:hover {
+            stroke-width: 4;
+            filter: brightness(1.2);
+        }
+
+        .link {
+            fill: none;
+            stroke: #4a90e2;
+            stroke-width: 2;
+            opacity: 0.8;
+            marker-end: url(#arrowhead);
+        }
+
+        .link:hover {
+            stroke-width: 4;
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        .link.highlighted {
+            stroke-width: 5;
+            opacity: 1;
+            filter: drop-shadow(0 0 6px currentColor);
+        }
+
+        .link.critical {
+            stroke: #4a90e2;
+            stroke-width: 3;
+        }
+
+        .link.unused {
+            stroke: #e74c3c;
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+        }
+
+        .node-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 9px;
+            font-weight: 500;
+            text-anchor: middle;
+            fill: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+
+        .section-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            text-anchor: middle;
+            fill: #4a90e2;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1001;
+            border: 1px solid #4a90e2;
+            max-width: 300px;
+        }
+
+        .grid-section {
+            fill: none;
+            stroke: #4a90e2;
+            stroke-width: 1;
+            stroke-dasharray: 5,5;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔥 Sparky Call Graph - Grid Layout</h1>
+        <div class="controls">
+            <button class="btn active" id="grid-view">📋 Grid Layout</button>
+            <button class="btn" id="compact-grid">📦 Compact Grid</button>
+            <button class="btn" id="filter-unused">🔴 Show Unused Only</button>
+            <button class="btn" id="filter-critical">🔵 Show Critical Only</button>
+            <button class="btn" id="show-all">👁️ Show All</button>
+        </div>
+    </div>
+
+    <div class="grid-info">
+        <h3>📋 Grid Organization</h3>
+        <div><strong>Row 1:</strong> WASM Entry Points</div>
+        <div><strong>Row 2:</strong> Critical Functions</div>
+        <div><strong>Row 3:</strong> Core Functions</div>
+        <div><strong>Row 4:</strong> Unused Functions</div>
+        <div style="margin-top: 10px;">
+            <div>🔴 Red = Unused (30% bloat)</div>
+            <div>🔵 Blue = Critical</div>
+            <div>🟠 Orange = WASM</div>
+            <div>🟢 Green = Other</div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <h3>Function Types</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4a90e2;"></div>
+            <span>Critical (Core System)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span>Unused (Dead Code)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span>WASM Entry Point</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #2ecc71;"></div>
+            <span>Core Function</span>
+        </div>
+    </div>
+
+    <div class="stats">
+        <h3>📊 Sparky Statistics</h3>
+        <div class="stat-item">Total Functions: <span id="total-count">0</span></div>
+        <div class="stat-item">WASM Entry Points: <span id="wasm-count">0</span></div>
+        <div class="stat-item">Unused Functions: <span id="unused-count">0</span></div>
+        <div class="stat-item">Critical Functions: <span id="critical-count">0</span></div>
+        <div class="stat-item">Visible Nodes: <span id="visible-count">0</span></div>
+    </div>
+
+    <svg id="visualization"></svg>
+
+    <script>
+        console.log('🚀 Starting Sparky Grid Visualization...');
+
+        // Sparky data
+        const sparkyData = {
+            wasmEntryPoints: [
+                'fieldExists', 'fieldConstant', 'fieldAdd', 'fieldAssertEqual', 'fieldAssertMul', 'fieldAssertBoolean',
+                'gatesGeneric', 'gatesZero', 'gatesPoseidonHash2', 'gatesEcAdd', 'gatesEcScale', 'gatesRangeCheck0',
+                'poseidonUpdate', 'poseidonHashToGroup', 'runAsProver', 'runConstraintMode', 'runWitnessMode',
+                'constraintSystemRows', 'constraintSystemDigest', 'constraintSystemToJson'
+            ],
+            
+            criticalFunctions: [
+                'add_constraint', 'linear_combination', 'alloc_var', 'assert_r1cs', 'exists_impl',
+                'with_run_state', 'get_constraint_system', 'poseidon_hash', 'round_function', 's_box',
+                'constant', 'scale', 'var', 'mix_layer', 'generic_gate_impl_checked', 'zero_gate_impl_checked'
+            ],
+            
+            coreFunctions: [
+                'set_variable_value', 'has_witness', 'cvar_to_js', 'run_state', 'digest',
+                'absorb_input_into_state', 'permute', 'add_round_constants', 'square'
+            ],
+            
+            unusedFunctions: [
+                'Gates_poseidon_stub', 'Gates_range_check_0_stub', 'Gates_range_check_1_stub', 'zero_gate_stub',
+                'PoseidonHasher_new', 'PoseidonPermutation_new', 'precomputed_poseidon_1', 'legacy_poseidon_1',
+                'vesta_field_add', 'vesta_field_mul', 'vesta_field_sub', 'OptimizedConstraintBuilder',
+                'LazyConstraint', 'reduce_lincom', 'simd_field_add', 'gates_ec_double', 'gates_ec_scalar_mult',
+                'field_add_unused', 'test_secp256k1_field', 'generic_gate_impl_legacy', 'kimchi_test_func1'
+            ],
+            
+            // Organized call relationships to minimize crossings
+            callRelationships: [
+                // WASM → Critical (Row 1 → Row 2)
+                ['fieldExists', 'alloc_var'], 
+                ['fieldConstant', 'constant'],
+                ['fieldAdd', 'linear_combination'],
+                ['fieldAssertEqual', 'add_constraint'], 
+                ['fieldAssertMul', 'assert_r1cs'],
+                ['gatesGeneric', 'generic_gate_impl_checked'], 
+                ['gatesZero', 'zero_gate_impl_checked'],
+                ['gatesPoseidonHash2', 'poseidon_hash'],
+                ['poseidonUpdate', 'round_function'],
+                ['runAsProver', 'with_run_state'],
+                ['constraintSystemRows', 'get_constraint_system'],
+                
+                // Critical → Core (Row 2 → Row 3)
+                ['add_constraint', 'set_variable_value'],
+                ['linear_combination', 'constant'],
+                ['alloc_var', 'has_witness'],
+                ['assert_r1cs', 'run_state'],
+                ['poseidon_hash', 'absorb_input_into_state'],
+                ['round_function', 'permute'],
+                
+                // Core → Field Operations (Row 3 → Row 3)
+                ['absorb_input_into_state', 'add_round_constants'],
+                ['permute', 'square'],
+                
+                // Some unused connections (to show bloat)
+                ['Gates_poseidon_stub', 'PoseidonHasher_new'],
+                ['OptimizedConstraintBuilder', 'LazyConstraint']
+            ]
+        };
+
+        console.log(`📊 Data: ${sparkyData.wasmEntryPoints.length} WASM, ${sparkyData.criticalFunctions.length} critical, ${sparkyData.unusedFunctions.length} unused`);
+
+        // Create nodes
+        function createNodes() {
+            const nodes = [];
+            let nodeId = 0;
+
+            function addNodes(functionList, category, type) {
+                return functionList.map(name => ({
+                    id: nodeId++,
+                    name: name,
+                    category: category,
+                    type: type,
+                    isWasm: type === 'wasm',
+                    isCritical: type === 'critical',
+                    isUnused: type === 'unused'
+                }));
+            }
+
+            // Add all function types
+            nodes.push(...addNodes(sparkyData.wasmEntryPoints, 'WASM Entry Points', 'wasm'));
+            nodes.push(...addNodes(sparkyData.criticalFunctions, 'Critical Functions', 'critical'));
+            nodes.push(...addNodes(sparkyData.coreFunctions, 'Core Functions', 'core'));
+            nodes.push(...addNodes(sparkyData.unusedFunctions, 'Unused Functions', 'unused'));
+
+            return nodes;
+        }
+
+        // Color and size functions
+        function getNodeColor(node) {
+            switch (node.type) {
+                case 'unused': return '#e74c3c';   // Red for unused (bloat)
+                case 'critical': return '#4a90e2'; // Blue for critical
+                case 'wasm': return '#f39c12';     // Orange for WASM
+                case 'core': return '#2ecc71';     // Green for core
+                default: return '#95a5a6';         // Gray default
+            }
+        }
+
+        function getNodeSize(node) {
+            switch (node.type) {
+                case 'wasm': return 12;            // Larger for WASM
+                case 'critical': return 10;        // Medium for critical
+                case 'unused': return 8;           // Smaller for unused
+                case 'core': return 9;             // Default for core
+                default: return 8;
+            }
+        }
+
+        // Setup SVG
+        const svg = d3.select("#visualization");
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        
+        svg.attr("width", width).attr("height", height);
+        
+        const container = svg.append("g");
+        
+        // Zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.3, 3])
+            .on("zoom", (event) => {
+                container.attr("transform", event.transform);
+            });
+        
+        svg.call(zoom);
+        
+        // Tooltip
+        const tooltip = d3.select("body")
+            .append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+        // Global variables
+        let allNodes = createNodes();
+        let visibleNodes = allNodes;
+        let currentFilter = 'all';
+        let currentLayout = 'grid';
+
+        // Grid layout function
+        function drawGridLayout(compact = false) {
+            console.log('📋 Drawing grid layout...');
+            
+            // Clear existing
+            container.selectAll("*").remove();
+            
+            // Add arrow marker definitions for different states
+            const defs = container.append("defs");
+            
+            // Normal arrow
+            defs.append("marker")
+                .attr("id", "arrowhead")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 8)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#4a90e2");
+            
+            // Highlighted arrow (larger and glowing)
+            defs.append("marker")
+                .attr("id", "arrowhead-highlight")
+                .attr("viewBox", "0 -6 12 12")
+                .attr("refX", 10)
+                .attr("refY", 0)
+                .attr("markerWidth", 8)
+                .attr("markerHeight", 8)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-6L12,0L0,6")
+                .attr("fill", "#ffd700")
+                .attr("stroke", "#ffd700")
+                .attr("stroke-width", 1);
+            
+            // Orange arrow for WASM connections
+            defs.append("marker")
+                .attr("id", "arrowhead-orange")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 8)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#f39c12");
+            
+            // Red arrow for unused connections
+            defs.append("marker")
+                .attr("id", "arrowhead-red")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 8)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#e74c3c");
+            
+            // Grid parameters
+            const padding = compact ? 60 : 100;
+            const startX = 100;
+            const startY = 150;
+            const cellWidth = compact ? 80 : 120;
+            const cellHeight = compact ? 60 : 80;
+            
+            // Group nodes by type
+            const groups = [
+                { 
+                    type: 'wasm', 
+                    nodes: visibleNodes.filter(n => n.type === 'wasm'),
+                    title: 'WASM Entry Points',
+                    row: 0,
+                    color: '#f39c12'
+                },
+                { 
+                    type: 'critical', 
+                    nodes: visibleNodes.filter(n => n.type === 'critical'),
+                    title: 'Critical Functions',
+                    row: 1,
+                    color: '#4a90e2'
+                },
+                { 
+                    type: 'core', 
+                    nodes: visibleNodes.filter(n => n.type === 'core'),
+                    title: 'Core Functions',
+                    row: 2,
+                    color: '#2ecc71'
+                },
+                { 
+                    type: 'unused', 
+                    nodes: visibleNodes.filter(n => n.type === 'unused'),
+                    title: 'Unused Functions (30% BLOAT)',
+                    row: 3,
+                    color: '#e74c3c'
+                }
+            ];
+
+            // Calculate grid dimensions
+            const maxNodesPerRow = Math.max(...groups.map(g => g.nodes.length));
+            const cols = Math.min(maxNodesPerRow, Math.floor((width - 200) / cellWidth));
+
+            console.log(`Grid: ${cols} columns, ${groups.length} rows`);
+
+            // Position nodes in grid
+            groups.forEach(group => {
+                if (group.nodes.length === 0) return;
+
+                const rowY = startY + group.row * (cellHeight + 40);
+                const totalWidth = Math.min(group.nodes.length, cols) * cellWidth;
+                const rowStartX = startX + (width - totalWidth) / 2;
+
+                // Draw section background
+                container.append("rect")
+                    .attr("class", "grid-section")
+                    .attr("x", startX)
+                    .attr("y", rowY - 30)
+                    .attr("width", width - 200)
+                    .attr("height", cellHeight + 20)
+                    .attr("fill", group.color)
+                    .attr("opacity", 0.1);
+
+                // Draw section title
+                container.append("text")
+                    .attr("class", "section-label")
+                    .attr("x", startX + 20)
+                    .attr("y", rowY - 10)
+                    .text(`${group.title} (${group.nodes.length})`);
+
+                // Smart positioning to minimize line crossings
+                // Sort nodes by their connection patterns
+                const sortedNodes = [...group.nodes];
+                if (group.type === 'wasm' || group.type === 'critical') {
+                    // Sort by number of outgoing connections
+                    sortedNodes.sort((a, b) => {
+                        const aConnections = sparkyData.callRelationships.filter(([source]) => source === a.name).length;
+                        const bConnections = sparkyData.callRelationships.filter(([source]) => source === b.name).length;
+                        return bConnections - aConnections;
+                    });
+                }
+                
+                // Position nodes
+                sortedNodes.forEach((node, i) => {
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+                    
+                    node.x = rowStartX + col * cellWidth + cellWidth / 2;
+                    node.y = rowY + row * (cellHeight / 2) + 20;
+                    
+                    // Ensure nodes don't overlap
+                    node.fx = node.x;
+                    node.fy = node.y;
+                });
+
+                console.log(`${group.title}: ${group.nodes.length} nodes positioned`);
+            });
+
+            // Create links first (so they appear behind nodes)
+            const links = [];
+            sparkyData.callRelationships.forEach(([sourceName, targetName]) => {
+                const source = visibleNodes.find(n => n.name === sourceName);
+                const target = visibleNodes.find(n => n.name === targetName);
+                if (source && target) {
+                    links.push({ source, target });
+                }
+            });
+
+            const linkElements = container.append("g")
+                .selectAll("line")
+                .data(links)
+                .enter()
+                .append("line")
+                .attr("class", d => {
+                    let classes = "link";
+                    if (d.source.isUnused || d.target.isUnused) classes += " unused";
+                    if (d.source.isCritical && d.target.isCritical) classes += " critical";
+                    return classes;
+                })
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y + getNodeSize(d.source))
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y - getNodeSize(d.target))
+                .attr("stroke", d => {
+                    if (d.source.isUnused || d.target.isUnused) return '#e74c3c';
+                    if (d.source.isCritical && d.target.isCritical) return '#4a90e2';
+                    if (d.source.isWasm) return '#f39c12';
+                    return '#4a90e2';
+                })
+                .attr("marker-end", d => {
+                    if (d.source.isUnused || d.target.isUnused) return 'url(#arrowhead-red)';
+                    if (d.source.isWasm) return 'url(#arrowhead-orange)';
+                    return 'url(#arrowhead)';
+                })
+                .on("mouseover", function(event, d) {
+                    // Highlight this connection
+                    d3.select(this)
+                        .classed("highlighted", true)
+                        .attr("stroke", "#ffd700")
+                        .attr("marker-end", "url(#arrowhead-highlight)");
+                    
+                    // Dim other connections
+                    container.selectAll(".link")
+                        .filter(function() { return this !== event.currentTarget; })
+                        .attr("opacity", 0.2);
+                    
+                    // Highlight connected nodes
+                    container.selectAll(".node")
+                        .attr("opacity", 0.3);
+                    
+                    container.selectAll(".node")
+                        .filter(node => node.id === d.source.id || node.id === d.target.id)
+                        .attr("opacity", 1)
+                        .attr("stroke-width", 6)
+                        .attr("filter", "drop-shadow(0 0 8px #ffd700)");
+                    
+                    // Show connection info in tooltip
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html(`
+                        <div><strong>Function Call</strong></div>
+                        <div><span style="color: #f39c12;">${d.source.name}</span></div>
+                        <div style="text-align: center; margin: 5px 0;">↓</div>
+                        <div><span style="color: #4a90e2;">${d.target.name}</span></div>
+                        <div style="margin-top: 8px; font-size: 10px; opacity: 0.8;">
+                            ${d.source.category} → ${d.target.category}
+                        </div>
+                    `)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(event, d) {
+                    // Reset this connection
+                    d3.select(this)
+                        .classed("highlighted", false)
+                        .attr("stroke", d => {
+                            if (d.source.isUnused || d.target.isUnused) return '#e74c3c';
+                            if (d.source.isCritical && d.target.isCritical) return '#4a90e2';
+                            if (d.source.isWasm) return '#f39c12';
+                            return '#4a90e2';
+                        })
+                        .attr("marker-end", d => {
+                            if (d.source.isUnused || d.target.isUnused) return 'url(#arrowhead-red)';
+                            if (d.source.isWasm) return 'url(#arrowhead-orange)';
+                            return 'url(#arrowhead)';
+                        });
+                    
+                    // Reset all connections and nodes
+                    container.selectAll(".link")
+                        .attr("opacity", 0.8);
+                    
+                    container.selectAll(".node")
+                        .attr("opacity", 1)
+                        .attr("stroke-width", 2)
+                        .attr("filter", null);
+                    
+                    // Hide tooltip
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                })
+                .on("click", function(event, d) {
+                    console.log(`🔗 Connection clicked: ${d.source.name} → ${d.target.name}`);
+                });
+
+            // Create nodes
+            const nodeElements = container.append("g")
+                .selectAll("circle")
+                .data(visibleNodes)
+                .enter()
+                .append("circle")
+                .attr("class", "node")
+                .attr("r", d => getNodeSize(d))
+                .attr("fill", d => getNodeColor(d))
+                .attr("stroke", "#fff")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .on("mouseover", showTooltip)
+                .on("mouseout", hideTooltip)
+                .on("click", (event, d) => {
+                    console.log(`🖱️ Clicked: ${d.name} (${d.type})`);
+                });
+
+            // Create labels
+            const labelElements = container.append("g")
+                .selectAll("text")
+                .data(visibleNodes)
+                .enter()
+                .append("text")
+                .attr("class", "node-label")
+                .text(d => {
+                    const maxLength = compact ? 8 : 12;
+                    return d.name.length > maxLength ? d.name.substring(0, maxLength - 2) + '..' : d.name;
+                })
+                .attr("x", d => d.x)
+                .attr("y", d => d.y + 3);
+
+            console.log(`✅ Grid layout complete: ${visibleNodes.length} nodes, ${links.length} links`);
+        }
+
+        // Filter data
+        function filterData(type) {
+            switch (type) {
+                case 'unused':
+                    visibleNodes = allNodes.filter(n => n.type === 'unused');
+                    console.log(`🔴 Showing ${visibleNodes.length} unused functions`);
+                    break;
+                case 'critical':
+                    visibleNodes = allNodes.filter(n => n.type === 'critical');
+                    console.log(`🔵 Showing ${visibleNodes.length} critical functions`);
+                    break;
+                default:
+                    visibleNodes = allNodes;
+                    console.log(`👁️ Showing all ${visibleNodes.length} functions`);
+            }
+        }
+
+        // Tooltip functions
+        function showTooltip(event, d) {
+            const details = `
+                <div><strong>${d.name}</strong></div>
+                <div>Category: ${d.category}</div>
+                <div>Type: ${d.type}</div>
+                ${d.isWasm ? '<div>🌐 WASM Entry Point</div>' : ''}
+                ${d.isCritical ? '<div>🔵 Critical Function</div>' : ''}
+                ${d.isUnused ? '<div>🔴 Unused (Dead Code)</div>' : ''}
+            `;
+            
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltip.html(details)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+
+        function hideTooltip() {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('total-count').textContent = allNodes.length;
+            document.getElementById('wasm-count').textContent = sparkyData.wasmEntryPoints.length;
+            document.getElementById('unused-count').textContent = sparkyData.unusedFunctions.length;
+            document.getElementById('critical-count').textContent = sparkyData.criticalFunctions.length;
+            document.getElementById('visible-count').textContent = visibleNodes.length;
+        }
+
+        // Update visualization
+        function updateVisualization() {
+            filterData(currentFilter);
+            
+            if (currentLayout === 'compact') {
+                drawGridLayout(true);
+            } else {
+                drawGridLayout(false);
+            }
+            
+            updateStats();
+        }
+
+        // Event listeners
+        document.getElementById('grid-view').addEventListener('click', () => {
+            currentLayout = 'grid';
+            updateViewButtons();
+            updateVisualization();
+        });
+
+        document.getElementById('compact-grid').addEventListener('click', () => {
+            currentLayout = 'compact';
+            updateViewButtons();
+            updateVisualization();
+        });
+
+        document.getElementById('filter-unused').addEventListener('click', () => {
+            currentFilter = 'unused';
+            updateFilterButtons();
+            updateVisualization();
+        });
+
+        document.getElementById('filter-critical').addEventListener('click', () => {
+            currentFilter = 'critical';
+            updateFilterButtons();
+            updateVisualization();
+        });
+
+        document.getElementById('show-all').addEventListener('click', () => {
+            currentFilter = 'all';
+            updateFilterButtons();
+            updateVisualization();
+        });
+
+        function updateViewButtons() {
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            if (currentLayout === 'compact') {
+                document.getElementById('compact-grid').classList.add('active');
+            } else {
+                document.getElementById('grid-view').classList.add('active');
+            }
+        }
+
+        function updateFilterButtons() {
+            ['filter-unused', 'filter-critical', 'show-all'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+            
+            if (currentFilter === 'unused') {
+                document.getElementById('filter-unused').classList.add('active');
+            } else if (currentFilter === 'critical') {
+                document.getElementById('filter-critical').classList.add('active');
+            } else {
+                document.getElementById('show-all').classList.add('active');
+            }
+        }
+
+        // Initialize
+        console.log('🎯 Initializing grid visualization...');
+        updateVisualization();
+        updateViewButtons();
+        updateFilterButtons();
+        console.log('✅ Sparky Grid ready! 📋');
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+            svg.attr("width", newWidth).attr("height", newHeight);
+            updateVisualization();
+        });
+    </script>
+</body>
+</html>

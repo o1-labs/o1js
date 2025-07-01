@@ -16,6 +16,9 @@ npm run build:web
 # Build examples
 npm run build:examples
 
+# Build Sparky
+npm run build:sparky && npm run build
+
 # Rebuild OCaml/Rust bindings from source (requires OCaml/Rust toolchain)
 npm run build:update-bindings
 
@@ -189,3 +192,6 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 - Foreign field operations fully implemented in Sparky (June 30, 2025)
 - Comprehensive integration test suite created in src/test/integration/ (June 30, 2025)
 - Sparky achieves 90% API compatibility with performance within 1.5x of Snarky
+- ALWAYS update SPARKY_CALLGRAPH_TEXT.md with your changes
+- ALWAYS read SPARKY_CALLGRAPH_TEXT.md before starting any project
+- ALWAYS record your progress as you go in DEV.md
