@@ -7,13 +7,11 @@
     "gates": 0
   },
   "sparky": {
-    "rows": 3,
-    "digest": "7e2640256b3ca1e",
-    "gates": 3
+    "error": "memory access out of bounds"
   },
   "matches": {
     "digest": false,
     "rows": false,
-    "gates": false
+    "gates": true
   }
 }

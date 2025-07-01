@@ -2,7 +2,7 @@
   "backend": "snarky",
   "testCase": "simple_multiplication",
   "description": "x * y = z",
-  "timestamp": "2025-07-01T18:28:13.032Z",
+  "timestamp": "2025-07-01T18:39:49.044Z",
   "constraintSystem": {
     "public_input_size": 0,
     "num_gates": 0,

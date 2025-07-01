@@ -2,7 +2,7 @@
   "backend": "snarky",
   "testCase": "simple_addition",
   "description": "x + y = z",
-  "timestamp": "2025-07-01T18:28:13.015Z",
+  "timestamp": "2025-07-01T18:39:49.024Z",
   "constraintSystem": {
     "public_input_size": 0,
     "num_gates": 0,
