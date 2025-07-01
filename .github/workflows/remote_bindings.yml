@@ -5,32 +5,31 @@ on:
       - shigoto/build/bindings-remote 
   workflow_dispatch:
   workflow_call:
-
 jobs:
   Upload-bindings:
-    name: upload bindings artifact
     runs-on: [sdk-self-hosted-linux-amd64-build-system]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository (no submodules)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: false
+          clean: true
 
-      - name: Install git-lfs
+      - name: Install Git LFS
         run: |
           if ! command -v git-lfs &>/dev/null; then
             sudo apt-get update && sudo apt-get install -y git-lfs
           fi
           git lfs install
-      
-          - name: Fetch Mina submodule (with LFS)
-          run: |
-            git submodule sync --recursive
-            git submodule update --init \
-              --depth 1 \
-              src/mina
-            cd src/mina
-            git lfs pull
+
+      - name: Init & fetch Mina submodule
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --depth 1 src/mina
+          pushd src/mina
+          git lfs pull
+          popd
 
       - name: upload
         uses: ./.github/actions/upload
@@ -38,4 +37,5 @@ jobs:
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+
 
