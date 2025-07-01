@@ -17,14 +17,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3eef10d...HEAD)
 
+### Added
+
+- Lazy mode for prover index computation. https://github.com/o1-labs/o1js/pull/2143
+- Added reverse functionality to `DynamicArray` and indexed `forEach` and `forEachReverse` variants.
+- Added `ZkProgram.analyzeSingleMethod(methodName: string)` to analyze a single method of a ZkProgram. https://github.com/o1-labs/o1js/pull/2217
+  - This is an addition to `ZkProgram.analyzeMethods()` which analyzes all methods of a ZkProgram by executing them.
+  - Now only a single method is analyzed at a time.
+
 ## [2.6.0](https://github.com/o1-labs/o1js/compare/4e23a60...3eef10d) - 2025-05-30
 
 ### Added
 
-- [PR! 1905](https://github.com/o1-labs/o1js/pull/1905) API support for circuit chunking
-  - still requires memory optimizations to be fully functional, and
-  - proof-systems version still needs to be updated to include [this commit](https://github.com/o1-labs/proof-systems/pull/3222/commits/8c37c293f8159eed3676964ba47fc5dc0ae6ea1e)
-- [PR !1848](https://github.com/o1-labs/o1js/pull/1848) Dynamic array provable type
+- API support for circuit chunking. https://github.com/o1-labs/o1js/pull/1905
+  - work in progress, still requires memory optimizations to be fully functional
+- Dynamic array provable type. https://github.com/o1-labs/o1js/pull/1848
 
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
 
@@ -34,7 +41,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- [PR !2076](https://github.com/o1-labs/o1js/pull/2076)
+- Improved developer experience and build process. https://github.com/o1-labs/o1js/pull/2076
   - o1js-bindings is no longer a submodule (same directory structure)
   - compiled artifacts are now gitignored
   - `npm run build:bindings-download` downloads compiled artifacts from github
@@ -43,14 +50,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- [PR !2126](https://github.com/o1-labs/o1js/pull/2126) Bump up Mina to the
-  commit
-  [5a9145feaba3138cd1a1090d8421a8e67a5485e1](https://github.com/MinaProtocol/mina/blob/5a9145feaba3138cd1a1090d8421a8e67a5485e1)
-- [PR !2128](https://github.com/o1-labs/o1js/pull/2128) Bump up Mina to the
-  commit
-  [eaca9201](https://github.com/MinaProtocol/mina/tree/eaca9201e0df37f244e341155f253dc9551fb451),
+- Bump up Mina to the commit
+  [5a9145feaba3138cd1a1090d8421a8e67a5485e1](https://github.com/MinaProtocol/mina/blob/5a9145feaba3138cd1a1090d8421a8e67a5485e1) https://github.com/o1-labs/o1js/pull/2126
+- Bump up Mina to the commit [eaca9201](https://github.com/MinaProtocol/mina/tree/eaca9201e0df37f244e341155f253dc9551fb451),
   to include the latest changes reg. the move of the Rust codebase to the
-  repository proof-systems.
+  repository proof-systems. https://github.com/o1-labs/o1js/pull/2128
 - Added verification key validity checks to `LocalBlockchain`. https://github.com/o1-labs/o1js/pull/2171
 
 ### Added
