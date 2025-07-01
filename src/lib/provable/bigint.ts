@@ -86,7 +86,7 @@ type BigIntParameter = {
  * @returns A class representing ProvableBigInts with the specified modulus
  * @throws If the modulus is zero, negative, or exceeds the maximum supported size
  */
-function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
+function createProvableBigInt<const TModulus extends bigint>(modulus: TModulus, config?: BigIntParameter) {
   const config_ = config ?? findConfig(modulus);
   assert(modulus !== 0n, `ProvableBigInt: modulus must be non-zero, got ${modulus}`);
   assert(modulus > 0n, `ProvableBigInt: modulus must be positive, got ${modulus}`);
@@ -101,13 +101,17 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
   assert(isPrime(modulus), 'ProvableBigInt: modulus must be prime');
   let fields = bigintToLimbs(modulus, config_);
 
+  type Brand = { readonly __modulus: TModulus };
+
   class ProvableBigInt_ extends ProvableBigInt<ProvableBigInt_> {
+    declare readonly __brand: Brand;
+    
     constructor(fields: Field[], value: Unconstrained<bigint>) {
       super(fields, Unconstrained.from(value));
     }
 
     get Constructor() {
-      return this.constructor as typeof ProvableBigInt;
+      return this.constructor as any;
     }
 
     static {
@@ -122,24 +126,24 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Returns a ProvableBigInt representing zero
      * @returns A ProvableBigInt representing zero
      */
-    static get zero(): ProvableBigInt_ {
-      return ProvableBigInt_.fromBigInt(0n);
+    static get zero(): any {
+      return this.fromBigInt(0n);
     }
 
     /**
      * Returns a ProvableBigInt representing one
      * @returns A ProvableBigInt representing one
      */
-    static get one(): ProvableBigInt_ {
-      return ProvableBigInt_.fromBigInt(1n);
+    static get one(): any {
+      return this.fromBigInt(1n);
     }
 
     /**
      * Returns a ProvableBigInt representing one
      * @returns A ProvableBigInt representing one
      */
-    static get max(): ProvableBigInt_ {
-      return ProvableBigInt_.fromBigInt(modulus - 1n);
+    static get max(): any {
+      return this.fromBigInt(modulus - 1n);
     }
 
     /**
@@ -147,16 +151,16 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param x
      * @returns ProvableBigInt instance from the input
      */
-    static from(x: bigint | string | number | boolean): ProvableBigInt_ {
-      return ProvableBigInt_.fromBigInt(BigInt(x));
+    static from<T extends typeof ProvableBigInt_>(this: T, x: bigint | string | number | boolean): InstanceType<T> {
+      return this.fromBigInt(BigInt(x));
     }
 
-    static toCanonical(x: ProvableBigInt_): ProvableBigInt_ {
-      const xR = x.mul(ProvableBigInt_.one);
+    static toCanonical<T extends ProvableBigInt_>(x: T): T {
+      const xR = x.mul((x.constructor as any).one);
 
       // assert xR is canonical
-      xR.lessThanOrEqual(ProvableBigInt_.max).assertTrue();
-      return xR;
+      xR.lessThanOrEqual((x.constructor as any).max).assertTrue();
+      return xR as T;
     }
 
     /**
@@ -164,7 +168,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param x
      * @returns ProvableBigInt instance from the input
      */
-    static fromBigInt(x: bigint): ProvableBigInt_ {
+    static fromBigInt<T extends typeof ProvableBigInt_>(this: T, x: bigint): InstanceType<T> {
       let value = x;
       if (value < 0n) {
         value = ((x % modulus) + modulus) % modulus;
@@ -173,7 +177,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         value = value % modulus;
       }
       let fields = bigintToLimbs(value, ProvableBigInt_.config);
-      return new ProvableBigInt_(fields, Unconstrained.from(value));
+      return new this(fields, Unconstrained.from(value)) as InstanceType<T>;
     }
 
     /**
@@ -204,7 +208,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
        * @param fields The limbs of the ProvableBigInt. Must be of the correct length.
        * @returns A ProvableBigInt instance from the fields
        */
-      fromFields(fields: Field[]): ProvableBigInt_ {
+      fromFields(fields: Field[]): any {
         let value = 0n;
         for (let i = 0; i < ProvableBigInt_.config.limbNum; i++) {
           value |= BigInt(fields[i].toBigInt()) << BigInt(ProvableBigInt_.config.limbSize * i);
@@ -218,7 +222,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
        * @param bits
        * @returns A ProvableBigInt instance from the bits
        */
-      fromBits(bits: Bool[]): ProvableBigInt_ {
+      fromBits(bits: Bool[]): any {
         let value = 0n;
         let provableBigint = Provable.witness(ProvableBigInt_, () => {
           for (let i = 0; i < bits.length; i++) {
@@ -247,8 +251,8 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Clones a ProvableBigInt instance
      * @returns A new ProvableBigInt instance with the same value
      */
-    clone(): ProvableBigInt_ {
-      return new ProvableBigInt_(this.fields, this.value);
+    clone(): this {
+      return new (this.constructor as any)(this.fields, this.value);
     }
 
     /**
@@ -257,7 +261,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to add
      * @returns The sum as a ProvableBigInt
      */
-    add(a: ProvableBigInt_, isDouble = false): ProvableBigInt_ {
+    add(a: this, isDouble = false): this {
       if (isDouble) a = this;
       // witness q, r so that x+y = q*p + r
       let { q, r } = Provable.witness(provable({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
@@ -318,7 +322,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
       // the final limb plus carry should be zero to assert correctness
       delta[this.Constructor.config.limbNum - 1].add(carry).assertEquals(0n);
 
-      return r;
+      return r as this;
     }
 
     /**
@@ -326,7 +330,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @returns The double of a ProvableBigInt
      */
-    double(): ProvableBigInt_ {
+    double(): this {
       return this.add(this, true);
     }
 
@@ -336,7 +340,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to subtract
      * @returns The difference as a ProvableBigInt
      */
-    sub(a: ProvableBigInt_): ProvableBigInt_ {
+    sub(a: this): this {
       return this.add(a.negate());
     }
 
@@ -346,7 +350,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to multiply
      * @returns The product as a ProvableBigInt
      */
-    mul(a: ProvableBigInt_, isSquare = false): ProvableBigInt_ {
+    mul(a: this, isSquare = false): this {
       if (isSquare) a = this;
 
       let { q, r } = Provable.witness(provable({ q: ProvableBigInt_, r: ProvableBigInt_ }), () => {
@@ -406,7 +410,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
       delta[2 * this.Constructor.config.limbNum - 2].add(carry).assertEquals(0n);
 
-      return r;
+      return r as this;
     }
 
     /**
@@ -414,7 +418,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @returns The square root as a ProvableBigInt
      */
-    square(): ProvableBigInt_ {
+    square(): this {
       return this.mul(this, true);
     }
 
@@ -424,7 +428,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The divisor as a ProvableBigInt
      * @returns The quotient as ProvableBigInt
      */
-    div(a: ProvableBigInt_): ProvableBigInt_ {
+    div(a: this): this {
       const inv_a = a.inverse();
 
       let res = this.mul(inv_a);
@@ -437,7 +441,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @returns The inverse as a ProvableBigInt
      */
-    inverse(): ProvableBigInt_ {
+    inverse(): this {
       let { res } = Provable.witness(
         provable({ res: ProvableBigInt_ as typeof ProvableBigInt }),
         () => {
@@ -471,7 +475,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
       res.mul(this).assertEquals(ProvableBigInt_.one);
 
-      return res;
+      return res as this;
     }
 
     /**
@@ -479,7 +483,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * Cost: Cheap
      * @returns The additive inverse as a ProvableBigInt
      */
-    negate(): ProvableBigInt_ {
+    negate(): this {
       let { negation } = Provable.witness(provable({ negation: ProvableBigInt_ }), () => {
         let thisVal = this.toBigInt();
         let p = this.Constructor.modulus.toBigInt();
@@ -494,7 +498,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
       this.add(negation).assertEquals(ProvableBigInt_.zero);
 
-      return negation;
+      return negation as this;
     }
 
     /**
@@ -503,7 +507,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param exp The exponent
      * @returns The result as a ProvableBigInt
      */
-    pow(exp: ProvableBigInt_): ProvableBigInt_ {
+    pow(exp: this): this {
       const exponentBits = exp.toBits();
       const processChunk = function* (bits: Bool[], chunkSize: number) {
         for (let i = 0; i < bits.length; i += chunkSize) {
@@ -521,7 +525,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
         }
       }
 
-      return result;
+      return result as this;
     }
 
     /**
@@ -530,7 +534,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @returns The square root as a ProvableBigInt
      * Note: This method has relatively low constraint cost, but is computationally expensive compared to other methods.
      */
-    sqrt(): ProvableBigInt_ {
+    sqrt(): this {
       let r = Provable.witness(ProvableBigInt_, () => {
         const p = this.Constructor.modulus.toBigInt();
         // Special cases
@@ -600,7 +604,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 
       r.square().assertEquals(this);
 
-      return r;
+      return r as this;
     }
 
     /**
@@ -616,7 +620,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      *       delta.greaterThan(ProvableBigInt.zero).assertTrue(); // (p > 0) = true, (0 > 0) = false
      *       ```
      */
-    greaterThan(a: ProvableBigInt_): Bool {
+    greaterThan(a: this): Bool {
       const canonicalThis = ProvableBigInt_.toCanonical(this);
       const canonicalA = ProvableBigInt_.toCanonical(a);
       return canonicalThis.fields
@@ -636,7 +640,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is greater than or equal to b
      */
-    greaterThanOrEqual(a: ProvableBigInt_): Bool {
+    greaterThanOrEqual(a: this): Bool {
       const canonicalThis = ProvableBigInt_.toCanonical(this);
       const canonicalA = ProvableBigInt_.toCanonical(a);
       return canonicalThis.fields
@@ -657,7 +661,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than b
      */
-    lessThan(a: ProvableBigInt_): Bool {
+    lessThan(a: this): Bool {
       const canonicalThis = ProvableBigInt_.toCanonical(this);
       const canonicalA = ProvableBigInt_.toCanonical(a);
       return canonicalThis.fields
@@ -674,7 +678,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
      */
-    lessThanOrEqual(a: ProvableBigInt_): Bool {
+    lessThanOrEqual(a: this): Bool {
       const canonicalThis = ProvableBigInt_.toCanonical(this);
       const canonicalA = ProvableBigInt_.toCanonical(a);
       return canonicalThis.fields
@@ -692,7 +696,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is equal to b
      */
-    equals(a: ProvableBigInt_): Bool {
+    equals(a: this): Bool {
       return Provable.equal(ProvableBigInt_, this, a);
     }
 
@@ -702,7 +706,7 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
      * @param a The ProvableBigInt to compare
      * @returns A Bool indicating if a is less than or equal to b
      */
-    assertEquals(a: ProvableBigInt_) {
+    assertEquals(a: this) {
       return Provable.assertEqual(ProvableBigInt_, this, a);
     }
   }
@@ -712,22 +716,19 @@ function createProvableBigInt(modulus: bigint, config?: BigIntParameter) {
 abstract class ProvableBigInt<T> {
   fields: Field[];
   value: Unconstrained<bigint>;
+  readonly __brand?: any;
 
-  static _provable?: ProvablePureExtended<
-    ProvableBigInt<ProvableBigInt<any>>,
-    { fields: bigint[] },
-    { fields: string[] }
-  >;
+  static _provable?: ProvablePureExtended<any, { fields: bigint[] }, { fields: string[] }>;
 
   static get provable() {
     assert(this._provable !== undefined, 'ProvableBigInt not initialized');
     return this._provable;
   }
 
-  public static _modulus?: ProvableBigInt<any>;
+  public static _modulus?: any;
   public static _config?: BigIntParameter;
 
-  static get modulus(): ProvableBigInt<any> {
+  static get modulus(): any {
     assert(this._modulus !== undefined, 'Modulus not initialized');
     return this._modulus;
   }
@@ -742,7 +743,7 @@ abstract class ProvableBigInt<T> {
     this.value = Unconstrained.from(value);
   }
 
-  abstract get Constructor(): typeof ProvableBigInt;
+  abstract get Constructor(): any;
   abstract toBigInt(): bigint;
   abstract toFields(): Field[];
   abstract toBits(): Bool[];
