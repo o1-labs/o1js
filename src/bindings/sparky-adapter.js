@@ -1184,6 +1184,25 @@ function getAccumulatedConstraints() {
         : constraintsJson;
       
       const gates = constraints.gates || [];
+      
+      // ULTRA-DEBUG: Analyze each gate's coefficients for differences
+      gates.forEach((gate, index) => {
+        console.log(`[JS DEBUG] Gate ${index}:`, {
+          type: gate.typ,
+          coeffs: gate.coeffs ? gate.coeffs.slice(0, 3) : 'none', // Show first 3 coeffs
+          wires: gate.wires
+        });
+        
+        // Create a hash of the gate content to detect subtle differences
+        const gateContent = JSON.stringify({
+          type: gate.typ,
+          coeffs: gate.coeffs,
+          wires: gate.wires
+        });
+        const gateHash = gateContent.length + '-' + gateContent.slice(0, 20) + gateContent.slice(-20);
+        console.log(`[JS DEBUG] Gate ${index} content hash:`, gateHash);
+      });
+      
       console.log('[JS DEBUG] Returning', gates.length, 'gates to OCaml (from', rowCount, 'total rows)');
       return gates;
     } else {
