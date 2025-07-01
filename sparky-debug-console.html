@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sparky Debug Console</title>
+    <style>
+        body { 
+            background: #1a1a1a; 
+            color: #00ff00; 
+            font-family: 'Courier New', monospace; 
+            padding: 20px; 
+            margin: 0;
+        }
+        .console { 
+            background: #000; 
+            border: 1px solid #333; 
+            padding: 15px; 
+            height: 400px; 
+            overflow-y: auto; 
+            margin-bottom: 20px;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .warning { color: #ffaa44; }
+        .info { color: #4444ff; }
+        svg { border: 1px solid #666; background: #222; }
+        .node { stroke: white; stroke-width: 2; cursor: pointer; }
+        .link { stroke: #666; stroke-width: 1.5; }
+        .label { fill: white; font-size: 10px; text-anchor: middle; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Sparky Call Graph Debug Console</h1>
+    
+    <div id="console" class="console">
+        <div class="info">Initializing debug console...</div>
+    </div>
+
+    <div>
+        <strong>Test Controls:</strong>
+        <button onclick="testD3()">Test D3</button>
+        <button onclick="testData()">Test Data</button>
+        <button onclick="testVisualization()">Test Visualization</button>
+        <button onclick="clearConsole()">Clear</button>
+    </div>
+
+    <svg id="svg" width="1000" height="500"></svg>
+
+    <script>
+        let logCount = 0;
+        
+        function log(message, type = 'info') {
+            logCount++;
+            const console = document.getElementById('console');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${logCount}] ${message}`;
+            console.appendChild(div);
+            console.scrollTop = console.scrollHeight;
+            
+            // Also log to browser console
+            window.console.log(`[${logCount}] ${message}`);
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '';
+            logCount = 0;
+        }
+
+        function testD3() {
+            log('Testing D3.js...', 'info');
+            
+            // Test if D3 script tag exists
+            const d3Script = document.querySelector('script[src*="d3"]');
+            if (d3Script) {
+                log('✓ D3 script tag found: ' + d3Script.src, 'success');
+            } else {
+                log('✗ D3 script tag not found', 'error');
+            }
+            
+            // Test if D3 object exists
+            if (typeof d3 === 'undefined') {
+                log('✗ D3 object not available', 'error');
+                
+                // Try to load D3 dynamically
+                log('Attempting to load D3 dynamically...', 'warning');
+                const script = document.createElement('script');
+                script.src = 'https://d3js.org/d3.v7.min.js';
+                script.onload = () => {
+                    log('✓ D3 loaded dynamically!', 'success');
+                    testD3();
+                };
+                script.onerror = () => {
+                    log('✗ Failed to load D3 dynamically', 'error');
+                };
+                document.head.appendChild(script);
+                return;
+            } else {
+                log('✓ D3 object available, version: ' + (d3.version || 'unknown'), 'success');
+            }
+            
+            // Test D3 selection
+            try {
+                const svg = d3.select('#svg');
+                log('✓ D3 selection works: ' + svg.node().tagName, 'success');
+            } catch (e) {
+                log('✗ D3 selection failed: ' + e.message, 'error');
+            }
+        }
+
+        function testData() {
+            log('Testing data creation...', 'info');
+            
+            try {
+                // Simple test data
+                const testNodes = [
+                    {id: 'wasm1', name: 'fieldExists', type: 'wasm', color: '#f39c12'},
+                    {id: 'core1', name: 'add_constraint', type: 'core', color: '#4a90e2'},
+                    {id: 'unused1', name: 'stub_function', type: 'unused', color: '#e74c3c'}
+                ];
+                
+                const testLinks = [
+                    {source: 'wasm1', target: 'core1'},
+                    {source: 'core1', target: 'unused1'}
+                ];
+                
+                log('✓ Test data created: ' + testNodes.length + ' nodes, ' + testLinks.length + ' links', 'success');
+                
+                // Store in global scope for testing
+                window.testNodes = testNodes;
+                window.testLinks = testLinks;
+                
+                // Log details
+                testNodes.forEach(node => {
+                    log(`  Node: ${node.name} (${node.type})`, 'info');
+                });
+                
+                testLinks.forEach(link => {
+                    log(`  Link: ${link.source} → ${link.target}`, 'info');
+                });
+                
+            } catch (e) {
+                log('✗ Data creation failed: ' + e.message, 'error');
+            }
+        }
+
+        function testVisualization() {
+            log('Testing visualization...', 'info');
+            
+            if (typeof d3 === 'undefined') {
+                log('✗ D3 not available, run Test D3 first', 'error');
+                return;
+            }
+            
+            if (!window.testNodes) {
+                log('✗ No test data, run Test Data first', 'error');
+                return;
+            }
+            
+            try {
+                const svg = d3.select('#svg');
+                
+                // Clear existing content
+                svg.selectAll('*').remove();
+                log('✓ SVG cleared', 'success');
+                
+                // Position nodes manually for now
+                const nodes = window.testNodes.map((d, i) => ({
+                    ...d,
+                    x: 200 + i * 200,
+                    y: 250
+                }));
+                
+                // Create links
+                const linkSelection = svg.selectAll('.link')
+                    .data(window.testLinks)
+                    .enter()
+                    .append('line')
+                    .attr('class', 'link')
+                    .attr('x1', d => {
+                        const source = nodes.find(n => n.id === d.source);
+                        return source ? source.x : 0;
+                    })
+                    .attr('y1', d => {
+                        const source = nodes.find(n => n.id === d.source);
+                        return source ? source.y : 0;
+                    })
+                    .attr('x2', d => {
+                        const target = nodes.find(n => n.id === d.target);
+                        return target ? target.x : 0;
+                    })
+                    .attr('y2', d => {
+                        const target = nodes.find(n => n.id === d.target);
+                        return target ? target.y : 0;
+                    });
+                
+                log('✓ Links created: ' + linkSelection.size(), 'success');
+                
+                // Create nodes
+                const nodeSelection = svg.selectAll('.node')
+                    .data(nodes)
+                    .enter()
+                    .append('circle')
+                    .attr('class', 'node')
+                    .attr('r', 20)
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y)
+                    .attr('fill', d => d.color)
+                    .on('click', (event, d) => {
+                        log('🖱️ Clicked: ' + d.name, 'warning');
+                    });
+                
+                log('✓ Nodes created: ' + nodeSelection.size(), 'success');
+                
+                // Create labels
+                const labelSelection = svg.selectAll('.label')
+                    .data(nodes)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'label')
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y + 5)
+                    .text(d => d.name);
+                
+                log('✓ Labels created: ' + labelSelection.size(), 'success');
+                log('✓ Visualization complete! You should see 3 colored circles with labels.', 'success');
+                
+            } catch (e) {
+                log('✗ Visualization failed: ' + e.message, 'error');
+                log('Stack trace: ' + e.stack, 'error');
+            }
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            log('Page loaded, starting auto-tests...', 'info');
+            setTimeout(() => {
+                testD3();
+                setTimeout(() => {
+                    testData();
+                    setTimeout(() => {
+                        testVisualization();
+                    }, 500);
+                }, 500);
+            }, 1000);
+        });
+    </script>
+    
+    <!-- Load D3 at the end -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</body>
+</html>

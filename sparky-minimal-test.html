@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal D3 Test</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { background: #222; color: white; font-family: Arial; padding: 20px; }
+        .debug { background: #444; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        svg { border: 1px solid white; background: #333; }
+        .node { fill: red; stroke: white; stroke-width: 2; }
+        .link { stroke: #666; stroke-width: 2; }
+    </style>
+</head>
+<body>
+    <h1>Minimal D3 Test</h1>
+    <div id="debug" class="debug"></div>
+    <svg width="800" height="600"></svg>
+
+    <script>
+        function log(msg) {
+            console.log(msg);
+            document.getElementById('debug').innerHTML += '<div>' + msg + '</div>';
+        }
+
+        log('Starting...');
+
+        // Check D3
+        if (typeof d3 === 'undefined') {
+            log('❌ D3 not loaded!');
+        } else {
+            log('✅ D3 loaded: ' + d3.version);
+        }
+
+        // Simple test data
+        const nodes = [
+            {id: 0, name: "fieldExists", x: 100, y: 100},
+            {id: 1, name: "add_constraint", x: 200, y: 150},
+            {id: 2, name: "unused_func", x: 300, y: 100}
+        ];
+
+        const links = [
+            {source: 0, target: 1},
+            {source: 1, target: 2}
+        ];
+
+        log('Data created: ' + nodes.length + ' nodes, ' + links.length + ' links');
+
+        const svg = d3.select('svg');
+        
+        // Draw links first
+        const linkElements = svg.selectAll('.link')
+            .data(links)
+            .enter()
+            .append('line')
+            .attr('class', 'link')
+            .attr('x1', d => nodes[d.source].x)
+            .attr('y1', d => nodes[d.source].y)
+            .attr('x2', d => nodes[d.target].x)
+            .attr('y2', d => nodes[d.target].y);
+
+        log('Links created: ' + linkElements.size());
+
+        // Draw nodes
+        const nodeElements = svg.selectAll('.node')
+            .data(nodes)
+            .enter()
+            .append('circle')
+            .attr('class', 'node')
+            .attr('r', 15)
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y);
+
+        log('Nodes created: ' + nodeElements.size());
+
+        // Add labels
+        const labelElements = svg.selectAll('.label')
+            .data(nodes)
+            .enter()
+            .append('text')
+            .attr('class', 'label')
+            .attr('x', d => d.x)
+            .attr('y', d => d.y + 5)
+            .attr('text-anchor', 'middle')
+            .attr('fill', 'white')
+            .attr('font-size', '12px')
+            .text(d => d.name);
+
+        log('Labels created: ' + labelElements.size());
+        log('✅ Test complete - you should see 3 red circles with labels');
+    </script>
+</body>
+</html>

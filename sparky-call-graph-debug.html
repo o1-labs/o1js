@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparky Call Graph Debug</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .debug-info {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        svg {
+            border: 1px solid #666;
+            background: #222;
+        }
+        .node {
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+        .link {
+            stroke: #666;
+            stroke-width: 1.5px;
+        }
+        .node-label {
+            fill: white;
+            font-size: 10px;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Sparky Call Graph Debug</h1>
+    
+    <div class="debug-info">
+        <h3>Debug Information:</h3>
+        <div id="debug-log"></div>
+    </div>
+
+    <svg id="visualization" width="1200" height="800"></svg>
+
+    <script>
+        function log(message) {
+            console.log(message);
+            document.getElementById('debug-log').innerHTML += '<div>' + message + '</div>';
+        }
+
+        log('Starting visualization...');
+        
+        // Check if D3 loaded
+        if (typeof d3 === 'undefined') {
+            log('ERROR: D3.js not loaded!');
+        } else {
+            log('✓ D3.js loaded successfully');
+        }
+
+        // Simple test data
+        const testData = {
+            nodes: [
+                {id: 1, name: "WASM Entry", category: "wasm", isWasm: true, isCritical: true},
+                {id: 2, name: "fieldExists", category: "wasm", isWasm: true, isCritical: true},
+                {id: 3, name: "alloc_var", category: "rust", isCritical: true},
+                {id: 4, name: "unused_func", category: "rust", isUnused: true},
+                {id: 5, name: "poseidon_hash", category: "crypto", isCritical: true},
+                {id: 6, name: "legacy_unused", category: "legacy", isUnused: true}
+            ],
+            links: [
+                {source: 1, target: 2},
+                {source: 2, target: 3},
+                {source: 1, target: 5},
+                {source: 3, target: 4},
+                {source: 5, target: 6}
+            ]
+        };
+
+        log(`Test data: ${testData.nodes.length} nodes, ${testData.links.length} links`);
+
+        // Color function
+        function getNodeColor(node) {
+            if (node.isUnused) return '#e74c3c';  // Red for unused
+            if (node.isCritical) return '#4a90e2'; // Blue for critical
+            if (node.isWasm) return '#f39c12';     // Orange for WASM
+            return '#2ecc71'; // Green default
+        }
+
+        // Create SVG
+        const svg = d3.select("#visualization");
+        const width = 1200;
+        const height = 800;
+
+        log('Creating force simulation...');
+
+        // Create force simulation
+        const simulation = d3.forceSimulation(testData.nodes)
+            .force("link", d3.forceLink(testData.links).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        // Create links
+        const link = svg.append("g")
+            .attr("class", "links")
+            .selectAll("line")
+            .data(testData.links)
+            .enter()
+            .append("line")
+            .attr("class", "link");
+
+        log(`Created ${testData.links.length} links`);
+
+        // Create nodes
+        const node = svg.append("g")
+            .attr("class", "nodes")
+            .selectAll("circle")
+            .data(testData.nodes)
+            .enter()
+            .append("circle")
+            .attr("class", "node")
+            .attr("r", 15)
+            .attr("fill", d => getNodeColor(d))
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        log(`Created ${testData.nodes.length} nodes`);
+
+        // Create labels
+        const label = svg.append("g")
+            .attr("class", "labels")
+            .selectAll("text")
+            .data(testData.nodes)
+            .enter()
+            .append("text")
+            .attr("class", "node-label")
+            .text(d => d.name)
+            .attr("dy", 4);
+
+        log('Created labels');
+
+        // Update positions on simulation tick
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            label
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+        });
+
+        log('Simulation started');
+
+        // Drag functions
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        // Add click handlers
+        node.on("click", (event, d) => {
+            log(`Clicked node: ${d.name} (${d.category})`);
+        });
+
+        log('Visualization setup complete!');
+
+        // Test with actual Sparky data after 3 seconds
+        setTimeout(() => {
+            log('Loading Sparky data...');
+            loadSparkyData();
+        }, 3000);
+
+        function loadSparkyData() {
+            // Sparky data from analysis
+            const sparkyData = {
+                wasmFunctions: [
+                    "fieldExists", "fieldConstant", "fieldAdd", "fieldAssertEqual", 
+                    "gatesGeneric", "gatesZero", "poseidonUpdate", "runAsProver"
+                ],
+                criticalFunctions: [
+                    "add_constraint", "linear_combination", "alloc_var", "poseidon_hash"
+                ],
+                unusedFunctions: [
+                    "Gates_poseidon_stub", "zero_gate_stub", "vesta_field_add", 
+                    "OptimizedConstraintBuilder", "gates_ec_double"
+                ]
+            };
+
+            const nodes = [];
+            const links = [];
+            let nodeId = 0;
+
+            // Add WASM functions
+            sparkyData.wasmFunctions.forEach(name => {
+                nodes.push({
+                    id: nodeId++,
+                    name: name,
+                    category: 'wasm',
+                    isWasm: true,
+                    isCritical: true
+                });
+            });
+
+            // Add critical functions
+            sparkyData.criticalFunctions.forEach(name => {
+                nodes.push({
+                    id: nodeId++,
+                    name: name,
+                    category: 'critical',
+                    isCritical: true
+                });
+            });
+
+            // Add unused functions
+            sparkyData.unusedFunctions.forEach(name => {
+                nodes.push({
+                    id: nodeId++,
+                    name: name,
+                    category: 'unused',
+                    isUnused: true
+                });
+            });
+
+            // Create some example links
+            for (let i = 0; i < Math.min(nodes.length - 1, 20); i++) {
+                links.push({
+                    source: i,
+                    target: i + 1
+                });
+            }
+
+            log(`Sparky data loaded: ${nodes.length} nodes, ${links.length} links`);
+
+            // Update visualization with new data
+            updateVisualization(nodes, links);
+        }
+
+        function updateVisualization(newNodes, newLinks) {
+            log('Updating visualization with Sparky data...');
+
+            // Stop current simulation
+            simulation.stop();
+
+            // Remove old elements
+            svg.selectAll('.links').remove();
+            svg.selectAll('.nodes').remove();
+            svg.selectAll('.labels').remove();
+
+            // Create new simulation
+            const newSimulation = d3.forceSimulation(newNodes)
+                .force("link", d3.forceLink(newLinks).id(d => d.id).distance(80))
+                .force("charge", d3.forceManyBody().strength(-200))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(20));
+
+            // Create new links
+            const newLink = svg.append("g")
+                .attr("class", "links")
+                .selectAll("line")
+                .data(newLinks)
+                .enter()
+                .append("line")
+                .attr("class", "link");
+
+            // Create new nodes
+            const newNode = svg.append("g")
+                .attr("class", "nodes")
+                .selectAll("circle")
+                .data(newNodes)
+                .enter()
+                .append("circle")
+                .attr("class", "node")
+                .attr("r", 12)
+                .attr("fill", d => getNodeColor(d))
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            // Create new labels
+            const newLabel = svg.append("g")
+                .attr("class", "labels")
+                .selectAll("text")
+                .data(newNodes)
+                .enter()
+                .append("text")
+                .attr("class", "node-label")
+                .text(d => d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name)
+                .attr("dy", 4);
+
+            // Update positions
+            newSimulation.on("tick", () => {
+                newLink
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                newNode
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+
+                newLabel
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y);
+            });
+
+            // Add click handlers
+            newNode.on("click", (event, d) => {
+                log(`Clicked: ${d.name} - Category: ${d.category} - Unused: ${d.isUnused || false} - Critical: ${d.isCritical || false}`);
+            });
+
+            log('✓ Visualization updated with Sparky data');
+        }
+    </script>
+</body>
+</html>
