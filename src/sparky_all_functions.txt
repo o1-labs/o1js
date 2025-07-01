@@ -1,0 +1,50 @@
+./mina/src/app/trace-tool/src/main.rs:fn complete_event(
+./mina/src/app/trace-tool/src/main.rs:fn escape(s: &str) -> String {
+./mina/src/app/trace-tool/src/main.rs:fn main() {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/build.rs:fn main() {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    pub(crate) fn test_with_keys(key1: u128, key2: u128) -> Self {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn hash_in(&mut self, new_value: u128) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn hash_in_2(&mut self, v1: u128, v2: u128) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn short_finish(&self) -> u64 {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u8(&mut self, i: u8) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u16(&mut self, i: u16) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u32(&mut self, i: u32) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u128(&mut self, i: u128) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_usize(&mut self, i: usize) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_usize(&mut self, i: usize) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u64(&mut self, i: u64) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write(&mut self, input: &[u8]) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn finish(&self) -> u64 {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn finish(&self) -> u64 {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write(&mut self, _bytes: &[u8]) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u8(&mut self, i: u8) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u16(&mut self, i: u16) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u32(&mut self, i: u32) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u64(&mut self, i: u64) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u128(&mut self, _i: u128) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_usize(&mut self, _i: usize) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn finish(&self) -> u64 {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write(&mut self, bytes: &[u8]) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u8(&mut self, i: u8) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u16(&mut self, i: u16) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u32(&mut self, i: u32) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u64(&mut self, i: u64) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u128(&mut self, i: u128) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_usize(&mut self, i: usize) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn finish(&self) -> u64 {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write(&mut self, bytes: &[u8]) {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u8(&mut self, _i: u8) {}
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u16(&mut self, _i: u16) {}
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u32(&mut self, _i: u32) {}
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u64(&mut self, _i: u64) {}
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_u128(&mut self, _i: u128) {}
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn write_usize(&mut self, _i: usize) {}
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn test_sanity() {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn test_builder() {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn test_default() {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn test_hash() {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/aes_hash.rs:    fn test_conversion() {
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/convert.rs:    fn convert(self) -> To;
+./mina/src/lib/crypto/kimchi_bindings/stubs/kimchi-stubs-vendors/ahash/src/convert.rs:            fn convert(self) -> $b {

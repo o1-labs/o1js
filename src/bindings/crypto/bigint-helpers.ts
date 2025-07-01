@@ -4,6 +4,7 @@ export {
   bigIntToBytes,
   bigIntToBits,
   parseHexString32,
+  parseHexString32BigEndian,
   log2,
   max,
   abs,
@@ -39,10 +40,18 @@ function bytesToBigInt(bytes: Uint8Array | number[]) {
 }
 
 let hexToNum: { [hexCharCode: number]: number } = {};
-for (let i = 0; i < 16; i++) hexToNum[i.toString(16).charCodeAt(0)] = i;
+// Add both lowercase and uppercase hex characters
+for (let i = 0; i < 10; i++) {
+  hexToNum[i.toString().charCodeAt(0)] = i; // 0-9
+}
+for (let i = 0; i < 6; i++) {
+  hexToNum['a'.charCodeAt(0) + i] = 10 + i; // a-f
+  hexToNum['A'.charCodeAt(0) + i] = 10 + i; // A-F
+}
 let encoder = new TextEncoder();
 
 const tmpBytes = new Uint8Array(64);
+const parsedBytes = new Uint8Array(32);
 
 function parseHexString32(input: string) {
   // Parse the bytes explicitly, Bigint endianness is wrong
@@ -50,9 +59,22 @@ function parseHexString32(input: string) {
   for (let j = 0; j < 32; j++) {
     let n1 = hexToNum[tmpBytes[2 * j]];
     let n0 = hexToNum[tmpBytes[2 * j + 1]];
-    tmpBytes[j] = (n1 << 4) | n0;
+    // Little-endian: store bytes in the order they appear
+    parsedBytes[j] = (n1 << 4) | n0;
   }
-  return bytesToBigint32(tmpBytes);
+  return bytesToBigint32(parsedBytes);
+}
+
+function parseHexString32BigEndian(input: string) {
+  // Parse the bytes explicitly for big-endian hex strings
+  encoder.encodeInto(input, tmpBytes);
+  for (let j = 0; j < 32; j++) {
+    let n1 = hexToNum[tmpBytes[2 * j]];
+    let n0 = hexToNum[tmpBytes[2 * j + 1]];
+    // Big-endian: store in reverse order to convert to little-endian bytes
+    parsedBytes[31 - j] = (n1 << 4) | n0;
+  }
+  return bytesToBigint32(parsedBytes);
 }
 
 /**

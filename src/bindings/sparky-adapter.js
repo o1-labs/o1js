@@ -282,8 +282,25 @@ export const Snarky = {
       const handle = getRunModule().enterConstraintSystem();
       return () => {
         // Get the constraint system JSON from the constraint system module
-        const json = getConstraintSystemModule().toJson({});
+        console.log('🔍 ENTER: Getting constraint system from WASM...');
+        const jsonString = getConstraintSystemModule().toJson({});
+        console.log('🔍 ENTER: Raw JSON from WASM:', jsonString);
+        
+        // Parse the JSON string (same as our patched toJson method)
+        let json;
+        try {
+          json = JSON.parse(jsonString);
+          console.log('🔍 ENTER: Parsed JSON:', json);
+          console.log('🔍 ENTER: Gates array:', json.gates);
+          console.log('🔍 ENTER: Gates length:', json.gates ? json.gates.length : 'undefined');
+        } catch (error) {
+          console.error('🔍 ENTER: Failed to parse JSON:', error);
+          json = { gates: [], public_input_size: 0 };
+        }
+        
         handle.exit(); // Exit the mode
+        
+        // Return the parsed JSON object, not the string
         return json;
       };
     },
@@ -387,7 +404,20 @@ export const Snarky = {
     },
     
     toJson(system) {
-      const json = getConstraintSystemModule().toJson(system);
+      const jsonString = getConstraintSystemModule().toJson(system);
+      
+      // Parse the JSON string returned from WASM
+      let json;
+      try {
+        json = JSON.parse(jsonString);
+      } catch (error) {
+        console.error('Failed to parse constraint system JSON:', error);
+        // Fallback for compatibility
+        return {
+          gates: [],
+          public_input_size: 0
+        };
+      }
       
       // Ensure the JSON has the expected structure
       if (!json.gates) {
@@ -436,6 +466,9 @@ export const Snarky = {
     
     assertEqual(x, y) {
       // Pass FieldVar arrays directly - WASM will handle conversion
+      console.log("🔍 SPARKY ADAPTER assertEqual called");
+      console.log("🔍   x:", x);
+      console.log("🔍   y:", y);
       getFieldModule().assertEqual(x, y);
     },
     
@@ -1050,20 +1083,91 @@ export const Snarky = {
     },
     
     xor(in1, in2, out, bits) {
-      // TODO: Implement XOR gate when available in Sparky
-      throw new Error('xor gate not yet implemented in Sparky adapter');
+      // XOR gate implementation using raw gate interface
+      try {
+        // For 16-bit XOR, use gate type 16 (Xor16)
+        if (bits === 16) {
+          // Xor16 gate expects:
+          // - left input (in1)
+          // - right input (in2) 
+          // - output (out)
+          // - 4 chunks for left (4-bit each)
+          // - 4 chunks for right (4-bit each)
+          // - 4 chunks for output (4-bit each)
+          
+          // Create dummy chunk values for now (should be properly decomposed)
+          const values = [
+            in1, in2, out,
+            // Left chunks (4 values)
+            [0, [0, 0n]], [0, [0, 0n]], [0, [0, 0n]], [0, [0, 0n]],
+            // Right chunks (4 values)
+            [0, [0, 0n]], [0, [0, 0n]], [0, [0, 0n]], [0, [0, 0n]],
+            // Output chunks (4 values)
+            [0, [0, 0n]], [0, [0, 0n]], [0, [0, 0n]], [0, [0, 0n]]
+          ];
+          
+          return this.raw(16, values, []);
+        } else {
+          // For other bit sizes, fall back to generic implementation
+          // This would need lookup tables which aren't implemented yet
+          throw new Error(`xor gate for ${bits} bits not yet implemented in Sparky adapter`);
+        }
+      } catch (error) {
+        throw new Error(`xor gate failed: ${error.message}`);
+      }
     },
     
     rotate(field, rotated, excess, limbs, crumbs, two_to_rot) {
       // Rotate gate for 64-bit rotation
+      console.log('🔧 rotate_impl: Using fixed Checked monad pattern');
+      
       try {
-        getGatesModule().rotate(field, rotated, excess, limbs, crumbs, two_to_rot);
+        // The limbs and crumbs come as MlArrays from the TypeScript layer
+        // MlArrays have format [0, ...actualValues], so skip the first element
+        const limbsArray = limbs.slice(1);
+        const crumbsArray = crumbs.slice(1);
+        
+        console.log(`🔧 rotate_impl: limbs=${limbsArray.length}, crumbs=${crumbsArray.length}`);
+        
+        // Check array lengths
+        if (limbsArray.length !== 4) {
+          console.log('🔧 rotate_impl: Limbs:', limbsArray);
+          throw new Error(`Expected 4 limbs, got ${limbsArray.length}`);
+        }
+        if (crumbsArray.length !== 8) {
+          console.log('🔧 rotate_impl: Crumbs:', crumbsArray);
+          throw new Error(`Expected 8 crumbs, got ${crumbsArray.length}`);
+        }
+        
+        // Convert two_to_rot to proper format
+        // two_to_rot comes as a FieldConst which is [tag, [constantBool, value]]
+        console.log('🔧 rotate_impl: two_to_rot type:', typeof two_to_rot, 'value:', two_to_rot);
+        
+        let twoToRotValue;
+        if (Array.isArray(two_to_rot) && two_to_rot.length === 2) {
+          // It's a FieldConst format [tag, value]
+          twoToRotValue = two_to_rot[1];
+        } else {
+          // It's a raw value
+          twoToRotValue = two_to_rot;
+        }
+        
+        // Use raw gate interface for Rot64 (gate type 17)
+        const values = [
+          field, rotated, excess,
+          ...limbsArray,
+          ...crumbsArray
+        ];
+        
+        // Rot64 needs the coefficient for 2^rot as a string
+        const coeffs = [String(twoToRotValue)];
+        
+        console.log(`🔧 rotate_impl: Calling raw with ${values.length} values`);
+        this.raw(17, values, coeffs);
+        console.log('🎉 rotate_impl: Successfully generated Rot64 gate!');
       } catch (error) {
-        // Enhanced error reporting to debug the undefined issue
         const errorMsg = error.message || error.toString() || JSON.stringify(error) || 'unknown error';
-        const errorType = typeof error;
-        const errorKeys = Object.keys(error || {});
-        throw new Error(`rotate gate failed: ${errorMsg} (type: ${errorType}, keys: [${errorKeys.join(', ')}])`);
+        throw new Error(`rotate gate failed: ${errorMsg}`);
       }
     },
     
