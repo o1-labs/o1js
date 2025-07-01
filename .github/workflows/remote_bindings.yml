@@ -15,6 +15,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          clean: true
       - name: upload
         uses: ./.github/actions/upload
         with:
