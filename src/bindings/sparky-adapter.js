@@ -281,10 +281,9 @@ export const Snarky = {
       // Use the actual enterConstraintSystem method from the Run module
       const handle = getRunModule().enterConstraintSystem();
       return () => {
-        // Get the constraint system JSON from the constraint system module
-        const json = getConstraintSystemModule().toJson({});
-        handle.exit(); // Exit the mode
-        return json;
+        // Get the constraint system that was built during execution
+        const constraintSystem = handle(); // Call the handle to get the constraint system
+        return constraintSystem;
       };
     },
     
@@ -323,6 +322,11 @@ export const Snarky = {
           for (let i = 0; i < size; i++) {
             // Create a witness variable using field module exists
             const sparkyVar = getFieldModule().exists(null);
+            // Debug: check what we got
+            console.log('DEBUG sparkyVar:', sparkyVar, 'type:', typeof sparkyVar);
+            if (sparkyVar && typeof sparkyVar === 'object') {
+              console.log('DEBUG sparkyVar keys:', Object.keys(sparkyVar));
+            }
             // Convert Cvar back to FieldVar format
             const o1jsVar = cvarToFieldVar(sparkyVar);
             vars.push(o1jsVar);
