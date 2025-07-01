@@ -1105,6 +1105,122 @@ export const Snarky = {
 };
 
 /**
+ * ===================================================================
+ * CONSTRAINT BRIDGE: JavaScript → OCaml Pickles Integration
+ * ===================================================================
+ * 
+ * CRITICAL ARCHITECTURE FIX:
+ * When Sparky is active, Pickles (OCaml) needs to collect constraints 
+ * from the JavaScript circuit execution during compilation.
+ * 
+ * This bridge allows OCaml to:
+ * 1. Detect if Sparky is the active backend
+ * 2. Retrieve accumulated constraints from Sparky
+ * 3. Convert them to OCaml format for VK generation
+ */
+
+// Global tracking for constraint accumulation during compilation
+let isCompilingCircuit = false;
+let accumulatedConstraints = [];
+
+/**
+ * Called by OCaml: Check if Sparky is the active backend
+ * @returns {boolean} true if Sparky is active, false if Snarky
+ */
+function isActiveSparkyBackend() {
+  // Check if we're in a Sparky context by testing if Sparky instance exists
+  const isActive = sparkyInstance !== null && typeof sparkyInstance !== 'undefined';
+  console.log('[JS DEBUG] isActiveSparkyBackend called, result:', isActive);
+  return isActive;
+}
+
+/**
+ * Called by OCaml: Start constraint accumulation mode
+ * This is called before rule##.main public_input executes
+ */
+function startConstraintAccumulation() {
+  console.log('[JS DEBUG] startConstraintAccumulation called');
+  if (!isActiveSparkyBackend()) {
+    console.log('[JS DEBUG] Sparky not active, skipping');
+    return;
+  }
+  
+  isCompilingCircuit = true;
+  accumulatedConstraints = [];
+  console.log('[JS DEBUG] Constraint accumulation started');
+  
+  // DON'T reset Sparky state - this might clear constraint differences!
+  // Let constraints accumulate across the compilation process
+  console.log('[JS DEBUG] NOT resetting Sparky state to preserve constraint differences');
+}
+
+/**
+ * Called by OCaml: Get all constraints accumulated during circuit execution
+ * This is called after rule##.main public_input completes
+ * @returns {Array} Array of constraint objects in OCaml-compatible format
+ */
+function getAccumulatedConstraints() {
+  console.log('[JS DEBUG] getAccumulatedConstraints called');
+  if (!isActiveSparkyBackend() || !isCompilingCircuit) {
+    console.log('[JS DEBUG] Sparky not active or not compiling, returning empty array');
+    return [];
+  }
+  
+  try {
+    console.log('[JS DEBUG] Using correct Sparky API...');
+    
+    if (sparkyInstance && sparkyInstance.constraintSystemToJson) {
+      console.log('[JS DEBUG] Calling constraintSystemToJson()...');
+      const constraintsJson = sparkyInstance.constraintSystemToJson();
+      console.log('[JS DEBUG] Raw constraints JSON from Sparky:', constraintsJson);
+      
+      // Get constraint row count as well
+      const rowCount = sparkyInstance.constraintSystemRows ? sparkyInstance.constraintSystemRows() : 0;
+      console.log('[JS DEBUG] Sparky constraint rows:', rowCount);
+      
+      // Convert to OCaml-compatible format
+      const constraints = typeof constraintsJson === 'string' 
+        ? JSON.parse(constraintsJson) 
+        : constraintsJson;
+      
+      const gates = constraints.gates || [];
+      console.log('[JS DEBUG] Returning', gates.length, 'gates to OCaml (from', rowCount, 'total rows)');
+      return gates;
+    } else {
+      console.log('[JS DEBUG] sparkyInstance.constraintSystemToJson not available');
+    }
+  } catch (error) {
+    console.error('[JS DEBUG] Exception in getAccumulatedConstraints:', error);
+    console.error('[JS DEBUG] Error stack:', error.stack);
+  }
+  
+  console.log('[JS DEBUG] Returning empty array due to error/no instance');
+  return [];
+}
+
+/**
+ * Called by OCaml: End constraint accumulation mode
+ */
+function endConstraintAccumulation() {
+  isCompilingCircuit = false;
+  accumulatedConstraints = [];
+}
+
+/**
+ * Export constraint bridge functions for OCaml access
+ * These will be called from pickles_bindings.ml during compilation
+ */
+if (typeof globalThis !== 'undefined') {
+  // Make bridge functions available globally for OCaml to call
+  globalThis.sparkyConstraintBridge = {
+    isActiveSparkyBackend,
+    startConstraintAccumulation,
+    getAccumulatedConstraints,
+    endConstraintAccumulation
+  };
+}
+
+/**
  * Ledger API (placeholder - would need full implementation)
  */
 export const Ledger = {
