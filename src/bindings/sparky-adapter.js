@@ -1181,6 +1181,10 @@ function startConstraintAccumulation() {
   accumulatedConstraints = [];
   console.log('[JS DEBUG] Constraint accumulation started');
   
+  // CRITICAL: Ensure Sparky is in constraint mode for constraint generation
+  console.log('[JS DEBUG] Setting Sparky to constraint mode for compilation');
+  getRunModule().constraintMode();
+  
   // DON'T reset Sparky state - this might clear constraint differences!
   // Let constraints accumulate across the compilation process
   console.log('[JS DEBUG] NOT resetting Sparky state to preserve constraint differences');
