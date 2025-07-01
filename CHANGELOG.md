@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - Lazy mode for prover index computation. https://github.com/o1-labs/o1js/pull/2143
+- Added reverse functionality to `DynamicArray` and indexed `forEach` and `forEachReverse` variants.
 - Added `ZkProgram.analyzeSingleMethod(methodName: string)` to analyze a single method of a ZkProgram. https://github.com/o1-labs/o1js/pull/2217
   - This is an addition to `ZkProgram.analyzeMethods()` which analyzes all methods of a ZkProgram by executing them.
   - Now only a single method is analyzed at a time.
