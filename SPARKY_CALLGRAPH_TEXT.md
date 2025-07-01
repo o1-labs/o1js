@@ -43,6 +43,66 @@ fieldScale
     └── mul
 ```
 
+#### fieldMul (IMPLEMENTED)
+```
+fieldMul
+├── with_run_state
+├── mul_impl
+    ├── js_to_cvar (x, y)
+    ├── check if constant multiplication
+    │   ├── both constant → multiply and return constant
+    │   ├── one constant → use scale operation
+    │   └── both variables → create witness and constraint
+    ├── exists (create witness for result)
+    ├── assert_r1cs(x, y, result)
+    └── cvar_to_js (return result)
+```
+
+#### fieldSub (IMPLEMENTED)
+```
+fieldSub
+├── sub_impl
+    ├── js_to_cvar (x, y)
+    ├── scale y by -1 (negate)
+    ├── add x and negated y
+    └── cvar_to_js (return result)
+```
+
+#### fieldSquare (IMPLEMENTED)
+```
+fieldSquare
+├── with_run_state
+├── square_impl
+    ├── js_to_cvar (x)
+    ├── check if constant
+    │   ├── constant → square and return constant
+    │   └── variable → create witness and constraint
+    ├── exists (create witness for result)
+    ├── assert_square(x, result)
+    └── cvar_to_js (return result)
+```
+
+#### fieldInv (IMPLEMENTED)
+```
+fieldInv
+├── with_run_state
+├── inv_impl
+    ├── js_to_cvar (x)
+    ├── check if constant
+    │   ├── constant → compute inverse or error if zero
+    │   └── variable → create witness and constraint
+    ├── exists (create witness for 1/x)
+    ├── assert_r1cs(x, inv, 1)
+    └── cvar_to_js (return result)
+```
+
+#### fieldDiv (Uses fieldInv)
+```
+fieldDiv (in sparky-adapter.js)
+├── fieldInv(y)
+└── fieldMul(x, yInv)
+```
+
 #### fieldAssertEqual
 ```
 fieldAssertEqual
@@ -414,3 +474,36 @@ testSecp256k1Field
 4. **Poseidon**: Complex multi-level structure with rounds and permutations
 5. **Foreign Fields**: Specialized operations with limb decomposition
 6. **Constraint Reduction**: All assertion functions now call `reduce_lincom` before creating constraints
+
+## Critical Issue Discovered (July 1, 2025)
+
+### Sparky Constraint Generation Problem
+
+**Finding**: Sparky is not generating proper arithmetic constraints. Instead of circuit logic, it only generates trivial variable assignment constraints.
+
+**Evidence**:
+- All Sparky VKs have identical hash: `18829260448603674120636678492061729587559537667160824024435698932992912500478n`
+- Only generates Generic gates with coefficients `[1, -1, 0, 0, 0]` (variable assignments)
+- No multiplication/addition constraints captured
+
+**Call Graph Impact**:
+```
+fieldAssertEqual
+├── with_run_state
+├── add_constraint
+    ├── reduce_lincom (working but receives wrong input)
+    └── ConstraintSystem::add_constraint
+        └── Creates Generic gate with [1, -1, 0, 0, 0] pattern only
+```
+
+**Root Cause Suspects**:
+1. Field operations (mul, add) not calling proper constraint generation
+2. Mode switching issue - may be in witness mode during constraint generation
+3. Bridge between JS field operations and Rust constraint system broken
+4. Linear combination builder not constructing proper arithmetic expressions
+
+**Next Investigation Steps**:
+- Trace fieldMul → assertMul → add_constraint call path
+- Verify constraintMode() is active during circuit compilation
+- Check if linear_combination is building correct expressions
+- Compare Snarky vs Sparky constraint construction for identical operations

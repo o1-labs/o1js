@@ -468,6 +468,38 @@ export const Snarky = {
       getFieldModule().assertBoolean(x);
     },
     
+    // CRITICAL: Field arithmetic operations that generate constraints
+    add(x, y) {
+      // Use Sparky's fieldAdd to create addition constraint
+      const result = getFieldModule().add(x, y);
+      return Array.isArray(result) ? result : cvarToFieldVar(result);
+    },
+    
+    mul(x, y) {
+      // Use Sparky's fieldMul to create multiplication constraint
+      const result = getFieldModule().mul(x, y);
+      return Array.isArray(result) ? result : cvarToFieldVar(result);
+    },
+    
+    sub(x, y) {
+      // Use Sparky's fieldSub to create subtraction constraint
+      const result = getFieldModule().sub(x, y);
+      return Array.isArray(result) ? result : cvarToFieldVar(result);
+    },
+    
+    square(x) {
+      // Use Sparky's fieldSquare to create squaring constraint
+      const result = getFieldModule().square(x);
+      return Array.isArray(result) ? result : cvarToFieldVar(result);
+    },
+    
+    div(x, y) {
+      // Division requires witness for 1/y
+      const yInv = getFieldModule().inv(y);
+      const result = getFieldModule().mul(x, yInv);
+      return Array.isArray(result) ? result : cvarToFieldVar(result);
+    },
+    
     compare(bitLength, x, y) {
       // Implement comparison
       // TODO: This needs proper implementation
@@ -1161,21 +1193,30 @@ function startConstraintAccumulation() {
  */
 function getAccumulatedConstraints() {
   console.log('[JS DEBUG] getAccumulatedConstraints called');
-  if (!isActiveSparkyBackend() || !isCompilingCircuit) {
-    console.log('[JS DEBUG] Sparky not active or not compiling, returning empty array');
+  if (!isActiveSparkyBackend()) {
+    console.log('[JS DEBUG] Sparky not active, returning empty array');
     return [];
   }
+  
+  // CRITICAL FIX: Always return constraints when Sparky is active, 
+  // regardless of isCompilingCircuit flag. The constraint system should
+  // always reflect the current state of accumulated constraints.
+  console.log('[JS DEBUG] isCompilingCircuit flag:', isCompilingCircuit);
   
   try {
     console.log('[JS DEBUG] Using correct Sparky API...');
     
-    if (sparkyInstance && sparkyInstance.constraintSystemToJson) {
-      console.log('[JS DEBUG] Calling constraintSystemToJson()...');
-      const constraintsJson = sparkyInstance.constraintSystemToJson();
+    // CRITICAL FIX: Get the current constraint system from the Run module
+    const currentCS = getRunModule().getConstraintSystem();
+    console.log('[JS DEBUG] Got current constraint system:', currentCS);
+    
+    if (currentCS && getConstraintSystemModule()) {
+      console.log('[JS DEBUG] Converting constraint system to JSON...');
+      const constraintsJson = getConstraintSystemModule().toJson(currentCS);
       console.log('[JS DEBUG] Raw constraints JSON from Sparky:', constraintsJson);
       
       // Get constraint row count as well
-      const rowCount = sparkyInstance.constraintSystemRows ? sparkyInstance.constraintSystemRows() : 0;
+      const rowCount = getConstraintSystemModule().rows ? getConstraintSystemModule().rows(currentCS) : 0;
       console.log('[JS DEBUG] Sparky constraint rows:', rowCount);
       
       // Convert to OCaml-compatible format
@@ -1206,7 +1247,7 @@ function getAccumulatedConstraints() {
       console.log('[JS DEBUG] Returning', gates.length, 'gates to OCaml (from', rowCount, 'total rows)');
       return gates;
     } else {
-      console.log('[JS DEBUG] sparkyInstance.constraintSystemToJson not available');
+      console.log('[JS DEBUG] No current constraint system or constraintSystemModule not available');
     }
   } catch (error) {
     console.error('[JS DEBUG] Exception in getAccumulatedConstraints:', error);
@@ -1221,8 +1262,19 @@ function getAccumulatedConstraints() {
  * Called by OCaml: End constraint accumulation mode
  */
 function endConstraintAccumulation() {
+  console.log('[JS DEBUG] endConstraintAccumulation called');
   isCompilingCircuit = false;
   accumulatedConstraints = [];
+  
+  // Reset Sparky state to start fresh for next program
+  if (sparkyInstance && sparkyInstance.runReset) {
+    try {
+      sparkyInstance.runReset();
+      console.log('[JS DEBUG] Reset Sparky state for next program');
+    } catch (error) {
+      console.warn('Could not reset Sparky state:', error);
+    }
+  }
 }
 
 /**
