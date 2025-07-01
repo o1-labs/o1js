@@ -22,13 +22,13 @@ class Circuit {
    * const keypair = await MyCircuit.generateKeypair();
    * ```
    */
-  static async generateKeypair() {
+  static async generateKeypair(lazyMode: boolean = false) {
     let main = mainFromCircuitData(this._main);
     let publicInputSize = this._main.publicInputType.sizeInFields();
     await initializeBindings();
     return prettifyStacktracePromise(
       withThreadPool(async () => {
-        let keypair = Snarky.circuit.compile(main, publicInputSize);
+        let keypair = Snarky.circuit.compile(main, publicInputSize, lazyMode);
         return new Keypair(keypair);
       })
     );
