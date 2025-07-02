@@ -103,7 +103,7 @@ class IndexedMerkleMapBase {
   }>;
 
   /**
-   * Public getter for the root that combines the the root of the indexed merkle tree and length.
+   * Public getter for the root(commitment) that combines the the internal root of the indexed merkle tree and length.
    * This provides protection against a attack vector mentioned in https://github.com/o1-labs/o1js/pull/2114#issuecomment-2948339955
    */
   get root(): Field {
