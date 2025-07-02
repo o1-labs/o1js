@@ -55,6 +55,11 @@ async function initializeBindings(backend = null) {
       // Initialize Sparky WASM
       await sparkyAdapter.initializeSparky();
       
+      // Reset Sparky state to ensure clean start
+      if (sparkyAdapter.resetSparkyState) {
+        sparkyAdapter.resetSparkyState();
+      }
+      
       ({ Snarky, Ledger, Pickles, Test: Test_ } = sparkyAdapter);
       console.log('✓ Sparky backend loaded');
     } else {
@@ -85,8 +90,10 @@ async function initializeBindings(backend = null) {
     isInitialized = true;
   } catch (error) {
     console.error(`Failed to initialize ${backend} backend:`, error);
-    resolve(); // Resolve to prevent hanging
-    throw error;
+    initializingPromise = undefined; // Reset promise state
+    isInitialized = false; // Reset initialization state
+    // Don't change activeBackend on failure - keep previous working backend
+    throw error; // This will reject the promise properly
   }
 }
 

@@ -9,7 +9,10 @@ module Js = Js_of_ocaml.Js
    to be used with Pickles. It abstracts over the constraint system
    implementation, allowing different backends (Snarky, Sparky, etc.)
    to be plugged in.
-*)
+
+   COMMENTED OUT FOR NOW to fix build warnings - will be uncommented 
+   when first-class modules are fully implemented
+
 module type BACKEND = sig
   module Boolean : sig
     type var
@@ -63,16 +66,22 @@ module type BACKEND = sig
   type field = Field.t
 end
 
+*)
+
 (* ===================================================================
    JS_BACKEND MODULE TYPE: JavaScript Backend Interface
    ===================================================================
    
    This module type defines the interface that JavaScript backends must
    provide to be used with the Backend_of_js functor.
+
+   COMMENTED OUT FOR NOW - part of first-class modules infrastructure
 *)
+(*
 module type JS_BACKEND = sig
   val t : Js.Unsafe.any
 end
+*)
 
 (* ===================================================================
    BACKEND_OF_JS: Functor to create BACKEND from JavaScript
@@ -80,7 +89,10 @@ end
    
    This functor takes a JavaScript backend object and creates an OCaml
    BACKEND module by calling JavaScript methods through js_of_ocaml FFI.
+
+   COMMENTED OUT FOR NOW - depends on BACKEND module type
 *)
+(* 
 module Backend_of_js (JS : JS_BACKEND) : BACKEND = struct
   (* Helper to get the backend object *)
   let backend = JS.t
@@ -172,6 +184,7 @@ module Backend_of_js (JS : JS_BACKEND) : BACKEND = struct
   (* For type compatibility *)
   type field = Field.t
 end
+*)
 
 (* Current implementation using hardcoded Snarky backend *)
 module Impl = Pickles.Impls.Step
@@ -199,6 +212,7 @@ let create_pickles_with_backend (backend : Js.Unsafe.any) : (module PICKLES_S) =
   (* For now, we always use the OCaml Snarky implementation
      because creating a full Pickles module from a JS backend
      would require extensive work to implement all the internals *)
+  let _ = backend in  (* Acknowledge parameter to avoid warning *)
   (module Pickles : PICKLES_S)
 
 (* Create a JS wrapper around the OCaml Snarky implementation *)
@@ -206,7 +220,34 @@ let create_snarky_js_wrapper () : Js.Unsafe.any =
   (* Create this after the module aliases are defined *)
   let wrapper = Js.Unsafe.obj [||] in
   
-  (* Field operations - will be populated after Field module is available *)
+  (* Typ operations *)
+  Js.Unsafe.set wrapper "typUnit" 
+    (Js.wrap_callback (fun () ->
+      Js.Unsafe.inject Impl.Typ.unit)) ;
+  
+  Js.Unsafe.set wrapper "typArray"
+    (Js.wrap_callback (fun length typ ->
+      let length_int = Js.float_of_number length |> Int.of_float in
+      let result = Impl.Typ.array ~length:length_int (Obj.magic typ) in
+      Js.Unsafe.inject result)) ;
+  
+  Js.Unsafe.set wrapper "typTuple2"
+    (Js.wrap_callback (fun typ1 typ2 ->
+      let result = Impl.Typ.tuple2 (Obj.magic typ1) (Obj.magic typ2) in
+      Js.Unsafe.inject result)) ;
+  
+  Js.Unsafe.set wrapper "typTransport"
+    (Js.wrap_callback (fun typ there_js back_js ->
+      let there = fun x -> Js.Unsafe.fun_call there_js [|Js.Unsafe.inject x|] |> Obj.magic in
+      let back = fun x -> Js.Unsafe.fun_call back_js [|Js.Unsafe.inject x|] |> Obj.magic in
+      let result = Impl.Typ.transport (Obj.magic typ) ~there ~back in
+      Js.Unsafe.inject result)) ;
+  
+  Js.Unsafe.set wrapper "typProverValue"
+    (Js.wrap_callback (fun () ->
+      Js.Unsafe.inject (Impl.Typ.prover_value ()))) ;
+  
+  (* Field operations *)
   Js.Unsafe.set wrapper "fieldConstantOfInt" 
     (Js.wrap_callback (fun n ->
       let field_const = Impl.Field.Constant.of_int n in
@@ -226,11 +267,53 @@ let create_snarky_js_wrapper () : Js.Unsafe.any =
       let result = Impl.Field.add (Obj.magic x) (Obj.magic y) in
       Js.Unsafe.inject result)) ;
   
+  (* Constraint operations *)
+  Js.Unsafe.set wrapper "constraintEqual"
+    (Js.wrap_callback (fun x y ->
+      let result = Impl.Constraint.equal (Obj.magic x) (Obj.magic y) in
+      Js.Unsafe.inject result)) ;
+  
+  Js.Unsafe.set wrapper "constraintR1CS"
+    (Js.wrap_callback (fun x y z ->
+      let result = Impl.Constraint.r1cs (Obj.magic x) (Obj.magic y) (Obj.magic z) in
+      Js.Unsafe.inject result)) ;
+  
+  Js.Unsafe.set wrapper "constraintSquare"
+    (Js.wrap_callback (fun x y ->
+      let result = Impl.Constraint.square (Obj.magic x) (Obj.magic y) in
+      Js.Unsafe.inject result)) ;
+  
+  (* Core operations *)
+  Js.Unsafe.set wrapper "exists"
+    (Js.wrap_callback (fun typ compute_js ->
+      let compute = fun () -> Js.Unsafe.fun_call compute_js [||] |> Obj.magic in
+      let result = Impl.exists (Obj.magic typ) ~compute in
+      Js.Unsafe.inject result)) ;
+  
+  Js.Unsafe.set wrapper "assert"
+    (Js.wrap_callback (fun constraint_ ->
+      Impl.assert_ (Obj.magic constraint_) ;
+      Js.Unsafe.inject ())) ;
+  
+  (* As_prover operations *)
+  Js.Unsafe.set wrapper "asProverReadVar"
+    (Js.wrap_callback (fun field ->
+      let result = Impl.As_prover.read_var (Obj.magic field) in
+      Js.Unsafe.inject result)) ;
+  
+  (* Internal_Basic.Checked operations *)
+  Js.Unsafe.set wrapper "checkedReturn"
+    (Js.wrap_callback (fun x ->
+      let result = Impl.Internal_Basic.Checked.return (Obj.magic x) in
+      Js.Unsafe.inject result)) ;
+  
   wrapper
 
 (* Note: get_current_pickles is defined later after is_sparky_active is available *)
 
-(* Implementation of BACKEND using the current Snarky backend *)
+(* Implementation of BACKEND using the current Snarky backend 
+   COMMENTED OUT - depends on BACKEND module type
+
 module Current_backend : BACKEND with type Field.t = Field.t 
                                  and type Field.Constant.t = Field.Constant.t
                                  and type Boolean.var = Boolean.var
@@ -248,6 +331,7 @@ module Current_backend : BACKEND with type Field.t = Field.t
   let exists typ ~compute = Impl.exists typ ~compute
   let assert_ = Impl.assert_
 end
+*)
 
 (* ===================================================================
    FFI_BACKEND: JavaScript Backend Implementation via FFI
@@ -382,132 +466,6 @@ let is_sparky_active () =
   else
     false
 
-(* Dynamic Pickles module selection based on active backend *)
-let get_current_pickles () : (module PICKLES_S) =
-  if is_sparky_active () then
-    (* In the future, this could return a Pickles module that uses Sparky *)
-    (module Pickles : PICKLES_S)
-  else
-    (* Use the standard OCaml Snarky-based Pickles *)
-    (module Pickles : PICKLES_S)
-
-(* ===================================================================
-   OCAML → JAVASCRIPT BRIDGE: Field Operation Callbacks
-   ===================================================================
-   
-   This module provides JavaScript-callable functions that route to the
-   appropriate backend (Snarky or Sparky) based on runtime configuration.
-   These functions are registered in globalThis.ocamlBackendBridge.
-*)
-
-module Field_bridge = struct
-  (* Helper to convert OCaml Field.t to JavaScript representation *)
-  let field_to_js (field : Field.t) : Js.Unsafe.any =
-    (* For now, just inject the field as-is since both backends work with OCaml types *)
-    Js.Unsafe.inject field
-  
-  (* Helper to convert JavaScript field to OCaml Field.t *)
-  let field_of_js (js_field : Js.Unsafe.any) : Field.t =
-    (* For now, both backends work with OCaml Field.t *)
-    Obj.magic js_field
-  
-  (* Helper to convert OCaml Field.Constant.t to JavaScript *)
-  let constant_to_js (const : Field.Constant.t) : Js.Unsafe.any =
-    Js.Unsafe.inject const
-  
-  (* Helper to convert JavaScript constant to OCaml Field.Constant.t *)
-  let constant_of_js (js_const : Js.Unsafe.any) : Field.Constant.t =
-    Obj.magic js_const
-
-  (* Wrapped callback functions *)
-  
-  (* Field.add : t -> t -> t *)
-  let add_callback = Js.wrap_callback (fun x y ->
-    let x_field = field_of_js x in
-    let y_field = field_of_js y in
-    let result = Field.add x_field y_field in
-    field_to_js result
-  )
-  
-  (* Field.mul : t -> t -> t *)
-  let mul_callback = Js.wrap_callback (fun x y ->
-    let x_field = field_of_js x in
-    let y_field = field_of_js y in
-    (* For multiplication, we need to create a constraint *)
-    let result = Impl.exists Field.typ ~compute:(fun () ->
-      (* In prover mode, compute the actual multiplication *)
-      let x_const = Impl.As_prover.read_var x_field in
-      let y_const = Impl.As_prover.read_var y_field in
-      (* Use Snarky's field multiplication *)
-      Field.Constant.(x_const * y_const)
-    ) in
-    (* Assert the multiplication constraint *)
-    Impl.assert_ (Impl.Constraint.r1cs x_field y_field result) ;
-    field_to_js result
-  )
-  
-  (* Field.sub : t -> t -> t *)
-  let sub_callback = Js.wrap_callback (fun x y ->
-    let x_field = field_of_js x in
-    let y_field = field_of_js y in
-    (* Subtraction is x + (-1 * y) *)
-    let neg_one = Field.Constant.of_int (-1) in
-    let neg_y = Field.scale y_field neg_one in
-    let result = Field.add x_field neg_y in
-    field_to_js result
-  )
-  
-  (* Field.scale : t -> Constant.t -> t *)
-  let scale_callback = Js.wrap_callback (fun x c ->
-    let x_field = field_of_js x in
-    let c_const = constant_of_js c in
-    let result = Field.scale x_field c_const in
-    field_to_js result
-  )
-  
-  (* Field.assertEqual : t -> t -> unit *)
-  let assert_equal_callback = Js.wrap_callback (fun x y ->
-    let x_field = field_of_js x in
-    let y_field = field_of_js y in
-    Impl.assert_ (Impl.Constraint.equal x_field y_field) ;
-    Js.Unsafe.inject ()
-  )
-  
-  (* Field.assertMul : t -> t -> t -> unit *)
-  let assert_mul_callback = Js.wrap_callback (fun x y z ->
-    let x_field = field_of_js x in
-    let y_field = field_of_js y in
-    let z_field = field_of_js z in
-    Impl.assert_ (Impl.Constraint.r1cs x_field y_field z_field) ;
-    Js.Unsafe.inject ()
-  )
-  
-  (* Field.assertSquare : t -> t -> unit *)
-  let assert_square_callback = Js.wrap_callback (fun x y ->
-    let x_field = field_of_js x in
-    let y_field = field_of_js y in
-    Impl.assert_ (Impl.Constraint.square x_field y_field) ;
-    Js.Unsafe.inject ()
-  )
-  
-  (* Register all functions in globalThis.ocamlBackendBridge *)
-  let register_bridge () =
-    let bridge = Js.Unsafe.obj [||] in
-    Js.Unsafe.set bridge "fieldAdd" add_callback ;
-    Js.Unsafe.set bridge "fieldMul" mul_callback ;
-    Js.Unsafe.set bridge "fieldSub" sub_callback ;
-    Js.Unsafe.set bridge "fieldScale" scale_callback ;
-    Js.Unsafe.set bridge "fieldAssertEqual" assert_equal_callback ;
-    Js.Unsafe.set bridge "fieldAssertMul" assert_mul_callback ;
-    Js.Unsafe.set bridge "fieldAssertSquare" assert_square_callback ;
-    Js.Unsafe.set bridge "isActiveSparkyBackend" 
-      (Js.wrap_callback (fun () -> Js.bool (is_sparky_active ()))) ;
-    Js.Unsafe.set Js.Unsafe.global "ocamlBackendBridge" bridge
-end
-
-(* Initialize the bridge when the module loads *)
-let () = Field_bridge.register_bridge ()
-
 (* ===================================================================
    BACKEND SELECTION: Dynamic Backend Switching Support
    =================================================================== *)
@@ -515,13 +473,6 @@ let () = Field_bridge.register_bridge ()
 (* Note: Due to type incompatibilities between FFI_backend and Current_backend,
    we can't dynamically switch between them. The field operations always use
    Current_backend (Snarky) even when Sparky is active. *)
-
-(* Wrapper functions that use the current backend *)
-let backend_exists typ ~compute =
-  Impl.exists typ ~compute
-
-let backend_assert constraint_ =
-  Impl.assert_ constraint_
 
 (* ===================================================================
    CONSTRAINT BRIDGE: JavaScript → OCaml Pickles Integration
@@ -1583,12 +1534,12 @@ let pickles =
         val vkDigest = vk_digest
       end
 
-    (* Phase 3: First-class modules support - commented out until interface is updated *)
-    (* val createPicklesWithBackend = create_pickles_with_backend *)
+    (* Phase 3: First-class modules support *)
+    val createPicklesWithBackend = create_pickles_with_backend
 
-    (* val createSnarkyJsWrapper = create_snarky_js_wrapper *)
+    val createSnarkyJsWrapper = create_snarky_js_wrapper
 
-    (* val getCurrentPickles = fun () -> 
+    val getCurrentPickles = fun () -> 
       (* Return a string indicating which backend is active *)
-      if is_sparky_active () then Js.string "sparky" else Js.string "snarky" *)
+      if is_sparky_active () then Js.string "sparky" else Js.string "snarky"
   end

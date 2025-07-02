@@ -22,7 +22,6 @@ let readFileSync, fileURLToPath, dirname, join;
 let sparkyWasm;
 let sparkyInstance;
 let initPromise;
-let gateCallCounter = 0;
 
 /**
  * Initialize Sparky WASM
@@ -122,7 +121,11 @@ function getFieldModule() {
 }
 
 function getGatesModule() {
-  return sparkyInstance.gates;
+  const gates = sparkyInstance.gates;
+  if (!gates) {
+    console.error('[JS DEBUG] sparkyInstance.gates is undefined!');
+  }
+  return gates;
 }
 
 function getConstraintSystemModule() {
@@ -282,13 +285,6 @@ export const Snarky = {
     },
     
     enterConstraintSystem() {
-      // Reset constraint system ONLY for isolated calls (like Provable.constraintSystem)
-      // NOT during zkProgram compilation (when isCompilingCircuit is true)
-      if (!isCompilingCircuit && sparkyInstance && sparkyInstance.runReset) {
-        sparkyInstance.runReset();
-        console.log('[JS DEBUG] Reset Sparky state for isolated constraint system');
-      }
-      
       // Use the actual enterConstraintSystem method from the Run module
       const handle = getRunModule().enterConstraintSystem();
       return () => {
@@ -547,18 +543,13 @@ export const Snarky = {
    */
   gates: {
     zero(in1, in2, out) {
-      console.log('[JS DEBUG] gates.zero called');
       getGatesModule().zero(in1, in2, out);
     },
     
     generic(sl, l, sr, r, so, o, sm, sc) {
-      gateCallCounter++;
-      console.log(`[JS DEBUG] gates.generic called (#${gateCallCounter}) with:`, { sl, sr, so, sm, sc });
-      // The coefficients come as MlArray format [tag, value] where value is BigInt
-      // We need to use the raw gate interface to handle field elements properly
-      // without converting to f64 which loses precision
+      console.log('[JS DEBUG] gates.generic called, using raw gate interface');
       
-      // Extract actual values from MlArray format
+      // Extract actual values from MlArray format [tag, value]
       const extractValue = (mlArray) => {
         return Array.isArray(mlArray) ? mlArray[1] : mlArray;
       };
@@ -568,24 +559,35 @@ export const Snarky = {
       
       // Extract field element values from MlArray format
       const coefficients = [
-        extractValue(sl),  // sl coefficient
-        extractValue(sr),  // sr coefficient  
-        extractValue(so),  // so coefficient
-        extractValue(sm),  // sm coefficient (multiplication)
-        extractValue(sc)   // sc coefficient (constant)
+        extractValue(sl),
+        extractValue(sr), 
+        extractValue(so),
+        extractValue(sm),
+        extractValue(sc)
       ];
+      
+      console.log('[JS DEBUG] gates.generic extracted coefficients:', coefficients);
       
       // Use the raw gate interface which properly handles field elements
       // KimchiGateType::Generic = 1
       const GENERIC_GATE_TYPE = 1;
       
-      // The raw gate can handle BigInt field elements without conversion
-      console.log('[JS DEBUG] Calling sparkyInstance.gatesRaw');
       try {
-        sparkyInstance.gatesRaw(GENERIC_GATE_TYPE, values, coefficients);
-        console.log('[JS DEBUG] gatesRaw completed successfully');
+        // Check if raw function exists on gates or main instance
+        if (sparkyInstance.gates && sparkyInstance.gates.raw) {
+          console.log('[JS DEBUG] Calling sparkyInstance.gates.raw');
+          sparkyInstance.gates.raw(GENERIC_GATE_TYPE, values, coefficients);
+          console.log('[JS DEBUG] gates.raw completed successfully');
+        } else if (sparkyInstance.gatesRaw) {
+          console.log('[JS DEBUG] Calling sparkyInstance.gatesRaw');
+          sparkyInstance.gatesRaw(GENERIC_GATE_TYPE, values, coefficients);
+          console.log('[JS DEBUG] gatesRaw completed successfully');
+        } else {
+          console.error('[JS DEBUG] No raw gate function found, available functions:', Object.keys(sparkyInstance));
+          throw new Error('Raw gate function not found');
+        }
       } catch (error) {
-        console.error('[JS DEBUG] gatesRaw error:', error);
+        console.error('[JS DEBUG] gates.generic raw gate error:', error);
         throw error;
       }
     },
@@ -1252,17 +1254,9 @@ function isActiveSparkyBackend() {
  */
 function startConstraintAccumulation() {
   console.log('[JS DEBUG] startConstraintAccumulation called');
-  gateCallCounter = 0; // Reset counter for this compilation
   if (!isActiveSparkyBackend()) {
     console.log('[JS DEBUG] Sparky not active, skipping');
     return;
-  }
-  
-  // Reset Sparky state ONLY on the FIRST call to startConstraintAccumulation
-  // This clears any leftover constraints from previous operations
-  if (!globalThis.__sparkyConstraintHandle && sparkyInstance && sparkyInstance.runReset) {
-    sparkyInstance.runReset();
-    console.log('[JS DEBUG] Reset Sparky state at start of new compilation');
   }
   
   isCompilingCircuit = true;
@@ -1271,14 +1265,14 @@ function startConstraintAccumulation() {
   
   // CRITICAL: Enter constraint system context and keep handle
   console.log('[JS DEBUG] Entering constraint system context');
-  console.log('[JS DEBUG] Gate calls before entering context:', gateCallCounter);
   if (!globalThis.__sparkyConstraintHandle) {
     globalThis.__sparkyConstraintHandle = getRunModule().enterConstraintSystem();
     console.log('[JS DEBUG] Entered constraint system context');
   }
   
-  // Now constraints will accumulate across the compilation process
-  console.log('[JS DEBUG] Ready to accumulate constraints for this program');
+  // DON'T reset Sparky state - this might clear constraint differences!
+  // Let constraints accumulate across the compilation process
+  console.log('[JS DEBUG] NOT resetting Sparky state to preserve constraint differences');
 }
 
 /**
@@ -1303,18 +1297,8 @@ function getAccumulatedConstraints() {
     
     // CRITICAL FIX: Get the current constraint system from the Run module
     // The getConstraintSystem() returns a JS object directly (already converted by serde-wasm-bindgen)
-    console.log(`[JS DEBUG] About to get constraint system... (after ${gateCallCounter} gate calls)`);
-    
-    // CRITICAL: Reset gate counter for next compilation
-    const totalGateCalls = gateCallCounter;
-    gateCallCounter = 0;
-    
     const constraintsJson = getRunModule().getConstraintSystem();
     console.log('[JS DEBUG] Got constraint system from run module:', constraintsJson);
-    
-    // Also log the current run mode
-    const inProver = getRunModule().inProver;
-    console.log('[JS DEBUG] Current mode - inProver:', inProver);
     
     if (constraintsJson) {
       console.log('[JS DEBUG] Constraint system is already in JSON format');
@@ -1382,18 +1366,15 @@ function endConstraintAccumulation() {
     }
   }
   
-  // CRITICAL FIX: Don't reset Sparky state here - it clears all constraints!
-  // The reset should only happen when starting a completely new compilation,
-  // not when accumulating constraints for the current program.
-  // if (sparkyInstance && sparkyInstance.runReset) {
-  //   try {
-  //     sparkyInstance.runReset();
-  //     console.log('[JS DEBUG] Reset Sparky state for next program');
-  //   } catch (error) {
-  //     console.warn('Could not reset Sparky state:', error);
-  //   }
-  // }
-  console.log('[JS DEBUG] NOT resetting Sparky state - preserving accumulated constraints');
+  // Reset Sparky state to start fresh for next program
+  if (sparkyInstance && sparkyInstance.runReset) {
+    try {
+      sparkyInstance.runReset();
+      console.log('[JS DEBUG] Reset Sparky state for next program');
+    } catch (error) {
+      console.warn('Could not reset Sparky state:', error);
+    }
+  }
 }
 
 /**
@@ -1451,20 +1432,6 @@ export function resetSparkyBackend() {
   initialized = false;
   initPromise = null;
   isCompilingCircuit = false;
-}
-
-/**
- * Reset just the Sparky run state (constraint system, variables, etc.)
- * without deinitializing the entire backend
- */
-export function resetSparkyState() {
-  console.log('[JS DEBUG] Resetting Sparky run state');
-  if (sparkyInstance && sparkyInstance.runReset) {
-    sparkyInstance.runReset();
-  }
-  isCompilingCircuit = false;
-  accumulatedConstraints = [];
-  gateCallCounter = 0;
 }
 
 // Set up global __snarky object for OCaml bridge

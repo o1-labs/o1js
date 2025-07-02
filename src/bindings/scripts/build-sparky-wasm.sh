@@ -40,7 +40,13 @@ cp "$SPARKY_WASM_PATH"/pkg-web/*.d.ts "$SPARKY_BINDINGS_WEB"/ 2>/dev/null || tru
 
 # Copy Node.js bindings
 echo "Copying Node.js bindings..."
-cp "$SPARKY_WASM_PATH"/pkg-node/*.js "$SPARKY_BINDINGS_NODE"/
+# Copy .js files and rename them to .cjs for ES module compatibility
+for file in "$SPARKY_WASM_PATH"/pkg-node/*.js; do
+    if [ -f "$file" ]; then
+        filename=$(basename "$file" .js)
+        cp "$file" "$SPARKY_BINDINGS_NODE/${filename}.cjs"
+    fi
+done
 cp "$SPARKY_WASM_PATH"/pkg-node/*.wasm "$SPARKY_BINDINGS_NODE"/
 cp "$SPARKY_WASM_PATH"/pkg-node/*.ts "$SPARKY_BINDINGS_NODE"/ 2>/dev/null || true
 cp "$SPARKY_WASM_PATH"/pkg-node/*.d.ts "$SPARKY_BINDINGS_NODE"/ 2>/dev/null || true

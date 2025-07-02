@@ -370,6 +370,153 @@ CRITICAL FIXES COMPLETED:
 
 **Note**: Snarky still shows 0 gates, likely due to optimization or different constraint capture timing.
 
+## 📋 PICKLES Plans Classification (July 2, 2025)
+
+### **CURRENT PLANS** ✅
+
+**1. VK_PARITY_FIX_PLAN.md** - **ACTIVE PRIORITY**
+- **Status**: Current implementation target
+- **Goal**: Implement `reduce_lincom` optimization in Sparky to achieve VK parity
+- **Priority**: CRITICAL - This is the main blocker for Sparky release
+- **Implementation**: 9-15 day timeline, Phase 1 started
+- **Evidence**: All Sparky VKs generate identical hash `18829260448603674120...`
+
+**2. VK-TEST-PLAN.md** - **ACTIVE TESTING**
+- **Status**: Current test framework for validation
+- **Goal**: Comprehensive test suite for VK compatibility between backends
+- **Components**: 30+ test cases covering all WASM API entry functions
+- **Usage**: Primary validation tool for VK parity achievement
+
+**3. CONSTRAINT_PLAN.md** - **TECHNICAL FOUNDATION**
+- **Status**: Detailed technical plan for constraint generation fixes
+- **Goal**: Fix Sparky's AST-based constraint generation to match Snarky
+- **Key Insight**: WASM `assertEqual` bypasses optimization pipeline entirely
+- **Implementation**: AST parser + `reduce_lincom` integration
+
+### **SUPERSEDED PLANS** ❌
+
+**4. PICKLES_FUNCTOR.md** - **SUPERSEDED**
+- **Status**: Replaced by first-class modules approach
+- **Reason**: Too complex, circular dependency issues
+- **Superseded by**: PICKLES_FIRST_CLASS_MODULES_PLAN.md (completed)
+
+**5. PICKLES_FUNCTOR_PHASE1_PLAN.md** - **SUPERSEDED**
+- **Status**: Phase 1 completed, approach abandoned
+- **Reason**: Functor approach proved overly complex
+- **Achievement**: Created BACKEND module type (now commented out)
+
+**6. PICKLES_FUNCTOR_OPTION1.md** - **SUPERSEDED**  
+- **Status**: Alternative FFI routing approach, not pursued
+- **Reason**: Circular OCaml→JS→OCaml→JS dependency problems
+- **User feedback**: "don't fallback at all, it will confuse things"
+
+### **COMPLETED IMPLEMENTATIONS** ✅
+
+**7. PICKLES_FUNCTOR_PHASE1_SUMMARY.md** - **COMPLETED**
+- **Status**: Documentation of completed Phase 1 work
+- **Achievement**: BACKEND module type + Current_backend implementation
+- **Result**: Built foundation for backend abstraction
+
+**8. PICKLES_FIRST_CLASS_MODULES_PLAN.md** - **COMPLETED** 
+- **Status**: Successfully implemented in Phase 3
+- **Achievement**: Clean first-class modules approach without circular dependencies
+- **Implementation**: `createPicklesWithBackend`, `getCurrentPickles` functions
+- **Result**: Infrastructure for runtime backend selection working
+
+### **INVESTIGATIVE PLANS** 🔍
+
+**9. VARIABLE_INVESTIGATION_PLAN.md** - **INVESTIGATIVE**
+- **Status**: Ongoing investigation into benchmark validity
+- **Question**: Are "variable" operations actually being optimized to constants?
+- **Evidence**: Only 1.05x performance gap vs expected 2-3x
+- **Action needed**: Add extensive logging to verify WASM boundary crossing
+
+### **ARCHITECTURE EVOLUTION**
+
+**Phase 1** (June): Functor approach → **Abandoned** (too complex)
+**Phase 2** (June): FFI routing → **Abandoned** (circular dependencies)  
+**Phase 3** (July 1): First-class modules → **✅ COMPLETED**
+**Phase 4** (July 2): VK parity via `reduce_lincom` → **🔥 CURRENT PRIORITY**
+
+### **KEY LESSONS LEARNED**
+
+1. **Simplicity wins**: First-class modules approach much cleaner than functors
+2. **No fallbacks**: User guidance to throw errors instead of fallback paths
+3. **Single code path**: Avoid multiple backend routing complexity
+4. **Test-driven**: VK test framework essential for validation
+5. **Root cause focus**: VK parity requires `reduce_lincom`, not just bridge fixes
+
+### **CURRENT DEVELOPMENT FOCUS**
+
+**Primary**: Implement `reduce_lincom` optimization in Sparky (VK_PARITY_FIX_PLAN.md)
+**Secondary**: Validate variable vs constant benchmark testing (VARIABLE_INVESTIGATION_PLAN.md)
+**Tertiary**: Continue constraint generation AST fixes (CONSTRAINT_PLAN.md)
+
+**Next milestone**: All Sparky programs generate unique VK hashes matching Snarky
+
+## 🚨 CRITICAL FIX: Dual Thread-Local Storage Issue Resolved (July 2, 2025)
+
+### **Problem**: Sparky constraints were being added but not persisting
+
+**Root Cause Discovered**: Sparky had TWO separate thread-local storage instances for `RunState`:
+1. One in `sparky-core/src/run/run_state_cell.rs` 
+2. Another in `sparky-wasm/src/run.rs`
+
+This caused a "split-brain" scenario where constraints were added to one storage but retrieved from another empty storage.
+
+**Evidence from Debug Logs**:
+```
+[RUST DEBUG] Constraints after running computation: 1
+[RUST DEBUG] Constraints after running computation: 2
+[RUST DEBUG] WASM get_constraint_system called
+[RUST DEBUG] Got constraint system with 0 constraints  // ❌ Wrong!
+```
+
+### **Solution**: Unified Thread-Local Storage
+
+Modified `sparky-wasm/src/run.rs` to delegate to `sparky-core`'s thread-local storage:
+```rust
+// OLD: Separate thread-local storage
+thread_local! {
+    static CURRENT_STATE: RefCell<RunState> = RefCell::new(RunState::new(...));
+}
+
+// NEW: Delegate to sparky-core
+pub use sparky_core::run::run_state_cell::{
+    with_run_state,
+    with_run_state_ref,
+    set_run_state,
+    reset_run_state,
+    // ... other functions
+};
+```
+
+### **Additional Fix**: Proper Reset Timing
+
+Fixed constraint accumulation across multiple program compilations:
+1. Reset Sparky state when entering isolated constraint systems (e.g., `Provable.constraintSystem()`)
+2. Reset at the START of zkProgram compilation (first `startConstraintAccumulation` call)
+3. Reset when initializing Sparky backend
+
+### **Results**:
+- ✅ Constraints now persist correctly between addition and retrieval
+- ✅ Constraint count matches between Snarky and Sparky (both generate 1 constraint)
+- ❌ VKs still don't match - issue is in constraint content/structure, not persistence
+
+**Test Output After Fix**:
+```
+=== Results ===
+VK Match: ❌
+Constraint Count Match: ✅
+Sparky generates 1 constraints vs Snarky 1
+```
+
+### **Remaining Issue**: VK content differs despite same constraint count
+The constraint persistence is fixed, but Sparky generates different constraint structures than Snarky. This is likely due to:
+- Different wire indexing schemes
+- Missing optimizations in constraint generation
+- Different representations of the same mathematical constraint
+
 ## 🎉 Previous Breakthroughs (June 30, 2025)
 
 ### 1. Raw Gate Interface Fixed
@@ -726,16 +873,36 @@ npm run build                 # Standard o1js build
 
 ## Recommendations and TODOs
 
-### Immediate Actions
-1. **Fix Constraint System Generation in Sparky** (Critical blocker):
-   - ✅ Fixed `exists` function to create proper witness variables
-   - ❌ Investigate why `assertEquals` fails during constraint generation
-   - ❌ Debug constraint system accumulation - different programs should generate different systems
-   - ❌ Check mode handling - constraint generation vs witness generation modes
-   - ❌ Verify constraint system → VK conversion pipeline
-2. **Delete `src/sparky/target/`** to save 1.2GB
-3. ~~**Fix remaining Math.random()** security issues~~ ✅ COMPLETED - Security audit found no cryptographic uses
-4. **Update ark-ff dependency** to resolve remaining build warnings
+### Immediate Actions (Updated July 2, 2025)
+
+#### Critical Blockers - VK Parity Issue ⚠️
+1. **Fix WASM Error Propagation** (Blocker): 
+   - ❌ CRITICAL: Rust errors silently swallowed by WASM - debugging impossible
+   - ❌ Investigate wasm-bindgen error handling in sparky-wasm
+   - ❌ Add proper error logging and reporting infrastructure
+   
+2. **Implement Generic Gate Constraint Recording** (Blocker):
+   - ❌ CRITICAL: `generic_gate` in `/src/sparky/sparky-gates/src/generic.rs` is placeholder
+   - ❌ Must implement constraint equation: `sl*l + sr*r + so*o + sm*(l*r) + sc = 0`
+   - ❌ Follow working pattern from `/src/sparky/sparky-core/src/gates/raw_gate.rs:167-233`
+   - ❌ Add constraint recording to RunState properly
+
+3. **Verify Constraint System Pipeline** (High):
+   - ❌ Test constraint recording end-to-end
+   - ❌ Verify constraint system → VK generation works correctly
+   - ❌ Add validation that constraints are being accumulated
+
+#### Completed Investigation Work ✅
+- ✅ Fixed `exists` function to create proper witness variables  
+- ✅ Fixed backend switching and FFI integration
+- ✅ Traced complete constraint recording pipeline
+- ✅ Identified exact root cause of VK parity issue
+- ✅ Found Snarky reference implementation and constraint equation
+
+#### Other Actions
+4. **Delete `src/sparky/target/`** to save 1.2GB
+5. ~~**Fix remaining Math.random()** security issues~~ ✅ COMPLETED - Security audit found no cryptographic uses
+6. **Update ark-ff dependency** to resolve remaining build warnings
 
 ### Missing Gate Operations (from REMINDERS.md)
 - [x] **Range check gates**: ✅ Complete range check functionality implemented
@@ -744,28 +911,181 @@ npm run build                 # Standard o1js build
 
 ### VK Generation Investigation Results (July 1, 2025)
 
-**Root Cause Identified:** The VK parity issue is NOT in the linear combination code or constraint generation logic. The core problem is that **Sparky's digest implementation is not matching Snarky's digest exactly.**
+**🚨 BREAKTHROUGH: Real Root Cause Discovered (July 2, 2025)**
 
-**Key Findings:**
+**Previous Analysis Was Wrong:** The issue is NOT the digest function. The root cause is that **Sparky's generic gate function is a placeholder that never records constraints.**
+
+**Critical Discovery Chain:**
+1. **✅ Field.square() correctly routes** through the constraint system pipeline
+2. **✅ Generic gate is called** with proper parameters (`sl=0, sr=0, so=-1, sm=1, sc=0` for squaring)
+3. **✅ WASM function executes** without errors
+4. **🚨 CRITICAL**: **Sparky WASM silently swallows ALL errors**
+5. **🚨 CRITICAL**: **Sparky's `generic_gate` function is a no-op placeholder**
+
+**Complete Bug Chain:**
+```
+Field.square() → assertSquare() → Gates.generic() → WASM generic() → Rust generic_gate()
+     ✅              ✅               ✅              ✅              ❌ SILENT FAILURE
+```
+
+**Technical Evidence:**
+- **Constraint equation**: Should be `sl*l + sr*r + so*o + sm*(l*r) + sc = 0` (from Snarky reference)
+- **Parameter format**: Coefficients properly extracted (`0*x + 0*x + (-1)*y + 1*(x*x) + 0 = 0` → `x² = y`)
+- **Silent error**: Rust function explicitly returns error but JavaScript receives no error
+- **Empty constraints**: Constraint system always shows `{ gates: [], public_input_size: 0 }`
+
+**Why Previous Analysis Failed:**
+- Assumed digest was the issue because all VKs were identical
+- Didn't trace deep enough into the constraint recording pipeline
+- Silent failure bug masked the real problem
+
+**Critical Issues Found:**
+1. **WASM Error Swallowing**: wasm-bindgen doesn't propagate Rust errors to JavaScript
+2. **Placeholder Implementation**: `generic_gate` in `/src/sparky/sparky-gates/src/generic.rs:178` just returns `Ok(())` 
+3. **Poor UX**: No validation or error reporting when constraints aren't recorded
+
+**Previous Findings (Still Valid):**
 - ✅ `exists` function fixed - now creates correct `[1, var_id]` format 
-- ✅ Constraint generation working - `checked::assert_equal` properly creates constraints
-- ✅ Constraint system accumulation working - different programs generate different numbers of constraints (6, 7, 8 rows)
-- ❌ **CRITICAL**: All Sparky VKs identical: `18829260448603674120...` because digest function doesn't match Snarky
+- ✅ Backend switching working - can load and use Sparky
+- ✅ Parameter mapping working - coefficients correctly converted from field elements
 
-**Evidence:**
+## 🔬 Deep Debugging Methodology (July 2, 2025)
+
+### Constraint Recording Pipeline Investigation
+
+**Problem**: Why do all Sparky programs generate identical VKs even with different constraints?
+
+**Debugging Strategy**: Trace the complete path from `Field.square()` to constraint system recording.
+
+#### Step 1: Field Operation Tracing ✅
+```javascript
+// Added logging to verify Field.square() is called
+secret.square().assertEquals(publicInput);
+// Result: ✅ Both operations execute
 ```
-Empty program:     18829260448603674120... (6 constraints - Sparky has base overhead)
-Single constraint: 18829260448603674120... (7 constraints)  
-Multiple constraints: 18829260448603674120... (8 constraints)
-→ All generate SAME digest despite different constraint systems
+
+#### Step 2: Generic Gate Parameter Analysis ✅  
+```javascript
+// Logged generic gate calls in sparky-adapter.js
+console.log('generic gate called with:', { sl, l, sr, r, so, o, sm, sc });
+// Result: ✅ Called with correct parameters for squaring constraint
 ```
 
-**Root Cause Analysis:**
-1. **Snarky digest**: `Backend.R1CS_constraint_system.digest cs |> Md5.to_hex` 
-2. **Sparky digest**: Custom implementation using MD5 but different serialization format
-3. **Result**: Different serialization = different digest = different VK
+**Squaring Constraint Parameters:**
+```javascript
+{
+  sl: [0, 0n],           // Left coefficient: 0
+  l: [1, 0],             // Left variable: var_0  
+  sr: [0, 0n],           // Right coefficient: 0
+  r: [1, 0],             // Right variable: var_0
+  so: [0, -1n],          // Output coefficient: -1 (field element for -1)
+  o: [1, 2],             // Output variable: var_2
+  sm: [0, 1n],           // Multiplication coefficient: 1
+  sc: [0, 0n]            // Constant: 0
+}
+// Constraint: 0*var_0 + 0*var_0 + (-1)*var_2 + 1*(var_0*var_0) + 0 = 0
+// Simplified: var_0² - var_2 = 0  →  var_0² = var_2 ✅
+```
 
-**Critical Blocker**: Must implement digest EXACTLY as OCaml Snarky does, not create custom serialization scheme.
+#### Step 3: WASM Function Execution Verification ✅
+```javascript
+// Added logging in adapter to check WASM call results
+const result = getGatesModule().generic(...);
+console.log('WASM generic result:', result);
+// Result: ✅ Returns undefined (correct for void function), no errors thrown
+```
+
+#### Step 4: Constraint System State Monitoring ✅
+```javascript
+// Checked constraint system immediately after gate call
+const constraintSystem = getRunModule().getConstraintSystem();
+const json = getConstraintSystemModule().toJson(constraintSystem);
+console.log('Constraint system after gate:', json);
+// Result: ❌ Always shows { gates: [], public_input_size: 0 }
+```
+
+#### Step 5: Rust Function Tracing ✅
+```rust
+// Modified generic_gate to return explicit error for testing
+Err(SparkyError::FieldError(format!(
+    "🔥 SPARKY GENERIC GATE TEST: sl={}, sr={}, so={}, sm={}, sc={}", 
+    a_left, b_left, c_left, a_right, b_right
+)))
+// Result: ❌ Error never appears in JavaScript - WASM swallows errors silently!
+```
+
+### Key Technical Findings
+
+#### 1. Snarky Reference Implementation ✅
+**File**: `/src/mina/src/lib/crypto/kimchi_pasta_snarky_backend/plonk_constraint_system.ml`
+
+**Constraint Equation**: `cl*vl + cr*vr + co*vo + m*(vl*vr) + c = 0`
+```ocaml
+(* From lines 714-724 *)
+| Basic { l = cl, vl; r = cr, vr; o = co, vo; m; c } ->
+    let vl = eval_one vl in
+    let vr = eval_one vr in  
+    let vo = eval_one vo in
+    let open Fp in
+    let res =
+      List.reduce_exn ~f:add
+        [ mul cl vl; mul cr vr; mul co vo; mul m (mul vl vr); c ]
+    in
+    equal zero res
+```
+
+#### 2. Parameter Format Issues Identified ✅
+**Problem**: BigInt field elements converted incorrectly
+```javascript
+// Field element -1 represented as large positive number
+so: [0, 28948022309329048855892746252171976963363056481941560715954676764349967630336n]
+// Should map to coefficient: -1 for the constraint equation
+```
+
+**Solution**: Field arithmetic conversion for negative values
+```javascript
+// Large field element → -1 for constraint coefficients
+const isNegative = value > fieldModulus / 2n;
+const coeff = isNegative ? -1 : Number(value);
+```
+
+#### 3. WASM Error Handling Bug ✅  
+**Critical Issue**: Rust errors don't propagate to JavaScript
+- Function returns `Err(...)` but JavaScript receives no error
+- Makes debugging impossible - silent failures everywhere
+- WASM error handling needs complete overhaul
+
+#### 4. Generic Gate Implementation Status ✅
+**Current State**: Placeholder function in `/src/sparky/sparky-gates/src/generic.rs:178`
+```rust
+pub fn generic_gate(...) -> SparkyResult<()> {
+    // TEMPORARY: Return an error to prove this function is being called
+    Err(SparkyError::FieldError(...))  // Even this error is swallowed!
+}
+```
+
+**Required Implementation**: Must match Snarky's constraint equation exactly
+```rust
+// Need to implement: sl*l + sr*r + so*o + sm*(l*r) + sc = 0
+// Using constraint recording infrastructure from other gates
+```
+
+### Next Priority Actions
+
+#### 1. Fix WASM Error Propagation (Critical) 
+- Investigate wasm-bindgen error handling
+- Ensure Rust errors reach JavaScript properly
+- Add proper error logging/reporting
+
+#### 2. Implement Generic Gate Constraint Recording (Critical)
+- Study working constraint recording in other Sparky gates
+- Implement the exact constraint equation from Snarky
+- Follow the pattern from `/src/sparky/sparky-core/src/gates/raw_gate.rs:167-233`
+
+#### 3. Verify Constraint System Integration (High)
+- Test that constraints properly flow to constraint system
+- Verify constraint system → VK generation pipeline
+- Add comprehensive constraint system validation
 
 **Investigation Progress (July 1, 2025):**
 
@@ -810,8 +1130,121 @@ Multiple constraints: 18829260448603674120... (8 constraints)
 
 ### Testing Priorities
 - [x] **Create comprehensive comparison tests**: ✅ Comprehensive Snarky compatibility tests completed
+- [x] **Backend Switcher Test Suite**: ✅ Implemented framework for testing Direct Snarky vs FFI Snarky vs FFI Sparky
 - [ ] **Add performance benchmarks**: Compare Sparky vs Snarky performance
 - [ ] **Test with real zkApps**: Ensure compatibility with existing applications
+
+---
+
+## 🎯 Key Insights and Lessons Learned
+
+### Critical Debugging Insights (July 2, 2025)
+
+#### 1. **The Power of Silent Failures** 
+**Lesson**: Silent failures are development poison. The WASM error swallowing made a simple issue (placeholder function) appear as a complex cryptographic problem.
+
+**Evidence**: Spent weeks investigating digest functions and constraint system format when the real issue was a 2-line placeholder function that silently failed.
+
+**Solution**: Always implement proper error propagation first, then debug functionality.
+
+#### 2. **Trace End-to-End, Don't Assume**
+**Lesson**: Even when components appear to work individually, trace the complete pipeline.
+
+**Evidence**: Each component worked in isolation:
+- ✅ Field.square() called
+- ✅ Generic gate called with correct parameters  
+- ✅ WASM function executed
+- ❌ But constraints never recorded
+
+**Solution**: Always verify the complete data flow, not just individual function calls.
+
+#### 3. **Reference Implementations Are Gold**
+**Lesson**: When debugging compatibility issues, always find and study the reference implementation.
+
+**Evidence**: Snarky's constraint equation `sl*l + sr*r + so*o + sm*(l*r) + sc = 0` provided the exact specification needed.
+
+**Solution**: Document reference implementations early and refer to them consistently.
+
+#### 4. **Parameter Format Edge Cases**
+**Lesson**: Field arithmetic edge cases (like representing -1) can cause subtle bugs.
+
+**Evidence**: Field element `-1` represented as `28948022309329048855...` caused parameter conversion issues.
+
+**Solution**: Create comprehensive test cases for field arithmetic edge cases.
+
+#### 5. **UX Impact of Technical Decisions**
+**Lesson**: Poor error handling doesn't just affect debugging - it makes the system fundamentally unreliable.
+
+**Evidence**: Silent failures made it impossible to distinguish between "working correctly" and "failing silently".
+
+**Solution**: Design error handling and validation as first-class features, not afterthoughts.
+
+### Development Process Improvements
+
+#### What Worked Well ✅
+- **Systematic tracing**: Step-by-step pipeline investigation
+- **Comparative analysis**: Using Snarky as reference implementation
+- **Comprehensive logging**: Added debug output at every level
+- **Error injection**: Explicitly returning errors to test propagation
+
+#### What Could Be Better ❌
+- **Earlier error handling verification**: Should have tested error propagation first
+- **More aggressive validation**: Should have validated constraint recording immediately
+- **Documentation**: Should have documented constraint recording pipeline earlier
+
+### Architecture Lessons
+
+#### 1. **WASM Error Handling**
+**Current**: Errors silently disappear between Rust and JavaScript
+**Needed**: Robust error propagation with proper logging
+
+#### 2. **Constraint System Validation**
+**Current**: No validation that constraints are actually recorded
+**Needed**: Immediate validation after each constraint addition
+
+#### 3. **Reference Implementation Compliance**
+**Current**: Custom implementations that may not match specifications
+**Needed**: Strict adherence to reference implementation behavior
+
+### Future Development Principles
+
+1. **Error-First Design**: Implement and test error handling before functionality
+2. **End-to-End Validation**: Test complete pipelines, not just individual components  
+3. **Reference Compliance**: Always implement to match existing working systems exactly
+4. **Silent Failure Detection**: Add validation that operations actually succeed
+5. **Comprehensive Logging**: Log at every layer for debugging complex systems
+
+### Future Testing Enhancements
+
+#### Property-Based Testing (HIGH PRIORITY)
+**Concept**: Generate random circuits and verify equivalence across all backends (Direct Snarky, FFI Snarky, FFI Sparky).
+
+**Implementation Ideas**:
+- **Random Circuit Generation**: Create circuits with random combinations of:
+  - Field operations (add, mul, sub, square, inv)
+  - Boolean operations (and, or, not)
+  - Control flow (conditionals, loops)
+  - Different input sizes and types
+- **Equivalence Properties**: For any randomly generated circuit, verify:
+  - Same VK hash across all backends
+  - Same constraint count across all backends  
+  - Same proof validity across all backends
+  - Same execution results (when provable)
+- **Differential Testing**: Run same circuit on all backends, compare outputs
+- **Fuzzing**: Generate edge cases (large numbers, boundary values, error conditions)
+
+**Benefits**:
+- Catches subtle bugs that manual tests miss
+- High confidence in backend equivalence
+- Continuous validation as backends evolve
+- Automatically tests combinations we wouldn't think of manually
+
+**Tools**: 
+- Use fast-check or similar for property-based test generation
+- Create domain-specific generators for o1js circuits
+- Parallel execution across backends for performance
+
+**Priority**: High - This would give us very high confidence in the FFI approach and catch regression bugs automatically.
 
 ### Short Term Goals (Updated July 1, 2025)
 1. **PRIORITY 1**: Fix Sparky's digest function to match Snarky's exact R1CS constraint system serialization
@@ -1159,6 +1592,199 @@ Implemented first-class modules approach to enable runtime selection of backends
 - `As_prover.read_var`: Read field values in prover mode
 
 This analysis provides the foundation for creating a proper functor-based backend abstraction that allows Pickles to work with either Snarky or Sparky transparently.
+
+---
+
+## 🚨 CRITICAL UPDATE: Generic Gate Implementation (July 2, 2025)
+
+### **Previous Status**: Placeholder Implementation Found
+The root cause was identified - Sparky's `generic_gate` function was just returning `Ok(())` without recording any constraints.
+
+### **Current Status**: CONSTRAINTS ARE RECORDING! But VKs Still Don't Match
+
+#### **Major Breakthrough** (July 2, 2025) 🎉
+Sparky IS successfully recording constraints! The issue was with how we were testing. Using `ZkProgram.analyzeMethods()` shows:
+- Snarky: 3 total constraints
+- Sparky: 5 total constraints
+
+This explains the VK mismatch - the constraint systems are structurally different.
+
+#### **What We Fixed** ✅
+1. **Implemented proper generic gate constraint recording** in `/src/sparky/sparky-gates/src/generic.rs`
+   - Converts f64 coefficients to FieldElements with negative value handling
+   - Builds constraint equation: `sl*a + sr*b + so*c + sm*(a*b) + sc = 0`
+   - Uses Checked monad for constraint generation
+   - Handles both linear and quadratic terms
+
+2. **Fixed coefficient handling in JavaScript**
+   - Discovered coefficients come as MlArray format `[tag, value]` where value is BigInt
+   - Initially tried converting BigInts to numbers - **WRONG!** Loses precision
+   - Switched to using raw gate interface which properly handles field elements
+
+3. **Fixed constraint system retrieval**
+   - Was calling non-existent `getConstraintSystemModule().toJson()`
+   - Now using `getRunModule().getConstraintSystem()` which returns JS object directly
+
+4. **Fixed build process issues**
+   - Sparky WASM files need to be built with `./src/bindings/scripts/build-sparky-wasm.sh`
+   - Files are copied to `dist/node/bindings/compiled/sparky_node/` with `.cjs` extension
+   - **Important**: Always modify source files in `src/bindings/`, not `dist/`
+
+#### **What's Different** ⚠️
+Sparky generates MORE constraints than Snarky for the same operations!
+
+**Evidence from test-constraint-recording.mjs**:
+```javascript
+// Method: assertEqual (single assertion)
+Snarky: 1 constraint
+Sparky: 1 constraint ✅
+
+// Method: simpleMultiply (single multiplication)
+Snarky: 1 constraint  
+Sparky: 2 constraints ❌
+
+// Method: multiply (multiplication + assertion)
+Snarky: 1 constraint
+Sparky: 2 constraints ❌
+
+// Total constraints
+Snarky: 3 constraints
+Sparky: 5 constraints
+```
+
+**Debug Logging Shows**:
+- ✅ Generic gate is called with correct coefficients
+- ✅ Raw gate interface (`sparkyInstance.gatesRaw`) is called successfully
+- ✅ Constraints are recorded in the constraint system
+- ⚠️ But Sparky uses a different constraint structure
+
+### **Critical Issues Remaining**
+
+#### 1. **Constraint System Structure Mismatch**
+Sparky generates more constraints than Snarky for the same operations:
+- **Linear combination optimization missing**: Sparky may not be optimizing linear combinations
+- **Different gate structure**: The coefficients in Sparky gates look different from Snarky
+- **VK incompatibility**: Different constraint counts mean VKs will never match
+
+#### 2. **Coefficient Format Differences**
+Looking at the gate coefficients:
+- **Snarky**: Uses full 5-coefficient format for generic gates
+- **Sparky**: Shows truncated coefficients in output (only first 5 shown)
+- The coefficient values themselves are completely different
+
+#### 3. **Missing Optimizations**
+Sparky appears to be missing key optimizations:
+- **reduce_lincom**: Linear combination reduction (e.g., 3x + 2x → 5x)
+- **Constant folding**: Compile-time evaluation of constant expressions
+- **Gate minimization**: Combining multiple operations into single gates
+
+### **Next Steps**
+
+1. **Investigate Constraint Count Difference**
+   - Analyze why Sparky needs 2 constraints for a single multiplication
+   - Compare the constraint structure between backends
+   - Check if Sparky is decomposing operations differently
+
+2. **Implement Missing Optimizations**
+   - Port `reduce_lincom` from OCaml to Rust
+   - Add linear combination optimization to Sparky
+   - Implement constant folding during constraint generation
+
+3. **Coefficient Format Analysis**
+   - Understand why coefficient values differ between backends
+   - Map Snarky's coefficient format to Sparky's
+   - Ensure both backends use the same field representation
+
+4. **VK Compatibility Strategy**
+   - Determine if exact VK matching is achievable
+   - Consider implementing a compatibility layer
+   - Document the structural differences for users
+
+### **Key Learnings**
+
+1. **Field Element Precision**: Never convert BigInts to JavaScript numbers for field arithmetic
+2. **Build Process**: Source files in `src/` compile to `dist/` - always edit source
+3. **WASM Debugging**: Standard Rust logging (`eprintln!`) doesn't work in WASM by default
+4. **API Compatibility**: Need to match exact API signatures between backends
+
+### **Architecture Insights**
+
+The constraint recording pipeline is complex:
+```
+JavaScript (gates.generic) 
+  → WASM binding (sparkyInstance.gatesRaw)
+    → Rust gates.rs (raw_gate_impl) 
+      → Rust raw_gate.rs (generic_gate_impl)
+        → Checked monad computation
+          → RunState.add_constraint()
+            → ConstraintSystem.constraints
+```
+
+### **Summary**
+
+**Success**: Sparky is now successfully recording constraints! 🎉
+
+**Challenge**: The constraint systems are structurally different:
+- Sparky generates 5 constraints where Snarky generates 3
+- This explains why VKs don't match between backends
+- The issue is not that constraints aren't recorded, but that they're recorded differently
+
+**Root Cause**: Sparky is missing key optimizations that Snarky performs:
+- Linear combination reduction (`reduce_lincom`)
+- Constant folding
+- Gate minimization
+
+**Path Forward**: To achieve VK parity, Sparky needs to implement the same constraint optimizations as Snarky.
+
+## Constraint Persistence Fix (January 2, 2025)
+
+### Issue Discovered
+Sparky was accumulating constraints across different constraint system contexts:
+- `Provable.constraintSystem()` calls were not isolated
+- zkProgram compilations included constraints from previous operations
+- This led to incorrect constraint counts and VK mismatches
+
+### Solution Implemented
+Fixed constraint isolation by resetting Sparky state at appropriate times:
+
+1. **For isolated constraint systems** (`Provable.constraintSystem()`):
+   - Reset in `enterConstraintSystem()` when NOT in compilation mode
+   - Ensures each call gets a fresh constraint system
+
+2. **For zkProgram compilation**:
+   - Reset at the START of compilation (first `startConstraintAccumulation` call)
+   - Allows constraints to accumulate across rules within a single compilation
+   - Clears leftover constraints from previous operations
+
+3. **Backend initialization**:
+   - Added `resetSparkyState()` when initializing Sparky backend
+   - Ensures clean slate when switching backends
+
+### Code Changes
+```javascript
+// In sparky-adapter.js enterConstraintSystem():
+if (!isCompilingCircuit && sparkyInstance && sparkyInstance.runReset) {
+  sparkyInstance.runReset();
+  console.log('[JS DEBUG] Reset Sparky state for isolated constraint system');
+}
+
+// In sparky-adapter.js startConstraintAccumulation():
+if (!globalThis.__sparkyConstraintHandle && sparkyInstance && sparkyInstance.runReset) {
+  sparkyInstance.runReset();
+  console.log('[JS DEBUG] Reset Sparky state at start of new compilation');
+}
+```
+
+### Results
+- ✅ Constraint persistence test passes - isolated systems work correctly
+- ✅ Compilation generates correct constraint count (1 per rule)
+- ❌ VKs still don't match - issue is constraint content, not count
+
+### Next Steps
+The VK mismatch is not due to constraint accumulation but due to differences in:
+- Wire indexing/layout
+- Constraint representation
+- Missing optimizations
 
 ---
 
