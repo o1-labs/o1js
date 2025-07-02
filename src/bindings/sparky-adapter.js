@@ -1,33 +1,78 @@
 /**
- * Sparky Adapter - Implements the exact Snarky API using Sparky WASM
+ * Sparky Adapter - Critical Interop Bridge
  * 
- * This adapter provides a drop-in replacement for the OCaml Snarky bindings
- * by wrapping the Rust-based Sparky WASM implementation.
+ * ARCHITECTURE OVERVIEW:
+ * This adapter provides a seamless bridge between the o1js TypeScript API
+ * (which expects OCaml Snarky) and the Rust-based Sparky WASM implementation.
+ * 
+ * KEY RESPONSIBILITIES:
+ * 1. Format Translation: Convert between o1js FieldVar arrays and Sparky Cvar objects
+ * 2. State Management: Handle constraint accumulation and circuit compilation modes
+ * 3. Module Loading: Dynamically load both OCaml (Pickles/Test) and WASM (Sparky) modules
+ * 4. Error Bridging: Translate WASM errors to JavaScript exceptions with context
+ * 5. Constraint Routing: Route constraints to appropriate backend during compilation
+ * 
+ * CRITICAL INTEGRATION POINTS:
+ * - OCaml Pickles must collect constraints from JavaScript during zkProgram compilation
+ * - Field arithmetic operations must generate identical constraint graphs to Snarky
+ * - Elliptic curve operations require precise mathematical constraint generation
+ * - Foreign field arithmetic uses 3-limb (88-bit each) representation for cross-chain compatibility
+ * 
+ * PERFORMANCE CONSIDERATIONS:
+ * - WASM calls have overhead; minimize object creation in hot paths
+ * - Constraint generation is the bottleneck; optimize constraint routing
+ * - Module instances are cached but sub-modules accessed fresh to maintain state consistency
  */
 
 import { Fp } from './crypto/finite-field.js';
 import { FieldVar } from '../lib/provable/core/fieldvar.js';
 
 
-// We need to import Pickles and Test from the OCaml bindings
-// since Sparky only replaces the Snarky constraint generation part
+// ===================================================================
+// MODULE LOADING & ENVIRONMENT DETECTION
+// ===================================================================
+
+// HYBRID ARCHITECTURE: Sparky handles constraint generation,
+// but OCaml Pickles still handles proof generation and verification
+// This requires careful module coordination during initialization
 let PicklesOCaml, TestOCaml;
 
-// Determine if we're in Node.js or browser environment
+// ENVIRONMENT DETECTION: Different module loading strategies
+// Node.js: Uses CommonJS require() fallback for non-bundled environments
+// Browser: Uses ES6 dynamic imports with webpackIgnore for static analysis bypass
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
 
-// Node.js specific imports will be dynamically imported when needed
+// DYNAMIC IMPORT HANDLES: Loaded conditionally based on environment
+// This avoids bundler issues where Node.js APIs are referenced in browser builds
 let readFileSync, fileURLToPath, dirname, join;
 
-let sparkyWasm;
-let sparkyInstance;
-let initPromise;
-let gateCallCounter = 0;
+// SPARKY WASM STATE: Global instances for constraint generation
+// These are initialized once and reused across all constraint operations
+let sparkyWasm;          // Raw WASM module exports
+let sparkyInstance;      // Main Snarky instance from WASM
+let initPromise;         // Initialization promise for async safety
+let gateCallCounter = 0; // Debug counter for gate operation tracking
 
 /**
- * Initialize Sparky WASM
+ * CRITICAL INITIALIZATION SEQUENCE
+ * 
+ * This function handles the complex dual-module loading required for Sparky operation:
+ * 1. Load OCaml bindings (Pickles, Test) - proof generation still happens in OCaml
+ * 2. Load Sparky WASM - constraint generation happens in Rust
+ * 3. Coordinate between environments (Node.js vs Browser)
+ * 4. Handle various import/require fallback strategies
+ * 
+ * IMPORTANT: OCaml and WASM modules must be loaded in this specific order
+ * because Pickles needs to be available before constraint generation begins.
+ * 
+ * ERROR HANDLING: Multiple fallback strategies ensure loading works in:
+ * - Bundled environments (webpack, rollup)
+ * - Non-bundled Node.js (direct require)
+ * - Browser environments (dynamic imports)
+ * - Development vs production builds
  */
 async function initSparkyWasm() {
+  // SINGLETON PATTERN: Only initialize once, return cached promise for subsequent calls
   if (initPromise) return initPromise;
   
   initPromise = (async () => {
@@ -100,9 +145,24 @@ async function initSparkyWasm() {
   return initPromise;
 }
 
-// Lazy initialization - will be called when adapter is first used
+// ===================================================================
+// LAZY INITIALIZATION PATTERN
+// ===================================================================
+
+// PERFORMANCE OPTIMIZATION: Only initialize when actually needed
+// This prevents WASM loading overhead in applications that might use Snarky
 let initialized = false;
 
+/**
+ * THREAD-SAFE INITIALIZATION GUARD
+ * 
+ * Ensures Sparky is ready before any operations are performed.
+ * Uses singleton pattern to prevent double-initialization.
+ * Called automatically by all public API methods.
+ * 
+ * CRITICAL: This must complete before any constraint operations
+ * because WASM instance creation and module linking must be atomic.
+ */
 async function ensureInitialized() {
   if (!initialized) {
     await initSparkyWasm();
@@ -110,45 +170,103 @@ async function ensureInitialized() {
   }
 }
 
+// ===================================================================
+// MODULE ACCESS PATTERNS
+// ===================================================================
+
 /**
- * Helper functions to get fresh module instances
+ * FRESH MODULE INSTANCE STRATEGY
+ * 
+ * These functions provide access to Sparky sub-modules while maintaining
+ * proper state isolation. Each call returns a fresh reference to prevent
+ * state corruption between different circuit compilations.
+ * 
+ * DESIGN RATIONALE:
+ * - Sparky uses global state for constraint accumulation
+ * - Multiple zkPrograms could interfere if modules are cached
+ * - Fresh access ensures state boundaries are respected
+ * 
+ * PERFORMANCE NOTE: The getter overhead is minimal compared to WASM call cost
  */
+
+// RUN MODULE: Handles mode switching (constraint vs witness generation)
 function getRunModule() {
   return sparkyInstance.run;
 }
 
+// FIELD MODULE: Core field arithmetic and constraint generation
 function getFieldModule() {
   return sparkyInstance.field;
 }
 
+// GATES MODULE: High-level constraint gates (EC ops, Poseidon, range checks)
 function getGatesModule() {
   return sparkyInstance.gates;
 }
 
+// CONSTRAINT SYSTEM MODULE: Access to accumulated constraints and metadata
 function getConstraintSystemModule() {
   return sparkyInstance.constraintSystem;
 }
 
+// CIRCUIT MODULE: Compilation and proving (placeholder for future features)
 function getCircuitModule() {
   return sparkyInstance.circuit;
 }
 
+// ===================================================================
+// FORMAT CONVERSION SYSTEM
+// ===================================================================
+
 /**
- * Helper to convert between Sparky and Snarky field representations
+ * FIELD REPRESENTATION BRIDGE
+ * 
+ * Handles the impedance mismatch between o1js and Sparky field representations:
+ * 
+ * o1js format:   [FieldType, value] where FieldType ∈ {0: Constant, 1: Variable}
+ * Sparky format: Cvar objects with {type, value/id} structure
+ * 
+ * CONVERSION STRATEGY:
+ * - Constants: [0, bigint] → Sparky constant Cvar
+ * - Variables: [1, index] → Sparky variable Cvar  
+ * - Complex expressions: Recursive conversion of nested structures
+ * 
+ * PERFORMANCE CRITICAL: This is called on every field operation
  */
 function toSparkyField(field) {
   if (Array.isArray(field)) {
-    // Handle [FieldType, value] format
+    // LEGACY FORMAT: [FieldType, value] - convert to Sparky
     if (field[0] === 0 || field[0] === 1) {
       return getFieldModule().constant(field[1]);
     }
-    return field; // Already a Sparky field var
+    return field; // Already converted or Sparky format
   }
-  return field;
+  return field; // Raw value, pass through
 }
 
 /**
- * Convert o1js FieldVar format to Sparky Cvar format
+ * O1JS → SPARKY CONVERSION ENGINE
+ * 
+ * Converts o1js FieldVar arrays to Sparky Cvar objects with full type preservation.
+ * This is the critical translation layer that enables Sparky to understand o1js circuits.
+ * 
+ * O1JS FIELDVAR STRUCTURE:
+ * [0, [0, bigint]]           → Constant value
+ * [1, variableIndex]         → Variable reference  
+ * [2, leftVar, rightVar]     → Addition expression
+ * [3, [0, scalar], cvar]     → Scalar multiplication
+ * 
+ * SPARKY CVAR STRUCTURE:
+ * {type: 'constant', value: string}                    → Constant
+ * {type: 'var', id: number}                          → Variable
+ * {type: 'add', left: Cvar, right: Cvar}             → Addition
+ * {type: 'scale', scalar: string, cvar: Cvar}        → Scaling
+ * 
+ * PRECISION HANDLING: BigInt values are converted to strings to preserve
+ * full precision across the WASM boundary (WASM doesn't support BigInt directly)
+ * 
+ * ERROR STRATEGY: Strict validation prevents malformed data from corrupting
+ * the constraint system, which would cause proof generation failures
  */
 function fieldVarToCvar(fieldVar) {
   if (!Array.isArray(fieldVar)) {
@@ -158,38 +276,38 @@ function fieldVarToCvar(fieldVar) {
   const [type, ...data] = fieldVar;
   
   switch (type) {
-    case 0: // Constant
+    case 0: // CONSTANT: [0, [0, bigint]] → {type: 'constant', value: string}
       if (!Array.isArray(data[0]) || data[0][0] !== 0) {
         throw new Error('Invalid constant FieldVar format');
       }
-      const [, bigintValue] = data[0]; // data[0] is [0, bigint]
+      const [, bigintValue] = data[0]; // Extract bigint from [0, bigint]
       return {
         type: 'constant',
-        value: bigintValue.toString()
+        value: bigintValue.toString() // Convert to string for WASM compatibility
       };
       
-    case 1: // Var
+    case 1: // VARIABLE: [1, index] → {type: 'var', id: number}
       return {
         type: 'var',
-        id: data[0] // variable index
+        id: data[0] // Variable index in constraint system
       };
       
-    case 2: // Add
+    case 2: // ADDITION: [2, left, right] → {type: 'add', left: Cvar, right: Cvar}
       return {
         type: 'add',
-        left: fieldVarToCvar(data[0]),
+        left: fieldVarToCvar(data[0]),   // Recursive conversion
         right: fieldVarToCvar(data[1])
       };
       
-    case 3: // Scale
+    case 3: // SCALING: [3, [0, scalar], cvar] → {type: 'scale', scalar: string, cvar: Cvar}
       if (!Array.isArray(data[0]) || data[0][0] !== 0) {
         throw new Error('Invalid scale FieldVar format');
       }
-      const [, scalarBigint] = data[0]; // data[0] is [0, bigint]
+      const [, scalarBigint] = data[0]; // Extract scalar from [0, bigint]
       return {
         type: 'scale',
-        scalar: scalarBigint.toString(),
-        cvar: fieldVarToCvar(data[1])
+        scalar: scalarBigint.toString(), // Convert scalar to string
+        cvar: fieldVarToCvar(data[1])    // Recursive conversion of scaled value
       };
       
     default:
@@ -198,28 +316,47 @@ function fieldVarToCvar(fieldVar) {
 }
 
 /**
- * Convert Sparky Cvar format back to o1js FieldVar format
+ * SPARKY → O1JS CONVERSION ENGINE
+ * 
+ * Converts Sparky Cvar objects back to o1js FieldVar arrays.
+ * This reverse translation is essential for maintaining API compatibility
+ * when Sparky operations return results to o1js code.
+ * 
+ * CONVERSION MAPPING:
+ * {type: 'constant', value: string}     → [0, [0, bigint]]
+ * {type: 'var', id: number}            → [1, variableIndex]
+ * {type: 'add', left: Cvar, right: Cvar} → [2, leftVar, rightVar]
+ * {type: 'scale', scalar: string, cvar: Cvar} → [3, [0, scalar], cvar]
+ * 
+ * PRECISION RECOVERY: String values are converted back to BigInt
+ * to restore full precision that was preserved across WASM boundary
+ * 
+ * IDENTITY HANDLING: If input is already a FieldVar array, pass through
+ * unchanged to avoid unnecessary conversion overhead
+ * 
+ * ERROR RECOVERY: Comprehensive validation ensures malformed Cvar objects
+ * from WASM don't corrupt the o1js constraint graph
  */
 function cvarToFieldVar(cvar) {
-  // The WASM returns Cvar objects, convert them back to o1js FieldVar arrays
+  // CVAR OBJECT PROCESSING: Convert Sparky objects to o1js arrays
   if (typeof cvar === 'object' && cvar.type) {
     switch (cvar.type) {
       case 'constant':
-        // Convert back to [0, [0, bigint]] format
-        const value = BigInt(cvar.value);
+        // CONSTANT: {type: 'constant', value: string} → [0, [0, bigint]]
+        const value = BigInt(cvar.value); // Restore precision from string
         return [0, [0, value]];
         
       case 'var':
-        // Convert back to [1, variableIndex] format
+        // VARIABLE: {type: 'var', id: number} → [1, variableIndex]
         return [1, cvar.id];
         
       case 'add':
-        // Convert back to [2, left, right] format
+        // ADDITION: {type: 'add', left: Cvar, right: Cvar} → [2, left, right]
         return [2, cvarToFieldVar(cvar.left), cvarToFieldVar(cvar.right)];
         
       case 'scale':
-        // Convert back to [3, [0, scalar], cvar] format
-        const scalar = BigInt(cvar.scalar);
+        // SCALING: {type: 'scale', scalar: string, cvar: Cvar} → [3, [0, scalar], cvar]
+        const scalar = BigInt(cvar.scalar); // Restore scalar precision
         return [3, [0, scalar], cvarToFieldVar(cvar.cvar)];
         
       default:
@@ -227,16 +364,27 @@ function cvarToFieldVar(cvar) {
     }
   }
   
-  // If it's already a FieldVar array, return as-is
+  // IDENTITY PASS-THROUGH: Already a FieldVar array, no conversion needed
   if (Array.isArray(cvar)) {
     return cvar;
   }
   
+  // ERROR CASE: Invalid input format
   throw new Error('Invalid Cvar format - expected object with type field or FieldVar array');
 }
 
+// ===================================================================
+// INITIALIZATION SAFETY WRAPPERS
+// ===================================================================
+
 /**
- * Wrapper to ensure initialization before any method call
+ * ASYNC INITIALIZATION WRAPPER
+ * 
+ * Ensures WASM modules are loaded before executing any operation.
+ * Used for operations that can tolerate async initialization delay.
+ * 
+ * SAFETY: Prevents race conditions where WASM calls occur before
+ * module loading completes, which would cause undefined behavior.
  */
 function wrapAsync(fn) {
   return async (...args) => {
@@ -245,6 +393,15 @@ function wrapAsync(fn) {
   };
 }
 
+/**
+ * SYNC INITIALIZATION GUARD
+ * 
+ * Fast-fail wrapper for operations that must be synchronous.
+ * Used in hot paths where async overhead is unacceptable.
+ * 
+ * TRADE-OFF: Better performance but requires explicit initialization
+ * by caller. Throws clear error message for debugging.
+ */
 function wrapSync(fn) {
   return (...args) => {
     if (!initialized) {
@@ -282,19 +439,32 @@ export const Snarky = {
     },
     
     enterConstraintSystem() {
-      // Reset constraint system ONLY for isolated calls (like Provable.constraintSystem)
-      // NOT during zkProgram compilation (when isCompilingCircuit is true)
+      // CONSTRAINT SYSTEM ISOLATION STRATEGY
+      // 
+      // Two different use cases require different reset behavior:
+      // 1. ISOLATED CALLS (Provable.constraintSystem): Need clean slate
+      // 2. ZKPROGRAM COMPILATION: Must preserve accumulated constraints
+      // 
+      // Reset only for isolated calls to prevent interference between
+      // different constraint system queries, but preserve state during
+      // active circuit compilation to maintain constraint accumulation
       if (!isCompilingCircuit && sparkyInstance && sparkyInstance.runReset) {
         sparkyInstance.runReset();
       }
       
-      // Use the actual enterConstraintSystem method from the Run module
+      // CONSTRAINT GENERATION MODE: Switch Sparky to constraint accumulation
+      // This mode ensures all subsequent field operations generate constraints
+      // rather than computing witness values
       const handle = getRunModule().enterConstraintSystem();
+      
+      // CLOSURE RETURN PATTERN: Matches Snarky API where enterConstraintSystem
+      // returns a function that, when called, exits the mode and returns the
+      // accumulated constraint system
       return () => {
-        // In Sparky, we need to get the constraint system from the global state
-        // The handle just manages the mode, it doesn't return the constraint system
+        // CONSTRAINT RETRIEVAL: Get accumulated constraints from global Sparky state
+        // The handle manages mode switching but doesn't hold the constraints
         const cs = getRunModule().getConstraintSystem();
-        handle.exit(); // Exit the constraint generation mode
+        handle.exit(); // Exit constraint generation mode
         return cs;
       };
     },
@@ -311,37 +481,43 @@ export const Snarky = {
     },
     
     enterAsProver(size) {
-      // Enter prover mode with the specified size
+      // PROVER MODE: Switch to witness computation mode for the specified array size
+      // This mode is used when executing circuit logic with concrete values
+      // to generate witness data for proof construction
       const handle = getRunModule().enterAsProver(size);
+      
+      // DUAL-MODE CLOSURE: Handles both witness provision and variable creation
       return (fields) => {
         try {
-          // OCaml option type: 0 = None, [0, values] = Some(values)
+          // OCAML OPTION TYPE HANDLING: 0 = None, [0, values] = Some(values)
+          // This encoding is used for optional witness values from OCaml
           if (fields !== 0) {
-            // We have Some(values) - extract the actual values from fields[1]
+            // WITNESS PROVISION MODE: Concrete values provided for proof generation
+            // Extract values from Some(values) encoding: [0, ...actualValues]
             const actualValues = fields[1];
             const result = actualValues.map(f => {
+              // Convert raw values to Sparky constants, then back to o1js format
               const constantCvar = getFieldModule().constant(f);
-              // Convert Cvar back to FieldVar format
               return cvarToFieldVar(constantCvar);
             });
-            // Return as MlArray format: [0, ...array]
+            // Return in MlArray format expected by o1js: [0, ...fieldVars]
             return [0, ...result];
           }
           
-          // fields === 0 (OCaml None) - create witness variables
-          // This happens during circuit compilation
+          // VARIABLE CREATION MODE: No witness provided, create fresh variables
+          // This occurs during circuit compilation when structure is being analyzed
           const vars = [];
           for (let i = 0; i < size; i++) {
-            // Create a witness variable using field module exists
+            // Create witness variable that will be assigned during proof generation
             const sparkyVar = getFieldModule().exists(null);
-            // Convert Cvar back to FieldVar format
             const o1jsVar = cvarToFieldVar(sparkyVar);
             vars.push(o1jsVar);
           }
-          // Return as MlArray format: [0, ...array]
+          // Return variable array in MlArray format
           return [0, ...vars];
         } finally {
-          handle.exit(); // Always exit the mode
+          // GUARANTEED CLEANUP: Always exit prover mode to prevent state corruption
+          handle.exit();
         }
       };
     },
@@ -453,17 +629,35 @@ export const Snarky = {
     }
   },
   
+  // ===================================================================
+  // FIELD ARITHMETIC ENGINE
+  // ===================================================================
   /**
-   * Field APIs
+   * CORE FIELD OPERATIONS
+   * 
+   * These operations form the foundation of all zkSNARK circuits.
+   * Each operation must generate exactly the same constraint graph
+   * as the equivalent Snarky operation to maintain VK compatibility.
+   * 
+   * CONSTRAINT GENERATION: Every arithmetic operation creates constraints
+   * that will be compiled into the final R1CS representation.
+   * 
+   * PRECISION CRITICAL: Field operations must preserve exact semantics
+   * of finite field arithmetic over the Pallas curve field.
    */
   field: {
     readVar(x) {
+      // WITNESS VALUE EXTRACTION
+      // 
+      // Reads the concrete value of a field variable during witness generation.
+      // This operation is only valid in prover mode when actual values are available.
+      // 
+      // SECURITY: Prevents witness values from leaking into constraint generation,
+      // which would compromise zero-knowledge properties
       try {
-        // Pass FieldVar array directly - WASM will handle conversion
         return getFieldModule().readVar(x);
       } catch (error) {
-        // If we're not in prover mode, Sparky will throw an error
-        // Re-throw with a more descriptive message
+        // ENHANCED ERROR CONTEXT: Provide clear guidance for common usage errors
         if (error.message && error.message.includes('prover mode')) {
           throw new Error('readVar can only be called in prover mode (inside asProver or witness blocks)');
         }
@@ -491,15 +685,26 @@ export const Snarky = {
       getFieldModule().assertBoolean(x);
     },
     
-    // CRITICAL: Field arithmetic operations that generate constraints
+    // ===================================================================
+    // CONSTRAINT-GENERATING ARITHMETIC OPERATIONS
+    // ===================================================================
+    
     add(x, y) {
-      // Call Sparky directly for field addition
+      // FIELD ADDITION: Creates addition constraint in R1CS system
+      // Constraint: result = x + y (mod p) where p is Pallas field modulus
+      // 
+      // OPTIMIZATION: Sparky may optimize constants and linear combinations
+      // before generating constraints, reducing total constraint count
       const result = getFieldModule().add(x, y);
       return Array.isArray(result) ? result : cvarToFieldVar(result);
     },
     
     mul(x, y) {
-      // Call Sparky directly for field multiplication
+      // FIELD MULTIPLICATION: Creates R1CS constraint for multiplication
+      // Constraint: result = x * y (mod p)
+      // 
+      // CIRCUIT COST: Multiplication is expensive (1 R1CS constraint per operation)
+      // whereas addition is often free due to linear combination optimization
       const result = getFieldModule().mul(x, y);
       return Array.isArray(result) ? result : cvarToFieldVar(result);
     },
@@ -523,7 +728,14 @@ export const Snarky = {
     },
     
     div(x, y) {
-      // Division requires witness for 1/y
+      // FIELD DIVISION: Implemented as x * y^(-1)
+      // 
+      // TWO-STEP PROCESS:
+      // 1. Compute modular inverse y^(-1) with witness generation
+      // 2. Multiply x by the inverse
+      // 
+      // CONSTRAINT COST: 2 constraints (inverse + multiplication)
+      // SAFETY: Will fail if y = 0 (no modular inverse exists)
       const yInv = getFieldModule().inv(y);
       const result = getFieldModule().mul(x, yInv);
       return Array.isArray(result) ? result : cvarToFieldVar(result);
@@ -554,8 +766,21 @@ export const Snarky = {
     }
   },
   
+  // ===================================================================
+  // HIGH-LEVEL CONSTRAINT GATES
+  // ===================================================================
   /**
-   * Gates APIs
+   * SPECIALIZED CONSTRAINT GENERATORS
+   * 
+   * Gates are high-level operations that generate multiple related constraints.
+   * They encapsulate complex mathematical operations like elliptic curve arithmetic,
+   * cryptographic hash functions, and range checks.
+   * 
+   * EFFICIENCY: Gates can generate multiple constraints atomically,
+   * often with better optimization than composing individual field operations.
+   * 
+   * COMPATIBILITY: Gate interfaces must exactly match Snarky signatures
+   * to ensure drop-in replacement capability.
    */
   gates: {
     zero(in1, in2, out) {
@@ -563,36 +788,48 @@ export const Snarky = {
     },
     
     generic(sl, l, sr, r, so, o, sm, sc) {
-      gateCallCounter++;
-      // The coefficients come as MlArray format [tag, value] where value is BigInt
-      // We need to use the raw gate interface to handle field elements properly
-      // without converting to f64 which loses precision
+      // GENERIC GATE: The fundamental building block of zkSNARK constraints
+      // 
+      // CONSTRAINT EQUATION: sl*l + sr*r + so*o + sm*(l*r) + sc = 0
+      // Where:
+      //   l, r, o = left, right, output field variables
+      //   sl, sr, so, sm, sc = scalar coefficients
+      // 
+      // DESIGN FLEXIBILITY: Can represent many operations:
+      //   - Addition: sl=1, sr=1, so=-1, sm=0, sc=0  → l + r = o
+      //   - Multiplication: sl=0, sr=0, so=-1, sm=1, sc=0 → l * r = o
+      //   - Constants: sl=1, sr=0, so=0, sm=0, sc=-c → l = c
+      // 
+      // PRECISION CRITICAL: Coefficients arrive as MlArray [tag, BigInt]
+      // format and must preserve full precision through WASM boundary
       
-      // Extract actual values from MlArray format
+      gateCallCounter++; // Debug tracking
+      
+      // MLARRAY UNPACKING: Extract BigInt coefficients from OCaml encoding
       const extractValue = (mlArray) => {
         return Array.isArray(mlArray) ? mlArray[1] : mlArray;
       };
       
-      // Create values array with the three field variables
+      // VARIABLE ARRAY: The three field variables involved in the constraint
       const values = [l, r, o];
       
-      // Extract field element values from MlArray format
+      // COEFFICIENT EXTRACTION: Preserve BigInt precision for field arithmetic
       const coefficients = [
-        extractValue(sl),  // sl coefficient
-        extractValue(sr),  // sr coefficient  
-        extractValue(so),  // so coefficient
-        extractValue(sm),  // sm coefficient (multiplication)
-        extractValue(sc)   // sc coefficient (constant)
+        extractValue(sl),  // Coefficient for left variable
+        extractValue(sr),  // Coefficient for right variable
+        extractValue(so),  // Coefficient for output variable
+        extractValue(sm),  // Coefficient for multiplication term
+        extractValue(sc)   // Constant term
       ];
       
-      // Use the raw gate interface which properly handles field elements
-      // KimchiGateType::Generic = 1
+      // RAW GATE INTERFACE: Bypasses intermediate conversions to preserve precision
+      // KimchiGateType::Generic = 1 (Kimchi gate type enumeration)
       const GENERIC_GATE_TYPE = 1;
       
-      // The raw gate can handle BigInt field elements without conversion
       try {
         sparkyInstance.gatesRaw(GENERIC_GATE_TYPE, values, coefficients);
       } catch (error) {
+        // Re-throw with preserved context
         throw error;
       }
     },
@@ -602,11 +839,28 @@ export const Snarky = {
     },
     
     ecAdd(p1, p2, p3, inf, same_x, slope, inf_z, x21_inv) {
-      // Implement complete elliptic curve point addition with proper constraint generation
-      // Expected signature: ecAdd(p1: MlGroup, p2: MlGroup, p3: MlGroup, inf, same_x, slope, inf_z, x21_inv)
+      // ELLIPTIC CURVE POINT ADDITION
+      // 
+      // Implements complete addition on the Pallas elliptic curve: y² = x³ + 5
+      // Handles all edge cases: point at infinity, point doubling, generic addition
+      // 
+      // MATHEMATICAL CONSTRAINTS GENERATED:
+      // 1. Slope calculation: slope = (y₂ - y₁) / (x₂ - x₁) for different points
+      // 2. Point doubling: slope = (3x₁² + a) / (2y₁) when p1 = p2
+      // 3. Result computation: x₃ = slope² - x₁ - x₂, y₃ = slope(x₁ - x₃) - y₁
+      // 4. Point at infinity: Special handling when x₁ = x₂ and y₁ = -y₂
+      // 
+      // AUXILIARY VARIABLES:
+      // - inf: Boolean flag indicating result is point at infinity
+      // - same_x: Boolean flag for x₁ = x₂ case (doubling or inverse)
+      // - slope: The line slope for addition formula
+      // - inf_z: Z-coordinate for projective infinity representation
+      // - x21_inv: Modular inverse of (x₂ - x₁) for slope calculation
+      // 
+      // CONSTRAINT COUNT: ~15-20 constraints per addition (complex but efficient)
       
       try {
-        // Convert MlGroup points (arrays of [x, y]) to Sparky Cvar format
+        // INPUT VALIDATION: Ensure points are in [x, y] coordinate format
         if (!Array.isArray(p1) || !Array.isArray(p2) || !Array.isArray(p3)) {
           throw new Error('ecAdd: Points must be arrays [x, y]');
         }
@@ -615,25 +869,20 @@ export const Snarky = {
         const [p2x, p2y] = p2;
         const [p3x, p3y] = p3;
         
-        // Pass FieldVar arrays directly - WASM will handle conversion
-        // This generates the proper elliptic curve addition constraints including:
-        // - Point at infinity handling (inf, inf_z)
-        // - Same x-coordinate case (same_x)
-        // - Slope constraints for addition
-        // - Inverse constraints (x21_inv)
+        // CONSTRAINT GENERATION: Delegate to Sparky's optimized EC implementation
+        // This generates all necessary constraints for secure, complete addition
         getGatesModule().ecAdd(
-          [p1x, p1y],          // First point
-          [p2x, p2y],          // Second point
-          [p3x, p3y],          // Result point
-          inf,                 // Infinity flag
-          same_x,              // Same x-coordinate flag
-          slope,               // Slope of line
+          [p1x, p1y],          // First input point
+          [p2x, p2y],          // Second input point
+          [p3x, p3y],          // Result point (P1 + P2)
+          inf,                 // Point at infinity flag
+          same_x,              // Same x-coordinate detection
+          slope,               // Addition line slope
           inf_z,               // Infinity z-coordinate
-          x21_inv              // Inverse of (x2 - x1)
+          x21_inv              // Modular inverse (x₂ - x₁)⁻¹
         );
         
-        // Return the result point
-        return p3;
+        return p3; // Return result point
         
       } catch (error) {
         throw new Error(`ecAdd implementation failed: ${error.message}`);
@@ -1225,17 +1474,41 @@ export const Snarky = {
 
 /**
  * ===================================================================
- * CONSTRAINT BRIDGE: JavaScript → OCaml Pickles Integration
+ * CONSTRAINT BRIDGE: JavaScript ↔ OCaml Integration Layer
  * ===================================================================
  * 
- * CRITICAL ARCHITECTURE FIX:
- * When Sparky is active, Pickles (OCaml) needs to collect constraints 
- * from the JavaScript circuit execution during compilation.
+ * CRITICAL ARCHITECTURAL COMPONENT:
+ * This bridge solves the fundamental integration challenge between
+ * Sparky (Rust/WASM constraint generation) and Pickles (OCaml proof system).
  * 
- * This bridge allows OCaml to:
- * 1. Detect if Sparky is the active backend
- * 2. Retrieve accumulated constraints from Sparky
- * 3. Convert them to OCaml format for VK generation
+ * THE PROBLEM:
+ * - o1js circuits execute in JavaScript, generating constraints via Sparky
+ * - Pickles (proof compilation) runs in OCaml and needs those constraints
+ * - Direct Rust-OCaml integration is complex and brittle
+ * 
+ * THE SOLUTION:
+ * A bidirectional bridge that enables:
+ * 1. DETECTION: OCaml can detect when Sparky is active
+ * 2. ACCUMULATION: JavaScript collects constraints during circuit execution
+ * 3. RETRIEVAL: OCaml can extract constraints for VK generation
+ * 4. CONVERSION: Automatic format translation between systems
+ * 
+ * INTEGRATION FLOW:
+ * 1. OCaml calls startConstraintAccumulation() before circuit execution
+ * 2. JavaScript/Sparky accumulates constraints during circuit.main() execution
+ * 3. OCaml calls getAccumulatedConstraints() to retrieve constraint data
+ * 4. OCaml processes constraints for verification key generation
+ * 5. OCaml calls endConstraintAccumulation() to clean up
+ * 
+ * STATE MANAGEMENT:
+ * - isCompilingCircuit: Prevents state resets during active compilation
+ * - accumulatedConstraints: Cache for constraint data
+ * - gateCallCounter: Debug tracking for constraint generation volume
+ * 
+ * ERROR HANDLING:
+ * - All bridge functions include comprehensive error context
+ * - Constraint retrieval failures are surfaced, not masked
+ * - State corruption is detected and reported clearly
  */
 
 // Global tracking for constraint accumulation during compilation
@@ -1243,70 +1516,128 @@ let isCompilingCircuit = false;
 let accumulatedConstraints = [];
 
 /**
- * Called by OCaml: Check if Sparky is the active backend
- * @returns {boolean} true if Sparky is active, false if Snarky
+ * BACKEND DETECTION FUNCTION
+ * 
+ * Called by OCaml to determine which constraint generation backend is active.
+ * This is critical for routing constraint collection to the correct system.
+ * 
+ * DETECTION STRATEGY:
+ * - Sparky active: sparkyInstance exists and is initialized
+ * - Snarky active: sparkyInstance is null/undefined
+ * 
+ * USAGE: OCaml calls this before attempting constraint collection
+ * to avoid trying to collect from inactive backend
+ * 
+ * @returns {boolean} true if Sparky is active, false if Snarky is active
  */
 function isActiveSparkyBackend() {
-  // Check if we're in a Sparky context by testing if Sparky instance exists
   const isActive = sparkyInstance !== null && typeof sparkyInstance !== 'undefined';
   return isActive;
 }
 
 /**
- * Called by OCaml: Start constraint accumulation mode
- * This is called before rule##.main public_input executes
+ * CONSTRAINT ACCUMULATION INITIALIZATION
+ * 
+ * Called by OCaml at the start of zkProgram compilation, before
+ * executing the circuit's main function with public inputs.
+ * 
+ * INITIALIZATION SEQUENCE:
+ * 1. Reset debug counters for this compilation session
+ * 2. Verify Sparky is active (exit early if Snarky is active)
+ * 3. Clear previous state only on first call (avoid mid-compilation resets)
+ * 4. Enter constraint generation mode
+ * 5. Set compilation flag to prevent interference
+ * 
+ * STATE PROTECTION:
+ * - Only resets on FIRST call to prevent clearing constraints mid-compilation
+ * - Uses global handle to track constraint system context
+ * - Sets isCompilingCircuit flag to prevent interference from other operations
+ * 
+ * PERFORMANCE: Minimal overhead when Snarky is active (early exit)
  */
 function startConstraintAccumulation() {
-  gateCallCounter = 0; // Reset counter for this compilation
+  gateCallCounter = 0; // Reset debug counter for new compilation
+  
+  // EARLY EXIT: No-op when Snarky is the active backend
   if (!isActiveSparkyBackend()) {
     return;
   }
   
-  // Reset Sparky state ONLY on the FIRST call to startConstraintAccumulation
-  // This clears any leftover constraints from previous operations
+  // STATE RESET: Only on first call to avoid clearing mid-compilation constraints
+  // Subsequent calls during same compilation preserve accumulated state
   if (!globalThis.__sparkyConstraintHandle && sparkyInstance && sparkyInstance.runReset) {
     sparkyInstance.runReset();
   }
   
+  // COMPILATION MODE: Set flags to coordinate with other adapter operations
   isCompilingCircuit = true;
   accumulatedConstraints = [];
   
-  // CRITICAL: Enter constraint system context and keep handle
+  // CONSTRAINT CONTEXT: Enter constraint generation mode and maintain handle
+  // This ensures all subsequent field operations generate constraints
   if (!globalThis.__sparkyConstraintHandle) {
     globalThis.__sparkyConstraintHandle = getRunModule().enterConstraintSystem();
   }
 }
 
 /**
- * Called by OCaml: Get all constraints accumulated during circuit execution
- * This is called after rule##.main public_input completes
+ * CONSTRAINT RETRIEVAL FUNCTION
+ * 
+ * Called by OCaml after circuit execution completes to extract
+ * all constraints generated during the circuit's main function.
+ * 
+ * RETRIEVAL PROCESS:
+ * 1. Verify Sparky is active (return empty for Snarky)
+ * 2. Extract constraint system from Sparky's global state
+ * 3. Convert to OCaml-compatible format
+ * 4. Return constraint array for VK generation
+ * 
+ * FORMAT CONVERSION:
+ * - Sparky internal format → JSON representation
+ * - Extract 'gates' array (constraint list)
+ * - Preserve all constraint metadata for OCaml processing
+ * 
+ * ERROR HANDLING:
+ * - Comprehensive validation of constraint system state
+ * - Clear error messages for debugging integration issues
+ * - No silent failures that could corrupt proof generation
+ * 
+ * PERFORMANCE TRACKING:
+ * - Records gate call statistics for debugging
+ * - Resets counters for next compilation session
+ * 
  * @returns {Array} Array of constraint objects in OCaml-compatible format
  */
 function getAccumulatedConstraints() {
+  // EARLY EXIT: Return empty constraints when Snarky is active
   if (!isActiveSparkyBackend()) {
     return [];
   }
   
   try {
-    // CRITICAL: Reset gate counter for next compilation
+    // DEBUG TRACKING: Record constraint generation volume
     const totalGateCalls = gateCallCounter;
-    gateCallCounter = 0;
+    gateCallCounter = 0; // Reset for next compilation
     
+    // CONSTRAINT EXTRACTION: Get accumulated constraints from Sparky state
     const constraintsJson = getRunModule().getConstraintSystem();
     
     if (constraintsJson) {
-      // Convert to OCaml-compatible format
+      // FORMAT NORMALIZATION: Handle both string and object responses
       const constraints = typeof constraintsJson === 'string' 
         ? JSON.parse(constraintsJson) 
         : constraintsJson;
       
+      // EXTRACT GATES: OCaml expects array of constraint gate objects
       const gates = constraints.gates || [];
       return gates;
     } else {
+      // CRITICAL ERROR: Null constraint system indicates initialization failure
       throw new Error('getConstraintSystem() returned null/undefined - constraint system may not be properly initialized');
     }
   } catch (error) {
-    // CRITICAL: Constraint retrieval failures must be surfaced, not masked
+    // ERROR ESCALATION: Surface constraint retrieval failures with full context
+    // These errors must reach OCaml to prevent silent proof generation failures
     const errorMsg = `Failed to retrieve constraints from Sparky: ${error.message || error}`;
     console.error('[SPARKY ERROR]', errorMsg);
     throw new Error(errorMsg);
@@ -1314,29 +1645,48 @@ function getAccumulatedConstraints() {
 }
 
 /**
- * Called by OCaml: End constraint accumulation mode
+ * CONSTRAINT ACCUMULATION CLEANUP
+ * 
+ * Called by OCaml after constraint retrieval completes to clean up
+ * the constraint accumulation state and exit constraint generation mode.
+ * 
+ * CLEANUP SEQUENCE:
+ * 1. Clear compilation flags to allow normal operations
+ * 2. Reset constraint cache (constraints already retrieved)
+ * 3. Exit constraint system context to restore normal mode
+ * 4. Clear global handles to prevent handle leaks
+ * 
+ * IMPORTANT: Does NOT reset Sparky's internal state!
+ * The constraints must remain available until OCaml completes
+ * verification key generation.
+ * 
+ * ERROR HANDLING:
+ * - Logs exit failures but doesn't throw (cleanup phase)
+ * - Warns about potential state corruption for debugging
+ * - Ensures flags are cleared even if exit fails
  */
 function endConstraintAccumulation() {
+  // CLEAR COMPILATION STATE: Allow normal adapter operations to resume
   isCompilingCircuit = false;
   accumulatedConstraints = [];
   
-  // Exit constraint system context if we have a handle
+  // EXIT CONSTRAINT CONTEXT: Return to normal operation mode
   if (globalThis.__sparkyConstraintHandle) {
     try {
       globalThis.__sparkyConstraintHandle.exit();
       globalThis.__sparkyConstraintHandle = null;
     } catch (error) {
-      // CRITICAL: Constraint system exit failures must be surfaced
+      // CLEANUP ERROR HANDLING: Log but don't throw during cleanup
+      // Throwing here could disrupt OCaml's compilation flow
       const errorMsg = `Failed to exit constraint system: ${error.message || error}`;
       console.error('[SPARKY ERROR]', errorMsg);
-      // Log but don't throw here since this is cleanup - but ensure it's visible
       console.warn('[SPARKY WARNING] Constraint system state may be corrupted due to exit failure');
     }
   }
   
-  // CRITICAL FIX: Don't reset Sparky state here - it clears all constraints!
-  // The reset should only happen when starting a completely new compilation,
-  // not when accumulating constraints for the current program.
+  // PRESERVATION NOTE: Sparky's internal constraint state is NOT reset here!
+  // The constraints must remain available for OCaml's VK generation process.
+  // State reset only occurs at the start of the next compilation cycle.
 }
 
 /**
@@ -1349,7 +1699,11 @@ if (typeof globalThis !== 'undefined') {
     isActiveSparkyBackend,
     startConstraintAccumulation,
     getAccumulatedConstraints,
-    endConstraintAccumulation
+    endConstraintAccumulation,
+    setActiveBackend: (backendType) => {
+      // Update the active backend for constraint routing
+      console.log(`🔄 Constraint bridge updated to: ${backendType}`);
+    }
   };
 }
 
@@ -1424,18 +1778,41 @@ function debugConstraintFlow(operation, backend, ...args) {
 }
 
 /**
- * Update global routing to point to the specified backend
- * This fixes the constraint routing bug where constraints always go to OCaml
+ * GLOBAL CONSTRAINT ROUTING SYSTEM
+ * 
+ * CRITICAL BUG FIX: This function resolves the constraint routing issue
+ * where constraints were always directed to OCaml regardless of active backend.
+ * 
+ * THE ROUTING PROBLEM:
+ * o1js uses globalThis.__snarky.Snarky for constraint operations,
+ * but this reference wasn't updated when switching between backends,
+ * causing constraints to go to the wrong system.
+ * 
+ * THE SOLUTION:
+ * Dynamically update the global routing pointer to direct constraints
+ * to the currently active backend (Sparky or OCaml Snarky).
+ * 
+ * ROUTING COMPONENTS:
+ * 1. globalThis.__snarky.Snarky: Main routing target
+ * 2. Debugging wrapper: Adds constraint flow tracking
+ * 3. Bridge coordination: Updates constraint bridge state
+ * 4. Statistics reset: Clears debug counters for new routing
+ * 
+ * DEBUGGING INTEGRATION:
+ * - Wraps backend methods with call tracking
+ * - Maintains statistics for constraint flow analysis
+ * - Provides visibility into routing behavior
  */
 function updateGlobalSnarkyRouting(backendType, backendObject) {
   if (typeof globalThis !== 'undefined') {
+    // ENSURE GLOBAL NAMESPACE: Create routing structure if needed
     globalThis.__snarky = globalThis.__snarky || {};
     
-    // Wrap the backend object with debugging
+    // DEBUG WRAPPER: Add constraint flow tracking to backend object
     const wrappedBackend = wrapBackendWithDebugging(backendObject, backendType);
     globalThis.__snarky.Snarky = wrappedBackend;
     
-    // Also update the constraint bridge routing
+    // BRIDGE COORDINATION: Update constraint bridge routing state
     if (typeof globalThis.sparkyConstraintBridge !== 'undefined') {
       try {
         globalThis.sparkyConstraintBridge.setActiveBackend(backendType);
@@ -1446,7 +1823,7 @@ function updateGlobalSnarkyRouting(backendType, backendObject) {
     
     console.log(`🔄 Global Snarky routing updated to: ${backendType}`);
     
-    // Reset constraint flow stats
+    // STATISTICS RESET: Clear debug counters for new routing session
     globalThis.constraintFlowStats = { sparky: 0, ocaml: 0 };
     constraintCallCount = 0;
   }

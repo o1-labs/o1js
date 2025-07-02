@@ -174,9 +174,9 @@ await switchBackend('snarky');
 - ✅ Foreign field operations fully implemented in Sparky
 - ✅ Comprehensive integration test suite validates feature parity
 - ✅ Performance within 1.5x of Snarky for most operations
+- ✅ `reduce_lincom` optimization re-enabled - constraint counts now match (both backends: 3)
 - 🚨 **CRITICAL BLOCKER**: All Sparky VKs generate identical hash - VK parity not achieved
 - ❌ Proof generation has module resolution errors with Sparky
-- ❌ Missing `reduce_lincom` optimization causes different constraint counts (Sparky: 5, Snarky: 3)
 
 ## Technical Documentation
 

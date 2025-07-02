@@ -24,14 +24,13 @@ describe('VK Parity Between Backends', () => {
     test('backend routing infrastructure', async () => {
       const result = await framework.testBackendRouting();
       
-      // This test documents the current broken state
-      // TODO: When routing is fixed, change this expectation
-      expect(result.passed).toBe(false);
-      expect(result.issues).toContain(expect.stringContaining('globalThis.__snarky not updated'));
+      // With routing fixed and optimization re-enabled
+      expect(result.passed).toBe(true);
+      expect(result.issues).not.toContain(expect.stringContaining('globalThis.__snarky not updated'));
       
-      console.log('🚨 KNOWN ISSUE: Backend routing infrastructure is broken');
-      console.log('   All constraints route through OCaml regardless of backend selection');
-      console.log('   This causes all Sparky VKs to be identical');
+      console.log('✅ Backend routing infrastructure working correctly');
+      console.log('   Constraints now route to the correct backend');
+      console.log('   VK generation should produce matching results with optimization');
     });
   });
 
@@ -44,10 +43,9 @@ describe('VK Parity Between Backends', () => {
         'Field Multiplication'
       );
       
-      // Current expectation: This will fail due to routing bug
-      // When fixed: Should generate same constraint count
-      expect(result.passed).toBe(false); // TODO: Change to true when routing fixed
-      expect(result.issues).toContain(expect.stringContaining('Constraint count mismatch'));
+      // With reduce_lincom optimization re-enabled, constraint counts should match
+      expect(result.passed).toBe(true); // Constraint counts should now match
+      expect(result.issues).not.toContain(expect.stringContaining('Constraint count mismatch'));
       
       console.log(`Field multiplication: Snarky=${result.snarky.constraintCount}, Sparky=${result.sparky.constraintCount}`);
     });
@@ -58,7 +56,7 @@ describe('VK Parity Between Backends', () => {
         'Field Addition'
       );
       
-      expect(result.passed).toBe(false); // TODO: Change when fixed
+      expect(result.passed).toBe(true); // With optimization re-enabled
       console.log(`Field addition: Snarky=${result.snarky.constraintCount}, Sparky=${result.sparky.constraintCount}`);
     });
 
@@ -68,7 +66,7 @@ describe('VK Parity Between Backends', () => {
         'Boolean Logic'
       );
       
-      expect(result.passed).toBe(false); // TODO: Change when fixed
+      expect(result.passed).toBe(true); // With optimization re-enabled
       console.log(`Boolean logic: Snarky=${result.snarky.constraintCount}, Sparky=${result.sparky.constraintCount}`);
     });
 
@@ -78,7 +76,7 @@ describe('VK Parity Between Backends', () => {
         'Complex Expression'
       );
       
-      expect(result.passed).toBe(false); // TODO: Change when fixed
+      expect(result.passed).toBe(true); // With optimization re-enabled
       console.log(`Complex expression: Snarky=${result.snarky.constraintCount}, Sparky=${result.sparky.constraintCount}`);
     });
   });
@@ -92,9 +90,9 @@ describe('VK Parity Between Backends', () => {
         'Simple Multiplication Program'
       );
       
-      // Document current broken state
-      expect(result.vkMatch).toBe(false);
-      expect(result.constraintCountMatch).toBe(false);
+      // With optimization re-enabled, VK and constraint counts should match
+      expect(result.vkMatch).toBe(true);
+      expect(result.constraintCountMatch).toBe(true);
       
       console.log('🔍 VK Analysis:');
       console.log(`  Snarky VK: ${result.snarky.vkHash}`);

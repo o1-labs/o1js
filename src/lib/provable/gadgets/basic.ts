@@ -12,11 +12,12 @@ import { createField } from '../core/field-constructor.js';
 import { assert } from '../../util/assert.js';
 import { ProvableType } from '../types/provable-intf.js';
 import { Provable } from '../provable.js';
+import { getCurrentBackend } from '../../../bindings.js';
 
 export { assertMul, assertBilinear, arrayGet, assertOneOf, assertNotVectorEquals, arrayGetGeneric };
 
 // internal
-export { reduceToScaledVar, toLinearCombination, emptyCell, linear, bilinear, ScaledVar, Constant };
+export { reduceToScaledVar, reduceToScaledVarSparky, toLinearCombination, emptyCell, linear, bilinear, ScaledVar, Constant, MultiTermLinearCombination };
 
 /**
  * Assert multiplication constraint, `x * y === z`
@@ -277,6 +278,31 @@ function reduceToScaledVar(x: Field | FieldVar): ScaledVar | Constant {
   return [FieldType.Scale, FieldConst[1], res.value];
 }
 
+// Sparky-specific function for multi-term optimization
+function reduceToScaledVarSparky(x: Field | FieldVar): ScaledVar | Constant | MultiTermLinearCombination {
+  let { constant: c, terms } = toLinearCombination(fieldVar(x));
+
+  // sort terms alphabetically by variable index
+  terms.sort(([, [, i]], [, [, j]]) => i - j);
+
+  if (terms.length === 0) {
+    return [FieldType.Constant, FieldConst.fromBigint(c)];
+  }
+
+  if (terms.length === 1) {
+    let [s, x] = terms[0];
+    if (c === 0n) {
+      return [FieldType.Scale, FieldConst.fromBigint(s), x];
+    } else {
+      // Return multi-term combination to avoid intermediate variables
+      return { type: 'multiterm', constant: c, terms: [[s, x]] };
+    }
+  }
+
+  // Return multi-term combination to use reduce_lincom optimization
+  return { type: 'multiterm', constant: c, terms };
+}
+
 /**
  * Flatten the AST of a `FieldVar` to a linear combination of the form
  *
@@ -344,6 +370,11 @@ function toLinearCombination(
 // type Scaled = [FieldType.Scale, FieldConst, FieldVar];
 type ScaledVar = [FieldType.Scale, FieldConst, VarFieldVar];
 type Constant = [FieldType.Constant, FieldConst];
+type MultiTermLinearCombination = { 
+  type: 'multiterm', 
+  constant: bigint, 
+  terms: [bigint, VarFieldVar][] 
+};
 
 function isVar(x: ScaledVar | Constant): x is ScaledVar {
   return x[0] === FieldType.Scale;

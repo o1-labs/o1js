@@ -1,0 +1,668 @@
+/**
+ * Performance Monitoring System for Backend Compatibility Testing
+ * 
+ * Handles:
+ * - Automated performance regression detection
+ * - Baseline performance establishment
+ * - Performance trend analysis
+ * - Alert thresholds for unacceptable performance changes
+ */
+
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { performance } from 'perf_hooks';
+
+export interface PerformanceMetric {
+  operation: string;
+  backend: 'snarky' | 'sparky';
+  duration: number; // milliseconds
+  memoryUsage: number; // bytes
+  iterations: number;
+  timestamp: Date;
+  commit: string;
+  environment: {
+    nodeVersion: string;
+    platform: string;
+    arch: string;
+    cpuModel: string;
+  };
+}
+
+export interface PerformanceBenchmark {
+  operation: string;
+  snarkyBaseline: {
+    duration: number;
+    memoryUsage: number;
+    standardDeviation: number;
+  };
+  sparkyPerformance: {
+    duration: number;
+    memoryUsage: number;
+    standardDeviation: number;
+  };
+  ratio: {
+    duration: number; // sparky/snarky
+    memory: number; // sparky/snarky
+  };
+  acceptable: boolean;
+  trend: 'improving' | 'stable' | 'degrading';
+}
+
+export interface PerformanceAlert {
+  operation: string;
+  alertType: 'regression' | 'threshold_exceeded' | 'baseline_changed';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  currentValue: number;
+  baselineValue: number;
+  threshold: number;
+  recommendations: string[];
+}
+
+export class PerformanceMonitoring {
+  private readonly dataDir: string;
+  private readonly thresholds = {
+    duration: {
+      acceptable: 2.0, // 2x slower is acceptable
+      warning: 3.0, // 3x slower is warning
+      critical: 5.0 // 5x slower is critical
+    },
+    memory: {
+      acceptable: 1.5, // 1.5x more memory is acceptable
+      warning: 2.0, // 2x more memory is warning
+      critical: 3.0 // 3x more memory is critical
+    },
+    regression: {
+      minor: 0.1, // 10% regression is minor
+      major: 0.25, // 25% regression is major
+      critical: 0.5 // 50% regression is critical
+    }
+  };
+
+  private readonly testOperations = [
+    'field_operations',
+    'poseidon_hash',
+    'ec_operations',
+    'range_check',
+    'lookup_table',
+    'foreign_field',
+    'constraint_generation',
+    'vk_generation',
+    'proof_generation'
+  ];
+
+  constructor(dataDir: string = './performance-data') {
+    this.dataDir = dataDir;
+  }
+
+  async runPerformanceBenchmarks(): Promise<PerformanceBenchmark[]> {
+    console.log('Running performance benchmarks...');
+    
+    const benchmarks: PerformanceBenchmark[] = [];
+    const environment = await this.getEnvironmentInfo();
+    
+    for (const operation of this.testOperations) {
+      console.log(`Benchmarking ${operation}...`);
+      
+      try {
+        const snarkyMetrics = await this.benchmarkOperation(operation, 'snarky', environment);
+        const sparkyMetrics = await this.benchmarkOperation(operation, 'sparky', environment);
+        
+        const benchmark = this.calculateBenchmark(operation, snarkyMetrics, sparkyMetrics);
+        benchmarks.push(benchmark);
+        
+        // Save individual metrics
+        await this.saveMetrics([...snarkyMetrics, ...sparkyMetrics]);
+        
+      } catch (error) {
+        console.error(`Failed to benchmark ${operation}:`, error);
+        
+        // Create failed benchmark entry
+        benchmarks.push({
+          operation,
+          snarkyBaseline: { duration: 0, memoryUsage: 0, standardDeviation: 0 },
+          sparkyPerformance: { duration: 0, memoryUsage: 0, standardDeviation: 0 },
+          ratio: { duration: Infinity, memory: Infinity },
+          acceptable: false,
+          trend: 'degrading'
+        });
+      }
+    }
+    
+    return benchmarks;
+  }
+
+  async detectPerformanceRegressions(): Promise<PerformanceAlert[]> {
+    console.log('Detecting performance regressions...');
+    
+    const alerts: PerformanceAlert[] = [];
+    const historicalData = await this.loadHistoricalData();
+    const currentBenchmarks = await this.runPerformanceBenchmarks();
+    
+    for (const benchmark of currentBenchmarks) {
+      const historical = historicalData.filter(h => h.operation === benchmark.operation);
+      
+      if (historical.length === 0) {
+        console.log(`No historical data for ${benchmark.operation}, establishing baseline`);
+        continue;
+      }
+      
+      const regressionAlerts = this.detectRegressions(benchmark, historical);
+      const thresholdAlerts = this.checkThresholds(benchmark);
+      
+      alerts.push(...regressionAlerts, ...thresholdAlerts);
+    }
+    
+    return alerts;
+  }
+
+  private async benchmarkOperation(operation: string, backend: 'snarky' | 'sparky', environment: any): Promise<PerformanceMetric[]> {
+    const iterations = this.getIterationsForOperation(operation);
+    const metrics: PerformanceMetric[] = [];
+    
+    // Import backend-specific test
+    const testModule = await this.loadTestModule(operation);
+    
+    // Warmup runs
+    for (let i = 0; i < 3; i++) {
+      await testModule.runTest(backend);
+    }
+    
+    // Actual benchmark runs
+    for (let run = 0; run < 5; run++) {
+      const startMemory = process.memoryUsage().heapUsed;
+      const startTime = performance.now();
+      
+      for (let i = 0; i < iterations; i++) {
+        await testModule.runTest(backend);
+      }
+      
+      const endTime = performance.now();
+      const endMemory = process.memoryUsage().heapUsed;
+      
+      metrics.push({
+        operation,
+        backend,
+        duration: endTime - startTime,
+        memoryUsage: Math.max(0, endMemory - startMemory),
+        iterations,
+        timestamp: new Date(),
+        commit: await this.getCurrentCommit(),
+        environment
+      });
+    }
+    
+    return metrics;
+  }
+
+  private calculateBenchmark(operation: string, snarkyMetrics: PerformanceMetric[], sparkyMetrics: PerformanceMetric[]): PerformanceBenchmark {
+    const snarkyStats = this.calculateStats(snarkyMetrics);
+    const sparkyStats = this.calculateStats(sparkyMetrics);
+    
+    const durationRatio = sparkyStats.avgDuration / snarkyStats.avgDuration;
+    const memoryRatio = sparkyStats.avgMemory / snarkyStats.avgMemory;
+    
+    const acceptable = durationRatio <= this.thresholds.duration.acceptable && 
+                      memoryRatio <= this.thresholds.memory.acceptable;
+    
+    // Determine trend (would require historical data in real implementation)
+    const trend: 'improving' | 'stable' | 'degrading' = 
+      durationRatio > this.thresholds.duration.warning ? 'degrading' :
+      durationRatio < 1.1 ? 'improving' : 'stable';
+    
+    return {
+      operation,
+      snarkyBaseline: {
+        duration: snarkyStats.avgDuration,
+        memoryUsage: snarkyStats.avgMemory,
+        standardDeviation: snarkyStats.stdDuration
+      },
+      sparkyPerformance: {
+        duration: sparkyStats.avgDuration,
+        memoryUsage: sparkyStats.avgMemory,
+        standardDeviation: sparkyStats.stdDuration
+      },
+      ratio: {
+        duration: durationRatio,
+        memory: memoryRatio
+      },
+      acceptable,
+      trend
+    };
+  }
+
+  private calculateStats(metrics: PerformanceMetric[]): {
+    avgDuration: number;
+    avgMemory: number;
+    stdDuration: number;
+    stdMemory: number;
+  } {
+    const durations = metrics.map(m => m.duration);
+    const memories = metrics.map(m => m.memoryUsage);
+    
+    const avgDuration = durations.reduce((sum, d) => sum + d, 0) / durations.length;
+    const avgMemory = memories.reduce((sum, m) => sum + m, 0) / memories.length;
+    
+    const stdDuration = Math.sqrt(
+      durations.reduce((sum, d) => sum + Math.pow(d - avgDuration, 2), 0) / durations.length
+    );
+    
+    const stdMemory = Math.sqrt(
+      memories.reduce((sum, m) => sum + Math.pow(m - avgMemory, 2), 0) / memories.length
+    );
+    
+    return { avgDuration, avgMemory, stdDuration, stdMemory };
+  }
+
+  private detectRegressions(current: PerformanceBenchmark, historical: PerformanceBenchmark[]): PerformanceAlert[] {
+    const alerts: PerformanceAlert[] = [];
+    
+    if (historical.length < 2) return alerts;
+    
+    // Get recent historical average
+    const recent = historical.slice(-5);
+    const avgHistoricalDuration = recent.reduce((sum, h) => sum + h.ratio.duration, 0) / recent.length;
+    const avgHistoricalMemory = recent.reduce((sum, h) => sum + h.ratio.memory, 0) / recent.length;
+    
+    // Check duration regression
+    const durationRegression = (current.ratio.duration - avgHistoricalDuration) / avgHistoricalDuration;
+    if (durationRegression > this.thresholds.regression.minor) {
+      alerts.push({
+        operation: current.operation,
+        alertType: 'regression',
+        severity: durationRegression > this.thresholds.regression.critical ? 'critical' :
+                 durationRegression > this.thresholds.regression.major ? 'high' : 'medium',
+        message: `Duration regression of ${(durationRegression * 100).toFixed(1)}% detected`,
+        currentValue: current.ratio.duration,
+        baselineValue: avgHistoricalDuration,
+        threshold: this.thresholds.regression.minor,
+        recommendations: [
+          'Profile the operation for new bottlenecks',
+          'Check for recent changes to the operation implementation',
+          'Compare constraint generation efficiency',
+          'Review memory allocation patterns'
+        ]
+      });
+    }
+    
+    // Check memory regression
+    const memoryRegression = (current.ratio.memory - avgHistoricalMemory) / avgHistoricalMemory;
+    if (memoryRegression > this.thresholds.regression.minor) {
+      alerts.push({
+        operation: current.operation,
+        alertType: 'regression',
+        severity: memoryRegression > this.thresholds.regression.critical ? 'critical' :
+                 memoryRegression > this.thresholds.regression.major ? 'high' : 'medium',
+        message: `Memory usage regression of ${(memoryRegression * 100).toFixed(1)}% detected`,
+        currentValue: current.ratio.memory,
+        baselineValue: avgHistoricalMemory,
+        threshold: this.thresholds.regression.minor,
+        recommendations: [
+          'Check for memory leaks in the implementation',
+          'Review object allocation patterns',
+          'Profile heap usage during operation',
+          'Check for unnecessary data retention'
+        ]
+      });
+    }
+    
+    return alerts;
+  }
+
+  private checkThresholds(benchmark: PerformanceBenchmark): PerformanceAlert[] {
+    const alerts: PerformanceAlert[] = [];
+    
+    // Check duration thresholds
+    if (benchmark.ratio.duration > this.thresholds.duration.critical) {
+      alerts.push({
+        operation: benchmark.operation,
+        alertType: 'threshold_exceeded',
+        severity: 'critical',
+        message: `Duration ratio ${benchmark.ratio.duration.toFixed(2)}x exceeds critical threshold`,
+        currentValue: benchmark.ratio.duration,
+        baselineValue: 1.0,
+        threshold: this.thresholds.duration.critical,
+        recommendations: [
+          'URGENT: Performance is unacceptably slow',
+          'Consider algorithm optimization',
+          'Review constraint system efficiency',
+          'Check for infinite loops or excessive iterations'
+        ]
+      });
+    } else if (benchmark.ratio.duration > this.thresholds.duration.warning) {
+      alerts.push({
+        operation: benchmark.operation,
+        alertType: 'threshold_exceeded',
+        severity: 'high',
+        message: `Duration ratio ${benchmark.ratio.duration.toFixed(2)}x exceeds warning threshold`,
+        currentValue: benchmark.ratio.duration,
+        baselineValue: 1.0,
+        threshold: this.thresholds.duration.warning,
+        recommendations: [
+          'Performance optimization needed',
+          'Profile bottlenecks in the operation',
+          'Consider caching or memoization',
+          'Review algorithmic complexity'
+        ]
+      });
+    }
+    
+    // Check memory thresholds
+    if (benchmark.ratio.memory > this.thresholds.memory.critical) {
+      alerts.push({
+        operation: benchmark.operation,
+        alertType: 'threshold_exceeded',
+        severity: 'critical',
+        message: `Memory ratio ${benchmark.ratio.memory.toFixed(2)}x exceeds critical threshold`,
+        currentValue: benchmark.ratio.memory,
+        baselineValue: 1.0,
+        threshold: this.thresholds.memory.critical,
+        recommendations: [
+          'URGENT: Memory usage is unacceptably high',
+          'Check for memory leaks',
+          'Optimize data structures',
+          'Consider streaming or chunked processing'
+        ]
+      });
+    } else if (benchmark.ratio.memory > this.thresholds.memory.warning) {
+      alerts.push({
+        operation: benchmark.operation,
+        alertType: 'threshold_exceeded',
+        severity: 'high',
+        message: `Memory ratio ${benchmark.ratio.memory.toFixed(2)}x exceeds warning threshold`,
+        currentValue: benchmark.ratio.memory,
+        baselineValue: 1.0,
+        threshold: this.thresholds.memory.warning,
+        recommendations: [
+          'Memory optimization recommended',
+          'Review object lifecycle management',
+          'Consider more efficient data structures',
+          'Profile heap usage patterns'
+        ]
+      });
+    }
+    
+    return alerts;
+  }
+
+  async generatePerformanceReport(): Promise<void> {
+    console.log('Generating performance report...');
+    
+    const benchmarks = await this.runPerformanceBenchmarks();
+    const alerts = await this.detectPerformanceRegressions();
+    
+    const report = {
+      summary: {
+        totalOperations: benchmarks.length,
+        acceptableOperations: benchmarks.filter(b => b.acceptable).length,
+        averagePerformanceRatio: benchmarks.reduce((sum, b) => sum + b.ratio.duration, 0) / benchmarks.length,
+        alertCount: alerts.length,
+        criticalAlerts: alerts.filter(a => a.severity === 'critical').length,
+        timestamp: new Date()
+      },
+      benchmarks,
+      alerts,
+      thresholds: this.thresholds
+    };
+    
+    // Save report
+    await fs.mkdir(join(this.dataDir, 'reports'), { recursive: true });
+    await fs.writeFile(
+      join(this.dataDir, 'reports', `performance-report-${Date.now()}.json`),
+      JSON.stringify(report, null, 2)
+    );
+    
+    // Generate HTML report
+    const htmlReport = this.generateHtmlReport(report);
+    await fs.writeFile(
+      join(this.dataDir, 'reports', 'performance-report.html'),
+      htmlReport
+    );
+    
+    console.log('Performance report generated');
+  }
+
+  private generateHtmlReport(report: any): string {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Performance Monitoring Report</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            .container { max-width: 1200px; margin: 0 auto; }
+            .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+            .summary-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+            .summary-value { font-size: 2em; font-weight: bold; color: #333; }
+            .summary-label { color: #666; margin-top: 5px; }
+            .benchmark-table { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .benchmark-table table { width: 100%; border-collapse: collapse; }
+            .benchmark-table th, .benchmark-table td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+            .benchmark-table th { background: #f8f9fa; font-weight: bold; }
+            .acceptable { color: #4caf50; }
+            .warning { color: #ff9800; }
+            .critical { color: #f44336; }
+            .alert { padding: 15px; margin: 10px 0; border-radius: 5px; }
+            .alert-critical { background: #ffebee; border-left: 4px solid #f44336; }
+            .alert-high { background: #fff3e0; border-left: 4px solid #ff9800; }
+            .alert-medium { background: #f3e5f5; border-left: 4px solid #9c27b0; }
+            .chart-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Performance Monitoring Report</h1>
+                <p>Backend performance comparison and regression analysis</p>
+                <p><small>Generated: ${report.summary.timestamp}</small></p>
+            </div>
+            
+            <div class="summary">
+                <div class="summary-card">
+                    <div class="summary-value">${report.summary.totalOperations}</div>
+                    <div class="summary-label">Total Operations</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${report.summary.acceptableOperations}</div>
+                    <div class="summary-label">Acceptable Performance</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${report.summary.averagePerformanceRatio.toFixed(2)}x</div>
+                    <div class="summary-label">Average Performance Ratio</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value ${report.summary.criticalAlerts > 0 ? 'critical' : 'acceptable'}">${report.summary.alertCount}</div>
+                    <div class="summary-label">Performance Alerts</div>
+                </div>
+            </div>
+            
+            <div class="benchmark-table">
+                <h2>Performance Benchmarks</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>Duration Ratio</th>
+                            <th>Memory Ratio</th>
+                            <th>Status</th>
+                            <th>Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${report.benchmarks.map((b: PerformanceBenchmark) => `
+                        <tr>
+                            <td>${b.operation}</td>
+                            <td class="${b.ratio.duration > 3 ? 'critical' : b.ratio.duration > 2 ? 'warning' : 'acceptable'}">
+                                ${b.ratio.duration.toFixed(2)}x
+                            </td>
+                            <td class="${b.ratio.memory > 2 ? 'critical' : b.ratio.memory > 1.5 ? 'warning' : 'acceptable'}">
+                                ${b.ratio.memory.toFixed(2)}x
+                            </td>
+                            <td class="${b.acceptable ? 'acceptable' : 'critical'}">
+                                ${b.acceptable ? 'Acceptable' : 'Needs Attention'}
+                            </td>
+                            <td class="${b.trend === 'improving' ? 'acceptable' : b.trend === 'degrading' ? 'critical' : 'warning'}">
+                                ${b.trend}
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            
+            ${report.alerts.length > 0 ? `
+            <div class="alerts">
+                <h2>Performance Alerts</h2>
+                ${report.alerts.map((alert: PerformanceAlert) => `
+                <div class="alert alert-${alert.severity}">
+                    <strong>${alert.operation} - ${alert.alertType.replace('_', ' ').toUpperCase()}</strong>
+                    <p>${alert.message}</p>
+                    <p><strong>Current:</strong> ${alert.currentValue.toFixed(2)} | <strong>Baseline:</strong> ${alert.baselineValue.toFixed(2)}</p>
+                    <ul>
+                        ${alert.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                    </ul>
+                </div>
+                `).join('')}
+            </div>
+            ` : ''}
+            
+            <div class="chart-container">
+                <h2>Performance Ratio Distribution</h2>
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        
+        <script>
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ${JSON.stringify(report.benchmarks.map((b: PerformanceBenchmark) => b.operation))},
+                    datasets: [{
+                        label: 'Duration Ratio',
+                        data: ${JSON.stringify(report.benchmarks.map((b: PerformanceBenchmark) => b.ratio.duration))},
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Memory Ratio',
+                        data: ${JSON.stringify(report.benchmarks.map((b: PerformanceBenchmark) => b.ratio.memory))},
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Performance Ratio (Sparky/Snarky)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        </script>
+    </body>
+    </html>
+    `;
+  }
+
+  private getIterationsForOperation(operation: string): number {
+    const iterationMap: Record<string, number> = {
+      'field_operations': 1000,
+      'poseidon_hash': 100,
+      'ec_operations': 50,
+      'range_check': 100,
+      'lookup_table': 10,
+      'foreign_field': 50,
+      'constraint_generation': 10,
+      'vk_generation': 5,
+      'proof_generation': 1
+    };
+    
+    return iterationMap[operation] || 10;
+  }
+
+  private async loadTestModule(operation: string): Promise<any> {
+    // Mock test module for now - in real implementation, these would be actual test files
+    return {
+      async runTest(backend: 'snarky' | 'sparky') {
+        // Simulate work with different performance characteristics
+        const baseTime = Math.random() * 10 + 5; // 5-15ms base time
+        const multiplier = backend === 'sparky' ? 1.2 + Math.random() * 0.8 : 1.0; // Sparky is slower
+        
+        return new Promise(resolve => {
+          setTimeout(resolve, baseTime * multiplier);
+        });
+      }
+    };
+  }
+
+  private async getEnvironmentInfo(): Promise<any> {
+    return {
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      cpuModel: 'Unknown' // Would use os.cpus()[0].model in real implementation
+    };
+  }
+
+  private async getCurrentCommit(): Promise<string> {
+    try {
+      const { execSync } = require('child_process');
+      return execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  private async loadHistoricalData(): Promise<PerformanceBenchmark[]> {
+    try {
+      const files = await fs.readdir(join(this.dataDir, 'historical'));
+      const allData: PerformanceBenchmark[] = [];
+      
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const data = await fs.readFile(join(this.dataDir, 'historical', file), 'utf-8');
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            allData.push(...parsed);
+          }
+        }
+      }
+      
+      return allData;
+    } catch {
+      return [];
+    }
+  }
+
+  private async saveMetrics(metrics: PerformanceMetric[]): Promise<void> {
+    await fs.mkdir(join(this.dataDir, 'raw'), { recursive: true });
+    const filename = `metrics-${Date.now()}.json`;
+    await fs.writeFile(
+      join(this.dataDir, 'raw', filename),
+      JSON.stringify(metrics, null, 2)
+    );
+  }
+}
+
+// CLI interface for running performance monitoring
+export async function runPerformanceMonitoring(): Promise<void> {
+  const monitor = new PerformanceMonitoring();
+  await monitor.generatePerformanceReport();
+  console.log('Performance monitoring completed');
+}

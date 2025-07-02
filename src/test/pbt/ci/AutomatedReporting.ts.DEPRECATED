@@ -1,0 +1,704 @@
+/**
+ * Automated Reporting System for Backend Compatibility Testing
+ * 
+ * Handles:
+ * - Compatibility dashboard generation
+ * - Historical trend tracking
+ * - Regression detection and alerting
+ * - Progress toward 100% compatibility tracking
+ */
+
+import { promises as fs } from 'fs';
+import { join } from 'path';
+
+export interface CompatibilityMetrics {
+  vkParityRate: number;
+  performanceRatio: number;
+  criticalFailures: number;
+  testCoverage: number;
+  constraintAccuracy: number;
+  timestamp: Date;
+  commit: string;
+  branch: string;
+}
+
+export interface HistoricalData {
+  metrics: CompatibilityMetrics[];
+  trends: {
+    vkParityTrend: 'improving' | 'stable' | 'declining';
+    performanceTrend: 'improving' | 'stable' | 'declining';
+    overallProgress: number; // -1 to 1
+  };
+  milestones: {
+    firstVkParity?: Date;
+    fiftyPercentParity?: Date;
+    fullCompatibility?: Date;
+  };
+}
+
+export interface RegressionAlert {
+  type: 'vk_parity' | 'performance' | 'critical_failure';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  previousValue: number;
+  currentValue: number;
+  threshold: number;
+  suggestedActions: string[];
+}
+
+export class AutomatedReporting {
+  private readonly dataDir: string;
+  private readonly outputDir: string;
+  private readonly thresholds = {
+    vkParityRegression: 0.05, // 5% regression threshold
+    performanceRegression: 0.15, // 15% performance degradation threshold
+    criticalFailureIncrease: 2, // More than 2 new critical failures
+  };
+
+  constructor(dataDir: string = './historical-data', outputDir: string = './compatibility-dashboard') {
+    this.dataDir = dataDir;
+    this.outputDir = outputDir;
+  }
+
+  async generateCompatibilityReport(metrics: CompatibilityMetrics): Promise<void> {
+    console.log('Generating compatibility report...');
+    
+    // Load historical data
+    const historicalData = await this.loadHistoricalData();
+    
+    // Update historical data with new metrics
+    const updatedData = this.updateHistoricalData(historicalData, metrics);
+    
+    // Detect regressions
+    const regressions = this.detectRegressions(historicalData, metrics);
+    
+    // Generate progress analysis
+    const progressAnalysis = this.analyzeProgress(updatedData);
+    
+    // Create dashboard
+    await this.createDashboard(updatedData, regressions, progressAnalysis);
+    
+    // Generate detailed reports
+    await this.generateDetailedReports(updatedData, metrics, regressions);
+    
+    // Save updated historical data
+    await this.saveHistoricalData(updatedData);
+    
+    console.log('Compatibility report generated successfully');
+  }
+
+  private async loadHistoricalData(): Promise<HistoricalData> {
+    try {
+      const dataPath = join(this.dataDir, 'compatibility-history.json');
+      const data = await fs.readFile(dataPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      
+      // Convert timestamp strings back to Date objects
+      parsed.metrics = parsed.metrics.map((m: any) => ({
+        ...m,
+        timestamp: new Date(m.timestamp)
+      }));
+      
+      return parsed;
+    } catch (error) {
+      console.log('No historical data found, creating new dataset');
+      return {
+        metrics: [],
+        trends: {
+          vkParityTrend: 'stable',
+          performanceTrend: 'stable',
+          overallProgress: 0
+        },
+        milestones: {}
+      };
+    }
+  }
+
+  private updateHistoricalData(historical: HistoricalData, newMetrics: CompatibilityMetrics): HistoricalData {
+    const updated = { ...historical };
+    updated.metrics = [...historical.metrics, newMetrics];
+    
+    // Keep only last 100 data points to prevent unbounded growth
+    if (updated.metrics.length > 100) {
+      updated.metrics = updated.metrics.slice(-100);
+    }
+    
+    // Update trends
+    updated.trends = this.calculateTrends(updated.metrics);
+    
+    // Update milestones
+    updated.milestones = this.updateMilestones(updated.milestones, newMetrics);
+    
+    return updated;
+  }
+
+  private calculateTrends(metrics: CompatibilityMetrics[]): HistoricalData['trends'] {
+    if (metrics.length < 5) {
+      return {
+        vkParityTrend: 'stable',
+        performanceTrend: 'stable',
+        overallProgress: 0
+      };
+    }
+    
+    const recent = metrics.slice(-5);
+    const vkParitySlope = this.calculateSlope(recent.map(m => m.vkParityRate));
+    const performanceSlope = this.calculateSlope(recent.map(m => m.performanceRatio));
+    
+    // Calculate overall progress from first to last measurement
+    const firstMetric = metrics[0];
+    const lastMetric = metrics[metrics.length - 1];
+    const overallProgress = (lastMetric.vkParityRate - firstMetric.vkParityRate) / 
+                           Math.max(0.01, 1 - firstMetric.vkParityRate);
+    
+    return {
+      vkParityTrend: vkParitySlope > 0.01 ? 'improving' : 
+                     vkParitySlope < -0.01 ? 'declining' : 'stable',
+      performanceTrend: performanceSlope > 0.01 ? 'improving' : 
+                        performanceSlope < -0.01 ? 'declining' : 'stable',
+      overallProgress: Math.max(-1, Math.min(1, overallProgress))
+    };
+  }
+
+  private calculateSlope(values: number[]): number {
+    if (values.length < 2) return 0;
+    
+    const n = values.length;
+    const sumX = (n * (n - 1)) / 2;
+    const sumY = values.reduce((sum, val) => sum + val, 0);
+    const sumXY = values.reduce((sum, val, i) => sum + i * val, 0);
+    const sumX2 = (n * (n - 1) * (2 * n - 1)) / 6;
+    
+    return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  }
+
+  private updateMilestones(milestones: HistoricalData['milestones'], metrics: CompatibilityMetrics): HistoricalData['milestones'] {
+    const updated = { ...milestones };
+    
+    if (metrics.vkParityRate > 0 && !updated.firstVkParity) {
+      updated.firstVkParity = metrics.timestamp;
+    }
+    
+    if (metrics.vkParityRate >= 0.5 && !updated.fiftyPercentParity) {
+      updated.fiftyPercentParity = metrics.timestamp;
+    }
+    
+    if (metrics.vkParityRate >= 1.0 && !updated.fullCompatibility) {
+      updated.fullCompatibility = metrics.timestamp;
+    }
+    
+    return updated;
+  }
+
+  private detectRegressions(historical: HistoricalData, current: CompatibilityMetrics): RegressionAlert[] {
+    const alerts: RegressionAlert[] = [];
+    
+    if (historical.metrics.length === 0) return alerts;
+    
+    const previous = historical.metrics[historical.metrics.length - 1];
+    
+    // VK Parity regression
+    const vkParityDelta = previous.vkParityRate - current.vkParityRate;
+    if (vkParityDelta > this.thresholds.vkParityRegression) {
+      alerts.push({
+        type: 'vk_parity',
+        severity: vkParityDelta > 0.2 ? 'critical' : vkParityDelta > 0.1 ? 'high' : 'medium',
+        message: `VK parity rate decreased by ${(vkParityDelta * 100).toFixed(1)}%`,
+        previousValue: previous.vkParityRate,
+        currentValue: current.vkParityRate,
+        threshold: this.thresholds.vkParityRegression,
+        suggestedActions: [
+          'Review recent changes to constraint system',
+          'Check for changes in VK generation logic',
+          'Verify Sparky backend configuration',
+          'Run detailed VK comparison analysis'
+        ]
+      });
+    }
+    
+    // Performance regression
+    const performanceDelta = current.performanceRatio - previous.performanceRatio;
+    if (performanceDelta > this.thresholds.performanceRegression) {
+      alerts.push({
+        type: 'performance',
+        severity: performanceDelta > 0.5 ? 'critical' : performanceDelta > 0.3 ? 'high' : 'medium',
+        message: `Performance ratio increased by ${(performanceDelta * 100).toFixed(1)}% (slower)`,
+        previousValue: previous.performanceRatio,
+        currentValue: current.performanceRatio,
+        threshold: this.thresholds.performanceRegression,
+        suggestedActions: [
+          'Profile performance bottlenecks',
+          'Check for inefficient algorithms',
+          'Review memory usage patterns',
+          'Analyze compilation optimization'
+        ]
+      });
+    }
+    
+    // Critical failure increase
+    const failureDelta = current.criticalFailures - previous.criticalFailures;
+    if (failureDelta > this.thresholds.criticalFailureIncrease) {
+      alerts.push({
+        type: 'critical_failure',
+        severity: 'critical',
+        message: `Critical failures increased by ${failureDelta}`,
+        previousValue: previous.criticalFailures,
+        currentValue: current.criticalFailures,
+        threshold: this.thresholds.criticalFailureIncrease,
+        suggestedActions: [
+          'Investigate new test failures',
+          'Check for breaking changes',
+          'Review error logs for patterns',
+          'Verify test environment stability'
+        ]
+      });
+    }
+    
+    return alerts;
+  }
+
+  private analyzeProgress(data: HistoricalData): ProgressAnalysis {
+    const metrics = data.metrics;
+    if (metrics.length === 0) {
+      return {
+        currentPhase: 'initialization',
+        estimatedTimeToCompatibility: null,
+        keyBlockers: [],
+        recommendations: ['Begin VK parity testing']
+      };
+    }
+    
+    const latest = metrics[metrics.length - 1];
+    const vkParityRate = latest.vkParityRate;
+    
+    let currentPhase: ProgressAnalysis['currentPhase'];
+    if (vkParityRate >= 1.0) {
+      currentPhase = 'optimization';
+    } else if (vkParityRate >= 0.8) {
+      currentPhase = 'final_fixes';
+    } else if (vkParityRate >= 0.5) {
+      currentPhase = 'major_compatibility';
+    } else if (vkParityRate > 0) {
+      currentPhase = 'initial_compatibility';
+    } else {
+      currentPhase = 'foundation';
+    }
+    
+    const estimatedTimeToCompatibility = this.estimateTimeToCompatibility(metrics);
+    const keyBlockers = this.identifyKeyBlockers(latest);
+    const recommendations = this.generateRecommendations(currentPhase, latest, data.trends);
+    
+    return {
+      currentPhase,
+      estimatedTimeToCompatibility,
+      keyBlockers,
+      recommendations
+    };
+  }
+
+  private estimateTimeToCompatibility(metrics: CompatibilityMetrics[]): string | null {
+    if (metrics.length < 5) return null;
+    
+    const recent = metrics.slice(-10);
+    const vkParitySlope = this.calculateSlope(recent.map(m => m.vkParityRate));
+    
+    if (vkParitySlope <= 0) return 'No current progress trend';
+    
+    const latest = metrics[metrics.length - 1];
+    const remainingProgress = 1.0 - latest.vkParityRate;
+    
+    if (remainingProgress <= 0) return 'Already achieved';
+    
+    const estimatedDays = Math.ceil(remainingProgress / vkParitySlope);
+    
+    if (estimatedDays > 365) return 'More than 1 year at current rate';
+    if (estimatedDays > 30) return `Approximately ${Math.ceil(estimatedDays / 7)} weeks`;
+    return `Approximately ${estimatedDays} days`;
+  }
+
+  private identifyKeyBlockers(metrics: CompatibilityMetrics): string[] {
+    const blockers: string[] = [];
+    
+    if (metrics.vkParityRate === 0) {
+      blockers.push('No VK parity achieved - fundamental compatibility issue');
+    }
+    
+    if (metrics.criticalFailures > 5) {
+      blockers.push('High number of critical failures preventing progress');
+    }
+    
+    if (metrics.performanceRatio > 3.0) {
+      blockers.push('Severe performance degradation in Sparky backend');
+    }
+    
+    if (metrics.constraintAccuracy < 0.8) {
+      blockers.push('Constraint system accuracy below acceptable threshold');
+    }
+    
+    return blockers;
+  }
+
+  private generateRecommendations(phase: ProgressAnalysis['currentPhase'], metrics: CompatibilityMetrics, trends: HistoricalData['trends']): string[] {
+    const recommendations: string[] = [];
+    
+    switch (phase) {
+      case 'foundation':
+        recommendations.push(
+          'Focus on basic field operations compatibility',
+          'Implement missing constraint system features',
+          'Establish consistent VK generation pipeline'
+        );
+        break;
+      
+      case 'initial_compatibility':
+        recommendations.push(
+          'Identify and fix constraint count discrepancies',
+          'Implement missing optimization passes',
+          'Focus on core cryptographic primitive parity'
+        );
+        break;
+      
+      case 'major_compatibility':
+        recommendations.push(
+          'Address remaining VK generation differences',
+          'Optimize performance bottlenecks',
+          'Implement advanced features (lookup tables, etc.)'
+        );
+        break;
+      
+      case 'final_fixes':
+        recommendations.push(
+          'Fix edge cases in constraint generation',
+          'Optimize performance to match Snarky',
+          'Comprehensive testing of all features'
+        );
+        break;
+      
+      case 'optimization':
+        recommendations.push(
+          'Performance optimization and tuning',
+          'Memory usage optimization',
+          'Comprehensive benchmarking'
+        );
+        break;
+    }
+    
+    // Add trend-based recommendations
+    if (trends.vkParityTrend === 'declining') {
+      recommendations.push('URGENT: Investigate VK parity regression');
+    }
+    
+    if (trends.performanceTrend === 'declining') {
+      recommendations.push('Address performance regression issues');
+    }
+    
+    return recommendations;
+  }
+
+  private async createDashboard(data: HistoricalData, regressions: RegressionAlert[], progress: ProgressAnalysis): Promise<void> {
+    await fs.mkdir(this.outputDir, { recursive: true });
+    
+    const dashboardHtml = this.generateDashboardHtml(data, regressions, progress);
+    await fs.writeFile(join(this.outputDir, 'index.html'), dashboardHtml);
+    
+    const dashboardData = {
+      data,
+      regressions,
+      progress,
+      generatedAt: new Date().toISOString()
+    };
+    await fs.writeFile(join(this.outputDir, 'dashboard-data.json'), JSON.stringify(dashboardData, null, 2));
+  }
+
+  private generateDashboardHtml(data: HistoricalData, regressions: RegressionAlert[], progress: ProgressAnalysis): string {
+    const latest = data.metrics[data.metrics.length - 1];
+    const chartData = data.metrics.map(m => ({
+      timestamp: m.timestamp.toISOString(),
+      vkParityRate: m.vkParityRate,
+      performanceRatio: m.performanceRatio,
+      criticalFailures: m.criticalFailures
+    }));
+    
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>o1js Backend Compatibility Dashboard</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            .container { max-width: 1200px; margin: 0 auto; }
+            .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+            .metric-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .metric-value { font-size: 2em; font-weight: bold; color: #333; }
+            .metric-label { color: #666; margin-top: 5px; }
+            .chart-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .alert { padding: 15px; margin: 10px 0; border-radius: 5px; }
+            .alert-critical { background: #ffebee; border-left: 4px solid #f44336; }
+            .alert-high { background: #fff3e0; border-left: 4px solid #ff9800; }
+            .alert-medium { background: #f3e5f5; border-left: 4px solid #9c27b0; }
+            .progress-phase { font-size: 1.2em; font-weight: bold; color: #4caf50; }
+            .recommendations { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .recommendations ul { margin: 10px 0; padding-left: 20px; }
+            .trend-up { color: #4caf50; }
+            .trend-down { color: #f44336; }
+            .trend-stable { color: #ff9800; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>o1js Backend Compatibility Dashboard</h1>
+                <p>Real-time monitoring of Sparky-Snarky backend compatibility</p>
+                <p><small>Last updated: ${new Date().toLocaleString()}</small></p>
+            </div>
+            
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-value">${(latest.vkParityRate * 100).toFixed(1)}%</div>
+                    <div class="metric-label">VK Parity Rate</div>
+                    <div class="trend-${data.trends.vkParityTrend === 'improving' ? 'up' : data.trends.vkParityTrend === 'declining' ? 'down' : 'stable'}">
+                        ${data.trends.vkParityTrend}
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${latest.performanceRatio.toFixed(2)}x</div>
+                    <div class="metric-label">Performance Ratio</div>
+                    <div class="trend-${data.trends.performanceTrend === 'improving' ? 'up' : data.trends.performanceTrend === 'declining' ? 'down' : 'stable'}">
+                        ${data.trends.performanceTrend}
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${latest.criticalFailures}</div>
+                    <div class="metric-label">Critical Failures</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${(latest.testCoverage * 100).toFixed(1)}%</div>
+                    <div class="metric-label">Test Coverage</div>
+                </div>
+            </div>
+            
+            ${regressions.length > 0 ? `
+            <div class="alerts">
+                <h2>Regression Alerts</h2>
+                ${regressions.map(alert => `
+                <div class="alert alert-${alert.severity}">
+                    <strong>${alert.type.replace('_', ' ').toUpperCase()}</strong>: ${alert.message}
+                    <ul>
+                        ${alert.suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                    </ul>
+                </div>
+                `).join('')}
+            </div>
+            ` : ''}
+            
+            <div class="chart-container">
+                <h2>VK Parity Trend</h2>
+                <canvas id="vkParityChart" width="400" height="200"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2>Performance Trend</h2>
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+            
+            <div class="recommendations">
+                <h2>Current Phase: <span class="progress-phase">${progress.currentPhase.replace('_', ' ')}</span></h2>
+                ${progress.estimatedTimeToCompatibility ? `<p><strong>Estimated time to full compatibility:</strong> ${progress.estimatedTimeToCompatibility}</p>` : ''}
+                
+                ${progress.keyBlockers.length > 0 ? `
+                <h3>Key Blockers</h3>
+                <ul>
+                    ${progress.keyBlockers.map(blocker => `<li>${blocker}</li>`).join('')}
+                </ul>
+                ` : ''}
+                
+                <h3>Recommendations</h3>
+                <ul>
+                    ${progress.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            </div>
+        </div>
+        
+        <script>
+            const chartData = ${JSON.stringify(chartData)};
+            
+            // VK Parity Chart
+            const vkCtx = document.getElementById('vkParityChart').getContext('2d');
+            new Chart(vkCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.map(d => new Date(d.timestamp).toLocaleDateString()),
+                    datasets: [{
+                        label: 'VK Parity Rate',
+                        data: chartData.map(d => d.vkParityRate * 100),
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Performance Chart
+            const perfCtx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(perfCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.map(d => new Date(d.timestamp).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Performance Ratio',
+                        data: chartData.map(d => d.performanceRatio),
+                        borderColor: '#2196f3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + 'x';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+    </body>
+    </html>
+    `;
+  }
+
+  private async generateDetailedReports(data: HistoricalData, metrics: CompatibilityMetrics, regressions: RegressionAlert[]): Promise<void> {
+    // Generate JSON report for automated consumption
+    const report = {
+      summary: {
+        vkParityRate: metrics.vkParityRate,
+        performanceRatio: metrics.performanceRatio,
+        criticalFailures: metrics.criticalFailures,
+        testCoverage: metrics.testCoverage,
+        regressionCount: regressions.length,
+        timestamp: metrics.timestamp
+      },
+      trends: data.trends,
+      milestones: data.milestones,
+      regressions,
+      historicalDataPoints: data.metrics.length
+    };
+    
+    await fs.writeFile(join(this.outputDir, 'compatibility-report.json'), JSON.stringify(report, null, 2));
+    
+    // Generate Markdown report for human consumption
+    const mdReport = this.generateMarkdownReport(report, data);
+    await fs.writeFile(join(this.outputDir, 'compatibility-report.md'), mdReport);
+  }
+
+  private generateMarkdownReport(report: any, data: HistoricalData): string {
+    return `
+# Backend Compatibility Report
+
+**Generated:** ${new Date().toISOString()}  
+**Data Points:** ${report.historicalDataPoints}
+
+## Current Status
+
+- **VK Parity Rate:** ${(report.summary.vkParityRate * 100).toFixed(1)}%
+- **Performance Ratio:** ${report.summary.performanceRatio.toFixed(2)}x
+- **Critical Failures:** ${report.summary.criticalFailures}
+- **Test Coverage:** ${(report.summary.testCoverage * 100).toFixed(1)}%
+
+## Trends
+
+- **VK Parity:** ${report.trends.vkParityTrend}
+- **Performance:** ${report.trends.performanceTrend}
+- **Overall Progress:** ${(report.trends.overallProgress * 100).toFixed(1)}%
+
+## Milestones
+
+${report.milestones.firstVkParity ? `- **First VK Parity:** ${new Date(report.milestones.firstVkParity).toLocaleDateString()}` : '- **First VK Parity:** Not achieved'}
+${report.milestones.fiftyPercentParity ? `- **50% Parity:** ${new Date(report.milestones.fiftyPercentParity).toLocaleDateString()}` : '- **50% Parity:** Not achieved'}
+${report.milestones.fullCompatibility ? `- **Full Compatibility:** ${new Date(report.milestones.fullCompatibility).toLocaleDateString()}` : '- **Full Compatibility:** Not achieved'}
+
+${report.regressions.length > 0 ? `
+## Regressions Detected
+
+${report.regressions.map((r: RegressionAlert) => `
+### ${r.type.replace('_', ' ').toUpperCase()} (${r.severity})
+
+**Message:** ${r.message}  
+**Previous:** ${r.previousValue}  
+**Current:** ${r.currentValue}  
+**Threshold:** ${r.threshold}
+
+**Suggested Actions:**
+${r.suggestedActions.map((action: string) => `- ${action}`).join('\n')}
+`).join('\n')}
+` : ''}
+
+## Historical Data
+
+The dashboard contains ${data.metrics.length} historical data points spanning from ${data.metrics.length > 0 ? new Date(data.metrics[0].timestamp).toLocaleDateString() : 'N/A'} to ${data.metrics.length > 0 ? new Date(data.metrics[data.metrics.length - 1].timestamp).toLocaleDateString() : 'N/A'}.
+    `;
+  }
+
+  private async saveHistoricalData(data: HistoricalData): Promise<void> {
+    await fs.mkdir(this.dataDir, { recursive: true });
+    await fs.writeFile(join(this.dataDir, 'compatibility-history.json'), JSON.stringify(data, null, 2));
+  }
+}
+
+interface ProgressAnalysis {
+  currentPhase: 'initialization' | 'foundation' | 'initial_compatibility' | 'major_compatibility' | 'final_fixes' | 'optimization';
+  estimatedTimeToCompatibility: string | null;
+  keyBlockers: string[];
+  recommendations: string[];
+}
+
+// CLI interface for running reports
+export async function runAutomatedReporting(metricsPath?: string): Promise<void> {
+  const reporting = new AutomatedReporting();
+  
+  let metrics: CompatibilityMetrics;
+  
+  if (metricsPath) {
+    const data = await fs.readFile(metricsPath, 'utf-8');
+    metrics = JSON.parse(data);
+    metrics.timestamp = new Date(metrics.timestamp);
+  } else {
+    // Generate mock metrics for testing
+    metrics = {
+      vkParityRate: Math.random() * 0.3, // Currently low VK parity
+      performanceRatio: 1.2 + Math.random() * 0.5,
+      criticalFailures: Math.floor(Math.random() * 5),
+      testCoverage: 0.85 + Math.random() * 0.1,
+      constraintAccuracy: 0.9 + Math.random() * 0.05,
+      timestamp: new Date(),
+      commit: 'mock-commit',
+      branch: 'mock-branch'
+    };
+  }
+  
+  await reporting.generateCompatibilityReport(metrics);
+  console.log('Automated reporting completed');
+}

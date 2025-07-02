@@ -1,0 +1,98 @@
+name: Simple VK Parity Testing
+
+on:
+  push:
+    branches: [ main, develop, 'fizzixnerd/*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  vk-parity-test:
+    name: VK Parity Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run simple VK parity tests
+        run: npm run test:simple-vk-parity
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vk-parity-results
+          path: |
+            test-results/
+          retention-days: 30
+
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const fs = require('fs');
+              const report = JSON.parse(fs.readFileSync('test-results/vk-parity-report.json', 'utf8'));
+              const parityRate = (report.summary.parityRate * 100).toFixed(1);
+              const status = report.summary.parityRate === 1.0 ? '🎉' : 
+                           report.summary.parityRate > 0.5 ? '📈' : 
+                           report.summary.parityRate > 0 ? '⚠️' : '🚨';
+              
+              const body = `
+              ## ${status} VK Parity Test Results
+              
+              **Parity Rate:** ${parityRate}% (${report.summary.passing}/${report.summary.totalTests} tests)
+              **Duration:** ${report.summary.duration}ms
+              
+              ${report.blockers.length > 0 ? `
+              ### 🚨 Critical Blockers
+              ${report.blockers.map(b => `- ${b}`).join('\n')}
+              ` : ''}
+              
+              ### 🎯 Next Actions
+              ${report.nextActions.map(a => `- ${a}`).join('\n')}
+              
+              [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              console.log('Could not read test results:', error.message);
+            }
+
+      - name: Notify on breakthrough
+        if: success()
+        run: |
+          if [ -f "test-results/vk-parity-report.json" ]; then
+            PARITY_RATE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('test-results/vk-parity-report.json')).summary.parityRate)")
+            if [ $(echo "$PARITY_RATE >= 1.0" | bc -l) -eq 1 ]; then
+              echo "🎉 BREAKTHROUGH: 100% VK Parity Achieved!"
+            elif [ $(echo "$PARITY_RATE >= 0.5" | bc -l) -eq 1 ]; then
+              echo "📈 Significant VK Parity Progress: ${PARITY_RATE}%"
+            fi
+          fi

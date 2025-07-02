@@ -101,14 +101,7 @@ describe('Sparky vs Snarky Constraint Count Comparison', () => {
 
 // Helper function to count constraints
 async function countConstraints(circuit: () => void): Promise<number> {
-  // This is a simplified version - in reality we'd need to hook into
-  // the constraint system more directly
-  try {
-    await Provable.runAndCheck(circuit);
-    // For now, return a mock value since we can't easily access constraint count
-    // In a real implementation, we'd need to access internal constraint system state
-    return 1;
-  } catch (e) {
-    return -1;
-  }
+  // Use the proper constraint system API to get actual constraint counts
+  const cs = await Provable.constraintSystem(circuit);
+  return cs.gates.length;
 }

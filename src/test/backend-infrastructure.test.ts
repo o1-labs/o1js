@@ -84,12 +84,9 @@ describe('Backend Switching Infrastructure', () => {
       console.log(`   Current backend reports: ${getCurrentBackend()}`);
       console.log(`   But constraints still route through: ${stillPointsToOCaml ? 'OCaml' : 'Sparky'}`);
       
-      // Document the current broken state
-      expect(stillPointsToOCaml).toBe(true); // TODO: Should be false when fixed
-      
-      // When fixed, this should pass:
-      // expect(stillPointsToOCaml).toBe(false);
-      // expect(currentGates).not.toBe(snarkyGates);
+      // With routing fixed and optimization re-enabled
+      expect(stillPointsToOCaml).toBe(false); // Should be false with routing fixed
+      expect(currentGates).not.toBe(snarkyGates); // Gates should be updated
     });
 
     test('Sparky adapter provides required interface', async () => {
@@ -171,8 +168,8 @@ describe('Backend Switching Infrastructure', () => {
       console.log(`   Expected: Same count (routing to same system)`);
       console.log(`   Actual: Different counts (routing to different systems)`);
       
-      // Document current broken state
-      expect(constraintCountMatch).toBe(false); // TODO: Should be true when routing fixed
+      // With reduce_lincom optimization re-enabled, counts should match
+      expect(constraintCountMatch).toBe(true); // Should be true with optimization
     });
   });
 

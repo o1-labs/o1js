@@ -1,0 +1,56 @@
+# CI/CD Docker Environment for Backend Compatibility Testing
+# Provides consistent testing environment with all dependencies
+
+FROM node:18-bullseye
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust for Sparky backend
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup component add rustfmt clippy
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig*.json ./
+
+# Install Node.js dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the project
+RUN npm run build
+
+# Set environment variables for CI
+ENV CI=true
+ENV NODE_ENV=test
+ENV RUST_BACKTRACE=1
+
+# Create directories for test results
+RUN mkdir -p /workspace/test-results
+RUN mkdir -p /workspace/performance-reports
+RUN mkdir -p /workspace/historical-data
+RUN mkdir -p /workspace/compatibility-dashboard
+
+# Set up test execution script
+COPY scripts/ci/run-compatibility-tests.js /usr/local/bin/run-compatibility-tests
+RUN chmod +x /usr/local/bin/run-compatibility-tests
+
+# Health check to ensure environment is ready
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "console.log('Container healthy')" || exit 1
+
+# Default command runs quick tests
+CMD ["node", "/usr/local/bin/run-compatibility-tests"]
