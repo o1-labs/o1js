@@ -1861,6 +1861,11 @@ export function activateSparkyRouting() {
 }
 
 /**
+ * Export the routing function for debugging
+ */
+export { updateGlobalSnarkyRouting };
+
+/**
  * Set up OCaml routing (called when switching TO Snarky)
  */
 export function activateOcamlRouting(ocamlSnarky) {

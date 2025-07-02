@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-02T19:33:18.397Z",
+  "timestamp": "2025-07-02T22:11:22.391Z",
   "summary": {
     "passed": 2,
     "failed": 10,
@@ -62,7 +62,7 @@
     {
       "name": "Poseidon Hash: Real-world circuit",
       "status": "ERROR",
-      "reason": "unreachable"
+      "reason": "Cannot read properties of undefined (reading 'update')"
     }
   ]
 }

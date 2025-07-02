@@ -32,6 +32,15 @@ Essential technical documentation for o1js development with Sparky backend integ
 - **Constraint Optimization**: Re-enabled `reduce_lincom` optimization - significantly reduces constraint counts
 - **Performance**: Constraint counts reduced: multiplication 4→2, addition 2→0, boolean 4→2
 
+### 🔧 reduce_lincom Fix (July 2025)
+- **Problem**: Sparky had `reduce_to_v` function that doesn't exist in Snarky, creating unnecessary intermediate variables
+- **Solution**: Removed `reduce_to_v` entirely - now passes complex Cvars directly like Snarky does
+- **Fixed constraint iteration bug**: Gate conversion no longer modifies constraint system during iteration
+- **Results**: 
+  - ✅ Constant folding: Both backends generate 0 constraints
+  - ✅ Multiplication by constant: Both backends generate 1 constraint  
+  - 🚧 Linear combinations still need optimization for full parity
+
 ## Essential Commands
 
 ### Building

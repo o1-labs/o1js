@@ -128,13 +128,48 @@ export function getCurrentBackend() {
   return activeBackend;
 }
 
-export {
-  Snarky,
-  Ledger,
-  Pickles,
-  Test,
-  withThreadPool,
-  wasm,
-  initializeBindings,
-  isInitialized as areBindingsInitialized,
-};
+// SMART PROXY SOLUTION: Create dynamic proxies that route to current backend
+// This provides backward compatibility while enabling dynamic backend switching
+
+function createBackendProxy(getBackend) {
+  return new Proxy({}, {
+    get(target, prop) {
+      const currentBackend = getBackend();
+      if (currentBackend && typeof currentBackend[prop] !== 'undefined') {
+        const value = currentBackend[prop];
+        return typeof value === 'function' ? value.bind(currentBackend) : value;
+      }
+      return undefined;
+    },
+    has(target, prop) {
+      const currentBackend = getBackend();
+      return currentBackend && prop in currentBackend;
+    },
+    ownKeys(target) {
+      const currentBackend = getBackend();
+      return currentBackend ? Object.keys(currentBackend) : [];
+    }
+  });
+}
+
+// DYNAMIC PROXY EXPORTS: These automatically route to the current backend
+const SnarkyProxy = createBackendProxy(() => Snarky);
+const LedgerProxy = createBackendProxy(() => Ledger);
+const PicklesProxy = createBackendProxy(() => Pickles);
+const TestProxy = createBackendProxy(() => Test);
+
+// EXPORTS: Both static and dynamic versions
+export { SnarkyProxy as Snarky };
+export { LedgerProxy as Ledger };
+export { PicklesProxy as Pickles };
+export { TestProxy as Test };
+
+// FUNCTION EXPORTS: These don't change between backends
+export { withThreadPool, wasm, initializeBindings };
+export { isInitialized as areBindingsInitialized };
+
+// CONVENIENCE GETTERS: Alternative access methods
+export function getSnarky() { return Snarky; }
+export function getLedger() { return Ledger; }
+export function getPickles() { return Pickles; }
+export function getTest() { return Test; }

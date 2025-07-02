@@ -58,9 +58,9 @@ describe('Backend Switching Infrastructure', () => {
     test('globalThis.__snarky initialization', async () => {
       await switchBackend('snarky');
       
-      expect(globalThis.__snarky).toBeDefined();
-      expect(globalThis.__snarky.gates).toBeDefined();
-      expect(typeof globalThis.__snarky.gates.generic).toBe('function');
+      expect((globalThis as any).__snarky).toBeDefined();
+      expect((globalThis as any).__snarky.gates).toBeDefined();
+      expect(typeof (globalThis as any).__snarky.gates.generic).toBe('function');
       
       console.log('✅ globalThis.__snarky properly initialized with Snarky');
     });
@@ -68,12 +68,12 @@ describe('Backend Switching Infrastructure', () => {
     test('CRITICAL: globalThis.__snarky update on backend switch', async () => {
       // Start with Snarky - get reference to OCaml gates
       await switchBackend('snarky');
-      const snarkyGates = globalThis.__snarky?.gates;
+      const snarkyGates = (globalThis as any).__snarky?.gates;
       expect(snarkyGates).toBeDefined();
       
       // Switch to Sparky
       await switchBackend('sparky');
-      const currentGates = globalThis.__snarky?.gates;
+      const currentGates = (globalThis as any).__snarky?.gates;
       
       // CRITICAL BUG: globalThis.__snarky should be updated to point to Sparky adapter
       // but it still points to the original OCaml implementation
@@ -118,7 +118,7 @@ describe('Backend Switching Infrastructure', () => {
         const y = x.mul(x); // This should generate constraints through correct backend
         snarkyConstraintsCaptured = true;
       } catch (error) {
-        console.error('Error generating constraints with Snarky:', error.message);
+        console.error('Error generating constraints with Snarky:', (error as Error).message);
       }
       
       // Test with Sparky - will fail to capture constraints properly
@@ -131,7 +131,7 @@ describe('Backend Switching Infrastructure', () => {
         const y = x.mul(x); // This will route through OCaml due to globalThis.__snarky bug
         sparkyConstraintsCaptured = true;
       } catch (error) {
-        console.error('Error generating constraints with Sparky:', error.message);
+        console.error('Error generating constraints with Sparky:', (error as Error).message);
       }
       
       expect(snarkyConstraintsCaptured).toBe(true);
@@ -239,14 +239,14 @@ describe('Backend Switching Infrastructure', () => {
         await switchBackend('snarky');
         diagnostics.backendSwitching = getCurrentBackend() === 'snarky';
       } catch (error) {
-        console.error('Backend switching failed:', error.message);
+        console.error('Backend switching failed:', (error as Error).message);
       }
 
       // Test global state management
       await switchBackend('snarky');
-      const snarkyGates = globalThis.__snarky?.gates;
+      const snarkyGates = (globalThis as any).__snarky?.gates;
       await switchBackend('sparky');
-      const afterSwitchGates = globalThis.__snarky?.gates;
+      const afterSwitchGates = (globalThis as any).__snarky?.gates;
       
       // This should fail - gates should be different but aren't
       diagnostics.globalStateManagement = afterSwitchGates !== snarkyGates;
@@ -256,7 +256,7 @@ describe('Backend Switching Infrastructure', () => {
         const { Snarky: SparkySnarky } = await import('../bindings/sparky-adapter.js');
         diagnostics.sparkySnarkyInterface = !!SparkySnarky?.gates?.generic;
       } catch (error) {
-        console.error('Sparky interface check failed:', error.message);
+        console.error('Sparky interface check failed:', (error as Error).message);
       }
 
       // Test constraint routing (simplified)
@@ -273,7 +273,7 @@ describe('Backend Switching Infrastructure', () => {
         // Should be same constraint count, but likely isn't due to routing bug
         diagnostics.constraintRouting = snarkyCS.gates.length === sparkyCS.gates.length;
       } catch (error) {
-        console.error('Constraint routing test failed:', error.message);
+        console.error('Constraint routing test failed:', (error as Error).message);
       }
 
       diagnostics.overallHealth = Object.values(diagnostics).every(Boolean);
