@@ -38,6 +38,18 @@ async function initializeBindings(backend = null) {
     if (backend === 'sparky') {
       // Load Sparky adapter that implements Snarky interface
       console.log('Loading Sparky backend...');
+      
+      // CRITICAL: First load OCaml bindings to ensure ocamlBackendBridge is set up
+      // This is needed because Sparky field operations route through OCaml
+      let snarkyOcaml;
+      CJS: if (typeof require !== 'undefined') {
+        snarkyOcaml = require('./bindings/compiled/_node_bindings/o1js_node.bc.cjs');
+      }
+      ESM: snarkyOcaml = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
+      
+      // The OCaml module initialization sets up globalThis.ocamlBackendBridge
+      console.log('OCaml backend bridge initialized:', !!globalThis.ocamlBackendBridge);
+      
       const sparkyAdapter = await import('./bindings/sparky-adapter.js');
       
       // Initialize Sparky WASM
@@ -48,6 +60,13 @@ async function initializeBindings(backend = null) {
     } else {
       // Load OCaml Snarky (default)
       console.log('Loading Snarky backend...');
+      
+      // Reset Sparky state if switching from Sparky to Snarky
+      if (activeBackend === 'sparky') {
+        const sparkyAdapter = await import('./bindings/sparky-adapter.js');
+        sparkyAdapter.resetSparkyBackend();
+      }
+      
       let snarky;
       
       // this dynamic import makes jest respect the import order

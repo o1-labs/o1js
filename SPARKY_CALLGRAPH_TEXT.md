@@ -1,5 +1,15 @@
 # Sparky Call Graph - Text Version
 
+**Last Updated**: July 1, 2025
+
+## Recent Updates
+
+### OCaml → JavaScript Bridge Implementation (July 1, 2025)
+- Added `Field_bridge` module in `pickles_bindings.ml` for OCaml→JS field operations
+- Registered functions in `globalThis.ocamlBackendBridge` for backend routing
+- Added field conversion helpers in `sparky-adapter.js`
+- See DEV.md Phase 4 for complete details
+
 ## WASM Entry Points → Call Hierarchies
 
 ### Field Operations
@@ -507,3 +517,138 @@ fieldAssertEqual
 - Verify constraintMode() is active during circuit compilation
 - Check if linear_combination is building correct expressions
 - Compare Snarky vs Sparky constraint construction for identical operations
+
+## OCaml → JavaScript Bridge Architecture (July 1, 2025)
+
+### Overview
+The OCaml → JavaScript bridge allows OCaml Pickles code to call JavaScript field operations when Sparky backend is active.
+
+### Bridge Components
+
+#### OCaml Side (pickles_bindings.ml)
+```
+Field_bridge module
+├── field_to_js / field_of_js (field conversions)
+├── constant_to_js / constant_of_js (constant conversions)
+├── add_callback → backend_field_add → Field.add
+├── mul_callback → backend_field_mul → Field.mul + assert_r1cs
+├── sub_callback → backend_field_sub → Field.scale(-1) + Field.add
+├── scale_callback → backend_field_scale → Field.scale
+├── assert_equal_callback → backend_assert → Constraint.equal
+├── assert_mul_callback → backend_assert → Constraint.r1cs
+└── assert_square_callback → backend_assert → Constraint.square
+```
+
+#### JavaScript Side (sparky-adapter.js)
+```
+globalThis.__snarky.Snarky
+├── fieldFromOcaml (identity function for Sparky)
+├── fieldToOcaml (identity function for Sparky)
+├── constantFromOcaml (converts numbers/bigints to Fp)
+└── constantToOcaml (identity function for Sparky)
+```
+
+#### Global Registration
+```
+globalThis.ocamlBackendBridge
+├── fieldAdd
+├── fieldMul
+├── fieldSub
+├── fieldScale
+├── fieldAssertEqual
+├── fieldAssertMul
+├── fieldAssertSquare
+└── isActiveSparkyBackend
+```
+
+### Call Flow Example
+```
+JavaScript zkProgram execution
+→ OCaml Pickles compilation
+→ Field_bridge.mul_callback invoked
+→ Checks is_sparky_active()
+→ If true: Routes to FFI_backend
+→ FFI_backend calls JavaScript Sparky methods
+→ Returns result to OCaml
+→ OCaml continues compilation with Sparky constraints
+```
+
+## Phase 3: First-Class Modules Architecture (July 1, 2025)
+
+### Overview
+Phase 3 implements first-class modules support for dynamic backend selection, allowing runtime switching between Snarky and Sparky while maintaining API compatibility.
+
+### Architecture Components
+
+#### New Module Types
+```ocaml
+PICKLES_S - Complete Pickles module signature
+├── Statement_with_proof = Pickles.Statement_with_proof
+├── Side_loaded = Pickles.Side_loaded  
+├── Tag = Pickles.Tag
+├── Verification_key = Pickles.Verification_key
+├── Proof = Pickles.Proof
+├── Provers = Pickles.Provers
+├── Inductive_rule = Pickles.Inductive_rule
+├── compile_promise : <complex_signature>
+└── verify_promise : <statement_list> -> unit Or_error.t Promise.t
+```
+
+#### First-Class Module Functions
+```ocaml
+create_pickles_with_backend : Js.Unsafe.any -> (module PICKLES_S)
+├── Input: JavaScript backend object
+├── Output: First-class Pickles module
+└── Current: Returns standard Pickles (future: custom backend)
+
+create_snarky_js_wrapper : unit -> Js.Unsafe.any
+├── Creates JavaScript wrapper for OCaml Snarky
+├── Exports all backend operations to JavaScript
+├── Field ops: fieldConstantOfInt, fieldTyp, fieldScale, fieldAdd
+├── Constraint ops: constraintEqual, constraintR1CS, constraintSquare  
+├── Type ops: typUnit, typArray, typTuple2, typTransport, typProverValue
+├── Core ops: exists, assert
+├── Prover ops: asProverReadVar
+└── Internal ops: checkedReturn
+
+get_current_pickles : unit -> (module PICKLES_S)
+├── Checks is_sparky_active()
+├── Returns appropriate Pickles module
+└── Future: Will return Sparky-based Pickles
+```
+
+#### Updated Compilation Flow
+```
+pickles_compile
+├── Get current Pickles module: let (module CurrentPickles : PICKLES_S) = get_current_pickles ()
+├── Use dynamic module: CurrentPickles.compile_promise
+├── Update verify function: CurrentPickles.Proof.t
+├── Update get_vk function: CurrentPickles.Side_loaded.Verification_key
+└── Maintain full backward compatibility
+```
+
+#### JavaScript Exports
+```javascript
+pickles.createPicklesWithBackend - Create Pickles with custom backend
+pickles.createSnarkyJsWrapper - Get JS wrapper for OCaml Snarky  
+pickles.getCurrentPickles - Returns "snarky" or "sparky" string
+```
+
+### Backend Selection Strategy
+```
+Runtime Check → get_current_pickles() → Dynamic Module Selection
+├── is_sparky_active() = true → Future: Sparky-based Pickles
+└── is_sparky_active() = false → Standard Snarky-based Pickles
+```
+
+### Implementation Benefits
+1. **API Compatibility**: Existing code continues to work unchanged
+2. **Runtime Selection**: Backend choice made at execution time
+3. **Type Safety**: First-class modules preserve type information
+4. **Extensibility**: Easy to add new backends in the future
+5. **Performance**: No overhead when not switching backends
+
+### Status
+✅ Phase 3 Complete - Infrastructure for backend switching implemented
+🔄 Next: Create actual Sparky-based Pickles module
+📋 Future: Performance benchmarking and optimization

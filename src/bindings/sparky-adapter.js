@@ -449,18 +449,24 @@ export const Snarky = {
     },
     
     assertEqual(x, y) {
-      // Pass FieldVar arrays directly - WASM will handle conversion
-      getFieldModule().assertEqual(x, y);
+      if (!globalThis.ocamlBackendBridge) {
+        throw new Error('OCaml backend bridge not initialized - this should never happen');
+      }
+      return globalThis.ocamlBackendBridge.fieldAssertEqual(x, y);
     },
     
     assertMul(x, y, z) {
-      // Pass FieldVar arrays directly - WASM will handle conversion
-      getFieldModule().assertMul(x, y, z);
+      if (!globalThis.ocamlBackendBridge) {
+        throw new Error('OCaml backend bridge not initialized - this should never happen');
+      }
+      return globalThis.ocamlBackendBridge.fieldAssertMul(x, y, z);
     },
     
     assertSquare(x, y) {
-      // Pass FieldVar arrays directly - WASM will handle conversion
-      getFieldModule().assertSquare(x, y);
+      if (!globalThis.ocamlBackendBridge) {
+        throw new Error('OCaml backend bridge not initialized - this should never happen');
+      }
+      return globalThis.ocamlBackendBridge.fieldAssertSquare(x, y);
     },
     
     assertBoolean(x) {
@@ -470,21 +476,31 @@ export const Snarky = {
     
     // CRITICAL: Field arithmetic operations that generate constraints
     add(x, y) {
-      // Use Sparky's fieldAdd to create addition constraint
-      const result = getFieldModule().add(x, y);
-      return Array.isArray(result) ? result : cvarToFieldVar(result);
+      if (!globalThis.ocamlBackendBridge) {
+        throw new Error('OCaml backend bridge not initialized - this should never happen');
+      }
+      return globalThis.ocamlBackendBridge.fieldAdd(x, y);
     },
     
     mul(x, y) {
-      // Use Sparky's fieldMul to create multiplication constraint
-      const result = getFieldModule().mul(x, y);
-      return Array.isArray(result) ? result : cvarToFieldVar(result);
+      if (!globalThis.ocamlBackendBridge) {
+        throw new Error('OCaml backend bridge not initialized - this should never happen');
+      }
+      return globalThis.ocamlBackendBridge.fieldMul(x, y);
     },
     
     sub(x, y) {
-      // Use Sparky's fieldSub to create subtraction constraint
-      const result = getFieldModule().sub(x, y);
-      return Array.isArray(result) ? result : cvarToFieldVar(result);
+      if (!globalThis.ocamlBackendBridge) {
+        throw new Error('OCaml backend bridge not initialized - this should never happen');
+      }
+      return globalThis.ocamlBackendBridge.fieldSub(x, y);
+    },
+    
+    scale(scalar, x) {
+      if (!globalThis.ocamlBackendBridge) {
+        throw new Error('OCaml backend bridge not initialized - this should never happen');
+      }
+      return globalThis.ocamlBackendBridge.fieldScale(scalar, x);
     },
     
     square(x) {
@@ -1133,6 +1149,38 @@ export const Snarky = {
         throw new Error('poseidon.sponge.squeeze not yet implemented in Sparky adapter');
       }
     }
+  },
+  
+  /**
+   * Field conversion functions for OCaml bridge
+   * These handle conversion between OCaml and JavaScript field representations
+   */
+  fieldFromOcaml(ocamlField) {
+    // When using Sparky backend, OCaml fields are already JavaScript objects
+    // This is called when switching from Snarky to Sparky
+    return ocamlField;
+  },
+  
+  fieldToOcaml(jsField) {
+    // When using Sparky backend, JavaScript fields are already in the right format
+    // This is called when switching from Sparky to Snarky
+    return jsField;
+  },
+  
+  constantFromOcaml(ocamlConstant) {
+    // Convert OCaml constant to JavaScript representation
+    // OCaml constants might be passed as various types
+    if (typeof ocamlConstant === 'number' || typeof ocamlConstant === 'bigint') {
+      return Fp(ocamlConstant);
+    }
+    // Already a field constant
+    return ocamlConstant;
+  },
+  
+  constantToOcaml(jsConstant) {
+    // Convert JavaScript constant to OCaml representation
+    // For Sparky, constants are already in the right format
+    return jsConstant;
   }
 };
 
@@ -1181,9 +1229,12 @@ function startConstraintAccumulation() {
   accumulatedConstraints = [];
   console.log('[JS DEBUG] Constraint accumulation started');
   
-  // CRITICAL: Ensure Sparky is in constraint mode for constraint generation
-  console.log('[JS DEBUG] Setting Sparky to constraint mode for compilation');
-  getRunModule().constraintMode();
+  // CRITICAL: Enter constraint system context and keep handle
+  console.log('[JS DEBUG] Entering constraint system context');
+  if (!globalThis.__sparkyConstraintHandle) {
+    globalThis.__sparkyConstraintHandle = getRunModule().enterConstraintSystem();
+    console.log('[JS DEBUG] Entered constraint system context');
+  }
   
   // DON'T reset Sparky state - this might clear constraint differences!
   // Let constraints accumulate across the compilation process
@@ -1270,6 +1321,17 @@ function endConstraintAccumulation() {
   isCompilingCircuit = false;
   accumulatedConstraints = [];
   
+  // Exit constraint system context if we have a handle
+  if (globalThis.__sparkyConstraintHandle) {
+    try {
+      globalThis.__sparkyConstraintHandle.exit();
+      console.log('[JS DEBUG] Exited constraint system context');
+      globalThis.__sparkyConstraintHandle = null;
+    } catch (error) {
+      console.warn('[JS DEBUG] Error exiting constraint system:', error);
+    }
+  }
+  
   // Reset Sparky state to start fresh for next program
   if (sparkyInstance && sparkyInstance.runReset) {
     try {
@@ -1326,6 +1388,23 @@ export let Test = new Proxy({}, {
     return TestOCaml[prop];
   }
 });
+
+/**
+ * Reset Sparky state when switching to another backend
+ */
+export function resetSparkyBackend() {
+  console.log('[JS DEBUG] Resetting Sparky backend state');
+  sparkyInstance = null;
+  initialized = false;
+  initPromise = null;
+  isCompilingCircuit = false;
+}
+
+// Set up global __snarky object for OCaml bridge
+if (typeof globalThis !== 'undefined') {
+  globalThis.__snarky = globalThis.__snarky || {};
+  globalThis.__snarky.Snarky = Snarky;
+}
 
 // Export default for compatibility
 export default {

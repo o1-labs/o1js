@@ -2,8 +2,8 @@
  * Test Sparky backend with a simple proof system
  */
 
-import { Field, Provable, ZkProgram, verify } from './dist/node/index.js';
-import { switchBackend, getCurrentBackend } from './dist/node/bindings.js';
+import { Field, Provable, ZkProgram } from '../../../dist/node/index.js';
+import { switchBackend, getCurrentBackend } from '../../../dist/node/bindings.js';
 
 // Simple program that squares a number
 const Square = ZkProgram({
@@ -46,14 +46,14 @@ async function testWithBackend(backend) {
     
     console.log('3. Verifying proof...');
     const startVerify = Date.now();
-    const ok = await verify(proof, Square.verificationKey);
+    const ok = await Square.verify(proof.proof);
     const verifyTime = Date.now() - startVerify;
     console.log(`   ✓ Verification ${ok ? 'passed' : 'failed'} in ${verifyTime}ms`);
     
     console.log('4. Testing with invalid input...');
     try {
       const wrongX = Field(4);
-      await Square.compute(publicInput, wrongX); // Should fail: 4^2 != 9
+      const badProof = await Square.compute(publicInput, wrongX); // Should fail: 4^2 != 9
       console.log('   ✗ Should have failed but didn\'t!');
     } catch (error) {
       console.log('   ✓ Correctly rejected invalid proof');
