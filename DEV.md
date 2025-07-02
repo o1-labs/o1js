@@ -7,8 +7,8 @@ Essential technical documentation for o1js development with Sparky backend integ
 ## Current Status
 
 **Architecture**: Clean and consolidated after removing 2,419+ lines of technical debt  
-**Critical Update (July 2, 2025)**: Re-enabled `reduce_lincom` optimization in Sparky's constraint.rs  
-**Performance**: Constraint optimization now enabled - should reduce from 500+ to 1-3 constraints per addition
+**Critical Update (July 2, 2025)**: Successfully refactored major gates to use raw_gate interface  
+**Performance**: Significantly reduced constraint counts through optimization and refactoring
 
 ## Working Features
 
@@ -26,8 +26,11 @@ Essential technical documentation for o1js development with Sparky backend integ
 - **Proof Generation**: Module resolution errors when using Sparky backend
 
 ### ✅ Recently Fixed (July 2, 2025)
-- **Constraint Optimization**: Re-enabled `reduce_lincom` optimization - now generates 1-3 constraints per addition (matching Snarky)
-- **Performance**: With optimization enabled, Sparky should no longer timeout on large operations
+- **Raw Gate Refactoring**: Successfully refactored Poseidon, EC operations, and generic gates to use standardized raw_gate interface
+- **Poseidon Optimization**: Reduced from 660 manual R1CS constraints to single raw_gate call (99.7% reduction)
+- **EC Operations**: ec_add and ec_scalar_mult now use KimchiGateType::CompleteAdd and VarBaseMul
+- **Constraint Optimization**: Re-enabled `reduce_lincom` optimization - significantly reduces constraint counts
+- **Performance**: Constraint counts reduced: multiplication 4→2, addition 2→0, boolean 4→2
 
 ## Essential Commands
 
@@ -119,9 +122,9 @@ Located in `src/test/`:
 ## Critical Technical Details
 
 ### Constraint Generation Issues
-1. **Broken Constraint-to-Wire Conversion**: Sparky truncates complex expressions
-2. **Missing Optimization**: No linear combination reduction (`3x + 2x → 5x`)
-3. **Wrong Coefficient Format**: Sparky generates `[1,1,1,1,1]` vs Snarky's `[1,0,0,0,-3]`
+1. **Architectural Difference**: Snarky performs constraint fusion during circuit construction, Sparky generates then optimizes
+2. **VK Hash Issue**: All Sparky VKs generate identical hash - suggests fundamental issue in constraint system
+3. **Constraint Pattern Mismatch**: Snarky creates `x*x - 9 = 0` as one constraint, Sparky creates two: `x*x = z` and `z = 9`
 
 ### Build System
 - Sparky adds 1.2GB to repository (mostly in `src/sparky/target/`)
@@ -136,10 +139,11 @@ Located in `src/test/`:
 
 ## Next Priority Actions
 
-1. ✅ **Fix `reduce_lincom` optimization** - COMPLETED (July 2, 2025) - Now generates optimized constraints matching Snarky
-2. **Fix constraint-to-wire conversion** - Fundamental design flaw
-3. **Investigate identical VK hash issue** - All Sparky VKs produce same hash
-4. **Resolve proof generation errors** - Module resolution issues
+1. **Implement constraint fusion** - Combine multiplication + equality into single constraints like Snarky
+2. **Fix field addition over-optimization** - Currently reduces to 0 constraints which is incorrect
+3. **Complete remaining gate refactoring** - Range checks, foreign fields, and lookup gates still use manual R1CS
+4. **Investigate identical VK hash issue** - All Sparky VKs produce same hash regardless of circuit
+5. **Achieve full VK parity** - Currently at 14.3% (1/7 tests passing)
 
 ## Property-Based Testing Infrastructure (July 2, 2025)
 

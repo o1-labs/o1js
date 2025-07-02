@@ -48,8 +48,18 @@ function mockBackendOperation(field, operation, backend) {
     'sparky': 'SPARKY_IDENTICAL_HASH_BUG'  // Critical issue
   };
 
+  // Mock the operation result properly
+  let result;
+  if (operation === 'add' || operation === 'mul') {
+    // For binary operations, we need another field
+    const other = new MockField(Math.floor(Math.random() * 100));
+    result = field[operation] ? field[operation](other) : field;
+  } else {
+    result = field[operation] ? field[operation]() : field;
+  }
+
   return {
-    result: field[operation] ? field[operation]() : field,
+    result: result,
     constraintCount: constraintCounts[backend][operation] || 1,
     vkHash: vkHashes[backend],
     backend: backend

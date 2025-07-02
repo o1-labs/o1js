@@ -6,12 +6,15 @@
 
 import { Field, ZkProgram, verify } from '../../../dist/node/index.js';
 import { SimplePbtReporter, VkParityResult } from './simple-pbt-reporter.js';
+import { VkParityTracker } from './vk-parity-tracker.js';
 
 export class SimpleVkParityTest {
   private reporter: SimplePbtReporter;
+  private tracker: VkParityTracker;
 
   constructor() {
     this.reporter = new SimplePbtReporter();
+    this.tracker = new VkParityTracker();
   }
 
   async runAllTests(): Promise<void> {
@@ -35,7 +38,17 @@ export class SimpleVkParityTest {
     results.push(await this.testConditionalLogic());
     
     // Generate report
-    await this.reporter.generateReport(results);
+    const summary = await this.reporter.generateReport(results);
+    
+    // Track progress
+    await this.tracker.recordProgress({
+      parityRate: summary.parityRate,
+      totalTests: summary.totalTests,
+      passingTests: summary.passing,
+      failingTests: summary.failing,
+      duration: summary.duration,
+      criticalBlockers: this.identifyBlockers(results)
+    });
     
     // Exit with appropriate code
     const passing = results.filter(r => r.matches).length;
@@ -321,10 +334,35 @@ export class SimpleVkParityTest {
       return 'hash-error';
     }
   }
+
+  private identifyBlockers(results: VkParityResult[]): string[] {
+    const blockers: string[] = [];
+    
+    // Check for the critical VK hash issue
+    const failingResults = results.filter(r => !r.matches);
+    const identicalHashes = failingResults.filter(r => 
+      r.sparkyVkHash === r.snarkyVkHash && r.sparkyVkHash !== 'error'
+    );
+    
+    if (identicalHashes.length > 0) {
+      blockers.push('Multiple Sparky VKs generate identical hashes - VK generation broken');
+    }
+    
+    if (results.length === 0) {
+      blockers.push('No test results - test suite may not be running');
+    }
+    
+    const errorCount = results.filter(r => r.error).length;
+    if (errorCount > results.length * 0.5) {
+      blockers.push(`High error rate: ${errorCount}/${results.length} tests failing with errors`);
+    }
+    
+    return blockers;
+  }
 }
 
-// CLI interface
-if (require.main === module) {
+// CLI interface for ES modules
+if (import.meta.url === `file://${process.argv[1]}`) {
   const test = new SimpleVkParityTest();
   test.runAllTests().catch(console.error);
 }
