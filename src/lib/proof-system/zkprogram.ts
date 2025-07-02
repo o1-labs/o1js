@@ -244,7 +244,6 @@ function ZkProgram<
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
-    numChunks?: number;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;

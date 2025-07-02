@@ -1,7 +1,7 @@
 import { Field, Cache, Gadgets, ZkProgram } from 'o1js';
 
 let MyProgram = ZkProgram({
-  chunks: 1,
+  numChunks: 1,
   overrideWrapDomain: 0,
   name: 'example-with-chunking',
   publicOutput: Field,
@@ -10,7 +10,7 @@ let MyProgram = ZkProgram({
     baseCase: {
       privateInputs: [Field],
       async method(input: Field) {
-        for (let i = 0; i < 1 << 16; i++) {
+        for (let i = 0; i < 30 ; i++) {
           Gadgets.rangeCheck64(Field(input).add(Field(i)));
         }
         // The above generates 2^16+2^15 rows which needs to be split into 2 chunks

@@ -1,6 +1,6 @@
-import { Snarky, initializeBindings } from '../../snarky.js';
+import { Snarky, initializeBindings, withThreadPool } from '../../bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
-import { withThreadPool } from '../../snarky.js';
+import {  } from '../../bindings.js';
 import { Provable } from '../provable/provable.js';
 import { snarkContext, gatesFromJson } from '../provable/core/provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
@@ -24,6 +24,7 @@ type ZkFunctionConfig = {
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {
     main: (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => void;
+    numChunks?: number;
   }
 ) {
   const publicInputType = provablePure(config.publicInputType);
@@ -47,7 +48,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
       await initializeBindings();
       _keypair = await prettifyStacktracePromise(
         withThreadPool(async () => {
-          let keypair = Snarky.circuit.compile(main, publicInputSize);
+          let keypair = Snarky.circuit.compile(main, publicInputSize, config.numChunks ?? 1);
           return new Keypair(keypair);
         })
       );

@@ -384,7 +384,7 @@ module Circuit = struct
       main'
   end
 
-  let compile main public_input_size =
+  let compile main public_input_size _num_chunks =
     let input_typ = typ public_input_size in
     let return_typ = Impl.Typ.unit in
     let cs = Impl.constraint_system ~input_typ ~return_typ (Main.of_js main) in
