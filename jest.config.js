@@ -2,7 +2,7 @@ export default {
   preset: 'ts-jest/presets/js-with-ts',
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
-  transformIgnorePatterns: ['node_modules/', 'dist/node/'],
+  transformIgnorePatterns: ['node_modules/'],
   modulePathIgnorePatterns: ['src/mina/'],
   globals: {
     'ts-jest': {

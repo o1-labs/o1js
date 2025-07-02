@@ -1,8 +1,81 @@
 # o1js Development Documentation
 
-**Last Updated**: July 1, 2025
+**Last Updated**: July 2, 2025
 
 This document consolidates all technical documentation for o1js development, including backend switching, Sparky integration, security issues, and implementation status.
+
+## 🆕 Test Suite Consolidation & VK Parity Framework (July 2, 2025)
+
+### Major Test Cleanup Completed ✅
+
+**What was done**:
+1. **Cleaned up 93 floating test files** - deleted 89 redundant files (95.7% reduction)
+2. **Preserved 4 key diagnostic files** in `test-archive/` for reference
+3. **Built comprehensive test framework** in `src/test/` with systematic VK parity testing
+4. **Fixed Jest configuration** for TypeScript ESM module resolution
+5. **Created new npm test scripts** for organized test execution
+
+**New Test Framework Structure**:
+```
+src/test/
+├── framework/
+│   └── backend-test-framework.ts     # Systematic testing utilities
+├── vk-parity-comprehensive.test.ts   # Complete VK generation testing
+├── backend-infrastructure.test.ts    # Backend switching & routing tests  
+└── constraint-system-analysis.test.ts # Deep constraint analysis
+```
+
+**Test Scripts Added**:
+- `npm run test:vk-parity` - Comprehensive VK parity testing
+- `npm run test:backend-infrastructure` - Backend switching and routing tests
+- `npm run test:constraint-analysis` - Constraint system deep analysis
+- `npm run test:framework` - Run entire consolidated test framework
+
+### Current VK Parity Status: 14.3% Success Rate ⚠️
+
+**Test Results** (from `npm run test:framework`):
+- **Total tests**: 7 
+- **Passing**: 1 ✅ (Addition program achieves VK parity!)
+- **Failing**: 6 ❌ 
+- **Success rate**: 14.3%
+
+**Critical Issues Identified**:
+1. **Constraint Routing Bug**: `globalThis.__snarky` not updated when switching to Sparky
+2. **Constraint Count Inflation**: 
+   - Field multiplication: Snarky 1 → Sparky 4 constraints (300% inflation)
+   - Complex expressions: Snarky 2 → Sparky 6 constraints (200% inflation)
+3. **VK Hash Mismatches**: Different backends generating different VKs for same circuits
+4. **Sparky Internal Error**: "fundamental design flaw in constraint-to-wire conversion process"
+
+**Unexpected Discovery**: Some VK parity already works for simple operations, indicating the infrastructure is partially functional.
+
+## 🆕 Backend Switching & VK Parity Investigation (July 2, 2025)
+
+### Current Status: Infrastructure and Optimization Issues
+
+**Primary Issue**: Constraint routing bug where `globalThis.__snarky` is not updated when switching to Sparky backend, causing all constraints to route through OCaml regardless of backend selection.
+
+**Secondary Issues**:
+1. **Missing `reduce_lincom` Optimization**: Sparky lacks the linear combination optimization that Snarky uses
+2. **Constraint Count Inflation**: Sparky generates 2-4x more constraints than Snarky for identical operations
+3. **Coefficient Generation Differences**: Different algorithms producing different gate coefficients
+
+**Technical Clarification** ⚠️: 
+- **Kimchi Wire Architecture**: Kimchi constraint system supports **15 wires per row** (confirmed in `constraint.rs:83`)
+- **Gate Wire Usage**: Individual gates use subsets of the 15 available wire positions as needed
+- **Previous Analysis Error**: Earlier references to "7 wires" were specific gate instances, not the system capacity
+
+**Evidence from Test Framework**:
+- **Addition operations**: Already achieve VK parity ✅
+- **Complex operations**: Fail due to constraint count differences ❌
+- **Infrastructure**: `globalThis.__snarky` routing bug confirmed ❌
+
+### Next Steps - Phase 2
+
+1. **Fix constraint routing bug** - Update `globalThis.__snarky` when switching to Sparky
+2. **Implement `reduce_lincom` optimization** in Sparky to match Snarky's constraint efficiency  
+3. **Debug constraint-to-wire conversion** to fix Sparky's internal design flaw
+4. **Monitor test framework** - Success rate should climb from 14.3% toward 100% as issues are resolved
 
 ## 🆕 Pickles Functor Implementation Progress (July 1, 2025)
 

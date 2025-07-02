@@ -423,12 +423,30 @@ export const Snarky = {
     toJson(system) {
       const json = getConstraintSystemModule().toJson(system);
       
-      // Ensure the JSON has the expected structure
+      // CRITICAL: Validate JSON structure instead of masking with defaults
+      if (!json) {
+        throw new Error('Constraint system toJson() returned null/undefined');
+      }
+      
+      if (typeof json !== 'object') {
+        throw new Error(`Constraint system toJson() returned invalid type: ${typeof json}`);
+      }
+      
+      // Validate required fields exist
+      if (!json.hasOwnProperty('gates') && !json.hasOwnProperty('constraints')) {
+        throw new Error('Constraint system JSON missing both gates and constraints fields');
+      }
+      
+      if (!json.hasOwnProperty('public_input_size')) {
+        throw new Error('Constraint system JSON missing public_input_size field');
+      }
+      
+      // Convert constraints to gates format if needed, but don't default to empty
       if (!json.gates) {
-        return {
-          gates: json.constraints || [],
-          public_input_size: json.public_input_size || 0
-        };
+        if (!json.constraints) {
+          throw new Error('Constraint system JSON has no gates or constraints data');
+        }
+        json.gates = json.constraints;
       }
       
       return json;
@@ -1284,12 +1302,15 @@ function getAccumulatedConstraints() {
       
       const gates = constraints.gates || [];
       return gates;
+    } else {
+      throw new Error('getConstraintSystem() returned null/undefined - constraint system may not be properly initialized');
     }
   } catch (error) {
-    // Error occurred, return empty array
+    // CRITICAL: Constraint retrieval failures must be surfaced, not masked
+    const errorMsg = `Failed to retrieve constraints from Sparky: ${error.message || error}`;
+    console.error('[SPARKY ERROR]', errorMsg);
+    throw new Error(errorMsg);
   }
-  
-  return [];
 }
 
 /**
@@ -1305,7 +1326,11 @@ function endConstraintAccumulation() {
       globalThis.__sparkyConstraintHandle.exit();
       globalThis.__sparkyConstraintHandle = null;
     } catch (error) {
-      // Error exiting constraint system
+      // CRITICAL: Constraint system exit failures must be surfaced
+      const errorMsg = `Failed to exit constraint system: ${error.message || error}`;
+      console.error('[SPARKY ERROR]', errorMsg);
+      // Log but don't throw here since this is cleanup - but ensure it's visible
+      console.warn('[SPARKY WARNING] Constraint system state may be corrupted due to exit failure');
     }
   }
   
@@ -1383,9 +1408,116 @@ export function resetSparkyState() {
   gateCallCounter = 0;
 }
 
-// Set up global __snarky object for OCaml bridge
+/**
+ * Constraint flow debugging - track where constraints actually go
+ */
+let constraintCallCount = 0;
+function debugConstraintFlow(operation, backend, ...args) {
+  constraintCallCount++;
+  console.log(`🔍 [${constraintCallCount}] ${operation} → ${backend}`, args.length > 0 ? `(${args.length} args)` : '');
+  
+  // Track constraint count inflation
+  if (typeof globalThis.constraintFlowStats === 'undefined') {
+    globalThis.constraintFlowStats = { sparky: 0, ocaml: 0 };
+  }
+  globalThis.constraintFlowStats[backend]++;
+}
+
+/**
+ * Update global routing to point to the specified backend
+ * This fixes the constraint routing bug where constraints always go to OCaml
+ */
+function updateGlobalSnarkyRouting(backendType, backendObject) {
+  if (typeof globalThis !== 'undefined') {
+    globalThis.__snarky = globalThis.__snarky || {};
+    
+    // Wrap the backend object with debugging
+    const wrappedBackend = wrapBackendWithDebugging(backendObject, backendType);
+    globalThis.__snarky.Snarky = wrappedBackend;
+    
+    // Also update the constraint bridge routing
+    if (typeof globalThis.sparkyConstraintBridge !== 'undefined') {
+      try {
+        globalThis.sparkyConstraintBridge.setActiveBackend(backendType);
+      } catch (e) {
+        console.warn('Could not update sparkyConstraintBridge backend:', e.message);
+      }
+    }
+    
+    console.log(`🔄 Global Snarky routing updated to: ${backendType}`);
+    
+    // Reset constraint flow stats
+    globalThis.constraintFlowStats = { sparky: 0, ocaml: 0 };
+    constraintCallCount = 0;
+  }
+}
+
+/**
+ * Wrap backend object with debugging to trace constraint flow
+ */
+function wrapBackendWithDebugging(backendObject, backendType) {
+  if (!backendObject || !backendObject.field) return backendObject;
+  
+  const wrappedField = {};
+  for (const [methodName, method] of Object.entries(backendObject.field)) {
+    if (typeof method === 'function') {
+      wrappedField[methodName] = function(...args) {
+        debugConstraintFlow(`field.${methodName}`, backendType, ...args);
+        return method.apply(this, args);
+      };
+    } else {
+      wrappedField[methodName] = method;
+    }
+  }
+  
+  return {
+    ...backendObject,
+    field: wrappedField
+  };
+}
+
+/**
+ * Set up Sparky routing (called when switching TO Sparky)
+ */
+export function activateSparkyRouting() {
+  updateGlobalSnarkyRouting('sparky', Snarky);
+}
+
+/**
+ * Set up OCaml routing (called when switching TO Snarky)
+ */
+export function activateOcamlRouting(ocamlSnarky) {
+  if (ocamlSnarky) {
+    updateGlobalSnarkyRouting('snarky', ocamlSnarky);
+  } else {
+    console.warn('activateOcamlRouting called without OCaml Snarky object');
+  }
+}
+
+/**
+ * Get constraint flow statistics for debugging
+ */
+export function getConstraintFlowStats() {
+  return {
+    totalCalls: constraintCallCount,
+    routingStats: globalThis.constraintFlowStats || { sparky: 0, ocaml: 0 },
+    lastUpdate: new Date().toISOString()
+  };
+}
+
+/**
+ * Reset constraint flow debugging
+ */
+export function resetConstraintFlowStats() {
+  constraintCallCount = 0;
+  globalThis.constraintFlowStats = { sparky: 0, ocaml: 0 };
+  console.log('🔄 Constraint flow stats reset');
+}
+
+// Set up global __snarky object for OCaml bridge (initial setup)
 if (typeof globalThis !== 'undefined') {
   globalThis.__snarky = globalThis.__snarky || {};
+  // Note: We'll update this routing dynamically via activateSparkyRouting()
   globalThis.__snarky.Snarky = Snarky;
 }
 

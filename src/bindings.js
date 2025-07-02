@@ -60,17 +60,16 @@ async function initializeBindings(backend = null) {
         sparkyAdapter.resetSparkyState();
       }
       
+      // ROUTING FIX: Update global constraint routing to Sparky
+      if (sparkyAdapter.activateSparkyRouting) {
+        sparkyAdapter.activateSparkyRouting();
+      }
+      
       ({ Snarky, Ledger, Pickles, Test: Test_ } = sparkyAdapter);
       console.log('✓ Sparky backend loaded');
     } else {
       // Load OCaml Snarky (default)
       console.log('Loading Snarky backend...');
-      
-      // Reset Sparky state if switching from Sparky to Snarky
-      if (activeBackend === 'sparky') {
-        const sparkyAdapter = await import('./bindings/sparky-adapter.js');
-        sparkyAdapter.resetSparkyBackend();
-      }
       
       let snarky;
       
@@ -80,6 +79,20 @@ async function initializeBindings(backend = null) {
         snarky = require('./bindings/compiled/_node_bindings/o1js_node.bc.cjs');
       }
       ESM: snarky = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
+      
+      // ROUTING FIX: Update global constraint routing to OCaml Snarky
+      if (activeBackend === 'sparky') {
+        // We're switching FROM Sparky TO Snarky, need to update routing
+        const sparkyAdapter = await import('./bindings/sparky-adapter.js');
+        if (sparkyAdapter.activateOcamlRouting) {
+          sparkyAdapter.activateOcamlRouting(snarky.Snarky);
+        }
+        // Reset Sparky state
+        if (sparkyAdapter.resetSparkyBackend) {
+          sparkyAdapter.resetSparkyBackend();
+        }
+      }
+      
       ({ Snarky, Ledger, Pickles, Test: Test_ } = snarky);
       console.log('✓ Snarky backend loaded');
     }

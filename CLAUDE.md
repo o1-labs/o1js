@@ -42,6 +42,15 @@ npm run test:integration
 npm run test:sparky
 npm run test:sparky:report  # Generate comprehensive test report
 
+# Run VK parity and backend infrastructure tests (NEW)
+npm run test:vk-parity              # Comprehensive VK parity testing
+npm run test:backend-infrastructure # Backend switching and routing tests
+npm run test:constraint-analysis    # Constraint system deep analysis
+npm run test:framework              # Run entire consolidated test framework
+
+# Run unified compatibility dashboard (NEW - July 2025)
+npm run test:unified-report         # Integrates all backend compatibility tests with unified reporting
+
 # Run end-to-end browser tests
 npm run test:e2e
 
@@ -205,3 +214,18 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 - 🚨 **Sparky WASM building**: Use `./src/bindings/scripts/build-sparky-wasm.sh` only
 - ⚠️ **Field precision**: NEVER convert BigInts to JavaScript numbers - loses precision
 - ✅ **Constraint recording works**: Sparky IS recording constraints but generates different counts than Snarky
+
+## Test Suite Cleanup (July 2025)
+
+- 🧹 **Major Cleanup**: Removed 89 floating test files, consolidated into systematic framework
+- ✅ **New Test Framework**: Comprehensive VK parity testing in `src/test/`
+  - `BackendTestFramework`: Systematic backend comparison utilities
+  - `VkParityComprehensive`: Complete VK generation testing across circuit patterns
+  - `BackendInfrastructure`: Tests core routing bug and switching mechanism  
+  - `ConstraintSystemAnalysis`: Deep constraint generation and optimization analysis
+- 📊 **Current Status**: 14.3% VK parity success rate (1/7 tests passing)
+- 🚨 **Critical Issues Documented**: 
+  - Constraint routing bug: `globalThis.__snarky` not updated when switching to Sparky
+  - Missing `reduce_lincom` optimization causes different constraint counts
+  - Some VK parity achieved for simple operations
+- 🎯 **Goal**: Use `npm run test:framework` to track progress toward 100% VK parity

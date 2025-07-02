@@ -15,13 +15,26 @@
 - ✅ **WASM backup cleanup**: Removed 895 lines of obsolete backup implementations (July 2, 2025)
 
 ### Critical Issues That Remain/Worsened:
+- 🚨 **VK Parity: 0% Achieved** - **CRITICAL BLOCKER** - All Sparky VKs generate identical hash, constraint counts 100x+ different
 - 🚨 **Constraint system fragmentation**: **+57% code increase** (1,051 → 1,628 lines) across 3 implementations
 - 🚨 **Field implementation duplication**: **UNCHANGED** - still 632+ lines of duplicate code
 - 🚨 **TLS split-brain architecture**: **ZERO PROGRESS** - RefCell double-wrapping persists
 - ✅ **WASM backup implementations**: **REMOVED** - 895 lines of obsolete backup code deleted (July 2, 2025)
-- 🚨 **New issue**: `constraint_optimized.rs` (305 lines) **disabled due to compilation errors**
+- ✅ **Broken constraint module**: **REMOVED** - `constraint_optimized.rs` (305 lines) deleted in Phase 0.1
 
-The original diagnosis remains **100% accurate** and **more urgent** than before. **Architectural debt is accumulating faster than it's being resolved**.
+## 🚨 PHASE 0.5 CRITICAL ASSESSMENT COMPLETED (July 2, 2025)
+
+**Status**: **ARCHITECTURAL CRISIS** - VK parity completely unachieved, fundamental design flaws identified
+
+**Key Findings from Phases 0.1-0.4**:
+- ✅ **Phase 0.1**: Successfully removed 305 lines of broken constraint optimization code
+- ⚠️ **Phase 0.2**: TODO reduction was from code deletion, not feature completion (26 active TODOs remain)
+- ✅ **Phase 0.3**: Successfully removed 895 lines of obsolete WASM backup implementations  
+- 🚨 **Phase 0.4**: **CRITICAL FAILURE** - VK parity 0% achieved, constraint generation fundamentally broken
+
+**See `/src/sparky/PHASE_0_5_ASSESSMENT.md` for complete analysis and prioritized recommendations.**
+
+The original diagnosis remains **100% accurate** but the situation is **more critical** than initially assessed. **VK parity failure blocks all production use**.
 
 ## Root Cause Analysis
 
@@ -638,21 +651,36 @@ tests/
 
 ### **CRITICAL UPDATE**: Timeline extended due to architectural debt accumulation
 
-### Week 0: **EMERGENCY CLEANUP** (NEW)
-- [ ] **Day 1**: Remove/fix `constraint_optimized.rs` (305 lines of broken code)
-- [ ] **Day 2**: Audit TODO deletion validity (verify 22 removed TODOs)
-- [✅] **Day 3**: WASM backup assessment (determine if 3 backup implementations needed) - **COMPLETED July 2, 2025**
+### Week 0: **EMERGENCY CLEANUP** - ✅ **COMPLETED (July 2, 2025)**
+- [✅] **Phase 0.1**: Remove/fix `constraint_optimized.rs` (305 lines of broken code) - **COMPLETED**
+- [✅] **Phase 0.2**: Audit TODO deletion validity (verify 22 removed TODOs) - **COMPLETED** (found 26 actual TODOs)
+- [✅] **Phase 0.3**: WASM backup assessment (determine if 3 backup implementations needed) - **COMPLETED**
   - ✅ Confirmed backup implementations were obsolete (895 lines total)
   - ✅ Successfully deleted `sparky-wasm/src/backup/` directory 
   - ✅ Build verification passed - no compilation errors
   - ✅ Git verification confirmed files were untracked
-- [ ] **Day 4**: Document current VK parity status and constraint count differences
-- [ ] **Day 5**: Architectural debt assessment and prioritization
+- [✅] **Phase 0.4**: Document current VK parity status and constraint count differences - **COMPLETED** (0% VK parity)
+- [✅] **Phase 0.5**: Architectural debt assessment and prioritization - **COMPLETED** (see PHASE_0_5_ASSESSMENT.md)
 
-### Week 1: Foundation (**HIGHER URGENCY**)
-- [ ] **Day 1-2**: Phase 1 - Unify field implementations (**632+ lines of duplication**)
-- [ ] **Day 3-4**: Phase 2.1 - Eliminate TLS split-brain (**CRITICAL - zero progress made**)
-- [ ] **Day 5**: Phase 2.2 - Remove RefCell double-wrapping
+## **🚨 CRITICAL PRIORITY CHANGE - All Previous Timelines SUPERSEDED**
+
+**Based on Phase 0.5 findings, all architectural cleanup is BLOCKED until VK parity is achieved.**
+
+### Week 1: **VK PARITY EMERGENCY** (**PRODUCTION BLOCKER**)
+- [ ] **Day 1-3**: Implement `reduce_lincom` optimization in Sparky constraint system
+- [ ] **Day 4**: Fix `reduce_to_v` constant handling to prevent premature variable conversion
+- [ ] **Day 5**: Validate constraint bridge transfers constraints properly to OCaml/Pickles
+
+### Week 2: **VK PARITY VERIFICATION** (**CRITICAL VALIDATION**)
+- [ ] **Day 1-2**: Comprehensive constraint comparison testing (Sparky vs Snarky)
+- [ ] **Day 3**: Simple circuit VK digest parity validation  
+- [ ] **Day 4-5**: Complex circuit VK parity testing and coefficient semantic alignment
+
+### Week 3+: **ARCHITECTURAL CLEANUP** (**ONLY AFTER VK PARITY ACHIEVED**)
+- [ ] **Only proceed if VK parity 100% achieved**
+- [ ] Phase 1 - Unify field implementations (632+ lines of duplication)
+- [ ] Phase 2 - Eliminate TLS split-brain (CRITICAL architectural issue)
+- [ ] Phase 3 - Merge constraint modules (1,628 lines across 3 files)
 
 ### Week 2: Core Systems (**CONSTRAINT CRISIS**)
 - [ ] **Day 1-3**: Phase 3.1 - Merge constraint modules (**1,628 lines across 3 files**)
@@ -743,19 +771,28 @@ tests/
 - **Better optimization**: Single implementation can be optimized thoroughly
 - **Smaller WASM bundle**: No backup implementations or redundant code
 
-## **CRITICAL CONCLUSION**
+## **CRITICAL CONCLUSION - Updated After Phase 0.5 Assessment**
 
-**The July 2025 reaudit reveals that cosmetic improvements (warning reduction, documentation) have masked the fact that core architectural problems have remained unchanged or gotten significantly worse.**
+**Phase 0.5 assessment reveals that while tactical cleanup achieved 1,200+ lines of code removal, the strategic situation has become CRITICAL due to complete VK parity failure.**
 
-### **Key Findings**:
-1. **Constraint system code grew +57%** without resolving split-brain architecture
-2. **Field duplication unchanged** after months of development  
-3. **TLS issues completely unaddressed** despite being identified as critical
-4. **Failed experiments accumulating** as disabled code in the main codebase
+### **Phase 0.1-0.4 Summary**:
+- ✅ **Tactical Success**: Removed 1,200+ lines of broken/obsolete code (305 + 895 lines)
+- ⚠️ **Mixed Results**: TODO reduction was from code deletion, not feature completion
+- 🚨 **Strategic Failure**: VK parity 0% achieved - fundamental blocker for production use
 
-### **Urgent Recommendation**:
-**Stop all feature development and focus exclusively on architectural consolidation**. The current trajectory shows **technical debt accumulating faster than it's being resolved**.
+### **Critical Priority Change**:
+**ALL ARCHITECTURAL CLEANUP IS NOW BLOCKED until VK parity is achieved**. The 0% VK parity represents a **show-stopper** that makes all other improvements irrelevant.
 
-**The original CLEANUP.md plan remains the correct approach, but execution is now CRITICAL for project viability**. Without immediate architectural intervention, Sparky risks becoming unmaintainable.
+### **Immediate Actions Required**:
+1. **EMERGENCY**: Implement `reduce_lincom` optimization in Sparky (estimated 2-3 weeks intensive work)
+2. **CRITICAL**: Fix constraint recording/bridge to ensure actual circuit constraints are captured
+3. **VALIDATION**: Comprehensive constraint comparison testing between Sparky and Snarky
 
-Success requires transforming Sparky from its current **fractured and degrading state** into a clean, maintainable implementation that can effectively compete with Snarky while maintaining the architectural clarity needed for long-term success.
+### **Revised Strategy**:
+- **Week 1-2**: VK parity emergency implementation (all hands on deck)
+- **Week 3+**: Architectural consolidation (ONLY after VK parity achieved)
+- **Success Metric**: 100% VK digest match for all test circuits
+
+**Without VK parity, Sparky remains a technical curiosity rather than a production-viable alternative to Snarky**. All architectural cleanup efforts must be temporarily suspended to focus exclusively on this fundamental compatibility requirement.
+
+**See `/src/sparky/PHASE_0_5_ASSESSMENT.md` for detailed analysis, risk assessment, and implementation roadmap.**
