@@ -1,190 +1,6 @@
 open Core_kernel
 module Js = Js_of_ocaml.Js
 
-(* ===================================================================
-   BACKEND MODULE TYPE: Abstraction for Pickles Backend
-   ===================================================================
-   
-   This module type defines the interface that any backend must provide
-   to be used with Pickles. It abstracts over the constraint system
-   implementation, allowing different backends (Snarky, Sparky, etc.)
-   to be plugged in.
-
-   COMMENTED OUT FOR NOW to fix build warnings - will be uncommented 
-   when first-class modules are fully implemented
-
-module type BACKEND = sig
-  module Boolean : sig
-    type var
-  end
-  
-  module Typ : sig
-    type ('var, 'value) t
-    type 'a prover_value
-    val unit : (unit, unit) t
-    val array : length:int -> ('var, 'value) t -> ('var array, 'value array) t
-    val tuple2 : ('var1, 'value1) t -> ('var2, 'value2) t -> ('var1 * 'var2, 'value1 * 'value2) t
-    val transport : ('var, 'value) t -> there:('value2 -> 'value) -> back:('value -> 'value2) -> ('var, 'value2) t
-    val prover_value : unit -> ('a prover_value, 'a) t
-  end
-  
-  module Field : sig
-    type t
-    module Constant : sig
-      type t
-      val of_int : int -> t
-    end
-    val typ : (t, Constant.t) Typ.t
-    val scale : t -> Constant.t -> t
-    val add : t -> t -> t
-  end
-  
-  module Constraint : sig
-    type t
-    val equal : Field.t -> Field.t -> t
-    val r1cs : Field.t -> Field.t -> Field.t -> t
-    val square : Field.t -> Field.t -> t
-  end
-  
-  (* Core operations *)
-  val exists : ('var, 'value) Typ.t -> compute:(unit -> 'value) -> 'var
-  val assert_ : Constraint.t -> unit
-  
-  (* Additional types and operations needed by Pickles *)
-  module As_prover : sig
-    val read_var : Field.t -> Field.Constant.t
-  end
-  
-  module Internal_Basic : sig
-    module Checked : sig
-      type 'a t
-      val return : 'a -> 'a t
-    end
-  end
-  
-  (* For type compatibility *)
-  type field = Field.t
-end
-
-*)
-
-(* ===================================================================
-   JS_BACKEND MODULE TYPE: JavaScript Backend Interface
-   ===================================================================
-   
-   This module type defines the interface that JavaScript backends must
-   provide to be used with the Backend_of_js functor.
-
-   COMMENTED OUT FOR NOW - part of first-class modules infrastructure
-*)
-(*
-module type JS_BACKEND = sig
-  val t : Js.Unsafe.any
-end
-*)
-
-(* ===================================================================
-   BACKEND_OF_JS: Functor to create BACKEND from JavaScript
-   ===================================================================
-   
-   This functor takes a JavaScript backend object and creates an OCaml
-   BACKEND module by calling JavaScript methods through js_of_ocaml FFI.
-
-   COMMENTED OUT FOR NOW - depends on BACKEND module type
-*)
-(* 
-module Backend_of_js (JS : JS_BACKEND) : BACKEND = struct
-  (* Helper to get the backend object *)
-  let backend = JS.t
-  
-  module Typ = struct
-    type ('var, 'value) t = Js.Unsafe.any
-    type 'a prover_value = Js.Unsafe.any
-    
-    let unit : (unit, unit) t =
-      Js.Unsafe.meth_call backend "typUnit" [||]
-    
-    let array ~length typ =
-      Js.Unsafe.meth_call backend "typArray" [|Js.Unsafe.inject length; typ|]
-    
-    let tuple2 typ1 typ2 =
-      Js.Unsafe.meth_call backend "typTuple2" [|typ1; typ2|]
-    
-    let transport typ ~there ~back =
-      (* Create JavaScript functions from OCaml functions *)
-      let there_js = Js.wrap_callback (fun x -> there x) |> Js.Unsafe.inject in
-      let back_js = Js.wrap_callback (fun x -> back x) |> Js.Unsafe.inject in
-      Js.Unsafe.meth_call backend "typTransport" [|typ; there_js; back_js|]
-    
-    let prover_value () =
-      Js.Unsafe.meth_call backend "typProverValue" [||]
-  end
-  
-  module Field = struct
-    (* JavaScript field objects are opaque to OCaml *)
-    type t = Js.Unsafe.any
-    
-    module Constant = struct
-      type t = Js.Unsafe.any
-      
-      let of_int n =
-        Js.Unsafe.meth_call backend "fieldConstantOfInt" [|Js.Unsafe.inject n|]
-    end
-    
-    let typ : (t, Constant.t) Typ.t =
-      Js.Unsafe.meth_call backend "fieldTyp" [||]
-    
-    let scale x c =
-      Js.Unsafe.meth_call backend "fieldScale" [|x; c|]
-    
-    let add x y =
-      Js.Unsafe.meth_call backend "fieldAdd" [|x; y|]
-  end
-  
-  module Boolean = struct
-    type var = Js.Unsafe.any
-  end
-  
-  module Constraint = struct
-    type t = Js.Unsafe.any
-    
-    let equal x y =
-      Js.Unsafe.meth_call backend "constraintEqual" [|x; y|]
-    
-    let r1cs x y z =
-      Js.Unsafe.meth_call backend "constraintR1CS" [|x; y; z|]
-    
-    let square x y =
-      Js.Unsafe.meth_call backend "constraintSquare" [|x; y|]
-  end
-  
-  (* Core operations *)
-  let exists typ ~compute =
-    let compute_js = Js.wrap_callback (fun () -> compute ()) |> Js.Unsafe.inject in
-    Js.Unsafe.meth_call backend "exists" [|typ; compute_js|]
-  
-  let assert_ constraint_ =
-    ignore (Js.Unsafe.meth_call backend "assert" [|constraint_|])
-  
-  (* Additional types and operations *)
-  module As_prover = struct
-    let read_var field =
-      Js.Unsafe.meth_call backend "asProverReadVar" [|field|]
-  end
-  
-  module Internal_Basic = struct
-    module Checked = struct
-      type 'a t = Js.Unsafe.any
-      
-      let return x =
-        Js.Unsafe.meth_call backend "checkedReturn" [|Js.Unsafe.inject x|]
-    end
-  end
-  
-  (* For type compatibility *)
-  type field = Field.t
-end
-*)
 
 (* Current implementation using hardcoded Snarky backend *)
 module Impl = Pickles.Impls.Step
@@ -193,265 +9,6 @@ module Boolean = Impl.Boolean
 module Typ = Impl.Typ
 module Backend = Pickles.Backend
 
-(* ===================================================================
-   PHASE 3: First-Class Modules Support for Dynamic Backend Selection
-   ===================================================================
-   
-   This section implements Phase 3 of the first-class modules approach,
-   enabling runtime selection of backends while maintaining the same API.
-*)
-
-(* Simplified module type for the essential Pickles functionality *)
-module type PICKLES_S = sig
-  (* We use include to get all of Pickles *)
-  include module type of Pickles
-end
-
-(* Create a first-class module from a JS backend object *)
-let create_pickles_with_backend (backend : Js.Unsafe.any) : (module PICKLES_S) =
-  (* For now, we always use the OCaml Snarky implementation
-     because creating a full Pickles module from a JS backend
-     would require extensive work to implement all the internals *)
-  let _ = backend in  (* Acknowledge parameter to avoid warning *)
-  (module Pickles : PICKLES_S)
-
-(* Create a JS wrapper around the OCaml Snarky implementation *)
-let create_snarky_js_wrapper () : Js.Unsafe.any =
-  (* Create this after the module aliases are defined *)
-  let wrapper = Js.Unsafe.obj [||] in
-  
-  (* Typ operations *)
-  Js.Unsafe.set wrapper "typUnit" 
-    (Js.wrap_callback (fun () ->
-      Js.Unsafe.inject Impl.Typ.unit)) ;
-  
-  Js.Unsafe.set wrapper "typArray"
-    (Js.wrap_callback (fun length typ ->
-      let length_int = Js.float_of_number length |> Int.of_float in
-      let result = Impl.Typ.array ~length:length_int (Obj.magic typ) in
-      Js.Unsafe.inject result)) ;
-  
-  Js.Unsafe.set wrapper "typTuple2"
-    (Js.wrap_callback (fun typ1 typ2 ->
-      let result = Impl.Typ.tuple2 (Obj.magic typ1) (Obj.magic typ2) in
-      Js.Unsafe.inject result)) ;
-  
-  Js.Unsafe.set wrapper "typTransport"
-    (Js.wrap_callback (fun typ there_js back_js ->
-      let there = fun x -> Js.Unsafe.fun_call there_js [|Js.Unsafe.inject x|] |> Obj.magic in
-      let back = fun x -> Js.Unsafe.fun_call back_js [|Js.Unsafe.inject x|] |> Obj.magic in
-      let result = Impl.Typ.transport (Obj.magic typ) ~there ~back in
-      Js.Unsafe.inject result)) ;
-  
-  Js.Unsafe.set wrapper "typProverValue"
-    (Js.wrap_callback (fun () ->
-      Js.Unsafe.inject (Impl.Typ.prover_value ()))) ;
-  
-  (* Field operations *)
-  Js.Unsafe.set wrapper "fieldConstantOfInt" 
-    (Js.wrap_callback (fun n ->
-      let field_const = Impl.Field.Constant.of_int n in
-      Js.Unsafe.inject field_const)) ;
-  
-  Js.Unsafe.set wrapper "fieldTyp"
-    (Js.wrap_callback (fun () ->
-      Js.Unsafe.inject Impl.Field.typ)) ;
-  
-  Js.Unsafe.set wrapper "fieldScale"
-    (Js.wrap_callback (fun x c ->
-      let result = Impl.Field.scale (Obj.magic x) (Obj.magic c) in
-      Js.Unsafe.inject result)) ;
-  
-  Js.Unsafe.set wrapper "fieldAdd"
-    (Js.wrap_callback (fun x y ->
-      let result = Impl.Field.add (Obj.magic x) (Obj.magic y) in
-      Js.Unsafe.inject result)) ;
-  
-  (* Constraint operations *)
-  Js.Unsafe.set wrapper "constraintEqual"
-    (Js.wrap_callback (fun x y ->
-      let result = Impl.Constraint.equal (Obj.magic x) (Obj.magic y) in
-      Js.Unsafe.inject result)) ;
-  
-  Js.Unsafe.set wrapper "constraintR1CS"
-    (Js.wrap_callback (fun x y z ->
-      let result = Impl.Constraint.r1cs (Obj.magic x) (Obj.magic y) (Obj.magic z) in
-      Js.Unsafe.inject result)) ;
-  
-  Js.Unsafe.set wrapper "constraintSquare"
-    (Js.wrap_callback (fun x y ->
-      let result = Impl.Constraint.square (Obj.magic x) (Obj.magic y) in
-      Js.Unsafe.inject result)) ;
-  
-  (* Core operations *)
-  Js.Unsafe.set wrapper "exists"
-    (Js.wrap_callback (fun typ compute_js ->
-      let compute = fun () -> Js.Unsafe.fun_call compute_js [||] |> Obj.magic in
-      let result = Impl.exists (Obj.magic typ) ~compute in
-      Js.Unsafe.inject result)) ;
-  
-  Js.Unsafe.set wrapper "assert"
-    (Js.wrap_callback (fun constraint_ ->
-      Impl.assert_ (Obj.magic constraint_) ;
-      Js.Unsafe.inject ())) ;
-  
-  (* As_prover operations *)
-  Js.Unsafe.set wrapper "asProverReadVar"
-    (Js.wrap_callback (fun field ->
-      let result = Impl.As_prover.read_var (Obj.magic field) in
-      Js.Unsafe.inject result)) ;
-  
-  (* Internal_Basic.Checked operations *)
-  Js.Unsafe.set wrapper "checkedReturn"
-    (Js.wrap_callback (fun x ->
-      let result = Impl.Internal_Basic.Checked.return (Obj.magic x) in
-      Js.Unsafe.inject result)) ;
-  
-  wrapper
-
-(* Note: get_current_pickles is defined later after is_sparky_active is available *)
-
-(* Implementation of BACKEND using the current Snarky backend 
-   COMMENTED OUT - depends on BACKEND module type
-
-module Current_backend : BACKEND with type Field.t = Field.t 
-                                 and type Field.Constant.t = Field.Constant.t
-                                 and type Boolean.var = Boolean.var
-                                 and type ('a, 'b) Typ.t = ('a, 'b) Typ.t
-                                 and type 'a Typ.prover_value = 'a Typ.prover_value = struct
-  module Field = Field
-  module Boolean = Boolean
-  module Constraint = Impl.Constraint
-  module Typ = Typ
-  module As_prover = Impl.As_prover
-  module Internal_Basic = Impl.Internal_Basic
-  
-  type field = Field.t
-  
-  let exists typ ~compute = Impl.exists typ ~compute
-  let assert_ = Impl.assert_
-end
-*)
-
-(* ===================================================================
-   FFI_BACKEND: JavaScript Backend Implementation via FFI
-   ===================================================================
-   
-   This module implements the BACKEND interface by calling into the
-   JavaScript Snarky implementation through js_of_ocaml FFI.
-   
-   NOTE: Currently disabled due to type incompatibilities.
-   The field operations always use Current_backend (Snarky).
-*)
-(*
-module FFI_backend : BACKEND = struct
-  (* Get the global Snarky object from JavaScript *)
-  let get_snarky () = 
-    Js.Unsafe.global##.__snarky##.Snarky
-  
-  module Field = struct
-    (* JavaScript field objects *)
-    type t = Js.Unsafe.any
-    
-    module Constant = struct
-      type t = Js.Unsafe.any
-      
-      let of_int n =
-        let snarky = get_snarky () in
-        Js.Unsafe.meth_call snarky "fieldOfInt" [|Js.Unsafe.inject n|]
-    end
-    
-    let typ : (t, Constant.t) Typ.t =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "field" [||]
-    
-    let scale x c =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "fieldScale" [|x; c|]
-    
-    let add x y =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "fieldAdd" [|x; y|]
-  end
-  
-  module Boolean = struct
-    type var = Js.Unsafe.any
-  end
-  
-  module Constraint = struct
-    type t = Js.Unsafe.any
-    
-    let equal x y =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "constraintEqual" [|x; y|]
-    
-    let r1cs x y z =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "constraintR1CS" [|x; y; z|]
-    
-    let square x y =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "constraintSquare" [|x; y|]
-  end
-  
-  module Typ = struct
-    type ('var, 'value) t = Js.Unsafe.any
-    type 'a prover_value = Js.Unsafe.any
-    
-    let unit : (unit, unit) t =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "unit" [||]
-    
-    let array ~length typ =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "array" [|typ; Js.Unsafe.inject length|]
-    
-    let tuple2 typ1 typ2 =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "tuple2" [|typ1; typ2|]
-    
-    let transport typ ~there ~back =
-      let snarky = get_snarky () in
-      (* Create JS functions from OCaml functions *)
-      let there_js = Js.wrap_callback (fun x -> there x) in
-      let back_js = Js.wrap_callback (fun x -> back x) in
-      Js.Unsafe.meth_call snarky "transport" [|typ; there_js; back_js|]
-    
-    let prover_value () =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "proverValue" [||]
-  end
-  
-  (* Core operations *)
-  let exists typ ~compute =
-    let snarky = get_snarky () in
-    let compute_js = Js.wrap_callback (fun () -> compute ()) in
-    Js.Unsafe.meth_call snarky "exists" [|typ; compute_js|]
-  
-  let assert_ constraint_ =
-    let snarky = get_snarky () in
-    ignore (Js.Unsafe.meth_call snarky "assert" [|constraint_|])
-  
-  module As_prover = struct
-    let read_var field =
-      let snarky = get_snarky () in
-      Js.Unsafe.meth_call snarky "asProverReadVar" [|field|]
-  end
-  
-  module Internal_Basic = struct
-    module Checked = struct
-      type 'a t = Js.Unsafe.any
-      
-      let return x =
-        let snarky = get_snarky () in
-        Js.Unsafe.meth_call snarky "checkedReturn" [|Js.Unsafe.inject x|]
-    end
-  end
-  
-  (* For type compatibility *)
-  type field = Field.t
-end
-*)
 
 (* ===================================================================
    BACKEND SELECTION: Dynamic Backend Switching Support
@@ -466,13 +23,6 @@ let is_sparky_active () =
   else
     false
 
-(* ===================================================================
-   BACKEND SELECTION: Dynamic Backend Switching Support
-   =================================================================== *)
-
-(* Note: Due to type incompatibilities between FFI_backend and Current_backend,
-   we can't dynamically switch between them. The field operations always use
-   Current_backend (Snarky) even when Sparky is active. *)
 
 (* ===================================================================
    CONSTRAINT BRIDGE: JavaScript → OCaml Pickles Integration
@@ -908,11 +458,9 @@ module Choices = struct
           
           (* CONSTRAINT BRIDGE: Check if Sparky is active *)
           let sparky_active = is_sparky_active () in
-          let _ = Printf.printf "[OCaml DEBUG] Sparky active: %b\n" sparky_active in
           
           (* If Sparky is active, start constraint accumulation *)
           if sparky_active then (
-            let _ = Printf.printf "[OCaml DEBUG] Starting constraint accumulation\n" in
             (* Reset Sparky state for this specific program compilation *)
             end_constraint_accumulation () ;
             start_constraint_accumulation ()
@@ -926,12 +474,8 @@ module Choices = struct
           
           (* If Sparky is active, collect constraints after circuit execution *)
           if sparky_active then (
-            let _ = Printf.printf "[OCaml DEBUG] Getting accumulated constraints\n" in
             let sparky_constraints = get_accumulated_constraints () in
-            let constraint_count = List.length sparky_constraints in
-            let _ = Printf.printf "[OCaml DEBUG] Found %d constraints from Sparky\n" constraint_count in
             add_sparky_constraints_to_system sparky_constraints ;
-            let _ = Printf.printf "[OCaml DEBUG] Added %d variables to OCaml constraint system\n" constraint_count in
             end_constraint_accumulation ()
           ) ;
           
@@ -1269,9 +813,6 @@ let pickles_compile (choices : pickles_rule_js array)
     Js.Optdef.to_option config##.storable |> Option.map ~f:Cache.cache_dir
   in
 
-  (* For now, always use the regular Pickles module until we implement 
-     proper type-safe backend switching *)
-  (* let (module CurrentPickles : PICKLES_S) = get_current_pickles () in *)
 
   (* call into Pickles *)
   let tag, _cache, p, provers =
@@ -1534,12 +1075,4 @@ let pickles =
         val vkDigest = vk_digest
       end
 
-    (* Phase 3: First-class modules support *)
-    val createPicklesWithBackend = create_pickles_with_backend
-
-    val createSnarkyJsWrapper = create_snarky_js_wrapper
-
-    val getCurrentPickles = fun () -> 
-      (* Return a string indicating which backend is active *)
-      if is_sparky_active () then Js.string "sparky" else Js.string "snarky"
   end

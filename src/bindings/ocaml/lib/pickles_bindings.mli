@@ -3,10 +3,6 @@ module Impl = Pickles.Impls.Step
 module Field = Impl.Field
 module Boolean = Impl.Boolean
 
-(* Simplified module type for the essential Pickles functionality *)
-module type PICKLES_S = sig
-  include module type of Pickles
-end
 
 module Public_input : sig
   type t = Field.t array
@@ -132,11 +128,5 @@ val pickles :
            -> Pickles.Side_loaded.Verification_key.Checked.t )
           Js_of_ocaml.Js.readonly_prop >
       Js.t
-      Js_of_ocaml.Js.readonly_prop
-  ; createPicklesWithBackend :
-      (Js.Unsafe.any -> (module PICKLES_S)) Js_of_ocaml.Js.readonly_prop
-  ; createSnarkyJsWrapper :
-      (unit -> Js.Unsafe.any) Js_of_ocaml.Js.readonly_prop
-  ; getCurrentPickles :
-      (unit -> Js.js_string Js.t) Js_of_ocaml.Js.readonly_prop >
+      Js_of_ocaml.Js.readonly_prop >
   Js.t

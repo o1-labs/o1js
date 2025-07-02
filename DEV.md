@@ -54,18 +54,12 @@ module FFI_backend : BACKEND = struct
 end
 ```
 
-**Next Steps for Phase 3**:
-- Create backend switching mechanism to select between Current_backend and FFI_backend
-- Test FFI_backend with actual JavaScript Snarky implementation
-- Implement Sparky backend following same pattern
+### Phase 3: Backend Selection and Integration - REMOVED (July 2, 2025)
 
-### Phase 3: Backend Selection and Integration - COMPLETED ✅ (July 1, 2025)
+**What was removed**:
+The Phase 3 first-class modules infrastructure has been completely removed. See the detailed removal notes in the "First-Class Modules Implementation - Phase 3" section below.
 
-**What was done**:
-1. Created backend selection mechanism in `pickles_bindings.ml`:
-   - Added `get_active_backend()` function that checks if Sparky is active
-   - Uses `is_sparky_active()` to detect the current backend via JavaScript bridge
-   - Returns appropriate backend module (FFI_backend for Sparky, Current_backend for Snarky)
+The constraint bridge mechanism provides all necessary integration without the complexity of dynamic module switching.
 
 2. Created wrapper functions for backend operations:
    - `backend_exists` - delegates to active backend's exists function
@@ -417,10 +411,10 @@ CRITICAL FIXES COMPLETED:
 - **Achievement**: BACKEND module type + Current_backend implementation
 - **Result**: Built foundation for backend abstraction
 
-**8. PICKLES_FIRST_CLASS_MODULES_PLAN.md** - **COMPLETED** 
-- **Status**: Successfully implemented in Phase 3
-- **Achievement**: Clean first-class modules approach without circular dependencies
-- **Implementation**: `createPicklesWithBackend`, `getCurrentPickles` functions
+**8. PICKLES_FIRST_CLASS_MODULES_PLAN.md** - **REMOVED** 
+- **Status**: Implemented in Phase 3 but removed July 2, 2025
+- **Reason**: Overly complex with type compatibility issues
+- **Replacement**: Constraint bridge mechanism provides cleaner integration
 - **Result**: Infrastructure for runtime backend selection working
 
 ### **INVESTIGATIVE PLANS** 🔍
@@ -435,7 +429,7 @@ CRITICAL FIXES COMPLETED:
 
 **Phase 1** (June): Functor approach → **Abandoned** (too complex)
 **Phase 2** (June): FFI routing → **Abandoned** (circular dependencies)  
-**Phase 3** (July 1): First-class modules → **✅ COMPLETED**
+**Phase 3** (July 1): First-class modules → **❌ REMOVED** (July 2)
 **Phase 4** (July 2): VK parity via `reduce_lincom` → **🔥 CURRENT PRIORITY**
 
 ### **KEY LESSONS LEARNED**
@@ -516,6 +510,50 @@ The constraint persistence is fixed, but Sparky generates different constraint s
 - Different wire indexing schemes
 - Missing optimizations in constraint generation
 - Different representations of the same mathematical constraint
+
+## 📐 Simplified Architecture After Functor Removal (July 2, 2025)
+
+### **Current Clean Architecture**
+
+After removing the functor code, we have a much simpler and clearer architecture:
+
+**JavaScript Level**:
+- `switchBackend('sparky' | 'snarky')` - Runtime backend switching
+- `sparky-adapter.js` - Compatibility layer exposing Snarky-compatible API
+- Field operations execute in JavaScript using selected backend
+
+**Bridge Layer**:
+- `sparkyConstraintBridge` - Simple object for constraint transfer
+- `is_sparky_active()` - Check which backend is active
+- Constraint accumulation functions - Transfer constraints from Sparky to OCaml
+
+**OCaml Level**:
+- Pickles uses standard Snarky types and operations
+- During compilation, retrieves constraints from bridge if Sparky is active
+- No complex module abstractions or dynamic dispatch
+
+### **Why This Is Better**
+
+1. **Single execution path** - Circuits always execute in JavaScript
+2. **Clear separation** - Backend logic in JS, compilation in OCaml
+3. **Minimal bridge** - Only transfers constraints, no operation routing
+4. **Type safety** - No Obj.magic or unsafe conversions needed
+5. **Maintainable** - Easy to understand data flow
+
+### **Focus on Real Issues**
+
+With the functor distraction removed, the path forward is clear:
+
+1. **Fix Sparky's constraint generation**:
+   - Implement `reduce_lincom` optimization
+   - Match Snarky's 10-coefficient gate format
+   - Fix wire indexing to match Snarky's scheme
+
+2. **The constraint bridge works** - No changes needed there
+
+3. **Backend switching works** - JavaScript-level switching is sufficient
+
+This simplified architecture proves that the VK mismatch is purely a Sparky internal issue, not an integration problem.
 
 ## 🎉 Previous Breakthroughs (June 30, 2025)
 
@@ -1531,61 +1569,51 @@ A comprehensive analysis of the Pickles implementation has identified all operat
 **Operations Used in Pickles**:
 - `Impl.exists`: Create witness variables with computation
 
-## First-Class Modules Implementation - Phase 3 (July 1, 2025)
+## First-Class Modules Implementation - Phase 3 (July 1, 2025) - REMOVED (July 2, 2025)
 
-### **Phase 3: Dynamic Backend Selection Support**
+### **Phase 3: Dynamic Backend Selection Support - REMOVED**
 
-Implemented first-class modules approach to enable runtime selection of backends while maintaining the same API.
+The first-class modules approach for dynamic backend selection has been removed due to complexity and type compatibility issues.
 
-**Key Components Added**:
+**What Was Removed (July 2, 2025)**:
 
-1. **`PICKLES_S` Module Type** - Captures the Pickles module signature
-   - Includes all core Pickles functionality (compile_promise, verify_promise, etc.)
-   - Module types for Statement_with_proof, Side_loaded, Tag, etc.
-   - Type signatures preserved for proper type checking
+All functor-related code for backend switching has been removed from pickles_bindings.ml:
+- **BACKEND module type** (was commented out) - Abstract interface for backends
+- **JS_BACKEND module type** (was commented out) - Interface for JS backends
+- **Backend_of_js functor** (was commented out) - Created OCaml modules from JS objects
+- **Current_backend module** (was commented out) - Wrapped existing Snarky
+- **FFI_backend module** (was commented out) - Called into JS Snarky via FFI
+- **PICKLES_S module type** - Captured Pickles module signature
+- **create_pickles_with_backend function** - For runtime backend selection
+- **create_snarky_js_wrapper function** - Exposed OCaml Snarky as JS object
+- **JavaScript exports**: createPicklesWithBackend, createSnarkyJsWrapper, getCurrentPickles
 
-2. **`create_pickles_with_backend` Function**
-   - Takes a JS backend object as parameter
-   - Returns a first-class module with type `(module PICKLES_S)`
-   - Currently returns standard Pickles module (future: create Pickles with custom backend)
-   - Type: `Js.Unsafe.any -> (module PICKLES_S)`
+**What Was Kept**:
 
-3. **`create_snarky_js_wrapper` Function**
-   - Creates a JS wrapper around OCaml Snarky implementation
-   - Provides consistent interface for JavaScript code
-   - Exports all required backend operations:
-     - Field operations: fieldConstantOfInt, fieldTyp, fieldScale, fieldAdd
-     - Constraint operations: constraintEqual, constraintR1CS, constraintSquare
-     - Type operations: typUnit, typArray, typTuple2, typTransport, typProverValue
-     - Core operations: exists, assert
-     - As_prover operations: asProverReadVar
-     - Internal operations: checkedReturn
+Essential parts for constraint bridge functionality remain:
+- **is_sparky_active()** function - Checks if Sparky backend is active
+- **start_constraint_accumulation()** function - Begins constraint recording
+- **get_accumulated_constraints()** function - Retrieves Sparky constraints
+- **end_constraint_accumulation()** function - Stops constraint recording
+- **add_sparky_constraints_to_system()** function - Converts Sparky constraints to Snarky format
+- **Module aliases** (Impl, Field, Boolean, Typ, Backend) - Core type definitions
 
-4. **`get_current_pickles` Function**
-   - Returns the appropriate Pickles module based on `is_sparky_active()`
-   - Type: `unit -> (module PICKLES_S)`
-   - Future: Will return Sparky-based Pickles when available
+**Reason for Removal**:
 
-5. **Updated `pickles_compile` Function**
-   - Now uses dynamic Pickles module selection
-   - Gets current Pickles module via `get_current_pickles()`
-   - Calls `CurrentPickles.compile_promise` instead of hardcoded `Pickles.compile_promise`
-   - Maintains full backward compatibility
+The functor-based approach was overly complex and had fundamental type compatibility issues:
+- Type incompatibilities between FFI_backend and Current_backend prevented dynamic switching
+- The constraint bridge mechanism already provides necessary Sparky-OCaml integration
+- Simpler to maintain without the added abstraction layers
+- Field operations always used Snarky backend even when Sparky was "active"
 
-**Exports Added to JavaScript**:
-- `pickles.createPicklesWithBackend` - Create Pickles with custom backend
-- `pickles.createSnarkyJsWrapper` - Get JS wrapper for OCaml Snarky
-- `pickles.getCurrentPickles` - Returns "snarky" or "sparky" string
+**Current Architecture**:
 
-**Files Modified**:
-- `src/bindings/ocaml/lib/pickles_bindings.ml` - Added Phase 3 implementation
-
-**Status**: ✅ Phase 3 complete - Infrastructure for backend switching is in place
-
-**Next Steps**:
-- Implement actual Sparky-based Pickles module creation
-- Test backend switching with real Sparky operations
-- Performance benchmarking of different backends
+The constraint bridge approach remains and provides clean integration:
+1. JavaScript/TypeScript code uses either Snarky or Sparky backends
+2. During circuit compilation, if Sparky is active, constraints are accumulated
+3. OCaml Pickles retrieves these constraints via the bridge functions
+4. Constraints are converted to Snarky's native format for VK generation
+5. This ensures VK compatibility without complex module switching
 - `Impl.assert_`: Add constraints to the system
 - `Impl.Constraint.*`: Create various constraint types
 - `Impl.with_label`: Debug labeling for constraints

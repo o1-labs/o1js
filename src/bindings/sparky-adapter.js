@@ -286,7 +286,6 @@ export const Snarky = {
       // NOT during zkProgram compilation (when isCompilingCircuit is true)
       if (!isCompilingCircuit && sparkyInstance && sparkyInstance.runReset) {
         sparkyInstance.runReset();
-        console.log('[JS DEBUG] Reset Sparky state for isolated constraint system');
       }
       
       // Use the actual enterConstraintSystem method from the Run module
@@ -335,11 +334,6 @@ export const Snarky = {
           for (let i = 0; i < size; i++) {
             // Create a witness variable using field module exists
             const sparkyVar = getFieldModule().exists(null);
-            // Debug: check what we got
-            console.log('DEBUG sparkyVar:', sparkyVar, 'type:', typeof sparkyVar);
-            if (sparkyVar && typeof sparkyVar === 'object') {
-              console.log('DEBUG sparkyVar keys:', Object.keys(sparkyVar));
-            }
             // Convert Cvar back to FieldVar format
             const o1jsVar = cvarToFieldVar(sparkyVar);
             vars.push(o1jsVar);
@@ -547,13 +541,11 @@ export const Snarky = {
    */
   gates: {
     zero(in1, in2, out) {
-      console.log('[JS DEBUG] gates.zero called');
       getGatesModule().zero(in1, in2, out);
     },
     
     generic(sl, l, sr, r, so, o, sm, sc) {
       gateCallCounter++;
-      console.log(`[JS DEBUG] gates.generic called (#${gateCallCounter}) with:`, { sl, sr, so, sm, sc });
       // The coefficients come as MlArray format [tag, value] where value is BigInt
       // We need to use the raw gate interface to handle field elements properly
       // without converting to f64 which loses precision
@@ -580,12 +572,9 @@ export const Snarky = {
       const GENERIC_GATE_TYPE = 1;
       
       // The raw gate can handle BigInt field elements without conversion
-      console.log('[JS DEBUG] Calling sparkyInstance.gatesRaw');
       try {
         sparkyInstance.gatesRaw(GENERIC_GATE_TYPE, values, coefficients);
-        console.log('[JS DEBUG] gatesRaw completed successfully');
       } catch (error) {
-        console.error('[JS DEBUG] gatesRaw error:', error);
         throw error;
       }
     },
@@ -1242,7 +1231,6 @@ let accumulatedConstraints = [];
 function isActiveSparkyBackend() {
   // Check if we're in a Sparky context by testing if Sparky instance exists
   const isActive = sparkyInstance !== null && typeof sparkyInstance !== 'undefined';
-  console.log('[JS DEBUG] isActiveSparkyBackend called, result:', isActive);
   return isActive;
 }
 
@@ -1251,10 +1239,8 @@ function isActiveSparkyBackend() {
  * This is called before rule##.main public_input executes
  */
 function startConstraintAccumulation() {
-  console.log('[JS DEBUG] startConstraintAccumulation called');
   gateCallCounter = 0; // Reset counter for this compilation
   if (!isActiveSparkyBackend()) {
-    console.log('[JS DEBUG] Sparky not active, skipping');
     return;
   }
   
@@ -1262,23 +1248,15 @@ function startConstraintAccumulation() {
   // This clears any leftover constraints from previous operations
   if (!globalThis.__sparkyConstraintHandle && sparkyInstance && sparkyInstance.runReset) {
     sparkyInstance.runReset();
-    console.log('[JS DEBUG] Reset Sparky state at start of new compilation');
   }
   
   isCompilingCircuit = true;
   accumulatedConstraints = [];
-  console.log('[JS DEBUG] Constraint accumulation started');
   
   // CRITICAL: Enter constraint system context and keep handle
-  console.log('[JS DEBUG] Entering constraint system context');
-  console.log('[JS DEBUG] Gate calls before entering context:', gateCallCounter);
   if (!globalThis.__sparkyConstraintHandle) {
     globalThis.__sparkyConstraintHandle = getRunModule().enterConstraintSystem();
-    console.log('[JS DEBUG] Entered constraint system context');
   }
-  
-  // Now constraints will accumulate across the compilation process
-  console.log('[JS DEBUG] Ready to accumulate constraints for this program');
 }
 
 /**
@@ -1287,79 +1265,30 @@ function startConstraintAccumulation() {
  * @returns {Array} Array of constraint objects in OCaml-compatible format
  */
 function getAccumulatedConstraints() {
-  console.log('[JS DEBUG] getAccumulatedConstraints called');
   if (!isActiveSparkyBackend()) {
-    console.log('[JS DEBUG] Sparky not active, returning empty array');
     return [];
   }
   
-  // CRITICAL FIX: Always return constraints when Sparky is active, 
-  // regardless of isCompilingCircuit flag. The constraint system should
-  // always reflect the current state of accumulated constraints.
-  console.log('[JS DEBUG] isCompilingCircuit flag:', isCompilingCircuit);
-  
   try {
-    console.log('[JS DEBUG] Using correct Sparky API...');
-    
-    // CRITICAL FIX: Get the current constraint system from the Run module
-    // The getConstraintSystem() returns a JS object directly (already converted by serde-wasm-bindgen)
-    console.log(`[JS DEBUG] About to get constraint system... (after ${gateCallCounter} gate calls)`);
-    
     // CRITICAL: Reset gate counter for next compilation
     const totalGateCalls = gateCallCounter;
     gateCallCounter = 0;
     
     const constraintsJson = getRunModule().getConstraintSystem();
-    console.log('[JS DEBUG] Got constraint system from run module:', constraintsJson);
-    
-    // Also log the current run mode
-    const inProver = getRunModule().inProver;
-    console.log('[JS DEBUG] Current mode - inProver:', inProver);
     
     if (constraintsJson) {
-      console.log('[JS DEBUG] Constraint system is already in JSON format');
-      console.log('[JS DEBUG] Raw constraints JSON from Sparky:', constraintsJson);
-      
-      // Get constraint row count from gates array
-      const rowCount = constraintsJson.gates ? constraintsJson.gates.length : 0;
-      console.log('[JS DEBUG] Sparky constraint rows:', rowCount);
-      
       // Convert to OCaml-compatible format
       const constraints = typeof constraintsJson === 'string' 
         ? JSON.parse(constraintsJson) 
         : constraintsJson;
       
       const gates = constraints.gates || [];
-      
-      // ULTRA-DEBUG: Analyze each gate's coefficients for differences
-      gates.forEach((gate, index) => {
-        console.log(`[JS DEBUG] Gate ${index}:`, {
-          type: gate.typ,
-          coeffs: gate.coeffs ? gate.coeffs.slice(0, 3) : 'none', // Show first 3 coeffs
-          wires: gate.wires
-        });
-        
-        // Create a hash of the gate content to detect subtle differences
-        const gateContent = JSON.stringify({
-          type: gate.typ,
-          coeffs: gate.coeffs,
-          wires: gate.wires
-        });
-        const gateHash = gateContent.length + '-' + gateContent.slice(0, 20) + gateContent.slice(-20);
-        console.log(`[JS DEBUG] Gate ${index} content hash:`, gateHash);
-      });
-      
-      console.log('[JS DEBUG] Returning', gates.length, 'gates to OCaml (from', rowCount, 'total rows)');
       return gates;
-    } else {
-      console.log('[JS DEBUG] No constraint system available from run module');
     }
   } catch (error) {
-    console.error('[JS DEBUG] Exception in getAccumulatedConstraints:', error);
-    console.error('[JS DEBUG] Error stack:', error.stack);
+    // Error occurred, return empty array
   }
   
-  console.log('[JS DEBUG] Returning empty array due to error/no instance');
   return [];
 }
 
@@ -1367,7 +1296,6 @@ function getAccumulatedConstraints() {
  * Called by OCaml: End constraint accumulation mode
  */
 function endConstraintAccumulation() {
-  console.log('[JS DEBUG] endConstraintAccumulation called');
   isCompilingCircuit = false;
   accumulatedConstraints = [];
   
@@ -1375,25 +1303,15 @@ function endConstraintAccumulation() {
   if (globalThis.__sparkyConstraintHandle) {
     try {
       globalThis.__sparkyConstraintHandle.exit();
-      console.log('[JS DEBUG] Exited constraint system context');
       globalThis.__sparkyConstraintHandle = null;
     } catch (error) {
-      console.warn('[JS DEBUG] Error exiting constraint system:', error);
+      // Error exiting constraint system
     }
   }
   
   // CRITICAL FIX: Don't reset Sparky state here - it clears all constraints!
   // The reset should only happen when starting a completely new compilation,
   // not when accumulating constraints for the current program.
-  // if (sparkyInstance && sparkyInstance.runReset) {
-  //   try {
-  //     sparkyInstance.runReset();
-  //     console.log('[JS DEBUG] Reset Sparky state for next program');
-  //   } catch (error) {
-  //     console.warn('Could not reset Sparky state:', error);
-  //   }
-  // }
-  console.log('[JS DEBUG] NOT resetting Sparky state - preserving accumulated constraints');
 }
 
 /**
@@ -1446,7 +1364,6 @@ export let Test = new Proxy({}, {
  * Reset Sparky state when switching to another backend
  */
 export function resetSparkyBackend() {
-  console.log('[JS DEBUG] Resetting Sparky backend state');
   sparkyInstance = null;
   initialized = false;
   initPromise = null;
@@ -1458,7 +1375,6 @@ export function resetSparkyBackend() {
  * without deinitializing the entire backend
  */
 export function resetSparkyState() {
-  console.log('[JS DEBUG] Resetting Sparky run state');
   if (sparkyInstance && sparkyInstance.runReset) {
     sparkyInstance.runReset();
   }
