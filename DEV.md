@@ -8,7 +8,11 @@ Essential technical documentation for o1js development with Sparky backend integ
 
 **Architecture**: Clean and consolidated after removing 2,419+ lines of technical debt  
 **Critical Update (July 2, 2025)**: Successfully refactored major gates to use raw_gate interface  
-**Performance**: Significantly reduced constraint counts through optimization and refactoring
+**Performance**: Significantly reduced constraint counts through optimization and refactoring  
+**Test Results (July 2, 2025)**: Comprehensive test suite reveals significant regressions:
+- VK Parity: 28.6% success rate (2/7 operations) - down from claimed 50%
+- Backend Infrastructure: 66.7% success rate - critical globalThis.__snarky issues
+- Constraint Analysis: 37.5% success rate - optimization differences persist
 
 ## Working Features
 
@@ -21,9 +25,12 @@ Essential technical documentation for o1js development with Sparky backend integ
 - Foreign field operations
 - Backend switching infrastructure
 
-### ❌ Critical Issues
-- **VK Generation**: All Sparky VKs generate identical hash - fundamental constraint generation bug
-- **Proof Generation**: Module resolution errors when using Sparky backend
+### ❌ Critical Issues (Updated July 2, 2025)
+- **VK Parity Regression**: Only 28.6% of operations produce matching VKs (was claimed 50%)
+- **Infrastructure Failures**: globalThis.__snarky not updating on backend switch
+- **Constraint Over-generation**: Sparky produces 1-3x more constraints than Snarky for same operations
+- **Module Resolution**: Constraint routing issues due to missing imports
+- **Optimization Incomplete**: reduce_lincom optimization not working as expected
 
 ### ✅ Recently Fixed (July 2, 2025)
 - **Raw Gate Refactoring**: Successfully refactored Poseidon, EC operations, and generic gates to use standardized raw_gate interface
@@ -36,9 +43,11 @@ Essential technical documentation for o1js development with Sparky backend integ
 - **Problem**: Sparky had `reduce_to_v` function that doesn't exist in Snarky, creating unnecessary intermediate variables
 - **Solution**: Removed `reduce_to_v` entirely - now passes complex Cvars directly like Snarky does
 - **Fixed constraint iteration bug**: Gate conversion no longer modifies constraint system during iteration
+- **Fixed mutation during conversion**: Changed gate conversion methods from `&mut self` to `&self` to prevent constraint additions during conversion
 - **Results**: 
   - ✅ Constant folding: Both backends generate 0 constraints
   - ✅ Multiplication by constant: Both backends generate 1 constraint  
+  - ✅ Gate conversion is now read-only - no constraints added during conversion process
   - 🚧 Linear combinations still need optimization for full parity
 
 ## Essential Commands

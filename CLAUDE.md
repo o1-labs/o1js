@@ -210,10 +210,13 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 
 ## Critical Updates (July 2025)
 
-- 🎉 **MAJOR BREAKTHROUGH**: FIRST VK PARITY ACHIEVED! Simple operations now have identical VK hashes between Snarky and Sparky
-- 🎯 **VK Parity Rate**: 50% (2/4 operations) - Simple assertion and field addition achieve perfect compatibility
-- ✅ **Constraint Export**: COMPLETELY FIXED - pipeline now works for all operations
-- ⚠️ **Complex Operations**: VK generation works but differs due to constraint structure differences
+- 🚨 **REGRESSION DETECTED**: VK parity degraded from claimed 50% to **28.6%** (2/7 operations)
+- ❌ **Infrastructure Failure**: Critical backend switching issues with globalThis.__snarky initialization
+- ⚠️ **Constraint Mismatch**: Sparky generates 1-3x more constraints than Snarky for same operations
+- 🔧 **Test Status** (July 2, 2025):
+  - VK Parity: 28.6% success rate (2/7 tests passing)
+  - Backend Infrastructure: 66.7% success rate (8/12 tests passing)  
+  - Constraint Analysis: 37.5% success rate (3/8 tests passing)
 - 🚨 **NEVER edit `dist/` files**: Always modify source files in `src/bindings/` - they compile to `dist/`
 - ⚠️ **Field precision**: NEVER convert BigInts to JavaScript numbers - loses precision
 
@@ -225,9 +228,10 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
   - `VkParityComprehensive`: Complete VK generation testing across circuit patterns
   - `BackendInfrastructure`: Tests core routing bug and switching mechanism  
   - `ConstraintSystemAnalysis`: Deep constraint generation and optimization analysis
-- 🎉 **Current Status**: 50% VK parity success rate (2/4 operations) - MAJOR IMPROVEMENT from 14.3%
-- ✅ **Critical Issues RESOLVED**: 
-  - Constraint export pipeline completely fixed
-  - Simple operations achieve perfect VK parity
-  - Systematic Property-Based Testing framework validates progress
-- 🎯 **Goal**: Fix multiplication over-generation → 90%+ VK parity
+- ⚠️ **Current Status**: 28.6% VK parity success rate (2/7 operations) - SIGNIFICANT REGRESSION  
+- 🚨 **Critical Issues IDENTIFIED**:
+  - globalThis.__snarky not updating on backend switch (infrastructure failure)
+  - Constraint optimization differences causing 1-3x more constraints in Sparky
+  - Module resolution issues affecting constraint routing
+  - reduce_lincom optimization not working properly in Sparky
+- 🎯 **Urgent Goals**: Fix infrastructure failures and constraint optimization mismatches
