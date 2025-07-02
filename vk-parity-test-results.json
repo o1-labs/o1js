@@ -1,0 +1,68 @@
+{
+  "timestamp": "2025-07-02T19:33:18.397Z",
+  "summary": {
+    "passed": 2,
+    "failed": 10,
+    "total": 12,
+    "successRate": "16.7"
+  },
+  "tests": [
+    {
+      "name": "Simple Equality: x = 1",
+      "status": "PASSED"
+    },
+    {
+      "name": "Variable Equality: x = y",
+      "status": "FAILED",
+      "reason": "Structure mismatch"
+    },
+    {
+      "name": "Addition: x + y = z",
+      "status": "FAILED",
+      "reason": "Coefficient mismatch"
+    },
+    {
+      "name": "Subtraction: x - y = z",
+      "status": "FAILED",
+      "reason": "Coefficient mismatch"
+    },
+    {
+      "name": "Scaling: 5 * x = y",
+      "status": "PASSED"
+    },
+    {
+      "name": "Multiplication: x * y = z",
+      "status": "FAILED",
+      "reason": "Structure mismatch"
+    },
+    {
+      "name": "Square: x² = y",
+      "status": "FAILED",
+      "reason": "Structure mismatch"
+    },
+    {
+      "name": "Boolean: x ∈ {0,1}",
+      "status": "FAILED",
+      "reason": "Structure mismatch"
+    },
+    {
+      "name": "Conditional: if-then-else",
+      "status": "ERROR"
+    },
+    {
+      "name": "Multiple Constraints: x=1, y=2, z=x+y",
+      "status": "FAILED",
+      "reason": "Structure mismatch"
+    },
+    {
+      "name": "Complex: (x + y) * z = w",
+      "status": "FAILED",
+      "reason": "Structure mismatch"
+    },
+    {
+      "name": "Poseidon Hash: Real-world circuit",
+      "status": "ERROR",
+      "reason": "unreachable"
+    }
+  ]
+}
