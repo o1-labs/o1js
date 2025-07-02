@@ -162,11 +162,12 @@ await switchBackend('snarky');
 - ✅ EC operations (ecScale, ecEndoscale) implemented in Sparky
 - ✅ Range check operations available
 - ✅ Lookup tables fully implemented in Sparky
-- ✅ Foreign field operations fully implemented in Sparky (June 30, 2025)
-- ✅ Comprehensive integration test suite validates feature parity (June 30, 2025)
+- ✅ Foreign field operations fully implemented in Sparky
+- ✅ Comprehensive integration test suite validates feature parity
 - ✅ Performance within 1.5x of Snarky for most operations
+- 🚨 **CRITICAL BLOCKER**: All Sparky VKs generate identical hash - VK parity not achieved
 - ❌ Proof generation has module resolution errors with Sparky
-- ❌ XOR and rotate gates pending completion
+- ❌ Missing `reduce_lincom` optimization causes different constraint counts (Sparky: 5, Snarky: 3)
 
 ## Technical Documentation
 
@@ -196,3 +197,11 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 - ALWAYS read SPARKY_CALLGRAPH_TEXT.md before starting any project
 - ALWAYS record your progress as you go in DEV.md
 - NEVER change the structure of sparky-adapter.js UNLESS explicitly told to do so.  It is meant to exactly match the exports of Snarky
+
+## Critical Updates (July 2025)
+
+- 🚨 **Pickles Functor Removed**: All functor-based backend switching code was removed (July 2, 2025) - architecture is now simpler with constraint bridge only
+- 🚨 **NEVER edit `dist/` files**: Always modify source files in `src/bindings/` - they compile to `dist/`
+- 🚨 **Sparky WASM building**: Use `./src/bindings/scripts/build-sparky-wasm.sh` only
+- ⚠️ **Field precision**: NEVER convert BigInts to JavaScript numbers - loses precision
+- ✅ **Constraint recording works**: Sparky IS recording constraints but generates different counts than Snarky
