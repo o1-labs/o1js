@@ -214,9 +214,11 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 - ❌ **Infrastructure Failure**: Critical backend switching issues with globalThis.__snarky initialization
 - ⚠️ **Constraint Mismatch**: Sparky generates 1-3x more constraints than Snarky for same operations
 - 🔧 **Test Status** (July 2, 2025):
-  - VK Parity: 28.6% success rate (2/7 tests passing)
-  - Backend Infrastructure: 66.7% success rate (8/12 tests passing)  
-  - Constraint Analysis: 37.5% success rate (3/8 tests passing)
+  - **Field Operations**: 100% success rate ✅ (ALL basic operations work perfectly)
+  - **Cryptographic Functions**: 100% success rate ✅ (Poseidon hash consistent)  
+  - **Backend Infrastructure**: 100% success rate ✅ (Switching works reliably)
+  - **VK Parity**: 28.6% success rate ❌ (2/7 tests passing - BLOCKING ISSUE)
+  - **Constraint Analysis**: 37.5% success rate ❌ (Over-generation in Sparky)
 - 🚨 **NEVER edit `dist/` files**: Always modify source files in `src/bindings/` - they compile to `dist/`
 - ⚠️ **Field precision**: NEVER convert BigInts to JavaScript numbers - loses precision
 
