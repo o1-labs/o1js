@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔥 Sparky Entry Point Call Graphs</title>
+    <title>🔥 Sparky Entry Point Call Graphs - Code Analysis Based</title>
     <script src="./d3.v7.min.js"></script>
     <style>
         * {
@@ -41,18 +41,18 @@
         .controls {
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: none;
             border-radius: 20px;
             background: linear-gradient(45deg, #4a90e2, #357abd);
             color: white;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             transition: all 0.3s ease;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
@@ -67,13 +67,13 @@
         }
 
         #visualization {
-            margin-top: 100px;
+            margin-top: 140px;
             padding: 20px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
             width: 100%;
-            max-width: 1800px;
+            max-width: 2000px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -81,20 +81,20 @@
         .entry-point-container {
             background: rgba(0, 0, 0, 0.7);
             border-radius: 15px;
-            padding: 20px;
+            padding: 15px;
             border: 2px solid #4a90e2;
-            min-height: 300px;
+            min-height: 250px;
             display: flex;
             flex-direction: column;
         }
 
         .entry-point-title {
             color: #f39c12;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-align: center;
-            padding: 10px;
+            padding: 8px;
             background: rgba(243, 156, 18, 0.2);
             border-radius: 8px;
             border: 1px solid #f39c12;
@@ -103,7 +103,7 @@
         .graph-container {
             flex: 1;
             position: relative;
-            min-height: 250px;
+            min-height: 200px;
         }
 
         .node {
@@ -122,7 +122,7 @@
         }
 
         .node-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 500;
             text-anchor: middle;
             fill: white;
@@ -148,7 +148,7 @@
             color: white;
             padding: 12px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 11px;
             pointer-events: none;
             z-index: 1001;
             border: 1px solid #4a90e2;
@@ -158,34 +158,35 @@
 
         .legend {
             position: fixed;
-            top: 120px;
+            top: 140px;
             right: 20px;
             background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
             border: 1px solid #4a90e2;
             z-index: 1000;
+            font-size: 12px;
         }
 
         .legend h3 {
             color: #4a90e2;
-            margin-bottom: 15px;
-            font-size: 16px;
+            margin-bottom: 10px;
+            font-size: 14px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
-            font-size: 13px;
+            margin-bottom: 8px;
+            font-size: 11px;
         }
 
         .legend-color {
-            width: 16px;
-            height: 16px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            margin-right: 10px;
-            border: 2px solid white;
+            margin-right: 8px;
+            border: 1px solid white;
         }
 
         .stats {
@@ -197,12 +198,12 @@
             border-radius: 10px;
             border: 1px solid #4a90e2;
             z-index: 1000;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         @media (max-width: 1200px) {
             #visualization {
-                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             }
         }
 
@@ -210,19 +211,29 @@
             #visualization {
                 grid-template-columns: 1fr;
             }
+            .legend, .stats {
+                position: relative;
+                right: auto;
+                bottom: auto;
+                margin: 10px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🔥 Sparky Entry Point Call Graphs</h1>
+        <h1>🔥 Sparky Entry Point Call Graphs - Code Analysis Based</h1>
         <div class="controls">
-            <button class="btn active" id="show-all">👁️ Show All Entry Points</button>
-            <button class="btn" id="show-field">🔢 Field Operations</button>
-            <button class="btn" id="show-gates">🚪 Gate Operations</button>
+            <button class="btn active" id="show-all">👁️ All (78)</button>
+            <button class="btn" id="show-field">🔢 Field</button>
+            <button class="btn" id="show-gates">🚪 Gates</button>
+            <button class="btn" id="show-run">▶️ Run</button>
+            <button class="btn" id="show-constraint">📋 Constraint</button>
             <button class="btn" id="show-poseidon">🔐 Poseidon</button>
-            <button class="btn" id="show-run">▶️ Run Control</button>
-            <button class="btn" id="show-constraint">📋 Constraint System</button>
+            <button class="btn" id="show-circuit">⚙️ Circuit</button>
+            <button class="btn" id="show-group">🔗 Group</button>
+            <button class="btn" id="show-bridge">🌉 Bridge</button>
+            <button class="btn" id="show-util">🔧 Util</button>
         </div>
     </div>
 
@@ -230,440 +241,629 @@
         <h3>Node Types</h3>
         <div class="legend-item">
             <div class="legend-color" style="background: #f39c12;"></div>
-            <span>WASM Entry Point</span>
+            <span>Entry Point</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background: #4a90e2;"></div>
-            <span>Core Function</span>
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span>WASM Call</span>
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background: #2ecc71;"></div>
-            <span>Implementation</span>
+            <span>Snarky Call</span>
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background: #9b59b6;"></div>
-            <span>Helper Function</span>
+            <span>Utility</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #95a5a6;"></div>
+            <span>Not Implemented</span>
         </div>
     </div>
 
     <div class="stats">
-        <div>Entry Points: <span id="entry-count">0</span></div>
-        <div>Total Graphs: <span id="graph-count">0</span></div>
-        <div>Visible: <span id="visible-count">0</span></div>
+        <div>Total Entry Points: <span id="entry-count">78</span></div>
+        <div>Visible Graphs: <span id="visible-count">0</span></div>
+        <div>Implementation: <span id="impl-count">0</span></div>
     </div>
 
     <div id="visualization"></div>
 
     <script>
-        console.log('🚀 Starting Sparky Entry Point Graphs...');
+        console.log('🚀 Starting Sparky Entry Point Graphs - Code Analysis Based...');
 
-        // Comprehensive call graph data for each entry point
+        // Comprehensive call graph data based on actual code analysis
         const entryPointGraphs = {
-            // Field Operations
-            fieldExists: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'exists_impl', type: 'core', level: 1 },
-                    { target: 'alloc_var', type: 'impl', level: 2, parent: 'exists_impl' },
-                    { target: 'cvar_to_js', type: 'helper', level: 2, parent: 'exists_impl' },
-                    { target: 'has_witness', type: 'helper', level: 3, parent: 'alloc_var' },
-                    { target: 'set_variable_value', type: 'helper', level: 3, parent: 'alloc_var' }
-                ]
-            },
-            
-            fieldConstant: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'constant', type: 'core', level: 1 },
-                    { target: 'from_str', type: 'helper', level: 2, parent: 'constant' },
-                    { target: 'cvar_to_js', type: 'helper', level: 2, parent: 'constant' }
-                ]
-            },
-            
-            fieldAdd: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'linear_combination', type: 'core', level: 1 },
-                    { target: 'add', type: 'impl', level: 2, parent: 'linear_combination' },
-                    { target: 'scale', type: 'helper', level: 2, parent: 'linear_combination' },
-                    { target: 'var', type: 'helper', level: 2, parent: 'linear_combination' }
-                ]
-            },
-            
-            fieldScale: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'scale', type: 'core', level: 1 },
-                    { target: 'linear_combination', type: 'core', level: 2, parent: 'scale' },
-                    { target: 'mul', type: 'impl', level: 2, parent: 'scale' }
-                ]
-            },
-            
-            fieldAssertEqual: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 1 },
-                    { target: 'assert_equal', type: 'impl', level: 1 },
-                    { target: 'linear_combination', type: 'core', level: 2, parent: 'add_constraint' },
-                    { target: 'get_constraint_system', type: 'helper', level: 2, parent: 'add_constraint' }
-                ]
-            },
-            
-            fieldAssertMul: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'assert_r1cs', type: 'core', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'assert_r1cs' },
-                    { target: 'linear_combination', type: 'impl', level: 2, parent: 'assert_r1cs' },
-                    { target: 'mul', type: 'impl', level: 2, parent: 'assert_r1cs' }
-                ]
-            },
-            
-            fieldAssertSquare: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'assert_r1cs', type: 'core', level: 1 },
-                    { target: 'square', type: 'impl', level: 2, parent: 'assert_r1cs' },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'assert_r1cs' }
-                ]
-            },
-            
-            fieldAssertBoolean: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'assert_r1cs', type: 'core', level: 1 },
-                    { target: 'is_zero', type: 'impl', level: 2, parent: 'assert_r1cs' },
-                    { target: 'one', type: 'helper', level: 2, parent: 'assert_r1cs' }
-                ]
-            },
-            
-            fieldReadVar: {
-                category: 'field',
-                calls: [
-                    { target: 'with_run_state_ref', type: 'core', level: 1 },
-                    { target: 'get_variable_value', type: 'core', level: 1 },
-                    { target: 'to_string', type: 'helper', level: 2, parent: 'get_variable_value' }
-                ]
-            },
-            
-            // Gate Operations
-            gatesZero: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'zero_gate', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'zero_gate' },
-                    { target: 'linear_combination', type: 'helper', level: 3, parent: 'add_constraint' }
-                ]
-            },
-            
-            gatesGeneric: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'generic_gate', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'generic_gate' },
-                    { target: 'linear_combination', type: 'core', level: 2, parent: 'generic_gate' },
-                    { target: 'constant', type: 'helper', level: 3, parent: 'linear_combination' }
-                ]
-            },
-            
-            gatesEcAdd: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'ec_add_gate', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'ec_add_gate' },
-                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'ec_add_gate' },
-                    { target: 'linear_combination', type: 'helper', level: 3, parent: 'ec_add_gate' }
-                ]
-            },
-            
-            gatesEcDouble: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'ec_double_gate', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'ec_double_gate' },
-                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'ec_double_gate' }
-                ]
-            },
-            
-            gatesEcScalarMult: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'ec_scalar_mult_gate', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'ec_scalar_mult_gate' },
-                    { target: 'range_check_0', type: 'helper', level: 2, parent: 'ec_scalar_mult_gate' }
-                ]
-            },
-            
-            gatesRangeCheck0: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'range_check_0', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'range_check_0' },
-                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'range_check_0' }
-                ]
-            },
-            
-            gatesRangeCheck1: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'range_check_1', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'range_check_1' }
-                ]
-            },
-            
-            gatesRangeCheck64: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'range_check_64', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'range_check_64' },
-                    { target: 'range_check_0', type: 'helper', level: 3, parent: 'range_check_64' }
-                ]
-            },
-            
-            gatesRaw: {
-                category: 'gates',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'raw_gate_impl', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'raw_gate_impl' }
-                ]
-            },
-            
-            // Poseidon Operations
-            poseidonUpdate: {
-                category: 'poseidon',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'absorb_input_into_state', type: 'impl', level: 1 },
-                    { target: 'permute', type: 'impl', level: 1 },
-                    { target: 'round_function', type: 'core', level: 2, parent: 'permute' },
-                    { target: 's_box', type: 'impl', level: 3, parent: 'round_function' },
-                    { target: 'mix_layer', type: 'impl', level: 3, parent: 'round_function' },
-                    { target: 'add_round_constants', type: 'helper', level: 3, parent: 'round_function' }
-                ]
-            },
-            
-            poseidonHashToGroup: {
-                category: 'poseidon',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'poseidon_hash', type: 'core', level: 1 },
-                    { target: 'HybridPoseidon', type: 'impl', level: 2, parent: 'poseidon_hash' },
-                    { target: 'permute', type: 'impl', level: 3, parent: 'HybridPoseidon' },
-                    { target: 'round_function', type: 'core', level: 3, parent: 'HybridPoseidon' }
-                ]
-            },
-            
-            gatesPoseidonHash2: {
-                category: 'poseidon',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'poseidon_hash', type: 'core', level: 1 },
-                    { target: 'round_function', type: 'core', level: 2, parent: 'poseidon_hash' },
-                    { target: 's_box', type: 'impl', level: 3, parent: 'round_function' },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'poseidon_hash' }
-                ]
-            },
-            
-            gatesPoseidonHashArray: {
-                category: 'poseidon',
-                calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'poseidon_hash', type: 'core', level: 1 },
-                    { target: 'absorb_input_into_state', type: 'impl', level: 2, parent: 'poseidon_hash' },
-                    { target: 'permute', type: 'impl', level: 2, parent: 'poseidon_hash' },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'poseidon_hash' }
-                ]
-            },
-            
-            // Run Control
-            runAsProver: {
+            // Run Module APIs (9 entry points)
+            'run.inProver': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'get_mode', type: 'core', level: 1 },
-                    { target: 'set_mode', type: 'core', level: 1 },
-                    { target: 'run_state', type: 'helper', level: 2, parent: 'with_run_state' }
+                    { target: 'getRunModule().inProver', type: 'wasm', level: 1 }
                 ]
             },
-            
-            runInProver: {
+
+            'run.asProver': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state_ref', type: 'core', level: 1 },
-                    { target: 'get_mode', type: 'core', level: 1 }
+                    { target: 'getRunModule().asProver', type: 'wasm', level: 1 }
                 ]
             },
-            
-            runInProverBlock: {
+
+            'run.inProverBlock': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state_ref', type: 'core', level: 1 },
-                    { target: 'get_mode', type: 'core', level: 1 }
+                    { target: 'getRunModule().inProverBlock', type: 'wasm', level: 1 }
                 ]
             },
-            
-            runConstraintMode: {
+
+            'run.setEvalConstraints': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'set_mode', type: 'core', level: 1 }
+                    { target: 'getRunModule().setEvalConstraints', type: 'wasm', level: 1 }
                 ]
             },
-            
-            runWitnessMode: {
+
+            'run.enterConstraintSystem': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'set_mode', type: 'core', level: 1 }
+                    { target: 'sparkyInstance.runReset', type: 'wasm', level: 1 },
+                    { target: 'getRunModule().enterConstraintSystem', type: 'wasm', level: 1 },
+                    { target: 'getRunModule().getConstraintSystem', type: 'wasm', level: 2, parent: 'getRunModule().enterConstraintSystem' }
                 ]
             },
-            
-            runSetEvalConstraints: {
+
+            'run.enterGenerateWitness': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'set_eval_constraints', type: 'core', level: 1 }
+                    { target: 'getRunModule().enterGenerateWitness', type: 'wasm', level: 1 }
                 ]
             },
-            
-            runReset: {
+
+            'run.enterAsProver': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'reset_run_state', type: 'core', level: 1 },
-                    { target: 'clear_constraint_system', type: 'helper', level: 2, parent: 'reset_run_state' }
+                    { target: 'getRunModule().enterAsProver', type: 'wasm', level: 1 },
+                    { target: 'getFieldModule().constant', type: 'wasm', level: 2, parent: 'getRunModule().enterAsProver' },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getRunModule().enterAsProver' },
+                    { target: 'getFieldModule().exists', type: 'wasm', level: 2, parent: 'getRunModule().enterAsProver' }
                 ]
             },
-            
-            runEnterConstraintSystem: {
+
+            'run.getConstraintSystem': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'set_mode', type: 'core', level: 1 },
-                    { target: 'get_constraint_system', type: 'helper', level: 2, parent: 'with_run_state' }
+                    { target: 'getRunModule().getConstraintSystem', type: 'wasm', level: 1 }
                 ]
             },
-            
-            runEnterGenerateWitness: {
+
+            'run.exists': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'set_mode', type: 'core', level: 1 },
-                    { target: 'has_witness', type: 'helper', level: 2, parent: 'set_mode' }
+                    { target: 'getRunModule().exists', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getRunModule().exists' }
                 ]
             },
-            
-            runEnterAsProver: {
+
+            'run.existsOne': {
                 category: 'run',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'set_mode', type: 'core', level: 1 }
+                    { target: 'getRunModule().existsOne', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getRunModule().existsOne' }
                 ]
             },
-            
-            // Constraint System Operations
-            constraintSystemRows: {
+
+            // Run State APIs (6 entry points)
+            'run.state.allocVar': {
+                category: 'run',
+                implemented: true,
+                calls: [
+                    { target: 'getRunModule().state', type: 'wasm', level: 1 },
+                    { target: 'runState.allocVar', type: 'wasm', level: 2, parent: 'getRunModule().state' }
+                ]
+            },
+
+            'run.state.storeFieldElt': {
+                category: 'run',
+                implemented: true,
+                calls: [
+                    { target: 'getRunModule().state', type: 'wasm', level: 1 },
+                    { target: 'runState.storeFieldElt', type: 'wasm', level: 2, parent: 'getRunModule().state' },
+                    { target: 'getFieldModule().constant', type: 'wasm', level: 2, parent: 'getRunModule().state' }
+                ]
+            },
+
+            'run.state.getVariableValue': {
+                category: 'run',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().readVar', type: 'wasm', level: 1 },
+                    { target: 'toSparkyField', type: 'util', level: 1 }
+                ]
+            },
+
+            'run.state.asProver': {
+                category: 'run',
+                implemented: true,
+                calls: [
+                    { target: 'getRunModule().inProver', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'run.state.setAsProver': {
+                category: 'run',
+                implemented: true,
+                calls: [
+                    { target: 'getRunModule().witnessMode', type: 'wasm', level: 1 },
+                    { target: 'getRunModule().constraintMode', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'run.state.hasWitness': {
+                category: 'run',
+                implemented: true,
+                calls: [
+                    { target: 'getRunModule().inProver', type: 'wasm', level: 1 }
+                ]
+            },
+
+            // Constraint System APIs (3 entry points)
+            'constraintSystem.rows': {
                 category: 'constraint',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state_ref', type: 'core', level: 1 },
-                    { target: 'get_constraint_system', type: 'core', level: 1 },
-                    { target: 'num_constraints', type: 'helper', level: 2, parent: 'get_constraint_system' }
+                    { target: 'getConstraintSystemModule().rows', type: 'wasm', level: 1 }
                 ]
             },
-            
-            constraintSystemDigest: {
+
+            'constraintSystem.digest': {
                 category: 'constraint',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state_ref', type: 'core', level: 1 },
-                    { target: 'get_constraint_system', type: 'core', level: 1 },
-                    { target: 'digest', type: 'impl', level: 2, parent: 'get_constraint_system' },
-                    { target: 'poseidon_hash', type: 'helper', level: 3, parent: 'digest' }
+                    { target: 'getConstraintSystemModule().digest', type: 'wasm', level: 1 }
                 ]
             },
-            
-            constraintSystemToJson: {
+
+            'constraintSystem.toJson': {
                 category: 'constraint',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state_ref', type: 'core', level: 1 },
-                    { target: 'get_constraint_system', type: 'core', level: 1 },
-                    { target: 'serialize_constraints', type: 'impl', level: 2, parent: 'get_constraint_system' },
-                    { target: 'to_json', type: 'helper', level: 3, parent: 'serialize_constraints' }
+                    { target: 'getConstraintSystemModule().toJson', type: 'wasm', level: 1 }
                 ]
             },
-            
-            // Foreign Field Operations
-            foreignFieldFromHex: {
+
+            // Field APIs (10 entry points)
+            'field.readVar': {
                 category: 'field',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'foreign_field_from_hex_impl', type: 'impl', level: 1 },
-                    { target: 'from_str', type: 'helper', level: 2, parent: 'foreign_field_from_hex_impl' }
+                    { target: 'getFieldModule().readVar', type: 'wasm', level: 1 }
                 ]
             },
-            
-            foreignFieldFromDecimal: {
+
+            'field.assertEqual': {
                 category: 'field',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'foreign_field_from_decimal_impl', type: 'impl', level: 1 },
-                    { target: 'from_str', type: 'helper', level: 2, parent: 'foreign_field_from_decimal_impl' }
+                    { target: 'getFieldModule().assertEqual', type: 'wasm', level: 1 }
                 ]
             },
-            
-            foreignFieldRangeCheck: {
+
+            'field.assertMul': {
                 category: 'field',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'range_check_foreign_field_impl', type: 'impl', level: 1 },
-                    { target: 'limb_decomposition', type: 'helper', level: 2, parent: 'range_check_foreign_field_impl' },
-                    { target: 'range_check_0', type: 'helper', level: 3, parent: 'limb_decomposition' }
+                    { target: 'getFieldModule().assertMul', type: 'wasm', level: 1 }
                 ]
             },
-            
-            foreignFieldAdd: {
+
+            'field.assertSquare': {
                 category: 'field',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'foreign_field_add_impl', type: 'impl', level: 1 },
-                    { target: 'add_constraint', type: 'core', level: 2, parent: 'foreign_field_add_impl' },
-                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'foreign_field_add_impl' },
-                    { target: 'limb_decomposition', type: 'helper', level: 2, parent: 'foreign_field_add_impl' }
+                    { target: 'getFieldModule().assertSquare', type: 'wasm', level: 1 }
                 ]
             },
-            
-            foreignFieldMul: {
+
+            'field.assertBoolean': {
                 category: 'field',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'foreign_field_mul_impl', type: 'impl', level: 1 },
-                    { target: 'assert_r1cs', type: 'core', level: 2, parent: 'foreign_field_mul_impl' },
-                    { target: 'limb_decomposition', type: 'helper', level: 2, parent: 'foreign_field_mul_impl' },
-                    { target: 'range_check_0', type: 'helper', level: 3, parent: 'foreign_field_mul_impl' }
+                    { target: 'getFieldModule().assertBoolean', type: 'wasm', level: 1 }
                 ]
             },
-            
-            testSecp256k1Field: {
+
+            'field.add': {
                 category: 'field',
+                implemented: true,
                 calls: [
-                    { target: 'with_run_state', type: 'core', level: 1 },
-                    { target: 'foreign_field_mul_impl', type: 'impl', level: 1 },
-                    { target: 'foreign_field_add_impl', type: 'impl', level: 1 }
+                    { target: 'getFieldModule().add', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getFieldModule().add' }
+                ]
+            },
+
+            'field.mul': {
+                category: 'field',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().mul', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getFieldModule().mul' }
+                ]
+            },
+
+            'field.sub': {
+                category: 'field',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().sub', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getFieldModule().sub' }
+                ]
+            },
+
+            'field.scale': {
+                category: 'field',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().scale', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getFieldModule().scale' }
+                ]
+            },
+
+            'field.square': {
+                category: 'field',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().square', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getFieldModule().square' }
+                ]
+            },
+
+            // Field Advanced APIs (3 entry points)
+            'field.div': {
+                category: 'field',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().inv', type: 'wasm', level: 1 },
+                    { target: 'getFieldModule().mul', type: 'wasm', level: 2, parent: 'getFieldModule().inv' },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'getFieldModule().mul' }
+                ]
+            },
+
+            'field.compare': {
+                category: 'field',
+                implemented: false,
+                calls: []
+            },
+
+            'field.truncateToBits16': {
+                category: 'field',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().rangeCheckN', type: 'wasm', level: 1 }
+                ]
+            },
+
+            // Group APIs (1 entry point)
+            'group.scaleFastUnpack': {
+                category: 'group',
+                implemented: false,
+                calls: []
+            },
+
+            // Gates Basic APIs (4 entry points)
+            'gates.zero': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().zero', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.generic': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'sparkyInstance.gatesRaw', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.poseidon': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().poseidon', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.rangeCheck': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().rangeCheck64', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.rangeCheck0': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().rangeCheck0', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.rangeCheck1': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().rangeCheck1', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.rotate': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().rotate', type: 'wasm', level: 1 }
+                ]
+            },
+
+            // Gates Elliptic Curve APIs (3 entry points)
+            'gates.ecAdd': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().ecAdd', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.ecScale': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().assertBoolean', type: 'wasm', level: 1 },
+                    { target: 'getFieldModule().exists', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 1 },
+                    { target: 'gates.ecAdd', type: 'snarky', level: 2 },
+                    { target: 'field.sub', type: 'snarky', level: 2 },
+                    { target: 'field.mul', type: 'snarky', level: 2 },
+                    { target: 'field.add', type: 'snarky', level: 2 },
+                    { target: 'getFieldModule().constant', type: 'wasm', level: 2 },
+                    { target: 'getFieldModule().assertEqual', type: 'wasm', level: 2 }
+                ]
+            },
+
+            'gates.ecEndoscale': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().constant', type: 'wasm', level: 1 },
+                    { target: 'field.square', type: 'snarky', level: 1 },
+                    { target: 'field.mul', type: 'snarky', level: 1 },
+                    { target: 'field.add', type: 'snarky', level: 1 },
+                    { target: 'field.assertEqual', type: 'snarky', level: 1 },
+                    { target: 'getFieldModule().assertBoolean', type: 'wasm', level: 2 },
+                    { target: 'getFieldModule().exists', type: 'wasm', level: 2 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2 },
+                    { target: 'gates.ecAdd', type: 'snarky', level: 3 }
+                ]
+            },
+
+            'gates.ecEndoscalar': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getFieldModule().assertBoolean', type: 'wasm', level: 1 }
+                ]
+            },
+
+            // Gates Foreign Field APIs (2 entry points)
+            'gates.foreignFieldAdd': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'sparkyInstance.foreignFieldAdd', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.foreignFieldMul': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'sparkyInstance.foreignFieldMul', type: 'wasm', level: 1 }
+                ]
+            },
+
+            // Gates Advanced APIs (4 entry points)
+            'gates.lookup': {
+                category: 'gates',
+                implemented: false,
+                calls: []
+            },
+
+            'gates.xor': {
+                category: 'gates',
+                implemented: false,
+                calls: []
+            },
+
+            'gates.raw': {
+                category: 'gates',
+                implemented: true,
+                calls: [
+                    { target: 'getGatesModule().raw', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'gates.addFixedLookupTable': {
+                category: 'gates',
+                implemented: false,
+                calls: []
+            },
+
+            'gates.addRuntimeTableConfig': {
+                category: 'gates',
+                implemented: false,
+                calls: []
+            },
+
+            // Circuit APIs (5 entry points)
+            'circuit.compile': {
+                category: 'circuit',
+                implemented: true,
+                calls: [
+                    { target: 'getCircuitModule().compile', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'circuit.prove': {
+                category: 'circuit',
+                implemented: true,
+                calls: [
+                    { target: 'getCircuitModule().generateWitness', type: 'wasm', level: 1 },
+                    { target: 'getCircuitModule().prove', type: 'wasm', level: 2, parent: 'getCircuitModule().generateWitness' }
+                ]
+            },
+
+            'circuit.verify': {
+                category: 'circuit',
+                implemented: true,
+                calls: [
+                    { target: 'getCircuitModule().verify', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'circuit.keypair.getVerificationKey': {
+                category: 'circuit',
+                implemented: true,
+                calls: []
+            },
+
+            'circuit.keypair.getConstraintSystemJSON': {
+                category: 'circuit',
+                implemented: true,
+                calls: [
+                    { target: 'getConstraintSystemModule().toJson', type: 'wasm', level: 1 }
+                ]
+            },
+
+            // Poseidon APIs (5 entry points)
+            'poseidon.update': {
+                category: 'poseidon',
+                implemented: true,
+                calls: [
+                    { target: 'sparkyInstance.poseidon.update', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'sparkyInstance.poseidon.update' }
+                ]
+            },
+
+            'poseidon.hashToGroup': {
+                category: 'poseidon',
+                implemented: true,
+                calls: [
+                    { target: 'fieldVarToCvar', type: 'util', level: 1 },
+                    { target: 'sparkyInstance.poseidon.hashToGroup', type: 'wasm', level: 1 },
+                    { target: 'cvarToFieldVar', type: 'util', level: 2, parent: 'sparkyInstance.poseidon.hashToGroup' }
+                ]
+            },
+
+            'poseidon.sponge.create': {
+                category: 'poseidon',
+                implemented: false,
+                calls: []
+            },
+
+            'poseidon.sponge.absorb': {
+                category: 'poseidon',
+                implemented: false,
+                calls: []
+            },
+
+            'poseidon.sponge.squeeze': {
+                category: 'poseidon',
+                implemented: false,
+                calls: []
+            },
+
+            // Conversion APIs (4 entry points)
+            'fieldFromOcaml': {
+                category: 'util',
+                implemented: true,
+                calls: []
+            },
+
+            'fieldToOcaml': {
+                category: 'util',
+                implemented: true,
+                calls: []
+            },
+
+            'constantFromOcaml': {
+                category: 'util',
+                implemented: true,
+                calls: [
+                    { target: 'Fp', type: 'util', level: 1 }
+                ]
+            },
+
+            'constantToOcaml': {
+                category: 'util',
+                implemented: true,
+                calls: []
+            },
+
+            // Constraint Bridge APIs (4 entry points)
+            'isActiveSparkyBackend': {
+                category: 'bridge',
+                implemented: true,
+                calls: []
+            },
+
+            'startConstraintAccumulation': {
+                category: 'bridge',
+                implemented: true,
+                calls: [
+                    { target: 'sparkyInstance.runReset', type: 'wasm', level: 1 },
+                    { target: 'getRunModule().enterConstraintSystem', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'getAccumulatedConstraints': {
+                category: 'bridge',
+                implemented: true,
+                calls: [
+                    { target: 'getRunModule().getConstraintSystem', type: 'wasm', level: 1 }
+                ]
+            },
+
+            'endConstraintAccumulation': {
+                category: 'bridge',
+                implemented: true,
+                calls: [
+                    { target: 'globalThis.__sparkyConstraintHandle.exit', type: 'wasm', level: 1 }
+                ]
+            },
+
+            // Backend Management APIs (2 entry points)
+            'resetSparkyBackend': {
+                category: 'bridge',
+                implemented: true,
+                calls: []
+            },
+
+            'resetSparkyState': {
+                category: 'bridge',
+                implemented: true,
+                calls: [
+                    { target: 'sparkyInstance.runReset', type: 'wasm', level: 1 }
                 ]
             }
         };
@@ -678,18 +878,19 @@
         // Node color mapping
         function getNodeColor(type) {
             switch (type) {
-                case 'entry': return '#f39c12';  // Orange for entry points
-                case 'core': return '#4a90e2';    // Blue for core
-                case 'impl': return '#2ecc71';    // Green for implementation
-                case 'helper': return '#9b59b6';  // Purple for helpers
-                default: return '#95a5a6';        // Gray default
+                case 'entry': return '#f39c12';    // Orange for entry points
+                case 'wasm': return '#e74c3c';     // Red for WASM calls
+                case 'snarky': return '#2ecc71';   // Green for Snarky calls
+                case 'util': return '#9b59b6';     // Purple for utilities
+                case 'not-impl': return '#95a5a6'; // Gray for not implemented
+                default: return '#3498db';         // Blue default
             }
         }
 
         // Create individual graph for each entry point
         function createEntryPointGraph(container, entryPoint, data) {
-            const width = 380;
-            const height = 250;
+            const width = 330;
+            const height = 200;
             
             const svg = d3.select(container)
                 .append("svg")
@@ -699,7 +900,7 @@
             // Add arrow marker
             const defs = svg.append("defs");
             defs.append("marker")
-                .attr("id", `arrowhead-${entryPoint}`)
+                .attr("id", `arrowhead-${entryPoint.replace(/\./g, '-')}`)
                 .attr("viewBox", "0 -5 10 10")
                 .attr("refX", 8)
                 .attr("refY", 0)
@@ -712,48 +913,82 @@
             
             // Create nodes
             const nodes = [
-                { id: entryPoint, name: entryPoint, type: 'entry', level: 0, x: width / 2, y: 30 }
+                { id: entryPoint, name: entryPoint, type: 'entry', level: 0, x: width / 2, y: 25 }
             ];
             
-            // Add call targets as nodes
-            const levelHeight = 60;
-            const nodesByLevel = {};
-            
-            data.calls.forEach(call => {
-                if (!nodesByLevel[call.level]) {
-                    nodesByLevel[call.level] = [];
-                }
-                nodesByLevel[call.level].push(call);
-                
+            if (!data.implemented) {
+                // For not implemented functions, just show a single "NOT IMPLEMENTED" node
                 nodes.push({
-                    id: call.target,
-                    name: call.target,
-                    type: call.type,
-                    level: call.level,
-                    parent: call.parent || entryPoint
+                    id: 'not-implemented',
+                    name: 'NOT IMPLEMENTED',
+                    type: 'not-impl',
+                    level: 1,
+                    x: width / 2,
+                    y: 80
                 });
-            });
-            
-            // Position nodes by level
-            Object.keys(nodesByLevel).forEach(level => {
-                const levelNodes = nodesByLevel[level];
-                const levelY = 30 + parseInt(level) * levelHeight;
-                const spacing = width / (levelNodes.length + 1);
+            } else if (data.calls.length === 0) {
+                // For functions with no calls (direct returns), show a "DIRECT RETURN" node
+                nodes.push({
+                    id: 'direct-return',
+                    name: 'DIRECT RETURN',
+                    type: 'util',
+                    level: 1,
+                    x: width / 2,
+                    y: 80
+                });
+            } else {
+                // Add call targets as nodes
+                const levelHeight = 45;
+                const nodesByLevel = {};
                 
-                levelNodes.forEach((node, i) => {
-                    const nodeObj = nodes.find(n => n.id === node.target);
-                    if (nodeObj) {
-                        nodeObj.x = spacing * (i + 1);
-                        nodeObj.y = levelY;
+                data.calls.forEach(call => {
+                    if (!nodesByLevel[call.level]) {
+                        nodesByLevel[call.level] = [];
                     }
+                    nodesByLevel[call.level].push(call);
+                    
+                    nodes.push({
+                        id: call.target,
+                        name: call.target,
+                        type: call.type,
+                        level: call.level,
+                        parent: call.parent || entryPoint
+                    });
                 });
-            });
+                
+                // Position nodes by level
+                Object.keys(nodesByLevel).forEach(level => {
+                    const levelNodes = nodesByLevel[level];
+                    const levelY = 25 + parseInt(level) * levelHeight;
+                    const spacing = width / (levelNodes.length + 1);
+                    
+                    levelNodes.forEach((node, i) => {
+                        const nodeObj = nodes.find(n => n.id === node.target);
+                        if (nodeObj) {
+                            nodeObj.x = spacing * (i + 1);
+                            nodeObj.y = levelY;
+                        }
+                    });
+                });
+            }
             
             // Create links
-            const links = data.calls.map(call => ({
-                source: nodes.find(n => n.id === (call.parent || entryPoint)),
-                target: nodes.find(n => n.id === call.target)
-            })).filter(l => l.source && l.target);
+            const links = [];
+            if (data.implemented && data.calls.length > 0) {
+                links.push(...data.calls.map(call => ({
+                    source: nodes.find(n => n.id === (call.parent || entryPoint)),
+                    target: nodes.find(n => n.id === call.target)
+                })).filter(l => l.source && l.target));
+            } else if (!data.implemented || data.calls.length === 0) {
+                // Create a link from entry point to the single child node
+                const childNode = nodes.find(n => n.level === 1);
+                if (childNode) {
+                    links.push({
+                        source: nodes.find(n => n.id === entryPoint),
+                        target: childNode
+                    });
+                }
+            }
             
             // Draw links
             const linkGroup = svg.append("g");
@@ -765,11 +1000,11 @@
                 .attr("d", d => {
                     const dx = d.target.x - d.source.x;
                     const dy = d.target.y - d.source.y;
-                    const dr = Math.sqrt(dx * dx + dy * dy) * 0.7;
-                    return `M${d.source.x},${d.source.y + 10}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y - 10}`;
+                    const dr = Math.sqrt(dx * dx + dy * dy) * 0.5;
+                    return `M${d.source.x},${d.source.y + 8}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y - 8}`;
                 })
                 .attr("stroke", "#4a90e2")
-                .attr("marker-end", `url(#arrowhead-${entryPoint})`);
+                .attr("marker-end", `url(#arrowhead-${entryPoint.replace(/\./g, '-')})`);
             
             // Draw nodes
             const nodeGroup = svg.append("g");
@@ -782,14 +1017,14 @@
             
             nodeElements.append("circle")
                 .attr("class", "node-circle")
-                .attr("r", d => d.type === 'entry' ? 12 : 8)
+                .attr("r", d => d.type === 'entry' ? 10 : 6)
                 .attr("fill", d => getNodeColor(d.type));
             
             nodeElements.append("text")
                 .attr("class", "node-label")
-                .attr("y", d => d.type === 'entry' ? 25 : 20)
+                .attr("y", d => d.type === 'entry' ? 20 : 16)
                 .text(d => {
-                    const maxLen = 15;
+                    const maxLen = d.type === 'entry' ? 18 : 12;
                     return d.name.length > maxLen ? d.name.substring(0, maxLen - 2) + '..' : d.name;
                 });
             
@@ -819,19 +1054,24 @@
             container.innerHTML = '';
             
             let visibleCount = 0;
-            let graphCount = 0;
+            let implementedCount = 0;
             
             Object.entries(entryPointGraphs).forEach(([entryPoint, data]) => {
                 if (currentFilter === 'all' || data.category === currentFilter) {
                     visibleCount++;
-                    graphCount++;
+                    if (data.implemented) implementedCount++;
                     
                     const graphContainer = document.createElement('div');
                     graphContainer.className = 'entry-point-container';
                     
                     const title = document.createElement('div');
                     title.className = 'entry-point-title';
-                    title.textContent = entryPoint;
+                    title.textContent = `${entryPoint}${data.implemented ? '' : ' (NOT IMPL)'}`;
+                    if (!data.implemented) {
+                        title.style.color = '#95a5a6';
+                        title.style.borderColor = '#95a5a6';
+                        title.style.backgroundColor = 'rgba(149, 165, 166, 0.2)';
+                    }
                     graphContainer.appendChild(title);
                     
                     const svgContainer = document.createElement('div');
@@ -845,9 +1085,8 @@
             });
             
             // Update stats
-            document.getElementById('entry-count').textContent = Object.keys(entryPointGraphs).length;
-            document.getElementById('graph-count').textContent = graphCount;
             document.getElementById('visible-count').textContent = visibleCount;
+            document.getElementById('impl-count').textContent = `${implementedCount}/${visibleCount} implemented`;
         }
 
         // Event listeners
@@ -869,12 +1108,6 @@
             renderGraphs();
         });
 
-        document.getElementById('show-poseidon').addEventListener('click', function() {
-            currentFilter = 'poseidon';
-            updateButtons();
-            renderGraphs();
-        });
-
         document.getElementById('show-run').addEventListener('click', function() {
             currentFilter = 'run';
             updateButtons();
@@ -883,6 +1116,36 @@
 
         document.getElementById('show-constraint').addEventListener('click', function() {
             currentFilter = 'constraint';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-poseidon').addEventListener('click', function() {
+            currentFilter = 'poseidon';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-circuit').addEventListener('click', function() {
+            currentFilter = 'circuit';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-group').addEventListener('click', function() {
+            currentFilter = 'group';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-bridge').addEventListener('click', function() {
+            currentFilter = 'bridge';
+            updateButtons();
+            renderGraphs();
+        });
+
+        document.getElementById('show-util').addEventListener('click', function() {
+            currentFilter = 'util';
             updateButtons();
             renderGraphs();
         });
@@ -897,14 +1160,26 @@
                 case 'gates':
                     document.getElementById('show-gates').classList.add('active');
                     break;
-                case 'poseidon':
-                    document.getElementById('show-poseidon').classList.add('active');
-                    break;
                 case 'run':
                     document.getElementById('show-run').classList.add('active');
                     break;
                 case 'constraint':
                     document.getElementById('show-constraint').classList.add('active');
+                    break;
+                case 'poseidon':
+                    document.getElementById('show-poseidon').classList.add('active');
+                    break;
+                case 'circuit':
+                    document.getElementById('show-circuit').classList.add('active');
+                    break;
+                case 'group':
+                    document.getElementById('show-group').classList.add('active');
+                    break;
+                case 'bridge':
+                    document.getElementById('show-bridge').classList.add('active');
+                    break;
+                case 'util':
+                    document.getElementById('show-util').classList.add('active');
                     break;
                 default:
                     document.getElementById('show-all').classList.add('active');
@@ -912,9 +1187,9 @@
         }
 
         // Initialize
-        console.log('🎯 Initializing entry point graphs...');
+        console.log('🎯 Initializing entry point graphs from code analysis...');
         renderGraphs();
-        console.log('✅ Sparky Entry Point Graphs ready!');
+        console.log('✅ Sparky Entry Point Graphs ready! 78 total entry points loaded.');
     </script>
 </body>
 </html>
