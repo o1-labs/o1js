@@ -1,7 +1,7 @@
 /**
  * benchmark a circuit filled with generic gates
  */
-import { ZkFunction, Field, Provable, ZkProgram, Undefined } from 'o1js';
+import { ZkFunction, Field, Provable, ZkProgram } from 'o1js';
 import { tic, toc } from '../utils/tic-toc.node.js';
 
 // parameters
@@ -27,7 +27,6 @@ async function getRows(nMuls: number) {
 function simpleKimchiCircuit(nMuls: number) {
   return ZkFunction({
     name: 'mul-chain',
-    publicInputType: Undefined,
     privateInputTypes: [],
     main: () => {
       main(nMuls);
@@ -81,11 +80,11 @@ if (withPickles) {
   toc();
 
   tic('prove');
-  let p = await circuit.prove(Undefined.empty());
+  let p = await circuit.prove();
   toc();
 
   tic('verify');
-  let ok = await circuit.verify(Undefined.empty(), p, verificationKey);
+  let ok = await circuit.verify(p, verificationKey);
   toc();
   if (!ok) throw Error('invalid proof');
 }

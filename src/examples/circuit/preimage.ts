@@ -16,7 +16,7 @@ const main = ZkFunction({
 });
 
 console.log('compile...');
-await main.compile();
+const { verificationKey } = await main.compile();
 
 const preimage = Field(1);
 const hash = Poseidon.hash([preimage]);
@@ -25,7 +25,7 @@ console.log('prove...');
 const pi = await main.prove(hash, preimage);
 
 console.log('verify...');
-let ok = await main.verify(hash, pi);
+let ok = await main.verify(hash, pi, verificationKey);
 console.log('ok?', ok);
 
 if (!ok) throw Error('verification failed');
