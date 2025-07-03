@@ -10,7 +10,7 @@ const primitives = ZkFunction({
     // division
     let x64 = Provable.witness(UInt64, () => 10n);
     x64.div(2).assertEquals(UInt64.from(5));
-    let x32 = Provable.witness(UInt32, () => 15n);
+    let x32 = Provable.witness(UInt32, () => 12n);
     x32.div(4).assertEquals(UInt32.from(3));
   },
 });
