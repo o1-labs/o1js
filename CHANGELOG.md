@@ -15,12 +15,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/3eef10d...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/ad17c4a1...HEAD)
+
+## [2.7.0](https://github.com/o1-labs/o1js/compare/3eef10d...ad17c4a1) - 2025-07-23
 
 ### Added
 
 - Lazy mode for prover index computation. https://github.com/o1-labs/o1js/pull/2143
-- Added reverse functionality to `DynamicArray` and indexed `forEach` and `forEachReverse` variants.
+- Added reverse functionality to `DynamicArray` and indexed `forEach` and `forEachReverse` variants. https://github.com/o1-labs/o1js/pull/2250
 - Added `ZkProgram.analyzeSingleMethod(methodName: string)` to analyze a single method of a ZkProgram. https://github.com/o1-labs/o1js/pull/2217
   - This is an addition to `ZkProgram.analyzeMethods()` which analyzes all methods of a ZkProgram by executing them.
   - Now only a single method is analyzed at a time.
