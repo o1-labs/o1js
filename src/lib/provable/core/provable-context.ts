@@ -104,7 +104,8 @@ async function generateWitness(
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
-    if (!checkConstraints) Snarky.run.setEvalConstraints(MlBool(true));
+    // Reset eval_constraints to default state (true for compatibility)
+    Snarky.run.setEvalConstraints(MlBool(true));
     snarkContext.leave(id);
   }
 }

@@ -599,13 +599,23 @@ export const Snarky = {
     },
     
     enterGenerateWitness() {
-      // Use the actual enterGenerateWitness method
+      // Enter witness generation mode - this puts Sparky in prover mode
+      // where it will actually compute and store witness values during execution
       const handle = getRunModule().enterGenerateWitness();
+      
       return () => {
-        // TODO: Get actual witness data from Sparky
-        const result = [0, [], []]; // Placeholder - need to implement witness extraction
-        handle.exit(); // Exit the mode
-        return result;
+        try {
+          // Exit witness generation mode
+          handle.exit();
+          
+          // For constraint checking, don't return a value (undefined)
+          // The computation result should come from the actual computation, not the finish function
+          return undefined;
+          
+        } catch (error) {
+          // If witness generation failed, it means constraints were not satisfied
+          throw error;
+        }
       };
     },
     
@@ -624,10 +634,15 @@ export const Snarky = {
             // WITNESS PROVISION MODE: Concrete values provided for proof generation
             // Extract values from Some(values) encoding: [0, ...actualValues]
             const actualValues = fields[1];
-            const result = actualValues.map(f => {
-              // Convert raw values to Sparky constants, then back to o1js format
-              const constantCvar = getFieldModule().constant(f);
-              return cvarToFieldVar(constantCvar);
+            // Skip the MlArray tag (index 0) and map only the actual values
+            const result = actualValues.slice(1).map(f => {
+              // CRITICAL FIX: Create witness variables with stored values, not constants!
+              // Use existsOne with a compute function that returns the provided value as BigInt
+              const witnessCvar = getRunModule().existsOne(() => {
+                // Convert Field object to BigInt for WASM layer (matches Snarky API)
+                return typeof f.toBigInt === 'function' ? f.toBigInt() : f;
+              });
+              return cvarToFieldVar(witnessCvar);
             });
             // Return in MlArray format expected by o1js: [0, ...fieldVars]
             return [0, ...result];
@@ -795,18 +810,14 @@ export const Snarky = {
     },
     
     assertEqual(x, y) {
-      // FIELD EQUALITY: Creates equality constraint in R1CS system
-      
-      if (SNARKY_COMPATIBLE_MODE) {
-        // SNARKY COMPATIBILITY: Generate direct equality constraint
-        // Use subtraction approach: x - y = 0
-        const zero = [0, [0, 0n]]; // Constant zero
-        const diff = this.sub(x, y);
-        getFieldModule().assertEqual(diff, zero);
-        return;
-      }
-      
-      // Call Sparky directly to generate equality constraint
+      // CRITICAL FIX: Direct equality constraint without transformation
+      // 
+      // PREVIOUS BUG: Old approach created x - y then asserted diff = 0
+      // This transformed simple variables [1, 0] into Add expressions [2, [1, 0], ...]
+      // causing Sparky to receive Add(Var, Constant) instead of direct variables
+      // 
+      // FIX: Call Sparky directly to generate single equality constraint
+      // This preserves variable identity and avoids unwanted Add expressions
       getFieldModule().assertEqual(x, y);
     },
     
@@ -823,15 +834,9 @@ export const Snarky = {
         throw Error('Field.inv(): Division by zero');
       }
       
-      if (SNARKY_COMPATIBLE_MODE) {
-        // SNARKY COMPATIBILITY: Use direct R1CS constraint
-        // Generate single constraint: z = x * y without intermediate variables
-        const product = this.mul(x, y);
-        this.assertEqual(product, z);
-        return;
-      }
-      
-      // Call Sparky directly to generate multiplication constraint
+      // CRITICAL FIX: Always use direct assert_mul to generate single constraint
+      // Previous approach was creating TWO constraints (mul + assertEqual)
+      // But Snarky generates ONE constraint: x * y = z
       getFieldModule().assertMul(x, y, z);
     },
     
@@ -879,59 +884,37 @@ export const Snarky = {
       // FIELD ADDITION: Creates addition constraint in R1CS system
       // Constraint: result = x + y (mod p) where p is Pallas field modulus
       
-      if (SNARKY_COMPATIBLE_MODE) {
-        // SNARKY COMPATIBILITY: Use direct constraint generation
-        // Bypass optimization to match Snarky's constraint pattern exactly
-        try {
-          // Try direct method first if available
-          const result = getFieldModule().addDirect ? 
-            getFieldModule().addDirect(x, y) : 
-            getFieldModule().add(x, y);
-          return Array.isArray(result) ? result : cvarToFieldVar(result);
-        } catch (error) {
-          // Fallback to standard method
-          const result = getFieldModule().add(x, y);
-          return Array.isArray(result) ? result : cvarToFieldVar(result);
-        }
+      // SNARKY COMPATIBILITY: Use direct constraint generation
+      // Bypass optimization to match Snarky's constraint pattern exactly
+      try {
+        // Try direct method first if available
+        const result = getFieldModule().addDirect ? 
+          getFieldModule().addDirect(x, y) : 
+          getFieldModule().add(x, y);
+        return Array.isArray(result) ? result : cvarToFieldVar(result);
+      } catch (error) {
+        // Fallback to standard method
+        const result = getFieldModule().add(x, y);
+        return Array.isArray(result) ? result : cvarToFieldVar(result);
       }
-      
-      // MEMORY BARRIER: Ensure deterministic computation for complex operations
-      if (Array.isArray(x) && Array.isArray(y) && (x.length > 2 || y.length > 2)) {
-        memoryBarrier();
-      }
-      
-      // OPTIMIZATION: Sparky may optimize constants and linear combinations
-      // before generating constraints, reducing total constraint count
-      const result = getFieldModule().add(x, y);
-      return Array.isArray(result) ? result : cvarToFieldVar(result);
     },
     
     mul(x, y) {
       // FIELD MULTIPLICATION: Creates R1CS constraint for multiplication
       // Constraint: result = x * y (mod p)
       
-      if (SNARKY_COMPATIBLE_MODE) {
-        // SNARKY COMPATIBILITY: Use direct multiplication constraint
-        // Generate single R1CS constraint without intermediate variables
-        try {
-          const result = getFieldModule().mulDirect ? 
-            getFieldModule().mulDirect(x, y) : 
-            getFieldModule().mul(x, y);
-          return Array.isArray(result) ? result : cvarToFieldVar(result);
-        } catch (error) {
-          // Fallback to standard method
-          const result = getFieldModule().mul(x, y);
-          return Array.isArray(result) ? result : cvarToFieldVar(result);
-        }
+      // SNARKY COMPATIBILITY: Use direct multiplication constraint
+      // Generate single R1CS constraint without intermediate variables
+      try {
+        const result = getFieldModule().mulDirect ? 
+          getFieldModule().mulDirect(x, y) : 
+          getFieldModule().mul(x, y);
+        return Array.isArray(result) ? result : cvarToFieldVar(result);
+      } catch (error) {
+        // Fallback to standard method
+        const result = getFieldModule().mul(x, y);
+        return Array.isArray(result) ? result : cvarToFieldVar(result);
       }
-      
-      // MEMORY BARRIER: Critical for deterministic multiplication under pressure
-      memoryBarrier();
-      
-      // CIRCUIT COST: Multiplication is expensive (1 R1CS constraint per operation)
-      // whereas addition is often free due to linear combination optimization
-      const result = getFieldModule().mul(x, y);
-      return Array.isArray(result) ? result : cvarToFieldVar(result);
     },
     
     sub(x, y) {
@@ -1770,38 +1753,7 @@ export const Snarky = {
 let isCompilingCircuit = false;
 let accumulatedConstraints = [];
 
-// ===================================================================
-// SNARKY COMPATIBILITY MODE
-// ===================================================================
-/**
- * SNARKY_COMPATIBLE_MODE enables direct constraint generation that bypasses
- * Sparky's complex optimization system to achieve identical constraint counts
- * as Snarky. This is critical for VK parity.
- * 
- * When enabled:
- * - Field operations use simplified constraint generation
- * - Intermediate variable optimization is bypassed
- * - Direct R1CS constraints are generated to match Snarky exactly
- * - Constraint count should match Snarky 1:1
- */
-let SNARKY_COMPATIBLE_MODE = true; // Enable by default for VK parity
-
-/**
- * Enable/disable Snarky compatibility mode
- * @param {boolean} enabled - Whether to use Snarky-compatible constraint generation
- */
-export function setSnarkyCompatibleMode(enabled) {
-  SNARKY_COMPATIBLE_MODE = enabled;
-  console.log(`🔧 Snarky compatibility mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
-}
-
-/**
- * Check if Snarky compatibility mode is active
- * @returns {boolean} True if compatibility mode is enabled
- */
-export function isSnarkyCompatibleMode() {
-  return SNARKY_COMPATIBLE_MODE;
-}
+// Sparky always operates in Snarky-compatible mode for VK parity
 
 /**
  * BACKEND DETECTION FUNCTION
@@ -1914,7 +1866,8 @@ function getAccumulatedConstraints() {
     gateCallCounter = 0; // Reset for next compilation
     
     // CONSTRAINT EXTRACTION: Get accumulated constraints from Sparky state
-    const constraintsJson = getRunModule().getConstraintSystem();
+    // CRITICAL FIX: Use toJson() instead of getConstraintSystem() to trigger finalization
+    const constraintsJson = getConstraintSystemModule().toJson({});
     
     if (constraintsJson) {
       // MEMORY BARRIER: Ensure deterministic JSON parsing under memory pressure
@@ -1944,7 +1897,6 @@ function getAccumulatedConstraints() {
     // ERROR ESCALATION: Surface constraint retrieval failures with full context
     // These errors must reach OCaml to prevent silent proof generation failures
     const errorMsg = `Failed to retrieve constraints from Sparky: ${error.message || error}`;
-    console.error('[SPARKY ERROR]', errorMsg);
     throw new Error(errorMsg);
   }
 }
@@ -1989,8 +1941,6 @@ function endConstraintAccumulation() {
       // CLEANUP ERROR HANDLING: Log but don't throw during cleanup
       // Throwing here could disrupt OCaml's compilation flow
       const errorMsg = `Failed to exit constraint system: ${error.message || error}`;
-      console.error('[SPARKY ERROR]', errorMsg);
-      console.warn('[SPARKY WARNING] Constraint system state may be corrupted due to exit failure');
     }
   }
   
@@ -2015,7 +1965,6 @@ if (typeof globalThis !== 'undefined') {
     endConstraintAccumulation,
     setActiveBackend: (backendType) => {
       // Update the active backend for constraint routing
-      console.log(`🔄 Constraint bridge updated to: ${backendType}`);
     }
   };
 }
@@ -2043,7 +1992,13 @@ export let Pickles = new Proxy({}, {
 /**
  * Test utilities - Re-export from OCaml bindings
  */
-export let Test = new Proxy({}, {
+export let Test = new Proxy(function() {
+  // When called as a function, return TestOCaml (to match OCaml API)
+  if (!TestOCaml) {
+    throw new Error('Test not initialized. Call initializeSparky() first.');
+  }
+  return TestOCaml;
+}, {
   get(target, prop) {
     if (!TestOCaml) {
       throw new Error('Test not initialized. Call initializeSparky() first.');
@@ -2081,7 +2036,6 @@ export function resetSparkyState() {
 let constraintCallCount = 0;
 function debugConstraintFlow(operation, backend, ...args) {
   constraintCallCount++;
-  console.log(`🔍 [${constraintCallCount}] ${operation} → ${backend}`, args.length > 0 ? `(${args.length} args)` : '');
   
   // Track constraint count inflation
   if (typeof globalThis.constraintFlowStats === 'undefined') {
@@ -2130,11 +2084,9 @@ function updateGlobalSnarkyRouting(backendType, backendObject) {
       try {
         globalThis.sparkyConstraintBridge.setActiveBackend(backendType);
       } catch (e) {
-        console.warn('Could not update sparkyConstraintBridge backend:', e.message);
       }
     }
     
-    console.log(`🔄 Global Snarky routing updated to: ${backendType}`);
     
     // STATISTICS RESET: Clear debug counters for new routing session
     globalThis.constraintFlowStats = { sparky: 0, ocaml: 0 };
@@ -2185,7 +2137,6 @@ export function activateOcamlRouting(ocamlSnarky) {
   if (ocamlSnarky) {
     updateGlobalSnarkyRouting('snarky', ocamlSnarky);
   } else {
-    console.warn('activateOcamlRouting called without OCaml Snarky object');
   }
 }
 
@@ -2206,7 +2157,6 @@ export function getConstraintFlowStats() {
 export function resetConstraintFlowStats() {
   constraintCallCount = 0;
   globalThis.constraintFlowStats = { sparky: 0, ocaml: 0 };
-  console.log('🔄 Constraint flow stats reset');
 }
 
 // Set up global __snarky object for OCaml bridge (initial setup)

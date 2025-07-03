@@ -110,7 +110,7 @@ async function initializeBindings(backend = null) {
   }
 }
 
-async function Test() {
+async function getTestModule() {
   await initializeBindings();
   return Test_;
 }
@@ -152,11 +152,33 @@ function createBackendProxy(getBackend) {
   });
 }
 
+// Create a special proxy for Test that can be called as a function
+function createTestProxy() {
+  return new Proxy(function() {
+    // When called as a function, return Test_ (to match OCaml API)
+    return Test_;
+  }, {
+    get(target, prop) {
+      if (Test_ && typeof Test_[prop] !== 'undefined') {
+        const value = Test_[prop];
+        return typeof value === 'function' ? value.bind(Test_) : value;
+      }
+      return undefined;
+    },
+    has(target, prop) {
+      return Test_ && prop in Test_;
+    },
+    ownKeys(target) {
+      return Test_ ? Object.keys(Test_) : [];
+    }
+  });
+}
+
 // DYNAMIC PROXY EXPORTS: These automatically route to the current backend
 const SnarkyProxy = createBackendProxy(() => Snarky);
 const LedgerProxy = createBackendProxy(() => Ledger);
 const PicklesProxy = createBackendProxy(() => Pickles);
-const TestProxy = createBackendProxy(() => Test);
+const TestProxy = createTestProxy();
 
 // EXPORTS: Both static and dynamic versions
 export { SnarkyProxy as Snarky };

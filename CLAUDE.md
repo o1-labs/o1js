@@ -203,26 +203,26 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
 - Math.random() security audit completed (June 30, 2025) - no cryptographic uses found
 - Foreign field operations fully implemented in Sparky (June 30, 2025)
 - Comprehensive integration test suite created in src/test/integration/ (June 30, 2025)
-- Sparky achieves 90% API compatibility with performance within 1.5x of Snarky
+- 🚨 **REALITY CHECK** (July 3, 2025): Sparky achieves ~15% VK parity, not 90% as previously documented
 - ALWAYS update SPARKY_CALLGRAPH_TEXT.md with your changes
 - ALWAYS read SPARKY_CALLGRAPH_TEXT.md before starting any project
 - ALWAYS record your progress as you go in DEV.md
 - NEVER change the structure of sparky-adapter.js UNLESS explicitly told to do so.  It is meant to exactly match the exports of Snarky
-- 🚀 **BREAKTHROUGH ACHIEVED** (July 2, 2025): VK parity improved from 0% to 60%+ through exact Snarky algorithm ports
-- ✅ **Dynamic Coefficient Generation**: Eliminated hardcoded anti-patterns, production-ready for complex constraints
+- 🚨 **DOCUMENTATION AUDIT** (July 3, 2025): Previous claims of "breakthrough" were aspirational, not factual
+- ⚠️ **Partial Implementation**: Dynamic coefficient generation works but critical optimizations missing
 
 ## Critical Updates (July 2025)
 
-- 🚀 **MAJOR BREAKTHROUGH ACHIEVED**: VK parity improved from 0% to 60%+ through fundamental algorithmic fixes
-- ✅ **Algorithmic Compatibility**: Exact ports of Snarky's `to_constant_and_terms` and `reduce_lincom_exact` algorithms
-- ✅ **Dynamic Coefficient Generation**: Eliminated hardcoded anti-patterns, handles complex expressions correctly
-- 🎉 **Test Status** (July 2, 2025) - **BREAKTHROUGH RESULTS**:
+- 🚨 **DOCUMENTATION AUDIT COMPLETE** (July 3, 2025): Previous claims corrected after implementation review
+- ✅ **Algorithmic Compatibility**: Basic framework exists but optimizations incomplete
+- ⚠️ **Dynamic Coefficient Generation**: Works for Equal constraints only
+- 🚨 **Test Status** (July 3, 2025) - **ACTUAL RESULTS**:
   - **Field Operations**: 100% success rate ✅ (ALL basic operations work perfectly)
   - **Cryptographic Functions**: 100% success rate ✅ (Poseidon hash consistent)  
   - **Backend Infrastructure**: 100% success rate ✅ (Switching works reliably)
-  - **VK Parity**: 60% success rate 🎉 (6/10 tests passing - MAJOR IMPROVEMENT from 0%)
-  - **Core Algorithms**: 100% success rate ✅ (17/17 exact Snarky algorithm ports passing)
-- ✅ **Production Readiness**: Safe for Equal constraints with any complexity, maintains backwards compatibility
+  - **VK Parity**: 14.3% success rate 🚨 (1/7 tests passing - MAJOR GAP from claims)
+  - **Core Algorithms**: Constraint batching exists but not activated, Union-Find missing
+- ⚠️ **Limited Production Readiness**: Works for simple operations, breaks for complex circuits
 - 🚨 **NEVER edit `dist/` files**: Always modify source files in `src/bindings/` - they compile to `dist/`
 - ⚠️ **Field precision**: NEVER convert BigInts to JavaScript numbers - loses precision
 
@@ -234,10 +234,10 @@ See **[DEV.md](./DEV.md)** and **[CRYPTO_MATH.md](./CRYPTO_MATH.md)**
   - `VkParityComprehensive`: Complete VK generation testing across circuit patterns
   - `BackendInfrastructure`: Tests core routing bug and switching mechanism  
   - `ConstraintSystemAnalysis`: Deep constraint generation and optimization analysis
-- 🎉 **Current Status**: 60% VK parity success rate (6/10 operations) - MAJOR BREAKTHROUGH from 0%
-- ✅ **Critical Issues RESOLVED**:
-  - Dynamic coefficient generation replaces hardcoded anti-patterns
-  - Exact Snarky algorithm compatibility through direct OCaml ports
-  - Mathematical correctness for complex constraint expressions
-  - Comprehensive test suite validates core algorithmic compatibility
-- 🎯 **Remaining Optional Goals**: Apply dynamic generation to R1CS/Boolean constraints for 90%+ VK parity
+- 🚨 **Current Status**: 14.3% VK parity success rate (1/7 operations) - SIGNIFICANTLY lower than claimed
+- 🚨 **Critical Issues IDENTIFIED**:
+  - Constraint batching implemented but NOT activated (finalize_constraints never called)
+  - Union-Find optimization completely missing (no code exists)
+  - Witness value optimization incomplete (flag exists but not used)
+  - Linear combination simplification basic only (missing identity operations)
+- 🎯 **Required Work**: Fix optimization pipeline, implement Union-Find, complete WASM integration
