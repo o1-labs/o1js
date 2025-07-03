@@ -22,8 +22,6 @@ function workerSpec(wasm) {
         undefined /* number */,
         // srs
         wasm.WasmFpSrs,
-        // lazy_mode
-        undefined /* boolean */,
       ],
       res: wasm.WasmPastaFpPlonkIndex,
     },
@@ -41,8 +39,6 @@ function workerSpec(wasm) {
         undefined /* number */,
         // srs
         wasm.WasmFqSrs,
-        // lazy_mode
-        undefined /* boolean */,
       ],
       res: wasm.WasmPastaFqPlonkIndex,
     },
