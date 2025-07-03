@@ -24,8 +24,8 @@
  * - Module instances are cached but sub-modules accessed fresh to maintain state consistency
  */
 
-import { Fp } from './crypto/finite-field.js';
-import { FieldVar } from '../lib/provable/core/fieldvar.js';
+// import { Fp } from './crypto/finite-field.js'; // Temporarily disabled for testing
+// import { FieldVar } from '../lib/provable/core/fieldvar.js'; // Temporarily disabled for testing
 
 
 // ===================================================================
@@ -1233,7 +1233,7 @@ export const Snarky = {
           const prevField = getFieldModule().constant(Number(nPrev));
           const nextField = getFieldModule().constant(Number(nNext));
           const oneField = getFieldModule().constant(1);
-          const expected = FieldVar.add(prevField, oneField);
+          const expected = getFieldModule().add(prevField, oneField);
           getFieldModule().assertEqual(nextField, expected);
         }
         
@@ -1697,7 +1697,8 @@ export const Snarky = {
     // Convert OCaml constant to JavaScript representation
     // OCaml constants might be passed as various types
     if (typeof ocamlConstant === 'number' || typeof ocamlConstant === 'bigint') {
-      return Fp(ocamlConstant);
+      // Temporarily return as-is for testing (Fp disabled)
+      return ocamlConstant;
     }
     // Already a field constant
     return ocamlConstant;

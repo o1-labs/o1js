@@ -34,6 +34,7 @@ The testing strategy separates **correctness** from **parity** testing for faste
 - ✅ **Correctness**: Test mathematical properties in pure Rust (fast, isolated debugging)
 - ✅ **Parity**: Test backend comparison through o1js (integration verification)
 - ❌ **Avoid**: Testing correctness through o1js (slow, complex debugging)
+- ⏱️ **ALWAYS run tests with a 6 minute timeout**: Some tests take a while to complete
 
 #### Rust Correctness Tests (Pure mathematical verification)
 ```bash

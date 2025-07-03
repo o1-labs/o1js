@@ -1,5 +1,5 @@
 import { Context } from '../../util/global-context.js';
-import { Gate, GateType, JsonGate, Snarky, initializeBindings } from '../../../bindings.js';
+import { Gate, GateType, JsonGate, Snarky, initializeBindings, getCurrentBackend } from '../../../bindings.js';
 import { parseHexString32 } from '../../../bindings/crypto/bigint-helpers.js';
 import { prettifyStacktrace } from '../../util/errors.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
@@ -113,6 +113,18 @@ async function generateWitness(
 async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
   await initializeBindings();
   let id = snarkContext.enter({ inAnalyze: true, inCheckedComputation: true });
+  
+  // SPARKY CONSTRAINT BRIDGE FIX: Initialize constraint accumulation for Sparky backend
+  // This makes Provable.constraintSystem() use the same constraint accumulation pattern
+  // as ZkProgram.compile(), which is why the latter works but the former returns 0 constraints
+  let isSparkyBackend = getCurrentBackend() === 'sparky';
+  let sparkyBridge = isSparkyBackend ? (globalThis as any).sparkyConstraintBridge : null;
+  
+  if (isSparkyBackend && sparkyBridge) {
+    console.log('🔧 CONSTRAINT FIX: Calling startConstraintAccumulation() for Sparky backend');
+    sparkyBridge.startConstraintAccumulation();
+  }
+  
   try {
     let finish = Snarky.run.enterConstraintSystem();
     await f();
@@ -121,6 +133,11 @@ async function constraintSystem(f: (() => Promise<void>) | (() => void)) {
   } catch (error) {
     throw prettifyStacktrace(error);
   } finally {
+    // SPARKY CONSTRAINT BRIDGE FIX: Clean up constraint accumulation for Sparky backend
+    if (isSparkyBackend && sparkyBridge) {
+      console.log('🔧 CONSTRAINT FIX: Calling endConstraintAccumulation() for Sparky backend');
+      sparkyBridge.endConstraintAccumulation();
+    }
     snarkContext.leave(id);
   }
 }
@@ -149,6 +166,15 @@ async function synchronousRunners() {
       inAnalyze: true,
       inCheckedComputation: true,
     });
+    
+    // SPARKY CONSTRAINT BRIDGE FIX: Initialize constraint accumulation for Sparky backend (sync version)
+    let isSparkyBackend = getCurrentBackend() === 'sparky';
+    let sparkyBridge = isSparkyBackend ? (globalThis as any).sparkyConstraintBridge : null;
+    
+    if (isSparkyBackend && sparkyBridge) {
+      sparkyBridge.startConstraintAccumulation();
+    }
+    
     try {
       let finish = Snarky.run.enterConstraintSystem();
       f();
@@ -157,6 +183,10 @@ async function synchronousRunners() {
     } catch (error) {
       throw prettifyStacktrace(error);
     } finally {
+      // SPARKY CONSTRAINT BRIDGE FIX: Clean up constraint accumulation for Sparky backend (sync version)
+      if (isSparkyBackend && sparkyBridge) {
+        sparkyBridge.endConstraintAccumulation();
+      }
       snarkContext.leave(id);
     }
   }
