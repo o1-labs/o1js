@@ -95,7 +95,7 @@ describe('Constraint Optimization Analysis', () => {
                 
                 // Add constraints
                 expr.assertEquals(expr);
-                expr.assertGreaterThan(Field(-10 ** 9));
+                expr.assertGreaterThan(Field(-(10 ** 9)));
               });
             });
 
