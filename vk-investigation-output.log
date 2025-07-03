@@ -1,0 +1,34 @@
+
+> o1js@2.6.0 test
+> ./run-jest-tests.sh src/test/vk-structure-investigation.test.ts
+
+~/src/o1labs/o1js2/src/mina-signer ~/src/o1labs/o1js2
+
+> mina-signer@3.0.7 build
+> tsc -p ../../tsconfig.mina-signer.json
+
+~/src/o1labs/o1js2
+(node:1417621) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ts-jest[versions] (WARN) Version 5.4.5 of typescript installed has not been tested with ts-jest. If you're experiencing issues, consider using a supported version (>=4.3.0 <5.0.0-0). Please do not report issues in ts-jest if you are using unsupported versions.
+  console.log
+    Loading Snarky backend...
+
+      at initializeBindings (dist/node/bindings.js:72:15)
+
+  console.log
+    ✓ Snarky backend loaded
+
+      at initializeBindings (dist/node/bindings.js:97:15)
+
+/home/fizzixnerd/src/o1labs/o1js2/dist/node/lib/mina/v1/local-blockchain.js:186
+                let test = await Test();
+                                 ^
+
+TypeError: Test is not a function
+    at /home/fizzixnerd/src/o1labs/o1js2/src/lib/mina/v1/local-blockchain.ts:255:26
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at sendTransaction (/home/fizzixnerd/src/o1labs/o1js2/src/lib/mina/v1/transaction.ts:605:10)
+    at /home/fizzixnerd/src/o1labs/o1js2/src/lib/mina/v1/transaction.ts:531:36
+
+Node.js v22.1.0

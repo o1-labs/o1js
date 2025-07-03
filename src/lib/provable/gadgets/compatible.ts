@@ -242,8 +242,23 @@ function assertBooleanCompatible(x: Field) {
  * Assert equality, `x === y`
  */
 function assertEqualCompatible(x: Field | FieldVar, y: Field | FieldVar) {
-  // Handle multi-term linear combinations for Sparky optimization
+  // CONSTRAINT LOOP: Intercept at TypeScript layer for dual processing
   if (getCurrentBackend() === 'sparky') {
+    // Send constraint info to bridge for external processing
+    try {
+      const bridge = (globalThis as any).sparkyConstraintBridge;
+      if (bridge && typeof bridge.addConstraint === 'function') {
+        bridge.addConstraint({
+          type: 'Equal',
+          backend: 'sparky',
+          timestamp: Date.now()
+        });
+      }
+    } catch (e) {
+      // Ignore bridge errors
+    }
+    
+    // Continue with normal Sparky processing
     let yv = reduceToScaledVarSparky(y);
     let xv = reduceToScaledVarSparky(x);
     

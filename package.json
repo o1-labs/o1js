@@ -89,6 +89,7 @@
     "test:red-team-mild": "NODE_OPTIONS=--experimental-vm-modules npx jest src/test/pbt/suites/DeviousRedTeamTestSuite.test.ts --verbose --testTimeout=300000 --testNamePattern=\"MILD|Mild\"",
     "test:red-team-apocalyptic": "NODE_OPTIONS=--experimental-vm-modules npx jest src/test/pbt/suites/DeviousRedTeamTestSuite.test.ts --verbose --testTimeout=900000 --testNamePattern=\"APOCALYPTIC|Apocalyptic\"",
     "test:devious-simple": "NODE_OPTIONS=--experimental-vm-modules npx jest src/test/simple-devious.test.ts --verbose --testTimeout=120000",
+    "test:performance": "NODE_OPTIONS=--experimental-vm-modules npx jest src/test/comprehensive-performance.test.ts --verbose --testTimeout=600000",
     "test:comprehensive": "npm run test:framework && npm run test:ruthless && npm run test:quick-parity",
     "test:e2e": "rimraf ./tests/report && rimraf ./tests/test-artifacts && npx playwright test",
     "test:all": "./run-all-local-tests.sh",

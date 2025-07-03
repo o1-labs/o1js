@@ -1,0 +1,44 @@
+--- a/src/sparky/sparky-core/src/constraint.rs
++++ b/src/sparky/sparky-core/src/constraint.rs
+@@ -1296,8 +1296,12 @@ impl ConstraintSystem {
+             Constraint::Boolean(x) => {
+                 // Boolean: x*(x-1) = 0 → left and right wires should be the same variable
+                 if let Cvar::Var(var_id) = x {
+-                    let col = var_id.0;  // Use variable ID as column
++                    // SNARKY COMPATIBILITY: Match Snarky's wire ordering for boolean constraints
++                    // Boolean constraints wire the same variable to left and right positions
+                     vec![
++                        Wire { row, col: var_id.0 % 7 },      // Left wire (variable x)
++                        Wire { row, col: var_id.0 % 7 },      // Right wire (same variable x)  
++                        Wire { row, col: 2 },                 // Output wire
+                         Wire { row, col },      // Left wire (variable x)
+                         Wire { row, col },      // Right wire (same variable x)  
+                         Wire { row, col: 2 },   // Output wire
+@@ -1311,8 +1315,12 @@ impl ConstraintSystem {
+                 match (x, y) {
+                     (Cvar::Var(var_x), Cvar::Var(var_y)) => {
+                         vec![
+-                            Wire { row, col: var_x.0 },  // Left wire (variable x)
+-                            Wire { row, col: var_y.0 },  // Right wire (variable y)
++                            // SNARKY COMPATIBILITY: Use modulo 7 to match column constraints
++                            Wire { row, col: var_x.0 % 7 },  // Left wire (variable x)
++                            Wire { row, col: var_y.0 % 7 },  // Right wire (variable y)
+                             Wire { row, col: 2 },        // Output wire
+                         ]
+                     }
+@@ -1324,10 +1332,12 @@ impl ConstraintSystem {
+                 match (x, y) {
+                     (Cvar::Var(var_x), Cvar::Var(var_y)) => {
+                         let col_x = var_x.0;
+                         let col_y = var_y.0;
+                         vec![
+-                            Wire { row, col: col_x },    // Left wire (variable x)
+-                            Wire { row, col: col_x },    // Right wire (same variable x)
+-                            Wire { row, col: col_y },    // Output wire (variable y)
++                            // SNARKY COMPATIBILITY: Use modulo 7 for column assignment
++                            Wire { row, col: col_x % 7 },    // Left wire (variable x)
++                            Wire { row, col: col_x % 7 },    // Right wire (same variable x)
++                            Wire { row, col: col_y % 7 },    // Output wire (variable y)
+                         ]
+                     }
+                     _ => self.create_simple_wires(row)
