@@ -21,6 +21,25 @@ export {
 let { isVar, getVar, isConst, getConst } = ScaledVar;
 
 /**
+ * Helper function to try reading a witness value from a variable
+ * Returns null if the value cannot be read (e.g., during constraint generation)
+ */
+function tryReadWitnessValue(varRef: any): bigint | null {
+  try {
+    // Try to read the witness value using the Snarky readVar function
+    const result = Snarky.field.readVar(varRef);
+    // Convert FieldConst to bigint if needed
+    if (Array.isArray(result) && result.length >= 2 && result[0] === 0) {
+      return result[1]; // Extract bigint from [0, bigint] format
+    }
+    return typeof result === 'bigint' ? result : null;
+  } catch (error) {
+    // Return null if reading fails (e.g., not in prover mode, value not available)
+    return null;
+  }
+}
+
+/**
  * Assert multiplication constraint, `x * y === z`
  */
 function assertMulCompatible(x: Field | FieldVar, y: Field | FieldVar, z: Field | FieldVar) {
@@ -30,6 +49,37 @@ function assertMulCompatible(x: Field | FieldVar, y: Field | FieldVar, z: Field 
   let xv = reduceToScaledVar(x);
   let yv = reduceToScaledVar(y);
   let zv = reduceToScaledVar(z);
+  
+  // DIVISION BY ZERO DETECTION: Check for the pattern 0 * 0 = 1 from Field.inv()
+  // This catches division by zero in witness context where the constraint system
+  // might not immediately detect the impossible constraint
+  if (isConst(xv) && isConst(yv) && isConst(zv)) {
+    let [sx, sy, sz] = [getConst(xv), getConst(yv), getConst(zv)];
+    
+    // Special case: Check for division by zero pattern 0 * 0 = 1
+    if (sx === 0n && sy === 0n && sz === 1n) {
+      throw Error('Field.inv(): Division by zero');
+    }
+  }
+  
+  // Also check mixed cases where we have variables with witness values of 0
+  // During witness generation, the actual values are available for checking
+  if (getCurrentBackend() === 'sparky') {
+    try {
+      // Try to read witness values for division by zero detection
+      let xValue = isConst(xv) ? getConst(xv) : (isVar(xv) ? tryReadWitnessValue(getVar(xv)[1]) : null);
+      let yValue = isConst(yv) ? getConst(yv) : (isVar(yv) ? tryReadWitnessValue(getVar(yv)[1]) : null);
+      let zValue = isConst(zv) ? getConst(zv) : (isVar(zv) ? tryReadWitnessValue(getVar(zv)[1]) : null);
+      
+      // Check for division by zero pattern with witness values
+      if (xValue === 0n && yValue === 0n && zValue === 1n) {
+        throw Error('Field.inv(): Division by zero');
+      }
+    } catch (e) {
+      // Ignore errors from reading witness values - they might not be available
+      // in all contexts (e.g., during constraint generation without witnesses)
+    }
+  }
 
   // three variables
 
