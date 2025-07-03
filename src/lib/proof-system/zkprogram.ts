@@ -777,57 +777,52 @@ If you are using a SmartContract, make sure you are using the @method decorator.
       let id = snarkContext.enter({ inCompile: true });
       setSrsCache(cache);
       try {
-        // CONSTRAINT LOOP CLOSED: Intercept at Pickles compilation level
+        // Determine compilation strategy based on backend and constraint bridge availability
+        let useEnhancedRules = false;
+        let compilationRules = rules;
+        
         if (getCurrentBackend() === 'sparky') {
-          // Log the successful interception
           console.log('🎯 CONSTRAINT LOOP: Intercepted Pickles.compile() with Sparky backend!');
           
-          // Try to get Sparky constraints for VK enhancement
           try {
             const bridge = (globalThis as any).sparkyConstraintBridge;
-            if (bridge && typeof bridge.getAccumulatedConstraints === 'function') {
+            if (bridge?.getFullConstraintSystem && typeof bridge.getFullConstraintSystem === 'function') {
               const sparkyConstraints = bridge.getAccumulatedConstraints();
               console.log('📊 Retrieved Sparky constraints:', sparkyConstraints?.length || 0);
               
-              // Get full constraint system if available
-              if (bridge.getFullConstraintSystem && typeof bridge.getFullConstraintSystem === 'function') {
-                const fullSystem = bridge.getFullConstraintSystem();
-                console.log('🔍 Full constraint system:', JSON.stringify(fullSystem, null, 2));
-                
-                // PHASE 2: Convert Sparky constraints for Pickles enhancement
-                const enhancedRules = convertSparkyConstraintsToPicklesRules(fullSystem, rules);
-                console.log('🚀 Enhanced rules with Sparky constraints for VK generation!');
-                
-                // PHASE 3: Use enhanced rules for Pickles compilation
-                console.log('🔄 Compiling with enhanced rules that include Sparky constraints...');
-                result = Pickles.compile(MlArray.to(enhancedRules), {
-                  publicInputSize: publicInputType.sizeInFields(),
-                  publicOutputSize: publicOutputType.sizeInFields(),
-                  storable: picklesCache,
-                  overrideWrapDomain,
-                  numChunks: numChunks ?? 1,
-                });
-                
-                console.log('🎆 CONSTRAINT BRIDGE COMPLETE: Pickles compiled with Sparky constraints!');
-                return result;
-              }
+              const fullSystem = bridge.getFullConstraintSystem();
+              console.log('🔍 Full constraint system available with', fullSystem?.gates?.length || 0, 'gates');
               
-              // For now, proceed with normal Pickles compilation but log readiness
-              console.log('💡 Ready for VK enhancement - constraint data available!');
+              // PHASE 2: Convert Sparky constraints for Pickles enhancement
+              const enhancedRules = convertSparkyConstraintsToPicklesRules(fullSystem, rules);
+              console.log('🚀 Enhanced rules with Sparky constraints for VK generation!');
+              
+              compilationRules = enhancedRules;
+              useEnhancedRules = true;
             }
           } catch (bridgeError) {
             console.log('⚠️  Bridge access failed, proceeding with normal compilation');
           }
         }
         
-        // Standard compilation path (Snarky backend or fallback)
-        result = Pickles.compile(MlArray.to(rules), {
+        // PHASE 3: Compile with chosen rules (enhanced or standard)
+        console.log(useEnhancedRules ? 
+          '🔄 Compiling with enhanced Sparky constraints...' : 
+          '🔄 Compiling with standard rules...');
+        
+        result = Pickles.compile(MlArray.to(compilationRules), {
           publicInputSize: publicInputType.sizeInFields(),
           publicOutputSize: publicOutputType.sizeInFields(),
           storable: picklesCache,
           overrideWrapDomain,
           numChunks: numChunks ?? 1,
         });
+        
+        if (useEnhancedRules) {
+          console.log('🎆 CONSTRAINT BRIDGE COMPLETE: Pickles compiled with Sparky constraints!');
+        }
+        
+        // Process the result from whichever compilation path was taken
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
         let [, data, hash] = await getVerificationKey();
