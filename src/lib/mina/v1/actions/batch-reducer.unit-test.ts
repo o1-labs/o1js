@@ -6,6 +6,7 @@ import {
   Bool,
   Experimental,
   Field,
+  IndexedMerkleMap,
   method,
   Poseidon,
   Provable,
@@ -17,7 +18,7 @@ import {
   assert,
 } from '../../../../index.js';
 import { TestInstruction, expectBalance, testLocal, transaction } from '../test/test-contract.js';
-const { IndexedMerkleMap, BatchReducer } = Experimental;
+const { BatchReducer } = Experimental;
 
 const MINA = 1_000_000_000n;
 const AMOUNT = 10n * MINA;
