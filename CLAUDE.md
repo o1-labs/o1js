@@ -80,6 +80,9 @@ npm run test:e2e
 
 # Run all tests
 npm run test:all
+
+# Run security tests (property-based testing for cryptographic soundness)
+npm run test:security
 ```
 
 #### Legacy Test Commands (Being phased out)

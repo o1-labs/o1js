@@ -715,6 +715,14 @@ export const Snarky = {
       },
       
       setAsProver(state, value) {
+        // CONSTRAINT ACCUMULATION PROTECTION: Don't interfere with constraint generation mode
+        // when we're actively building a constraint system (isCompilingCircuit = true)
+        if (isCompilingCircuit) {
+          // During constraint system compilation, maintain ConstraintGeneration mode
+          // regardless of prover context changes
+          return;
+        }
+        
         if (value) {
           getRunModule().witnessMode();
         } else {
