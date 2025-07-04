@@ -74,6 +74,20 @@ export class TestDiscovery {
   }
 
   /**
+   * Discover comprehensive test suites (circuit compilation, etc.)
+   */
+  discoverComprehensiveSuites(): DiscoveredSuite[] {
+    const comprehensiveDir = join(this.config.baseDir, 'comprehensive');
+    
+    if (!this.directoryExists(comprehensiveDir)) {
+      console.warn(`⚠️  Comprehensive directory not found: ${comprehensiveDir}`);
+      return [];
+    }
+
+    return this.scanDirectory(comprehensiveDir, undefined);
+  }
+
+  /**
    * Discover suites by tier (smoke, core, comprehensive)
    */
   discoverSuitesByTier(tier: string, backend?: string): DiscoveredSuite[] {
@@ -98,11 +112,13 @@ export class TestDiscovery {
     snarky: DiscoveredSuite[];
     sparky: DiscoveredSuite[];
     integration: DiscoveredSuite[];
+    comprehensive: DiscoveredSuite[];
   } {
     return {
       snarky: this.discoverBackendSuites('snarky'),
       sparky: this.discoverBackendSuites('sparky'),
-      integration: this.discoverIntegrationSuites()
+      integration: this.discoverIntegrationSuites(),
+      comprehensive: this.discoverComprehensiveSuites()
     };
   }
 
@@ -118,7 +134,8 @@ export class TestDiscovery {
     const filteredSuites = {
       snarky: allSuites.snarky.filter(s => tiers.some(tier => this.matchesTier(s, tier))),
       sparky: allSuites.sparky.filter(s => tiers.some(tier => this.matchesTier(s, tier))),
-      integration: tiers.includes('comprehensive') ? allSuites.integration : []
+      integration: tiers.includes('comprehensive') ? allSuites.integration : [],
+      comprehensive: tiers.includes('comprehensive') ? allSuites.comprehensive : []
     };
 
     // Distribute across processes
@@ -144,6 +161,24 @@ export class TestDiscovery {
     // Integration process if needed
     if (filteredSuites.integration.length > 0) {
       distribution['integration'] = filteredSuites.integration;
+    }
+
+    // Comprehensive tests (circuit compilation) - distribute across available processes for load balancing
+    if (filteredSuites.comprehensive.length > 0) {
+      const availableProcesses = Object.keys(distribution);
+      if (availableProcesses.length === 0) {
+        // If no other processes, create dedicated comprehensive process
+        distribution['comprehensive'] = filteredSuites.comprehensive;
+      } else {
+        // Distribute comprehensive tests across existing processes for load balancing
+        filteredSuites.comprehensive.forEach((suite, index) => {
+          const processId = availableProcesses[index % availableProcesses.length];
+          if (!distribution[processId]) {
+            distribution[processId] = [];
+          }
+          distribution[processId].push(suite);
+        });
+      }
     }
 
     return distribution;

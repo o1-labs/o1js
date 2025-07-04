@@ -13,8 +13,10 @@ export interface SparkyTestConfig {
   executionMode: 'parallel' | 'sequential';
   aggressiveMemory: boolean;
   memoryLimitMB: number;
+  comprehensiveMemoryLimitMB: number;
   testTiers: string[];
   maxExecutionTimeMs: number;
+  comprehensiveTimeoutMs: number;
 }
 
 export class EnvironmentConfig {
@@ -73,12 +75,28 @@ export class EnvironmentConfig {
     const envValue = process.env.SPARKY_TEST_MEMORY_LIMIT_MB;
     if (envValue) {
       const parsed = parseInt(envValue, 10);
-      if (isNaN(parsed) || parsed < 100 || parsed > 4000) {
-        throw new Error(`Invalid SPARKY_TEST_MEMORY_LIMIT_MB: ${envValue}. Must be 100-4000.`);
+      if (isNaN(parsed) || parsed < 100 || parsed > 8000) {
+        throw new Error(`Invalid SPARKY_TEST_MEMORY_LIMIT_MB: ${envValue}. Must be 100-8000.`);
       }
       return parsed;
     }
     return 600; // Default: 600MB per process
+  }
+
+  /**
+   * Get memory limit for comprehensive tests (circuit compilation)
+   * These tests require significantly more memory
+   */
+  static getComprehensiveMemoryLimitMB(): number {
+    const envValue = process.env.SPARKY_COMPREHENSIVE_MEMORY_LIMIT_MB;
+    if (envValue) {
+      const parsed = parseInt(envValue, 10);
+      if (isNaN(parsed) || parsed < 1000 || parsed > 8000) {
+        throw new Error(`Invalid SPARKY_COMPREHENSIVE_MEMORY_LIMIT_MB: ${envValue}. Must be 1000-8000.`);
+      }
+      return parsed;
+    }
+    return 3000; // Default: 3GB for circuit compilation
   }
 
   /**
@@ -119,6 +137,22 @@ export class EnvironmentConfig {
   }
 
   /**
+   * Get timeout for comprehensive tests (circuit compilation)
+   * These tests can take much longer due to compilation
+   */
+  static getComprehensiveTimeoutMs(): number {
+    const envValue = process.env.SPARKY_COMPREHENSIVE_TIMEOUT_MS;
+    if (envValue) {
+      const parsed = parseInt(envValue, 10);
+      if (isNaN(parsed) || parsed < 120000 || parsed > 1800000) {
+        throw new Error(`Invalid SPARKY_COMPREHENSIVE_TIMEOUT_MS: ${envValue}. Must be 120000-1800000 (2min-30min).`);
+      }
+      return parsed;
+    }
+    return 900000; // Default: 15 minutes for circuit compilation
+  }
+
+  /**
    * Get verbose logging setting
    * Default: false (concise output)
    * Debug: SPARKY_TEST_VERBOSE=true
@@ -136,8 +170,10 @@ export class EnvironmentConfig {
       executionMode: this.getExecutionMode(),
       aggressiveMemory: this.getAggressiveMemory(),
       memoryLimitMB: this.getMemoryLimitMB(),
+      comprehensiveMemoryLimitMB: this.getComprehensiveMemoryLimitMB(),
       testTiers: this.getTestTiers(),
-      maxExecutionTimeMs: this.getMaxExecutionTimeMs()
+      maxExecutionTimeMs: this.getMaxExecutionTimeMs(),
+      comprehensiveTimeoutMs: this.getComprehensiveTimeoutMs()
     };
   }
 
