@@ -10,6 +10,8 @@
  */
 
 import { MemoryManager } from '../shared/MemoryManager.js';
+import { fileURLToPath } from 'url';
+import { argv } from 'process';
 
 type Backend = 'snarky' | 'sparky';
 
@@ -493,8 +495,9 @@ class IntegrationWorker {
 }
 
 // Main entry point when run as a separate process
-if (require.main === module) {
-  const args = process.argv.slice(2);
+const isMainModule = argv[1] === fileURLToPath(import.meta.url);
+if (isMainModule) {
+  const args = argv.slice(2);
   const config: IntegrationWorkerConfig = {
     suites: args[0] ? args[0].split(',') : ['switching-reliability'],
     memoryLimitMB: parseInt(args[1]) || 600,

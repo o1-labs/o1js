@@ -10,6 +10,8 @@
  */
 
 import { MemoryManager } from '../shared/MemoryManager.js';
+import { fileURLToPath } from 'url';
+import { argv } from 'process';
 
 // Backend type definition
 type Backend = 'snarky' | 'sparky';
@@ -359,9 +361,11 @@ class BackendIsolatedWorker {
 }
 
 // Main entry point when run as a separate process
-if (require.main === module) {
+// Main execution when run directly
+const isMainModule = argv[1] === fileURLToPath(import.meta.url);
+if (isMainModule) {
   // Parse command line arguments
-  const args = process.argv.slice(2);
+  const args = argv.slice(2);
   const config: WorkerConfig = {
     backend: (args[0] as Backend) || 'snarky',
     suites: args[1] ? args[1].split(',') : ['smoke'],

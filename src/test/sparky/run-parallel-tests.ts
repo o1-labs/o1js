@@ -7,6 +7,8 @@
  */
 
 import { ParallelTestRunner } from './orchestrator/ParallelTestRunner.js';
+import { fileURLToPath } from 'url';
+import { argv } from 'process';
 
 interface RunnerOptions {
   tier?: 'smoke' | 'core' | 'comprehensive';
@@ -163,8 +165,9 @@ class SparkyTestCLI {
 }
 
 // Main execution when run directly
-if (require.main === module) {
-  const args = process.argv.slice(2);
+const isMainModule = argv[1] === fileURLToPath(import.meta.url);
+if (isMainModule) {
+  const args = argv.slice(2);
   const options = SparkyTestCLI.parseArgs(args);
   
   const cli = new SparkyTestCLI();

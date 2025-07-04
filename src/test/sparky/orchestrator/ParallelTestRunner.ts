@@ -9,7 +9,8 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { EnvironmentConfig, SparkyTestConfig } from './EnvironmentConfig.js';
 
 type Backend = 'snarky' | 'sparky';
@@ -235,6 +236,9 @@ export class ParallelTestRunner {
    */
   private async spawnWorkerProcess(config: ProcessConfig): Promise<ProcessResult> {
     return new Promise((resolve, reject) => {
+      // ES module equivalent of __dirname
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
       const workerPath = join(__dirname, '..', 'workers', `${config.worker}-worker.js`);
       
       console.log(`🔧 Spawning ${config.id}: ${config.worker} (${config.suites.join(', ')})`);

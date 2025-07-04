@@ -6,7 +6,8 @@
  */
 
 import { readdirSync, statSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 export interface DiscoveredSuite {
   name: string;
@@ -27,6 +28,10 @@ export class TestDiscovery {
   private config: TestDiscoveryConfig;
 
   constructor(config?: Partial<TestDiscoveryConfig>) {
+    // ES module equivalent of __dirname
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    
     this.config = {
       baseDir: resolve(__dirname, '..', 'suites'),
       backends: ['snarky', 'sparky'],
