@@ -8,13 +8,15 @@ import {
 import type { Field } from '../wrapped.js';
 import {
   createDerivers,
+  createHashInput,
+} from '../../../bindings/lib/provable-generic.js';
+import type {
   NonMethods,
   InferProvable as GenericInferProvable,
   InferJson,
   InferredProvable as GenericInferredProvable,
   IsPure as GenericIsPure,
   NestedProvable as GenericNestedProvable,
-  createHashInput,
   Constructor,
   InferValue,
   InferJsonNested,

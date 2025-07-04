@@ -9,7 +9,8 @@ import { Field } from './field.js';
 import { Bool } from './bool.js';
 
 // external API
-export { Bytes, FlexibleBytes };
+export { Bytes };
+export type { FlexibleBytes };
 
 // internal API
 export { createBytes };

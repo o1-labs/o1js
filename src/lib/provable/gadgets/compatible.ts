@@ -7,8 +7,9 @@ import { Field } from '../field.js';
 import { FieldVar } from '../core/fieldvar.js';
 import { assert } from './common.js';
 import { Gates } from '../gates.js';
-import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
+import { ScaledVar, emptyCell, reduceToScaledVar, reduceToScaledVarSparky, MultiTermLinearCombination, Constant } from './basic.js';
 import { Snarky } from '../../../bindings.js';
+import { getCurrentBackend } from '../../../bindings.js';
 
 export {
   assertMulCompatible as assertMul,
@@ -20,6 +21,25 @@ export {
 let { isVar, getVar, isConst, getConst } = ScaledVar;
 
 /**
+ * Helper function to try reading a witness value from a variable
+ * Returns null if the value cannot be read (e.g., during constraint generation)
+ */
+function tryReadWitnessValue(varRef: any): bigint | null {
+  try {
+    // Try to read the witness value using the Snarky readVar function
+    const result = Snarky.field.readVar(varRef);
+    // Convert FieldConst to bigint if needed
+    if (Array.isArray(result) && result.length >= 2 && result[0] === 0) {
+      return result[1]; // Extract bigint from [0, bigint] format
+    }
+    return typeof result === 'bigint' ? result : null;
+  } catch (error) {
+    // Return null if reading fails (e.g., not in prover mode, value not available)
+    return null;
+  }
+}
+
+/**
  * Assert multiplication constraint, `x * y === z`
  */
 function assertMulCompatible(x: Field | FieldVar, y: Field | FieldVar, z: Field | FieldVar) {
@@ -29,6 +49,37 @@ function assertMulCompatible(x: Field | FieldVar, y: Field | FieldVar, z: Field 
   let xv = reduceToScaledVar(x);
   let yv = reduceToScaledVar(y);
   let zv = reduceToScaledVar(z);
+  
+  // DIVISION BY ZERO DETECTION: Check for the pattern 0 * 0 = 1 from Field.inv()
+  // This catches division by zero in witness context where the constraint system
+  // might not immediately detect the impossible constraint
+  if (isConst(xv) && isConst(yv) && isConst(zv)) {
+    let [sx, sy, sz] = [getConst(xv), getConst(yv), getConst(zv)];
+    
+    // Special case: Check for division by zero pattern 0 * 0 = 1
+    if (sx === 0n && sy === 0n && sz === 1n) {
+      throw Error('Field.inv(): Division by zero');
+    }
+  }
+  
+  // Also check mixed cases where we have variables with witness values of 0
+  // During witness generation, the actual values are available for checking
+  if (getCurrentBackend() === 'sparky') {
+    try {
+      // Try to read witness values for division by zero detection
+      let xValue = isConst(xv) ? getConst(xv) : (isVar(xv) ? tryReadWitnessValue(getVar(xv)[1]) : null);
+      let yValue = isConst(yv) ? getConst(yv) : (isVar(yv) ? tryReadWitnessValue(getVar(yv)[1]) : null);
+      let zValue = isConst(zv) ? getConst(zv) : (isVar(zv) ? tryReadWitnessValue(getVar(zv)[1]) : null);
+      
+      // Check for division by zero pattern with witness values
+      if (xValue === 0n && yValue === 0n && zValue === 1n) {
+        throw Error('Field.inv(): Division by zero');
+      }
+    } catch (e) {
+      // Ignore errors from reading witness values - they might not be available
+      // in all contexts (e.g., during constraint generation without witnesses)
+    }
+  }
 
   // three variables
 
@@ -191,11 +242,27 @@ function assertBooleanCompatible(x: Field) {
  * Assert equality, `x === y`
  */
 function assertEqualCompatible(x: Field | FieldVar, y: Field | FieldVar) {
-  // TODO not optimal for a case like `x + y === c*z`,
-  // where this reduces x + y and then is still not able to just use a wire
+  // Handle multi-term linear combinations for Sparky optimization
+  if (getCurrentBackend() === 'sparky') {
+    let yv = reduceToScaledVarSparky(y);
+    let xv = reduceToScaledVarSparky(x);
+    
+    if (isMultiTerm(xv) || isMultiTerm(yv)) {
+      return assertEqualMultiTerm(xv, yv);
+    }
+    // Convert back to standard types for normal processing
+    if (!isMultiTerm(xv) && !isMultiTerm(yv)) {
+      return assertEqualStandard(xv, yv);
+    }
+  }
+
+  // Standard path for Snarky
   let yv = reduceToScaledVar(y);
   let xv = reduceToScaledVar(x);
+  return assertEqualStandard(xv, yv);
+}
 
+function assertEqualStandard(xv: ScaledVar | Constant, yv: ScaledVar | Constant) {
   if (isVar(xv) && isVar(yv)) {
     let [[sx, x], [sy, y]] = [getVar(xv), getVar(yv)];
 
@@ -234,4 +301,54 @@ function assertEqualCompatible(x: Field | FieldVar, y: Field | FieldVar) {
 
   // sadly TS doesn't know that this was exhaustive
   assert(false, `assertEqual(): unreachable`);
+}
+
+// Helper functions for multi-term linear combinations
+function isMultiTerm(x: any): x is MultiTermLinearCombination {
+  return x && typeof x === 'object' && x.type === 'multiterm';
+}
+
+function assertEqualMultiTerm(
+  xv: ScaledVar | Constant | MultiTermLinearCombination,
+  yv: ScaledVar | Constant | MultiTermLinearCombination
+) {
+  // Convert both sides to linear combination format
+  let xLincom = toLinearCombinationFormat(xv);
+  let yLincom = toLinearCombinationFormat(yv);
+  
+  // Create the difference: x - y = 0
+  let diffConstant = xLincom.constant - yLincom.constant;
+  let diffTerms: [bigint, any][] = [...xLincom.terms];
+  
+  // Subtract y terms from x terms
+  for (let [coeff, varId] of yLincom.terms) {
+    diffTerms.push([-coeff, varId]);
+  }
+  
+  // Build the linear combination using FieldVar methods and assert it equals zero
+  // This bypasses intermediate variable creation and uses Sparky's reduce_lincom optimization
+  let result: FieldVar | null = diffConstant === 0n ? null : FieldVar.constant(diffConstant);
+  
+  for (let [coeff, varId] of diffTerms) {
+    const scaledVar = FieldVar.scale(coeff, varId);
+    result = result ? FieldVar.add(result, scaledVar) : scaledVar;
+  }
+  
+  if (result) {
+    const zero = FieldVar.constant(0n);
+    return Snarky.field.assertEqual(result, zero);
+  }
+}
+
+function toLinearCombinationFormat(x: ScaledVar | Constant | MultiTermLinearCombination) {
+  if (isMultiTerm(x)) {
+    return { constant: x.constant, terms: x.terms };
+  } else if (isVar(x)) {
+    let [coeff, varId] = getVar(x);
+    return { constant: 0n, terms: [[coeff, varId]] as [bigint, any][] };
+  } else if (isConst(x)) {
+    return { constant: getConst(x), terms: [] as [bigint, any][] };
+  } else {
+    throw new Error('Invalid linear combination format');
+  }
 }

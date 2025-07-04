@@ -17,7 +17,6 @@ export { Poseidon, TokenSymbol };
 
 // internal API
 export {
-  ProvableHashable,
   HashInput,
   HashHelpers,
   emptyHashWithPrefix,
@@ -28,6 +27,7 @@ export {
   hashConstant,
   isHashable,
 };
+export type { ProvableHashable };
 
 type Hashable<T> = { toInput: (x: T) => HashInput; empty: () => T };
 type ProvableHashable<T, V = any> = Provable<T, V> & Hashable<T>;
