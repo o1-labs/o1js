@@ -19,7 +19,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- Lazy mode for prover index computation. https://github.com/o1-labs/o1js/pull/2143
 - Added `ZkProgram.analyzeSingleMethod(methodName: string)` to analyze a single method of a ZkProgram. https://github.com/o1-labs/o1js/pull/2217
   - This is an addition to `ZkProgram.analyzeMethods()` which analyzes all methods of a ZkProgram by executing them.
   - Now only a single method is analyzed at a time.
@@ -29,7 +28,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - API support for circuit chunking. https://github.com/o1-labs/o1js/pull/1905
-  - work in progress, still requires memory optimizations to be fully functional
+  - still requires memory optimizations to be fully functional, and
+  - proof-systems version still needs to be updated to include [this commit](https://github.com/o1-labs/proof-systems/pull/3222/commits/8c37c293f8159eed3676964ba47fc5dc0ae6ea1e)
 - Dynamic array provable type. https://github.com/o1-labs/o1js/pull/1848
 
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
