@@ -1,0 +1,296 @@
+# DISABLED: Replaced with simple-vk-parity.yml
+# This complex workflow has been replaced with a lean, focused approach
+# 
+# name: Backend Compatibility Testing
+# 
+# on:
+#   push:
+#     branches: [ main, develop, 'fizzixnerd/*' ]
+#   pull_request:
+#     branches: [ main ]
+#   schedule:
+#     # Run comprehensive tests daily at 2 AM UTC
+#     - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test level to run'
+        required: true
+        default: 'quick'
+        type: choice
+        options:
+        - quick
+        - comprehensive
+        - full
+      send_notifications:
+        description: 'Send notifications on completion'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  RUST_VERSION: '1.75'
+  CARGO_TERM_COLOR: always
+
+jobs:
+  quick-compatibility:
+    name: Quick Compatibility Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      vk-parity-rate: ${{ steps.quick-test.outputs.vk-parity-rate }}
+      performance-regression: ${{ steps.quick-test.outputs.performance-regression }}
+      critical-failures: ${{ steps.quick-test.outputs.critical-failures }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            src/sparky/target
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run quick compatibility tests
+        id: quick-test
+        run: |
+          npm run test:pbt:quick
+          echo "vk-parity-rate=$(node -e "console.log(require('./test-results/quick-compatibility.json').vkParityRate)")" >> $GITHUB_OUTPUT
+          echo "performance-regression=$(node -e "console.log(require('./test-results/quick-compatibility.json').performanceRegression)")" >> $GITHUB_OUTPUT
+          echo "critical-failures=$(node -e "console.log(require('./test-results/quick-compatibility.json').criticalFailures)")" >> $GITHUB_OUTPUT
+
+      - name: Upload quick test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-compatibility-results
+          path: |
+            test-results/
+            performance-reports/
+          retention-days: 30
+
+  comprehensive-compatibility:
+    name: Comprehensive Compatibility Analysis
+    runs-on: ubuntu-latest
+    needs: quick-compatibility
+    if: github.event_name == 'schedule' || github.event.inputs.test_level == 'comprehensive' || github.event.inputs.test_level == 'full'
+    timeout-minutes: 120
+    outputs:
+      vk-parity-rate: ${{ steps.comprehensive-test.outputs.vk-parity-rate }}
+      regression-detected: ${{ steps.comprehensive-test.outputs.regression-detected }}
+      progress-delta: ${{ steps.comprehensive-test.outputs.progress-delta }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            src/sparky/target
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Download historical results
+        uses: actions/download-artifact@v4
+        with:
+          name: historical-compatibility-data
+          path: historical-data/
+        continue-on-error: true
+
+      - name: Run comprehensive compatibility tests
+        id: comprehensive-test
+        run: |
+          npm run test:pbt:comprehensive
+          echo "vk-parity-rate=$(node -e "console.log(require('./test-results/comprehensive-compatibility.json').vkParityRate)")" >> $GITHUB_OUTPUT
+          echo "regression-detected=$(node -e "console.log(require('./test-results/comprehensive-compatibility.json').regressionDetected)")" >> $GITHUB_OUTPUT
+          echo "progress-delta=$(node -e "console.log(require('./test-results/comprehensive-compatibility.json').progressDelta)")" >> $GITHUB_OUTPUT
+
+      - name: Generate compatibility dashboard
+        run: npm run generate:compatibility-dashboard
+
+      - name: Upload comprehensive results
+        uses: actions/upload-artifact@v4
+        with:
+          name: comprehensive-compatibility-results
+          path: |
+            test-results/
+            performance-reports/
+            compatibility-dashboard/
+          retention-days: 90
+
+      - name: Upload historical data
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-compatibility-data
+          path: historical-data/
+          retention-days: 365
+
+  full-vk-analysis:
+    name: Full VK Parity Analysis
+    runs-on: ubuntu-latest
+    needs: comprehensive-compatibility
+    if: github.event.inputs.test_level == 'full' || (github.event_name == 'schedule' && needs.comprehensive-compatibility.outputs.vk-parity-rate != '0.0')
+    timeout-minutes: 240
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            src/sparky/target
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run full VK parity analysis
+        run: npm run test:pbt:full-vk-analysis
+
+      - name: Upload full analysis results
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-vk-analysis-results
+          path: |
+            test-results/
+            vk-analysis/
+            constraint-analysis/
+          retention-days: 365
+
+  notify-results:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [quick-compatibility, comprehensive-compatibility]
+    if: always() && (github.event.inputs.send_notifications != 'false')
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-compatibility-results"
+          merge-multiple: true
+
+      - name: Notify on VK parity achievement
+        if: needs.comprehensive-compatibility.outputs.vk-parity-rate == '1.0'
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"🎉 BREAKTHROUGH: 100% VK Parity Achieved! Sparky backend now fully compatible with Snarky."}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify on significant progress
+        if: needs.comprehensive-compatibility.outputs.vk-parity-rate > '0.5'
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"📈 Significant VK Parity Progress: ${{ needs.comprehensive-compatibility.outputs.vk-parity-rate }}% compatibility achieved\"}" \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify on regression
+        if: needs.comprehensive-compatibility.outputs.regression-detected == 'true'
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"⚠️ Compatibility Regression Detected: VK parity has decreased from previous runs"}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify on critical failures
+        if: needs.quick-compatibility.outputs.critical-failures > '0'
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚨 Critical Compatibility Failures: ${{ needs.quick-compatibility.outputs.critical-failures }} critical test failures detected\"}" \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Send summary email
+        if: github.event_name == 'schedule'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "o1js Backend Compatibility Report - ${{ github.run_number }}"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: "o1js CI/CD <${{ secrets.EMAIL_USERNAME }}>"
+          html_body: |
+            <h2>Backend Compatibility Summary</h2>
+            <ul>
+              <li><strong>VK Parity Rate:</strong> ${{ needs.comprehensive-compatibility.outputs.vk-parity-rate }}%</li>
+              <li><strong>Performance Regression:</strong> ${{ needs.quick-compatibility.outputs.performance-regression }}</li>
+              <li><strong>Critical Failures:</strong> ${{ needs.quick-compatibility.outputs.critical-failures }}</li>
+              <li><strong>Progress Delta:</strong> ${{ needs.comprehensive-compatibility.outputs.progress-delta }}%</li>
+            </ul>
+            <p>Full results available in GitHub Actions artifacts.</p>
