@@ -28,11 +28,12 @@ async function testAdditionOptimization() {
   });
   
   console.log(`Sparky constraints: ${sparkyCs.rows}`);
+  console.log('Sparky CS object keys:', Object.keys(sparkyCs));
   
-  // Try calling toJson to trigger optimization
-  console.log('\nCalling toJson to trigger optimization...');
-  const json = sparkyCs.toJson();
-  console.log(`After toJson - gates count: ${json.gates ? json.gates.length : 'N/A'}`);
+  // Check internal structure
+  if (sparkyCs.data) {
+    console.log('Sparky CS data keys:', Object.keys(sparkyCs.data));
+  }
   
   // Show constraint details
   console.log('\nSparky constraint details:');
