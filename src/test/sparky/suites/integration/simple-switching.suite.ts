@@ -66,7 +66,7 @@ export const tests: IntegrationTestCase[] = [
       const o1js = (global as any).o1js;
       const { Field, Provable } = o1js;
       
-      let witnessValue: string = '';
+      let witnessValue = '';
       Provable.runAndCheck(() => {
         const x = Provable.witness(Field, () => Field(99));
         const y = x.mul(Field(2));

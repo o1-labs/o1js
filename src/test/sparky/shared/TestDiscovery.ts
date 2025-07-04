@@ -211,8 +211,14 @@ export class TestDiscovery {
     }
     
     if (name.includes('comprehensive') || name.includes('full') || name.includes('complete') ||
-        name.includes('security') || name.includes('performance') || name.includes('stress')) {
+        name.includes('security') || name.includes('performance') || name.includes('stress') ||
+        name.includes('proof-generation') || name.includes('optimization')) {
       return 'comprehensive';
+    }
+    
+    // VK, constraint, and crypto tests are core tier
+    if (name.includes('vk') || name.includes('constraint') || name.includes('crypto')) {
+      return 'core';
     }
     
     // Default to core tier
@@ -227,9 +233,12 @@ export class TestDiscovery {
     
     if (name.includes('field')) return 'field-operations';
     if (name.includes('vk') || name.includes('verification')) return 'vk-parity';
-    if (name.includes('poseidon') || name.includes('hash')) return 'cryptography';
+    if (name.includes('poseidon') || name.includes('hash') || name.includes('crypto')) return 'cryptography';
     if (name.includes('group') || name.includes('curve')) return 'elliptic-curves';
-    if (name.includes('switch') || name.includes('integration')) return 'integration';
+    if (name.includes('constraint')) return 'constraint-systems';
+    if (name.includes('proof')) return 'proof-systems';
+    if (name.includes('optimization')) return 'optimizations';
+    if (name.includes('switch') || name.includes('integration') || name.includes('parity')) return 'integration';
     if (name.includes('performance') || name.includes('benchmark')) return 'performance';
     if (name.includes('security') || name.includes('property')) return 'security';
     
