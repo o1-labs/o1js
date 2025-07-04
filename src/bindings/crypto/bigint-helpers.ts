@@ -44,6 +44,22 @@ let encoder = new TextEncoder();
 
 const tmpBytes = new Uint8Array(64);
 
+/**
+ * Parse a 64-character hex string representing a 32-byte (256-bit) field element.
+ * 
+ * IMPORTANT: This function expects the hex string to be in LITTLE-ENDIAN format,
+ * where the least significant byte comes first.
+ * 
+ * @example
+ * // For the decimal value 1:
+ * parseHexString32('0100000000000000000000000000000000000000000000000000000000000000') // returns 1n
+ * 
+ * // NOT big-endian format:
+ * parseHexString32('0000000000000000000000000000000000000000000000000000000000000001') // returns wrong value
+ * 
+ * @param input A 64-character hex string in little-endian format
+ * @returns The BigInt value represented by the hex string
+ */
 function parseHexString32(input: string) {
   // Parse the bytes explicitly, Bigint endianness is wrong
   encoder.encodeInto(input, tmpBytes);
