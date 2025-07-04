@@ -35,7 +35,7 @@ import type { KimchiGateType } from './lib/provable/gates.ts';
 import type { MlConstraintSystem } from './lib/provable/core/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
 
-export { Ledger, Pickles, Gate, GateType, wasm, initializeBindings };
+export { Ledger, Pickles, Gate, GateType, wasm, initializeBindings, switchBackend, getCurrentBackend };
 
 // internal
 export {
@@ -385,7 +385,7 @@ declare const Snarky: {
     /**
      * Generates a proving key and a verification key for the provable function `main`
      */
-    compile(main: Snarky.Main, publicInputSize: number, lazyMode: boolean): Snarky.Keypair;
+    compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
@@ -703,7 +703,6 @@ declare const Pickles: {
       storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
       numChunks?: number;
-      lazyMode?: boolean;
     }
   ) => {
     provers: MlArray<Pickles.Prover>;
@@ -787,6 +786,17 @@ declare const Pickles: {
 /**
  * A function that has to finish before any bindings exports can be used.
  */
-declare function initializeBindings(): Promise<void>;
+declare function initializeBindings(backend?: string): Promise<void>;
+
+/**
+ * Switch between different backend implementations.
+ */
+declare function switchBackend(backend: 'snarky' | 'sparky'): Promise<void>;
+
+/**
+ * Get the currently active backend.
+ */
+declare function getCurrentBackend(): string;
 
 declare function withThreadPool<T>(run: () => Promise<T>): Promise<T>;
+
