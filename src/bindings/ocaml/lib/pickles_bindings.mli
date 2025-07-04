@@ -3,6 +3,7 @@ module Impl = Pickles.Impls.Step
 module Field = Impl.Field
 module Boolean = Impl.Boolean
 
+
 module Public_input : sig
   type t = Field.t array
 
@@ -66,8 +67,7 @@ val pickles :
           ; publicOutputSize : int Js.prop
           ; storable : Cache.js_storable Js.optdef_prop
           ; overrideWrapDomain : int Js.optdef_prop 
-          ; numChunks : int Js.optdef_prop
-          ; lazyMode : bool Js.optdef_prop >
+          ; numChunks : int Js.optdef_prop >
           Js.t
        -> < getVerificationKey :
               (   unit
