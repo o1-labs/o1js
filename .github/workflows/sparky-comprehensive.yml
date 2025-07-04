@@ -1,0 +1,153 @@
+name: Sparky Comprehensive Testing
+
+on:
+  schedule:
+    # Run comprehensive tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      send_notifications:
+        description: 'Send notifications on completion'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  sparky-comprehensive-test:
+    name: Sparky Comprehensive Parallel Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SPARKY_TEST_PROCESSES: 4
+      SPARKY_TEST_MEMORY_LIMIT_MB: 600
+      SPARKY_TEST_MODE: parallel
+      SPARKY_TEST_TIERS: smoke,core,comprehensive
+    
+    outputs:
+      vk-parity-rate: ${{ steps.extract-results.outputs.vk-parity-rate }}
+      performance-improvement: ${{ steps.extract-results.outputs.performance-improvement }}
+      total-duration: ${{ steps.extract-results.outputs.total-duration }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run comprehensive Sparky parallel tests
+        run: |
+          echo "🚀 Running comprehensive Sparky tests with $SPARKY_TEST_PROCESSES processes"
+          echo "Memory limit: ${SPARKY_TEST_MEMORY_LIMIT_MB}MB per process"
+          echo "Test tiers: $SPARKY_TEST_TIERS"
+          
+          # Run full comprehensive suite
+          npm run test:sparky-full
+
+      - name: Extract test results
+        id: extract-results
+        run: |
+          if [ -f "test-results/parallel-test-summary.json" ]; then
+            VK_PARITY=$(node -e "console.log(JSON.parse(require('fs').readFileSync('test-results/parallel-test-summary.json')).summary.successRate || 0)")
+            PERFORMANCE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('test-results/parallel-test-summary.json')).performance.speedupFactor || 1)")
+            DURATION=$(node -e "console.log(Math.round(JSON.parse(require('fs').readFileSync('test-results/parallel-test-summary.json')).performance.totalDurationMs / 1000) || 0)")
+            
+            echo "vk-parity-rate=$VK_PARITY" >> $GITHUB_OUTPUT
+            echo "performance-improvement=$PERFORMANCE" >> $GITHUB_OUTPUT
+            echo "total-duration=$DURATION" >> $GITHUB_OUTPUT
+          else
+            echo "vk-parity-rate=0" >> $GITHUB_OUTPUT
+            echo "performance-improvement=1" >> $GITHUB_OUTPUT
+            echo "total-duration=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload comprehensive test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sparky-comprehensive-results-${{ github.run_number }}
+          path: |
+            test-results/
+            sparky-test-reports/
+            performance-reports/
+          retention-days: 90
+
+      - name: Generate comprehensive report
+        run: |
+          echo "# 🚀 Sparky Comprehensive Test Report" > comprehensive-report.md
+          echo "**Date:** $(date -u)" >> comprehensive-report.md
+          echo "**Commit:** ${{ github.sha }}" >> comprehensive-report.md
+          echo "**Test Configuration:**" >> comprehensive-report.md
+          echo "- Processes: $SPARKY_TEST_PROCESSES" >> comprehensive-report.md
+          echo "- Memory per process: ${SPARKY_TEST_MEMORY_LIMIT_MB}MB" >> comprehensive-report.md
+          echo "- Test tiers: $SPARKY_TEST_TIERS" >> comprehensive-report.md
+          echo "" >> comprehensive-report.md
+          
+          if [ -f "test-results/parallel-test-summary.json" ]; then
+            echo "**Results:**" >> comprehensive-report.md
+            echo "- VK Parity Rate: ${{ steps.extract-results.outputs.vk-parity-rate }}%" >> comprehensive-report.md
+            echo "- Performance Improvement: ${{ steps.extract-results.outputs.performance-improvement }}x" >> comprehensive-report.md
+            echo "- Total Duration: ${{ steps.extract-results.outputs.total-duration }}s" >> comprehensive-report.md
+            echo "" >> comprehensive-report.md
+            
+            if [ -f "sparky-test-reports/summary.md" ]; then
+              echo "## Detailed Results" >> comprehensive-report.md
+              cat sparky-test-reports/summary.md >> comprehensive-report.md
+            fi
+          else
+            echo "**Status:** Tests completed but results parsing failed" >> comprehensive-report.md
+          fi
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          echo "### 🚀 Sparky Comprehensive Test Results" >> $GITHUB_STEP_SUMMARY
+          cat comprehensive-report.md >> $GITHUB_STEP_SUMMARY
+
+  notify-results:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: sparky-comprehensive-test
+    if: always() && (github.event.inputs.send_notifications != 'false')
+    steps:
+      - name: Notify on VK parity milestone
+        if: needs.sparky-comprehensive-test.outputs.vk-parity-rate >= '90'
+        run: |
+          echo "🎉 MILESTONE: VK Parity Rate ≥ 90% achieved!"
+          echo "Current rate: ${{ needs.sparky-comprehensive-test.outputs.vk-parity-rate }}%"
+
+      - name: Notify on performance breakthrough  
+        if: needs.sparky-comprehensive-test.outputs.performance-improvement >= '4'
+        run: |
+          echo "🚀 PERFORMANCE BREAKTHROUGH: ${{ needs.sparky-comprehensive-test.outputs.performance-improvement }}x speedup achieved!"
+          echo "Total duration: ${{ needs.sparky-comprehensive-test.outputs.total-duration }}s"
+
+      - name: Notify on regression
+        if: failure()
+        run: |
+          echo "⚠️ Comprehensive tests failed - potential regression detected"
+
+      - name: Daily progress summary
+        if: github.event_name == 'schedule'
+        run: |
+          echo "📊 Daily Sparky Progress Summary:"
+          echo "  VK Parity: ${{ needs.sparky-comprehensive-test.outputs.vk-parity-rate }}%"
+          echo "  Performance: ${{ needs.sparky-comprehensive-test.outputs.performance-improvement }}x improvement"
+          echo "  Duration: ${{ needs.sparky-comprehensive-test.outputs.total-duration }}s"
+          echo "  Expected targets:"
+          echo "    - VK Parity: 95%+ (production ready)"
+          echo "    - Performance: 5x+ (full suite 60min → 12min)"

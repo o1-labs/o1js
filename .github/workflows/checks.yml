@@ -247,6 +247,65 @@ jobs:
     steps:
       - run: echo "All unit tests completed successfully"
 
+  Sparky-Parallel-Tests:
+    needs: [Prepare]
+    name: Sparky Backend Parallel Testing
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_tier: ['smoke', 'core']
+    env:
+      SPARKY_TEST_PROCESSES: 2
+      SPARKY_TEST_MEMORY_LIMIT_MB: 500
+      SPARKY_TEST_MODE: parallel
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+
+      - name: Run Sparky parallel tests
+        env:
+          TEST_TIER: ${{ matrix.test_tier }}
+        run: |
+          echo "Running Sparky $TEST_TIER tests with $SPARKY_TEST_PROCESSES processes"
+          if [ "$TEST_TIER" = "smoke" ]; then
+            npm run test:sparky-smoke
+          else
+            npm run test:sparky-ci
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sparky-parallel-results-${{ matrix.test_tier }}
+          path: |
+            test-results/
+            sparky-test-reports/
+          retention-days: 30
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          echo "### Sparky Parallel Test Results (${{ matrix.test_tier }})" >> $GITHUB_STEP_SUMMARY
+          if [ -f "sparky-test-reports/summary.md" ]; then
+            cat sparky-test-reports/summary.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Sparky ${{ matrix.test_tier }} tests completed" >> $GITHUB_STEP_SUMMARY
+          fi
+
   Build-And-Test-Web:
     needs: [Prepare]
     timeout-minutes: 90
