@@ -1,0 +1,232 @@
+{
+  "timestamp": "2025-07-04T01:30:52.971Z",
+  "testType": "simple_backend_performance",
+  "results": [
+    {
+      "backend": "snarky",
+      "operationCount": 10,
+      "success": true,
+      "timeMs": 3.7085899999999583,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.10211181640625,
+      "peakMemoryMB": 70.57389831542969,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "sparky",
+      "operationCount": 10,
+      "success": true,
+      "timeMs": 4.341905999999881,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.094146728515625,
+      "peakMemoryMB": 71.31044006347656,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "snarky",
+      "operationCount": 25,
+      "success": true,
+      "timeMs": 0.5842020000000048,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.074951171875,
+      "peakMemoryMB": 71.40746307373047,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "sparky",
+      "operationCount": 25,
+      "success": true,
+      "timeMs": 0.5697370000000319,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.09174346923828125,
+      "peakMemoryMB": 71.55302429199219,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "snarky",
+      "operationCount": 50,
+      "success": true,
+      "timeMs": 1.1127149999999801,
+      "constraintCount": 0,
+      "memoryUsedMB": -0.2952423095703125,
+      "peakMemoryMB": 71.7386703491211,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "sparky",
+      "operationCount": 50,
+      "success": true,
+      "timeMs": 0.5830780000001141,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.13059234619140625,
+      "peakMemoryMB": 71.91543579101562,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "snarky",
+      "operationCount": 100,
+      "success": true,
+      "timeMs": 0.8556490000000849,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.20960235595703125,
+      "peakMemoryMB": 72.14482116699219,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "sparky",
+      "operationCount": 100,
+      "success": true,
+      "timeMs": 0.9114590000001499,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.2183380126953125,
+      "peakMemoryMB": 72.41807556152344,
+      "testType": "arithmetic"
+    },
+    {
+      "backend": "snarky",
+      "hashCount": 3,
+      "success": true,
+      "timeMs": 4.777673999999934,
+      "constraintCount": 0,
+      "memoryUsedMB": 1.36553955078125,
+      "peakMemoryMB": 73.81643676757812,
+      "testType": "hash"
+    },
+    {
+      "backend": "sparky",
+      "hashCount": 3,
+      "success": true,
+      "timeMs": 4.470532000000048,
+      "constraintCount": 0,
+      "memoryUsedMB": 1.3744125366210938,
+      "peakMemoryMB": 75.2464370727539,
+      "testType": "hash"
+    },
+    {
+      "backend": "snarky",
+      "hashCount": 5,
+      "success": true,
+      "timeMs": 6.344504000000143,
+      "constraintCount": 0,
+      "memoryUsedMB": 2.2488861083984375,
+      "peakMemoryMB": 77.51322174072266,
+      "testType": "hash"
+    },
+    {
+      "backend": "sparky",
+      "hashCount": 5,
+      "success": true,
+      "timeMs": 5.510181999999986,
+      "constraintCount": 0,
+      "memoryUsedMB": 2.2654953002929688,
+      "peakMemoryMB": 79.82707214355469,
+      "testType": "hash"
+    },
+    {
+      "backend": "snarky",
+      "hashCount": 10,
+      "success": true,
+      "timeMs": 13.73175399999991,
+      "constraintCount": 0,
+      "memoryUsedMB": -8.04364013671875,
+      "peakMemoryMB": 71.80210876464844,
+      "testType": "hash"
+    },
+    {
+      "backend": "sparky",
+      "hashCount": 10,
+      "success": true,
+      "timeMs": 10.71605999999997,
+      "constraintCount": 0,
+      "memoryUsedMB": 4.491539001464844,
+      "peakMemoryMB": 76.3399429321289,
+      "testType": "hash"
+    },
+    {
+      "backend": "snarky",
+      "hashCount": 15,
+      "success": true,
+      "timeMs": 14.45600800000011,
+      "constraintCount": 0,
+      "memoryUsedMB": 6.672332763671875,
+      "peakMemoryMB": 83.03002166748047,
+      "testType": "hash"
+    },
+    {
+      "backend": "sparky",
+      "hashCount": 15,
+      "success": true,
+      "timeMs": 15.689341000000013,
+      "constraintCount": 0,
+      "memoryUsedMB": -7.984519958496094,
+      "peakMemoryMB": 75.09173583984375,
+      "testType": "hash"
+    },
+    {
+      "backend": "snarky",
+      "conditionCount": 5,
+      "success": true,
+      "timeMs": 1.2512709999998606,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.07791900634765625,
+      "peakMemoryMB": 75.19175720214844,
+      "testType": "conditional"
+    },
+    {
+      "backend": "sparky",
+      "conditionCount": 5,
+      "success": true,
+      "timeMs": 0.5268409999998767,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.07201385498046875,
+      "peakMemoryMB": 75.324462890625,
+      "testType": "conditional"
+    },
+    {
+      "backend": "snarky",
+      "conditionCount": 10,
+      "success": true,
+      "timeMs": 0.4340779999999995,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.05350494384765625,
+      "peakMemoryMB": 75.39620208740234,
+      "testType": "conditional"
+    },
+    {
+      "backend": "sparky",
+      "conditionCount": 10,
+      "success": true,
+      "timeMs": 0.4581029999999373,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.0704498291015625,
+      "peakMemoryMB": 75.51382446289062,
+      "testType": "conditional"
+    },
+    {
+      "backend": "snarky",
+      "conditionCount": 20,
+      "success": true,
+      "timeMs": 0.2588630000000194,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.06288909912109375,
+      "peakMemoryMB": 75.594482421875,
+      "testType": "conditional"
+    },
+    {
+      "backend": "sparky",
+      "conditionCount": 20,
+      "success": true,
+      "timeMs": 0.4388840000001437,
+      "constraintCount": 0,
+      "memoryUsedMB": 0.08367919921875,
+      "peakMemoryMB": 75.72452545166016,
+      "testType": "conditional"
+    }
+  ],
+  "criticalIssues": [],
+  "summary": {
+    "totalTests": 22,
+    "successfulTests": 22,
+    "failedTests": 0
+  }
+}
