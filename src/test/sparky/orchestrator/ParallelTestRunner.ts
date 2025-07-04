@@ -515,9 +515,154 @@ export class ParallelTestRunner {
     console.log('This mode disables parallel execution to help debug issues.');
     console.log('');
 
-    // For sequential mode, run a simplified version
-    // This would need to be implemented based on specific debugging needs
-    throw new Error('Sequential debugging mode not yet implemented');
+    this.startTime = Date.now();
+    const results: ProcessResult[] = [];
+
+    try {
+      // Create process configurations
+      const processConfigs = await this.createProcessConfigurations();
+      
+      console.log(`📋 Will run ${processConfigs.length} processes sequentially:`);
+      processConfigs.forEach(config => {
+        console.log(`  • ${config.id}: ${config.suites.join(', ')}`);
+      });
+      console.log('');
+
+      // Run each process sequentially
+      for (const config of processConfigs) {
+        console.log(`\n${'='.repeat(60)}`);
+        console.log(`🚀 Starting ${config.id} (${config.worker})`);
+        console.log(`📦 Suites: ${config.suites.join(', ')}`);
+        console.log(`${'='.repeat(60)}\n`);
+
+        try {
+          const result = await this.spawnWorkerProcessWithOutput(config);
+          results.push(result);
+          
+          const icon = result.success ? '✅' : '❌';
+          console.log(`\n${icon} Process ${config.id} completed`);
+          console.log(`⏱️  Duration: ${(result.duration / 1000).toFixed(1)}s`);
+          console.log(`🧪 Tests: ${result.results.filter((r: any) => r.success).length}/${result.results.length} passed`);
+          
+          if (!result.success && result.error) {
+            console.log(`❌ Error: ${result.error}`);
+          }
+        } catch (error) {
+          const errorResult: ProcessResult = {
+            processId: config.id,
+            backend: config.backend,
+            worker: config.worker,
+            success: false,
+            results: [],
+            duration: Date.now() - this.startTime,
+            error: (error as Error).message
+          };
+          results.push(errorResult);
+          
+          console.log(`\n❌ Process ${config.id} failed: ${(error as Error).message}`);
+        }
+      }
+
+      // Aggregate and report results
+      const summary = this.aggregateResults(results);
+      
+      console.log(`\n${'='.repeat(60)}`);
+      this.displayFinalResults(results, summary);
+
+      return {
+        success: summary.failedProcesses === 0,
+        results,
+        totalDuration: Date.now() - this.startTime,
+        summary
+      };
+
+    } catch (error) {
+      console.error(`\n❌ Sequential test runner failed: ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Spawn a worker process with full output for debugging
+   */
+  private async spawnWorkerProcessWithOutput(config: ProcessConfig): Promise<ProcessResult> {
+    return new Promise((resolve, reject) => {
+      // ES module equivalent of __dirname
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
+      const workerPath = join(__dirname, '..', 'workers', `${config.worker}-worker.js`);
+      
+      console.log(`🔧 Worker path: ${workerPath}`);
+      console.log(`🔧 Args: ${config.args.join(' ')}`);
+      
+      const childProcess = spawn('node', [
+        '--experimental-vm-modules',
+        workerPath,
+        ...config.args
+      ], {
+        stdio: ['pipe', 'inherit', 'inherit', 'ipc'], // inherit stdout/stderr for debugging
+        env: { ...process.env }
+      });
+
+      this.processes.set(config.id, childProcess);
+
+      let processResult: ProcessResult | null = null;
+
+      // Handle process messages
+      childProcess.on('message', (message: any) => {
+        if (message.type === 'progress') {
+          console.log(`📊 Progress: ${message.completedSuites}/${message.totalSuites} suites`);
+        } else if (message.type === 'suite-complete') {
+          console.log(`✅ Suite complete: ${message.suiteName} (${message.duration}ms)`);
+        } else if (message.type === 'result') {
+          processResult = {
+            processId: config.id,
+            backend: config.backend,
+            worker: config.worker,
+            success: message.success,
+            results: message.results,
+            duration: message.duration,
+            memoryReport: message.memoryReport,
+            error: message.error
+          };
+        }
+      });
+
+      // Handle process completion
+      childProcess.on('close', (code) => {
+        this.processes.delete(config.id);
+        
+        if (processResult) {
+          resolve(processResult);
+        } else {
+          // Process exited without sending results
+          resolve({
+            processId: config.id,
+            backend: config.backend,
+            worker: config.worker,
+            success: false,
+            results: [],
+            duration: Date.now() - this.startTime,
+            error: `Process exited with code ${code} without sending results`
+          });
+        }
+      });
+
+      // Handle process errors
+      childProcess.on('error', (error) => {
+        this.processes.delete(config.id);
+        reject(new Error(`Process ${config.id} failed to start: ${error.message}`));
+      });
+
+      // Set up process timeout
+      setTimeout(() => {
+        if (this.processes.has(config.id)) {
+          console.log(`⏱️  Process ${config.id} timed out after ${this.config.maxExecutionTimeMs}ms`);
+          childProcess.kill('SIGTERM');
+          reject(new Error(`Process ${config.id} timed out`));
+        }
+      }, this.config.maxExecutionTimeMs + 30000); // 30s grace period
+    });
   }
 
   /**
