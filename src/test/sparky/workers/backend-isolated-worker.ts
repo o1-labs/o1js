@@ -73,8 +73,16 @@ class BackendIsolatedWorker {
    */
   async run(): Promise<void> {
     try {
-      this.log(`🚀 Backend-isolated worker starting: ${this.config.backend}`);
-      this.log(`📋 Assigned suites: ${this.config.suites.join(', ')}`);
+      this.log(`🚀 Backend-isolated worker starting: ${this.config.backend}`, true);
+      this.log(`📋 Assigned suites: ${this.config.suites.join(', ') || '(none)'}`, true);
+      
+      // Check if we have any suites to run
+      if (this.config.suites.length === 0) {
+        this.log('⚠️  No test suites assigned to this worker', true);
+        this.sendFinalResults([]);
+        process.exit(0);
+        return;
+      }
       
       // Initialize backend ONCE at startup
       await this.initializeBackend();
@@ -105,24 +113,24 @@ class BackendIsolatedWorker {
    */
   private async initializeBackend(): Promise<void> {
     try {
-      this.log(`🔧 Initializing ${this.config.backend} backend...`);
+      this.log(`🔧 Initializing ${this.config.backend} backend with real o1js...`);
       
-      // For infrastructure testing, skip o1js imports for now
-      const switchBackend = async (backend: string) => {
-        this.log(`🔄 Mock backend switch to: ${backend}`);
-      };
-      const getCurrentBackend = () => this.config.backend;
+      // Import o1js and switch to the target backend
+      const o1jsModule = await import('../../../index.js');
       
-      // Verify we can switch to the target backend
-      await switchBackend(this.config.backend);
-      const currentBackend = getCurrentBackend();
+      // Switch to the target backend ONCE
+      await o1jsModule.switchBackend(this.config.backend);
+      const currentBackend = o1jsModule.getCurrentBackend();
       
       if (currentBackend !== this.config.backend) {
         throw new Error(`Backend switch failed: expected ${this.config.backend}, got ${currentBackend}`);
       }
       
+      // Store o1js reference for tests
+      (global as any).o1js = o1jsModule;
+      
       this.backendInitialized = true;
-      this.log(`✅ Backend initialized: ${currentBackend}`);
+      this.log(`✅ Real backend initialized: ${currentBackend}`);
       
     } catch (error) {
       throw new Error(`Failed to initialize ${this.config.backend} backend: ${(error as Error).message}`);
@@ -318,13 +326,16 @@ class BackendIsolatedWorker {
    */
   private sendFinalResults(results: SuiteResult[]): void {
     if (process.send) {
+      // Flatten suite results to test results for orchestrator
+      const allTestResults = results.flatMap(suite => suite.results);
+      
       process.send({
-        type: 'FINAL_RESULTS',
-        backend: this.config.backend,
-        results,
+        type: 'result',
+        success: results.every(r => r.success),
+        results: allTestResults,
         memoryReport: this.memoryManager.getMemoryReport(),
-        totalDuration: this.getElapsedTime(),
-        timestamp: Date.now()
+        duration: this.getElapsedTime(),
+        error: results.some(r => !r.success) ? 'Some tests failed' : undefined
       });
     }
   }
@@ -353,8 +364,8 @@ class BackendIsolatedWorker {
   /**
    * Log with backend prefix
    */
-  private log(message: string): void {
-    if (this.config.verbose) {
+  private log(message: string, forceLog: boolean = false): void {
+    if (this.config.verbose || forceLog) {
       console.log(`[${this.config.backend.toUpperCase()}] ${message}`);
     }
   }
@@ -368,7 +379,7 @@ if (isMainModule) {
   const args = argv.slice(2);
   const config: WorkerConfig = {
     backend: (args[0] as Backend) || 'snarky',
-    suites: args[1] ? args[1].split(',') : ['smoke'],
+    suites: args[1] && args[1].trim() ? args[1].split(',').filter(s => s.trim()) : ['smoke'],
     memoryLimitMB: parseInt(args[2]) || 600,
     maxExecutionTimeMs: parseInt(args[3]) || 600000,
     verbose: args[4] === 'true'

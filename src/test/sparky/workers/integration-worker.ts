@@ -77,8 +77,8 @@ class IntegrationWorker {
    */
   async run(): Promise<void> {
     try {
-      this.log('🔄 Integration worker starting (backend switching tests)');
-      this.log(`📋 Assigned suites: ${this.config.suites.join(', ')}`);
+      this.log('🔄 Integration worker starting (backend switching tests)', true);
+      this.log(`📋 Assigned suites: ${this.config.suites.join(', ')}`, true);
       
       // Initialize o1js imports
       await this.initializeO1js();
@@ -108,15 +108,32 @@ class IntegrationWorker {
    * Initialize o1js imports
    */
   private async initializeO1js(): Promise<void> {
-    // For simple testing, skip o1js imports for now
-    this.log('📦 Skipping o1js loading for simple infrastructure test...');
-    this.o1js = {
-      switchBackend: async (backend: string) => {
-        this.log(`🔄 Mock backend switch to: ${backend}`);
-      },
-      getCurrentBackend: () => 'mock-backend'
-    };
-    this.log('✅ Mock o1js initialized');
+    try {
+      this.log('📦 Loading real o1js with backend switching support...');
+      
+      // Import o1js with real backend switching
+      const o1jsModule = await import('../../../index.js');
+      
+      this.o1js = {
+        switchBackend: async (backend: string) => {
+          this.log(`🔄 Real backend switch to: ${backend}`);
+          await o1jsModule.switchBackend(backend as Backend);
+          this.backendSwitchCount++;
+        },
+        getCurrentBackend: () => o1jsModule.getCurrentBackend(),
+        Field: o1jsModule.Field,
+        Provable: o1jsModule.Provable,
+        ZkProgram: o1jsModule.ZkProgram
+      };
+      
+      // Store o1js reference globally for tests
+      (global as any).o1js = o1jsModule;
+      
+      this.log('✅ Real o1js initialized with backend switching');
+      
+    } catch (error) {
+      throw new Error(`Failed to initialize o1js: ${(error as Error).message}`);
+    }
   }
 
   /**
@@ -460,14 +477,16 @@ class IntegrationWorker {
 
   private sendFinalResults(results: IntegrationSuiteResult[]): void {
     if (process.send) {
+      // Flatten suite results to test results for orchestrator
+      const allTestResults = results.flatMap(suite => suite.results);
+      
       process.send({
-        type: 'FINAL_RESULTS',
-        worker: 'integration',
-        results,
+        type: 'result',
+        success: results.every(r => r.success),
+        results: allTestResults,
         memoryReport: this.memoryManager.getMemoryReport(),
-        totalDuration: this.getElapsedTime(),
-        backendSwitches: this.backendSwitchCount,
-        timestamp: Date.now()
+        duration: this.getElapsedTime(),
+        error: results.some(r => !r.success) ? 'Some integration tests failed' : undefined
       });
     }
   }
@@ -487,8 +506,8 @@ class IntegrationWorker {
     return Date.now() - this.startTime;
   }
 
-  private log(message: string): void {
-    if (this.config.verbose) {
+  private log(message: string, forceLog: boolean = false): void {
+    if (this.config.verbose || forceLog) {
       console.log(`[INTEGRATION] ${message}`);
     }
   }

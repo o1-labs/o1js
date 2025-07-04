@@ -1,0 +1,681 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>PR, Review, and Merging Guidelines</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray {
+	color: rgba(115, 114, 110, 1);
+	fill: rgba(115, 114, 110, 1);
+}
+.highlight-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.highlight-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.highlight-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.highlight-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.highlight-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(205, 60, 58, 1);
+	fill: rgba(205, 60, 58, 1);
+}
+.highlight-default_background {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.highlight-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.highlight-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.highlight-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.highlight-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.highlight-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.highlight-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.highlight-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.highlight-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(115, 114, 110, 1);
+	fill: rgba(115, 114, 110, 1);
+}
+.block-color-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.block-color-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.block-color-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.block-color-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.block-color-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(205, 60, 58, 1);
+	fill: rgba(205, 60, 58, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.block-color-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.block-color-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.block-color-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.block-color-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.block-color-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.block-color-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.select-value-color-default { background-color: rgba(84, 72, 49, 0.08); }
+.select-value-color-gray { background-color: rgba(84, 72, 49, 0.15); }
+.select-value-color-brown { background-color: rgba(210, 162, 141, 0.35); }
+.select-value-color-orange { background-color: rgba(224, 124, 57, 0.27); }
+.select-value-color-yellow { background-color: rgba(236, 191, 66, 0.39); }
+.select-value-color-green { background-color: rgba(123, 183, 129, 0.27); }
+.select-value-color-blue { background-color: rgba(93, 165, 206, 0.27); }
+.select-value-color-purple { background-color: rgba(168, 129, 197, 0.27); }
+.select-value-color-pink { background-color: rgba(225, 136, 179, 0.27); }
+.select-value-color-red { background-color: rgba(244, 171, 159, 0.4); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="1f0e79b1-f910-8009-af41-c7f8277862fd" class="page sans"><header><div class="page-header-icon undefined"><span class="icon">🔎</span></div><h1 class="page-title">PR, Review, and Merging Guidelines</h1><p class="page-description"></p></header><div class="page-body"><nav id="1f0e79b1-f910-8076-948c-ffa82fe0fd6d" class="block-color-gray table_of_contents"><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#1f0e79b1-f910-8075-b00f-d300aa392c47">PR Quality Standards</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8084-9329-cba9f92a0e86">PR Size Guidelines</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80ca-8534-cd72be4e93b1">Standard Size Limits</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8034-ab40-e6ef8b3ac3bb">Exceptions to Standard Limits</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80e9-99b8-e1b5f243aab0">Oversized PR Handling</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8024-8e24-f2a1c7fb0959">Commit Structure</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-806e-b901-c72e78fc5dc8">Commit Compilation Recommendations</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80bb-8b8e-fdc6b4a0e3eb">Code Formatting</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8014-8706-d41615bee1b7">Fixing Issues in Commits</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80ca-bd1a-fe6d05b1a6fe">Commit Message Structure</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8008-98bf-dceeea1ac4a4">Refactoring and Code Movement</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8096-8396-f4ada3f3e868">Number of Commits</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-80dc-86bf-eb7d7071cec7">PR Structure and Update Process</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8071-8e7e-fa5f199802da">Initial PR Structure</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8018-b5a0-f73caa3b58b4">Managing PRs During Draft Stage</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80e6-864e-d941359599da">Managing PRs During Review</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8039-9fd9-e1cade14cfb8">Base Branch Integration</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8056-a71a-d761b2c9b00a">Pre-Merge History Requirements</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-80a4-81df-db0fa6d8608d">Testing Requirements</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-808c-9293-f1a2d226212c">Test Strategy Documentation</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8033-9662-d3dbb49f07d9">Cluster Testing</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80b9-b178-edc5e57e25f0">Test Implementation</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-808e-9bbf-fd2903445ebc">Deferred Testing</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80e1-8ae2-d9def1671c5a">Testing Exceptions</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80bc-a28d-f5e12d7d0015">Reviewer Responsibilities</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f1e79b1-f910-8016-a64e-ecf0205143df">Use PBT to assert general properties</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f1e79b1-f910-8003-b16a-fa1759ff9fa6">Use, control and constrain randomization</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f1e79b1-f910-80b9-b192-ffa1a9194f1a">Edge case testing</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8012-b234-d262648f8e6f">Documentation Requirements</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80d2-888d-ff627ae0820c">Code Documentation Approach</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80d2-b2a5-fa5ffac0a6bf">Documentation Criteria</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8087-9c6b-c7c4d5e0084b">Clarification Documentation</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8002-aa6a-df0a3a47868e">Documentation Review</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80e8-a3e7-f26db9fc8683">Change Log Requirements</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#1f0e79b1-f910-8071-b009-faa17f9e27d5">Branch Management</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-806b-836c-fe1aebb0189d">Target Branch Selection</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80d6-afae-e96a42e6b895">Default Target Branch</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8060-a154-dd1256641d03">Component Compatibility Exceptions</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-808f-a749-e5b03d2506fd">Non-Backwards-Compatible Changes</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8000-90e7-c334628e97da">Minimizing changes targeting <code>develop</code></a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8018-a2f0-ea06d7e9f0e9">Preparatory Work</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80cb-af46-d88a56aaf07f">Dead Code Acceptance</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-808f-89c5-d17a443ec425">Staged Implementation Approach</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8031-9fd9-e8206cb97571">Branch Integrity Protection</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80e2-8ca9-f6e106f273b2">Continuous Branch Compatibility</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80ba-b829-c7d947a047cb">Conflict Reduction Strategy</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8082-9b98-e787a3e336df">PR Train Management</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8006-b041-fdeb9ab36207">PR Train Structure</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8085-be7a-efb8881eede2">Non-Linear Dependency Trees</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80f5-897a-fb2e4392f9f6">Managing Dependency PRs</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-800b-8be6-fd2ba4574218">Communicating Dependencies</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-80e2-b4a0-c25dac140de3">Managing Complex Merge Conflicts</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8052-bed1-d2401408d335">Assessing Conflict Complexity</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-804f-8118-ee8af473a9f9">Handling Complex Conflicts</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80a7-9174-f06ce07f2cd0">Benefits of Full Rebase</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80ea-ac4d-f32bc3f56ae6">Communication Requirements</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#1f0e79b1-f910-80d7-aa77-d496b084e8d2">PR Lifecycle Management</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-809b-bcaa-c3d2370219b6">PR Lifecycle Expectations</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80c2-a600-e4c890f849e7">Timeliness Goals</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8001-b69a-fe2a4d63cbab">PR Age Limits</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8079-bd50-e6a6d49d47a4">Backlog Considerations</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-80ba-a789-c9faba29c9b5">PR Status Management</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-801e-8d51-df14a255767c">PRs on Hold</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8023-b862-d5bdb1eb6b5d">Long-Term Hold Management</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80bb-b162-ee151bfb86b6">Closing Stale PRs</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f1e79b1-f910-80cc-ab48-e2cb54a56760">End of week PR cleaning</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8003-a12a-f7a779c2125d">Team Responsibilities</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80bd-be23-d1d4d8f30f6c">Team-Level PR Management</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80d5-a824-c9774078c4cc">Resource Management</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-802e-855a-d0a5f4b89557">Cross-Team Support</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#1f0e79b1-f910-80f9-9d34-d4e116dd135d">Change Severity and Review Requirements</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-801e-9137-ca3f60bd81a1">Impact Classification</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8065-beec-eaf17a10485f">Low-Impact Changes</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-806f-bdcf-ce0e84900add">Medium-Impact Changes</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-80cd-94e1-f2a1b6c67754">High-Impact Changes</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-80fe-878d-f2db8a6414ac">Review Requirements by Impact Level</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-800b-bf4a-e9384d3c8700">Low-Impact PRs</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8014-a2df-cc970794fb23">Medium-Impact PRs</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8006-848b-ec92c06674ae">High-Impact PRs</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-802b-9a41-e7eec3398c7b">Reviewer Responsibilities</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8043-9cd5-d6c1f3404cbd">Review Integrity</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-803d-83cc-ff6fb1c56699">Code Ownership Exceptions</a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#1f0e79b1-f910-8098-acb1-fc97fba03bae">Communicating Review Scope</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#1f0e79b1-f910-8013-89ae-e474d20af385">Appendix</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-8052-94ee-d3601891b279">Strategies for Splitting Large Changes</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#1f0e79b1-f910-80cd-8629-c1b36987c195">Acceptable Exceptions for Multiple Commits Modifying Same Code</a></div></nav><h1 id="1f0e79b1-f910-8075-b00f-d300aa392c47" class="">PR Quality Standards</h1><p id="1f0e79b1-f910-80b9-b54a-c78f7ebfa795" class="">PRs can fall into one of the following categories:</p><ul id="1f0e79b1-f910-8080-9077-c61b34b22b99" class="bulleted-list"><li style="list-style-type:disc"><strong>Single, Self-Contained Change</strong><ul id="1f0e79b1-f910-80ed-8aa3-c1b4bf539656" class="bulleted-list"><li style="list-style-type:circle">Introduces a single change that is fully delivered within the scope of the PR</li></ul><ul id="1f0e79b1-f910-806a-b9e7-d1426568a6d1" class="bulleted-list"><li style="list-style-type:circle">Complete and functional on its own</li></ul></li></ul><ul id="1f0e79b1-f910-802e-b4b7-cf6f66d5f926" class="bulleted-list"><li style="list-style-type:disc"><strong>Related Group of Changes</strong><ul id="1f0e79b1-f910-80ce-aa4d-f0647f807d7d" class="bulleted-list"><li style="list-style-type:circle">Introduces multiple related changes grouped in one PR</li></ul><ul id="1f0e79b1-f910-8093-b11a-eb773d48ba60" class="bulleted-list"><li style="list-style-type:circle">PR description must explicitly explain why these changes are grouped</li></ul><ul id="1f0e79b1-f910-8051-b1aa-d167dea912f5" class="bulleted-list"><li style="list-style-type:circle">Each change should be logically connected to achieve a single objective</li></ul></li></ul><ul id="1f0e79b1-f910-80e1-8267-d7524ed38fab" class="bulleted-list"><li style="list-style-type:disc"><strong>Part of a Larger Feature</strong><ul id="1f0e79b1-f910-80ab-80f5-d68f28fcf10e" class="bulleted-list"><li style="list-style-type:circle">Introduces work that will be fully delivered across multiple PRs</li></ul><ul id="1f0e79b1-f910-80fb-a285-e20b8168aff1" class="bulleted-list"><li style="list-style-type:circle">Must include in the description:<ul id="1f0e79b1-f910-807f-96b4-edca655ca32c" class="bulleted-list"><li style="list-style-type:square">Link to project documentation outlining the complete feature</li></ul><ul id="1f0e79b1-f910-8072-a7af-df0c47c09596" class="bulleted-list"><li style="list-style-type:square">Or at minimum, the name of the feature being implemented</li></ul><ul id="1f0e79b1-f910-8058-8237-e3e6fc0e1118" class="bulleted-list"><li style="list-style-type:square">Link to the top PR if part of a PR train</li></ul></li></ul></li></ul><p id="1f0e79b1-f910-8094-9795-fc6b34dadc2b" class="">Regardless of PR type, the description must precisely detail what is being changed in the PR and provide sufficient context for reviewers to understand the change without referencing other PRs. All descriptions must follow the established PR template and include links to relevant documentation, tickets, or related PRs.</p><h2 id="1f0e79b1-f910-8084-9329-cba9f92a0e86" class="">PR Size Guidelines</h2><h3 id="1f0e79b1-f910-80ca-8534-cd72be4e93b1" class="">Standard Size Limits</h3><ul id="1f0e79b1-f910-8071-ba38-ebe11baee8ca" class="bulleted-list"><li style="list-style-type:disc">Ideal maximum: 300 additions and 300 deletions</li></ul><ul id="1f0e79b1-f910-80da-9ab3-d2a21129f5bb" class="bulleted-list"><li style="list-style-type:disc">Extended limit: 500 additions and 500 deletions</li></ul><h3 id="1f0e79b1-f910-8034-ab40-e6ef8b3ac3bb" class="">Exceptions to Standard Limits</h3><p id="1f0e79b1-f910-80f6-822b-f3a65daf117a" class="">Extended limits (300-500 changes) are permissible only for:</p><ul id="1f0e79b1-f910-80f3-8827-c30b98af5914" class="bulleted-list"><li style="list-style-type:disc">Simple repetitive changes applied consistently across the codebase</li></ul><ul id="1f0e79b1-f910-8024-b954-d800084c4e56" class="bulleted-list"><li style="list-style-type:disc">Propagation of deep-level changes upward through the dependency tree</li></ul><ul id="1f0e79b1-f910-8023-bba3-e31f053a2199" class="bulleted-list"><li style="list-style-type:disc">Changes that are semantically singular and easily understandable despite their size</li></ul><h3 id="1f0e79b1-f910-80e9-99b8-e1b5f243aab0" class="">Oversized PR Handling</h3><p id="1f0e79b1-f910-8010-81b1-e9b5a3e55009" class="">For any PR exceeding the extended limits:</p><ul id="1f0e79b1-f910-80fe-b8f0-eae7365dd23d" class="bulleted-list"><li style="list-style-type:disc">Must be escalated to Triad for approval</li></ul><ul id="1f0e79b1-f910-80b3-87af-e0c83088756d" class="bulleted-list"><li style="list-style-type:disc">Requires explicit justification in the PR description explaining:<ul id="1f0e79b1-f910-80cf-beca-ea71cc683c8b" class="bulleted-list"><li style="list-style-type:circle">Why the change cannot be broken down further</li></ul><ul id="1f0e79b1-f910-80c8-b5d8-fd6a34ee08a3" class="bulleted-list"><li style="list-style-type:circle">The technical necessity for the oversized PR</li></ul><ul id="1f0e79b1-f910-8040-8690-d81d711f5d23" class="bulleted-list"><li style="list-style-type:circle">Risk mitigation strategies for review</li></ul></li></ul><p id="21ee79b1-f910-8011-a29d-e48466a1c199" class="">Escalation should happen in exceptional cases. And default strategy is to ask colleagues and a team lead to help figuring out a strategy to split up a PR, and escalation to Triad is to happen only in the case when it is not possible.</p><h2 id="1f0e79b1-f910-8024-8e24-f2a1c7fb0959" class="">Commit Structure</h2><h3 id="1f0e79b1-f910-806e-b901-c72e78fc5dc8" class="">Commit Compilation Recommendations</h3><p id="1f5e79b1-f910-80fc-8fec-c02d266405e2" class="">Although test verification will be performed by CI at the PR level, it is strongly recommended that the entire codebase, including tests, should compile at each commit.</p><p id="1f0e79b1-f910-80aa-bcb2-e3acd7dc2b36" class="">It is acceptable for some tests to fail at intermediate commits.</p><h3 id="1f0e79b1-f910-80bb-8b8e-fdc6b4a0e3eb" class="">Code Formatting</h3><p id="1f0e79b1-f910-801a-8460-d22c12021b6f" class="">Every commit must adhere to the project&#x27;s formatting standards. <strong>Formatting should never be mixed with functional changes.</strong></p><h3 id="1f0e79b1-f910-8014-8706-d41615bee1b7" class="">Fixing Issues in Commits</h3><p id="1f0e79b1-f910-80e1-bc7f-fb7efb1f2591" class="">When issues are discovered in a commit, use Git&#x27;s fixup feature to address the problem. If issues are found before review begins, squash fixups into original commits. If review has started, keep fixups separate for clarity.</p><h3 id="1f0e79b1-f910-80ca-bd1a-fe6d05b1a6fe" class="">Commit Message Structure</h3><p id="1f0e79b1-f910-80e0-95c9-c16e141061cd" class="">The first line of the commit should provide a short, clear description of the change (50-72 characters recommended). When the title is not self-describing, subsequent lines should contain a detailed description including the motivation for the change, a description of the solution approach, and any important implementation details.</p><h3 id="1f0e79b1-f910-8008-98bf-dceeea1ac4a4" class="">Refactoring and Code Movement</h3><p id="1f0e79b1-f910-809e-ac91-dee581522d43" class="">Commits that move code should not contain logic changes. For each code block moved, create a dedicated commit. Implementation changes required by the move (e.g., adding parameters) are acceptable, but all logic changes must be in subsequent commits. File relocations should be in separate commits from logic changes to those files.</p><h3 id="1f0e79b1-f910-8096-8396-f4ada3f3e868" class="">Number of Commits</h3><p id="1f0e79b1-f910-8052-9d61-c680ae08b49f" class="">PRs should generally not exceed 10 commits. Exceptions are allowed for PRs with semantically trivial commits (e.g., code movement). PRs with excessive commits should be split into multiple PRs. See Appendix for strategies on splitting large changes across multiple PRs.</p><h2 id="1f0e79b1-f910-80dc-86bf-eb7d7071cec7" class="">PR Structure and Update Process</h2><h3 id="1f0e79b1-f910-8071-8e7e-fa5f199802da" class="">Initial PR Structure</h3><p id="1f0e79b1-f910-80ff-8be3-ca3019d57ed9" class="">When first submitted for review, PRs should have a linear history of well-formatted commits. Each commit should ideally change distinct parts of the code. Avoid multiple commits modifying the same lines unless essential for PR structure (see Appendix for  ).</p><h3 id="1f0e79b1-f910-8018-b5a0-f73caa3b58b4" class="">Managing PRs During Draft Stage</h3><p id="1f0e79b1-f910-80a7-b1f2-d173df87987b" class="">While a PR is in draft status, prefer rebases on top of the latest base branch. Temporary merges are acceptable during development. Before marking as &quot;Ready for Review&quot;, rebase to form a linear history.</p><h3 id="1f0e79b1-f910-80e6-864e-d941359599da" class="">Managing PRs During Review</h3><p id="1f0e79b1-f910-80c3-ac9f-c7e788c42676" class="">After a PR is marked &quot;Ready for Review&quot; and has received initial feedback, avoid rebases and prefer merges instead. Address reviewer feedback by adding new commits with descriptions referencing the review feedback, or by using Git&#x27;s fixup feature for bugs in previous commits (<code>git commit —fixup &lt;commit-with-a-bug&gt;</code>).</p><h3 id="1f0e79b1-f910-8039-9fd9-e1cade14cfb8" class="">Base Branch Integration</h3><p id="1f0e79b1-f910-80aa-a01e-c893d881f417" class="">Merging the base branch into the PR during review is acceptable. If the PR requires more than 3 base branch merges, consider performing a complete rebase from scratch and squash fixups into their original commits during this rebase. Confirm with reviewers before rebasing, as it affects their review experience.</p><h3 id="1f0e79b1-f910-8056-a71a-d761b2c9b00a" class="">Pre-Merge History Requirements</h3><p id="1f0e79b1-f910-80de-8b50-e968cd355b3e" class="">Linear history of commits is not required before merging to the base branch. There is no requirement to rebase on the base branch after addressing all reviews. All merges must be performed through the GitHub interface using the merge button that activates (turns green) after all checks pass.</p><p id="1f5e79b1-f910-807f-bd4f-c3d948fad318" class="">There is a recommendation to perform rebase with <code>git fetch &amp;&amp; git rebase --autosquash --rebase-merges -i origin/&lt;base-branch&gt;</code> to form a linear history if during the process of review some fixup commits where introduced.</p><h2 id="1f0e79b1-f910-80a4-81df-db0fa6d8608d" class="">Testing Requirements</h2><h3 id="1f0e79b1-f910-808c-9293-f1a2d226212c" class="">Test Strategy Documentation</h3><p id="1f0e79b1-f910-807d-91f3-dea44221f556" class="">Every PR description must address testing strategy with one of the following: a detailed description of added tests, an explanation of testing approach (e.g., cluster testing), an explicit statement if no specific testing is required, or justification if testing is not feasible. At the top-level of the file, a description should be provided to help the reader running the test. An example can be found <a href="https://github.com/MinaProtocol/mina/blob/3.0.4/src/lib/pickles/test/test_opt_sponge.ml#L6">here</a>.</p><h3 id="1f0e79b1-f910-8033-9662-d3dbb49f07d9" class="">Cluster Testing</h3><p id="1f0e79b1-f910-8007-982b-d72858daf739" class="">If testing on a cluster is the optimal strategy, describe the testing approach in detail, outline expected outcomes and validation methods, and document any specific configuration required.</p><h3 id="1f0e79b1-f910-80b9-b178-edc5e57e25f0" class="">Test Implementation</h3><p id="1f0e79b1-f910-80a1-a375-de9609b453d7" class="">If new tests are added, describe the tests in the PR description. For complex tests, explain their purpose and approach.</p><h3 id="1f0e79b1-f910-808e-9bbf-fd2903445ebc" class="">Deferred Testing</h3><p id="1f0e79b1-f910-80a3-8b77-de8cbb707fc0" class="">If tests are complex and implemented in a separate PR, describe which tests should ideally be implemented and link to the PR implementing these tests. The original PR should not be merged until test PRs are approved.</p><h3 id="1f0e79b1-f910-80e1-8ae2-d9def1671c5a" class="">Testing Exceptions</h3><p id="1f0e79b1-f910-80a7-ac7d-cf38c93d5366" class="">If testing is exceptionally complex or not feasible, explicitly note this in the PR description, provide justification for the exception, obtain technical leadership approval for test deferral, document any test-related tech debt created, and include references to follow-up work addressing the testing gap.</p><h3 id="1f0e79b1-f910-80bc-a28d-f5e12d7d0015" class="">Reviewer Responsibilities</h3><p id="1f0e79b1-f910-8062-abda-f9f3e4208971" class="">PR reviewers must validate both the implementation itself and the testing strategy&#x27;s adequacy and completeness.]</p><h3 id="1f1e79b1-f910-8016-a64e-ecf0205143df" class="">Use PBT to assert general properties</h3><p id="1f1e79b1-f910-808a-8cd8-ebbf87c04232" class="">Property-based testing focuses on defining the invariants or properties that should always hold true for a wide range of inputs. Instead of writing individual test cases, define broad behaviors such as commutativity, associativity, or idempotence. This makes tests more robust and reduces duplication. This kind of tests is especially recommended for cryptography-related code.</p><h3 id="1f1e79b1-f910-8003-b16a-fa1759ff9fa6" class="">Use, control and constrain randomization</h3><p id="1f1e79b1-f910-8025-8cd9-c37d9602d3c3" class="">Randomized testing can uncover unexpected behavior, but it&#x27;s important to generate inputs within realistic and meaningful constraints. Use domain-specific generators and filters to avoid meaningless or invalid test cases that may cause false positives or irrelevant failures. Libraries like Quickcheck from JaneStreet or <a href="https://github.com/c-cube/qcheck">Qcheck</a> can and should be used to generate randomized tests. The seed should be used to be able to reproduce any failing test.</p><p id="21ee79b1-f910-80a7-a2cf-deadd0d6132a" class="">When a PR introduces a feature, a previously existing test fails on that PR, and investigation concluded that the failure is unrelated to a PR itself, it isn’t responsibility of a PR creator to fix the test. It is responsibility of a team lead to figure out an appropriate strategy to prevent the test from failing (by reverting some previous changes or actually fixing the issue).</p><h3 id="1f1e79b1-f910-80b9-b192-ffa1a9194f1a" class="">Edge case testing</h3><p id="1f1e79b1-f910-80ca-91cd-e534e08b2b85" class="">While randomized testing helps cover a broad input space, it&#x27;s crucial to include specific edge cases - like empty inputs or the identities in a field/curve - explicitly. These are common sources of bugs and should be tested independently from random input.</p><p id="21ee79b1-f910-808a-877e-e3e83b6374f6" class="">Edge cases may be sufficiently covered by adjusting generator to produce interesting inputs with an outsize probability. It’s up to people working on the PR to decided a specific strategy.</p><h2 id="1f0e79b1-f910-8012-b234-d262648f8e6f" class="">Documentation Requirements</h2><h3 id="1f0e79b1-f910-80d2-888d-ff627ae0820c" class="">Code Documentation Approach</h3><p id="1f0e79b1-f910-8066-ae46-e84730908489" class="">Documentation should follow a holistic approach. Every non-trivial function must be documented in <code>.mli</code> interface files when available or in implementation files when no interface file exists.</p><h3 id="1f0e79b1-f910-80d2-b2a5-fa5ffac0a6bf" class="">Documentation Criteria</h3><p id="1f0e79b1-f910-80ef-9cdc-ce12f061310b" class="">Functions requiring documentation include any non-trivial implementation, functions whose behavior is not obvious from name and signature, and functions with subtle edge cases or requirements. If the function is expected to raise an exception in some specific cases, the documentation should clarify it.</p><h3 id="1f0e79b1-f910-8087-9c6b-c7c4d5e0084b" class="">Clarification Documentation</h3><p id="1f0e79b1-f910-80ab-9d35-c30cbd920d35" class="">Potential areas of confusion identified during review should be documented in code comments, not just in PR discussion threads. Reviewers should request documentation for any non-obvious code, and implementers should proactively identify areas requiring explanation.</p><h3 id="1f0e79b1-f910-8002-aa6a-df0a3a47868e" class="">Documentation Review</h3><p id="1f0e79b1-f910-80b9-9bd9-e0faa08fb73c" class="">Both reviewers and implementers must ensure sufficient documentation is provided, comments are clear and accurately describe functionality, and documentation is kept updated with code changes.</p><h3 id="1f0e79b1-f910-80e8-a3e7-f26db9fc8683" class="">Change Log Requirements</h3><p id="1f0e79b1-f910-80df-8518-d7a60f14588d" class="">A change log entry must be provided for all changes that are visible to users. This includes:</p><ul id="1f0e79b1-f910-802e-8fb1-e0b3f1992a1c" class="bulleted-list"><li style="list-style-type:disc">Changes to CLI flag behavior or application behavior</li></ul><ul id="1f0e79b1-f910-8001-9c43-fdedc8957bcb" class="bulleted-list"><li style="list-style-type:disc">Protocol changes</li></ul><ul id="1f0e79b1-f910-80f8-95e7-f1e17b8e88c1" class="bulleted-list"><li style="list-style-type:disc">New features and functionality</li></ul><ul id="1f0e79b1-f910-8006-82fd-fb9e639f0bef" class="bulleted-list"><li style="list-style-type:disc">Important fixes to existing functionality</li></ul><ul id="1f0e79b1-f910-8097-9661-e5d302a02595" class="bulleted-list"><li style="list-style-type:disc">Performance improvements that users will notice (e.g., reduced execution time or memory usage)</li></ul><p id="1f0e79b1-f910-803c-9312-f08e948789c3" class="">Change log entries may be omitted for:</p><ul id="1f0e79b1-f910-800e-ae43-fbfb85c18c80" class="bulleted-list"><li style="list-style-type:disc">Internal refactoring that doesn&#x27;t affect user-facing behavior</li></ul><ul id="1f0e79b1-f910-80fa-a9bb-d1c8255258dc" class="bulleted-list"><li style="list-style-type:disc">Changes to logging output unless they are info logs or logs in CLI or GraphQL commands</li></ul><ul id="1f0e79b1-f910-8098-b861-e8111def7627" class="bulleted-list"><li style="list-style-type:disc">Addition of tests</li></ul><ul id="1f0e79b1-f910-8037-833c-e50149f4e2e3" class="bulleted-list"><li style="list-style-type:disc">Code reorganization</li></ul><ul id="1f0e79b1-f910-80b0-8f8a-e4975d31bc75" class="bulleted-list"><li style="list-style-type:disc">Other changes completely invisible to the user</li></ul><p id="1f0e79b1-f910-80fc-8cec-fd957f750ee4" class="">The change log entry should clearly describe what changed and how it affects users. For significant changes, include any new usage patterns or migration instructions if applicable.</p><h1 id="1f0e79b1-f910-8071-b009-faa17f9e27d5" class="">Branch Management</h1><h2 id="1f0e79b1-f910-806b-836c-fe1aebb0189d" class="">Target Branch Selection</h2><h3 id="1f0e79b1-f910-80d6-afae-e96a42e6b895" class="">Default Target Branch</h3><p id="1f0e79b1-f910-8075-aa69-c35408312a70" class="">By default, all PRs should target the <code>compatible</code> branch. The <code>compatible</code> branch contains changes not yet in production that are fully compatible with the production protocol.</p><h3 id="1f0e79b1-f910-8060-a154-dd1256641d03" class="">Component Compatibility Exceptions</h3><p id="1f0e79b1-f910-8021-834e-db5a08373582" class="">Breaking compatibility between components is acceptable in the <code>compatible</code> branch when components will be updated simultaneously, there is no expectation of mixed old/new versions running and communicating, and the change is isolated to specific components.</p><h3 id="1f0e79b1-f910-808f-a749-e5b03d2506fd" class="">Non-Backwards-Compatible Changes</h3><p id="1f0e79b1-f910-80b1-ab1b-e5c0b09b3e40" class="">Changes that are not backwards-compatible must target the <code>develop</code> branch. The <code>develop</code> branch is protected and requires explicit approval from technical leadership (<em>it’s not protected as of today, but this is going to be changed soon)</em>, minimized PR size, and creative approaches to reduce the scope of non-compatible changes.</p><h2 id="1f0e79b1-f910-8000-90e7-c334628e97da" class="">Minimizing changes targeting <code>develop</code></h2><h3 id="1f0e79b1-f910-8018-a2f0-ea06d7e9f0e9" class="">Preparatory Work</h3><p id="1f0e79b1-f910-8019-a227-e8f18de6eb55" class="">All preparatory work should be done against the <code>compatible</code> branch, including setup code, infrastructure changes, and interfaces and abstractions.</p><h3 id="1f0e79b1-f910-80cb-af46-d88a56aaf07f" class="">Dead Code Acceptance</h3><p id="1f0e79b1-f910-805c-a888-d13bd09264b8" class="">It is acceptable to introduce &quot;dead code&quot; in the <code>compatible</code> branch if the code will be used in subsequent <code>develop</code> PRs and it reduces the size and complexity of <code>develop</code> PRs.</p><h3 id="1f0e79b1-f910-808f-89c5-d17a443ec425" class="">Staged Implementation Approach</h3><p id="1f0e79b1-f910-80c3-9b64-eb72a1624d09" class="">Consider introducing changes in stages by implementing a simpler form in <code>compatible</code> and completing the implementation with minimal changes in <code>develop</code>. This approach reduces potential conflicts.</p><h2 id="1f0e79b1-f910-8031-9fd9-e8206cb97571" class="">Branch Integrity Protection</h2><h3 id="1f0e79b1-f910-80e2-8ca9-f6e106f273b2" class="">Continuous Branch Compatibility</h3><p id="1f0e79b1-f910-809e-a969-d6a3eb8bd2d4" class="">A PR check validates that any PR against <code>compatible</code> can also be merged to <code>master</code>, <code>develop</code>. This ensures <code>compatible</code> is mergeable to <code>develop</code> at any point in time.</p><h3 id="1f0e79b1-f910-80ba-b829-c7d947a047cb" class="">Conflict Reduction Strategy</h3><p id="1f0e79b1-f910-8015-85b6-e6d1bf31c22b" class="">Minimize changes targeting <code>develop</code> to reduce potential for future conflicts, unnecessary complexity in the merge process, and integration challenges.</p><h2 id="1f0e79b1-f910-8082-9b98-e787a3e336df" class="">PR Train Management</h2><h3 id="1f0e79b1-f910-8006-b041-fdeb9ab36207" class="">PR Train Structure</h3><p id="1f0e79b1-f910-800f-82b9-c294649e8991" class="">A PR train is a series of dependent PRs where each builds upon the previous. Traditional PR trains follow a linear dependency chain.</p><h3 id="1f0e79b1-f910-8085-be7a-efb8881eede2" class="">Non-Linear Dependency Trees</h3><p id="1f0e79b1-f910-807a-b62c-e4c433c371b4" class="">For large changes, consider restructuring PR trains into dependency trees. Identify variance points where the change branches into multiple paths and split PRs to create a tree structure rather than a linear chain. This approach allows multiple PRs to be reviewed and merged in parallel.</p><p id="1f0e79b1-f910-8057-b560-cfcb0d7c6d62" class="">Multiple PRs can be raised simultaneously against the same variance point, reviews can happen in parallel, accelerating the overall process, and independent merging reduces bottlenecks in the integration process.</p><h3 id="1f0e79b1-f910-80f5-897a-fb2e4392f9f6" class="">Managing Dependency PRs</h3><p id="1f0e79b1-f910-8012-b2a2-e1c53cf571a7" class="">When working with dependency-tree structured changes, it is acceptable to temporarily merge dependency PRs into your working branch. Set your PR against the base branch initially and keep your PR in draft mode while dependencies are being reviewed. When dependency PRs are merged to the base branch, switch your PR to &quot;Ready for Review&quot; mode and rebase your PR on the updated base branch. This removes merged content from dependency PRs that are now in the base branch.</p><h3 id="1f0e79b1-f910-800b-8be6-fd2ba4574218" class="">Communicating Dependencies</h3><p id="1f0e79b1-f910-80a4-b6c5-ddb111af8e12" class="">Clearly document in the PR description which PRs a specific PR depends on, which PRs depend on the PR, and the overall structure of the dependency tree.</p><h2 id="1f0e79b1-f910-80e2-b4a0-c25dac140de3" class="">Managing Complex Merge Conflicts</h2><h3 id="1f0e79b1-f910-8052-bed1-d2401408d335" class="">Assessing Conflict Complexity</h3><p id="1f0e79b1-f910-80c2-9377-e73be672c4e6" class="">When updating a PR under review, evaluate the nature of merge conflicts. Random conflicts (e.g., independent modifications around the same line) can be handled with standard merges, while substantive conflicts that relate to the PR&#x27;s essence require special handling.</p><h3 id="1f0e79b1-f910-804f-8118-ee8af473a9f9" class="">Handling Complex Conflicts</h3><p id="1f0e79b1-f910-8002-bb7c-e5140f16013b" class="">For PRs with significant substantive conflicts, consider performing a full rebase against the base branch. This approach preserves the ability to review commits individually.</p><h3 id="1f0e79b1-f910-80a7-9174-f06ce07f2cd0" class="">Benefits of Full Rebase</h3><p id="1f0e79b1-f910-8070-ba8c-c8c8d2045840" class="">A full rebase prevents hiding complexity within merge commits, maintains meaningful commit history, improves reviewability of complex changes, and provides clearer context for the conflicts and their resolution.</p><h3 id="1f0e79b1-f910-80ea-ac4d-f32bc3f56ae6" class="">Communication Requirements</h3><p id="1f0e79b1-f910-80ed-be30-c88100f01f99" class="">If using a full rebase approach, notify reviewers of the approach taken, explain the organization structure in the PR description, and provide guidance on how to review the reorganized PR effectively.</p><h1 id="1f0e79b1-f910-80d7-aa77-d496b084e8d2" class="">PR Lifecycle Management</h1><h2 id="1f0e79b1-f910-809b-bcaa-c3d2370219b6" class="">PR Lifecycle Expectations</h2><h3 id="1f0e79b1-f910-80c2-a600-e4c890f849e7" class="">Timeliness Goals</h3><p id="1f0e79b1-f910-806b-9da4-d56b330eb091" class="">We aim to have each PR reviewed and merged/closed in reasonable amount of time. Having a PR open for a long time shouldn’t normally happen. Teams should actively prioritize PR reviews to maintain workflow efficiency.</p><h3 id="1f0e79b1-f910-8001-b69a-fe2a4d63cbab" class="">PR Age Limits</h3><p id="1f0e79b1-f910-8037-833d-e5a67ff84eb7" class="">Any PR older than 2 months is by default considered a candidate for closure. Exceptions only apply if there is a specific plan to restart work within 2-4 weeks.</p><h3 id="1f0e79b1-f910-8079-bd50-e6a6d49d47a4" class="">Backlog Considerations</h3><p id="1f0e79b1-f910-8087-9380-cc3bfe70eb4c" class="">During exceptional periods when PR backlogs accumulate, age limits may be relaxed. Active efforts should be made to reduce backlog size during normal operations.</p><h2 id="1f0e79b1-f910-80ba-a789-c9faba29c9b5" class="">PR Status Management</h2><h3 id="1f0e79b1-f910-801e-8d51-df14a255767c" class="">PRs on Hold</h3><p id="1f0e79b1-f910-809e-9b9b-f1aa9926cd3e" class="">A PR may be placed on hold when awaiting a decision from stakeholders, blocked by external dependencies, or pending technical discussions.</p><h3 id="1f0e79b1-f910-8023-b862-d5bdb1eb6b5d" class="">Long-Term Hold Management</h3><p id="1f0e79b1-f910-808f-81c6-f85ed964a23a" class="">Even for valid holds, PRs terribly out of date with the base branch should be closed. Work should be tracked through other means (e.g., issues, project boards). PRs can be reopened/recreated when active development resumes.</p><h3 id="1f0e79b1-f910-80bb-b162-ee151bfb86b6" class="">Closing Stale PRs</h3><p id="1f0e79b1-f910-8016-8368-df9d2e557619" class="">When closing stale PRs, document the reason for closure, preserve relevant discussions and decisions, link to tracking issues for future reference, and indicate if/when the work might be revisited.</p><h3 id="1f1e79b1-f910-80cc-ab48-e2cb54a56760" class="">End of week PR cleaning</h3><p id="1f1e79b1-f910-8050-bc5b-f7e34030cecf" class="">Engineers are encouraged to participate in a weekly one-hour long meeting to synchronize on the pending PR and reviews. This meeting is a good opportunity to get their weekly work merged and finalize some details with the reviewer.</p><h2 id="1f0e79b1-f910-8003-a12a-f7a779c2125d" class="">Team Responsibilities</h2><h3 id="1f0e79b1-f910-80bd-be23-d1d4d8f30f6c" class="">Team-Level PR Management</h3><p id="1f0e79b1-f910-8091-8f04-da0b3658c8df" class="">Each team is responsible for actively participating in the PR review process. Team leads must ensure PRs from their team are processed in a timely manner.</p><h3 id="1f0e79b1-f910-80d5-a824-c9774078c4cc" class="">Resource Management</h3><p id="1f0e79b1-f910-80f9-9da4-da5bb7f1289a" class="">If PR processing becomes delayed, team leads should request additional resources from technical leadership, propose strategy changes to address bottlenecks, and consider reprioritization of work.</p><h3 id="1f0e79b1-f910-802e-855a-d0a5f4b89557" class="">Cross-Team Support</h3><p id="1f0e79b1-f910-80c9-83b7-c95675673a28" class="">Teams are encouraged to help review PRs from other teams when appropriate. Technical leadership may redistribute review responsibilities to balance workload.</p><h1 id="1f0e79b1-f910-80f9-9d34-d4e116dd135d" class="">Change Severity and Review Requirements</h1><h2 id="1f0e79b1-f910-801e-9137-ca3f60bd81a1" class="">Impact Classification</h2><p id="1f0e79b1-f910-80fd-920c-cbb970ce9aa4" class=""><em>TODO specific criteria or examples to be provided.</em></p><h3 id="1f0e79b1-f910-8065-beec-eaf17a10485f" class="">Low-Impact Changes</h3><p id="1f0e79b1-f910-801c-8e32-c2a5c5b59501" class="">Low-impact changes include those with minimal risk or scope, changes affecting non-critical parts of the system, and simple bug fixes or minor improvements.</p><p id="1f5e79b1-f910-8029-a6c1-d666ffd91f0e" class="">Examples:</p><ul id="1f5e79b1-f910-80e1-8153-d426ca685113" class="bulleted-list"><li style="list-style-type:disc">Introducing new tool, when PR doesn’t modify any preexisting functionality and the tool’s function is not deemed critical.</li></ul><ul id="1f5e79b1-f910-80c6-85f5-cb066cd3f594" class="bulleted-list"><li style="list-style-type:disc">Scripts which aren’t used in any of critical workflows.</li></ul><ul id="1f5e79b1-f910-806d-abce-eac6d4f78dd7" class="bulleted-list"><li style="list-style-type:disc">Simple localized refactoring.</li></ul><ul id="1f5e79b1-f910-8087-9fd6-f474c4a7d8ec" class="bulleted-list"><li style="list-style-type:disc">Refactoring tests, for instance by moving to a new library like Alcotest instead of inline tests.</li></ul><h3 id="1f0e79b1-f910-806f-bdcf-ce0e84900add" class="">Medium-Impact Changes</h3><p id="1f0e79b1-f910-80cd-92ac-d625061edb7f" class="">Medium-impact changes include those affecting multiple components, new features or significant enhancements, and changes to critical subsystems with limited scope.</p><p id="1f5e79b1-f910-80b1-9621-def07b0c8b4c" class="">Examples:</p><ul id="1f5e79b1-f910-8017-bf71-dbe83648f5aa" class="bulleted-list"><li style="list-style-type:disc">Modifying client interface.</li></ul><ul id="1f5e79b1-f910-8033-98ae-c183a6c6c816" class="bulleted-list"><li style="list-style-type:disc">Refactoring with a risk of regression.</li></ul><ul id="1f5e79b1-f910-8079-8798-fda89455fab0" class="bulleted-list"><li style="list-style-type:disc">Performance improvements with localized impact.</li></ul><h3 id="1f0e79b1-f910-80cd-94e1-f2a1b6c67754" class="">High-Impact Changes</h3><p id="1f0e79b1-f910-8047-953c-e89c0340ae29" class="">High-impact changes include those affecting core functionality, major architectural modifications, and changes with potential system-wide implications.</p><p id="1f5e79b1-f910-8028-a757-c5c0f358b207" class="">Examples:</p><ul id="1f5e79b1-f910-807a-8be4-ccb92400b76c" class="bulleted-list"><li style="list-style-type:disc">Changes to system level constants that impact the security or core functions.</li></ul><ul id="1f5e79b1-f910-809f-a5cd-d959ee06bf13" class="bulleted-list"><li style="list-style-type:disc">Rewriting or changing libraries that are used system wide.</li></ul><ul id="1f5e79b1-f910-803a-8ed2-e791ae8df47c" class="bulleted-list"><li style="list-style-type:disc">Anything that could potentially lead to loss of funds for a user.</li></ul><h2 id="1f0e79b1-f910-80fe-878d-f2db8a6414ac" class="">Review Requirements by Impact Level</h2><h3 id="1f0e79b1-f910-800b-bf4a-e9384d3c8700" class="">Low-Impact PRs</h3><p id="1f0e79b1-f910-8044-b75b-cc59ace1f1b7" class="">Low-impact PRs require a single review. The reviewer must have sufficient context to understand the change.</p><h3 id="1f0e79b1-f910-8014-a2df-cc970794fb23" class="">Medium-Impact PRs</h3><p id="1f0e79b1-f910-80d5-885e-e606f41f4cec" class="">Medium-impact PRs require two independent reviews. At least one reviewer must be someone who did not work on the feature. Ideally, one reviewer should be from a different team. Both reviewers must have sufficient understanding of the affected areas.</p><h3 id="1f0e79b1-f910-8006-848b-ec92c06674ae" class="">High-Impact PRs</h3><p id="1f0e79b1-f910-8088-8a62-c0ea109b5b6a" class="">High-impact PRs require approval from at least two reviewers initially. If neither reviewer is from technical leadership, an additional review by a technical leadership team member is required. A pre-implementation design review may also be necessary.</p><h2 id="1f0e79b1-f910-802b-9a41-e7eec3398c7b" class="">Reviewer Responsibilities</h2><h3 id="1f0e79b1-f910-8043-9cd5-d6c1f3404cbd" class="">Review Integrity</h3><p id="1f0e79b1-f910-80ef-9fb1-cedcf625a895" class="">Reviewers must be honest about their level of understanding. Partial understanding is insufficient for approval. Reviewers should decline to approve if they cannot fully comprehend the changes.</p><h3 id="1f0e79b1-f910-803d-83cc-ff6fb1c56699" class="">Code Ownership Exceptions</h3><p id="1f0e79b1-f910-8088-8d5a-fab38c89f438" class="">When code ownership files dictate approval from specific groups, group representatives may approve only their specific areas. Such approvals must clearly state their limited scope. If the PR primarily affects other areas, these limited approvals do not count toward the required review count.</p><h3 id="1f0e79b1-f910-8098-acb1-fc97fba03bae" class="">Communicating Review Scope</h3><p id="1f0e79b1-f910-8025-8196-e08fc9b4ab1f" class="">When approving only part of a PR, reviewers must explicitly state which parts were reviewed, note which parts were not evaluated, and make clear that additional reviews are needed for full approval.</p><h1 id="1f0e79b1-f910-8013-89ae-e474d20af385" class="">Appendix</h1><h2 id="1f0e79b1-f910-8052-94ee-d3601891b279" class="">Strategies for Splitting Large Changes</h2><ul id="1f0e79b1-f910-80c2-a1dc-c92886dd34eb" class="bulleted-list"><li style="list-style-type:disc">[Placeholder for strategies on splitting large changes across multiple PRs]</li></ul><h2 id="1f0e79b1-f910-80cd-8629-c1b36987c195" class="">Acceptable Exceptions for Multiple Commits Modifying Same Code</h2><ul id="1f0e79b1-f910-8075-ac02-cce150c6ba79" class="bulleted-list"><li style="list-style-type:disc">Moving code with a subsequent modification (see ).</li></ul><ul id="21ee79b1-f910-804f-873d-f646fc3c0920" class="bulleted-list"><li style="list-style-type:disc">TODO some more?</li></ul><p id="1f0e79b1-f910-80d1-8524-f7db11b0453e" class="">
+</p></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>

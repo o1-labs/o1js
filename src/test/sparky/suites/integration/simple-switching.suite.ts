@@ -1,7 +1,8 @@
 /**
  * Simple Backend Switching Test Suite
  * 
- * Basic validation of backend switching infrastructure without o1js imports.
+ * Tests real backend switching using o1js functionality to verify
+ * that both backends work correctly and produce consistent results.
  */
 
 export interface IntegrationTestCase {
@@ -15,52 +16,71 @@ export interface IntegrationTestCase {
 
 export const tests: IntegrationTestCase[] = [
   {
-    name: 'backend-context-validation',
+    name: 'backend-switching-verification',
     type: 'switching',
     testFn: async (backend) => {
-      // Simple validation that backend parameter is passed correctly
+      // Verify backend is correctly set using real o1js
+      const o1js = (global as any).o1js;
+      if (!o1js) {
+        throw new Error('o1js not available in integration test');
+      }
+      
+      const currentBackend = o1js.getCurrentBackend();
       return {
-        backend: backend || 'unknown',
-        timestamp: Date.now(),
-        operation: 'context-validation'
+        backend: currentBackend,
+        expectedBackend: backend,
+        match: currentBackend === backend
       };
     },
     timeout: 2000
   },
 
   {
-    name: 'basic-switching-pattern',
+    name: 'field-arithmetic-comparison',
     type: 'comparison',
     testFn: async (backend) => {
-      // Test that can be run with different backends
-      const computation = Math.pow(2, 10);
+      // Test Field operations produce same results across backends
+      const o1js = (global as any).o1js;
+      const { Field } = o1js;
+      
+      const a = Field(123);
+      const b = Field(456);
+      const c = a.mul(b);
+      const d = c.add(Field(789));
+      
       return {
-        backend: backend || 'unknown',
-        result: computation,
-        operation: 'power-computation'
+        backend,
+        result: d.toString(),
+        operation: '(123 * 456) + 789'
       };
     },
     compareBy: 'value',
-    timeout: 2000
+    timeout: 3000
   },
 
   {
-    name: 'state-isolation-check',
-    type: 'isolation',
-    setupFn: async (backend) => {
-      // Simple setup that doesn't interfere across backends
-      console.log(`Setting up for ${backend}`);
-    },
+    name: 'provable-witness-consistency',
+    type: 'comparison',
     testFn: async (backend) => {
-      // Test that isolation works correctly
+      // Test Provable.witness behavior across backends
+      const o1js = (global as any).o1js;
+      const { Field, Provable } = o1js;
+      
+      let witnessValue: string = '';
+      Provable.runAndCheck(() => {
+        const x = Provable.witness(Field, () => Field(99));
+        const y = x.mul(Field(2));
+        witnessValue = y.toString();
+      });
+      
       return {
-        backend: backend || 'unknown',
-        cleanState: true,
-        operation: 'isolation-check'
+        backend,
+        witnessValue,
+        operation: 'witness(99) * 2'
       };
     },
     compareBy: 'value',
-    timeout: 2000
+    timeout: 3000
   }
 ];
 

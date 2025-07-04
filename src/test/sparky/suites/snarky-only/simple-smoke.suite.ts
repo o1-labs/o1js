@@ -13,40 +13,53 @@ export interface TestCase {
 
 export const tests: TestCase[] = [
   {
-    name: 'infrastructure-validation',
+    name: 'backend-verification',
     testFn: async () => {
-      // Test that basic JavaScript works
-      const result = 2 + 2;
-      if (result !== 4) {
-        throw new Error(`Basic arithmetic failed: 2 + 2 = ${result}, expected 4`);
+      // Verify we're using the snarky backend
+      const o1js = (global as any).o1js;
+      if (!o1js) {
+        throw new Error('o1js not initialized');
+      }
+      
+      const currentBackend = o1js.getCurrentBackend();
+      if (currentBackend !== 'snarky') {
+        throw new Error(`Wrong backend: expected snarky, got ${currentBackend}`);
       }
     },
     timeout: 1000
   },
 
   {
-    name: 'async-operation',
+    name: 'field-arithmetic',
     testFn: async () => {
-      // Test async operations work
-      await new Promise(resolve => setTimeout(resolve, 10));
-      const timestamp = Date.now();
-      if (timestamp < 1000000000000) {
-        throw new Error('Timestamp validation failed');
+      // Test basic Field arithmetic with snarky backend
+      const o1js = (global as any).o1js;
+      const { Field } = o1js;
+      
+      const a = Field(10);
+      const b = Field(20);
+      const c = a.add(b);
+      
+      if (c.toString() !== '30') {
+        throw new Error(`Field addition failed: 10 + 20 = ${c.toString()}, expected 30`);
       }
     },
     timeout: 2000
   },
 
   {
-    name: 'backend-marker',
+    name: 'provable-witness',
     testFn: async () => {
-      // This test just marks that we're running in snarky backend context
-      const backendContext = 'snarky';
-      if (backendContext !== 'snarky') {
-        throw new Error('Backend context validation failed');
-      }
+      // Test Provable.witness with snarky backend
+      const o1js = (global as any).o1js;
+      const { Field, Provable } = o1js;
+      
+      Provable.runAndCheck(() => {
+        const x = Provable.witness(Field, () => Field(42));
+        x.assertEquals(Field(42));
+      });
     },
-    timeout: 1000
+    timeout: 3000
   }
 ];
 

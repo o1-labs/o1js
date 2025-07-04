@@ -312,15 +312,16 @@ export class ParallelTestRunner {
         this.updateProcessProgress(processId, message);
         break;
 
-      case 'FINAL_RESULTS':
+      case 'result':
         this.processResults.set(processId, {
           processId,
           backend: message.backend,
           worker: message.worker || (message.backend ? 'backend-isolated' : 'integration'),
-          success: message.results.every((r: any) => r.success),
+          success: message.success,
           results: message.results,
-          duration: message.totalDuration,
-          memoryReport: message.memoryReport
+          duration: message.duration,
+          memoryReport: message.memoryReport,
+          error: message.error
         });
         break;
 
@@ -563,8 +564,9 @@ export class ParallelTestRunner {
         }
       }
 
-      // Aggregate and report results
-      const summary = this.aggregateResults(results);
+      // Generate summary
+      const totalDuration = Date.now() - this.startTime;
+      const summary = this.generateTestSummary(results, totalDuration);
       
       console.log(`\n${'='.repeat(60)}`);
       this.displayFinalResults(results, summary);
@@ -572,7 +574,7 @@ export class ParallelTestRunner {
       return {
         success: summary.failedProcesses === 0,
         results,
-        totalDuration: Date.now() - this.startTime,
+        totalDuration,
         summary
       };
 
