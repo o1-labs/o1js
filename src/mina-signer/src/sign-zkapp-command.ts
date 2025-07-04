@@ -26,8 +26,8 @@ export {
   createFeePayer,
   accountUpdateFromFeePayer,
   isCallDepthValid,
-  CallForest,
 };
+export type { CallForest };
 
 function signZkappCommand(
   zkappCommand_: Json.ZkappCommand,
