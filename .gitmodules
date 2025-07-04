@@ -3,4 +3,4 @@
 	url = https://github.com/MinaProtocol/mina.git
 [submodule "src/sparky"]
 	path = src/sparky
-	url = git@github.com:o1-labs/sparky.git
+	url = https://github.com/o1-labs/sparky.git
