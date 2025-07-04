@@ -111,7 +111,7 @@ describe('VK Parity Between Backends', () => {
         'Addition Program'
       );
       
-      expect(result.passed).toBe(false);
+      expect(result.passed).toBe(true); // Now true with aggressive optimization enabled!
       console.log(`Addition program - Snarky: ${result.snarky.constraintCount}, Sparky: ${result.sparky.constraintCount}`);
     });
 
