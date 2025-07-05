@@ -41,11 +41,7 @@ async function initializeBindings(backend = null) {
       
       // CRITICAL: First load OCaml bindings to ensure ocamlBackendBridge is set up
       // This is needed because Sparky field operations route through OCaml
-      let snarkyOcaml;
-      CJS: if (typeof require !== 'undefined') {
-        snarkyOcaml = require('./bindings/compiled/_node_bindings/o1js_node.bc.cjs');
-      }
-      ESM: snarkyOcaml = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
+      let snarkyOcaml = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
       
       // The OCaml module initialization sets up globalThis.ocamlBackendBridge
       console.log('OCaml backend bridge initialized:', !!globalThis.ocamlBackendBridge);
@@ -71,14 +67,8 @@ async function initializeBindings(backend = null) {
       // Load OCaml Snarky (default)
       console.log('Loading Snarky backend...');
       
-      let snarky;
-      
-      // this dynamic import makes jest respect the import order
-      // otherwise the cjs file gets imported before its implicit esm dependencies and fails
-      CJS: if (typeof require !== 'undefined') {
-        snarky = require('./bindings/compiled/_node_bindings/o1js_node.bc.cjs');
-      }
-      ESM: snarky = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
+      // Use ESM import directly for consistency
+      let snarky = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
       
       // ROUTING FIX: Update global constraint routing to OCaml Snarky
       if (activeBackend === 'sparky') {

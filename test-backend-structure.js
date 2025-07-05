@@ -1,5 +1,6 @@
 // Investigate backend structure
-import { getCurrentBackend, switchBackend } from './src/bindings.js';
+// Import from the built distribution instead of source files
+import { getCurrentBackend, switchBackend } from './dist/node/bindings.js';
 
 console.log('Investigating backend structure...\n');
 

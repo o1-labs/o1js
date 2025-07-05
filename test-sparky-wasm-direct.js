@@ -1,5 +1,6 @@
 // Test Sparky WASM directly
-import sparkyWasm from './src/bindings/compiled/_node_bindings/sparky_wasm.cjs';
+// This test needs to import the built sparky wasm from dist
+import sparkyWasm from './dist/node/bindings/compiled/_node_bindings/sparky_wasm.cjs';
 
 console.log('Testing Sparky WASM directly...\n');
 

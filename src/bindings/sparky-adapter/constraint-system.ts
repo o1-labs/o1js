@@ -148,7 +148,23 @@ export const runOperations = {
    * Get the current constraint system
    */
   getConstraintSystem(): any {
-    return getRunModule().getConstraintSystem();
+    const cs = getRunModule().getConstraintSystem();
+    
+    // Add gates property getter to ensure dual path compatibility
+    // This implements the fix for gates getter to call toJson() internally
+    if (cs && !cs.hasOwnProperty('gates')) {
+      Object.defineProperty(cs, 'gates', {
+        get: function() {
+          // Call toJson to get gates in proper Snarky-compatible format
+          const toJsonResult = getConstraintSystemModule().toJson(this);
+          return toJsonResult?.gates || [];
+        },
+        enumerable: true,
+        configurable: true
+      });
+    }
+    
+    return cs;
   },
   
   /**

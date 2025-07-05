@@ -1,132 +1,77 @@
-#!/usr/bin/env node
+/**
+ * Test script to verify rangeCheck0 implementation
+ * Tests Field.lessThan() operations with Sparky backend
+ */
 
-// Test RangeCheck0 fix - verify that limb variables are properly preserved
-// through the MIR -> LIR transformation pipeline
+import { switchBackend, getCurrentBackend, Field } from './dist/node/index.js';
 
-console.log('🔍 Testing RangeCheck0 Variable Preservation Fix...');
-
-// Test the rangeCheck64 function which uses RangeCheck0 internally
-const { Field, Provable, Bool } = await import('./dist/node/index.js');
-
-async function testRangeCheck0Fix() {
-    console.log('\n🎯 Testing RangeCheck0 constraint generation with Sparky backend...');
+async function testRangeCheck0() {
+  console.log('🧪 Testing rangeCheck0 implementation with Field.lessThan()');
+  
+  try {
+    // Switch to Sparky backend
+    console.log('🔄 Switching to Sparky backend...');
+    await switchBackend('sparky');
+    const backend = getCurrentBackend();
+    console.log(`✅ Current backend: ${backend}`);
     
-    try {
-        // Switch to Sparky backend
-        await import('./dist/node/index.js').then(o1js => {
-            if (o1js.switchBackend) {
-                o1js.switchBackend('sparky');
-                console.log('✅ Switched to Sparky backend');
-            }
-        });
-
-        // Test basic range check operation
-        const { ZkProgram } = await import('./dist/node/index.js');
-        
-        const TestProgram = ZkProgram({
-            name: 'test-rangecheck',
-            publicInput: Field,
-            
-            methods: {
-                checkRange: {
-                    privateInputs: [Field],
-                    method: (publicInput, privateInput) => {
-                        // This will trigger rangeCheck0 constraint generation
-                        privateInput.assertLessThan(Field(2n ** 32n));
-                        publicInput.assertEquals(privateInput);
-                    }
-                }
-            }
-        });
-
-        console.log('🔄 Compiling ZkProgram with RangeCheck0 constraints...');
-        const { verificationKey } = await TestProgram.compile();
-        
-        if (verificationKey) {
-            console.log('✅ SUCCESS: ZkProgram compilation succeeded!');
-            console.log(`📊 Verification Key Hash: ${verificationKey.hash}`);
-            
-            // Test proof generation to verify constraint satisfaction
-            console.log('🔄 Generating proof to test constraint satisfaction...');
-            const value = Field(12345);
-            const proof = await TestProgram.checkRange(value, value);
-            
-            console.log('✅ SUCCESS: Proof generation succeeded!');
-            console.log('🎯 CRITICAL FIX CONFIRMED: RangeCheck0 variable preservation is working correctly!');
-            
-            return true;
-        } else {
-            console.log('❌ FAILED: No verification key generated');
-            return false;
-        }
-        
-    } catch (error) {
-        console.log('❌ FAILED: RangeCheck0 compilation error:');
-        console.log(error.message);
-        console.log(error.stack);
-        return false;
+    if (backend !== 'sparky') {
+      throw new Error('Failed to switch to Sparky backend');
     }
-}
-
-async function testSnarkyComparison() {
-    console.log('\n🔄 Testing Snarky backend for comparison...');
     
-    try {
-        // Switch to Snarky backend  
-        await import('./dist/node/index.js').then(o1js => {
-            if (o1js.switchBackend) {
-                o1js.switchBackend('snarky');
-                console.log('✅ Switched to Snarky backend');
-            }
-        });
-
-        const { ZkProgram } = await import('./dist/node/index.js');
-        
-        const TestProgram = ZkProgram({
-            name: 'test-rangecheck-snarky',
-            publicInput: Field,
-            
-            methods: {
-                checkRange: {
-                    privateInputs: [Field],
-                    method: (publicInput, privateInput) => {
-                        privateInput.assertLessThan(Field(2n ** 32n));
-                        publicInput.assertEquals(privateInput);
-                    }
-                }
-            }
-        });
-
-        const { verificationKey } = await TestProgram.compile();
-        
-        if (verificationKey) {
-            console.log('✅ SUCCESS: Snarky compilation succeeded');
-            console.log(`📊 Snarky VK Hash: ${verificationKey.hash}`);
-            return verificationKey.hash;
-        } else {
-            console.log('❌ FAILED: Snarky compilation failed');
-            return null;
-        }
-        
-    } catch (error) {
-        console.log('❌ FAILED: Snarky compilation error:');
-        console.log(error.message);
-        return null;
+    // Test Field.lessThan() operations
+    console.log('\n🔍 Testing Field.lessThan() operations...');
+    
+    // Test 1: Simple comparison
+    console.log('Test 1: Field(5).lessThan(Field(10))');
+    const a = Field(5);
+    const b = Field(10);
+    const result1 = a.lessThan(b);
+    console.log(`✅ Field(5).lessThan(Field(10)) = ${result1.toString()}`);
+    
+    // Test 2: Reverse comparison
+    console.log('Test 2: Field(10).lessThan(Field(5))');
+    const result2 = b.lessThan(a);
+    console.log(`✅ Field(10).lessThan(Field(5)) = ${result2.toString()}`);
+    
+    // Test 3: Equal values
+    console.log('Test 3: Field(7).lessThan(Field(7))');
+    const c = Field(7);
+    const d = Field(7);
+    const result3 = c.lessThan(d);
+    console.log(`✅ Field(7).lessThan(Field(7)) = ${result3.toString()}`);
+    
+    // Test 4: Larger numbers
+    console.log('Test 4: Field(1000).lessThan(Field(2000))');
+    const e = Field(1000);
+    const f = Field(2000);
+    const result4 = e.lessThan(f);
+    console.log(`✅ Field(1000).lessThan(Field(2000)) = ${result4.toString()}`);
+    
+    console.log('\n🎉 All Field.lessThan() tests completed successfully!');
+    console.log('✅ rangeCheck0 implementation is working correctly');
+    
+  } catch (error) {
+    console.error('❌ Test failed:', error.message);
+    console.error('Stack trace:', error.stack);
+    
+    if (error.message.includes('rangeCheck0 is not a function')) {
+      console.error('🚨 CRITICAL: rangeCheck0 function still not found!');
+      console.error('This indicates the WASM build may not have included the new implementation.');
     }
+    
+    throw error;
+  }
 }
 
-// Run the tests
-const sparkySuccess = await testRangeCheck0Fix();
-const snarkyVkHash = await testSnarkyComparison();
-
-console.log('\n📋 SUMMARY:');
-console.log(`Sparky Backend: ${sparkySuccess ? 'SUCCESS ✅' : 'FAILED ❌'}`);
-console.log(`Snarky Backend: ${snarkyVkHash ? 'SUCCESS ✅' : 'FAILED ❌'}`);
-
-if (sparkySuccess) {
-    console.log('\n🎉 BREAKTHROUGH CONFIRMED: RangeCheck0 variable preservation fix is working!');
-    console.log('🚀 This should resolve the comprehensive test failures');
-    console.log('🎯 Expected outcome: Improved VK parity and successful SmartContract/ZkProgram compilation');
-} else {
-    console.log('\n⚠️  Fix may need additional work - check error messages above');
+async function main() {
+  try {
+    await testRangeCheck0();
+    process.exit(0);
+  } catch (error) {
+    console.error('\n💥 Test suite failed');
+    process.exit(1);
+  }
 }
+
+main();

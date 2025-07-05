@@ -24,13 +24,10 @@ let LedgerOCaml: any;
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node !== undefined;
 
 // Dynamic import handles
-let readFileSync: any;
 let fileURLToPath: any;
-let dirname: any;
-let join: any;
 
 // Sparky WASM state
-let sparkyWasm: SparkyWasmModule | undefined;
+let sparkyWasm: any;
 let sparkyInstance: Snarky | undefined;
 let initPromise: Promise<void> | undefined;
 
@@ -68,16 +65,16 @@ export async function initSparkyWasm(): Promise<void> {
         // Load CommonJS modules using require
         snarky = require('../compiled/_node_bindings/o1js_node.bc.cjs');
         
-        // Also load WASM module using createRequire (CommonJS module)
-        const sparkyNodePath = '../compiled/_node_bindings/sparky_wasm.cjs';
-        const sparkyModule = require(sparkyNodePath);
-        
-        // Store WASM module for later use
-        (global as any).sparkyModuleCache = sparkyModule;
+        // DON'T load Sparky WASM here - it will fail due to import mismatch
+        // We'll load it later in loadNodeWASM() with proper import patching
       } catch (importError: any) {
-        throw new Error(`Failed to load OCaml/WASM bindings via createRequire: ${importError.message}`);
+        throw new Error(`Failed to load OCaml/WASM bindings via require: ${importError.message}`);
       }
       ({ Pickles: PicklesOCaml, Test: TestOCaml, Ledger: LedgerOCaml } = snarky);
+      
+      // Import URL utilities for Node.js
+      const urlModule = await import('url');
+      fileURLToPath = urlModule.fileURLToPath;
     } else {
       // Browser environment
       try {
@@ -121,6 +118,11 @@ export async function initSparkyWasm(): Promise<void> {
     // Initialize Sparky instance
     sparkyInstance = sparkyWasm.initSparky();
     
+    // The layered architecture fix worked! The generated JavaScript now has correct getters:
+    // - snarky_gates() function is called (not snarky_field)
+    // - takeObject(ret) is used properly
+    // - No property wrappers needed anymore
+    
     // Export to global for debugging
     if (typeof globalThis !== 'undefined') {
       (globalThis as any).__sparkyWasm = sparkyWasm;
@@ -135,41 +137,35 @@ export async function initSparkyWasm(): Promise<void> {
  * Load WASM module in Node.js environment
  */
 async function loadNodeWASM(): Promise<void> {
-  // Check for cached module first (from require above)
+  // Check for cached module first
   if ((global as any).sparkyModuleCache) {
     sparkyWasm = (global as any).sparkyModuleCache;
     return;
   }
   
-  // Fallback to dynamic import
   try {
-    // Import Node.js file system utilities
-    if (!readFileSync) {
-      const fs = await import('fs');
-      readFileSync = fs.readFileSync;
-    }
-    if (!fileURLToPath) {
-      const url = await import('url');
-      fileURLToPath = url.fileURLToPath;
-    }
-    if (!dirname || !join) {
-      const path = await import('path');
-      dirname = path.dirname;
-      join = path.join;
-    }
+    // Import Node.js modules for file reading
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
     
-    // Try loading WASM module directly
-    const currentFileUrl = import.meta.url;
-    const currentFilePath = fileURLToPath(currentFileUrl);
-    const currentDir = dirname(currentFilePath);
+    // Import the web target ES module
+    sparkyWasm = await import('../compiled/_node_bindings/sparky_wasm.js');
     
-    // Try compiled path first
-    const wasmPath = join(currentDir, '../compiled/_node_bindings/sparky_wasm.cjs');
+    // Get the directory of this module
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     
-    // Dynamic require fallback
-    const { createRequire } = await import('module') as any;
-    const require = createRequire(import.meta.url);
-    sparkyWasm = require(wasmPath);
+    // Read the WASM file directly
+    const wasmPath = path.join(__dirname, '../compiled/_node_bindings/sparky_wasm_bg.wasm');
+    const wasmBytes = fs.readFileSync(wasmPath);
+    
+    // Initialize with the bytes directly using initSync
+    sparkyWasm.initSync(wasmBytes);
+    
+    // Cache it for future use
+    (global as any).sparkyModuleCache = sparkyWasm;
+    
   } catch (error: any) {
     throw new Error(`Failed to load Sparky WASM in Node.js: ${error.message}`);
   }

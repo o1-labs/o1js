@@ -16,7 +16,9 @@
     console.log('Trying CJS require...');
     if (typeof require !== 'undefined') {
       try {
-        snarkyOcaml = require('./dist/node/bindings/compiled/_node_bindings/o1js_node.bc.cjs');
+        // Import the built bindings module instead of internal build artifacts
+        const bindings = require('./dist/node/bindings.js');
+        snarkyOcaml = bindings.Snarky;
         console.log('✅ CJS require succeeded');
       } catch (e) {
         console.log('❌ CJS require failed:', e.message);
@@ -27,8 +29,9 @@
     if (!snarkyOcaml) {
       console.log('Trying ESM import...');
       try {
-        const module = await import('./dist/node/bindings/compiled/_node_bindings/o1js_node.bc.cjs');
-        snarkyOcaml = module.default;
+        // Import the built bindings module instead of internal build artifacts
+        const bindings = await import('./dist/node/bindings.js');
+        snarkyOcaml = bindings.Snarky;
         console.log('✅ ESM import succeeded');
       } catch (e) {
         console.log('❌ ESM import failed:', e.message);

@@ -1,6 +1,6 @@
 // Test after initialization
-import { isReady } from './src/bindings.js';
-import { Snarky } from './src/bindings.js';
+// Import from the built distribution instead of source files
+import { isReady, Snarky } from './dist/node/bindings.js';
 
 console.log('Testing inProver after initialization...\n');
 
@@ -32,7 +32,8 @@ async function test() {
   
   console.log('\n=== Checking Field ===');
   // Import Field after isReady
-  const { Field } = await import('./src/lib/provable/field.js');
+  // Import Field from the built distribution
+  const { Field } = await import('./dist/node/lib/provable/field.js');
   console.log('Field type:', typeof Field);
   console.log('Field.inProver type:', typeof Field.inProver);
   

@@ -1,5 +1,6 @@
 // Test with initialization
-import { initializeBindings, Snarky, switchBackend } from './src/bindings.js';
+// Import from the built distribution instead of source files
+import { initializeBindings, Snarky, switchBackend } from './dist/node/bindings.js';
 
 console.log('Testing inProver with proper initialization...\n');
 

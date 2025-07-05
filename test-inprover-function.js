@@ -1,4 +1,5 @@
-import { Field, Bool, switchBackend } from './src/index.js';
+// Import from the built distribution instead of source files
+import { Field, Bool, switchBackend } from './dist/node/index.js';
 
 console.log('Testing inProver function change...\n');
 

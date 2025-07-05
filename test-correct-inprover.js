@@ -1,5 +1,6 @@
 // Test the correct inProver location
-import { Snarky } from './src/bindings.js';
+// Import from the built distribution instead of source files
+import { Snarky } from './dist/node/bindings.js';
 
 console.log('Testing correct inProver location...\n');
 

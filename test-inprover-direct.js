@@ -1,5 +1,6 @@
 // Direct test of inProver function change
-import { getCurrentBackend, switchBackend } from './src/bindings.js';
+// Import from the built distribution instead of source files
+import { getCurrentBackend, switchBackend } from './dist/node/bindings.js';
 
 console.log('Testing inProver function implementation...\n');
 

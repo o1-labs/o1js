@@ -12,7 +12,8 @@ global.globalThis = global;
 async function testAdapterDirect() {
   try {
     // Load WASM directly
-    const sparkyWasm = require('./sparky_wasm.js');
+    // Load WASM from built distribution
+    const sparkyWasm = require('./dist/node/bindings/compiled/_node_bindings/sparky_wasm.cjs');
     
     console.log('1. Loading sparky WASM...');
     const sparkyInstance = await sparkyWasm.default();
@@ -24,7 +25,8 @@ async function testAdapterDirect() {
     
     // Load adapter
     console.log('2. Loading sparky adapter...');
-    const adapter = require('./src/bindings/sparky-adapter/index.js');
+    // Load adapter from built distribution
+    const adapter = require('./dist/node/bindings/sparky-adapter/index.js');
     
     console.log('3. Testing field operations...');
     
