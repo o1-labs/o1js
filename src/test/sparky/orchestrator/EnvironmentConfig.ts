@@ -217,8 +217,10 @@ export class EnvironmentConfig {
       executionMode: 'parallel',
       aggressiveMemory: true,
       memoryLimitMB: 500,
+      comprehensiveMemoryLimitMB: 2000,
       testTiers: ['smoke', 'core'],
-      maxExecutionTimeMs: 300000 // 5 minutes in CI
+      maxExecutionTimeMs: 300000, // 5 minutes in CI
+      comprehensiveTimeoutMs: 600000 // 10 minutes for comprehensive in CI
     };
   }
 
@@ -231,8 +233,10 @@ export class EnvironmentConfig {
       executionMode: 'parallel',
       aggressiveMemory: true,
       memoryLimitMB: 600,
+      comprehensiveMemoryLimitMB: 3000,
       testTiers: ['smoke', 'core'],
-      maxExecutionTimeMs: 600000 // 10 minutes for dev
+      maxExecutionTimeMs: 600000, // 10 minutes for dev
+      comprehensiveTimeoutMs: 900000 // 15 minutes for comprehensive in dev
     };
   }
 }

@@ -163,22 +163,10 @@ export class TestDiscovery {
       distribution['integration'] = filteredSuites.integration;
     }
 
-    // Comprehensive tests (circuit compilation) - distribute across available processes for load balancing
+    // Comprehensive tests (circuit compilation) - always create dedicated process
+    // These tests need to run on both backends to compare results
     if (filteredSuites.comprehensive.length > 0) {
-      const availableProcesses = Object.keys(distribution);
-      if (availableProcesses.length === 0) {
-        // If no other processes, create dedicated comprehensive process
-        distribution['comprehensive'] = filteredSuites.comprehensive;
-      } else {
-        // Distribute comprehensive tests across existing processes for load balancing
-        filteredSuites.comprehensive.forEach((suite, index) => {
-          const processId = availableProcesses[index % availableProcesses.length];
-          if (!distribution[processId]) {
-            distribution[processId] = [];
-          }
-          distribution[processId].push(suite);
-        });
-      }
+      distribution['comprehensive'] = filteredSuites.comprehensive;
     }
 
     return distribution;

@@ -125,40 +125,46 @@ export class ParallelTestRunner {
     const snarkyProcesses = Math.ceil(processCount / 2);
     const sparkyProcesses = Math.floor(processCount / 2);
 
-    // Create snarky processes
+    // Create snarky processes (only if they have suites)
     for (let i = 0; i < snarkyProcesses; i++) {
       const suites = await this.distributeSuitesForBackend('snarky', i, snarkyProcesses);
-      configs.push({
-        id: `snarky-${i + 1}`,
-        backend: 'snarky',
-        worker: 'backend-isolated',
-        suites,
-        args: [
-          'snarky',
-          suites.join(','),
-          this.config.memoryLimitMB.toString(),
-          this.config.maxExecutionTimeMs.toString(),
-          EnvironmentConfig.getVerbose().toString()
-        ]
-      });
+      // Only create process if it has suites to run
+      if (suites.length > 0) {
+        configs.push({
+          id: `snarky-${i + 1}`,
+          backend: 'snarky',
+          worker: 'backend-isolated',
+          suites,
+          args: [
+            'snarky',
+            suites.join(','),
+            this.config.memoryLimitMB.toString(),
+            this.config.maxExecutionTimeMs.toString(),
+            EnvironmentConfig.getVerbose().toString()
+          ]
+        });
+      }
     }
 
-    // Create sparky processes
+    // Create sparky processes (only if they have suites)
     for (let i = 0; i < sparkyProcesses; i++) {
       const suites = await this.distributeSuitesForBackend('sparky', i, sparkyProcesses);
-      configs.push({
-        id: `sparky-${i + 1}`,
-        backend: 'sparky',
-        worker: 'backend-isolated',
-        suites,
-        args: [
-          'sparky',
-          suites.join(','),
-          this.config.memoryLimitMB.toString(),
-          this.config.maxExecutionTimeMs.toString(),
-          EnvironmentConfig.getVerbose().toString()
-        ]
-      });
+      // Only create process if it has suites to run
+      if (suites.length > 0) {
+        configs.push({
+          id: `sparky-${i + 1}`,
+          backend: 'sparky',
+          worker: 'backend-isolated',
+          suites,
+          args: [
+            'sparky',
+            suites.join(','),
+            this.config.memoryLimitMB.toString(),
+            this.config.maxExecutionTimeMs.toString(),
+            EnvironmentConfig.getVerbose().toString()
+          ]
+        });
+      }
     }
 
     // Add integration process if needed
@@ -174,6 +180,29 @@ export class ParallelTestRunner {
           EnvironmentConfig.getVerbose().toString()
         ]
       });
+    }
+
+    // Add comprehensive process if needed
+    if (this.config.testTiers.includes('comprehensive')) {
+      // Import test discovery to get comprehensive tests
+      const { TestDiscovery } = await import('../shared/TestDiscovery.js');
+      const discovery = new TestDiscovery();
+      const comprehensiveTests = discovery.discoverComprehensiveSuites();
+      
+      if (comprehensiveTests.length > 0) {
+        const comprehensiveTestNames = comprehensiveTests.map(test => test.name);
+        configs.push({
+          id: 'comprehensive',
+          worker: 'integration', // Use integration worker for backend switching
+          suites: comprehensiveTestNames,
+          args: [
+            comprehensiveTestNames.join(','),
+            this.config.comprehensiveMemoryLimitMB.toString(),
+            this.config.comprehensiveTimeoutMs.toString(),
+            EnvironmentConfig.getVerbose().toString()
+          ]
+        });
+      }
     }
 
     return configs;
@@ -379,9 +408,10 @@ export class ParallelTestRunner {
     console.log('');
 
     this.processProgress.forEach((progress) => {
-      const progressBar = '█'.repeat(Math.floor((progress.completedSuites / progress.totalSuites) * 20));
+      const progressPercent = progress.totalSuites > 0 ? (progress.completedSuites / progress.totalSuites) : 0;
+      const progressBar = '█'.repeat(Math.floor(progressPercent * 20));
       const emptyBar = '░'.repeat(20 - progressBar.length);
-      const percentage = Math.floor((progress.completedSuites / progress.totalSuites) * 100);
+      const percentage = Math.floor(progressPercent * 100);
       
       const statusIcon = progress.success ? '✅' : '⏳';
       const backendLabel = progress.backend ? ` (${progress.backend})` : '';

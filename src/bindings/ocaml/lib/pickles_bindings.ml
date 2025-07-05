@@ -49,6 +49,16 @@ let get_accumulated_constraints () =
     Array.to_list js_array
   ) else []
 
+let get_full_constraint_system () =
+  let bridge = Js.Unsafe.global##.sparkyConstraintBridge in
+  if Js.Optdef.test bridge then (
+    let constraint_system = Js.Unsafe.meth_call bridge "getFullConstraintSystem" [||] in
+    if Js.Opt.test (Js.Opt.return constraint_system) then
+      Some constraint_system
+    else
+      None
+  ) else None
+
 let end_constraint_accumulation () =
   let bridge = Js.Unsafe.global##.sparkyConstraintBridge in
   if Js.Optdef.test bridge then
@@ -459,6 +469,15 @@ module Choices = struct
           (* CONSTRAINT BRIDGE: Check if Sparky is active *)
           let sparky_active = is_sparky_active () in
           
+          (* UNCONDITIONAL DEBUG: Always log to JavaScript console to see if OCaml code is executing *)
+          ignore (Js.Unsafe.fun_call 
+            (Js.Unsafe.js_expr "console.log") 
+            [| Js.Unsafe.inject (Js.string 
+              (Printf.sprintf "🔍 OCaml EXECUTION: sparky_active=%b, in pickles_bindings" sparky_active)) |]) ;
+          
+          Printf.printf "🔍 DEBUG: OCaml pickles_bindings - sparky_active = %b\n" sparky_active ;
+          Out_channel.flush stdout ;
+          
           (* If Sparky is active, start constraint accumulation *)
           if sparky_active then (
             (* Reset Sparky state for this specific program compilation *)
@@ -476,6 +495,43 @@ module Choices = struct
           if sparky_active then (
             let sparky_constraints = get_accumulated_constraints () in
             add_sparky_constraints_to_system sparky_constraints ;
+            
+            (* CRITICAL FIX: Get complete constraint system metadata for proper compilation *)
+            (match get_full_constraint_system () with
+            | Some constraint_system ->
+                (* Extract metadata for verification key generation *)
+                let gates = try 
+                  Js.Unsafe.get constraint_system (Js.string "gates") 
+                  |> Js.to_array |> Array.length
+                with _ -> List.length sparky_constraints in
+                let public_input_size = try
+                  Js.Unsafe.get constraint_system (Js.string "publicInputSize")
+                  |> Js.float_of_number |> Int.of_float
+                with _ -> public_input_size in
+                let constraint_count = try
+                  Js.Unsafe.get constraint_system (Js.string "constraintCount")
+                  |> Js.float_of_number |> Int.of_float  
+                with _ -> List.length sparky_constraints in
+                
+                (* Log constraint system metadata for debugging via JavaScript console *)
+                let debug_message = 
+                  Printf.sprintf "🔧 OCaml CONSTRAINT BRIDGE: gates=%d, publicInputSize=%d, constraints=%d" 
+                    gates public_input_size constraint_count in
+                ignore (Js.Unsafe.fun_call 
+                  (Js.Unsafe.js_expr "console.log") 
+                  [| Js.Unsafe.inject (Js.string debug_message) |]) ;
+                Printf.printf "🔧 Sparky constraint system: gates=%d, publicInputSize=%d, constraints=%d\n" 
+                  gates public_input_size constraint_count ;
+                Out_channel.flush stdout
+            | None ->
+                let warning_message = "⚠️  OCaml CONSTRAINT BRIDGE: Could not retrieve full constraint system from Sparky" in
+                ignore (Js.Unsafe.fun_call 
+                  (Js.Unsafe.js_expr "console.log") 
+                  [| Js.Unsafe.inject (Js.string warning_message) |]) ;
+                Printf.printf "⚠️  Warning: Could not retrieve full constraint system from Sparky\n" ;
+                Out_channel.flush stdout
+            ) ;
+            
             end_constraint_accumulation ()
           ) ;
           

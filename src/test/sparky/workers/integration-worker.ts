@@ -187,11 +187,13 @@ class IntegrationWorker {
       const { TestDiscovery } = await import('../shared/TestDiscovery.js');
       const discovery = new TestDiscovery();
       
-      // Discover all integration suites
+      // Discover all integration and comprehensive suites
       const integrationSuites = discovery.discoverIntegrationSuites();
+      const comprehensiveSuites = discovery.discoverComprehensiveSuites();
+      const allSuites = [...integrationSuites, ...comprehensiveSuites];
       
       // Find the requested suite (flexible matching)
-      const targetSuite = integrationSuites.find(suite => 
+      const targetSuite = allSuites.find(suite => 
         suite.name === suiteName || 
         suite.name.includes(suiteName) ||
         suiteName.includes(suite.name)
@@ -199,18 +201,18 @@ class IntegrationWorker {
       
       if (!targetSuite) {
         // Default to first available suite if specific not found
-        if (integrationSuites.length > 0) {
-          this.log(`⚠️  Suite '${suiteName}' not found, using: ${integrationSuites[0].name}`);
-          const defaultSuite = integrationSuites[0];
+        if (allSuites.length > 0) {
+          this.log(`⚠️  Suite '${suiteName}' not found, using: ${allSuites[0].name}`);
+          const defaultSuite = allSuites[0];
           const jsPath = defaultSuite.path.replace(/\.ts$/, '.js');
           const suite = await import(jsPath);
           return suite.default || suite;
         }
         
-        throw new Error(`No integration suites found. Expected: ${suiteName}`);
+        throw new Error(`No integration or comprehensive suites found. Expected: ${suiteName}`);
       }
       
-      this.log(`📂 Loading integration suite: ${targetSuite.name} [${targetSuite.tier}] from ${targetSuite.path}`);
+      this.log(`📂 Loading test suite: ${targetSuite.name} [${targetSuite.tier}] from ${targetSuite.path}`);
       
       // Convert .ts to .js for runtime import
       const jsPath = targetSuite.path.replace(/\.ts$/, '.js');
@@ -239,6 +241,8 @@ class IntegrationWorker {
         testResult = await this.runBackendComparisonTest(test);
       } else if (test.type === 'isolation') {
         testResult = await this.runStateIsolationTest(test);
+      } else if (test.type === 'compilation') {
+        testResult = await this.runCompilationTest(test);
       } else {
         throw new Error(`Unknown integration test type: ${test.type}`);
       }
@@ -365,6 +369,95 @@ class IntegrationWorker {
   }
 
   /**
+   * Run a circuit compilation test that compares compilation results between backends
+   */
+  private async runCompilationTest(test: any): Promise<IntegrationTestResult> {
+    const results: { [backend: string]: any } = {};
+    
+    // Compile on Snarky backend
+    await this.switchToBackend('snarky');
+    this.log(`    🔧 Compiling on Snarky backend...`);
+    const snarkyResult = await test.testFn('snarky');
+    results.snarky = snarkyResult;
+    
+    // Compile on Sparky backend  
+    await this.switchToBackend('sparky');
+    this.log(`    🔧 Compiling on Sparky backend...`);
+    const sparkyResult = await test.testFn('sparky');
+    results.sparky = sparkyResult;
+    
+    // Compare compilation results
+    const comparison = {
+      match: true,
+      snarkyResult,
+      sparkyResult,
+      difference: undefined as string | undefined
+    };
+    
+    // Compare verification key existence
+    if (snarkyResult.verificationKeyExists !== sparkyResult.verificationKeyExists) {
+      comparison.match = false;
+      comparison.difference = `VK existence mismatch: snarky=${snarkyResult.verificationKeyExists} vs sparky=${sparkyResult.verificationKeyExists}`;
+    }
+    
+    // Compare method counts
+    if (snarkyResult.methodCount !== sparkyResult.methodCount) {
+      comparison.match = false;
+      comparison.difference = `Method count mismatch: snarky=${snarkyResult.methodCount} vs sparky=${sparkyResult.methodCount}`;
+    }
+    
+    // Compare constraint counts if available
+    if (snarkyResult.constraintCount !== undefined && sparkyResult.constraintCount !== undefined) {
+      if (snarkyResult.constraintCount !== sparkyResult.constraintCount) {
+        comparison.match = false;
+        comparison.difference = `Constraint count mismatch: snarky=${snarkyResult.constraintCount} vs sparky=${sparkyResult.constraintCount}`;
+      }
+    }
+    
+    // Handle compilation success differences between backends
+    if (!snarkyResult.success || !sparkyResult.success) {
+      // If one backend fails but the other succeeds, this is a known difference
+      if (snarkyResult.success !== sparkyResult.success) {
+        comparison.match = false;
+        comparison.difference = `Backend capability difference: snarky=${snarkyResult.success} sparky=${sparkyResult.success}`;
+        this.log(`    📝 Backend difference detected (expected for some circuit types)`);
+        
+        // CRITICAL DEBUG: Print the actual error messages
+        if (!snarkyResult.success && snarkyResult.error) {
+          this.log(`    ❌ Snarky error: ${snarkyResult.error}`);
+        }
+        if (!sparkyResult.success && sparkyResult.error) {
+          this.log(`    ❌ Sparky error: ${sparkyResult.error}`);
+        }
+      } else {
+        // Both failed - this is a real issue
+        comparison.match = false;
+        comparison.difference = `Both backends failed compilation: snarky=${snarkyResult.success} sparky=${sparkyResult.success}`;
+        if (snarkyResult.error) {
+          this.log(`    ❌ Snarky error: ${snarkyResult.error}`);
+        }
+        if (sparkyResult.error) {
+          this.log(`    ❌ Sparky error: ${sparkyResult.error}`);
+        }
+      }
+    }
+    
+    this.log(`    📊 Compilation comparison: ${comparison.match ? 'MATCH' : 'MISMATCH'}`);
+    if (!comparison.match) {
+      this.log(`    ⚠️  ${comparison.difference}`);
+    }
+    
+    return {
+      testName: test.name,
+      success: comparison.match,
+      duration: 0, // Will be filled by caller
+      backends: ['snarky', 'sparky'],
+      results,
+      comparison
+    };
+  }
+
+  /**
    * Switch to a specific backend and track switches
    */
   private async switchToBackend(backend: Backend): Promise<void> {
@@ -385,18 +478,12 @@ class IntegrationWorker {
   }
 
   /**
-   * Compare results from different backends
+   * Compare results from different backends with intelligent comparison
    */
   private compareResults(snarkyResult: any, sparkyResult: any, compareBy: string = 'value'): any {
     try {
       if (compareBy === 'value') {
-        const match = JSON.stringify(snarkyResult) === JSON.stringify(sparkyResult);
-        return {
-          match,
-          snarkyResult,
-          sparkyResult,
-          difference: match ? undefined : 'Values do not match'
-        };
+        return this.compareValueResults(snarkyResult, sparkyResult);
       } else if (compareBy === 'hash') {
         const match = snarkyResult.hash === sparkyResult.hash;
         return {
@@ -424,6 +511,87 @@ class IntegrationWorker {
         difference: `Comparison error: ${(error as Error).message}`
       };
     }
+  }
+
+  /**
+   * Intelligent value comparison that focuses on computational results
+   */
+  private compareValueResults(snarkyResult: any, sparkyResult: any): any {
+    // Handle null/undefined cases
+    if (snarkyResult === sparkyResult) {
+      return { match: true, snarkyResult, sparkyResult };
+    }
+    
+    if (!snarkyResult || !sparkyResult) {
+      return {
+        match: false,
+        snarkyResult,
+        sparkyResult,
+        difference: 'One result is null/undefined'
+      };
+    }
+
+    // For primitive values, do direct comparison
+    if (typeof snarkyResult !== 'object' || typeof sparkyResult !== 'object') {
+      const match = snarkyResult === sparkyResult;
+      return {
+        match,
+        snarkyResult,
+        sparkyResult,
+        difference: match ? undefined : `Primitive values differ: ${snarkyResult} vs ${sparkyResult}`
+      };
+    }
+
+    // For objects, compare core computational fields while ignoring metadata
+    const ignoredFields = new Set(['backend', 'timestamp', 'memoryUsage', 'duration']);
+    
+    // Get all relevant fields (excluding ignored ones)
+    const snarkyFields = Object.keys(snarkyResult).filter(key => !ignoredFields.has(key));
+    const sparkyFields = Object.keys(sparkyResult).filter(key => !ignoredFields.has(key));
+    
+    // Check if field sets match
+    if (snarkyFields.length !== sparkyFields.length || 
+        !snarkyFields.every(field => sparkyFields.includes(field))) {
+      return {
+        match: false,
+        snarkyResult,
+        sparkyResult,
+        difference: `Field structure differs: snarky=[${snarkyFields.join(',')}] vs sparky=[${sparkyFields.join(',')}]`
+      };
+    }
+    
+    // Compare each field value
+    for (const field of snarkyFields) {
+      const snarkyValue = snarkyResult[field];
+      const sparkyValue = sparkyResult[field];
+      
+      // Recursive comparison for nested objects
+      if (typeof snarkyValue === 'object' && typeof sparkyValue === 'object') {
+        const nestedComparison = this.compareValueResults(snarkyValue, sparkyValue);
+        if (!nestedComparison.match) {
+          return {
+            match: false,
+            snarkyResult,
+            sparkyResult,
+            difference: `Field '${field}' differs: ${nestedComparison.difference}`
+          };
+        }
+      } else if (snarkyValue !== sparkyValue) {
+        return {
+          match: false,
+          snarkyResult,
+          sparkyResult,
+          difference: `Field '${field}' differs: snarky=${snarkyValue} vs sparky=${sparkyValue}`
+        };
+      }
+    }
+    
+    // All fields match
+    return {
+      match: true,
+      snarkyResult,
+      sparkyResult
+    };
   }
 
   /**

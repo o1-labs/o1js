@@ -24,6 +24,7 @@ import {
 import { witness, witnessAsync, witnessFields } from './types/witness.js';
 import { InferValue } from '../../bindings/lib/provable-generic.js';
 import { ToProvable } from '../../lib/provable/types/provable-intf.js';
+import { getCurrentBackend } from '../../bindings.js';
 
 // external API
 export { Provable };
@@ -359,6 +360,39 @@ function ifField(b: Field, x: Field, y: Field) {
   // TODO: this is suboptimal if one of x, y is constant
   // it uses 2-3 generic gates in that case, where 1 would be enough
 
+  // SPARKY SEMANTIC CONSTRAINT OPTIMIZATION
+  // Check if Sparky backend is active and can emit semantic If constraints
+  if (typeof getCurrentBackend === 'function') {
+    try {
+      const currentBackend = getCurrentBackend();
+      if (currentBackend === 'sparky' && 
+          typeof globalThis !== 'undefined' && 
+          (globalThis as any).sparkyConstraintBridge?.emitIfConstraint) {
+        
+        // SEMANTIC CONSTRAINT EMISSION: Preserve Provable.if semantics
+        // This allows Sparky to generate Snarky's optimal 2-constraint pattern
+        // instead of expanding to 4+ primitive constraints
+        const semanticResult = (globalThis as any).sparkyConstraintBridge.emitIfConstraint(
+          b.value, // Access FieldVar directly from Field
+          x.value, // Access FieldVar directly from Field
+          y.value  // Access FieldVar directly from Field
+        );
+        
+        if (semanticResult) {
+          // SUCCESS: Semantic constraint emitted, return the result
+          // Create a new Field from the returned FieldVar
+          return new Field(semanticResult);
+        }
+        // If semantic constraint fails, fall through to primitive expansion
+      }
+    } catch (error) {
+      // Backend detection or semantic constraint failed, fall through to primitive expansion
+      console.debug('Sparky semantic If constraint failed, using primitive expansion:', 
+                    error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // PRIMITIVE EXPANSION FALLBACK (original implementation)
   // b*(x - y) + y
   // NOTE: the R1CS constraint used by Field.if_ in snarky-ml
   // leads to a different but equivalent layout (same # constraints)

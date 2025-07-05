@@ -1,4 +1,4 @@
-import { Snarky } from '../../bindings.js';
+import { Snarky, getCurrentBackend } from '../../bindings.js';
 import { Field, readVarMessage, withMessage } from './field.js';
 import { FieldVar, FieldConst, FieldType } from './core/fieldvar.js';
 import { defineBinable } from '../../bindings/lib/binable.js';
@@ -73,7 +73,17 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() && toBoolean(y));
     }
-    // x * y
+    
+    // Semantic Boolean AND for Sparky backend
+    if (getCurrentBackend() === 'sparky' && 
+        (globalThis as any).sparkyConstraintBridge?.emitBooleanAnd) {
+      const result = (globalThis as any).sparkyConstraintBridge.emitBooleanAnd(
+        this.value, toFieldVar(y)
+      );
+      if (result) return new Bool(result);
+    }
+    
+    // Fallback to field multiplication
     return new Bool(this.toField().mul(Bool.toField(y)).value);
   }
 

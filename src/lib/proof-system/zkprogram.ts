@@ -810,6 +810,10 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           '🔄 Compiling with enhanced Sparky constraints...' : 
           '🔄 Compiling with standard rules...');
         
+        console.log('🔍 DEBUG: About to call Pickles.compile with rules:', compilationRules.length);
+        console.log('🔍 DEBUG: globalThis.__snarky exists?', !!(globalThis as any).__snarky);
+        console.log('🔍 DEBUG: globalThis.__snarky.Snarky type:', typeof (globalThis as any).__snarky?.Snarky);
+        
         result = Pickles.compile(MlArray.to(compilationRules), {
           publicInputSize: publicInputType.sizeInFields(),
           publicOutputSize: publicOutputType.sizeInFields(),
@@ -981,6 +985,10 @@ function picklesRuleFromFunction(
   withRuntimeTables?: boolean
 ): Pickles.Rule {
   async function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
+    console.log(`🔍 DEBUG: Executing main for ${methodName}`);
+    console.log('🔍 DEBUG: Current backend:', getCurrentBackend());
+    console.log('🔍 DEBUG: globalThis.__snarky.Snarky exists?', !!(globalThis as any).__snarky?.Snarky);
+    
     let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));
 
