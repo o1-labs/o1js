@@ -14,6 +14,7 @@ Project status and development progress tracking is maintained in DEV.md.
 - Use technical tone in documentation with minimal emoji
 - Provide times in UTC
 - Use checkmarks ✅ and X ❌ for pass/fail status only
+- ONLY add dates to .md files, NOT .rs or .ts (etc) source files!
 
 ## Communication Guidelines
 

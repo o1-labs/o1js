@@ -31,6 +31,7 @@ import {
 } from './backend-routing.js';
 import { fieldOperations } from './field-operations.js';
 import { gateOperations } from './gate-operations.js';
+import { poseidonOperations } from './poseidon-operations.js';
 import { 
   runOperations, 
   constraintSystemOperations,
@@ -249,6 +250,8 @@ function resetSparkyBackend(): void {
  * Main Snarky interface assembly
  */
 const Snarky: SnarkyAdapter = {
+  poseidon: poseidonOperations,
+  
   field: fieldOperations,
   
   run: runOperations,

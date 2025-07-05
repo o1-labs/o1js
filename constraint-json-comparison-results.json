@@ -1,0 +1,149 @@
+[
+  {
+    "testName": "constraint-json-basic-field-addition",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-basic-field-multiplication",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-field-subtraction",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-field-division",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-boolean-and",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-boolean-or",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-boolean-not",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-boolean-equals",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-provable-if-fields",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-field-less-than",
+    "snarkySuccess": false,
+    "sparkySuccess": false,
+    "snarkyError": "Cannot read properties of undefined (reading '0')",
+    "sparkyError": "xLimbs12 must have exactly 6 elements"
+  },
+  {
+    "testName": "constraint-json-field-less-than-or-equal",
+    "snarkySuccess": false,
+    "sparkySuccess": false,
+    "snarkyError": "Cannot read properties of undefined (reading '0')",
+    "sparkyError": "xLimbs12 must have exactly 6 elements"
+  },
+  {
+    "testName": "constraint-json-field-greater-than",
+    "snarkySuccess": false,
+    "sparkySuccess": false,
+    "snarkyError": "Cannot read properties of undefined (reading '0')",
+    "sparkyError": "xLimbs12 must have exactly 6 elements"
+  },
+  {
+    "testName": "constraint-json-field-assert-equals",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-field-assert-not-equals",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-poseidon-hash-two-fields",
+    "snarkySuccess": false,
+    "sparkySuccess": false,
+    "snarkyError": "Cannot read properties of undefined (reading '0')",
+    "sparkyError": "Sparky error: Invalid FieldVar format: expected constant with 1 argument, got 2 arguments"
+  },
+  {
+    "testName": "constraint-json-complex-arithmetic-expression",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-nested-conditionals",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-witness-field-pattern",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-uint32-addition",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-uint64-comparison",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-group-addition",
+    "snarkySuccess": false,
+    "sparkySuccess": false,
+    "snarkyError": "Cannot read properties of undefined (reading '0')",
+    "sparkyError": "ecAdd implementation failed: ecAdd gate not available in current backend"
+  },
+  {
+    "testName": "constraint-json-array-field-sum",
+    "snarkySuccess": false,
+    "sparkySuccess": true,
+    "snarkyError": "Cannot read properties of undefined (reading '0')"
+  },
+  {
+    "testName": "constraint-json-empty-circuit",
+    "snarkySuccess": false,
+    "sparkySuccess": true
+  },
+  {
+    "testName": "constraint-json-constants-only",
+    "snarkySuccess": false,
+    "sparkySuccess": true
+  }
+]

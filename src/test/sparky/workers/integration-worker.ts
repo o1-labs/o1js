@@ -57,6 +57,9 @@ class IntegrationWorker {
     this.config = config;
     this.startTime = Date.now();
     
+    // Setup comprehensive process error handling
+    this.setupProcessErrorHandling();
+    
     // Setup memory management
     this.memoryManager = new MemoryManager(
       config.memoryLimitMB,
@@ -73,6 +76,51 @@ class IntegrationWorker {
   }
 
   /**
+   * Setup comprehensive process-level error handling
+   */
+  private setupProcessErrorHandling(): void {
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+      this.log(`❌ CRITICAL: Unhandled Promise Rejection at: ${promise}, reason: ${reason}`, true);
+      this.log(`❌ CRITICAL: Stack: ${reason?.stack || 'No stack trace'}`, true);
+      this.handleWorkerError(new Error(`Unhandled Promise Rejection: ${reason}`));
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error: Error) => {
+      this.log(`❌ CRITICAL: Uncaught Exception: ${error.message}`, true);
+      this.log(`❌ CRITICAL: Stack: ${error.stack}`, true);
+      this.handleWorkerError(error);
+    });
+
+    // Handle warning events
+    process.on('warning', (warning: any) => {
+      this.log(`⚠️ Process Warning: ${warning.name}: ${warning.message}`, true);
+    });
+
+    // Handle SIGTERM/SIGINT gracefully
+    process.on('SIGTERM', () => {
+      this.log('📴 SIGTERM received, performing graceful shutdown...', true);
+      this.sendErrorToOrchestrator({
+        type: 'PROCESS_TERMINATED',
+        signal: 'SIGTERM',
+        timestamp: Date.now()
+      });
+      process.exit(1);
+    });
+
+    process.on('SIGINT', () => {
+      this.log('📴 SIGINT received, performing graceful shutdown...', true);
+      this.sendErrorToOrchestrator({
+        type: 'PROCESS_TERMINATED', 
+        signal: 'SIGINT',
+        timestamp: Date.now()
+      });
+      process.exit(1);
+    });
+  }
+
+  /**
    * Main entry point - run integration test suites
    */
   async run(): Promise<void> {
@@ -81,25 +129,56 @@ class IntegrationWorker {
       this.log(`📋 Assigned suites: ${this.config.suites.join(', ')}`, true);
       
       // Initialize o1js imports
+      this.log('🔧 DEBUG: About to initialize o1js...', true);
       await this.initializeO1js();
+      this.log('✅ DEBUG: o1js initialization complete', true);
       
       // Run all assigned integration test suites
       const results: IntegrationSuiteResult[] = [];
+      this.log(`🔧 DEBUG: About to run ${this.config.suites.length} test suites...`, true);
+      
       for (const suiteName of this.config.suites) {
-        const suiteResult = await this.runIntegrationSuite(suiteName);
-        results.push(suiteResult);
-        
-        this.sendProgressUpdate(suiteName, suiteResult.success);
+        this.log(`🔧 DEBUG: Starting suite: ${suiteName}`, true);
+        try {
+          const suiteResult = await this.runIntegrationSuite(suiteName);
+          results.push(suiteResult);
+          this.log(`🔧 DEBUG: Suite ${suiteName} completed successfully: ${suiteResult.success}`, true);
+          
+          this.sendProgressUpdate(suiteName, suiteResult.success);
+          this.log(`🔧 DEBUG: Progress update sent for suite: ${suiteName}`, true);
+        } catch (suiteError: any) {
+          this.log(`❌ DEBUG: Suite ${suiteName} failed: ${suiteError?.message}`, true);
+          // Create a failed suite result instead of crashing
+          results.push({
+            suiteName,
+            results: [],
+            totalDuration: 0,
+            memoryStats: this.memoryManager.getMemoryStats(),
+            success: false,
+            backendSwitches: this.backendSwitchCount
+          });
+        }
       }
 
-      // Send final results
-      this.sendFinalResults(results);
+      this.log(`🔧 DEBUG: All suites completed, about to send final results...`, true);
+      this.log(`🔧 DEBUG: Results summary: ${results.length} suites, ${results.filter(r => r.success).length} successful`, true);
+      
+      // Send final results with enhanced error handling
+      try {
+        this.sendFinalResults(results);
+        this.log(`🔧 DEBUG: Final results sent successfully`, true);
+      } catch (resultError: any) {
+        this.log(`❌ DEBUG: Failed to send final results: ${resultError?.message}`, true);
+        throw resultError;
+      }
       
       this.log(`✅ Integration worker completed in ${this.getElapsedTime()}ms`);
       this.log(`🔄 Total backend switches: ${this.backendSwitchCount}`);
       process.exit(0);
       
-    } catch (error) {
+    } catch (error: any) {
+      this.log(`❌ DEBUG: Unhandled error in run(): ${error?.message}`, true);
+      this.log(`❌ DEBUG: Error stack: ${error?.stack}`, true);
       this.handleWorkerError(error);
     }
   }
@@ -143,39 +222,27 @@ class IntegrationWorker {
     const suiteStartTime = Date.now();
     this.log(`🧪 Running integration suite: ${suiteName}`);
     
-    try {
-      const suite = await this.loadIntegrationSuite(suiteName);
-      const results: IntegrationTestResult[] = [];
+    const suite = await this.loadIntegrationSuite(suiteName);
+    const results: IntegrationTestResult[] = [];
+    
+    for (const test of suite.tests) {
+      const testResult = await this.runIntegrationTest(test);
+      results.push(testResult);
       
-      for (const test of suite.tests) {
-        const testResult = await this.runIntegrationTest(test);
-        results.push(testResult);
-        
-        this.memoryManager.checkMemoryUsage();
-      }
-      
-      const totalDuration = Date.now() - suiteStartTime;
-      const success = results.every(r => r.success);
-      
-      return {
-        suiteName,
-        results,
-        totalDuration,
-        memoryStats: this.memoryManager.getMemoryStats(),
-        success,
-        backendSwitches: this.backendSwitchCount
-      };
-      
-    } catch (error) {
-      return {
-        suiteName,
-        results: [],
-        totalDuration: Date.now() - suiteStartTime,
-        memoryStats: this.memoryManager.getMemoryStats(),
-        success: false,
-        backendSwitches: this.backendSwitchCount
-      };
+      this.memoryManager.checkMemoryUsage();
     }
+    
+    const totalDuration = Date.now() - suiteStartTime;
+    const success = results.every(r => r.success);
+    
+    return {
+      suiteName,
+      results,
+      totalDuration,
+      memoryStats: this.memoryManager.getMemoryStats(),
+      success,
+      backendSwitches: this.backendSwitchCount
+    };
   }
 
   /**
@@ -230,11 +297,11 @@ class IntegrationWorker {
   private async runIntegrationTest(test: any): Promise<IntegrationTestResult> {
     const testStartTime = Date.now();
     
+    this.log(`  🔄 ${test.name}...`);
+    
+    let testResult: IntegrationTestResult;
+    
     try {
-      this.log(`  🔄 ${test.name}...`);
-      
-      let testResult: IntegrationTestResult;
-      
       if (test.type === 'switching') {
         testResult = await this.runBackendSwitchingTest(test);
       } else if (test.type === 'comparison') {
@@ -243,28 +310,39 @@ class IntegrationWorker {
         testResult = await this.runStateIsolationTest(test);
       } else if (test.type === 'compilation') {
         testResult = await this.runCompilationTest(test);
+      } else if (test.type === 'digest') {
+        testResult = await this.runDigestTest(test);
       } else {
         throw new Error(`Unknown integration test type: ${test.type}`);
       }
-      
-      testResult.duration = Date.now() - testStartTime;
-      this.log(`    ${testResult.success ? '✅' : '❌'} ${test.name} (${testResult.duration}ms)`);
-      
-      return testResult;
-      
     } catch (error) {
-      const duration = Date.now() - testStartTime;
-      this.log(`    ❌ ${test.name} (${duration}ms): ${(error as Error).message}`);
+      // Create detailed error result with full context
+      const errorMessage = (error as any)?.message || String(error);
+      const errorStack = (error as any)?.stack || new Error().stack;
       
-      return {
+      this.log(`    ❌ Test ${test.name} failed: ${errorMessage}`);
+      if (this.config.verbose) {
+        this.log(`    📚 Stack: ${errorStack}`);
+      }
+      
+      testResult = {
         testName: test.name,
         success: false,
-        duration,
+        duration: Date.now() - testStartTime,
         backends: [],
         results: {},
-        error: (error as Error).message
+        error: `TEST EXECUTION FAILED\n\n` +
+               `Test: ${test.name}\n` +
+               `Type: ${test.type}\n` +
+               `Error: ${errorMessage}\n\n` +
+               `Stack Trace:\n${errorStack}`
       };
     }
+    
+    testResult.duration = Date.now() - testStartTime;
+    this.log(`    ${testResult.success ? '✅' : '❌'} ${test.name} (${testResult.duration}ms)`);
+    
+    return testResult;
   }
 
   /**
@@ -458,6 +536,34 @@ class IntegrationWorker {
   }
 
   /**
+   * Run a digest test (for VK digest functionality)
+   */
+  private async runDigestTest(test: any): Promise<IntegrationTestResult> {
+    // Digest tests run on a single backend specified in the test
+    const backend = test.backend || 'snarky';
+    await this.switchToBackend(backend);
+    
+    const result = await test.testFn(backend);
+    
+    // Check if the digest is valid (not '2' or 'undefined' which were error cases)
+    const success = result.isValidMD5 && !result.isSuspiciousValue;
+    
+    return {
+      testName: test.name,
+      success,
+      duration: 0, // Will be filled by caller
+      backends: [backend],
+      results: { [backend]: result },
+      comparison: {
+        match: success,
+        snarkyResult: result,
+        sparkyResult: null,
+        difference: success ? undefined : `Invalid digest: ${result.digest}`
+      }
+    };
+  }
+
+  /**
    * Switch to a specific backend and track switches
    */
   private async switchToBackend(backend: Backend): Promise<void> {
@@ -481,35 +587,26 @@ class IntegrationWorker {
    * Compare results from different backends with intelligent comparison
    */
   private compareResults(snarkyResult: any, sparkyResult: any, compareBy: string = 'value'): any {
-    try {
-      if (compareBy === 'value') {
-        return this.compareValueResults(snarkyResult, sparkyResult);
-      } else if (compareBy === 'hash') {
-        const match = snarkyResult.hash === sparkyResult.hash;
-        return {
-          match,
-          snarkyResult: snarkyResult.hash,
-          sparkyResult: sparkyResult.hash,
-          difference: match ? undefined : `Hash mismatch: ${snarkyResult.hash} vs ${sparkyResult.hash}`
-        };
-      } else if (compareBy === 'constraints') {
-        const match = snarkyResult.constraintCount === sparkyResult.constraintCount;
-        return {
-          match,
-          snarkyResult: snarkyResult.constraintCount,
-          sparkyResult: sparkyResult.constraintCount,
-          difference: match ? undefined : `Constraint count: ${snarkyResult.constraintCount} vs ${sparkyResult.constraintCount}`
-        };
-      } else {
-        throw new Error(`Unknown comparison method: ${compareBy}`);
-      }
-    } catch (error) {
+    if (compareBy === 'value') {
+      return this.compareValueResults(snarkyResult, sparkyResult);
+    } else if (compareBy === 'hash') {
+      const match = snarkyResult.hash === sparkyResult.hash;
       return {
-        match: false,
-        snarkyResult,
-        sparkyResult,
-        difference: `Comparison error: ${(error as Error).message}`
+        match,
+        snarkyResult: snarkyResult.hash,
+        sparkyResult: sparkyResult.hash,
+        difference: match ? undefined : `Hash mismatch: ${snarkyResult.hash} vs ${sparkyResult.hash}`
       };
+    } else if (compareBy === 'constraints') {
+      const match = snarkyResult.constraintCount === sparkyResult.constraintCount;
+      return {
+        match,
+        snarkyResult: snarkyResult.constraintCount,
+        sparkyResult: sparkyResult.constraintCount,
+        difference: match ? undefined : `Constraint count: ${snarkyResult.constraintCount} vs ${sparkyResult.constraintCount}`
+      };
+    } else {
+      throw new Error(`Unknown comparison method: ${compareBy}`);
     }
   }
 
@@ -622,10 +719,22 @@ class IntegrationWorker {
    * Handle worker error
    */
   private handleWorkerError(error: any): void {
+    // Serialize the complete error with all context
+    const errorDetails = {
+      message: error?.message || String(error),
+      stack: error?.stack || new Error().stack,
+      name: error?.name || 'Error',
+      cause: error?.cause,
+      // Preserve all enumerable properties
+      ...error
+    };
+
     this.sendErrorToOrchestrator({
       type: 'WORKER_ERROR',
-      error: (error as Error).message,
-      stack: (error as Error).stack
+      error: errorDetails,
+      workerType: 'integration',
+      timestamp: Date.now(),
+      workerId: process.pid
     });
     process.exit(1);
   }
@@ -644,18 +753,54 @@ class IntegrationWorker {
   }
 
   private sendFinalResults(results: IntegrationSuiteResult[]): void {
-    if (process.send) {
+    this.log('🔧 DEBUG: sendFinalResults called', true);
+    
+    if (!process.send) {
+      this.log('❌ DEBUG: process.send is not available (not forked process)', true);
+      throw new Error('Process is not a child process - no IPC channel available');
+    }
+    
+    try {
       // Flatten suite results to test results for orchestrator
+      this.log(`🔧 DEBUG: Flattening ${results.length} suite results...`, true);
       const allTestResults = results.flatMap(suite => suite.results);
+      this.log(`🔧 DEBUG: Flattened to ${allTestResults.length} test results`, true);
       
-      process.send({
+      // Get memory report safely
+      let memoryReport;
+      try {
+        memoryReport = this.memoryManager.getMemoryReport();
+        this.log('🔧 DEBUG: Memory report obtained successfully', true);
+      } catch (memError: any) {
+        this.log(`⚠️ DEBUG: Memory report failed: ${memError?.message}`, true);
+        memoryReport = { error: 'Failed to get memory report' };
+      }
+      
+      const resultPayload = {
         type: 'result',
         success: results.every(r => r.success),
         results: allTestResults,
-        memoryReport: this.memoryManager.getMemoryReport(),
+        memoryReport,
         duration: this.getElapsedTime(),
         error: results.some(r => !r.success) ? 'Some integration tests failed' : undefined
-      });
+      };
+      
+      this.log(`🔧 DEBUG: About to send result payload via IPC...`, true);
+      this.log(`🔧 DEBUG: Payload size: ${JSON.stringify(resultPayload).length} chars`, true);
+      
+      // Send with error handling
+      const sendResult = process.send(resultPayload);
+      this.log(`🔧 DEBUG: process.send returned: ${sendResult}`, true);
+      
+      // Give a moment for IPC to flush
+      setTimeout(() => {
+        this.log('🔧 DEBUG: IPC send completed, ready for process exit', true);
+      }, 100);
+      
+    } catch (error: any) {
+      this.log(`❌ DEBUG: sendFinalResults error: ${error?.message}`, true);
+      this.log(`❌ DEBUG: sendFinalResults stack: ${error?.stack}`, true);
+      throw error;
     }
   }
 

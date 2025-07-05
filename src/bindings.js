@@ -60,12 +60,12 @@ async function initializeBindings(backend = null) {
         sparkyAdapter.resetSparkyState();
       }
       
+      ({ Snarky, Ledger, Pickles, Test: Test_ } = sparkyAdapter);
+      
       // ROUTING FIX: Update global constraint routing to Sparky
       if (sparkyAdapter.activateSparkyRouting) {
-        sparkyAdapter.activateSparkyRouting();
+        sparkyAdapter.activateSparkyRouting(Snarky);
       }
-      
-      ({ Snarky, Ledger, Pickles, Test: Test_ } = sparkyAdapter);
       console.log('✓ Sparky backend loaded');
     } else {
       // Load OCaml Snarky (default)

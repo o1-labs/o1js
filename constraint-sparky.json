@@ -1,0 +1,34 @@
+{
+  "gates": [
+    {
+      "type": "generic",
+      "wires": [
+        6,
+        0,
+        5
+      ],
+      "coeffs": []
+    },
+    {
+      "type": "generic",
+      "wires": [
+        6,
+        3,
+        9
+      ],
+      "coeffs": []
+    },
+    {
+      "type": "generic",
+      "wires": [
+        11,
+        0,
+        5,
+        3,
+        9
+      ],
+      "coeffs": []
+    }
+  ],
+  "public_input_size": 0
+}

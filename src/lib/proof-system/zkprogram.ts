@@ -794,11 +794,14 @@ If you are using a SmartContract, make sure you are using the @method decorator.
               console.log('🔍 Full constraint system available with', fullSystem?.gates?.length || 0, 'gates');
               
               // PHASE 2: Convert Sparky constraints for Pickles enhancement
-              const enhancedRules = convertSparkyConstraintsToPicklesRules(fullSystem, rules);
-              console.log('🚀 Enhanced rules with Sparky constraints for VK generation!');
+              // TEMPORARILY DISABLED: The enhancement is causing Field objects to be serialized incorrectly
+              // const enhancedRules = convertSparkyConstraintsToPicklesRules(fullSystem, rules);
+              // console.log('🚀 Enhanced rules with Sparky constraints for VK generation!');
               
-              compilationRules = enhancedRules;
-              useEnhancedRules = true;
+              // compilationRules = enhancedRules;
+              // useEnhancedRules = true;
+              
+              console.log('⚠️  Enhancement temporarily disabled due to Field serialization issue');
             }
           } catch (bridgeError) {
             console.log('⚠️  Bridge access failed, proceeding with normal compilation');

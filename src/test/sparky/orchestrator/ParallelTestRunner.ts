@@ -169,17 +169,25 @@ export class ParallelTestRunner {
 
     // Add integration process if needed
     if (this.needsIntegrationTests()) {
-      configs.push({
-        id: 'integration',
-        worker: 'integration',
-        suites: ['switching-reliability', 'state-isolation', 'parity-comparison'],
-        args: [
-          'switching-reliability,state-isolation,parity-comparison',
-          this.config.memoryLimitMB.toString(),
-          this.config.maxExecutionTimeMs.toString(),
-          EnvironmentConfig.getVerbose().toString()
-        ]
-      });
+      // Import test discovery to get actual integration tests
+      const { TestDiscovery } = await import('../shared/TestDiscovery.js');
+      const discovery = new TestDiscovery();
+      const integrationTests = discovery.discoverIntegrationSuites();
+      
+      if (integrationTests.length > 0) {
+        const integrationTestNames = integrationTests.map(test => test.name);
+        configs.push({
+          id: 'integration',
+          worker: 'integration',
+          suites: integrationTestNames,
+          args: [
+            integrationTestNames.join(','),
+            this.config.memoryLimitMB.toString(),
+            this.config.maxExecutionTimeMs.toString(),
+            EnvironmentConfig.getVerbose().toString()
+          ]
+        });
+      }
     }
 
     // Add comprehensive process if needed
@@ -355,17 +363,78 @@ export class ParallelTestRunner {
         break;
 
       case 'WORKER_ERROR':
+        const errorDetails = message.error || {};
+        const detailedErrorMessage = this.formatWorkerError(errorDetails, message);
+        
         this.processResults.set(processId, {
           processId,
           backend: message.backend,
-          worker: message.worker || 'unknown',
+          worker: message.workerType || message.worker || 'unknown',
           success: false,
           results: [],
           duration: 0,
-          error: JSON.stringify(message.error)
+          error: detailedErrorMessage
         });
+        
+        // Log immediately for better debugging
+        console.error(`\n❌ WORKER FAILURE: ${processId}`);
+        console.error(detailedErrorMessage);
         break;
     }
+  }
+
+  /**
+   * Format worker error messages with full context
+   */
+  private formatWorkerError(errorDetails: any, message: any): string {
+    let output = '';
+    
+    output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    output += `WORKER PROCESS FAILURE\n`;
+    output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    
+    output += `Worker Type: ${message.workerType || 'unknown'}\n`;
+    output += `Process ID: ${message.workerId || 'unknown'}\n`;
+    output += `Timestamp: ${new Date(message.timestamp || Date.now()).toISOString()}\n\n`;
+    
+    if (errorDetails.message) {
+      output += `🔍 Error Message:\n${errorDetails.message}\n\n`;
+    }
+    
+    if (errorDetails.stack) {
+      output += `📚 Stack Trace:\n`;
+      const stackLines = errorDetails.stack.split('\n');
+      // Show first 15 lines of stack trace
+      stackLines.slice(0, 15).forEach((line: string) => {
+        output += `   ${line}\n`;
+      });
+      if (stackLines.length > 15) {
+        output += `   ... (${stackLines.length - 15} more lines)\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Show any additional error properties
+    const additionalProps = Object.keys(errorDetails).filter(
+      key => !['message', 'stack', 'name'].includes(key)
+    );
+    if (additionalProps.length > 0) {
+      output += `📋 Additional Details:\n`;
+      additionalProps.forEach(prop => {
+        const value = errorDetails[prop];
+        if (value !== undefined && value !== null) {
+          output += `   ${prop}: ${String(value).substring(0, 200)}\n`;
+        }
+      });
+      output += `\n`;
+    }
+    
+    output += `💡 Debugging Tips:\n`;
+    output += `   • Run with --verbose for more detailed logging\n`;
+    output += `   • Check individual test suites: npm run test:sparky-debug\n`;
+    output += `   • See IMPLEMENTATION_PATTERN.md for common issues\n`;
+    
+    return output;
   }
 
   /**
@@ -508,7 +577,32 @@ export class ParallelTestRunner {
     if (failedResults.length > 0) {
       console.log('❌ FAILED PROCESSES:');
       failedResults.forEach(result => {
-        console.log(`  • ${result.processId}: ${result.error || 'Unknown error'}`);
+        console.log(`\n  🔴 ${result.processId} (${result.worker || 'unknown'}):`);
+        
+        if (result.error) {
+          // If we have a detailed error, show it properly formatted
+          if (result.error.includes('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')) {
+            // This is already a formatted detailed error, show it as-is
+            console.log(result.error);
+          } else {
+            // This is a simple error, format it nicely
+            const errorLines = result.error.split('\n');
+            console.log(`     Error: ${errorLines[0]}`);
+            if (errorLines.length > 1) {
+              console.log(`     Details: ${errorLines.slice(1, 3).join(' ').trim()}`);
+            }
+          }
+        } else {
+          console.log(`     Unknown error - no details available`);
+        }
+        
+        // Show any test results for context
+        if (result.results && result.results.length > 0) {
+          const failedTests = result.results.filter((r: any) => !r.success);
+          if (failedTests.length > 0) {
+            console.log(`     Failed Tests: ${failedTests.map((t: any) => t.testName || t.name).join(', ')}`);
+          }
+        }
       });
       console.log('');
     }

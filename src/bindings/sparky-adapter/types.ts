@@ -83,11 +83,11 @@ export interface Snarky {
  * Poseidon hash function interface
  */
 export interface PoseidonCompat {
-  update(state: any, input: any): any;
-  hashToGroup(input: any): any;
+  update(state: FieldVar[], input: FieldVar[]): FieldVar[];
+  hashToGroup(input: FieldVar[]): { x: FieldVar; y: FieldVar };
   spongeCreate(isChecked: boolean): any;
-  spongeAbsorb(sponge: any, field: any): void;
-  spongeSqueeze(sponge: any): any;
+  spongeAbsorb(sponge: any, field: FieldVar): void;
+  spongeSqueeze(sponge: any): FieldVar;
 }
 
 /**
@@ -219,6 +219,16 @@ export type BackendType = 'sparky' | 'snarky';
  * Main Snarky interface that matches OCaml Snarky API
  */
 export interface SnarkyAdapter {
+  poseidon: {
+    update(state: any, input: any): any;
+    hashToGroup(input: any): any;
+    sponge: {
+      create(isChecked: boolean): any;
+      absorb(sponge: any, field: any): void;
+      squeeze(sponge: any): any;
+    };
+  };
+  
   field: {
     // Field creation
     constant(value: string | bigint): FieldVar;

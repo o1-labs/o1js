@@ -315,6 +315,7 @@ export const constraintSystemOperations = {
       json.gates = json.constraints;
     }
     
+    // Sparky now generates Snarky-compatible JSON format directly
     return json;
   }
 };

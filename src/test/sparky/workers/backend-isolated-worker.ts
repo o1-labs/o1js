@@ -249,14 +249,24 @@ class BackendIsolatedWorker {
       
     } catch (error) {
       const duration = Date.now() - testStartTime;
-      this.log(`    ❌ ${test.name} (${duration}ms): ${(error as Error).message}`);
+      const errorMessage = (error as any)?.message || String(error);
+      const errorStack = (error as any)?.stack || new Error().stack;
+      
+      this.log(`    ❌ ${test.name} (${duration}ms): ${errorMessage}`);
+      if (this.config.verbose) {
+        this.log(`    📚 Stack: ${errorStack}`);
+      }
       
       return {
         suiteName: '', // Will be filled by caller
         testName: test.name,
         success: false,
         duration,
-        error: (error as Error).message
+        error: `TEST EXECUTION FAILED\n\n` +
+               `Test: ${test.name}\n` +
+               `Backend: ${this.config.backend}\n` +
+               `Error: ${errorMessage}\n\n` +
+               `Stack Trace:\n${errorStack}`
       };
     }
   }
@@ -296,11 +306,23 @@ class BackendIsolatedWorker {
    * Handle worker error
    */
   private handleWorkerError(error: any): void {
+    // Serialize the complete error with all context
+    const errorDetails = {
+      message: error?.message || String(error),
+      stack: error?.stack || new Error().stack,
+      name: error?.name || 'Error',
+      cause: error?.cause,
+      // Preserve all enumerable properties
+      ...error
+    };
+
     this.sendErrorToOrchestrator({
       type: 'WORKER_ERROR',
       backend: this.config.backend,
-      error: (error as Error).message,
-      stack: (error as Error).stack
+      error: errorDetails,
+      workerType: 'backend-isolated',
+      timestamp: Date.now(),
+      workerId: process.pid
     });
     
     process.exit(1);

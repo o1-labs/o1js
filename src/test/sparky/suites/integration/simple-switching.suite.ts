@@ -19,18 +19,8 @@ export const tests: IntegrationTestCase[] = [
     name: 'backend-switching-verification',
     type: 'switching',
     testFn: async (backend) => {
-      // Verify backend is correctly set using real o1js
-      const o1js = (global as any).o1js;
-      if (!o1js) {
-        throw new Error('o1js not available in integration test');
-      }
-      
-      const currentBackend = o1js.getCurrentBackend();
-      return {
-        backend: currentBackend,
-        expectedBackend: backend,
-        match: currentBackend === backend
-      };
+      const impl = await import('./simple-switching.impl.js');
+      return impl.backendSwitchingVerification(backend);
     },
     timeout: 2000
   },
@@ -39,20 +29,8 @@ export const tests: IntegrationTestCase[] = [
     name: 'field-arithmetic-comparison',
     type: 'comparison',
     testFn: async (backend) => {
-      // Test Field operations produce same results across backends
-      const o1js = (global as any).o1js;
-      const { Field } = o1js;
-      
-      const a = Field(123);
-      const b = Field(456);
-      const c = a.mul(b);
-      const d = c.add(Field(789));
-      
-      return {
-        backend,
-        result: d.toString(),
-        operation: '(123 * 456) + 789'
-      };
+      const impl = await import('./simple-switching.impl.js');
+      return impl.fieldArithmeticComparison(backend);
     },
     compareBy: 'value',
     timeout: 3000
@@ -62,22 +40,8 @@ export const tests: IntegrationTestCase[] = [
     name: 'provable-witness-consistency',
     type: 'comparison',
     testFn: async (backend) => {
-      // Test Provable.witness behavior across backends
-      const o1js = (global as any).o1js;
-      const { Field, Provable } = o1js;
-      
-      let witnessValue = '';
-      Provable.runAndCheck(() => {
-        const x = Provable.witness(Field, () => Field(99));
-        const y = x.mul(Field(2));
-        witnessValue = y.toString();
-      });
-      
-      return {
-        backend,
-        witnessValue,
-        operation: 'witness(99) * 2'
-      };
+      const impl = await import('./simple-switching.impl.js');
+      return impl.provableWitnessConsistency(backend);
     },
     compareBy: 'value',
     timeout: 3000
