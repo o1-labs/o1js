@@ -59,14 +59,19 @@ export async function initSparkyWasm(): Promise<void> {
       let snarky: any;
       try {
         // Import createRequire to load CommonJS modules in ES module environment
-        const { createRequire } = await import('module') as any;
+        const moduleImport = await import('module');
+        const createRequire = (moduleImport as any).createRequire || (moduleImport as any).default?.createRequire;
         const require = createRequire(import.meta.url);
         
         // Load CommonJS modules using require
         snarky = require('../compiled/_node_bindings/o1js_node.bc.cjs');
         
-        // DON'T load Sparky WASM here - it will fail due to import mismatch
-        // We'll load it later in loadNodeWASM() with proper import patching
+        // Also load WASM module using createRequire (CommonJS module)
+        const sparkyNodePath = '../compiled/_node_bindings/sparky_wasm.cjs';
+        const sparkyModule = require(sparkyNodePath);
+        
+        // Store WASM module for later use
+        (global as any).sparkyModuleCache = sparkyModule;
       } catch (importError: any) {
         throw new Error(`Failed to load OCaml/WASM bindings via require: ${importError.message}`);
       }
@@ -118,6 +123,23 @@ export async function initSparkyWasm(): Promise<void> {
     // Initialize Sparky instance
     sparkyInstance = sparkyWasm.initSparky();
     
+    // Transform the interface to match expected adapter API
+    // The WASM provides methods but adapter expects properties
+    if (sparkyInstance) {
+      if (typeof (sparkyInstance as any).run === 'function') {
+        (sparkyInstance as any).run = (sparkyInstance as any).run();
+      }
+      if (typeof (sparkyInstance as any).field === 'function') {
+        (sparkyInstance as any).field = (sparkyInstance as any).field();
+      }
+      if (typeof (sparkyInstance as any).constraintSystem === 'function') {
+        (sparkyInstance as any).constraintSystem = (sparkyInstance as any).constraintSystem();
+      }
+      if (typeof (sparkyInstance as any).gates === 'function') {
+        (sparkyInstance as any).gates = (sparkyInstance as any).gates();
+      }
+    }
+    
     // The layered architecture fix worked! The generated JavaScript now has correct getters:
     // - snarky_gates() function is called (not snarky_field)
     // - takeObject(ret) is used properly
@@ -137,35 +159,31 @@ export async function initSparkyWasm(): Promise<void> {
  * Load WASM module in Node.js environment
  */
 async function loadNodeWASM(): Promise<void> {
-  // Check for cached module first
+  // Check for cached module first (from require above)
   if ((global as any).sparkyModuleCache) {
     sparkyWasm = (global as any).sparkyModuleCache;
     return;
   }
   
+  // Fallback to dynamic import
   try {
-    // Import Node.js modules for file reading
+    // Import Node.js file system utilities
     const fs = await import('fs');
+    const url = await import('url');
     const path = await import('path');
-    const { fileURLToPath } = await import('url');
     
-    // Import the web target ES module
-    sparkyWasm = await import('../compiled/_node_bindings/sparky_wasm.js');
+    // Try loading WASM module directly
+    const currentFileUrl = import.meta.url;
+    const currentFilePath = url.fileURLToPath(currentFileUrl);
+    const currentDir = path.dirname(currentFilePath);
     
-    // Get the directory of this module
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
+    // Try compiled path first
+    const wasmPath = path.join(currentDir, '../compiled/_node_bindings/sparky_wasm.cjs');
     
-    // Read the WASM file directly
-    const wasmPath = path.join(__dirname, '../compiled/_node_bindings/sparky_wasm_bg.wasm');
-    const wasmBytes = fs.readFileSync(wasmPath);
-    
-    // Initialize with the bytes directly using initSync
-    sparkyWasm.initSync(wasmBytes);
-    
-    // Cache it for future use
-    (global as any).sparkyModuleCache = sparkyWasm;
-    
+    // Dynamic require fallback
+    const { createRequire } = await import('module') as any;
+    const require = createRequire(import.meta.url);
+    sparkyWasm = require(wasmPath);
   } catch (error: any) {
     throw new Error(`Failed to load Sparky WASM in Node.js: ${error.message}`);
   }

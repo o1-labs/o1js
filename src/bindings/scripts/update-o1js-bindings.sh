@@ -32,6 +32,9 @@ fi
 
 # 2. web build
 
+# Ensure web bindings directory exists
+mkdir -p "${WEB_BINDINGS}"
+
 # Normally these variables are not defined
 # But the nix build uses them
 if [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}" ] || [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS}" ]
@@ -44,7 +47,6 @@ then
   cp "${BUILD_PATH}"/o1js_web*.js "${WEB_BINDINGS}"/
   chmod -R 666 "${WEB_BINDINGS}"/*
 else
-  mkdir -p "${WEB_BINDINGS}"
   cp "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}"/*.js \
      "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}"/*.ts \
      "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}"/*.wasm \
