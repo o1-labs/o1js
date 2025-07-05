@@ -1,0 +1,481 @@
+/**
+ * Range Check Gates Test Suite
+ * 
+ * Comprehensive testing of all range check gate operations:
+ * - 8, 16, 32, 64-bit range checks
+ * - Multi-range checks and advanced APIs
+ * - Mathematical property validation
+ * - Cross-backend parity testing
+ * - Constraint pattern validation
+ * 
+ * Created: July 5, 2025, 00:35 UTC
+ * Last Modified: July 5, 2025, 00:35 UTC
+ */
+
+import { Field, Bool, Provable, Gadgets } from '../../../../../lib/provable/index.js';
+import { TestCase } from '../../test-discovery.js';
+
+/**
+ * Range Check Property Validators
+ */
+export const RangeCheckProperties = {
+  /**
+   * Validates that a value is within the specified bit range
+   */
+  withinRange: (bits: number) => PropertyValidators.create<[Field], Bool>(
+    `within_${bits}_bit_range`,
+    ([value]) => {
+      const maxValue = (1n << BigInt(bits)) - 1n;
+      const valueBigInt = value.toBigInt();
+      return Bool(valueBigInt >= 0n && valueBigInt <= maxValue);
+    }
+  ),
+
+  /**
+   * Validates that range check operation completes without errors
+   */
+  rangeCheckCompletes: (bits: number) => PropertyValidators.create<[Field], Bool>(
+    `range_check_${bits}_completes`,
+    ([value]) => {
+      try {
+        switch (bits) {
+          case 8:
+            Gadgets.rangeCheck8(value);
+            break;
+          case 16:
+            Gadgets.rangeCheck16(value);
+            break;
+          case 32:
+            Gadgets.rangeCheck32(value);
+            break;
+          case 64:
+            Gadgets.rangeCheck64(value);
+            break;
+          default:
+            if (bits % 16 === 0) {
+              Gadgets.rangeCheckN(bits, value);
+            } else {
+              throw new Error(`Unsupported bit size: ${bits}`);
+            }
+        }
+        return Bool(true);
+      } catch (error) {
+        return Bool(false);
+      }
+    }
+  ),
+
+  /**
+   * Validates multi-range check operates correctly on three values
+   */
+  multiRangeCheckCompletes: PropertyValidators.create<[Field, Field, Field], Bool>(
+    'multi_range_check_completes',
+    ([x, y, z]) => {
+      try {
+        Gadgets.multiRangeCheck([x, y, z]);
+        return Bool(true);
+      } catch (error) {
+        return Bool(false);
+      }
+    }
+  ),
+
+  /**
+   * Validates boundary conditions for range checks
+   */
+  boundaryValidation: (bits: number) => PropertyValidators.create<[Field], Bool>(
+    `boundary_validation_${bits}`,
+    ([value]) => {
+      const maxValue = (1n << BigInt(bits)) - 1n;
+      const valueBigInt = value.toBigInt();
+      
+      // Test boundary cases
+      if (valueBigInt === 0n || valueBigInt === maxValue) {
+        try {
+          switch (bits) {
+            case 8: Gadgets.rangeCheck8(value); break;
+            case 16: Gadgets.rangeCheck16(value); break;
+            case 32: Gadgets.rangeCheck32(value); break;
+            case 64: Gadgets.rangeCheck64(value); break;
+            default: Gadgets.rangeCheckN(bits, value);
+          }
+          return Bool(true);
+        } catch (error) {
+          return Bool(false);
+        }
+      }
+      return Bool(true);
+    }
+  )
+};
+
+/**
+ * Range Check Input Generators
+ */
+export const RangeCheckInputGenerators = {
+  /**
+   * Generate valid values within specified bit range
+   */
+  validRange: (bits: number) => (): [Field] => {
+    const maxValue = (1n << BigInt(bits)) - 1n;
+    const randomValue = BigInt(Math.floor(Math.random() * Number(maxValue)));
+    return [Field(randomValue)];
+  },
+
+  /**
+   * Generate boundary values (0, max, max+1)
+   */
+  boundaryValues: (bits: number) => (): [Field] => {
+    const maxValue = (1n << BigInt(bits)) - 1n;
+    const values = [0n, maxValue, maxValue + 1n];
+    const randomIndex = Math.floor(Math.random() * values.length);
+    return [Field(values[randomIndex])];
+  },
+
+  /**
+   * Generate edge cases for testing
+   */
+  edgeCases: (bits: number) => (): [Field] => {
+    const maxValue = (1n << BigInt(bits)) - 1n;
+    const edgeCases = [
+      0n,           // Minimum value
+      1n,           // Minimum valid positive
+      maxValue / 2n, // Mid-range
+      maxValue - 1n, // Near maximum
+      maxValue,      // Maximum value
+    ];
+    const randomIndex = Math.floor(Math.random() * edgeCases.length);
+    return [Field(edgeCases[randomIndex])];
+  },
+
+  /**
+   * Generate three values for multi-range check testing
+   */
+  threeFields: (): [Field, Field, Field] => {
+    const maxValue88 = (1n << 88n) - 1n;
+    return [
+      Field(BigInt(Math.floor(Math.random() * Number(maxValue88)))),
+      Field(BigInt(Math.floor(Math.random() * Number(maxValue88)))),
+      Field(BigInt(Math.floor(Math.random() * Number(maxValue88))))
+    ];
+  },
+
+  /**
+   * Generate random field values (may be out of range)
+   */
+  randomFields: (): [Field] => [Field.random()],
+
+  /**
+   * Generate three random field values
+   */
+  threeRandomFields: (): [Field, Field, Field] => [Field.random(), Field.random(), Field.random()]
+};
+
+/**
+ * Range Check Gate Operations
+ */
+export const RangeCheckOperations = {
+  // Basic range check operations
+  rangeCheck8: {
+    name: 'range_check_8',
+    operation: (value: Field) => {
+      Gadgets.rangeCheck8(value);
+      return value; // Return value to ensure constraint is used
+    },
+    properties: [
+      RangeCheckProperties.rangeCheckCompletes(8),
+      RangeCheckProperties.boundaryValidation(8)
+    ],
+    constraintPattern: ['EndoMulScalar'], // 8-bit uses EndoMulScalar gate
+    expectedConstraints: 2
+  },
+
+  rangeCheck16: {
+    name: 'range_check_16',
+    operation: (value: Field) => {
+      Gadgets.rangeCheck16(value);
+      return value;
+    },
+    properties: [
+      RangeCheckProperties.rangeCheckCompletes(16),
+      RangeCheckProperties.boundaryValidation(16)
+    ],
+    constraintPattern: ['Generic'], // 16-bit uses generic constraints
+    expectedConstraints: 1
+  },
+
+  rangeCheck32: {
+    name: 'range_check_32',
+    operation: (value: Field) => {
+      Gadgets.rangeCheck32(value);
+      return value;
+    },
+    properties: [
+      RangeCheckProperties.rangeCheckCompletes(32),
+      RangeCheckProperties.boundaryValidation(32)
+    ],
+    constraintPattern: ['Generic'],
+    expectedConstraints: 1
+  },
+
+  rangeCheck64: {
+    name: 'range_check_64',
+    operation: (value: Field) => {
+      const result = Gadgets.rangeCheck64(value);
+      return result[0]; // Return first limb to ensure constraint is used
+    },
+    properties: [
+      RangeCheckProperties.rangeCheckCompletes(64),
+      RangeCheckProperties.boundaryValidation(64)
+    ],
+    constraintPattern: ['RangeCheck0'], // 64-bit uses specialized RangeCheck0 gate
+    expectedConstraints: 1
+  },
+
+  // Advanced range check operations
+  multiRangeCheck: {
+    name: 'multi_range_check',
+    operation: (x: Field, y: Field, z: Field) => {
+      const result = Gadgets.multiRangeCheck([x, y, z]);
+      return result[0]; // Return first result
+    },
+    properties: [
+      RangeCheckProperties.multiRangeCheckCompletes
+    ],
+    constraintPattern: ['RangeCheck0', 'RangeCheck1'], // Multi-range uses both gate types
+    expectedConstraints: 4
+  },
+
+  compactMultiRangeCheck: {
+    name: 'compact_multi_range_check',
+    operation: (xy: Field, z: Field) => {
+      const result = Gadgets.compactMultiRangeCheck(xy, z);
+      return result[0];
+    },
+    properties: [
+      RangeCheckProperties.multiRangeCheckCompletes // Reuse multi-range property
+    ],
+    constraintPattern: ['RangeCheck0', 'RangeCheck1'],
+    expectedConstraints: 4
+  }
+};
+
+/**
+ * Range Check Test Suite
+ */
+export class RangeCheckGatesTestSuite {
+  private framework: GateTestFramework;
+
+  constructor() {
+    this.framework = new GateTestFramework({
+      name: 'range-check-gates',
+      tier: 'core'
+    });
+  }
+
+  /**
+   * Run comprehensive range check tests
+   */
+  async runAllTests(): Promise<void> {
+    console.log('🔢 Starting Range Check Gates Test Suite');
+    console.log('=====================================\n');
+
+    // Test basic range check operations
+    await this.testBasicRangeChecks();
+    
+    // Test advanced range check operations
+    await this.testAdvancedRangeChecks();
+    
+    // Test edge cases and boundary conditions
+    await this.testEdgeCases();
+    
+    // Test constraint patterns
+    await this.testConstraintPatterns();
+    
+    // Test cross-backend parity
+    await this.testCrossBackendParity();
+
+    console.log('\n✅ Range Check Gates Test Suite Complete!');
+  }
+
+  /**
+   * Test basic range check operations (8, 16, 32, 64 bit)
+   */
+  private async testBasicRangeChecks(): Promise<void> {
+    console.log('1️⃣ Testing Basic Range Check Operations:');
+
+    const bitSizes = [8, 16, 32, 64];
+    
+    for (const bits of bitSizes) {
+      console.log(`\n  Testing ${bits}-bit range check...`);
+      
+      const operation = RangeCheckOperations[`rangeCheck${bits}` as keyof typeof RangeCheckOperations];
+      if (!operation) {
+        console.log(`  ❌ Operation rangeCheck${bits} not found`);
+        continue;
+      }
+
+      // Test with valid values
+      const validGenerator = RangeCheckInputGenerators.validRange(bits);
+      const validResult = await this.framework.runGateTest(
+        operation,
+        validGenerator
+      );
+
+      console.log(`    Valid values test: ${validResult.passed ? '✅' : '❌'} (${validResult.iterations} iterations)`);
+
+      // Test with edge cases
+      const edgeGenerator = RangeCheckInputGenerators.edgeCases(bits);
+      const edgeResult = await this.framework.runGateTest(
+        operation,
+        edgeGenerator
+      );
+
+      console.log(`    Edge cases test: ${edgeResult.passed ? '✅' : '❌'} (${edgeResult.iterations} iterations)`);
+    }
+  }
+
+  /**
+   * Test advanced range check operations
+   */
+  private async testAdvancedRangeChecks(): Promise<void> {
+    console.log('\n2️⃣ Testing Advanced Range Check Operations:');
+
+    // Test multi-range check
+    console.log('\n  Testing multi-range check...');
+    const multiResult = await this.framework.runGateTest(
+      RangeCheckOperations.multiRangeCheck,
+      RangeCheckInputGenerators.threeFields
+    );
+    console.log(`    Multi-range check: ${multiResult.passed ? '✅' : '❌'} (${multiResult.iterations} iterations)`);
+
+    // Test compact multi-range check
+    console.log('\n  Testing compact multi-range check...');
+    const compactResult = await this.framework.runGateTest(
+      RangeCheckOperations.compactMultiRangeCheck,
+      () => {
+        const [field1, field2] = RangeCheckInputGenerators.threeFields().slice(0, 2);
+        return [field1, field2] as [Field, Field];
+      }
+    );
+    console.log(`    Compact multi-range check: ${compactResult.passed ? '✅' : '❌'} (${compactResult.iterations} iterations)`);
+  }
+
+  /**
+   * Test edge cases and boundary conditions
+   */
+  private async testEdgeCases(): Promise<void> {
+    console.log('\n3️⃣ Testing Edge Cases and Boundary Conditions:');
+
+    const testCases = [
+      { name: 'Zero values', generator: () => [Field(0)] as [Field] },
+      { name: 'Max 8-bit value', generator: () => [Field(255)] as [Field] },
+      { name: 'Max 16-bit value', generator: () => [Field(65535)] as [Field] },
+      { name: 'Max 32-bit value', generator: () => [Field((1n << 32n) - 1n)] as [Field] },
+      { name: 'Large field values', generator: RangeCheckInputGenerators.randomFields }
+    ];
+
+    for (const testCase of testCases) {
+      console.log(`\n  Testing ${testCase.name}...`);
+      
+      // Test with 64-bit range check as it's the most comprehensive
+      try {
+        const result = await this.framework.runGateTest(
+          RangeCheckOperations.rangeCheck64,
+          testCase.generator
+        );
+        console.log(`    ${testCase.name}: ${result.passed ? '✅' : '❌'} (${result.iterations} iterations)`);
+      } catch (error) {
+        console.log(`    ${testCase.name}: ❌ (Expected for out-of-range values)`);
+      }
+    }
+  }
+
+  /**
+   * Test constraint patterns for different range check operations
+   */
+  private async testConstraintPatterns(): Promise<void> {
+    console.log('\n4️⃣ Testing Constraint Patterns:');
+
+    const operations = [
+      { name: '8-bit range check', op: RangeCheckOperations.rangeCheck8, generator: RangeCheckInputGenerators.validRange(8) },
+      { name: '16-bit range check', op: RangeCheckOperations.rangeCheck16, generator: RangeCheckInputGenerators.validRange(16) },
+      { name: '32-bit range check', op: RangeCheckOperations.rangeCheck32, generator: RangeCheckInputGenerators.validRange(32) },
+      { name: '64-bit range check', op: RangeCheckOperations.rangeCheck64, generator: RangeCheckInputGenerators.validRange(64) },
+      { name: 'Multi-range check', op: RangeCheckOperations.multiRangeCheck, generator: RangeCheckInputGenerators.threeFields }
+    ];
+
+    for (const { name, op, generator } of operations) {
+      console.log(`\n  Testing constraint pattern for ${name}...`);
+      
+      const patternResult = await this.framework.testConstraintPattern(
+        op.name,
+        op.operation,
+        op.constraintPattern || ['Generic'],
+        generator,
+        'contains'
+      );
+
+      console.log(`    ${name} pattern: ${patternResult.success ? '✅' : '❌'} (${patternResult.expectedPattern.join(', ')})`);
+    }
+  }
+
+  /**
+   * Test cross-backend parity for range check operations
+   */
+  private async testCrossBackendParity(): Promise<void> {
+    console.log('\n5️⃣ Testing Cross-Backend Parity:');
+
+    const operations = [
+      { name: '8-bit range check', op: RangeCheckOperations.rangeCheck8, generator: RangeCheckInputGenerators.validRange(8) },
+      { name: '16-bit range check', op: RangeCheckOperations.rangeCheck16, generator: RangeCheckInputGenerators.validRange(16) },
+      { name: '32-bit range check', op: RangeCheckOperations.rangeCheck32, generator: RangeCheckInputGenerators.validRange(32) },
+      { name: '64-bit range check', op: RangeCheckOperations.rangeCheck64, generator: RangeCheckInputGenerators.validRange(64) }
+    ];
+
+    for (const { name, op, generator } of operations) {
+      console.log(`\n  Testing cross-backend parity for ${name}...`);
+      
+      const parityResult = await this.framework.testBackendParity(
+        op,
+        generator
+      );
+
+      console.log(`    ${name} parity: ${parityResult ? '✅' : '❌'}`);
+    }
+  }
+}
+
+/**
+ * Export test cases for automatic discovery
+ */
+export const tests: TestCase[] = [
+  {
+    name: 'range-check-gates-smoke',
+    testFn: async () => {
+      const suite = new RangeCheckGatesTestSuite();
+      // Run a subset for smoke testing
+      await suite.testBasicRangeChecks();
+    },
+    timeout: 30000
+  },
+  {
+    name: 'range-check-gates-core',
+    testFn: async () => {
+      const suite = new RangeCheckGatesTestSuite();
+      await suite.runAllTests();
+    },
+    timeout: 120000
+  },
+  {
+    name: 'range-check-gates-comprehensive',
+    testFn: async () => {
+      const suite = new RangeCheckGatesTestSuite();
+      await suite.runAllTests();
+      // Additional stress testing could go here
+    },
+    timeout: 300000
+  }
+];
+
+export default tests;

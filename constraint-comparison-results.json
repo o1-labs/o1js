@@ -1,0 +1,303 @@
+[
+  {
+    "operation": "Field Addition",
+    "snarky": 0,
+    "sparky": 0,
+    "difference": 0,
+    "snarkyGates": [],
+    "sparkyGates": []
+  },
+  {
+    "operation": "Field Multiplication",
+    "snarky": 1,
+    "sparky": 1,
+    "difference": 0,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Field Square",
+    "snarky": 1,
+    "sparky": 1,
+    "difference": 0,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Field Division",
+    "snarky": 1,
+    "sparky": 2,
+    "difference": 1,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Addition Chain (3 terms)",
+    "snarky": 0,
+    "sparky": 0,
+    "difference": 0,
+    "snarkyGates": [],
+    "sparkyGates": []
+  },
+  {
+    "operation": "Addition Chain (4 terms)",
+    "snarky": 0,
+    "sparky": 0,
+    "difference": 0,
+    "snarkyGates": [],
+    "sparkyGates": []
+  },
+  {
+    "operation": "Multiplication Chain (3 terms)",
+    "snarky": 1,
+    "sparky": 2,
+    "difference": 1,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Mixed Add/Mul",
+    "snarky": 1,
+    "sparky": 2,
+    "difference": 1,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Complex Expression",
+    "snarky": 1,
+    "sparky": 2,
+    "difference": 1,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Bool AND",
+    "snarky": 2,
+    "sparky": 3,
+    "difference": 1,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Bool OR",
+    "snarky": 3,
+    "sparky": 5,
+    "difference": 2,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Bool NOT",
+    "snarky": 1,
+    "sparky": 1,
+    "difference": 0,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Bool XOR",
+    "snarky": 2,
+    "sparky": 3,
+    "difference": 1,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Field assertEquals",
+    "snarky": 0,
+    "sparky": 0,
+    "difference": 0,
+    "snarkyGates": [],
+    "sparkyGates": []
+  },
+  {
+    "operation": "Bool assertEquals",
+    "snarky": 1,
+    "sparky": 2,
+    "difference": 1,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "assertBoolean",
+    "snarky": 1,
+    "sparky": 1,
+    "difference": 0,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Field Conditional",
+    "snarky": 2,
+    "sparky": 5,
+    "difference": 3,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Range Check 8-bit",
+    "error": "getGatesModule(...).rangeCheckN is not a function"
+  },
+  {
+    "operation": "Range Check 16-bit",
+    "error": "getGatesModule(...).rangeCheckN is not a function"
+  },
+  {
+    "operation": "Range Check 32-bit",
+    "error": "getGatesModule(...).rangeCheckN is not a function"
+  },
+  {
+    "operation": "Range Check 64-bit"
+  },
+  {
+    "operation": "XOR",
+    "error": "raw gate failed: getGatesModule(...).raw is not a function"
+  },
+  {
+    "operation": "AND",
+    "error": "raw gate failed: getGatesModule(...).raw is not a function"
+  },
+  {
+    "operation": "NOT",
+    "snarky": 1,
+    "sparky": 3,
+    "difference": 2,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Rotate Left",
+    "error": "rotate gate failed: getGatesModule(...).rotate is not a function (type: object, keys: [])"
+  },
+  {
+    "operation": "Left Shift",
+    "error": "rotate gate failed: getGatesModule(...).rotate is not a function (type: object, keys: [])"
+  },
+  {
+    "operation": "Right Shift",
+    "error": "rotate gate failed: getGatesModule(...).rotate is not a function (type: object, keys: [])"
+  },
+  {
+    "operation": "Less Than"
+  },
+  {
+    "operation": "Less Than or Equal"
+  },
+  {
+    "operation": "Assert Less Than"
+  },
+  {
+    "operation": "Poseidon Hash (2 inputs)"
+  },
+  {
+    "operation": "Poseidon Hash (4 inputs)"
+  },
+  {
+    "operation": "Group Addition",
+    "error": "ecAdd implementation failed: getGatesModule(...).ecAdd is not a function"
+  },
+  {
+    "operation": "Group Scalar Multiplication"
+  },
+  {
+    "operation": "Group Negation",
+    "snarky": 10,
+    "sparky": 20,
+    "difference": 10,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Nested Conditionals",
+    "snarky": 4,
+    "sparky": 9,
+    "difference": 5,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  },
+  {
+    "operation": "Multiple Assertions",
+    "snarky": 0,
+    "sparky": 0,
+    "difference": 0,
+    "snarkyGates": [],
+    "sparkyGates": []
+  },
+  {
+    "operation": "Complex Boolean Circuit",
+    "snarky": 7,
+    "sparky": 13,
+    "difference": 6,
+    "snarkyGates": [
+      "Generic"
+    ],
+    "sparkyGates": [
+      "generic"
+    ]
+  }
+]

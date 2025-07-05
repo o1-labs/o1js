@@ -97,7 +97,7 @@
     "test:sparky-parallel": "node dist/node/test/sparky/run-parallel-tests.js",
     "test:sparky-smoke": "node dist/node/test/sparky/run-parallel-tests.js --tier smoke",
     "test:sparky-core": "node dist/node/test/sparky/run-parallel-tests.js --tier core",
-    "test:sparky-full": "node dist/node/test/sparky/run-parallel-tests.js --tier comprehensive",
+    "test:sparky-comprehensive": "node dist/node/test/sparky/run-parallel-tests.js --tier comprehensive",
     "test:sparky-dev": "node dist/node/test/sparky/run-parallel-tests.js --tier core --verbose",
     "test:sparky-ci": "node dist/node/test/sparky/run-parallel-tests.js --processes 2 --tier core",
     "test:sparky-debug": "node dist/node/test/sparky/run-parallel-tests.js --mode sequential --verbose",

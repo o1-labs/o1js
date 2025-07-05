@@ -1,0 +1,14 @@
+node:internal/modules/cjs/loader:1227
+  throw err;
+  ^
+
+Error: Cannot find module '/home/fizzixnerd/src/o1labs/o1js2/test-constraint-optimization.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1224:15)
+    at Module._load (node:internal/modules/cjs/loader:1050:27)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:168:12)
+    at node:internal/main/run_main_module:30:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.1.0

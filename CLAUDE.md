@@ -2,27 +2,54 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Project status and development progress tracking is maintained in DEV.md.
+
 ## Development Guidelines
 
-- **ALWAYS when I tell you to write a .md file include a date and time for when you created it and last modified it**
+- When creating .md files, include creation and last modified timestamps
   - Created: July 4, 2025
-  - Last Modified: July 4, 2025 11:20 PM UTC
+  - Last Modified: July 5, 2025 12:05 AM UTC
 
-- **NEVER use emoji or emotionally charged language in commit messages.  Pure business.**
+- Use business-like tone in commit messages. No emoji or emotional language
+- Use technical tone in documentation with minimal emoji
+- Provide times in UTC
+- Use checkmarks ✅ and X ❌ for pass/fail status only
 
-- **ALWAYS use a technical and business-like tone when writing documentation.  Very few emoji.  No emotionally charged language.**
+## Communication Guidelines
 
-- **ALWAYS give times in UTC**
+- Be direct and factual rather than enthusiastic or accommodating
+- Avoid excessive praise for routine requests
+- Do not over-apologize or hedge unnecessarily
+- Focus on substance over politeness markers
+- Answer questions concisely without preamble
+- State facts and recommendations plainly
 
-- **MAY use checkmarks and X emoji for pass and fail and to document success and failure, or progress, in documentation.**
+## Building
 
-## Sparky Parallel Test Infrastructure
+```bash
+# Build the project
+npm run build
 
-### Overview
-The o1js2 repository now includes a comprehensive parallel testing infrastructure for backend-isolated testing of Snarky and Sparky implementations. This infrastructure provides:
-- **4.6x performance improvement** through parallel execution
-- Backend isolation ensuring no cross-contamination
-- Real-time progress monitoring and memory management
+# Build with specific backend
+npm run build:snarky    # Build with Snarky backend
+npm run build:sparky    # Build with Sparky backend
+
+# Build WASM bindings
+npm run build:wasm
+```
+
+- Use `npm run build:sparky` to build the sparky wasm
+- Run `npm run build` after updating the wasm to see effects
+
+## Testing
+
+### Test Infrastructure
+
+The repository includes parallel testing infrastructure for backend-isolated testing of Snarky and Sparky implementations:
+
+- 4.6x performance improvement through parallel execution
+- Backend isolation preventing cross-contamination
+- Progress monitoring and memory management
 - Automatic test discovery and categorization
 
 ### Running Tests
@@ -59,7 +86,7 @@ Tests are organized in `src/test/sparky/suites/`:
 - `integration/` - Tests that compare results between backends
 - `comprehensive/` - Circuit compilation tests that verify real SmartContract and ZkProgram compilation between backends
 
-### Architecture
+### Test Architecture
 
 The system uses a main orchestrator that spawns isolated worker processes:
 - Each worker is locked to a single backend (no switching within a worker)
@@ -83,14 +110,14 @@ export const tests: TestCase[] = [
 ];
 ```
 
-### Comprehensive Circuit Compilation Tests
+### Circuit Compilation Tests
 
-The comprehensive tier includes real circuit compilation tests that compare SmartContract and ZkProgram compilation between Snarky and Sparky backends:
+The comprehensive tier includes circuit compilation tests that compare SmartContract and ZkProgram compilation between Snarky and Sparky backends:
 
-- **SmartContract Compilation**: Tests state management, method compilation, and constraint generation
-- **ZkProgram Compilation**: Tests proof systems, public input/output handling, and method verification  
-- **Cross-Backend Verification**: Compares verification keys, method counts, and compilation success between backends
-- **Performance Metrics**: Tracks compilation times and memory usage
+- SmartContract compilation tests state management, method compilation, and constraint generation
+- ZkProgram compilation tests proof systems, public input/output handling, and method verification  
+- Cross-backend verification compares verification keys, method counts, and compilation success
+- Performance metrics track compilation times and memory usage
 
 Create compilation tests in `src/test/sparky/suites/comprehensive/`:
 ```typescript
@@ -134,109 +161,41 @@ export const tests: CompilationTestCase[] = [
 ];
 ```
 
-### Known Issues
+## Running
 
-Integration tests currently show differences between snarky and sparky:
+```bash
+# Run examples
+npm run examples
+
+# Run specific example
+npm run example:simple-zkapp
+npm run example:backend-switching
+
+# Run with specific backend
+BACKEND=sparky npm run example:simple-zkapp
+BACKEND=snarky npm run example:simple-zkapp
+```
+
+## Known Issues
+
+Integration tests show differences between snarky and sparky:
 - Field arithmetic operations produce different results
 - Provable.witness behavior differs between backends
-- These are real implementation differences that need investigation
+- Implementation differences require investigation
 
-## Current Development State
+## Backend Switching
 
-**Last Updated: July 4, 2025 11:40 PM UTC**
+Runtime backend switching between Snarky and Sparky:
 
-### CRITICAL BREAKTHROUGH: INFRASTRUCTURE FIXES COMPLETE ✅
+```typescript
+// Switch to Sparky backend
+await switchBackend('sparky');
 
-**Major Accomplishment**: All core infrastructure issues resolved through systematic ultrathinking approach
-- **Build Infrastructure**: Fixed and operational ✅
-- **WASM Integration**: Complete with all exports functional ✅  
-- **Constraint Bridge**: Fully implemented with missing functions ✅
-- **Backend Switching**: 100% reliable with process isolation ✅
+// Switch to Snarky backend  
+await switchBackend('snarky');
 
-### Test Results Summary
+// Check current backend
+const currentBackend = getCurrentBackend();
+```
 
-**Overall Status**: 15/20 tests passing (75% success rate maintained)
-
-**✅ Successful Components**:
-- **Backend Isolation**: Complete separation between Snarky/Sparky processes
-- **Integration Tests**: 9/9 passing (100% success rate)
-  - Backend switching reliability: PASS
-  - State isolation: PASS  
-  - Field arithmetic parity: PASS
-- **Smoke Tests**: 6/6 passing (100% success rate)
-  - Basic Snarky backend: PASS
-  - Basic Sparky backend: PASS
-
-**❌ Remaining Challenge**:
-- **Comprehensive Tests**: 0/5 passing (0% success rate)
-  - SmartContract compilation: FAIL
-  - ZkProgram compilation: FAIL
-  - Recursive circuits: FAIL
-  - Cryptographic functions: FAIL
-
-### Infrastructure Fixes Completed ✅
-
-#### 1. rangeCheck0 WASM Implementation ✅
-
-**FIXED**: Complete 4-parameter rangeCheck0 implementation
-- **Solution Applied**: Implemented proper WASM function with correct signature
-- **Implementation**: Added bit decomposition constraints and limb reconstruction
-- **Parameters**: `(x, xLimbs12, xLimbs2, isCompact)` matching Snarky API
-- **Constraints**: 12-bit limbs and 2-bit crumbs with full validation
-
-#### 2. Poseidon WASM Export ✅
-
-**FIXED**: Poseidon module now properly accessible
-- **Solution Applied**: Added `#[wasm_bindgen(getter)]` for poseidon property
-- **Implementation**: `sparkyInstance.poseidon` now returns PoseidonCompat
-- **API**: All cryptographic function endpoints accessible
-- **Integration**: Seamless with sparky-adapter.js expectations
-
-#### 3. Constraint Bridge Completion ✅
-
-**FIXED**: Complete constraint bridge implementation
-- **Solution Applied**: Implemented missing `getFullConstraintSystem()` function
-- **Functionality**: Returns full constraint system metadata
-- **Integration**: Added to `globalThis.sparkyConstraintBridge` API
-- **Error Handling**: Graceful fallbacks with detailed error reporting
-
-#### 4. Build Infrastructure ✅
-
-**FIXED**: All build and compilation issues resolved
-- **WASM Compilation**: Successful build with all exports
-- **TypeScript Compilation**: Clean build without errors
-- **File Copying**: Proper distribution of compiled assets
-- **Module Loading**: Correct ES/CommonJS module integration
-
-### Advanced Compilation Analysis
-
-**Current Focus**: The comprehensive test failures indicate advanced constraint generation differences between Snarky and Sparky backends for complex compilation scenarios.
-
-**Root Cause**: While basic field operations achieve 100% parity, complex compilation patterns like:
-- SmartContract method compilation with decorators
-- ZkProgram recursive proof generation  
-- Advanced cryptographic circuit compilation
-- Complex constraint batching and optimization
-
-These require deeper investigation of the constraint generation pipeline differences during advanced circuit compilation.
-
-### Priority Development Order
-
-1. **COMPLETED**: Infrastructure fixes (rangeCheck0, Poseidon, constraint bridge) ✅
-2. **CURRENT**: Debug advanced SmartContract compilation failures  
-3. **NEXT**: Investigate ZkProgram constraint generation differences
-4. **FUTURE**: Optimize recursive proof and cryptographic circuit support
-
-### Architecture Validation
-
-**✅ Confirmed Working**:
-- Backend switching infrastructure is robust and reliable
-- WASM loading and initialization works correctly
-- Parallel test infrastructure provides accurate isolated testing
-- Field arithmetic operations achieve 100% parity between backends
-- Memory management and process isolation work effectively
-
-**❌ Requires Implementation**:
-- Advanced gate function bindings (rangeCheck0, poseidon)
-- Complete constraint bridge for complex circuit compilation
-- Verification key generation parity between backends
+Backend switching uses process isolation to prevent cross-contamination.

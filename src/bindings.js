@@ -50,7 +50,7 @@ async function initializeBindings(backend = null) {
       // The OCaml module initialization sets up globalThis.ocamlBackendBridge
       console.log('OCaml backend bridge initialized:', !!globalThis.ocamlBackendBridge);
       
-      const sparkyAdapter = await import('./bindings/sparky-adapter.js');
+      const sparkyAdapter = await import('./bindings/sparky-adapter/index.js');
       
       // Initialize Sparky WASM
       await sparkyAdapter.initializeSparky();
@@ -83,7 +83,7 @@ async function initializeBindings(backend = null) {
       // ROUTING FIX: Update global constraint routing to OCaml Snarky
       if (activeBackend === 'sparky') {
         // We're switching FROM Sparky TO Snarky, need to update routing
-        const sparkyAdapter = await import('./bindings/sparky-adapter.js');
+        const sparkyAdapter = await import('./bindings/sparky-adapter/index.js');
         if (sparkyAdapter.activateOcamlRouting) {
           sparkyAdapter.activateOcamlRouting(snarky.Snarky);
         }

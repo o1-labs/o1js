@@ -253,7 +253,7 @@ describe('Backend Switching Infrastructure', () => {
 
       // Test Sparky interface availability
       try {
-        const { Snarky: SparkySnarky } = await import('../bindings/sparky-adapter.js');
+        const { Snarky: SparkySnarky } = await import('../bindings/sparky-adapter/index.js');
         diagnostics.sparkySnarkyInterface = !!SparkySnarky?.gates?.generic;
       } catch (error) {
         console.error('Sparky interface check failed:', (error as Error).message);
