@@ -1,6 +1,14 @@
 export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings, switchBackend, getCurrentBackend } from './bindings.js';
+
+// SPARKY EXTENSIONS - Available only when Sparky backend is active
+export {
+  getSparkyExtensions,
+  getExtension, 
+  getAvailableExtensions,
+  isExtensionAvailable
+} from './bindings/sparky-adapter/index.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export { createForeignField } from './lib/provable/foreign-field.js';
 export type { ForeignField, AlmostForeignField, CanonicalForeignField } from './lib/provable/foreign-field.js';

@@ -38,6 +38,14 @@ import {
   setCompilingCircuit,
   getCompilingCircuit
 } from './constraint-system.js';
+import {
+  getSparkyExtensions,
+  getExtension,
+  getAvailableExtensions,
+  isExtensionAvailable,
+  initializeExtensions,
+  cleanupExtensions
+} from './extensions/index.js';
 
 // ===================================================================
 // GLOBAL STATE
@@ -240,6 +248,13 @@ function resetSparkyBackend(): void {
   gateCallCounter = 0;
   isCompilingCircuit = false;
   setCompilingCircuit(false);
+  
+  // Clean up extensions when resetting backend
+  try {
+    cleanupExtensions();
+  } catch (error) {
+    console.warn('Failed to cleanup extensions during backend reset:', error);
+  }
 }
 
 // ===================================================================
@@ -279,6 +294,13 @@ async function initializeSparky(): Promise<void> {
   Pickles = ocamlModules.Pickles;
   Test = ocamlModules.Test;
   Ledger = ocamlModules.Ledger;
+  
+  // Initialize extensions after WASM is ready
+  try {
+    initializeExtensions();
+  } catch (error) {
+    console.warn('Failed to initialize extensions:', error);
+  }
 }
 
 // ===================================================================
@@ -297,7 +319,13 @@ export {
   updateGlobalSnarkyRouting,
   getConstraintFlowStats,
   resetConstraintFlowStats,
-  resetSparkyBackend
+  resetSparkyBackend,
+  
+  // SPARKY EXTENSIONS - Available only when Sparky backend is active
+  getSparkyExtensions,
+  getExtension,
+  getAvailableExtensions,
+  isExtensionAvailable
 };
 
 // Set up global __snarky object for OCaml bridge
@@ -315,7 +343,9 @@ if (typeof globalThis !== 'undefined') {
     isActiveSparkyBackend,
     testFieldVarConstant,
     emitIfConstraint: fieldOperations.emitIfConstraint,
-    emitBooleanAnd: fieldOperations.emitBooleanAnd
+    emitBooleanAnd: fieldOperations.emitBooleanAnd,
+    emitBooleanOr: fieldOperations.emitBooleanOr,
+    emitBooleanNot: fieldOperations.emitBooleanNot
   };
 }
 

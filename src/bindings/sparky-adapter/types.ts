@@ -74,6 +74,10 @@ export interface Snarky {
   getOptimizationStats(): any;
   resetOptimizationStats(): void;
   
+  // Optimization level control (extension methods)
+  setOptimizationMode?(mode: string): void;
+  getOptimizationMode?(): string;
+  
   readonly poseidon: PoseidonCompat;
   readonly field: SnarkyFieldCompat;
   readonly run: SnarkyRunCompat;
@@ -222,6 +226,32 @@ export type BackendType = 'sparky' | 'snarky';
 /**
  * Main Snarky interface that matches OCaml Snarky API
  */
+// ===================================================================
+// SPARKY EXTENSIONS INTEGRATION
+// ===================================================================
+
+// Import extension types
+export type {
+  OptimizationLevel,
+  OptimizationConfig,
+  OptimizationStats,
+  PerformanceCategory,
+  PerformanceMeasurement,
+  PerformanceConfig,
+  DebugLevel,
+  ConstraintDebugInfo,
+  DebugConfig,
+  BaseExtension,
+  ExtensionCapabilities,
+  ExtensionError,
+  OptimizationError,
+  PerformanceError,
+  DebugError
+} from './extensions/types.js';
+
+// Extension interfaces
+export type { SparkyExtensions } from './extensions/index.js';
+
 export interface SnarkyAdapter {
   poseidon: {
     update(state: MlArray<FieldVar>, input: MlArray<FieldVar>): FieldVar[];
