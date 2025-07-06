@@ -8,6 +8,7 @@
 
 import type { FieldVar, MlArray } from './types.js';
 import { getSparkyInstance } from './module-loader.js';
+import { MlArray as MlArrayUtils } from '../../lib/ml/base.js';
 import { cvarToFieldVar, ensureFieldVar, fieldVarToCvar, mlArrayToJsArray } from './format-converter.js';
 import { fieldOperations } from './field-operations.js';
 
@@ -107,10 +108,49 @@ export const gateOperations = {
   
   /**
    * Raw gate interface - direct access to constraint generation
+   * 
+   * Note: Sparky expects exactly 3 variables for Zero and Generic gates, while Snarky 
+   * expects 15 (with padding). We need to handle this difference here.
    */
-  raw(kind: number, values: FieldVar[], coeffs: (string | bigint)[]): void {
+  raw(kind: number, values: FieldVar[] | MlArray<FieldVar>, coeffs: (string | bigint)[] | MlArray<string | bigint>): void {
+    // KimchiGateType values:
+    const ZERO_GATE = 0;
+    const GENERIC_GATE = 1;
+    
+    // Convert MLArray to regular JavaScript array if needed
+    if (Array.isArray(values) && values[0] === 0) {
+      values = MlArrayUtils.from(values as MlArray<FieldVar>);
+    }
+    
+    // Convert coeffs MLArray to regular JavaScript array if needed
+    if (Array.isArray(coeffs) && coeffs[0] === 0) {
+      coeffs = MlArrayUtils.from(coeffs as MlArray<string | bigint>);
+    }
+    
+    console.log('DEBUG raw gate:', `kind=${kind}, values.length=${values.length}`);
+    console.log('DEBUG raw gate values:', values);
+    
+    // For Zero and Generic gates, Sparky expects exactly 3 variables
+    // while Snarky expects 15. We need to take only the first 3 non-padding values.
+    if ((kind === ZERO_GATE || kind === GENERIC_GATE) && values.length > 3) {
+      // The raw function in gates.js pads the array to 15 elements by calling exists()
+      // which creates new variables. We only want the first 3 values.
+      values = (values as FieldVar[]).slice(0, 3);
+      console.log('DEBUG raw gate: after slice, values.length=' + values.length);
+    }
+    
     // Convert coefficients to strings
-    const stringCoeffs = coeffs.map(c => typeof c === 'string' ? c : c.toString());
+    let stringCoeffs = coeffs.map(c => typeof c === 'string' ? c : c.toString());
+    
+    // For Zero and Generic gates, Sparky expects exactly 5 coefficients
+    // [sl, sr, so, sm, sc] for the equation: sl*l + sr*r + so*o + sm*l*r + sc = 0
+    if ((kind === ZERO_GATE || kind === GENERIC_GATE) && stringCoeffs.length < 5) {
+      // Pad with zeros to get 5 coefficients
+      while (stringCoeffs.length < 5) {
+        stringCoeffs.push('0');
+      }
+    }
+    
     getSparkyInstance().gatesRaw(kind, values, stringCoeffs);
   },
   
@@ -552,15 +592,14 @@ export const gateOperations = {
       const modulus2 = extractModulusLimb(modulusJs[2]);
       
       // Call the WASM foreign field addition gate
+      // The Rust function expects modulus as an array, not separate arguments
       gatesAny.foreignFieldAdd(
-        leftJs,         // left_limbs: [FieldVar, FieldVar, FieldVar]
-        rightJs,        // right_limbs: [FieldVar, FieldVar, FieldVar]
-        fieldOverflow,  // overflow: FieldVar
-        carry,          // carry: FieldVar
-        modulus0,       // modulus_limb0: string (bigint as string)
-        modulus1,       // modulus_limb1: string (bigint as string)
-        modulus2,       // modulus_limb2: string (bigint as string)
-        signValue       // sign: string ("1" or "-1")
+        leftJs,                               // left_limbs: [FieldVar, FieldVar, FieldVar]
+        rightJs,                              // right_limbs: [FieldVar, FieldVar, FieldVar]
+        fieldOverflow,                        // overflow: FieldVar
+        carry,                                // carry: FieldVar
+        [modulus0, modulus1, modulus2],       // modulus_limbs: [value, value, value]
+        signValue                             // sign: string ("1" or "-1")
       );
       
     } catch (error: any) {
