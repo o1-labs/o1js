@@ -1,0 +1,70 @@
+🧪 ZkProgram Mathematical Correctness Benchmark
+===============================================
+
+🔄 Testing with SNARKY backend...
+──────────────────────────────────────────────────
+Loading Snarky backend...
+✓ Snarky backend loaded
+
+📋 Compiling SimpleArithmetic...
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+✅ SimpleArithmetic compiled successfully
+🧪 Running 4 test cases...
+  ⏱️  normal_values: Normal arithmetic operation
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (11328.39ms)
+  ⏱️  zero_values: Zero values
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (10743.72ms)
+  ⏱️  max_field_value: Maximum field value causing overflow
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (10870.71ms)
+  ⏱️  large_multiplication: Large multiplication near field prime
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (11220.00ms)
+
+📋 Compiling BooleanLogic...
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+✅ BooleanLogic compiled successfully
+🧪 Running 4 test cases...
+  ⏱️  all_true: All boolean inputs true
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (13937.76ms)
+  ⏱️  all_false: All boolean inputs false
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (11463.24ms)
+  ⏱️  mixed_pattern_1: Mixed boolean pattern 1
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (11594.28ms)
+  ⏱️  mixed_pattern_2: Mixed boolean pattern 2
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (11408.22ms)
+
+📋 Compiling HashProgram...
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+✅ HashProgram compiled successfully
+🧪 Running 4 test cases...
+  ⏱️  normal_hash: Normal hash inputs
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false
+  ✅ PASS (11557.03ms)
+  ⏱️  zero_hash: All zero hash inputs
+🔍 OCaml EXECUTION: sparky_active=false, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = false

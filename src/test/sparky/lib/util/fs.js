@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.cacheDir = exports.resolve = exports.mkdirSync = exports.readFileSync = exports.writeFileSync = void 0;
+const cachedir_1 = require("cachedir");
+exports.cacheDir = cachedir_1.default;
+var node_fs_1 = require("node:fs");
+Object.defineProperty(exports, "writeFileSync", { enumerable: true, get: function () { return node_fs_1.writeFileSync; } });
+Object.defineProperty(exports, "readFileSync", { enumerable: true, get: function () { return node_fs_1.readFileSync; } });
+Object.defineProperty(exports, "mkdirSync", { enumerable: true, get: function () { return node_fs_1.mkdirSync; } });
+var node_path_1 = require("node:path");
+Object.defineProperty(exports, "resolve", { enumerable: true, get: function () { return node_path_1.resolve; } });

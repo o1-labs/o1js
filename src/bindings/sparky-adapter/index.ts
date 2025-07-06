@@ -179,7 +179,8 @@ export function getFullConstraintSystem(): any {
         publicInputSize: constraintSystem.public_input_size || 0,
         constraintCount: (constraintSystem.gates || []).length,
         rowCount: constraintSystem.row_count || (constraintSystem.gates || []).length,
-        metadata: constraintSystem.metadata || {}
+        metadata: constraintSystem.metadata || {},
+        permutation: constraintSystem.permutation || null  // Pass through permutation data!
       };
       
       // console.log('   ↳ Returning constraint system:', {

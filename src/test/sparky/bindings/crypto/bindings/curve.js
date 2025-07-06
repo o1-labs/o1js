@@ -1,0 +1,76 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fromMlOrInfinity = exports.toMlOrInfinity = exports.OrInfinity = exports.Infinity = exports.PallasBindings = exports.VestaBindings = void 0;
+const elliptic_curve_js_1 = require("../elliptic-curve.js");
+const util_js_1 = require("./util.js");
+const VestaBindings = (0, util_js_1.withPrefix)('caml_vesta', createCurveBindings(elliptic_curve_js_1.Vesta));
+exports.VestaBindings = VestaBindings;
+const PallasBindings = (0, util_js_1.withPrefix)('caml_pallas', createCurveBindings(elliptic_curve_js_1.Pallas));
+exports.PallasBindings = PallasBindings;
+function createCurveBindings(Curve) {
+    return {
+        one() {
+            return Curve.one;
+        },
+        add: Curve.add,
+        sub: Curve.sub,
+        negate: Curve.negate,
+        double: Curve.double,
+        scale(g, [, s]) {
+            return Curve.scale(g, s);
+        },
+        random() {
+            throw Error('random not implemented');
+        },
+        rng(i) {
+            throw Error('rng not implemented');
+        },
+        endo_base() {
+            return [0, Curve.endoBase];
+        },
+        endo_scalar() {
+            return [0, Curve.endoScalar];
+        },
+        to_affine(g) {
+            return toMlOrInfinity(Curve.toAffine(g));
+        },
+        of_affine(g) {
+            return Curve.fromAffine(fromMlOrInfinity(g));
+        },
+        of_affine_coordinates(x, y) {
+            // allows to create in points not on the curve - matches Rust impl
+            return { x: x[1], y: y[1], z: 1n };
+        },
+        affine_deep_copy(g) {
+            return toMlOrInfinity(fromMlOrInfinity(g));
+        },
+    };
+}
+const affineZero = { x: 0n, y: 0n, infinity: true };
+const Infinity = 0;
+exports.Infinity = Infinity;
+function toMlOrInfinity(g) {
+    if (g.infinity)
+        return 0;
+    return [0, [0, [0, g.x], [0, g.y]]];
+}
+exports.toMlOrInfinity = toMlOrInfinity;
+function fromMlOrInfinity(g) {
+    if (g === 0)
+        return affineZero;
+    return { x: g[1][1][1], y: g[1][2][1], infinity: false };
+}
+exports.fromMlOrInfinity = fromMlOrInfinity;
+const OrInfinity = {
+    toJSON(g) {
+        if (g === 0)
+            return 'Infinity';
+        return { x: g[1][1][1].toString(), y: g[1][2][1].toString() };
+    },
+    fromJSON(g) {
+        if (g === 'Infinity')
+            return 0;
+        return [0, [0, [0, BigInt(g.x)], [0, BigInt(g.y)]]];
+    },
+};
+exports.OrInfinity = OrInfinity;

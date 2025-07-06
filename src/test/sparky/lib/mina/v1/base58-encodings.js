@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StateHash = exports.EpochSeed = exports.LedgerHash = exports.ReceiptChainHash = exports.TokenId = void 0;
+const base58_js_1 = require("../../util/base58.js");
+const wrapped_js_1 = require("../../provable/wrapped.js");
+const { TokenId, ReceiptChainHash, EpochSeed, LedgerHash, StateHash } = (0, base58_js_1.fieldEncodings)(wrapped_js_1.Field);
+exports.TokenId = TokenId;
+exports.ReceiptChainHash = ReceiptChainHash;
+exports.EpochSeed = EpochSeed;
+exports.LedgerHash = LedgerHash;
+exports.StateHash = StateHash;
