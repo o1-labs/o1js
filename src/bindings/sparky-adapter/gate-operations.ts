@@ -8,7 +8,7 @@
 
 import type { FieldVar, MlArray } from './types.js';
 import { getSparkyInstance } from './module-loader.js';
-import { cvarToFieldVar, ensureFieldVar, fieldVarToCvar } from './format-converter.js';
+import { cvarToFieldVar, ensureFieldVar, fieldVarToCvar, mlArrayToJsArray } from './format-converter.js';
 import { fieldOperations } from './field-operations.js';
 
 // Gate call counter for debugging
@@ -421,29 +421,32 @@ export const gateOperations = {
   /**
    * Range check gate (64-bit)
    */
-  rangeCheck0(x: FieldVar, xLimbs12: FieldVar[], xLimbs2: FieldVar, isCompact: FieldVar): void {
-    // Convert ML tuple/array to JavaScript array
-    const jsLimbs12 = Array.isArray(xLimbs12) ? xLimbs12 : Array.from(xLimbs12 as any);
-    const jsLimbs2 = Array.isArray(xLimbs2) ? xLimbs2 : xLimbs2;
+  rangeCheck0(x: FieldVar, xLimbs12: MlArray<FieldVar>, xLimbs2: FieldVar, isCompact: FieldVar): void {
+    // Convert MLArray to JavaScript array for Rust WASM
+    const jsLimbs12 = mlArrayToJsArray(xLimbs12);
+    
     // Convert FieldConst to boolean
     const jsIsCompact = Array.isArray(isCompact) && isCompact.length === 2 ? 
       (isCompact[1] as any) !== 0n : Boolean(isCompact);
     
-    getSparkyInstance().gates.rangeCheck0(x, jsLimbs12, jsLimbs2, jsIsCompact);
+    getSparkyInstance().gates.rangeCheck0(x, jsLimbs12, xLimbs2, jsIsCompact);
   },
   
   /**
-   * Range check gate (multi-limb)
+   * Range check gate (multi-limb) - used in combination with rangeCheck0 for 3x88-bit range check
    */
   rangeCheck1(
-    x: FieldVar,
-    y: FieldVar,
-    z: FieldVar,
-    flagBound: FieldVar,
-    flagLessOrEqual: FieldVar
+    v2: FieldVar,
+    v12: FieldVar,
+    vCurr: MlArray<FieldVar>,
+    vNext: MlArray<FieldVar>
   ): void {
-    // TODO: Implement multi-limb range check
-    throw new Error('rangeCheck1 not yet implemented');
+    // Convert MLArrays to JavaScript arrays for Rust WASM
+    const jsVCurr = mlArrayToJsArray(vCurr);
+    const jsVNext = mlArrayToJsArray(vNext);
+    
+    // Cast to any to bypass TypeScript type checking for new methods
+    (getSparkyInstance().gates as any).rangeCheck1(v2, v12, jsVCurr, jsVNext);
   },
   
   /**

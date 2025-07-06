@@ -7,7 +7,8 @@
  */
 
 import { getSparkyInstance } from './module-loader.js';
-import { FieldVar } from './types.js';
+import { FieldVar, MlArray, isMlArray } from './types.js';
+import { jsArrayToMlArray, mlArrayToJsArray } from './format-converter.js';
 
 /**
  * Get the Poseidon module from Sparky instance
@@ -22,21 +23,33 @@ function getPoseidonModule() {
 export const poseidonOperations = {
   /**
    * Update Poseidon state with new input
-   * @param state - Array of field elements representing the state
-   * @param input - Array of field elements to hash
+   * @param state - MLArray of field elements representing the state
+   * @param input - MLArray of field elements to hash
    * @returns Updated state array
    */
-  update(state: FieldVar[], input: FieldVar[]): FieldVar[] {
-    return getPoseidonModule().update(state, input);
+  update(state: MlArray<FieldVar>, input: MlArray<FieldVar>): FieldVar[] {
+    // Convert MLArray format to JavaScript arrays before passing to Rust WASM
+    const stateJsArray = mlArrayToJsArray(state) as FieldVar[];
+    const inputJsArray = mlArrayToJsArray(input) as FieldVar[];
+    
+    // Call Rust WASM with normal JavaScript arrays
+    const result = getPoseidonModule().update(stateJsArray, inputJsArray);
+    
+    // Return result as normal JavaScript array
+    return result;
   },
 
   /**
    * Hash input to elliptic curve group element
-   * @param input - Array of field elements to hash
+   * @param input - MLArray of field elements to hash
    * @returns Group element (x, y coordinates)
    */
-  hashToGroup(input: FieldVar[]): { x: FieldVar; y: FieldVar } {
-    return getPoseidonModule().hashToGroup(input);
+  hashToGroup(input: MlArray<FieldVar>): { x: FieldVar; y: FieldVar } {
+    // Convert MLArray format to JavaScript array before passing to Rust WASM
+    const inputJsArray = mlArrayToJsArray(input) as FieldVar[];
+    
+    // Call Rust WASM with normal JavaScript array
+    return getPoseidonModule().hashToGroup(inputJsArray);
   },
 
   /**

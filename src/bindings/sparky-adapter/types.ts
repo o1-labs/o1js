@@ -80,7 +80,7 @@ export interface Snarky {
 }
 
 /**
- * Poseidon hash function interface
+ * Poseidon hash function interface (WASM expects normal JS arrays, not MLArrays)
  */
 export interface PoseidonCompat {
   update(state: FieldVar[], input: FieldVar[]): FieldVar[];
@@ -162,6 +162,7 @@ export interface SnarkyGatesCompat {
   addFixedLookupTable(id: any, data: any): void;
   addRuntimeTableConfig(id: any, firstColumn: any): void;
   rangeCheck0(x: any, xLimbs12: any, xLimbs2: any, isCompact: any): void;
+  rangeCheck1(v2: any, v12: any, vCurr: any, vNext: any): void;
   poseidon?(state: any): void;
   ecAdd?(p1: any, p2: any, p3: any, inf: any, same_x: any, slope: any, inf_z: any, x21_inv: any): void;
 }
@@ -220,12 +221,12 @@ export type BackendType = 'sparky' | 'snarky';
  */
 export interface SnarkyAdapter {
   poseidon: {
-    update(state: any, input: any): any;
-    hashToGroup(input: any): any;
+    update(state: MlArray<FieldVar>, input: MlArray<FieldVar>): FieldVar[];
+    hashToGroup(input: MlArray<FieldVar>): { x: FieldVar; y: FieldVar };
     sponge: {
       create(isChecked: boolean): any;
-      absorb(sponge: any, field: any): void;
-      squeeze(sponge: any): any;
+      absorb(sponge: any, field: FieldVar): void;
+      squeeze(sponge: any): FieldVar;
     };
   };
   
@@ -351,16 +352,15 @@ export interface SnarkyAdapter {
     ): void;
     rangeCheck0(
       x: FieldVar,
-      xLimbs12: FieldVar[],
+      xLimbs12: MlArray<FieldVar>,
       xLimbs2: FieldVar,
       isCompact: FieldVar
     ): void;
     rangeCheck1(
-      x: FieldVar,
-      y: FieldVar,
-      z: FieldVar,
-      flagBound: FieldVar,
-      flagLessOrEqual: FieldVar
+      v2: FieldVar,
+      v12: FieldVar,
+      vCurr: MlArray<FieldVar>,
+      vNext: MlArray<FieldVar>
     ): void;
     foreignFieldAdd(
       left: [FieldVar, FieldVar, FieldVar],
