@@ -484,19 +484,53 @@ export const gateOperations = {
         throw new Error('foreignFieldAdd gate not available in current WASM backend');
       }
       
+      // Debug log the input parameters
+      console.log('DEBUG foreignFieldAdd inputs:', {
+        left: left,
+        right: right,
+        overflow: fieldOverflow,
+        carry: carry,
+        modulus: foreignFieldModulus,
+        sign: sign
+      });
+      
       // Convert MLArray format to JavaScript arrays
       // MLArray format is [0, element1, element2, element3]
       const leftJs = mlArrayToJsArray(left) as [FieldVar, FieldVar, FieldVar];
       const rightJs = mlArrayToJsArray(right) as [FieldVar, FieldVar, FieldVar];
       const modulusJs = mlArrayToJsArray(foreignFieldModulus) as [FieldVar, FieldVar, FieldVar];
       
+      console.log('DEBUG foreignFieldAdd after conversion:', {
+        leftJs: leftJs,
+        rightJs: rightJs,
+        modulusJs: modulusJs
+      });
+      
+      // Validate the arrays have 3 elements
+      if (leftJs.length !== 3 || rightJs.length !== 3 || modulusJs.length !== 3) {
+        throw new Error(`Foreign field arrays must have exactly 3 limbs. Got: left=${leftJs.length}, right=${rightJs.length}, modulus=${modulusJs.length}`);
+      }
+      
       // Extract the sign value from FieldConst format [0, value]
       let signValue: string;
       if (Array.isArray(sign) && sign[0] === 0) {
         const value = sign[1] as any;
         signValue = typeof value === 'bigint' ? value.toString() : String(value);
+        // Validate sign value
+        if (signValue !== '1' && signValue !== '-1') {
+          // Check for bigint representations of 1 and -1 in the field
+          const fieldOrder = '28948022309329048855892746252171976963363056481941560715954676764349967630337';
+          const minusOne = '28948022309329048855892746252171976963363056481941560715954676764349967630336';
+          if (signValue === fieldOrder || signValue === '0') {
+            signValue = '1';
+          } else if (signValue === minusOne) {
+            signValue = '-1';
+          } else {
+            throw new Error(`Sign must be '1' or '-1', got '${signValue}'`);
+          }
+        }
       } else {
-        throw new Error(`Invalid sign format: expected FieldConst [0, value]`);
+        throw new Error(`Invalid sign format: expected FieldConst [0, value], got ${Array.isArray(sign) ? `[${sign[0]}, ...]` : typeof sign}`);
       }
       
       // Extract modulus limb values from FieldConst format [0, value]
