@@ -1,13 +1,33 @@
 # TODO_NEXT.md
 
 **Created**: July 5, 2025 17:40 UTC  
-**Last Modified**: July 5, 2025 12:10 PM UTC
+**Last Modified**: January 7, 2025 00:30 UTC
+
+## 🚨 CRITICAL DISCOVERY: CONSTRAINT GENERATION CRISIS (January 7, 2025)
+
+**MAJOR BREAKTHROUGH IN ANALYSIS**: Comprehensive benchmark analysis reveals **fundamental constraint generation incompatibility** between Sparky and Snarky. While Sparky shows **excellent performance (2.09x faster)**, it generates **3.5-278x MORE constraints** than Snarky for identical operations, resulting in **0% VK compatibility**.
+
+## 🎯 NEW P0 CRITICAL PRIORITIES
+
+### **Constraint Generation Root Cause Analysis** ⚠️ URGENT
+**Impact**: Complete VK incompatibility blocking production readiness  
+**Severity**: **CRITICAL** - Sparky cannot replace Snarky without VK parity  
+
+**Key Findings from Comprehensive 10-Program Benchmark**:
+- **Zero VK matches** (0/10 programs) - all verification keys completely different
+- **Massive constraint inflation**: 4x to 278x more constraints than Snarky
+- **Performance paradox**: 2.09x faster despite generating far more constraints
+- **Boolean logic crisis**: 9 → 234 constraints (26x inflation) for simple operations
+
+---
 
 ## Prioritized Development Roadmap
 
-**🎉 CRITICAL BREAKTHROUGH COMPLETE (July 5, 2025)**: **GATES INTERFACE EXPOSURE FIXED**. All P0 critical blockers resolved. Sparky now has **100% gate coverage** (17/17 gates) with **full interface exposure** and **production readiness**.
+**🎉 INFRASTRUCTURE COMPLETE (January 7, 2025)**: **COMPREHENSIVE BENCHMARKING FRAMEWORK**. Fixed constraint count extraction, VK hash comparison, and performance analysis. Now have accurate data revealing the core compatibility crisis.
 
-Following the successful implementation of all gates and resolution of the wasm-bindgen interface bug, this document outlines the remaining development priorities.
+**📊 PREVIOUS ACHIEVEMENT (July 5, 2025)**: Gates interface exposure fixed, 100% gate coverage achieved.
+
+Following the discovery of fundamental constraint generation issues, this document outlines the critical path to VK parity.
 
 ---
 

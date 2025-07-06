@@ -782,16 +782,16 @@ If you are using a SmartContract, make sure you are using the @method decorator.
         let compilationRules = rules;
         
         if (getCurrentBackend() === 'sparky') {
-          console.log('🎯 CONSTRAINT LOOP: Intercepted Pickles.compile() with Sparky backend!');
+          // console.log('🎯 CONSTRAINT LOOP: Intercepted Pickles.compile() with Sparky backend!');
           
           try {
             const bridge = (globalThis as any).sparkyConstraintBridge;
             if (bridge?.getFullConstraintSystem && typeof bridge.getFullConstraintSystem === 'function') {
               const sparkyConstraints = bridge.getAccumulatedConstraints();
-              console.log('📊 Retrieved Sparky constraints:', sparkyConstraints?.length || 0);
+              // console.log('📊 Retrieved Sparky constraints:', sparkyConstraints?.length || 0);
               
               const fullSystem = bridge.getFullConstraintSystem();
-              console.log('🔍 Full constraint system available with', fullSystem?.gates?.length || 0, 'gates');
+              // console.log('🔍 Full constraint system available with', fullSystem?.gates?.length || 0, 'gates');
               
               // PHASE 2: Convert Sparky constraints for Pickles enhancement
               // TEMPORARILY DISABLED: The enhancement is causing Field objects to be serialized incorrectly
@@ -801,21 +801,21 @@ If you are using a SmartContract, make sure you are using the @method decorator.
               // compilationRules = enhancedRules;
               // useEnhancedRules = true;
               
-              console.log('⚠️  Enhancement temporarily disabled due to Field serialization issue');
+              // console.log('⚠️  Enhancement temporarily disabled due to Field serialization issue');
             }
           } catch (bridgeError) {
-            console.log('⚠️  Bridge access failed, proceeding with normal compilation');
+            // console.log('⚠️  Bridge access failed, proceeding with normal compilation');
           }
         }
         
         // PHASE 3: Compile with chosen rules (enhanced or standard)
-        console.log(useEnhancedRules ? 
-          '🔄 Compiling with enhanced Sparky constraints...' : 
-          '🔄 Compiling with standard rules...');
+        // console.log(useEnhancedRules ? 
+        //   '🔄 Compiling with enhanced Sparky constraints...' : 
+        //   '🔄 Compiling with standard rules...');
         
-        console.log('🔍 DEBUG: About to call Pickles.compile with rules:', compilationRules.length);
-        console.log('🔍 DEBUG: globalThis.__snarky exists?', !!(globalThis as any).__snarky);
-        console.log('🔍 DEBUG: globalThis.__snarky.Snarky type:', typeof (globalThis as any).__snarky?.Snarky);
+        // console.log('🔍 DEBUG: About to call Pickles.compile with rules:', compilationRules.length);
+        // console.log('🔍 DEBUG: globalThis.__snarky exists?', !!(globalThis as any).__snarky);
+        // console.log('🔍 DEBUG: globalThis.__snarky.Snarky type:', typeof (globalThis as any).__snarky?.Snarky);
         
         result = Pickles.compile(MlArray.to(compilationRules), {
           publicInputSize: publicInputType.sizeInFields(),
@@ -826,7 +826,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
         });
         
         if (useEnhancedRules) {
-          console.log('🎆 CONSTRAINT BRIDGE COMPLETE: Pickles compiled with Sparky constraints!');
+          // console.log('🎆 CONSTRAINT BRIDGE COMPLETE: Pickles compiled with Sparky constraints!');
         }
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
@@ -988,9 +988,9 @@ function picklesRuleFromFunction(
   withRuntimeTables?: boolean
 ): Pickles.Rule {
   async function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
-    console.log(`🔍 DEBUG: Executing main for ${methodName}`);
-    console.log('🔍 DEBUG: Current backend:', getCurrentBackend());
-    console.log('🔍 DEBUG: globalThis.__snarky.Snarky exists?', !!(globalThis as any).__snarky?.Snarky);
+    // console.log(`🔍 DEBUG: Executing main for ${methodName}`);
+    // console.log('🔍 DEBUG: Current backend:', getCurrentBackend());
+    // console.log('🔍 DEBUG: globalThis.__snarky.Snarky exists?', !!(globalThis as any).__snarky?.Snarky);
     
     let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();
     assert(!(inProver && argsWithoutPublicInput === undefined));

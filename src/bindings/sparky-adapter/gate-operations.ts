@@ -12,13 +12,7 @@ import { MlArray as MlArrayUtils } from '../../lib/ml/base.js';
 import { cvarToFieldVar, ensureFieldVar, fieldVarToCvar, mlArrayToJsArray } from './format-converter.js';
 import { fieldOperations } from './field-operations.js';
 
-// Gate call counter for debugging
-let gateCallCounter = 0;
 
-// Memory barrier function for deterministic behavior
-function memoryBarrier(): void {
-  // Force memory synchronization point
-}
 
 /**
  * Get the gates module from Sparky instance
@@ -79,10 +73,7 @@ export const gateOperations = {
     so: any, o: FieldVar, 
     sm: any, sc: any
   ): void {
-    // Memory barrier for deterministic constraint generation
-    memoryBarrier();
     
-    gateCallCounter++; // Debug tracking
     
     // Variable array: the three field variables involved in the constraint
     const values = [l, r, o];
@@ -127,8 +118,6 @@ export const gateOperations = {
       coeffs = MlArrayUtils.from(coeffs as MlArray<string | bigint>);
     }
     
-    console.log('DEBUG raw gate:', `kind=${kind}, values.length=${values.length}`);
-    console.log('DEBUG raw gate values:', values);
     
     // For Zero and Generic gates, Sparky expects exactly 3 variables
     // while Snarky expects 15. We need to take only the first 3 non-padding values.
@@ -136,7 +125,6 @@ export const gateOperations = {
       // The raw function in gates.js pads the array to 15 elements by calling exists()
       // which creates new variables. We only want the first 3 values.
       values = (values as FieldVar[]).slice(0, 3);
-      console.log('DEBUG raw gate: after slice, values.length=' + values.length);
     }
     
     // Convert coefficients to strings
@@ -511,8 +499,6 @@ export const gateOperations = {
     sign: FieldVar
   ): void {
     try {
-      // Memory barrier for deterministic constraint generation
-      memoryBarrier();
       
       const gates = getGatesModule();
       
@@ -524,15 +510,6 @@ export const gateOperations = {
         throw new Error('foreignFieldAdd gate not available in current WASM backend');
       }
       
-      // Debug log the input parameters
-      console.log('DEBUG foreignFieldAdd inputs:', {
-        left: left,
-        right: right,
-        overflow: fieldOverflow,
-        carry: carry,
-        modulus: foreignFieldModulus,
-        sign: sign
-      });
       
       // Convert MLArray format to JavaScript arrays
       // MLArray format is [0, element1, element2, element3]
@@ -540,11 +517,6 @@ export const gateOperations = {
       const rightJs = mlArrayToJsArray(right) as [FieldVar, FieldVar, FieldVar];
       const modulusJs = mlArrayToJsArray(foreignFieldModulus) as [FieldVar, FieldVar, FieldVar];
       
-      console.log('DEBUG foreignFieldAdd after conversion:', {
-        leftJs: leftJs,
-        rightJs: rightJs,
-        modulusJs: modulusJs
-      });
       
       // Validate the arrays have 3 elements
       if (leftJs.length !== 3 || rightJs.length !== 3 || modulusJs.length !== 3) {
@@ -650,16 +622,3 @@ export const gateOperations = {
   }
 };
 
-/**
- * Get gate call counter for debugging
- */
-export function getGateCallCounter(): number {
-  return gateCallCounter;
-}
-
-/**
- * Reset gate call counter
- */
-export function resetGateCallCounter(): void {
-  gateCallCounter = 0;
-}
