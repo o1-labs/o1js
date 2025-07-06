@@ -8,7 +8,7 @@
  * Last Modified: July 4, 2025, 22:30 UTC
  */
 
-import { Field, Bool } from '../..';
+import { Field, Bool } from '../../index.js';
 
 /**
  * Test the mathematical property validators independently

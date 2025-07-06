@@ -48,10 +48,7 @@ let debuggingExtensions: SparkyDebuggingExtensions | null = null;
  * Called when Sparky backend becomes active
  */
 export function initializeExtensions(): void {
-  if (getCurrentBackendType() !== 'sparky') {
-    throw new Error('Extensions can only be initialized when Sparky backend is active');
-  }
-  
+  // No need to check backend type here - this is only called from Sparky initialization
   optimizationExtensions = new SparkyOptimizationExtensions();
   performanceExtensions = new SparkyPerformanceExtensions();
   debuggingExtensions = new SparkyDebuggingExtensions();
@@ -87,8 +84,15 @@ export function getSparkyExtensions(): SparkyExtensions | null {
     return null;
   }
   
+  // Extensions should already be initialized during backend setup
+  // If not, initialize them now (this can happen in edge cases)
   if (!optimizationExtensions || !performanceExtensions || !debuggingExtensions) {
-    initializeExtensions();
+    try {
+      initializeExtensions();
+    } catch (error) {
+      console.warn('Failed to lazy-initialize extensions:', error);
+      return null;
+    }
   }
   
   return {

@@ -12,6 +12,7 @@ import { Field, Bool, ZkProgram } from '../../index.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
 import { constraintSystem, ifNotAllConstant, equals, contains } from '../../lib/testing/constraint-system.js';
 import { GateTestFramework, GateOperation, MathProperties, InputGenerators } from './suites/gates/framework/GateTestFramework.js';
+import { xor } from '../../lib/provable/gadgets/bitwise.js';
 
 // Initialize backend switching functionality
 import { initializeBindings, switchBackend, getCurrentBackend } from '../../bindings.js';
@@ -242,7 +243,7 @@ export class FrameworkValidator {
       const xorProperty = MathProperties.xorTruthTable;
       const bool1 = Bool(true);
       const bool2 = Bool(false);
-      const xorResult = bool1.xor(bool2);
+      const xorResult = xor(bool1.toField(), bool2.toField(), 1).equals(Field(1));
       if (!xorProperty.validate([bool1, bool2], xorResult)) {
         throw new Error('XOR truth table property failed');
       }
@@ -319,7 +320,7 @@ export class FrameworkValidator {
       }
       
       // Switch back to original
-      await switchBackend(currentBackend);
+      await switchBackend(currentBackend as 'sparky' | 'snarky');
       
       this.addResult('backend_switching', true);
       
@@ -361,7 +362,7 @@ export class FrameworkValidator {
       
       const result = await framework.runGateTest(
         simpleAddition,
-        () => [Field(5), Field(3)]
+        () => [Field(5), Field(3)] as [Field, Field]
       );
       
       if (!result.passed) {
@@ -388,9 +389,9 @@ export class FrameworkValidator {
         methods: {
           simpleAdd: {
             privateInputs: [Field, Field],
-            async method(a: Field, b: Field) {
+            async method(a: Field, b: Field): Promise<void> {
               const sum = a.add(b);
-              return sum;
+              sum.assertEquals(Field(8));
             }
           }
         }

@@ -97,6 +97,16 @@ export function prepareConstraintAccumulation(): void {
   setCompilingCircuit(true);
   accumulatedConstraints = [];
   
+  // Reset the Sparky compiler to clear any accumulated constraints
+  try {
+    const sparky = getSparkyInstance();
+    if (sparky && sparky.run && sparky.run.reset) {
+      sparky.run.reset();
+    }
+  } catch (error) {
+    console.warn('Failed to reset Sparky compiler:', error);
+  }
+  
   // Enter constraint generation mode
   if (!(globalThis as any).__sparkyConstraintHandle) {
     (globalThis as any).__sparkyConstraintHandle = runOperations.enterConstraintSystem();
@@ -120,12 +130,11 @@ export function getAccumulatedConstraints(): any[] {
     
     // Get constraints from Sparky state
     const constraintsJson = constraintSystemOperations.toJson({});
+    const constraints = typeof constraintsJson === 'string' 
+      ? JSON.parse(constraintsJson) 
+      : constraintsJson;
     
-    if (constraintsJson) {
-      const constraints = typeof constraintsJson === 'string' 
-        ? JSON.parse(constraintsJson) 
-        : constraintsJson;
-      
+    if (constraints) {
       const gates = constraints.gates || [];
       
       if (gates.length > 100) {
@@ -160,12 +169,11 @@ export function getFullConstraintSystem(): any {
     memoryBarrier();
     
     const constraintsJson = constraintSystemOperations.toJson({});
+    const constraintSystem = typeof constraintsJson === 'string' 
+      ? JSON.parse(constraintsJson) 
+      : constraintsJson;
     
-    if (constraintsJson) {
-      const constraintSystem = typeof constraintsJson === 'string' 
-        ? JSON.parse(constraintsJson) 
-        : constraintsJson;
-      
+    if (constraintSystem) {
       const result = {
         gates: constraintSystem.gates || [],
         publicInputSize: constraintSystem.public_input_size || 0,

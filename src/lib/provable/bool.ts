@@ -110,10 +110,15 @@ class Bool {
     // Semantic Boolean OR for Sparky backend
     if (getCurrentBackend() === 'sparky' && 
         (globalThis as any).sparkyConstraintBridge?.emitBooleanOr) {
-      const result = (globalThis as any).sparkyConstraintBridge.emitBooleanOr(
-        this.value, toFieldVar(y)
-      );
-      if (result) return new Bool(result);
+      try {
+        const result = (globalThis as any).sparkyConstraintBridge.emitBooleanOr(
+          this.value, toFieldVar(y)
+        );
+        if (result) return new Bool(result);
+        console.log('⚠️ BOOLEAN OR FALLBACK: emitBooleanOr returned null/undefined, falling back to De Morgan');
+      } catch (error) {
+        console.log('⚠️ BOOLEAN OR FALLBACK: emitBooleanOr failed:', error, 'falling back to De Morgan');
+      }
     }
     
     // Fallback to De Morgan's law: 1 - (1 - x)(1 - y) = x + y - xy

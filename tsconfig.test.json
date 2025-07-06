@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./src/**/*.unit-test.ts", "./src/lib/**/*.ts", "./src/test/sparky/orchestrator/**/*.ts", "./src/test/sparky/workers/**/*.ts", "./src/test/sparky/shared/**/*.ts", "./src/test/sparky/suites/**/*.suite.ts", "./src/test/sparky/run-*.ts", "./src/bindings.js"],
+  "include": ["./src/**/*.unit-test.ts", "./src/lib/**/*.ts", "./src/test/sparky/orchestrator/**/*.ts", "./src/test/sparky/workers/**/*.ts", "./src/test/sparky/shared/**/*.ts", "./src/test/sparky/suites/**/*.suite.ts", "./src/test/sparky/run-*.ts", "./src/test/sparky/*.ts", "./src/bindings.js"],
   "compilerOptions": {
     "outDir": "dist/node"
   }
