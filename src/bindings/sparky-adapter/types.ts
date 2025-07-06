@@ -353,7 +353,7 @@ export interface SnarkyAdapter {
     rangeCheck0(
       x: FieldVar,
       xLimbs12: MlArray<FieldVar>,
-      xLimbs2: FieldVar,
+      xLimbs2: MlArray<FieldVar>,
       isCompact: FieldVar
     ): void;
     rangeCheck1(

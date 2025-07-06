@@ -421,15 +421,16 @@ export const gateOperations = {
   /**
    * Range check gate (64-bit)
    */
-  rangeCheck0(x: FieldVar, xLimbs12: MlArray<FieldVar>, xLimbs2: FieldVar, isCompact: FieldVar): void {
-    // Convert MLArray to JavaScript array for Rust WASM
+  rangeCheck0(x: FieldVar, xLimbs12: MlArray<FieldVar>, xLimbs2: MlArray<FieldVar>, isCompact: FieldVar): void {
+    // Convert MLArrays to JavaScript arrays for Rust WASM
     const jsLimbs12 = mlArrayToJsArray(xLimbs12);
+    const jsLimbs2 = mlArrayToJsArray(xLimbs2);
     
     // Convert FieldConst to boolean
     const jsIsCompact = Array.isArray(isCompact) && isCompact.length === 2 ? 
       (isCompact[1] as any) !== 0n : Boolean(isCompact);
     
-    getSparkyInstance().gates.rangeCheck0(x, jsLimbs12, xLimbs2, jsIsCompact);
+    getSparkyInstance().gates.rangeCheck0(x, jsLimbs12, jsLimbs2, jsIsCompact);
   },
   
   /**
