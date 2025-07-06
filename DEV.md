@@ -82,17 +82,59 @@ This file tracks the current development state and progress of the o1js2 Sparky 
 - **Implementation**: Worklist-based incremental processing with dependency tracking
 - **Memory**: Efficient deferred constraint removal to avoid index shifting
 
-### Advanced Compilation Analysis
+### Constraint System Extraction Analysis ✅
 
-**Current Focus**: The comprehensive test failures indicate advanced constraint generation differences between Snarky and Sparky backends for complex compilation scenarios.
+**CRITICAL DISCOVERY**: Identified the exact method to extract constraints from ZkProgram compilation.
 
-**Root Cause**: While basic field operations achieve 100% parity, complex compilation patterns like:
-- SmartContract method compilation with decorators
-- ZkProgram recursive proof generation  
-- Advanced cryptographic circuit compilation
-- Complex constraint batching and optimization
+#### How to Extract Constraints from ZkProgram Compilation
 
-These require deeper investigation of the constraint generation pipeline differences during advanced circuit compilation.
+**❌ WRONG APPROACH**: Using `Provable.constraintSystem()` for simple field operations:
+```javascript
+// This does NOT generate constraints - Field.add() is a constant operation
+const constraints = await Provable.constraintSystem(() => {
+  const a = Field(1);
+  const b = Field(2);
+  const c = a.add(b); // Addition is constant-time, no constraints
+  return c;
+});
+// Result: 0 gates (no constraints generated)
+```
+
+**✅ CORRECT APPROACH**: Using ZkProgram compilation with constraint-generating operations:
+```javascript
+// Step 1: Create ZkProgram with operations that generate constraints
+const MultiplyProgram = ZkProgram({
+  name: 'MultiplyProgram', 
+  publicInput: Field,
+  publicOutput: Field,
+  methods: {
+    multiply: {
+      privateInputs: [Field],
+      async method(publicInput, privateInput) {
+        const result = publicInput.mul(privateInput); // Multiplication DOES generate constraints
+        return { publicOutput: result };
+      },
+    },
+  },
+});
+
+// Step 2: Compile to trigger constraint generation  
+await MultiplyProgram.compile();
+
+// Step 3: Extract constraints via constraint bridge
+const constraintSystem = globalThis.sparkyConstraintBridge.getFullConstraintSystem();
+```
+
+**Key Insights**:
+1. **Field addition/subtraction**: Do NOT generate constraints (constant-time operations)
+2. **Field multiplication**: DOES generate constraints (requires R1CS proof)
+3. **Boolean operations**: DOES generate constraints 
+4. **assertEquals**: DOES generate constraints
+5. **Constraint extraction timing**: Must happen AFTER ZkProgram.compile(), not during Provable.constraintSystem()
+
+**Root Cause of Permutation Error**: All variables mapping to row 0 instead of proper constraint rows, causing Kimchi permutation construction to fail with "final value" error.
+
+**Verified Issue**: Sparky generates constraints correctly (1 gate) but variable-to-row mapping logic fails to identify output variables.
 
 ### Priority Development Order
 
