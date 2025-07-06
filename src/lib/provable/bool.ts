@@ -59,7 +59,17 @@ class Bool {
     if (this.isConstant()) {
       return new Bool(!this.toBoolean());
     }
-    // 1 - x
+    
+    // Semantic Boolean NOT for Sparky backend
+    if (getCurrentBackend() === 'sparky' && 
+        (globalThis as any).sparkyConstraintBridge?.emitBooleanNot) {
+      const result = (globalThis as any).sparkyConstraintBridge.emitBooleanNot(
+        this.value
+      );
+      if (result) return new Bool(result);
+    }
+    
+    // Fallback to field subtraction: 1 - x
     let not = new Field(1).sub(this.toField());
     return new Bool(not.value);
   }
@@ -96,7 +106,17 @@ class Bool {
     if (this.isConstant() && isConstant(y)) {
       return new Bool(this.toBoolean() || toBoolean(y));
     }
-    // 1 - (1 - x)(1 - y) = x + y - xy
+    
+    // Semantic Boolean OR for Sparky backend
+    if (getCurrentBackend() === 'sparky' && 
+        (globalThis as any).sparkyConstraintBridge?.emitBooleanOr) {
+      const result = (globalThis as any).sparkyConstraintBridge.emitBooleanOr(
+        this.value, toFieldVar(y)
+      );
+      if (result) return new Bool(result);
+    }
+    
+    // Fallback to De Morgan's law: 1 - (1 - x)(1 - y) = x + y - xy
     return this.not().and(new Bool(y).not()).not();
   }
 

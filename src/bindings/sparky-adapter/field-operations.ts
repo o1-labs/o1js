@@ -325,6 +325,28 @@ export const fieldOperations = {
   },
   
   /**
+   * Emit semantic Boolean OR constraint (Sparky-specific)
+   */
+  emitBooleanOr(a: FieldVar, b: FieldVar): FieldVar {
+    if ((getFieldModule() as any).emitBooleanOr) {
+      const result = (getFieldModule() as any).emitBooleanOr(a, b);
+      return ensureFieldVar(result);
+    }
+    throw new Error('emitBooleanOr not available');
+  },
+  
+  /**
+   * Emit semantic Boolean NOT constraint (Sparky-specific)
+   */
+  emitBooleanNot(a: FieldVar): FieldVar {
+    if ((getFieldModule() as any).emitBooleanNot) {
+      const result = (getFieldModule() as any).emitBooleanNot(a);
+      return ensureFieldVar(result);
+    }
+    throw new Error('emitBooleanNot not available');
+  },
+  
+  /**
    * Square root
    */
   sqrt(x: FieldVar): FieldVar {

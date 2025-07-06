@@ -787,9 +787,8 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           try {
             const bridge = (globalThis as any).sparkyConstraintBridge;
             if (bridge?.getFullConstraintSystem && typeof bridge.getFullConstraintSystem === 'function') {
-              const sparkyConstraints = bridge.getAccumulatedConstraints();
-              // console.log('📊 Retrieved Sparky constraints:', sparkyConstraints?.length || 0);
-              
+              // 🔧 FIX: Remove duplicate constraint system access to prevent duplication
+              // Only call getFullConstraintSystem() once - it contains all needed data
               const fullSystem = bridge.getFullConstraintSystem();
               // console.log('🔍 Full constraint system available with', fullSystem?.gates?.length || 0, 'gates');
               
