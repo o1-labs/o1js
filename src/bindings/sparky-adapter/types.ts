@@ -366,11 +366,11 @@ export interface SnarkyAdapter {
       vNext: MlArray<FieldVar>
     ): void;
     foreignFieldAdd(
-      left: [FieldVar, FieldVar, FieldVar],
-      right: [FieldVar, FieldVar, FieldVar],
+      left: MlArray<FieldVar>,
+      right: MlArray<FieldVar>,
       fieldOverflow: FieldVar,
       carry: FieldVar,
-      foreignFieldModulus: [FieldVar, FieldVar, FieldVar],
+      foreignFieldModulus: MlArray<FieldVar>,
       sign: FieldVar
     ): void;
     foreignFieldMul(

@@ -463,11 +463,11 @@ export const gateOperations = {
    * This gate only adds the constraint relationship.
    */
   foreignFieldAdd(
-    left: [FieldVar, FieldVar, FieldVar],
-    right: [FieldVar, FieldVar, FieldVar], 
+    left: MlArray<FieldVar>,
+    right: MlArray<FieldVar>, 
     fieldOverflow: FieldVar,
     carry: FieldVar,
-    foreignFieldModulus: [FieldVar, FieldVar, FieldVar],
+    foreignFieldModulus: MlArray<FieldVar>,
     sign: FieldVar
   ): void {
     try {
@@ -484,57 +484,49 @@ export const gateOperations = {
         throw new Error('foreignFieldAdd gate not available in current WASM backend');
       }
       
-      // The WASM interface expects:
-      // foreignFieldAdd(left_limbs, right_limbs, result_limbs, overflow, modulus_limbs, limb_size_bits)
-      // 
-      // But we need to create the result witness variables here since they're not passed
-      // from the Snarky interface (which matches the behavior of singleAdd)
+      // Convert MLArray format to JavaScript arrays
+      // MLArray format is [0, element1, element2, element3]
+      const leftJs = mlArrayToJsArray(left) as [FieldVar, FieldVar, FieldVar];
+      const rightJs = mlArrayToJsArray(right) as [FieldVar, FieldVar, FieldVar];
+      const modulusJs = mlArrayToJsArray(foreignFieldModulus) as [FieldVar, FieldVar, FieldVar];
       
-      // Create witness variables for the result (this is done in singleAdd in foreign-field.ts)
-      const fieldModule = getFieldModule();
-      const resultWitness: [FieldVar, FieldVar, FieldVar] = [
-        ensureFieldVar(fieldModule.exists(null)),
-        ensureFieldVar(fieldModule.exists(null)),
-        ensureFieldVar(fieldModule.exists(null))
-      ];
+      // Extract the sign value from FieldConst format [0, value]
+      let signValue: string;
+      if (Array.isArray(sign) && sign[0] === 0) {
+        const value = sign[1] as any;
+        signValue = typeof value === 'bigint' ? value.toString() : String(value);
+      } else {
+        throw new Error(`Invalid sign format: expected FieldConst [0, value]`);
+      }
       
-      // Debug: Log parameter types and values
-      console.log('foreignFieldAdd parameters:');
-      console.log('left:', Array.isArray(left), left.length, left);
-      console.log('right:', Array.isArray(right), right.length, right);
-      console.log('fieldOverflow:', Array.isArray(fieldOverflow), fieldOverflow);
-      console.log('carry:', Array.isArray(carry), carry);
-      console.log('foreignFieldModulus:', Array.isArray(foreignFieldModulus), foreignFieldModulus.length, foreignFieldModulus);
-      console.log('sign:', Array.isArray(sign), sign);
-      
-      // Convert foreignFieldModulus from FieldVar to strings for WASM interface
-      const modulusStrings = foreignFieldModulus.map(fv => {
-        // Extract the string value from FieldVar
-        if (Array.isArray(fv) && fv.length >= 2 && Array.isArray(fv[1]) && fv[1].length >= 2) {
-          return fv[1][1]; // FieldConst value
+      // Extract modulus limb values from FieldConst format [0, value]
+      const extractModulusLimb = (limb: FieldVar): string => {
+        if (Array.isArray(limb) && limb[0] === 0) {
+          const value: any = limb[1];
+          if (typeof value === 'bigint') {
+            return value.toString();
+          } else if (typeof value === 'string' || typeof value === 'number') {
+            return String(value);
+          }
+          throw new Error(`Modulus values must be strings or bigints, got ${typeof value}`);
         }
-        return "0"; // Fallback
-      }) as [string, string, string];
+        throw new Error(`Invalid modulus limb format: expected FieldConst [0, value]`);
+      };
       
-      // Convert the 88-bit limb size (standard for foreign field operations)
-      const limbSizeBits = 88;
-      
-      console.log('WASM call parameters:');
-      console.log('left:', left);
-      console.log('right:', right);
-      console.log('resultWitness:', resultWitness);
-      console.log('fieldOverflow:', fieldOverflow);
-      console.log('modulusStrings:', modulusStrings);
-      console.log('limbSizeBits:', limbSizeBits);
+      const modulus0 = extractModulusLimb(modulusJs[0]);
+      const modulus1 = extractModulusLimb(modulusJs[1]);
+      const modulus2 = extractModulusLimb(modulusJs[2]);
       
       // Call the WASM foreign field addition gate
       gatesAny.foreignFieldAdd(
-        left,                    // left_limbs: [FieldVar, FieldVar, FieldVar]
-        right,                   // right_limbs: [FieldVar, FieldVar, FieldVar]
-        resultWitness,           // result_limbs: [FieldVar, FieldVar, FieldVar] (created here)
-        fieldOverflow,           // overflow: FieldVar
-        modulusStrings,          // modulus_limbs: [string, string, string]
-        limbSizeBits            // limb_size_bits: number
+        leftJs,         // left_limbs: [FieldVar, FieldVar, FieldVar]
+        rightJs,        // right_limbs: [FieldVar, FieldVar, FieldVar]
+        fieldOverflow,  // overflow: FieldVar
+        carry,          // carry: FieldVar
+        modulus0,       // modulus_limb0: string (bigint as string)
+        modulus1,       // modulus_limb1: string (bigint as string)
+        modulus2,       // modulus_limb2: string (bigint as string)
+        signValue       // sign: string ("1" or "-1")
       );
       
     } catch (error: any) {

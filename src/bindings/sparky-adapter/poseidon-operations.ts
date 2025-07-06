@@ -15,53 +15,9 @@ import { jsArrayToMlArray, mlArrayToJsArray } from './format-converter.js';
  * The WASM layer expects simple FieldVars (constants/variables), not complex expressions
  */
 function flattenFieldVar(fieldVar: FieldVar): FieldVar {
-  if (!Array.isArray(fieldVar) || fieldVar.length < 2) {
-    return fieldVar;
-  }
-  
-  const [type, ...data] = fieldVar;
-  
-  switch (type) {
-    case 0: // Constant: [0, [0, string]] - already simple
-      return fieldVar;
-      
-    case 1: // Variable: [1, number] - already simple  
-      return fieldVar;
-      
-    case 2: // Addition: [2, FieldVar, FieldVar] - flatten by creating new variable
-    case 3: // Scale: [3, FieldVar, FieldVar] - flatten by creating new variable
-      // For complex expressions, we need to create a witness variable
-      // This essentially "evaluates" the expression into a single variable
-      // The constraint will be handled by the underlying constraint system
-      try {
-        const fieldModule = getSparkyInstance().field;
-        const runModule = getSparkyInstance().run;
-        
-        // Create a witness variable that represents this complex expression
-        // In witness mode, this will compute the actual value
-        // In constraint mode, this will create appropriate constraints
-        const result = runModule.existsOne(() => {
-          // This is a placeholder - the actual constraint generation
-          // will happen when the expression is processed by the WASM layer
-          return null;
-        });
-        
-        // Convert the Cvar result to FieldVar format
-        if (result && typeof result === 'object' && 'type' in result && result.type === 'var') {
-          return [1, (result as any).id];
-        }
-        
-        // Fallback: return the original expression
-        return fieldVar;
-      } catch (error) {
-        // If witness creation fails, return the original expression
-        // This maintains compatibility but might still cause WASM issues
-        return fieldVar;
-      }
-      
-    default:
-      return fieldVar;
-  }
+  // For now, just pass through all FieldVars unchanged
+  // The WASM layer should handle them correctly
+  return fieldVar;
 }
 
 /**
