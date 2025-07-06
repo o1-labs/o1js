@@ -23,11 +23,13 @@ export type Cvar =
  * [0, [0, "value"]] for constants
  * [1, varId] for variables
  * [2, left, right] for additions
+ * [3, scalar, expr] for scaling
  */
 export type FieldVar = 
   | [0, [0, string]]  // Constant
   | [1, number]       // Variable
-  | [2, FieldVar, FieldVar]; // Addition
+  | [2, FieldVar, FieldVar] // Addition
+  | [3, FieldVar, FieldVar]; // Scale/Multiply
 
 /**
  * MlArray type - OCaml array representation

@@ -34,12 +34,12 @@ export function cvarToFieldVar(cvar: Cvar): FieldVar {
       return [0, [0, cvar.value]];
       
     case 'add':
-      // Complex expressions not yet supported in conversion
-      throw new Error('Complex Cvar expressions not yet supported in conversion');
+      // Addition: convert recursively
+      return [2, cvarToFieldVar(cvar.left), cvarToFieldVar(cvar.right)];
       
     case 'mul':
-      // Complex expressions not yet supported in conversion
-      throw new Error('Complex Cvar expressions not yet supported in conversion');
+      // Multiplication: convert recursively 
+      return [3, cvarToFieldVar(cvar.left), cvarToFieldVar(cvar.right)];
       
     default:
       throw new Error(`Unknown Cvar type: ${(cvar as any).type}`);
@@ -76,8 +76,19 @@ export function fieldVarToCvar(fieldVar: FieldVar): Cvar {
       }
       return { type: 'var', id: data };
       
-    case 2: // Addition (complex expression)
-      throw new Error('Complex FieldVar expressions not yet supported in conversion');
+    case 2: // Addition: [2, FieldVar, FieldVar]
+      if (data.length !== 2) {
+        throw new Error(`Invalid addition FieldVar format: expected 2 operands, got ${data.length}`);
+      }
+      // Recursively convert nested FieldVars
+      return { type: 'add', left: fieldVarToCvar(data[0] as unknown as FieldVar), right: fieldVarToCvar(data[1] as unknown as FieldVar) };
+      
+    case 3: // Scale: [3, FieldVar, FieldVar] 
+      if (data.length !== 2) {
+        throw new Error(`Invalid scale FieldVar format: expected 2 operands, got ${data.length}`);
+      }
+      // Recursively convert nested FieldVars
+      return { type: 'mul', left: fieldVarToCvar(data[0] as unknown as FieldVar), right: fieldVarToCvar(data[1] as unknown as FieldVar) };
       
     default:
       throw new Error(`Unknown FieldVar type: ${type}`);
