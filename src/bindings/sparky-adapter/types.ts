@@ -165,6 +165,7 @@ export interface SnarkyGatesCompat {
   addRuntimeTableConfig(id: any, firstColumn: any): void;
   rangeCheck0(x: any, xLimbs12: any, xLimbs2: any, isCompact: any): void;
   rangeCheck1(v2: any, v12: any, vCurr: any, vNext: any): void;
+  foreignFieldAdd(leftLimbs: any, rightLimbs: any, resultLimbs: any, overflow: any, modulusLimbs: any, limbSizeBits: number): void;
   poseidon?(state: any): void;
   ecAdd?(p1: any, p2: any, p3: any, inf: any, same_x: any, slope: any, inf_z: any, x21_inv: any): void;
 }
@@ -367,11 +368,10 @@ export interface SnarkyAdapter {
     foreignFieldAdd(
       left: [FieldVar, FieldVar, FieldVar],
       right: [FieldVar, FieldVar, FieldVar],
-      result: [FieldVar, FieldVar, FieldVar],
-      overflow: FieldVar,
+      fieldOverflow: FieldVar,
       carry: FieldVar,
-      foreignFieldModulus: [string, string, string],
-      sign: string
+      foreignFieldModulus: [FieldVar, FieldVar, FieldVar],
+      sign: FieldVar
     ): void;
     foreignFieldMul(
       left: [FieldVar, FieldVar, FieldVar],

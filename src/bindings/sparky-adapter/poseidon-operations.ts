@@ -90,7 +90,7 @@ export const poseidonOperations = {
     const flattenedState = stateJsArray.map(flattenFieldVar);
     const flattenedInput = inputJsArray.map(flattenFieldVar);
     
-    // Call Rust WASM with flattened arrays
+    // Pass FieldVar arrays directly to WASM (no conversion to CVars)
     const result = getPoseidonModule().update(flattenedState, flattenedInput);
     
     // Return result as normal JavaScript array
@@ -109,7 +109,7 @@ export const poseidonOperations = {
     // Flatten complex FieldVar expressions for WASM compatibility
     const flattenedInput = inputJsArray.map(flattenFieldVar);
     
-    // Call Rust WASM with flattened array
+    // Pass FieldVar arrays directly to WASM (no conversion to CVars)
     return getPoseidonModule().hashToGroup(flattenedInput);
   },
 

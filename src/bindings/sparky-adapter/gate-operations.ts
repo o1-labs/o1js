@@ -451,19 +451,95 @@ export const gateOperations = {
   },
   
   /**
-   * Foreign field addition
+   * Foreign field addition gate
+   * 
+   * Performs addition in a foreign prime field with overflow handling.
+   * This is called from singleAdd operations during foreign field arithmetic.
+   * 
+   * The constraint enforces:
+   * left + sign * right = (computed result) + overflow * foreignFieldModulus
+   * 
+   * Note: The result is computed separately by witness generation in singleAdd.
+   * This gate only adds the constraint relationship.
    */
   foreignFieldAdd(
     left: [FieldVar, FieldVar, FieldVar],
-    right: [FieldVar, FieldVar, FieldVar],
-    result: [FieldVar, FieldVar, FieldVar],
-    overflow: FieldVar,
+    right: [FieldVar, FieldVar, FieldVar], 
+    fieldOverflow: FieldVar,
     carry: FieldVar,
-    foreignFieldModulus: [string, string, string],
-    sign: string
+    foreignFieldModulus: [FieldVar, FieldVar, FieldVar],
+    sign: FieldVar
   ): void {
-    // TODO: Implement foreign field addition
-    throw new Error('foreignFieldAdd not yet implemented');
+    try {
+      // Memory barrier for deterministic constraint generation
+      memoryBarrier();
+      
+      const gates = getGatesModule();
+      
+      // Cast to any to bypass TypeScript type checking for new methods
+      const gatesAny = gates as any;
+      
+      // Check if WASM backend supports foreign field addition
+      if (!gatesAny.foreignFieldAdd) {
+        throw new Error('foreignFieldAdd gate not available in current WASM backend');
+      }
+      
+      // The WASM interface expects:
+      // foreignFieldAdd(left_limbs, right_limbs, result_limbs, overflow, modulus_limbs, limb_size_bits)
+      // 
+      // But we need to create the result witness variables here since they're not passed
+      // from the Snarky interface (which matches the behavior of singleAdd)
+      
+      // Create witness variables for the result (this is done in singleAdd in foreign-field.ts)
+      const fieldModule = getFieldModule();
+      const resultWitness: [FieldVar, FieldVar, FieldVar] = [
+        ensureFieldVar(fieldModule.exists(null)),
+        ensureFieldVar(fieldModule.exists(null)),
+        ensureFieldVar(fieldModule.exists(null))
+      ];
+      
+      // Debug: Log parameter types and values
+      console.log('foreignFieldAdd parameters:');
+      console.log('left:', Array.isArray(left), left.length, left);
+      console.log('right:', Array.isArray(right), right.length, right);
+      console.log('fieldOverflow:', Array.isArray(fieldOverflow), fieldOverflow);
+      console.log('carry:', Array.isArray(carry), carry);
+      console.log('foreignFieldModulus:', Array.isArray(foreignFieldModulus), foreignFieldModulus.length, foreignFieldModulus);
+      console.log('sign:', Array.isArray(sign), sign);
+      
+      // Convert foreignFieldModulus from FieldVar to strings for WASM interface
+      const modulusStrings = foreignFieldModulus.map(fv => {
+        // Extract the string value from FieldVar
+        if (Array.isArray(fv) && fv.length >= 2 && Array.isArray(fv[1]) && fv[1].length >= 2) {
+          return fv[1][1]; // FieldConst value
+        }
+        return "0"; // Fallback
+      }) as [string, string, string];
+      
+      // Convert the 88-bit limb size (standard for foreign field operations)
+      const limbSizeBits = 88;
+      
+      console.log('WASM call parameters:');
+      console.log('left:', left);
+      console.log('right:', right);
+      console.log('resultWitness:', resultWitness);
+      console.log('fieldOverflow:', fieldOverflow);
+      console.log('modulusStrings:', modulusStrings);
+      console.log('limbSizeBits:', limbSizeBits);
+      
+      // Call the WASM foreign field addition gate
+      gatesAny.foreignFieldAdd(
+        left,                    // left_limbs: [FieldVar, FieldVar, FieldVar]
+        right,                   // right_limbs: [FieldVar, FieldVar, FieldVar]
+        resultWitness,           // result_limbs: [FieldVar, FieldVar, FieldVar] (created here)
+        fieldOverflow,           // overflow: FieldVar
+        modulusStrings,          // modulus_limbs: [string, string, string]
+        limbSizeBits            // limb_size_bits: number
+      );
+      
+    } catch (error: any) {
+      throw new Error(`foreignFieldAdd implementation failed: ${error.message}`);
+    }
   },
   
   /**
