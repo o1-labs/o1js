@@ -127,7 +127,17 @@ function conversionCorePerField(
       return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
     },
     polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyComm> {
-      let comms = mapFromUintArray(rustComms, (ptr) => self.polyCommFromRust(wrap(ptr, PolyComm)));
+      // Track wrapped objects to free them after conversion
+      const wrappedObjects: WasmPolyComm[] = [];
+      let comms = mapFromUintArray(rustComms, (ptr) => {
+        const wrapped = wrap(ptr, PolyComm);
+        wrappedObjects.push(wrapped);
+        return self.polyCommFromRust(wrapped);
+      });
+      // Free all wrapped objects after extracting data
+      for (const obj of wrappedObjects) {
+        obj.free();
+      }
       return [0, ...comms];
     },
   };
