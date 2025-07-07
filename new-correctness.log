@@ -1,0 +1,18 @@
+🧪 ZkProgram Mathematical Correctness Benchmark
+===============================================\n
+🔄 Testing with SPARKY backend...
+──────────────────────────────────────────────────
+Loading Sparky backend...
+OCaml backend bridge initialized: false
+Failed to initialize sparky backend: Error: Failed to load OCaml/WASM bindings via require: The argument 'filename' must be a file URL object, file URL string, or absolute path string. Received undefined
+    at /home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:3957:15
+    at async Object.initializeSparky (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:6861:3)
+    at async initializeBindings (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:6966:7)
+    at async switchBackend (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:7005:3)
+    at async runCorrectnessTests (/home/fizzixnerd/src/o1labs/o1js2/run-correctness-benchmark-cjs.cjs:182:5)
+Error: Failed to load OCaml/WASM bindings via require: The argument 'filename' must be a file URL object, file URL string, or absolute path string. Received undefined
+    at /home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:3957:15
+    at async Object.initializeSparky (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:6861:3)
+    at async initializeBindings (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:6966:7)
+    at async switchBackend (/home/fizzixnerd/src/o1labs/o1js2/dist/node/index.cjs:7005:3)
+    at async runCorrectnessTests (/home/fizzixnerd/src/o1labs/o1js2/run-correctness-benchmark-cjs.cjs:182:5)

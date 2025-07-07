@@ -1,11 +1,36 @@
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
+var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
+    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+    var _, done = false;
+    for (var i = decorators.length - 1; i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
+        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+            if (result === void 0) continue;
+            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+            if (_ = accept(result.get)) descriptor.get = _;
+            if (_ = accept(result.set)) descriptor.set = _;
+            if (_ = accept(result.init)) initializers.unshift(_);
+        }
+        else if (_ = accept(result)) {
+            if (kind === "field") initializers.unshift(_);
+            else descriptor[key] = _;
+        }
+    }
+    if (target) Object.defineProperty(target, contextIn.name, descriptor);
+    done = true;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
+    var useValue = arguments.length > 2;
+    for (var i = 0; i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+    }
+    return useValue ? value : void 0;
 };
 import { arrayProp, CircuitValue } from './types/circuit-value.js';
 import { Field, Bool } from './wrapped.js';
@@ -104,39 +129,53 @@ class MerkleMap {
         return new MerkleMapWitness(witness.isLeft, witness.path);
     }
 }
-class MerkleMapWitness extends CircuitValue {
-    constructor(isLefts, siblings) {
-        super();
-        this.isLefts = isLefts;
-        this.siblings = siblings;
-    }
-    /**
-     * Computes the merkle tree root for a given value and the key for this witness
-     * @param value The value to compute the root for.
-     * @returns A tuple of the computed merkle root, and the key that is connected to the path updated by this witness.
-     */
-    computeRootAndKey(value) {
-        // Check that the computed key is less than 2^254, in order to avoid collisions since the Pasta field modulus is smaller than 2^255
-        this.isLefts[0].assertTrue();
-        let hash = value;
-        const isLeft = this.isLefts;
-        const siblings = this.siblings;
-        let key = Field(0);
-        for (let i = 0; i < 255; i++) {
-            const left = Provable.if(isLeft[i], hash, siblings[i]);
-            const right = Provable.if(isLeft[i], siblings[i], hash);
-            hash = Poseidon.hash([left, right]);
-            const bit = Provable.if(isLeft[i], Field(0), Field(1));
-            key = key.mul(2).add(bit);
-        }
-        return [hash, key];
-    }
-}
-__decorate([
-    arrayProp(Bool, 255),
-    __metadata("design:type", Array)
-], MerkleMapWitness.prototype, "isLefts", void 0);
-__decorate([
-    arrayProp(Field, 255),
-    __metadata("design:type", Array)
-], MerkleMapWitness.prototype, "siblings", void 0);
+let MerkleMapWitness = (() => {
+    var _a;
+    let _classSuper = CircuitValue;
+    let _isLefts_decorators;
+    let _isLefts_initializers = [];
+    let _isLefts_extraInitializers = [];
+    let _siblings_decorators;
+    let _siblings_initializers = [];
+    let _siblings_extraInitializers = [];
+    return _a = class MerkleMapWitness extends _classSuper {
+            constructor(isLefts, siblings) {
+                super();
+                this.isLefts = __runInitializers(this, _isLefts_initializers, void 0);
+                this.siblings = (__runInitializers(this, _isLefts_extraInitializers), __runInitializers(this, _siblings_initializers, void 0));
+                __runInitializers(this, _siblings_extraInitializers);
+                this.isLefts = isLefts;
+                this.siblings = siblings;
+            }
+            /**
+             * Computes the merkle tree root for a given value and the key for this witness
+             * @param value The value to compute the root for.
+             * @returns A tuple of the computed merkle root, and the key that is connected to the path updated by this witness.
+             */
+            computeRootAndKey(value) {
+                // Check that the computed key is less than 2^254, in order to avoid collisions since the Pasta field modulus is smaller than 2^255
+                this.isLefts[0].assertTrue();
+                let hash = value;
+                const isLeft = this.isLefts;
+                const siblings = this.siblings;
+                let key = Field(0);
+                for (let i = 0; i < 255; i++) {
+                    const left = Provable.if(isLeft[i], hash, siblings[i]);
+                    const right = Provable.if(isLeft[i], siblings[i], hash);
+                    hash = Poseidon.hash([left, right]);
+                    const bit = Provable.if(isLeft[i], Field(0), Field(1));
+                    key = key.mul(2).add(bit);
+                }
+                return [hash, key];
+            }
+        },
+        (() => {
+            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
+            _isLefts_decorators = [arrayProp(Bool, 255)];
+            _siblings_decorators = [arrayProp(Field, 255)];
+            __esDecorate(null, null, _isLefts_decorators, { kind: "field", name: "isLefts", static: false, private: false, access: { has: obj => "isLefts" in obj, get: obj => obj.isLefts, set: (obj, value) => { obj.isLefts = value; } }, metadata: _metadata }, _isLefts_initializers, _isLefts_extraInitializers);
+            __esDecorate(null, null, _siblings_decorators, { kind: "field", name: "siblings", static: false, private: false, access: { has: obj => "siblings" in obj, get: obj => obj.siblings, set: (obj, value) => { obj.siblings = value; } }, metadata: _metadata }, _siblings_initializers, _siblings_extraInitializers);
+            if (_metadata) Object.defineProperty(_a, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
+        })(),
+        _a;
+})();

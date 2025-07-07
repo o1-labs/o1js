@@ -116,6 +116,14 @@ function proofConversionPerField(
   }: WasmClasses
 ) {
   function commitmentsToRust(commitments: ProverCommitments): WasmProverCommitments {
+    // Add defensive checks for array elements
+    if (!commitments || commitments.length < 5) {
+      throw new Error(`Invalid ProverCommitments: expected array of length 5, got ${commitments?.length || 'undefined'}`);
+    }
+    if (!commitments[1]) throw new Error('ProverCommitments[1] (w_comm) is undefined');
+    if (!commitments[2]) throw new Error('ProverCommitments[2] (z_comm) is undefined');
+    if (!commitments[3]) throw new Error('ProverCommitments[3] (t_comm) is undefined');
+    
     let wComm = core.polyCommsToRust(commitments[1]);
     let zComm = core.polyCommToRust(commitments[2]);
     let tComm = core.polyCommToRust(commitments[3]);
@@ -196,6 +204,14 @@ function proofConversionPerField(
 
   return {
     proofToRust([, public_evals, proof]: ProofWithPublic): WasmProverProof {
+      // Add defensive checks for proof structure
+      if (!proof || proof.length < 7) {
+        throw new Error(`Invalid proof structure: expected array of length 7, got ${proof?.length || 'undefined'}`);
+      }
+      if (!proof[1]) throw new Error('proof[1] (commitments) is undefined');
+      if (!proof[2]) throw new Error('proof[2] (openingProof) is undefined');
+      if (!proof[3]) throw new Error('proof[3] (evals) is undefined');
+      
       let commitments = commitmentsToRust(proof[1]);
       let openingProof = openingProofToRust(proof[2]);
       let [, ...evals] = proofEvaluationsToRust(proof[3]);

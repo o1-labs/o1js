@@ -324,9 +324,9 @@ function ifField(b, x, y) {
                 // SEMANTIC CONSTRAINT EMISSION: Preserve Provable.if semantics
                 // This allows Sparky to generate Snarky's optimal 2-constraint pattern
                 // instead of expanding to 4+ primitive constraints
-                const semanticResult = globalThis.sparkyConstraintBridge.emitIfConstraint(b.toFields()[0], // Convert Field to FieldVar
-                x.toFields()[0], // Convert Field to FieldVar  
-                y.toFields()[0] // Convert Field to FieldVar
+                const semanticResult = globalThis.sparkyConstraintBridge.emitIfConstraint(b.value, // Access FieldVar directly from Field
+                x.value, // Access FieldVar directly from Field
+                y.value // Access FieldVar directly from Field
                 );
                 if (semanticResult) {
                     // SUCCESS: Semantic constraint emitted, return the result

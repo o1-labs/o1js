@@ -1,0 +1,77 @@
+Testing to debug assert_equal: 0 != 1 error...
+
+Switching to Sparky backend...
+Loading Sparky backend...
+OCaml backend bridge initialized: false
+✓ Sparky backend loaded
+
+Compiling program...
+🔧 CONSTRAINT FIX: Calling startConstraintAccumulation() for Sparky backend
+Method executed - no constraints generated
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+📊 FRESH SNAPSHOT FIX: rows() returning 0 constraints (fresh: 0, snapshot: 0)
+📊 FRESH SNAPSHOT FIX: digest() using 0 optimized constraints (fresh: 0, snapshot: 0)
+🔧 CONSTRAINT FIX: Calling endConstraintAccumulation() for Sparky backend
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+🔍 OCaml EXECUTION: sparky_active=true, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = true
+Method executed - no constraints generated
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+🔧 OCaml CONSTRAINT BRIDGE: gates=0, publicInputSize=0, constraints=0
+🔧 Sparky constraint system: gates=0, publicInputSize=0, constraints=0
+🔍 OCaml EXECUTION: sparky_active=true, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = true
+Method executed - no constraints generated
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+🔧 OCaml CONSTRAINT BRIDGE: gates=0, publicInputSize=0, constraints=0
+🔧 Sparky constraint system: gates=0, publicInputSize=0, constraints=0
+✅ Compilation successful
+VK hash: 15257324582913039995868130309353834970417011735384391940610180308637660549422
+
+Creating proof...
+🔍 OCaml EXECUTION: sparky_active=true, in pickles_bindings
+🔍 DEBUG: OCaml pickles_bindings - sparky_active = true
+Method executed - no constraints generated
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+📋 FRESH SNAPSHOT FIX: toJson processing 0 fresh constraints (snapshot had 0)
+🔧 Getting optimized LIR program
+🔍 DEBUG: LIR constraint system has 0 constraints
+🗺️ Variable-to-row mapping: 0 entries
+⚠️ PERMUTATION EXPORT: No permutation wiring data available
+🔧 OCaml CONSTRAINT BRIDGE: gates=0, publicInputSize=0, constraints=0
+🔧 Sparky constraint system: gates=0, publicInputSize=0, constraints=0
+✅ Proof created
+
+Verifying proof...
+❌ Error: [TypeError: Cannot read properties of undefined (reading '2')]
+Stack: TypeError: Cannot read properties of undefined (reading '2')

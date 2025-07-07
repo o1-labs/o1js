@@ -1,5 +1,7 @@
 export { TupleN } from './lib/util/types.js';
 export { Ledger, initializeBindings, switchBackend, getCurrentBackend } from './bindings.js';
+// SPARKY EXTENSIONS - Available only when Sparky backend is active
+export { getSparkyExtensions, getExtension, getAvailableExtensions, isExtensionAvailable } from './bindings/sparky-adapter/index.js';
 export { Field, Bool, Group, Scalar } from './lib/provable/wrapped.js';
 export { createForeignField } from './lib/provable/foreign-field.js';
 export { createForeignCurve, ForeignCurve, toPoint } from './lib/provable/crypto/foreign-curve.js';

@@ -417,32 +417,34 @@ If you are using a SmartContract, make sure you are using the @method decorator.
             let useEnhancedRules = false;
             let compilationRules = rules;
             if (getCurrentBackend() === 'sparky') {
-                console.log('🎯 CONSTRAINT LOOP: Intercepted Pickles.compile() with Sparky backend!');
+                // console.log('🎯 CONSTRAINT LOOP: Intercepted Pickles.compile() with Sparky backend!');
                 try {
                     const bridge = globalThis.sparkyConstraintBridge;
                     if (bridge?.getFullConstraintSystem && typeof bridge.getFullConstraintSystem === 'function') {
-                        const sparkyConstraints = bridge.getAccumulatedConstraints();
-                        console.log('📊 Retrieved Sparky constraints:', sparkyConstraints?.length || 0);
+                        // 🔧 FIX: Remove duplicate constraint system access to prevent duplication
+                        // Only call getFullConstraintSystem() once - it contains all needed data
                         const fullSystem = bridge.getFullConstraintSystem();
-                        console.log('🔍 Full constraint system available with', fullSystem?.gates?.length || 0, 'gates');
+                        // console.log('🔍 Full constraint system available with', fullSystem?.gates?.length || 0, 'gates');
                         // PHASE 2: Convert Sparky constraints for Pickles enhancement
-                        const enhancedRules = convertSparkyConstraintsToPicklesRules(fullSystem, rules);
-                        console.log('🚀 Enhanced rules with Sparky constraints for VK generation!');
-                        compilationRules = enhancedRules;
-                        useEnhancedRules = true;
+                        // TEMPORARILY DISABLED: The enhancement is causing Field objects to be serialized incorrectly
+                        // const enhancedRules = convertSparkyConstraintsToPicklesRules(fullSystem, rules);
+                        // console.log('🚀 Enhanced rules with Sparky constraints for VK generation!');
+                        // compilationRules = enhancedRules;
+                        // useEnhancedRules = true;
+                        // console.log('⚠️  Enhancement temporarily disabled due to Field serialization issue');
                     }
                 }
                 catch (bridgeError) {
-                    console.log('⚠️  Bridge access failed, proceeding with normal compilation');
+                    // console.log('⚠️  Bridge access failed, proceeding with normal compilation');
                 }
             }
             // PHASE 3: Compile with chosen rules (enhanced or standard)
-            console.log(useEnhancedRules ?
-                '🔄 Compiling with enhanced Sparky constraints...' :
-                '🔄 Compiling with standard rules...');
-            console.log('🔍 DEBUG: About to call Pickles.compile with rules:', compilationRules.length);
-            console.log('🔍 DEBUG: globalThis.__snarky exists?', !!globalThis.__snarky);
-            console.log('🔍 DEBUG: globalThis.__snarky.Snarky type:', typeof globalThis.__snarky?.Snarky);
+            // console.log(useEnhancedRules ? 
+            //   '🔄 Compiling with enhanced Sparky constraints...' : 
+            //   '🔄 Compiling with standard rules...');
+            // console.log('🔍 DEBUG: About to call Pickles.compile with rules:', compilationRules.length);
+            // console.log('🔍 DEBUG: globalThis.__snarky exists?', !!(globalThis as any).__snarky);
+            // console.log('🔍 DEBUG: globalThis.__snarky.Snarky type:', typeof (globalThis as any).__snarky?.Snarky);
             result = Pickles.compile(MlArray.to(compilationRules), {
                 publicInputSize: publicInputType.sizeInFields(),
                 publicOutputSize: publicOutputType.sizeInFields(),
@@ -451,7 +453,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
                 numChunks: numChunks ?? 1,
             });
             if (useEnhancedRules) {
-                console.log('🎆 CONSTRAINT BRIDGE COMPLETE: Pickles compiled with Sparky constraints!');
+                // console.log('🎆 CONSTRAINT BRIDGE COMPLETE: Pickles compiled with Sparky constraints!');
             }
             let { getVerificationKey, provers, verify, tag } = result;
             CompiledTag.store(proofSystemTag, tag);
@@ -570,9 +572,9 @@ function convertSparkyConstraintsToPicklesRules(sparkyConstraintSystem, original
 }
 function picklesRuleFromFunction(publicInputType, publicOutputType, func, proofSystemTag, { methodName, args, auxiliaryType }, gates, verifiedProofs, state, withRuntimeTables) {
     async function main(publicInput) {
-        console.log(`🔍 DEBUG: Executing main for ${methodName}`);
-        console.log('🔍 DEBUG: Current backend:', getCurrentBackend());
-        console.log('🔍 DEBUG: globalThis.__snarky.Snarky exists?', !!globalThis.__snarky?.Snarky);
+        // console.log(`🔍 DEBUG: Executing main for ${methodName}`);
+        // console.log('🔍 DEBUG: Current backend:', getCurrentBackend());
+        // console.log('🔍 DEBUG: globalThis.__snarky.Snarky exists?', !!(globalThis as any).__snarky?.Snarky);
         let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();
         assert(!(inProver && argsWithoutPublicInput === undefined));
         // witness private inputs and declare input proofs

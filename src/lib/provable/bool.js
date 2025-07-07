@@ -1,4 +1,4 @@
-import { Snarky } from '../../bindings.js';
+import { Snarky, getCurrentBackend } from '../../bindings.js';
 import { Field, readVarMessage, withMessage } from './field.js';
 import { FieldVar, FieldConst, FieldType } from './core/fieldvar.js';
 import { defineBinable } from '../../bindings/lib/binable.js';
@@ -45,7 +45,14 @@ class Bool {
         if (this.isConstant()) {
             return new Bool(!this.toBoolean());
         }
-        // 1 - x
+        // Semantic Boolean NOT for Sparky backend
+        if (getCurrentBackend() === 'sparky' &&
+            globalThis.sparkyConstraintBridge?.emitBooleanNot) {
+            const result = globalThis.sparkyConstraintBridge.emitBooleanNot(this.value);
+            if (result)
+                return new Bool(result);
+        }
+        // Fallback to field subtraction: 1 - x
         let not = new Field(1).sub(this.toField());
         return new Bool(not.value);
     }
@@ -58,7 +65,14 @@ class Bool {
         if (this.isConstant() && isConstant(y)) {
             return new Bool(this.toBoolean() && toBoolean(y));
         }
-        // x * y
+        // Semantic Boolean AND for Sparky backend
+        if (getCurrentBackend() === 'sparky' &&
+            globalThis.sparkyConstraintBridge?.emitBooleanAnd) {
+            const result = globalThis.sparkyConstraintBridge.emitBooleanAnd(this.value, toFieldVar(y));
+            if (result)
+                return new Bool(result);
+        }
+        // Fallback to field multiplication
         return new Bool(this.toField().mul(Bool.toField(y)).value);
     }
     /**
@@ -70,7 +84,20 @@ class Bool {
         if (this.isConstant() && isConstant(y)) {
             return new Bool(this.toBoolean() || toBoolean(y));
         }
-        // 1 - (1 - x)(1 - y) = x + y - xy
+        // Semantic Boolean OR for Sparky backend
+        if (getCurrentBackend() === 'sparky' &&
+            globalThis.sparkyConstraintBridge?.emitBooleanOr) {
+            try {
+                const result = globalThis.sparkyConstraintBridge.emitBooleanOr(this.value, toFieldVar(y));
+                if (result)
+                    return new Bool(result);
+                console.log('⚠️ BOOLEAN OR FALLBACK: emitBooleanOr returned null/undefined, falling back to De Morgan');
+            }
+            catch (error) {
+                console.log('⚠️ BOOLEAN OR FALLBACK: emitBooleanOr failed:', error, 'falling back to De Morgan');
+            }
+        }
+        // Fallback to De Morgan's law: 1 - (1 - x)(1 - y) = x + y - xy
         return this.not().and(new Bool(y).not()).not();
     }
     /**

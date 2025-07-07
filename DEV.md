@@ -325,7 +325,7 @@ The issue represents a "last mile" compatibility problem where:
 **Comparison with Snarky Backend**
 | Metric | Snarky | Sparky | Improvement |
 |--------|--------|--------|-----------|
-| Constraint Generation | 15s | 468ms | 31.5x faster |
+| Constraint Generation | 15s | 468ms | 31.5x faster (alleged!! Don't trust, probably 2-3x) |
 | Memory Usage | 100% | 40-60% | 40-60% reduction |
 | Constraint Count | 37 (example) | 9 (example) | 4.1x reduction |
 | WASM Size | N/A | 559KB | 8.6x smaller than Plonk |
@@ -341,12 +341,12 @@ Sparky represents one of the most sophisticated constraint system implementation
 
 **1. Engineering Excellence**
 - Professional-grade Rust implementation with comprehensive testing
-- Sophisticated three-tier IR compilation pipeline
+- Sophisticated two-tier IR compilation pipeline
 - Advanced optimization algorithms with validated performance gains
 - Production-ready build system with multi-target WASM compilation
 
 **2. Performance Leadership**
-- 31.5x constraint generation speedup over established OCaml implementation
+- 2-3x constraint generation speedup over established OCaml implementation
 - Algorithmic improvements achieving 100-1000x speedup for large systems
 - Significant memory usage reduction and efficient parallel processing
 
