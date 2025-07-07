@@ -52,13 +52,24 @@ let wasmWorkers = [];
 async function startWorkers(src, memory, builder) {
   wasmWorkers = [];
   await Promise.all(
-    Array.from({ length: builder.numThreads() }, () => {
+    Array.from({ length: builder.numThreads() }, (_, index) => {
       let worker = new Worker(src, {
-        workerData: { memory, receiver: builder.receiver() },
+        workerData: { memory, receiver: builder.receiver(), workerId: `node-worker-${index}` },
       });
       wasmWorkers.push(worker);
       let target = worker;
       let type = 'wasm_bindgen_worker_ready';
+      
+      // Set up health report handling
+      target.on('message', function healthReportHandler(data) {
+        if (data?.type === 'health_report') {
+          // Forward to pool health coordinator
+          if (globalThis.poolHealthCoordinator) {
+            globalThis.poolHealthCoordinator.receiveHealthReport(data.report);
+          }
+        }
+      });
+      
       return new Promise((resolve) => {
         let done = false;
         target.on('message', function onMsg(data) {

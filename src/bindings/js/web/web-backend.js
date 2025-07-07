@@ -42,6 +42,17 @@ async function initializeBindings() {
   workerPromise = new Promise((resolve) => {
     setTimeout(async () => {
       let worker = inlineWorker(srcFromFunctionModule(mainWorker));
+      
+      // Set up health report handling for web worker
+      worker.addEventListener('message', function healthReportHandler({ data }) {
+        if (data?.type === 'health_report') {
+          // Forward to pool health coordinator
+          if (globalThis.poolHealthCoordinator) {
+            globalThis.poolHealthCoordinator.receiveHealthReport(data.report);
+          }
+        }
+      });
+      
       await workerCall(worker, 'start', { memory, module });
       overrideBindings(globalThis.plonk_wasm, worker);
       resolve(worker);
