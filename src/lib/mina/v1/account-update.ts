@@ -2,7 +2,7 @@ import { cloneCircuitValue, FlexibleProvable, StructNoJson } from '../../provabl
 import { provable, provableExtends, provablePure } from '../../provable/types/provable-derivers.js';
 import { memoizationContext, memoizeWitness, Provable } from '../../provable/provable.js';
 import { Field, Bool } from '../../provable/wrapped.js';
-import { Pickles } from '../../../snarky.js';
+import { Pickles } from '../../../bindings.js';
 import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
 import { Types, toJSONEssential } from '../../../bindings/mina-transaction/v1/types.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';

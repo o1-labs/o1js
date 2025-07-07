@@ -26,7 +26,7 @@ import {
   repeat,
   withoutGenerics,
 } from '../../testing/constraint-system.js';
-import { GateType } from '../../../snarky.js';
+import { GateType } from '../../../bindings.js';
 import { AnyTuple } from '../../util/types.js';
 import { foreignField, throwError, unreducedForeignField } from './test-utils.js';
 import { l2 } from '../gadgets/range-check.js';

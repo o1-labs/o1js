@@ -5,8 +5,8 @@ import {
   Snarky,
   initializeBindings,
   withThreadPool,
-} from '../../snarky.js';
-import { Pickles, Gate } from '../../snarky.js';
+} from '../../bindings.js';
+import { Pickles, Gate } from '../../bindings.js';
 import { Field } from '../provable/wrapped.js';
 import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
 import { InferProvableType } from '../provable/types/provable-derivers.js';
@@ -233,6 +233,7 @@ function ZkProgram<
       [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
+    numChunks?: number;
   }
 ): {
   name: string;
@@ -243,6 +244,8 @@ function ZkProgram<
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
+    numChunks?: number;
+    lazyMode?: boolean;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -255,13 +258,19 @@ function ZkProgram<
   digest: () => Promise<string>;
   /**
    * Analyze the constraint system created by each method in the program.
+   * Every method is executed in a circuit, and the constraints are analyzed.
    *
    * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
    */
   analyzeMethods: () => Promise<{
     [I in keyof Config['methods']]: MethodAnalysis;
   }>;
-
+  /**
+   * Analyze the constraint system created by a single method in the program without analyzing any other methods and executing them.
+   *
+   * @returns A summary of this method, with a value of the {@link MethodAnalysis} for that method
+   */
+  analyzeSingleMethod<K extends keyof Config['methods']>(methodName: K): Promise<MethodAnalysis>;
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
   privateInputTypes: InferPrivateInput<Config>;
@@ -348,6 +357,14 @@ function ZkProgram<
     };
   }
 
+  async function analyzeSingleMethod<K extends keyof Methods>(
+    methodName: K
+  ): Promise<MethodAnalysis> {
+    let methodIntf = methodIntfs[methodKeys.indexOf(methodName)];
+    let methodImpl = methodFunctions[methodKeys.indexOf(methodName)];
+    return await analyzeMethod(publicInputType, methodIntf, methodImpl);
+  }
+
   let compileOutput:
     | {
         provers: Pickles.Prover[];
@@ -366,6 +383,7 @@ function ZkProgram<
     forceRecompile = false,
     proofsEnabled = undefined as boolean | undefined,
     withRuntimeTables = false,
+    lazyMode = false,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -386,8 +404,10 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
+        lazyMode,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -543,7 +563,9 @@ function ZkProgram<
       compile,
       verify,
       digest,
+
       analyzeMethods,
+      analyzeSingleMethod,
 
       publicInputType: publicInputType as ProvableOrUndefined<Get<Config, 'publicInput'>>,
       publicOutputType: publicOutputType as ProvableOrVoid<Get<Config, 'publicOutput'>>,
@@ -690,8 +712,10 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  numChunks,
   state,
   withRuntimeTables,
+  lazyMode,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -703,8 +727,10 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
+  lazyMode?: boolean;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -760,6 +786,8 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           publicOutputSize: publicOutputType.sizeInFields(),
           storable: picklesCache,
           overrideWrapDomain,
+          numChunks: numChunks ?? 1,
+          lazyMode: lazyMode ?? false,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);

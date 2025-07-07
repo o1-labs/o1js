@@ -385,7 +385,7 @@ declare const Snarky: {
     /**
      * Generates a proving key and a verification key for the provable function `main`
      */
-    compile(main: Snarky.Main, publicInputSize: number): Snarky.Keypair;
+    compile(main: Snarky.Main, publicInputSize: number, lazyMode: boolean): Snarky.Keypair;
 
     /**
      * Proves a statement using the private input, public input and the keypair of the circuit.
@@ -702,6 +702,8 @@ declare const Pickles: {
       publicOutputSize: number;
       storable?: Pickles.Cache;
       overrideWrapDomain?: 0 | 1 | 2;
+      numChunks?: number;
+      lazyMode?: boolean;
     }
   ) => {
     provers: MlArray<Pickles.Prover>;
