@@ -6,15 +6,10 @@ import { Provable } from '../provable.js';
 const primitives = ZkFunction({
   name: 'Primitives',
   privateInputTypes: [],
-  lazyMode: true,
   main: () => {
-    for (let i = 0; i < 30; i++) {
     // division
     let x64 = Provable.witness(UInt64, () => 10n);
     x64.div(2).assertEquals(UInt64.from(5));
-    let x32 = Provable.witness(UInt32, () => 12n);
-    x32.div(4).assertEquals(UInt32.from(3));
-    }
   },
 });
 

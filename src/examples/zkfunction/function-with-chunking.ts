@@ -1,11 +1,10 @@
-import { Field, Cache, Gadgets, ZkFunction } from 'o1js';
-import { UInt64, UInt32, Provable, Undefined, assert } from 'o1js';
+import { Field, Cache, Gadgets, ZkFunction, UInt64, UInt32, Provable, Undefined, assert } from 'o1js';
 
 const Chunking = ZkFunction({
   name: 'function-with-chunking',
   privateInputTypes: [],
-  lazyMode: false,
   main: () => {
+    // FIXME: this function runs forever in my local test @querolita
     let a = Provable.witness(Field, () => 10n);
     a.div(2).assertEquals(Field.from(5));  
   },
