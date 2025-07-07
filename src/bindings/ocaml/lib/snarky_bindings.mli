@@ -249,7 +249,8 @@ val snarky :
       Js.t
       Js.readonly_prop
   ; circuit :
-      < compile : ((Field.t array -> unit) -> int -> int -> Impl.Keypair.t) Js.meth
+      < compile :
+          ((Field.t array -> unit) -> int -> bool .> int -> Impl.Keypair.t) Js.meth
       ; keypair :
           < getConstraintSystemJSON : (Impl.Keypair.t -> 'a) Js.meth
           ; getVerificationKey :
