@@ -4,7 +4,7 @@ import { UInt64, UInt32, Provable, Undefined, assert } from 'o1js';
 const Chunking = ZkFunction({
   name: 'function-with-chunking',
   privateInputTypes: [],
-  numChunks: 1, 
+  lazyMode: false,
   main: () => {
     let a = Provable.witness(Field, () => 10n);
     a.div(2).assertEquals(Field.from(5));  

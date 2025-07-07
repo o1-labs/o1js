@@ -384,7 +384,7 @@ module Circuit = struct
       main'
   end
 
-  let compile main public_input_size lazy_mode _num_chunks =
+  let compile main public_input_size lazy_mode =
     let input_typ = typ public_input_size in
     let return_typ = Impl.Typ.unit in
     let cs = Impl.constraint_system ~input_typ ~return_typ (Main.of_js main) in

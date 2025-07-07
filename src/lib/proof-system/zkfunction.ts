@@ -55,7 +55,7 @@ type VerifyMethodType<Config extends ZkFunctionConfig> = Get<
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {
     main: InferMainType<Config>;
-    numChunks?: number;
+    lazyMode?: boolean;
   }
 ): {
   compile: () => Promise<{ verificationKey: VerificationKey }>;
@@ -87,7 +87,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
       await initializeBindings();
       _keypair = await prettifyStacktracePromise(
         withThreadPool(async () => {
-          return Snarky.circuit.compile(main, publicInputSize, config.numChunks ?? 1);
+          return Snarky.circuit.compile(main, publicInputSize, config.lazyMode ?? false);
         })
       );
       const verificationKey = new VerificationKey(
