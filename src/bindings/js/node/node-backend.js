@@ -13,6 +13,36 @@ const wasm = wasm_;
 
 export { wasm, withThreadPool };
 
+// Worker thread health monitoring
+function startWorkerHealthMonitoring() {
+  if (isMainThread) return;
+  
+  const workerId = workerData.workerId || 'unknown-worker';
+  const healthCheckInterval = 5000; // 5 seconds
+  
+  // Report health periodically
+  setInterval(() => {
+    try {
+      // Get memory usage from WASM
+      const memoryUsageMB = wasm.get_memory_usage_mb ? wasm.get_memory_usage_mb() : 0;
+      const criticalThresholdMB = wasm.get_critical_memory_threshold_mb ? wasm.get_critical_memory_threshold_mb() : 3200;
+      const isMemoryCritical = memoryUsageMB > criticalThresholdMB * 0.9; // 90% of threshold
+      
+      const healthReport = {
+        workerId,
+        memoryUsageMB,
+        isMemoryCritical,
+        timestamp: Date.now()
+      };
+      
+      // Send health report to main thread
+      parentPort.postMessage({ type: 'health_report', report: healthReport });
+    } catch (error) {
+      console.error(`[Worker ${workerId}] Failed to report health:`, error);
+    }
+  }, healthCheckInterval);
+}
+
 let workersReadyResolve;
 let workersReady;
 
@@ -22,6 +52,10 @@ globalThis.terminateWorkers = terminateWorkers;
 
 if (!isMainThread) {
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
+  
+  // Start health monitoring in worker thread
+  startWorkerHealthMonitoring();
+  
   wasm.wbg_rayon_start_worker(workerData.receiver);
 }
 

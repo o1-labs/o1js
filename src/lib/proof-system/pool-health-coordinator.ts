@@ -20,6 +20,11 @@ export interface PoolRecyclingConfig {
   gracefulShutdownTimeoutMs: number;
 }
 
+export interface PoolRecyclingCallbacks {
+  exitThreadPool: () => Promise<void>;
+  initThreadPool: () => Promise<void>;
+}
+
 /**
  * Coordinates health reports from all workers and makes pool recycling decisions
  */
@@ -29,6 +34,7 @@ export class PoolHealthCoordinator {
   private poolStartTime = Date.now();
   private config: PoolRecyclingConfig;
   private recyclingPromise: Promise<void> | null = null;
+  private recyclingCallbacks: PoolRecyclingCallbacks | null = null;
 
   constructor(config?: Partial<PoolRecyclingConfig>) {
     this.config = {
@@ -43,6 +49,13 @@ export class PoolHealthCoordinator {
   private detectCriticalMemoryLimit(): number {
     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|Android/i.test(navigator.userAgent);
     return isMobile ? 800 : 3200; // 800MB mobile, 3200MB desktop
+  }
+
+  /**
+   * Set the callbacks for actual thread pool recycling
+   */
+  setRecyclingCallbacks(callbacks: PoolRecyclingCallbacks): void {
+    this.recyclingCallbacks = callbacks;
   }
 
   /**
@@ -107,8 +120,18 @@ export class PoolHealthCoordinator {
       // Step 2: Wait for current tasks to finish (with timeout)
       await this.waitForCurrentTasksToComplete();
 
-      // Step 3: Force shutdown the entire pool
-      await this.forceShutdownPool();
+      // Step 3: Actually terminate and recreate the Rayon thread pool
+      if (this.recyclingCallbacks) {
+        console.log(`[PoolHealth] Terminating Rayon thread pool`);
+        await this.recyclingCallbacks.exitThreadPool();
+        
+        console.log(`[PoolHealth] Recreating Rayon thread pool`);
+        await this.recyclingCallbacks.initThreadPool();
+      } else {
+        console.error(`[PoolHealth] No recycling callbacks set - cannot recycle Rayon pool!`);
+        // Fall back to old behavior
+        await this.forceShutdownPool();
+      }
 
       // Step 4: Reset state for new pool
       this.resetPoolState();

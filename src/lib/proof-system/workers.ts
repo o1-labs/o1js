@@ -25,6 +25,7 @@ type ThreadPoolState =
   | { type: 'none' }
   | { type: 'initializing'; initPromise: Promise<void> }
   | { type: 'running' }
+  | { type: 'recycling'; recyclePromise: Promise<void> }
   | { type: 'exiting'; exitPromise: Promise<void> };
 
 function WithThreadPool({
@@ -42,6 +43,12 @@ function WithThreadPool({
     // Initialize pool health coordinator if needed
     if (!poolHealthCoordinator) {
       poolHealthCoordinator = new PoolHealthCoordinator();
+      
+      // Set the recycling callbacks so coordinator can actually recycle the pool
+      poolHealthCoordinator.setRecyclingCallbacks({
+        exitThreadPool,
+        initThreadPool
+      });
       
       // Make it globally accessible for health report handling
       (globalThis as any).poolHealthCoordinator = poolHealthCoordinator;
