@@ -1,3 +1,4 @@
+import { versionBytes } from '../../bindings/crypto/constants.js';
 import {
   Binable as BinableT,
   defineBinable,
@@ -7,13 +8,13 @@ import {
   withBits,
 } from '../../bindings/lib/binable.js';
 import { base58 } from '../../lib/util/base58.js';
+
 import {
   HashInputLegacy,
   hashWithPrefix,
   packToFieldsLegacy,
   prefixes,
 } from './poseidon-bigint.js';
-import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export { Memo };
 
