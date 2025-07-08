@@ -18,6 +18,11 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/045b1ab...HEAD)
 
+### Fixed
+
+- Sourcemaps properly work with the .cjs distribution of `o1js` now.
+  https://github.com/o1-labs/o1js/pull/2285
+
 ## [2.7.0](https://github.com/o1-labs/o1js/compare/6b6d8b9...045b1ab) - 2025-07-23
 
 ### Added
