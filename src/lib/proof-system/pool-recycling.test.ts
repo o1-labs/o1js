@@ -10,6 +10,8 @@ import { PoolHealthCoordinator, WorkerHealthReport } from './pool-health-coordin
 
 describe('Pool Recycling System', () => {
   let coordinator: PoolHealthCoordinator;
+  let mockExitThreadPool: jest.Mock;
+  let mockInitThreadPool: jest.Mock;
 
   beforeEach(() => {
     // Clean up any global state
@@ -17,12 +19,22 @@ describe('Pool Recycling System', () => {
     delete (globalThis as any).__o1js_force_pool_shutdown;
     delete (globalThis as any).poolHealthCoordinator;
     
+    // Create mock callbacks
+    mockExitThreadPool = jest.fn().mockResolvedValue(undefined);
+    mockInitThreadPool = jest.fn().mockResolvedValue(undefined);
+    
     // Create fresh coordinator for each test
     coordinator = new PoolHealthCoordinator({
       criticalMemoryMB: 1000,
       maxPoolAgeMs: 10000, // 10 seconds for testing
       gracefulShutdownTimeoutMs: 1000, // 1 second for testing
       healthCheckIntervalMs: 100 // Fast checks for testing
+    });
+    
+    // Set the mock callbacks
+    coordinator.setRecyclingCallbacks({
+      exitThreadPool: mockExitThreadPool,
+      initThreadPool: mockInitThreadPool
     });
   });
 
@@ -55,6 +67,15 @@ describe('Pool Recycling System', () => {
     // Wait for recycling to complete
     await coordinator.waitForRecyclingToComplete();
     expect(coordinator.isPoolRecycling()).toBe(false);
+    
+    // Verify that the Rayon pool was actually recycled
+    expect(mockExitThreadPool).toHaveBeenCalledTimes(1);
+    expect(mockInitThreadPool).toHaveBeenCalledTimes(1);
+    
+    // Verify exit was called before init
+    const exitCallOrder = mockExitThreadPool.mock.invocationCallOrder[0];
+    const initCallOrder = mockInitThreadPool.mock.invocationCallOrder[0];
+    expect(exitCallOrder).toBeLessThan(initCallOrder);
   });
 
   test('should not trigger recycling for healthy workers', async () => {
@@ -150,6 +171,12 @@ describe('Pool Recycling System', () => {
       maxPoolAgeMs: 10000,
       gracefulShutdownTimeoutMs: 1000,
       healthCheckIntervalMs: 100
+    });
+    
+    // Set mock callbacks for this coordinator too
+    summaryCoordinator.setRecyclingCallbacks({
+      exitThreadPool: jest.fn().mockResolvedValue(undefined),
+      initThreadPool: jest.fn().mockResolvedValue(undefined)
     });
 
     // Send multiple reports with realistic values (none trigger recycling)

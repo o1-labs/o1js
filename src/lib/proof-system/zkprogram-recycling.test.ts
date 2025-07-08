@@ -45,27 +45,26 @@ describe('ZK Program Proving with Pool Recycling', () => {
 
   beforeAll(async () => {
     console.log('Compiling ZK program...');
+    // The compile() method will initialize the thread pool and create the coordinator
     const { verificationKey } = await TestProgram.compile({ cache: Cache.None });
     TestProgramClass = TestProgram.Proof;
     console.log('ZK program compiled successfully');
     
-    // Set up pool health coordinator
-    coordinator = new PoolHealthCoordinator({
-      criticalMemoryMB: 1000, // Low threshold for testing
-      maxPoolAgeMs: 30000,
-      gracefulShutdownTimeoutMs: 2000,
-      healthCheckIntervalMs: 500
-    });
+    // Get the coordinator that was created by withThreadPool during compile
+    coordinator = (globalThis as any).poolHealthCoordinator;
     
-    // Set global coordinator for backend integration
-    (globalThis as any).poolHealthCoordinator = coordinator;
+    if (!coordinator) {
+      // If no coordinator was created, something is wrong with the integration
+      throw new Error('Pool health coordinator was not initialized during compile');
+    }
+    
+    console.log('Pool health coordinator is active and connected to thread pool');
   });
 
   afterAll(async () => {
     if (coordinator) {
       await coordinator.waitForRecyclingToComplete();
     }
-    delete (globalThis as any).poolHealthCoordinator;
   });
 
   test('should prove successfully before any recycling', async () => {

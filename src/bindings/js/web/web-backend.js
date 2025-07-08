@@ -125,9 +125,40 @@ async function mainWorker() {
   });
 
   await init(module, memory);
+  
+  // Start health monitoring in web worker
+  startWebWorkerHealthMonitoring(wasm);
+  
   postMessage({ type: data.id });
 }
-mainWorker.deps = [plonkWasm, workerSpec, workerExport, onMessage, waitForMessage];
+mainWorker.deps = [plonkWasm, workerSpec, workerExport, onMessage, waitForMessage, startWebWorkerHealthMonitoring];
+
+function startWebWorkerHealthMonitoring(wasm) {
+  const workerId = `web-worker-${Math.random().toString(36).substr(2, 9)}`;
+  const healthCheckInterval = 5000; // 5 seconds
+  
+  // Report health periodically
+  setInterval(() => {
+    try {
+      // Get memory usage from WASM
+      const memoryUsageMB = wasm.get_memory_usage_mb ? wasm.get_memory_usage_mb() : 0;
+      const criticalThresholdMB = wasm.get_critical_memory_threshold_mb ? wasm.get_critical_memory_threshold_mb() : 3200;
+      const isMemoryCritical = memoryUsageMB > criticalThresholdMB * 0.9; // 90% of threshold
+      
+      const healthReport = {
+        workerId,
+        memoryUsageMB,
+        isMemoryCritical,
+        timestamp: Date.now()
+      };
+      
+      // Send health report to main thread
+      postMessage({ type: 'health_report', report: healthReport });
+    } catch (error) {
+      console.error(`[Worker ${workerId}] Failed to report health:`, error);
+    }
+  }, healthCheckInterval);
+}
 
 function overrideBindings(plonk_wasm, worker) {
   let spec = workerSpec(plonk_wasm);
