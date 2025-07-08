@@ -1,31 +1,33 @@
-import { Bool, Field, UInt32, UInt64 } from './field-bigint.js';
+import { blake2b } from 'blakejs';
+
+import { versionBytes } from '../../bindings/crypto/constants.js';
 import {
   Binable,
   BinableString,
-  BinableUint64,
   BinableUint32,
+  BinableUint64,
   defineBinable,
   enumWithArgument,
   record,
   stringToBytes,
   withVersionNumber,
 } from '../../bindings/lib/binable.js';
+import { base58, withBase58 } from '../../lib/util/base58.js';
+
+import { PublicKey, Scalar } from './curve-bigint.js';
+import { Bool, Field, UInt32, UInt64 } from './field-bigint.js';
 import {
-  Common,
-  Delegation,
-  Payment,
-  UserCommand,
-  UserCommandEnum,
-  PaymentJson,
+  Common as CommonT,
   DelegationJson,
+  Delegation as DelegationT,
+  PaymentJson,
+  Payment as PaymentT,
+  UserCommandEnum,
+  UserCommand as UserCommandT,
   delegationFromJson,
   paymentFromJson,
 } from './sign-legacy.js';
-import { PublicKey, Scalar } from './curve-bigint.js';
 import { Signature, SignatureJson } from './signature.js';
-import { blake2b } from 'blakejs';
-import { base58, withBase58 } from '../../lib/util/base58.js';
-import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export {
   hashPayment,
@@ -72,7 +74,7 @@ function hashSignedCommand(command: SignedCommand) {
 
 // helper
 
-function userCommandToEnum({ common, body }: UserCommand): UserCommandEnum {
+function userCommandToEnum({ common, body }: UserCommandT): UserCommandEnum {
   let { tag: type, ...value } = body;
   switch (type) {
     case 'Payment':
@@ -95,12 +97,12 @@ function userCommandToEnum({ common, body }: UserCommand): UserCommandEnum {
 // binable
 
 let BinablePublicKey = record({ x: Field, isOdd: Bool }, ['x', 'isOdd']);
-type GlobalSlotSinceGenesis = Common['validUntil'];
+type GlobalSlotSinceGenesis = CommonT['validUntil'];
 let GlobalSlotSinceGenesis = enumWithArgument<[GlobalSlotSinceGenesis]>([
   { type: 'SinceGenesis', value: BinableUint32 },
 ]);
 
-const Common = record<Common>(
+const Common = record<CommonT>(
   {
     fee: BinableUint64,
     feePayer: BinablePublicKey,
@@ -110,14 +112,14 @@ const Common = record<Common>(
   },
   ['fee', 'feePayer', 'nonce', 'validUntil', 'memo']
 );
-const Payment = record<Payment>(
+const Payment = record<PaymentT>(
   {
     receiver: BinablePublicKey,
     amount: BinableUint64,
   },
   ['receiver', 'amount']
 );
-const Delegation = record<Delegation>({ newDelegate: BinablePublicKey }, ['newDelegate']);
+const Delegation = record<DelegationT>({ newDelegate: BinablePublicKey }, ['newDelegate']);
 type DelegationEnum = { type: 'SetDelegate'; value: Delegation };
 const DelegationEnum = enumWithArgument<[DelegationEnum]>([
   { type: 'SetDelegate', value: Delegation },
