@@ -1,5 +1,5 @@
 import {
-  Binable,
+  Binable as BinableT,
   defineBinable,
   stringFromBytes,
   stringLengthInBytes,
@@ -43,7 +43,7 @@ function hash(memo: string) {
 }
 
 const SIZE = 34;
-const Binable: Binable<string> = defineBinable({
+const Binable: BinableT<string> = defineBinable({
   toBytes(memo) {
     return stringToBytes(memo);
   },
