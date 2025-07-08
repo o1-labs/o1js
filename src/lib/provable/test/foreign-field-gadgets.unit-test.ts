@@ -1,19 +1,7 @@
-import type { FiniteField } from '../../../bindings/crypto/finite-field.js';
+import { GateType } from '../../../bindings.js';
 import { exampleFields } from '../../../bindings/crypto/finite-field-examples.js';
-import {
-  array,
-  equivalent,
-  equivalentAsync,
-  equivalentProvable,
-  fromRandom,
-  record,
-  unit,
-} from '../../testing/equivalent.js';
-import { Random } from '../../testing/random.js';
-import { Field3, Gadgets } from '../gadgets/gadgets.js';
+import type { FiniteField } from '../../../bindings/crypto/finite-field.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Provable } from '../provable.js';
-import { assert } from '../gadgets/common.js';
 import {
   allConstant,
   and,
@@ -26,10 +14,23 @@ import {
   repeat,
   withoutGenerics,
 } from '../../testing/constraint-system.js';
-import { GateType } from '../../../bindings.js';
+import {
+  array,
+  equivalent,
+  equivalentAsync,
+  equivalentProvable,
+  fromRandom,
+  record,
+  unit,
+} from '../../testing/equivalent.js';
+import { Random } from '../../testing/random.js';
 import { AnyTuple } from '../../util/types.js';
-import { foreignField, throwError, unreducedForeignField } from './test-utils.js';
+import { assert } from '../gadgets/common.js';
+import { Field3, Gadgets } from '../gadgets/gadgets.js';
 import { l2 } from '../gadgets/range-check.js';
+import { Provable } from '../provable.js';
+
+import { foreignField, throwError, unreducedForeignField } from './test-utils.js';
 
 const { ForeignField } = Gadgets;
 

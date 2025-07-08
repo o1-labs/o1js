@@ -1,6 +1,8 @@
 import { assert } from 'console';
-import { VerificationKey } from './verification-key.js';
+
 import { Field } from '../provable/wrapped.js';
+
+import { VerificationKey } from './verification-key.js';
 
 console.log('verification key consistency check (generated and cached)');
 let generated = await VerificationKey.dummy();

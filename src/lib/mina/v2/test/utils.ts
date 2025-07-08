@@ -1,7 +1,8 @@
+import { expect } from 'expect';
+
 import { Field } from '../../../provable/field.js';
 import { Provable } from '../../../provable/provable.js';
 import { HashInput } from '../../../provable/types/provable-derivers.js';
-import { expect } from 'expect';
 
 export function stripPrototypes(x: any): any {
   if (typeof x === 'object') {

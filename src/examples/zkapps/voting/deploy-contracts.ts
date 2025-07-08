@@ -1,17 +1,16 @@
 import {
+  AccountUpdate,
   DeployArgs,
   Field,
-  Permissions,
   Mina,
-  AccountUpdate,
+  Permissions,
   PrivateKey,
-  SmartContract,
   Reducer,
+  SmartContract,
 } from 'o1js';
+
 import { VotingAppParams } from './factory.js';
-
 import { Membership_ } from './membership.js';
-
 import { Voting_ } from './voting.js';
 
 class InvalidContract extends SmartContract {

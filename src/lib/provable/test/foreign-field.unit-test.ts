@@ -1,7 +1,6 @@
-import { Field } from '../wrapped.js';
-import { AlmostForeignField, createForeignField } from '../foreign-field.js';
-import { Fq } from '../../../bindings/crypto/finite-field.js';
 import { expect } from 'expect';
+
+import { Fq } from '../../../bindings/crypto/finite-field.js';
 import {
   bool,
   equivalentProvable as equivalent,
@@ -10,9 +9,11 @@ import {
   throwError,
   unit,
 } from '../../testing/equivalent.js';
-import { test, Random } from '../../testing/property.js';
+import { Random, test } from '../../testing/property.js';
+import { AlmostForeignField, createForeignField } from '../foreign-field.js';
 import { l } from '../gadgets/range-check.js';
 import { ProvablePure } from '../types/provable-intf.js';
+import { Field } from '../wrapped.js';
 
 // toy example - F_17
 

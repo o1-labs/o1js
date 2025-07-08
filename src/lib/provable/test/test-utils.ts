@@ -1,12 +1,12 @@
+import { CurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import type { FiniteField } from '../../../bindings/crypto/finite-field.js';
 import { ProvableSpec, map, spec } from '../../testing/equivalent.js';
 import { Random } from '../../testing/random.js';
-import { Field3 } from '../gadgets/gadgets.js';
 import { assert } from '../gadgets/common.js';
-import { Bytes } from '../wrapped-classes.js';
-import { CurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import { simpleMapToCurve } from '../gadgets/elliptic-curve.js';
+import { Field3 } from '../gadgets/gadgets.js';
 import { provable } from '../types/provable-derivers.js';
+import { Bytes } from '../wrapped-classes.js';
 
 export { foreignField, unreducedForeignField, uniformForeignField, bytes, pointSpec, throwError };
 

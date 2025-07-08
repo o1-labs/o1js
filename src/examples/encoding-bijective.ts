@@ -1,4 +1,4 @@
-import { Field, Encoding } from 'o1js';
+import { Encoding, Field } from 'o1js';
 
 let n = 1000;
 

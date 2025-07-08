@@ -1,4 +1,5 @@
-import { SelfProof, Field, ZkProgram, Proof, JsonProof } from 'o1js';
+import { Field, JsonProof, Proof, SelfProof, ZkProgram } from 'o1js';
+
 import { tic, toc } from '../examples/utils/tic-toc.js';
 
 let MaxProofsVerifiedZero = ZkProgram({

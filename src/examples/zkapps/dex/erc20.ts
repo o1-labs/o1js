@@ -1,18 +1,18 @@
 import {
-  ProvablePure,
+  AccountUpdate,
+  AccountUpdateForest,
   Bool,
   CircuitString,
   DeployArgs,
   Field,
-  method,
-  AccountUpdate,
-  PublicKey,
-  UInt64,
-  Permissions,
   Mina,
-  TokenContract,
-  AccountUpdateForest,
+  Permissions,
+  ProvablePure,
+  PublicKey,
   Struct,
+  TokenContract,
+  UInt64,
+  method,
 } from 'o1js';
 
 export { Erc20Like, TrivialCoin };

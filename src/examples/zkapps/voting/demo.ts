@@ -6,12 +6,12 @@
  * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
  * in progress to mitigate this limitation.
  */
+import { AccountUpdate, Bool, Mina, PrivateKey, Reducer, UInt64 } from 'o1js';
 
-import { Mina, AccountUpdate, PrivateKey, UInt64, Reducer, Bool } from 'o1js';
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
-import { ParticipantPreconditions, ElectionPreconditions } from './preconditions.js';
+import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
 
 let Local = await Mina.LocalBlockchain({
   proofsEnabled: false,

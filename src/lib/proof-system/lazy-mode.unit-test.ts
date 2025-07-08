@@ -1,14 +1,15 @@
-import { Field } from '../provable/field.js';
+import { spawn } from 'child_process';
+import { basename, dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+import { wasm } from '../../bindings.js';
 import { Cache } from '../proof-system/cache.js';
 import { ZkProgram } from '../proof-system/zkprogram.js';
-import { Spec, fieldWithRng } from '../testing/equivalent.js';
-import { Random } from '../testing/property.js';
+import { Field } from '../provable/field.js';
 import { assert } from '../provable/gadgets/common.js';
 import { Gadgets } from '../provable/gadgets/gadgets.js';
-import { wasm } from '../../bindings.js';
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join, basename } from 'path';
+import { Spec, fieldWithRng } from '../testing/equivalent.js';
+import { Random } from '../testing/property.js';
 
 // Path resolution for subprocess execution
 const __filename = fileURLToPath(import.meta.url);

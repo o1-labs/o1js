@@ -2,8 +2,9 @@
  * TS implementation of Pasta_bindings.{Pallas, Vesta}
  */
 import { MlPair } from '../../../lib/ml/base.js';
+import { GroupAffine, GroupProjective, Pallas, ProjectiveCurve, Vesta } from '../elliptic-curve.js';
+
 import { Field } from './field.js';
-import { Pallas, Vesta, ProjectiveCurve, GroupProjective, GroupAffine } from '../elliptic-curve.js';
 import { withPrefix } from './util.js';
 
 export {

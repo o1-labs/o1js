@@ -1,4 +1,4 @@
-import { Field, Circuit, circuitMain, public_, Gadgets } from 'o1js';
+import { Circuit, Field, Gadgets, circuitMain, public_ } from 'o1js';
 
 /**
  * Public input: a field element x

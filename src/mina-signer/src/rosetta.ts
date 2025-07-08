@@ -1,8 +1,8 @@
 import { Binable } from '../../bindings/lib/binable.js';
-import { PublicKey, PrivateKey, Scalar } from './curve-bigint.js';
+
+import { PrivateKey, PublicKey, Scalar } from './curve-bigint.js';
 import { Field } from './field-bigint.js';
 import { Memo } from './memo.js';
-import { Signature, SignatureJson } from './signature.js';
 import {
   DelegationJson,
   PaymentJson,
@@ -11,6 +11,7 @@ import {
   verifyPayment,
   verifyStakeDelegation,
 } from './sign-legacy.js';
+import { Signature, SignatureJson } from './signature.js';
 import { NetworkId, SignedRosetta } from './types.js';
 import * as Json from './types.js';
 

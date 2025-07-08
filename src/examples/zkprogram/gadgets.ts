@@ -1,4 +1,4 @@
-import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
+import { Field, Gadgets, Provable, ZkProgram } from 'o1js';
 
 let cs = await Provable.constraintSystem(() => {
   let f = Provable.witness(Field, () => 12);

@@ -1,13 +1,13 @@
 import {
-  SelfProof,
+  Cache,
+  Empty,
   Field,
+  JsonProof,
+  Proof,
+  Provable,
+  SelfProof,
   ZkProgram,
   verify,
-  Proof,
-  JsonProof,
-  Provable,
-  Empty,
-  Cache,
 } from 'o1js';
 
 let MyProgram = ZkProgram({

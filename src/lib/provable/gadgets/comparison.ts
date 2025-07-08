@@ -1,13 +1,14 @@
-import type { Field } from '../field.js';
-import type { Bool } from '../bool.js';
-import { createBool, createBoolUnsafe, createField } from '../core/field-constructor.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { assert } from '../../../lib/util/assert.js';
+import type { Bool } from '../bool.js';
 import { exists, existsOne } from '../core/exists.js';
+import { createBool, createBoolUnsafe, createField } from '../core/field-constructor.js';
+import type { Field } from '../field.js';
+import { witness } from '../types/witness.js';
+
 import { assertMul } from './compatible.js';
 import { Field3, ForeignField } from './foreign-field.js';
 import { l, l2, multiRangeCheck } from './range-check.js';
-import { witness } from '../types/witness.js';
 
 export {
   // generic comparison gadgets for inputs in a narrower range < p/2

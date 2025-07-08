@@ -1,6 +1,7 @@
+import StackTrace from 'stacktrace-js';
+
 import { AccountId } from './account.js';
 import { TokenId } from './core.js';
-import StackTrace from 'stacktrace-js';
 
 // TODO: We currently accumulate full errors with stack traces pointing to the internal code that
 //       performs the checks. This is nice for debugging, but undesirable for performance reasons,

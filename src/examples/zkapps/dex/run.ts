@@ -1,6 +1,8 @@
 import { expect } from 'expect';
 import { AccountUpdate, Mina, Permissions, TokenId, UInt64 } from 'o1js';
+
 import { getProfiler } from '../../utils/profiler.js';
+
 import { TokenContract, addresses, createDex, keys, tokenIds } from './dex.js';
 
 let proofsEnabled = false;

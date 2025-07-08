@@ -1,11 +1,12 @@
-import { Provable } from '../provable.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
+import { exists } from '../../provable/core/exists.js';
 import { Field } from '../field.js';
 import { Gates } from '../gates.js';
-import { assert, divideWithRemainder, toVar, bitSlice } from './common.js';
-import { rangeCheck32, rangeCheck64 } from './range-check.js';
+import { Provable } from '../provable.js';
+
 import { divMod32 } from './arithmetic.js';
-import { exists } from '../../provable/core/exists.js';
+import { assert, bitSlice, divideWithRemainder, toVar } from './common.js';
+import { rangeCheck32, rangeCheck64 } from './range-check.js';
 
 export { xor, not, rotate64, rotate32, and, or, rightShift64, leftShift64, leftShift32 };
 

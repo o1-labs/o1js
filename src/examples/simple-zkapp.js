@@ -4,13 +4,13 @@
  * Decorators `@method` and `@state` are replaced by `declareState` and `declareMethods`.
  */
 import {
-  Field,
-  State,
-  SmartContract,
-  Mina,
   AccountUpdate,
-  declareState,
+  Field,
+  Mina,
+  SmartContract,
+  State,
   declareMethods,
+  declareState,
 } from 'o1js';
 
 class Updater extends SmartContract {

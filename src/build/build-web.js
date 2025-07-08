@@ -1,10 +1,10 @@
 import esbuild from 'esbuild';
 import fse, { move } from 'fs-extra';
-import { readFile, writeFile, unlink } from 'node:fs/promises';
+import glob from 'glob';
+import { exec } from 'node:child_process';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { exec } from 'node:child_process';
-import glob from 'glob';
 
 export { buildWeb };
 

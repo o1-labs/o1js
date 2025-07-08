@@ -1,9 +1,9 @@
 import {
   GenericHashInput,
   GenericProvable,
-  GenericProvablePure,
   GenericProvableExtended,
   GenericProvableExtendedPure,
+  GenericProvablePure,
   GenericSignable,
 } from './generic.js';
 

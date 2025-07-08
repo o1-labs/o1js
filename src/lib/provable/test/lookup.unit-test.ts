@@ -1,12 +1,13 @@
-import { Field } from '../field.js';
+import { Cache, FeatureFlags } from 'o1js';
+
 import { ZkProgram } from '../../proof-system/zkprogram.js';
+import { constraintSystem, contains } from '../../testing/constraint-system.js';
 import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
 import { Random } from '../../testing/property.js';
+import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { Gates } from '../gates.js';
-import { constraintSystem, contains } from '../../testing/constraint-system.js';
-import { FeatureFlags, Cache } from 'o1js';
 
 let uint = (n: number | bigint): Spec<bigint, Field> => {
   return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));

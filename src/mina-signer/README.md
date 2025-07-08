@@ -15,6 +15,7 @@ npm install --save mina-signer
 
 ```js
 import Client from 'mina-signer';
+
 const client = new Client({ network: 'mainnet' });
 
 // Generate keys

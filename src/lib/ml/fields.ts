@@ -1,6 +1,8 @@
+import { FieldConst, FieldVar } from '../provable/core/fieldvar.js';
 import { ConstantField, Field } from '../provable/field.js';
-import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
+
 import { MlArray } from './base.js';
+
 export { MlFieldArray, MlFieldConstArray };
 
 type MlFieldArray = MlArray<FieldVar>;

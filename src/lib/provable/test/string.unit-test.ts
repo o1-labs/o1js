@@ -1,6 +1,6 @@
-import { Bool, Character, Provable, CircuitString, Field } from 'o1js';
-import { describe, test } from 'node:test';
 import { expect } from 'expect';
+import { describe, test } from 'node:test';
+import { Bool, Character, CircuitString, Field, Provable } from 'o1js';
 
 describe('Circuit String', () => {
   describe('#equals', () => {

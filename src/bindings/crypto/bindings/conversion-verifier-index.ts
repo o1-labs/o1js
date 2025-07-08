@@ -1,3 +1,4 @@
+import { MlArray, MlBool, MlOption } from '../../../lib/ml/base.js';
 import type {
   WasmFpDomain,
   WasmFpLookupSelectors,
@@ -14,10 +15,10 @@ import type {
   LookupInfo as WasmLookupInfo,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { MlBool, MlArray, MlOption } from '../../../lib/ml/base.js';
-import { Field, VerifierIndex, Domain, VerificationEvals, PolyComm } from './kimchi-types.js';
+
 import { fieldFromRust, fieldToRust } from './conversion-base.js';
 import { ConversionCore, ConversionCores, freeOnFinalize } from './conversion-core.js';
+import { Domain, Field, PolyComm, VerificationEvals, VerifierIndex } from './kimchi-types.js';
 import { Lookup, LookupInfo, LookupSelectors } from './lookup.js';
 
 export { verifierIndexConversion };

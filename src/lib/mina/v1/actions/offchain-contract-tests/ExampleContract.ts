@@ -1,10 +1,10 @@
 import {
+  Experimental,
+  PublicKey,
   SmartContract,
+  UInt64,
   method,
   state,
-  PublicKey,
-  UInt64,
-  Experimental,
 } from '../../../../../index.js';
 
 export { offchainState, StateProof, ExampleContract };

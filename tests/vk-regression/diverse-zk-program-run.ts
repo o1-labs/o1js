@@ -1,5 +1,6 @@
 import assert from 'node:assert';
-import { diverse, Bytes128 } from './diverse-zk-program.js';
+
+import { Bytes128, diverse } from './diverse-zk-program.js';
 
 console.log('testing proof generation for diverse program');
 await diverse.compile();

@@ -1,13 +1,13 @@
 import {
-  UInt64,
-  UInt32,
-  SmartContract,
-  Mina,
   AccountUpdate,
-  method,
-  PublicKey,
   Bool,
   Field,
+  Mina,
+  PublicKey,
+  SmartContract,
+  UInt32,
+  UInt64,
+  method,
 } from 'o1js';
 
 class MyContract extends SmartContract {

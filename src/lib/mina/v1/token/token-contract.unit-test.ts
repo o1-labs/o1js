@@ -1,13 +1,14 @@
 import assert from 'node:assert';
+
 import {
-  method,
-  Mina,
-  UInt64,
   AccountUpdate,
   AccountUpdateForest,
-  TokenContract,
   Int64,
+  Mina,
   PrivateKey,
+  TokenContract,
+  UInt64,
+  method,
 } from '../../../../index.js';
 
 class ExampleTokenContract extends TokenContract {

@@ -1,5 +1,6 @@
 import { Context } from '../util/global-context.js';
 import type { Subclass } from '../util/types.js';
+
 import type { ProofBase } from './proof.js';
 
 export { ZkProgramContext, DeclaredProof };

@@ -1,4 +1,4 @@
-import { Bytes as InternalBytes, createBytes, FlexibleBytes } from './bytes.js';
+import { FlexibleBytes, Bytes as InternalBytes, createBytes } from './bytes.js';
 
 export { Bytes, FlexibleBytes };
 

@@ -3,16 +3,17 @@
  * https://github.com/zksecurity/mina-attestations and
  * gretke's at https://github.com/gretzke/zkApp-data-types
  */
+import { type From, type InferValue } from '../../bindings/lib/provable-generic.js';
+import { pad, zip } from '../util/arrays.js';
+
 import { Bool } from './bool.js';
 import { Field } from './field.js';
+import { arrayGet } from './gadgets/basic.js';
+import { assert } from './gadgets/common.js';
+import { Option } from './option.js';
 import { Provable } from './provable.js';
 import { type InferProvable, provable as struct } from './types/provable-derivers.js';
-import { Option } from './option.js';
 import { ProvableHashable, ProvableType } from './types/provable-intf.js';
-import { assert } from './gadgets/common.js';
-import { type From, type InferValue } from '../../bindings/lib/provable-generic.js';
-import { zip, pad } from '../util/arrays.js';
-import { arrayGet } from './gadgets/basic.js';
 
 // external API
 export { DynamicArray };

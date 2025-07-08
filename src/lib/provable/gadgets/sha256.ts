@@ -5,13 +5,14 @@
  * https://csrc.nist.gov/pubs/fips/180-4/upd1/final
  */
 import { mod } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../wrapped.js';
-import { UInt32, UInt8 } from '../int.js';
-import { exists } from '../core/exists.js';
-import { FlexibleBytes } from '../bytes.js';
-import { Bytes } from '../wrapped-classes.js';
 import { chunk } from '../../util/arrays.js';
 import { TupleN } from '../../util/types.js';
+import { FlexibleBytes } from '../bytes.js';
+import { exists } from '../core/exists.js';
+import { UInt8, UInt32 } from '../int.js';
+import { Bytes } from '../wrapped-classes.js';
+import { Field } from '../wrapped.js';
+
 import { divMod32 } from './arithmetic.js';
 import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';

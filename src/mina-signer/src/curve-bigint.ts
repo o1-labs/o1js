@@ -1,10 +1,11 @@
-import { Fq, mod } from '../../bindings/crypto/finite-field.js';
-import { GroupProjective, Pallas } from '../../bindings/crypto/elliptic-curve.js';
 import { versionBytes } from '../../bindings/crypto/constants.js';
+import { GroupProjective, Pallas } from '../../bindings/crypto/elliptic-curve.js';
+import { Fq, mod } from '../../bindings/crypto/finite-field.js';
 import { record, withCheck, withVersionNumber } from '../../bindings/lib/binable.js';
 import { base58, withBase58 } from '../../lib/util/base58.js';
-import { Bool, checkRange, Field, pseudoClass } from './field-bigint.js';
+
 import { BinableBigint, SignableBigint, signable } from './derivers-bigint.js';
+import { Bool, Field, checkRange, pseudoClass } from './field-bigint.js';
 import { HashInputLegacy } from './poseidon-bigint.js';
 
 export { Group, PublicKey, Scalar, PrivateKey, versionNumbers };

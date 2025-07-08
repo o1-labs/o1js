@@ -1,7 +1,9 @@
 import { AccountUpdate, Lightnet, Mina, PrivateKey } from 'o1js';
+
 import { DEFAULT_LIGHTNET_CONFIG } from '../../utils/network-configuration.js';
 import { randomAccounts } from '../../utils/random-accounts.js';
 import { tic, toc } from '../../utils/tic-toc.node.js';
+
 import { MerkleListReducing } from './actions-as-merkle-list.js';
 
 tic('Run reducer examples against real network.');

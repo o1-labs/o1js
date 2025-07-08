@@ -1,12 +1,13 @@
-import { Mina, AccountUpdate, Field, PrivateKey, UInt64, UInt32, Permissions, Reducer } from 'o1js';
+import { AccountUpdate, Field, Mina, Permissions, PrivateKey, Reducer, UInt32, UInt64 } from 'o1js';
+
 import { deployContracts, deployInvalidContracts } from './deploy-contracts.js';
 import { DummyContract } from './dummy-contract.js';
 import { VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { Membership_ } from './membership.js';
 import { OffchainStorage } from './off-chain-storage.js';
-import { Voting_ } from './voting.js';
 import { assertValidTx, getResults, registerMember, vote } from './voting-lib.js';
+import { Voting_ } from './voting.js';
 
 type Votes = OffchainStorage<Member>;
 type Candidates = OffchainStorage<Member>;

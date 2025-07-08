@@ -1,11 +1,12 @@
 /**
  * This file is a TS representation of kimchi_types.ml
  */
-import type { Lookup } from './lookup.js';
 import type { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
+import type { WasmFpSrs, WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
+
 import type { OrInfinity } from './curve.js';
 import type { Field } from './field.js';
-import type { WasmFpSrs, WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type { Lookup } from './lookup.js';
 
 export {
   Field,

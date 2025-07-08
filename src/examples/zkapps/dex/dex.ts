@@ -1,6 +1,8 @@
 import {
   Account,
   AccountUpdate,
+  AccountUpdateForest,
+  TokenContract as BaseTokenContract,
   Bool,
   Mina,
   PrivateKey,
@@ -14,8 +16,6 @@ import {
   UInt64,
   method,
   state,
-  TokenContract as BaseTokenContract,
-  AccountUpdateForest,
 } from 'o1js';
 
 export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };

@@ -4,6 +4,7 @@ import { array, equivalentProvable, map, onlyIf, spec, unit } from '../../testin
 import { Random } from '../../testing/random.js';
 import { assert } from '../gadgets/common.js';
 import { EllipticCurve, Point, simpleMapToCurve } from '../gadgets/elliptic-curve.js';
+
 import { foreignField, throwError } from './test-utils.js';
 
 // provable equivalence tests

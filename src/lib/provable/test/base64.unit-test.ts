@@ -1,6 +1,7 @@
-import { Bytes } from '../wrapped-classes.js';
-import { describe, test } from 'node:test';
 import { expect } from 'expect';
+import { describe, test } from 'node:test';
+
+import { Bytes } from '../wrapped-classes.js';
 
 function calculateB64DecodedBytesLength(base64String: string): number {
   // Calculate the length of the base64-encoded string

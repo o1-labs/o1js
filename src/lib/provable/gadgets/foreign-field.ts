@@ -1,28 +1,29 @@
 /**
  * Foreign field arithmetic gadgets.
  */
-import { inverse as modInverse, mod } from '../../../bindings/crypto/finite-field.js';
-import { provableTuple } from '../types/provable-derivers.js';
-import { Unconstrained } from '../types/unconstrained.js';
+import { mod, inverse as modInverse } from '../../../bindings/crypto/finite-field.js';
+import { Tuple, TupleN } from '../../util/types.js';
+import type { Bool } from '../bool.js';
+import { exists } from '../core/exists.js';
+import { createBool, createField, getField } from '../core/field-constructor.js';
 import type { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
-import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
-import { Tuple, TupleN } from '../../util/types.js';
+import { provableTuple } from '../types/provable-derivers.js';
+import { ProvablePureExtended } from '../types/struct.js';
+import { Unconstrained } from '../types/unconstrained.js';
+
 import { assertOneOf } from './basic.js';
 import { assert, bitSlice, toVar, toVars } from './common.js';
 import {
+  compactMultiRangeCheck,
   l,
-  lMask,
-  multiRangeCheck,
   l2,
   l2Mask,
   l3,
-  compactMultiRangeCheck,
+  lMask,
+  multiRangeCheck,
 } from './range-check.js';
-import { createBool, createField, getField } from '../core/field-constructor.js';
-import type { Bool } from '../bool.js';
-import { ProvablePureExtended } from '../types/struct.js';
 
 // external API
 export { ForeignField, Field3 };

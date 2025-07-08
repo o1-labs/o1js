@@ -1,9 +1,10 @@
 import { Snarky } from '../../../bindings.js';
-import { FieldConst, VarFieldVar } from './fieldvar.js';
-import type { VarField } from '../field.js';
 import { MlArray, MlOption } from '../../ml/base.js';
-import { createField } from './field-constructor.js';
 import { TupleN } from '../../util/types.js';
+import type { VarField } from '../field.js';
+
+import { createField } from './field-constructor.js';
+import { FieldConst, VarFieldVar } from './fieldvar.js';
 
 export { createVarField, exists, existsAsync, existsOne };
 

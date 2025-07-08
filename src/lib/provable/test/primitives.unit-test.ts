@@ -1,6 +1,7 @@
-import { Circuit, circuitMain } from '../../proof-system/circuit.js';
-import { UInt64, UInt32 } from '../int.js';
 import { expect } from 'expect';
+
+import { Circuit, circuitMain } from '../../proof-system/circuit.js';
+import { UInt32, UInt64 } from '../int.js';
 import { Provable } from '../provable.js';
 
 class Primitives extends Circuit {

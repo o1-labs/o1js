@@ -1,7 +1,8 @@
 /**
  * zkApps composability
  */
-import { Field, method, Mina, AccountUpdate, SmartContract, state, State } from 'o1js';
+import { AccountUpdate, Field, Mina, SmartContract, State, method, state } from 'o1js';
+
 import { getProfiler } from '../utils/profiler.js';
 
 const doProofs = true;

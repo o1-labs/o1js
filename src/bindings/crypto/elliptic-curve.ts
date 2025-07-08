@@ -1,6 +1,7 @@
 import { bigIntToBits } from './bigint-helpers.js';
-import { FiniteField, Fp, createField, inverse, mod, p, q } from './finite-field.js';
 import { Endomorphism } from './elliptic-curve-endomorphism.js';
+import { FiniteField, Fp, createField, inverse, mod, p, q } from './finite-field.js';
+
 export {
   Pallas,
   PallasAffine,

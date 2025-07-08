@@ -1,13 +1,15 @@
 import fs from 'fs';
-import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
-import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
-import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
-import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
-import { ecdsa, keccakAndEcdsa, ecdsaEthers } from '../../src/examples/crypto/ecdsa/ecdsa.js';
-import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
+
 import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js';
-import { GroupCS, BitwiseCS, HashCS, BasicCS, CryptoCS } from './plain-constraint-system.js';
+import { ecdsa, ecdsaEthers, keccakAndEcdsa } from '../../src/examples/crypto/ecdsa/ecdsa.js';
+import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
+import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
+import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
+import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
+import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
+
 import { diverse } from './diverse-zk-program.js';
+import { BasicCS, BitwiseCS, CryptoCS, GroupCS, HashCS } from './plain-constraint-system.js';
 
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;

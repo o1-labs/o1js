@@ -1,11 +1,12 @@
 import { mod } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../wrapped.js';
-import { UInt32, UInt64, UInt8 } from '../int.js';
-import { exists } from '../core/exists.js';
-import { FlexibleBytes } from '../bytes.js';
-import { Bytes } from '../wrapped-classes.js';
 import { chunk } from '../../util/arrays.js';
 import { TupleN } from '../../util/types.js';
+import { FlexibleBytes } from '../bytes.js';
+import { exists } from '../core/exists.js';
+import { UInt8, UInt32, UInt64 } from '../int.js';
+import { Bytes } from '../wrapped-classes.js';
+import { Field } from '../wrapped.js';
+
 import { divMod32, divMod64 } from './arithmetic.js';
 import { bitSlice } from './common.js';
 import { rangeCheck16 } from './range-check.js';

@@ -1,7 +1,8 @@
-import { Bigint2048, rsaVerify65537 } from './rsa.js';
-import { sha256Bigint, generateRsaParams, rsaSign, randomPrime } from './utils.js';
 import { expect } from 'expect';
-import { it, describe } from 'node:test';
+import { describe, it } from 'node:test';
+
+import { Bigint2048, rsaVerify65537 } from './rsa.js';
+import { generateRsaParams, randomPrime, rsaSign, sha256Bigint } from './utils.js';
 
 describe('RSA65537 verification tests', () => {
   it('should accept a simple RSA signature', () => {

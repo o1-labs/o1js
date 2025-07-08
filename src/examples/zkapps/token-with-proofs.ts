@@ -1,12 +1,12 @@
 import {
-  method,
-  Mina,
   AccountUpdate,
-  SmartContract,
-  PublicKey,
-  TokenId,
-  TokenContract,
   AccountUpdateForest,
+  Mina,
+  PublicKey,
+  SmartContract,
+  TokenContract,
+  TokenId,
+  method,
 } from 'o1js';
 
 class Token extends TokenContract {

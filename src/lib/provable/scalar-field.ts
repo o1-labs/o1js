@@ -1,4 +1,5 @@
 import { Fq } from '../../bindings/crypto/finite-field.js';
+
 import { ForeignField, createForeignField } from './foreign-field.js';
 import { field3ToShiftedScalar } from './gadgets/native-curve.js';
 import { Provable } from './provable.js';

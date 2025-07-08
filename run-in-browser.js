@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import http from 'node:http';
 import minimist from 'minimist';
+import fs from 'node:fs/promises';
+import http from 'node:http';
+import path from 'node:path';
+
 import { build } from './src/build/build-example.js';
 
 let {

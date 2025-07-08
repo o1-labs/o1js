@@ -1,17 +1,18 @@
-import { Field, Bool, Group, Scalar } from '../wrapped.js';
-import { AnyConstructor } from '../types/struct.js';
-import { hashWithPrefix } from './poseidon.js';
-import {
-  deriveNonce,
-  Signature as SignatureBigint,
-  signaturePrefix,
-} from '../../../mina-signer/src/signature.js';
 import {
   PrivateKey as PrivateKeyBigint,
   PublicKey as PublicKeyBigint,
 } from '../../../mina-signer/src/curve-bigint.js';
+import {
+  Signature as SignatureBigint,
+  deriveNonce,
+  signaturePrefix,
+} from '../../../mina-signer/src/signature.js';
 import { toConstantField } from '../field.js';
 import { CircuitValue, prop } from '../types/circuit-value.js';
+import { AnyConstructor } from '../types/struct.js';
+import { Bool, Field, Group, Scalar } from '../wrapped.js';
+
+import { hashWithPrefix } from './poseidon.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };

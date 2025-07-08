@@ -1,5 +1,6 @@
-import { filterGroups } from './mina.js';
 import { expect } from 'expect';
+
+import { filterGroups } from './mina.js';
 
 let S = { isProved: false, isSigned: true };
 let N = { isProved: false, isSigned: false };

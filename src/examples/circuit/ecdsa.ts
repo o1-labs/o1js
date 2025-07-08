@@ -1,12 +1,12 @@
 import {
-  Circuit,
-  circuitMain,
-  public_,
-  Crypto,
-  createForeignCurve,
   Bytes,
+  Circuit,
+  Crypto,
   assert,
+  circuitMain,
   createEcdsa,
+  createForeignCurve,
+  public_,
 } from 'o1js';
 
 export { Secp256k1, Ecdsa, Bytes32, Reserves };
