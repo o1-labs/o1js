@@ -96,6 +96,9 @@ jobs:
         if: steps.get_changed_files.outputs.files_changed == 'true'
         run: xargs npm run lint:strict < changed_files.txt
 
+      - name: Run Markdown Format Check
+        run: npm run format:md:check
+
       - name: Run codespell
         if: steps.get_changed_files.outputs.files_changed == 'true' && github.event.pull_request.labels.*.name != 'no-typo-check'
         uses: codespell-project/actions-codespell@master

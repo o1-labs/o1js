@@ -4,14 +4,13 @@
 configuration that can help developers build a project in a reproducible and
 reliable manner, without messing up versions during upgrades.
 
-Much like the `mina` repository, you can use Nix to
-handle the dependencies required across the codebase, including npm scripts.
+Much like the `mina` repository, you can use Nix to handle the dependencies
+required across the codebase, including npm scripts.
 
-> **When should I use Nix?**
-> If you cannot build the codebase locally (due to untrusty package manager,
-> faulty versioning, or unavailable libraries), it is a good idea to try the Nix
-> build instead. This can happen especially if you're using a Mac–and even more
-> likely–with non-Intel chips.
+> **When should I use Nix?** If you cannot build the codebase locally (due to
+> untrusty package manager, faulty versioning, or unavailable libraries), it is
+> a good idea to try the Nix build instead. This can happen especially if you're
+> using a Mac–and even more likely–with non-Intel chips.
 
 ## Installing Nix
 
@@ -22,7 +21,8 @@ sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
 
 If you're unsure about your Nix setup, the assistant will guide you towards a
-clean installation. It will involve backing up your old `/etc/X` and `/etc/X.backup-before-nix` for `X = {bash.bashrc, bashrc, zshrc}`, and finally
+clean installation. It will involve backing up your old `/etc/X` and
+`/etc/X.backup-before-nix` for `X = {bash.bashrc, bashrc, zshrc}`, and finally
 uninstalling and reinstalling Nix from scratch.
 
 > **warning for macOS users**: macOS updates will often break your nix
@@ -43,17 +43,17 @@ new shell and type
 nix-shell -p nix-info --run "nix-info -m"
 ```
 
-That should output some basic information about the configuration parameters for Nix.
+That should output some basic information about the configuration parameters for
+Nix.
 
 ## Enabling Flakes (recommended)
 
-Mina is packaged using [Nix Flakes](https://nixos.wiki/wiki/Flakes),
-which are an experimental feature of Nix. However, compatibility with
-pre-flake Nix is provided. If you wish to contribute the Nix
-expressions in this repository, or want to get some convenience
-features and speed improvements, **it is advisable to enable flakes**. For
-this, you'll want to make sure you're running recent Nix (⩾2.5) and
-have enabled the relevant experimental features, either in
+Mina is packaged using [Nix Flakes](https://nixos.wiki/wiki/Flakes), which are
+an experimental feature of Nix. However, compatibility with pre-flake Nix is
+provided. If you wish to contribute the Nix expressions in this repository, or
+want to get some convenience features and speed improvements, **it is advisable
+to enable flakes**. For this, you'll want to make sure you're running recent Nix
+(⩾2.5) and have enabled the relevant experimental features, either in
 `/etc/nix/nix.conf` or (recommended) in `~/.config/nix/nix.conf` (meaning to add
 `experimental-features = nix-command flakes` in that file):
 
@@ -88,8 +88,9 @@ with all the dependencies required executing `nix develop o1js#default`.
 nix develop o1js#default
 ```
 
-On macos the first time you run this command, you can expect it to take hours (or even a full day) to complete, due to the lack of cached builds.
-Then, you will observe that the current devshell becomes a Nix shell with the right
+On macos the first time you run this command, you can expect it to take hours
+(or even a full day) to complete, due to the lack of cached builds. Then, you
+will observe that the current devshell becomes a Nix shell with the right
 configuration for `o1js` and `mina`.
 
 From within the shell, you can build o1js and update the bindings.
@@ -113,33 +114,42 @@ nix develop mina
 
 ### Storage handling
 
-Using Nix can take up a lot of disk space if not optimized. Every time you run `nix develop {SOMETHING}`, Nix will create new generations taking gigabytes of data instead of replacing the old ones. This can soon become a problem in your hard disk if you don't handle it carefully. Here are a few indications that can help with this.
+Using Nix can take up a lot of disk space if not optimized. Every time you run
+`nix develop {SOMETHING}`, Nix will create new generations taking gigabytes of
+data instead of replacing the old ones. This can soon become a problem in your
+hard disk if you don't handle it carefully. Here are a few indications that can
+help with this.
 
-Nix has a garbage collector that **is not used by default** after every run. Instead, artifacts get accumulated in your disk unless configured otherwise.
-This is why we recomend `auto-optimise-store = true` (you will be prompted to accept this). You can also run `nix-store --optimize` retroactively.
+Nix has a garbage collector that **is not used by default** after every run.
+Instead, artifacts get accumulated in your disk unless configured otherwise.
+This is why we recomend `auto-optimise-store = true` (you will be prompted to
+accept this). You can also run `nix-store --optimize` retroactively.
 
-If you still need to free up space you can run `nix-store --gc`, unfortunately this can slow down futurue nix builds by forcing you to rebuild dependencies.
-This can be mitigated with [direnv](https://github.com/direnv/direnv) and [nix-direnv](https://github.com/nix-community/nix-direnv) which can create garbage collector roots,
-keeping one gc-root to the latest build of the dev shell so that `nix-store --gc` won't remove it.
-You can also create a gc root any time you run `nix build` (until you remove `./result`) so running `nix build o1js#bindings` before `nix-store --gc` may also help.
+If you still need to free up space you can run `nix-store --gc`, unfortunately
+this can slow down futurue nix builds by forcing you to rebuild dependencies.
+This can be mitigated with [direnv](https://github.com/direnv/direnv) and
+[nix-direnv](https://github.com/nix-community/nix-direnv) which can create
+garbage collector roots, keeping one gc-root to the latest build of the dev
+shell so that `nix-store --gc` won't remove it. You can also create a gc root
+any time you run `nix build` (until you remove `./result`) so running
+`nix build o1js#bindings` before `nix-store --gc` may also help.
 
 ### Runtime optimization
 
-We suggest a few settings in `flake.nix`.
-You will be prompted to accept or reject these the first time you use nix in this repo.
-You can also use `--accept-flake-config` to accept all of them.
+We suggest a few settings in `flake.nix`. You will be prompted to accept or
+reject these the first time you use nix in this repo. You can also use
+`--accept-flake-config` to accept all of them.
 
-`max-jobs = auto`
-For some reason the default is `1`.
+`max-jobs = auto` For some reason the default is `1`.
 
-`auto-optimize-store = true;`
-When building slightly different versions of the same repo your nix store can fill up with coppies of the same files.
-This saves space by replacing them with symlinks.
+`auto-optimize-store = true;` When building slightly different versions of the
+same repo your nix store can fill up with coppies of the same files. This saves
+space by replacing them with symlinks.
 
-`substituters = ...`
-`trusted-public-keys = ...`
-These make sure you are using the mina-nix-cache which will save time by downloading any derivations already available.
-Anything built in CI is added to this nix-cache, so it should make a big difference in build times.
+`substituters = ...` `trusted-public-keys = ...` These make sure you are using
+the mina-nix-cache which will save time by downloading any derivations already
+available. Anything built in CI is added to this nix-cache, so it should make a
+big difference in build times.
 
 ## Common Issues
 
@@ -198,7 +208,8 @@ Alternatively, try this change in the `src/mina/flake.nix` file:
 
 ### wasm32-unknown-unknown
 
-The rust compiler and/or Wasm-pack might not be correctly setup in the Nix shell.
+The rust compiler and/or Wasm-pack might not be correctly setup in the Nix
+shell.
 
 ```console
 Error: wasm32-unknown-unknown target not found in sysroot:  "/nix/store/w30zw23kmgks77d870i502a3185hjycv-rust"
@@ -283,8 +294,8 @@ to install it from scratch.
 
 When several clones of the repository are present in the system and both have
 used Nix (or if it has been moved from one location to another), Nix might cache
-an old path, breaking builds. For example, typing `nix develop mina`
-would complain and produce the following error:
+an old path, breaking builds. For example, typing `nix develop mina` would
+complain and produce the following error:
 
 ```console
 error: resolving Git reference 'master': revspec 'master' not found
@@ -298,17 +309,22 @@ Rerun `pin.sh` and `src/mina/nix/pin.sh`.
 
 ### Changes to nix flakes aren't taking effect
 
-On MacOS, nix may ignore changes to files when nix commands are run and reuse the flake cached in its registry. Running commands like `nix develop o1js` and `nix run o1js#update-bindings` will reuse the cached version of the flake. As a result:
+On MacOS, nix may ignore changes to files when nix commands are run and reuse
+the flake cached in its registry. Running commands like `nix develop o1js` and
+`nix run o1js#update-bindings` will reuse the cached version of the flake. As a
+result:
 
 - The devshell could be missing newly added dependencies.
-- Builds executed directly with `nix run` could be generated from old source files.
+- Builds executed directly with `nix run` could be generated from old source
+  files.
 
 #### Fix
 
 There are two ways to ensure Nix recognizes flake changes:
 
 - Rerun `pin.sh` to force an update to the registry, then run your command.
-- Reference the flake by its directory path rather than its registry name. This forces Nix to use the current contents of the directory:
+- Reference the flake by its directory path rather than its registry name. This
+  forces Nix to use the current contents of the directory:
 
 ```bash
 nix develop .'?submodules=1#default'
