@@ -1,6 +1,6 @@
-import { Gate, Snarky, initializeBindings } from '../../snarky.js';
+import { Gate, Snarky, initializeBindings } from '../../bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
-import { withThreadPool } from '../../snarky.js';
+import { withThreadPool } from '../../bindings.js';
 import { Provable } from '../provable/provable.js';
 import { snarkContext, gatesFromJson } from '../provable/core/provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
@@ -86,7 +86,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
       await initializeBindings();
       _keypair = await prettifyStacktracePromise(
         withThreadPool(async () => {
-          return Snarky.circuit.compile(main, publicInputSize);
+          return Snarky.circuit.compile(main, publicInputSize, false);
         })
       );
       const verificationKey = new VerificationKey(
