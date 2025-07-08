@@ -16,7 +16,7 @@ type GenericTypeMap<
   BalanceChange,
   PublicKey,
   AuthRequired,
-  TokenId
+  TokenId,
 > = {
   Field: Field;
   Bool: Bool;
@@ -37,7 +37,7 @@ type TypeMapValues<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeMap, BaseT
 type TypeMapProvable<
   TypeMap extends AnyTypeMap,
   ValueMap extends AnyTypeMap,
-  JsonMap extends AnyTypeMap
+  JsonMap extends AnyTypeMap,
 > = {
   [K in keyof TypeMap & keyof JsonMap]: K extends keyof ValueMap
     ? GenericProvableExtended<TypeMap[K], ValueMap[K], JsonMap[K], TypeMap['Field']>
@@ -270,7 +270,7 @@ function SignableFromLayout<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeM
 function ProvableFromLayout<
   TypeMap extends AnyTypeMap,
   ValueMap extends AnyTypeMap,
-  JsonMap extends AnyTypeMap
+  JsonMap extends AnyTypeMap,
 >(
   TypeMap: TypeMapProvable<TypeMap, ValueMap, JsonMap>,
   customTypes: Record<string, GenericProvableExtended<any, any, any, TypeMap['Field']>>
@@ -509,7 +509,7 @@ function genericLayoutFold<
   T = any,
   R = any,
   TypeMap extends AnyTypeMap = AnyTypeMap,
-  JsonMap extends AnyTypeMap = AnyTypeMap
+  JsonMap extends AnyTypeMap = AnyTypeMap,
 >(
   TypeMap: TypeMapValues<TypeMap, JsonMap, BaseType>,
   customTypes: Record<string, BaseType>,
@@ -575,7 +575,7 @@ function genericLayoutMap<
   T = any,
   R = any,
   TypeMap extends AnyTypeMap = AnyTypeMap,
-  JsonMap extends AnyTypeMap = AnyTypeMap
+  JsonMap extends AnyTypeMap = AnyTypeMap,
 >(
   TypeMap: TypeMapValues<TypeMap, JsonMap, BaseType>,
   customTypes: Record<string, BaseType>,

@@ -55,7 +55,7 @@ export type BindingsType<T> =
 
 function assertBindingsTypeImplementsProvable<
   T,
-  B extends BindingsType<T> & ProvableSerializable<T>
+  B extends BindingsType<T> & ProvableSerializable<T>,
 >(_x?: B) {}
 
 assertBindingsTypeImplementsProvable<number, BindingsType<number>>();

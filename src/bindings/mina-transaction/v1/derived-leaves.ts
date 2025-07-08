@@ -139,7 +139,7 @@ type AuthRequired<Bool> = {
 function createAuthRequired<
   Field,
   Bool,
-  Base extends GenericSignable<AuthRequired<Bool>, AuthRequired<boolean>, Field>
+  Base extends GenericSignable<AuthRequired<Bool>, AuthRequired<boolean>, Field>,
 >(base: Base, Bool: GenericSignableBool<Field, Bool>) {
   return {
     ...(base as Omit<Base, 'toJSON' | 'fromJSON'>),

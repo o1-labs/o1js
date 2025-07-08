@@ -46,15 +46,15 @@ function assertPositiveInteger(n: number, message: string) {
 type Integer<T extends number> = number extends T
   ? never
   : `${T}` extends `${string}.${string}` | `${string}e-${string}`
-  ? never
-  : T;
+    ? never
+    : T;
 type NonNegativeInteger<T extends number> = number extends T
   ? never
   : `${T}` extends `-${string}` | `${string}.${string}` | `${string}e-${string}`
-  ? never
-  : T;
+    ? never
+    : T;
 type PositiveInteger<T extends number> = number extends T
   ? never
   : `${T}` extends `-${string}` | `${string}.${string}` | `${string}e-${string}` | `0`
-  ? never
-  : T;
+    ? never
+    : T;

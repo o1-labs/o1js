@@ -53,7 +53,7 @@ const pointEvalsOptionFromRust = mapPointEvalsOption(fieldFromRust);
 type WasmProofEvaluations = [
   0,
   MlOption<PointEvaluations<Uint8Array>>,
-  ...RemoveLeadingZero<ProofEvaluations<Uint8Array>>
+  ...RemoveLeadingZero<ProofEvaluations<Uint8Array>>,
 ];
 
 type wasm = typeof wasmNamespace;
