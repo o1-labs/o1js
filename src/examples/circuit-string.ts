@@ -1,5 +1,5 @@
-import { CircuitString, SmartContract, method, Mina, PrivateKey } from 'o1js';
 import * as assert from 'assert/strict';
+import { CircuitString, Mina, PrivateKey, SmartContract, method } from 'o1js';
 
 // circuit which tests a couple of string features
 class MyContract extends SmartContract {

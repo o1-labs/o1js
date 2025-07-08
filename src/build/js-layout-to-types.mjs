@@ -2,8 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier/standalone.js';
-import parserTypeScript from 'prettier/plugins/typescript.js';
 import prettierPluginEstree from 'prettier/plugins/estree.js';
+import parserTypeScript from 'prettier/plugins/typescript.js';
 
 import prettierRc from '../../.prettierrc.cjs';
 

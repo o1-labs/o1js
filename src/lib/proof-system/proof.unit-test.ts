@@ -1,9 +1,11 @@
 import { expect } from 'expect';
+import test from 'node:test';
+
 import { Provable } from '../provable/provable.js';
 import { Field } from '../provable/wrapped.js';
+
 import { Proof } from './proof.js';
 import { Void } from './zkprogram.js';
-import test from 'node:test';
 
 test('Proof provable', async () => {
   class MyProof extends Proof<Field, Void> {

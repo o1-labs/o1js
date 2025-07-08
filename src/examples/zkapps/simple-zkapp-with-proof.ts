@@ -1,15 +1,15 @@
 import {
-  Field,
-  state,
-  State,
-  method,
-  SmartContract,
-  Mina,
   AccountUpdate,
-  ZkappPublicInput,
-  SelfProof,
-  verify,
   Empty,
+  Field,
+  Mina,
+  SelfProof,
+  SmartContract,
+  State,
+  ZkappPublicInput,
+  method,
+  state,
+  verify,
 } from 'o1js';
 
 class TrivialZkapp extends SmartContract {

@@ -1,41 +1,42 @@
 /**
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
+import { Field } from '../wrapped.js';
+
+import { addMod32, addMod64, divMod32, divMod64 } from './arithmetic.js';
+import { arrayGet, arrayGetGeneric } from './basic.js';
+import { sliceField3 } from './bit-slices.js';
+import {
+  and,
+  leftShift32,
+  leftShift64,
+  not,
+  or,
+  rightShift64,
+  rotate32,
+  rotate64,
+  xor,
+} from './bitwise.js';
+import { BLAKE2B } from './blake2b.js';
+import { Field3, ForeignField, Sum as ForeignFieldSum } from './foreign-field.js';
+import { inTable, rangeCheck3x12 } from './lookup.js';
 import {
   compactMultiRangeCheck,
+  isDefinitelyInRangeN,
+  l,
+  l2,
+  l2Mask,
+  l3,
+  lMask,
   multiRangeCheck,
   rangeCheck8,
   rangeCheck16,
   rangeCheck32,
   rangeCheck64,
   rangeCheckN,
-  isDefinitelyInRangeN,
-  l2Mask,
-  lMask,
-  l2,
-  l,
-  l3,
 } from './range-check.js';
-import {
-  not,
-  rotate32,
-  rotate64,
-  xor,
-  and,
-  or,
-  leftShift64,
-  rightShift64,
-  leftShift32,
-} from './bitwise.js';
-import { Field } from '../wrapped.js';
-import { ForeignField, Field3, Sum as ForeignFieldSum } from './foreign-field.js';
-import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
-import { BLAKE2B } from './blake2b.js';
-import { rangeCheck3x12, inTable } from './lookup.js';
-import { arrayGet, arrayGetGeneric } from './basic.js';
-import { sliceField3 } from './bit-slices.js';
 
 export { Gadgets, Field3, ForeignFieldSum };
 

@@ -1,7 +1,8 @@
 import { Gadgets } from '../gadgets/gadgets.js';
-import { Poseidon } from './poseidon.js';
-import { Keccak } from './keccak.js';
 import { Bytes } from '../wrapped-classes.js';
+
+import { Keccak } from './keccak.js';
+import { Poseidon } from './poseidon.js';
 
 export { Hash };
 

@@ -1,8 +1,9 @@
-import type { SmartContract } from './zkapp.js';
-import type { AccountUpdate, AccountUpdateLayout } from './account-update.js';
-import { Context } from '../../util/global-context.js';
-import { currentTransaction } from './transaction-context.js';
 import { assert } from '../../util/assert.js';
+import { Context } from '../../util/global-context.js';
+
+import type { AccountUpdate, AccountUpdateLayout } from './account-update.js';
+import { currentTransaction } from './transaction-context.js';
+import type { SmartContract } from './zkapp.js';
 
 export { smartContractContext, SmartContractContext, accountUpdateLayout, contract };
 

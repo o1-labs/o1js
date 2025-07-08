@@ -1,9 +1,10 @@
 import { Snarky } from '../../bindings.js';
-import type { Field } from './field.js';
-import { FieldVar, FieldConst } from './core/fieldvar.js';
 import { MlArray, MlTuple } from '../ml/base.js';
-import { exists } from './core/exists.js';
 import { TupleN } from '../util/types.js';
+
+import { exists } from './core/exists.js';
+import { FieldConst, FieldVar } from './core/fieldvar.js';
+import type { Field } from './field.js';
 
 export {
   Gates,

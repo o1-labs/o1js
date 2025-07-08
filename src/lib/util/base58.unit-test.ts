@@ -1,7 +1,9 @@
-import { fromBase58Check, toBase58Check } from './base58.js';
-import { Test } from '../../bindings.js';
 import { expect } from 'expect';
-import { test, Random, withHardCoded } from '../testing/property.js';
+
+import { Test } from '../../bindings.js';
+import { Random, test, withHardCoded } from '../testing/property.js';
+
+import { fromBase58Check, toBase58Check } from './base58.js';
 
 let mlTest = await Test();
 

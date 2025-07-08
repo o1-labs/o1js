@@ -9,7 +9,7 @@
  * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
  * in progress to mitigate this limitation.
  */
-import { Field, Mina, State, state, Reducer, SmartContract, method, assert } from 'o1js';
+import { Field, Mina, Reducer, SmartContract, State, assert, method, state } from 'o1js';
 
 export { ActionsContract, testLocal };
 

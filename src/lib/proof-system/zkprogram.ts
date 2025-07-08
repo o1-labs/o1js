@@ -1,4 +1,3 @@
-import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
 import {
   Base64ProofString,
   Base64VerificationKeyString,
@@ -6,40 +5,42 @@ import {
   initializeBindings,
   withThreadPool,
 } from '../../bindings.js';
-import { Pickles, Gate } from '../../bindings.js';
-import { Field } from '../provable/wrapped.js';
-import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
-import { InferProvableType } from '../provable/types/provable-derivers.js';
-import { Provable } from '../provable/provable.js';
-import { assert, prettifyStacktracePromise } from '../util/errors.js';
+import { Gate, Pickles } from '../../bindings.js';
+import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
+import { prefixes } from '../../bindings/crypto/constants.js';
+import { prefixToField } from '../../bindings/lib/binable.js';
+import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
+import { MlArray, MlBool, MlPair, MlResult } from '../ml/base.js';
+import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
+import { FieldConst, FieldVar } from '../provable/core/fieldvar.js';
 import { ConstraintSystemSummary, snarkContext } from '../provable/core/provable-context.js';
 import { hashConstant } from '../provable/crypto/poseidon.js';
-import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
-import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
-import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
-import { Cache, readCache, writeCache } from './cache.js';
-import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
-import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
+import { Provable } from '../provable/provable.js';
+import { InferProvableType } from '../provable/types/provable-derivers.js';
 import { ProvableType, ToProvable } from '../provable/types/provable-intf.js';
-import { prefixToField } from '../../bindings/lib/binable.js';
-import { prefixes } from '../../bindings/crypto/constants.js';
+import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
+import { emptyWitness } from '../provable/types/util.js';
+import { Field } from '../provable/wrapped.js';
+import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { assert, prettifyStacktracePromise } from '../util/errors.js';
 import { Subclass, Tuple } from '../util/types.js';
+
+import { Cache, readCache, writeCache } from './cache.js';
+import { featureFlagsFromGates, featureFlagsToMlOption } from './feature-flags.js';
 import {
-  dummyProof,
   DynamicProof,
-  extractProofs,
-  extractProofTypes,
   Proof,
   ProofBase,
   ProofClass,
   ProofValue,
+  dummyProof,
+  extractProofTypes,
+  extractProofs,
 } from './proof.js';
-import { featureFlagsFromGates, featureFlagsToMlOption } from './feature-flags.js';
-import { emptyWitness } from '../provable/types/util.js';
-import { From, InferValue } from '../../bindings/lib/provable-generic.js';
-import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
-import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
 import { VerificationKey } from './verification-key.js';
+import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 
 // public API
 export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, Method };

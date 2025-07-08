@@ -1,4 +1,4 @@
-import { Provable, Int64, UInt64, UInt32, UInt8, Field, Bool, Sign } from 'o1js';
+import { Bool, Field, Int64, Provable, Sign, UInt8, UInt32, UInt64 } from 'o1js';
 
 describe('int', () => {
   const NUMBERMAX = 2 ** 53 - 1; //  JavaScript numbers can only safely store integers in the range -(2^53 − 1) to 2^53 − 1

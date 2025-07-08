@@ -4,23 +4,23 @@
  * in progress to mitigate this limitation.
  */
 import {
+  AccountUpdate,
+  Bool,
   Field,
+  Permissions,
+  Provable,
+  PublicKey,
+  Reducer,
   SmartContract,
-  state,
   State,
   method,
-  Permissions,
-  PublicKey,
-  Bool,
-  Reducer,
   provablePure,
-  AccountUpdate,
-  Provable,
+  state,
 } from 'o1js';
 
 import { Member } from './member.js';
-import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
 import { Membership_ } from './membership.js';
+import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
 
 /**
  * Address to the Membership instance that keeps track of Candidates.

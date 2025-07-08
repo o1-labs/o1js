@@ -1,4 +1,4 @@
-import { Poseidon, Field, MerkleTree, MerkleWitness } from 'o1js';
+import { Field, MerkleTree, MerkleWitness, Poseidon } from 'o1js';
 
 describe('Merkle Tree', () => {
   it('root of empty tree of size 1', () => {

@@ -1,8 +1,8 @@
+import esbuild from 'esbuild';
 import fs from 'fs/promises';
+import { platform } from 'node:process';
 import path from 'path';
 import ts from 'typescript';
-import esbuild from 'esbuild';
-import { platform } from 'node:process';
 
 export { buildAndImport, build, buildOne };
 

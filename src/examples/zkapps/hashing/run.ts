@@ -1,5 +1,6 @@
+import { AccountUpdate, Bytes, Mina } from 'o1js';
+
 import { HashStorage } from './hash.js';
-import { Mina, AccountUpdate, Bytes } from 'o1js';
 
 let txn;
 let proofsEnabled = true;

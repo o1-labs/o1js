@@ -1,18 +1,19 @@
 import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
-import { Field, checkBitLength } from './field.js';
+import { assert } from '../util/assert.js';
+
 import { Bool } from './bool.js';
+import { Field, checkBitLength } from './field.js';
+import { isConstant } from './gadgets/common.js';
+import { field3FromBits } from './gadgets/foreign-field.js';
 import {
   ShiftedScalar,
   field3ToShiftedScalar,
   fieldToShiftedScalar,
   shiftedScalarToField3,
 } from './gadgets/native-curve.js';
-import { isConstant } from './gadgets/common.js';
 import { Provable } from './provable.js';
-import { assert } from '../util/assert.js';
 import type { HashInput } from './types/provable-derivers.js';
-import { field3FromBits } from './gadgets/foreign-field.js';
 
 export { Scalar, ScalarConst };
 

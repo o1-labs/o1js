@@ -1,21 +1,23 @@
 import { blake2b } from 'blakejs';
-import { Field } from './field-bigint.js';
-import { Group, Scalar, PrivateKey, versionNumbers, PublicKey } from './curve-bigint.js';
-import {
-  HashInput,
-  hashWithPrefix,
-  packToFields,
-  prefixes,
-  Poseidon,
-  HashInputLegacy,
-  packToFieldsLegacy,
-  inputToBitsLegacy,
-  HashLegacy,
-} from './poseidon-bigint.js';
-import { bitsToBytes, bytesToBits, record, withVersionNumber } from '../../bindings/lib/binable.js';
-import { base58 } from '../../lib/util/base58.js';
+
 import { versionBytes } from '../../bindings/crypto/constants.js';
 import { Pallas } from '../../bindings/crypto/elliptic-curve.js';
+import { bitsToBytes, bytesToBits, record, withVersionNumber } from '../../bindings/lib/binable.js';
+import { base58 } from '../../lib/util/base58.js';
+
+import { Group, PrivateKey, PublicKey, Scalar, versionNumbers } from './curve-bigint.js';
+import { Field } from './field-bigint.js';
+import {
+  HashInput,
+  HashInputLegacy,
+  HashLegacy,
+  Poseidon,
+  hashWithPrefix,
+  inputToBitsLegacy,
+  packToFields,
+  packToFieldsLegacy,
+  prefixes,
+} from './poseidon-bigint.js';
 import { NetworkId } from './types.js';
 
 export {

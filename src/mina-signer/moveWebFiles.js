@@ -1,5 +1,5 @@
-import glob from 'glob';
 import { move } from 'fs-extra';
+import glob from 'glob';
 
 let webFiles = glob.sync('./dist/tmp/**/*.web.js');
 

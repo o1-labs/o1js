@@ -6,17 +6,16 @@
  * -) if the account doesn't exist or is not a zkapp account yet, deploy a zkapp to it and initialize on-chain state
  * -) if the zkapp is already deployed, send a state-updating transaction which proves execution of the "update" method
  */
-
 import {
+  AccountUpdate,
   Field,
-  state,
-  State,
-  method,
+  Mina,
   PrivateKey,
   SmartContract,
-  Mina,
-  AccountUpdate,
+  State,
   fetchAccount,
+  method,
+  state,
 } from 'o1js';
 
 // a very simple SmartContract

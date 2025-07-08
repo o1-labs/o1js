@@ -9,21 +9,20 @@ Merkle Trees give developers the power of storing large amounts of data off-chai
 
 ! Unfamiliar with Merkle Trees? No problem! Check out https://blog.ethereum.org/2015/11/15/merkling-in-ethereum/
 */
-
 import {
-  SmartContract,
-  Poseidon,
-  Field,
-  State,
-  state,
-  PublicKey,
-  Mina,
-  method,
-  UInt32,
   AccountUpdate,
+  Field,
   MerkleTree,
   MerkleWitness,
+  Mina,
+  Poseidon,
+  PublicKey,
+  SmartContract,
+  State,
   Struct,
+  UInt32,
+  method,
+  state,
 } from 'o1js';
 
 const doProofs = true;

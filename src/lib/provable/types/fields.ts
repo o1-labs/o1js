@@ -1,6 +1,7 @@
-import { ProvablePureExtended } from './struct.js';
-import type { Field } from '../field.js';
 import { createField, getField } from '../core/field-constructor.js';
+import type { Field } from '../field.js';
+
+import { ProvablePureExtended } from './struct.js';
 
 export { modifiedField, fields };
 

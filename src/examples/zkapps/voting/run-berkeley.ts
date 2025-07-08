@@ -1,7 +1,6 @@
 import {
   AccountUpdate,
   Bool,
-  fetchAccount,
   Mina,
   PrivateKey,
   PublicKey,
@@ -9,11 +8,13 @@ import {
   SmartContract,
   UInt32,
   UInt64,
+  fetchAccount,
 } from 'o1js';
+
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
-import { ParticipantPreconditions, ElectionPreconditions } from './preconditions.js';
+import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
 import { getResults, vote } from './voting-lib.js';
 
 const Berkeley = Mina.Network({

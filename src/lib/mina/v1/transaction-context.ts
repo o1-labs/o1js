@@ -1,6 +1,7 @@
-import type { AccountUpdateLayout } from './account-update.js';
 import type { PublicKey } from '../../provable/crypto/signature.js';
 import { Context } from '../../util/global-context.js';
+
+import type { AccountUpdateLayout } from './account-update.js';
 
 export { currentTransaction, CurrentTransaction, FetchMode };
 

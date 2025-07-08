@@ -1,18 +1,18 @@
 import {
-  Field,
-  Struct,
-  method,
-  PrivateKey,
-  SmartContract,
-  Mina,
   AccountUpdate,
-  Reducer,
-  provable,
-  PublicKey,
   Bool,
+  Field,
+  Mina,
   Poseidon,
+  PrivateKey,
   Provable,
+  PublicKey,
+  Reducer,
+  SmartContract,
+  Struct,
   assert,
+  method,
+  provable,
 } from 'o1js';
 
 /*

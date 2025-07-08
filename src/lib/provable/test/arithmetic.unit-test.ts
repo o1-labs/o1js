@@ -6,11 +6,11 @@ import {
   fieldWithRng,
   record,
 } from '../../testing/equivalent.js';
-import { Field } from '../wrapped.js';
+import { Random } from '../../testing/random.js';
+import { assert } from '../gadgets/common.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { provable } from '../types/provable-derivers.js';
-import { assert } from '../gadgets/common.js';
-import { Random } from '../../testing/random.js';
+import { Field } from '../wrapped.js';
 
 let uint = (length: number) => fieldWithRng(Random.biguint(length));
 

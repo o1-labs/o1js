@@ -2,8 +2,8 @@
  * Produces a set of three contracts, Voting, Voter Membership and Candidate Membership SCs.
  * Requires a set of preconditions.
  */
-
 import { PrivateKey } from 'o1js';
+
 import { Membership, Membership_ } from './membership.js';
 import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
 import { Voting, Voting_ } from './voting.js';

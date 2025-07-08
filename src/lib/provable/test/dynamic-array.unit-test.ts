@@ -1,8 +1,8 @@
-import { UInt8 } from '../int.js';
-import { Field } from '../field.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { DynamicArray } from '../dynamic-array.js';
+import { Field } from '../field.js';
 import { assert } from '../gadgets/common.js';
+import { UInt8 } from '../int.js';
 import { Provable } from '../provable.js';
 
 // Out-of-circuit checks of dynamic arrays

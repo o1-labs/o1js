@@ -1,4 +1,4 @@
-import { fetchAccount, setGraphqlEndpoints, fetchLastBlock, PublicKey, Types } from 'o1js';
+import { PublicKey, Types, fetchAccount, fetchLastBlock, setGraphqlEndpoints } from 'o1js';
 
 setGraphqlEndpoints(['https://api.minascan.io/node/devnet/v1/graphql']);
 

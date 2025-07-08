@@ -1,5 +1,5 @@
-import { Field as InternalField } from './field.js';
 import { Bool as InternalBool } from './bool.js';
+import { Field as InternalField } from './field.js';
 import { Group as InternalGroup } from './group.js';
 import { Scalar } from './scalar.js';
 

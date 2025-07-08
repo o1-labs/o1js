@@ -1,9 +1,10 @@
 import { InferValue } from '../../bindings/lib/provable-generic.js';
+
 import { Provable } from './provable.js';
-import { InferProvable, Struct } from './types/struct.js';
-import { provable, ProvableInferPureFrom } from './types/provable-derivers.js';
-import { Bool } from './wrapped.js';
+import { ProvableInferPureFrom, provable } from './types/provable-derivers.js';
 import { ProvableType } from './types/provable-intf.js';
+import { InferProvable, Struct } from './types/struct.js';
+import { Bool } from './wrapped.js';
 
 export { Option, OptionOrValue };
 

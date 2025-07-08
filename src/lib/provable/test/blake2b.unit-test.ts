@@ -1,11 +1,13 @@
-import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Bytes } from '../wrapped-classes.js';
-import { Gadgets } from '../gadgets/gadgets.js';
 import { blake2b as nobleBlake2b } from '@noble/hashes/blake2b';
-import { bytes } from './test-utils.js';
+import { expect } from 'expect';
+
+import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { equivalentAsync, equivalentProvable } from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
-import { expect } from 'expect';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { Bytes } from '../wrapped-classes.js';
+
+import { bytes } from './test-utils.js';
 
 sample(Random.nat(400), 5).forEach((preimageLength) => {
   let inputBytes = bytes(preimageLength);

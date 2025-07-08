@@ -1,9 +1,11 @@
-import { Void, ZkProgram } from './zkprogram.js';
-import { VerificationKey } from './verification-key.js';
-import { DynamicProof } from './proof.js';
-import { Field, SmartContract, Struct, method } from '../../index.js';
-import { it, describe } from 'node:test';
 import { expect } from 'expect';
+import { describe, it } from 'node:test';
+
+import { Field, SmartContract, Struct, method } from '../../index.js';
+
+import { DynamicProof } from './proof.js';
+import { VerificationKey } from './verification-key.js';
+import { Void, ZkProgram } from './zkprogram.js';
 
 const program1 = ZkProgram({
   name: 'program1',

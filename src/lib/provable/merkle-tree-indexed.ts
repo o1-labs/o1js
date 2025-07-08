@@ -1,14 +1,15 @@
 import { Poseidon as PoseidonBigint } from '../../bindings/crypto/poseidon.js';
-import { Bool, Field } from './wrapped.js';
-import { Option } from './option.js';
-import { Struct } from './types/struct.js';
 import { From, InferValue } from '../../bindings/lib/provable-generic.js';
-import { assert } from './gadgets/common.js';
-import { Unconstrained } from './types/unconstrained.js';
-import { Provable } from './provable.js';
+
 import { Poseidon } from './crypto/poseidon.js';
+import { assert } from './gadgets/common.js';
 import { conditionalSwap } from './merkle-tree.js';
+import { Option } from './option.js';
+import { Provable } from './provable.js';
 import { provableFromClass } from './types/provable-derivers.js';
+import { Struct } from './types/struct.js';
+import { Unconstrained } from './types/unconstrained.js';
+import { Bool, Field } from './wrapped.js';
 
 // external API
 export { IndexedMerkleMap, IndexedMerkleMapBase };

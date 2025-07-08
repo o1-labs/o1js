@@ -1,4 +1,4 @@
-import { method, Mina, AccountUpdate, SmartContract, UInt64, Permissions } from 'o1js';
+import { AccountUpdate, Mina, Permissions, SmartContract, UInt64, method } from 'o1js';
 
 class PaymentContainer extends SmartContract {
   init() {

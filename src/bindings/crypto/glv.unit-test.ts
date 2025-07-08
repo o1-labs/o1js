@@ -1,9 +1,10 @@
+import { Random, test } from '../../lib/testing/property.js';
 import { assert } from '../../lib/util/errors.js';
+
+import { log2 } from './bigint-helpers.js';
+import { computeGlvData, decompose } from './elliptic-curve-endomorphism.js';
 import { CurveParams } from './elliptic-curve-examples.js';
 import { createCurveAffine } from './elliptic-curve.js';
-import { computeGlvData, decompose } from './elliptic-curve-endomorphism.js';
-import { Random, test } from '../../lib/testing/property.js';
-import { log2 } from './bigint-helpers.js';
 
 const Ntest = 100000;
 const isVerbose = false;

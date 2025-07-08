@@ -1,8 +1,7 @@
-import { createProvableBigInt } from '../bigint.js';
-import { Fq } from '../../../bindings/crypto/finite-field.js';
 import { bls12_381 } from '@noble/curves/bls12-381';
 import { secp521r1 } from '@noble/curves/p521';
 
+import { Fq } from '../../../bindings/crypto/finite-field.js';
 import {
   equivalentProvable as equivalent,
   spec,
@@ -10,6 +9,7 @@ import {
   unit,
 } from '../../testing/equivalent.js';
 import { Random } from '../../testing/property.js';
+import { createProvableBigInt } from '../bigint.js';
 import { ProvablePure } from '../types/provable-intf.js';
 
 class SmallField extends createProvableBigInt(17n) {}

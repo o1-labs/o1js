@@ -1,8 +1,8 @@
-import { getActionsQuery, getEventsQuery } from './graphql.js';
-import { parse, print } from 'graphql';
-
-import { test, describe } from 'node:test';
 import { expect } from 'expect';
+import { parse, print } from 'graphql';
+import { describe, test } from 'node:test';
+
+import { getActionsQuery, getEventsQuery } from './graphql.js';
 
 function normalizeGraphql(query: string) {
   return print(parse(query));

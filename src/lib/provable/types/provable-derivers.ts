@@ -1,3 +1,22 @@
+import { GenericHashInput } from '../../../bindings/lib/generic.js';
+import {
+  Constructor,
+  InferProvable as GenericInferProvable,
+  InferredProvable as GenericInferredProvable,
+  IsPure as GenericIsPure,
+  NestedProvable as GenericNestedProvable,
+  InferJson,
+  InferJsonNested,
+  InferProvableNested,
+  InferValue,
+  InferValueNested,
+  NonMethods,
+  createDerivers,
+  createHashInput,
+} from '../../../bindings/lib/provable-generic.js';
+import { Tuple } from '../../util/types.js';
+import type { Field } from '../wrapped.js';
+
 import {
   Provable,
   ProvableHashable,
@@ -5,24 +24,6 @@ import {
   ProvableType,
   ToProvable,
 } from './provable-intf.js';
-import type { Field } from '../wrapped.js';
-import {
-  createDerivers,
-  NonMethods,
-  InferProvable as GenericInferProvable,
-  InferJson,
-  InferredProvable as GenericInferredProvable,
-  IsPure as GenericIsPure,
-  NestedProvable as GenericNestedProvable,
-  createHashInput,
-  Constructor,
-  InferValue,
-  InferJsonNested,
-  InferValueNested,
-  InferProvableNested,
-} from '../../../bindings/lib/provable-generic.js';
-import { Tuple } from '../../util/types.js';
-import { GenericHashInput } from '../../../bindings/lib/generic.js';
 
 // external API
 export {

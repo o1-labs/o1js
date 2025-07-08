@@ -1,10 +1,11 @@
 // generic encoding infrastructure
+import { bigIntToBytes, bytesToBigInt } from '../crypto/bigint-helpers.js';
 import {
-  assertNonNegativeInteger,
   NonNegativeInteger,
   PositiveInteger,
+  assertNonNegativeInteger,
 } from '../crypto/non-negative.js';
-import { bytesToBigInt, bigIntToBytes } from '../crypto/bigint-helpers.js';
+
 import { GenericSignableField } from './generic.js';
 
 export {

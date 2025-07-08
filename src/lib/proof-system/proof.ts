@@ -1,16 +1,17 @@
 import { areBindingsInitialized, initializeBindings, withThreadPool } from '../../bindings.js';
-import { Pickles, Base64ProofString } from '../../bindings.js';
-import { Field, Bool } from '../provable/wrapped.js';
-import type { FlexibleProvable, InferProvable } from '../provable/types/struct.js';
-import { FeatureFlags } from './feature-flags.js';
-import type { JsonProof } from './zkprogram.js';
-import { Subclass } from '../util/types.js';
+import { Base64ProofString, Pickles } from '../../bindings.js';
 import type { Provable } from '../provable/provable.js';
-import { assert } from '../util/assert.js';
-import { Unconstrained } from '../provable/types/unconstrained.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
-import { ZkProgramContext } from './zkprogram-context.js';
+import type { FlexibleProvable, InferProvable } from '../provable/types/struct.js';
+import { Unconstrained } from '../provable/types/unconstrained.js';
+import { Bool, Field } from '../provable/wrapped.js';
+import { assert } from '../util/assert.js';
+import { Subclass } from '../util/types.js';
+
+import { FeatureFlags } from './feature-flags.js';
 import { VerificationKey } from './verification-key.js';
+import { ZkProgramContext } from './zkprogram-context.js';
+import type { JsonProof } from './zkprogram.js';
 
 // public API
 export { ProofBase, Proof, DynamicProof, ProofClass };

@@ -1,4 +1,4 @@
-import { Bool, Provable, Int64, Struct, Field, PrivateKey, PublicKey } from 'o1js';
+import { Bool, Field, Int64, PrivateKey, Provable, PublicKey, Struct } from 'o1js';
 
 describe('Provable', () => {
   it('Provable.if out of snark', () => {

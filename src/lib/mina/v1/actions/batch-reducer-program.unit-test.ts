@@ -1,8 +1,10 @@
-import { BatchReducer, actionStackProgram, proveActionStack } from './batch-reducer.js';
-import { Field } from '../../../../index.js';
 import { expect } from 'expect';
 import { describe, it } from 'node:test';
+
 import { Actions as ActionsBigint } from '../../../../bindings/mina-transaction/v1/transaction-leaves-bigint.js';
+import { Field } from '../../../../index.js';
+
+import { BatchReducer, actionStackProgram, proveActionStack } from './batch-reducer.js';
 
 // analyze program with different number of actions
 for (let actionsPerProof of [10, 30, 100, 300, 1000]) {

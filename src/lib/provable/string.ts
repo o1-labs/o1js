@@ -1,9 +1,9 @@
-import { Bool, Field } from './wrapped.js';
-import { Provable } from './provable.js';
-import { Poseidon, HashInput } from './crypto/poseidon.js';
+import { HashInput, Poseidon } from './crypto/poseidon.js';
 import { Gadgets } from './gadgets/gadgets.js';
-import { Struct } from './types/struct.js';
+import { Provable } from './provable.js';
 import { provable } from './types/provable-derivers.js';
+import { Struct } from './types/struct.js';
+import { Bool, Field } from './wrapped.js';
 
 export { Character, CircuitString };
 

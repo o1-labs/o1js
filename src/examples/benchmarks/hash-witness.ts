@@ -1,7 +1,8 @@
 /**
  * benchmark witness generation for an all-mul circuit
  */
-import { Field, Provable, Poseidon } from 'o1js';
+import { Field, Poseidon, Provable } from 'o1js';
+
 import { tic, toc } from '../utils/tic-toc.js';
 
 // parameters

@@ -1,15 +1,16 @@
 // In-circuit tests of the SHA2 family of hash functions together with
 // test vectors extracted from https://www.di-mgt.com.au/sha_testvectors.html
+import { sha224 as nobleSha224, sha256 as nobleSha256 } from '@noble/hashes/sha256';
+import { sha384 as nobleSha384, sha512 as nobleSha512 } from '@noble/hashes/sha512';
+import { expect } from 'expect';
 
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Bytes } from '../wrapped-classes.js';
-import { Gadgets } from '../gadgets/gadgets.js';
-import { sha256 as nobleSha256, sha224 as nobleSha224 } from '@noble/hashes/sha256';
-import { sha384 as nobleSha384, sha512 as nobleSha512 } from '@noble/hashes/sha512';
-import { bytes } from './test-utils.js';
 import { equivalentAsync, equivalentProvable } from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
-import { expect } from 'expect';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { Bytes } from '../wrapped-classes.js';
+
+import { bytes } from './test-utils.js';
 
 // SHA2-224 TESTS
 {

@@ -1,18 +1,18 @@
+import assert from 'assert';
 import {
+  Field,
   Mina,
   PrivateKey,
-  SmartContract,
-  UInt64,
-  method,
-  ZkProgram,
-  verify,
-  Struct,
-  Field,
   Proof,
-  Unconstrained,
   Provable,
+  SmartContract,
+  Struct,
+  UInt64,
+  Unconstrained,
+  ZkProgram,
+  method,
+  verify,
 } from 'o1js';
-import assert from 'assert';
 
 const RealProgram = ZkProgram({
   name: 'real',

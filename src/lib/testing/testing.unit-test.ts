@@ -1,16 +1,18 @@
 import { expect } from 'expect';
+
 import { jsLayout } from '../../bindings/mina-transaction/gen/v1/js-layout.js';
-import { Signature } from '../../mina-signer/src/signature.js';
 import {
   AccountUpdate,
+  Json,
   PublicKey,
   UInt32,
   UInt64,
-  signableFromLayout,
   ZkappCommand,
-  Json,
+  signableFromLayout,
 } from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
-import { test, Random } from './property.js';
+import { Signature } from '../../mina-signer/src/signature.js';
+
+import { Random, test } from './property.js';
 
 // some trivial roundtrip tests
 test(Random.accountUpdate, (accountUpdate, assert) => {

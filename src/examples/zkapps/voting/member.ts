@@ -1,4 +1,4 @@
-import { Field, PublicKey, UInt64, Poseidon, MerkleWitness, Struct } from 'o1js';
+import { Field, MerkleWitness, Poseidon, PublicKey, Struct, UInt64 } from 'o1js';
 
 export class MyMerkleWitness extends MerkleWitness(3) {}
 let w = {

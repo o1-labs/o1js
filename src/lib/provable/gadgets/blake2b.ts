@@ -1,11 +1,12 @@
 // https://datatracker.ietf.org/doc/html/rfc7693.html
-import { UInt64, UInt8 } from '../int.js';
-import { FlexibleBytes } from '../bytes.js';
-import { Bytes } from '../wrapped-classes.js';
-import { Gadgets } from './gadgets.js';
 import { assert } from '../../util/errors.js';
+import { FlexibleBytes } from '../bytes.js';
+import { UInt8, UInt64 } from '../int.js';
 import { Provable } from '../provable.js';
+import { Bytes } from '../wrapped-classes.js';
+
 import { wordToBytes } from './bit-slices.js';
+import { Gadgets } from './gadgets.js';
 
 export { BLAKE2B };
 

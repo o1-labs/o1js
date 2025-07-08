@@ -1,7 +1,8 @@
-import { mocks } from '../../../bindings/crypto/constants.js';
-import { AccountUpdate, PrivateKey, Field, Bool, Mina, Int64, Types } from '../../../index.js';
-import { Test } from '../../../bindings.js';
 import { expect } from 'expect';
+
+import { Test } from '../../../bindings.js';
+import { mocks } from '../../../bindings/crypto/constants.js';
+import { AccountUpdate, Bool, Field, Int64, Mina, PrivateKey, Types } from '../../../index.js';
 
 let mlTest = await Test();
 

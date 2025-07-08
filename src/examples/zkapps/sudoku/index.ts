@@ -1,6 +1,7 @@
-import { Sudoku, SudokuZkApp } from './sudoku.js';
-import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
 import { AccountUpdate, Mina, PrivateKey } from 'o1js';
+
+import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
+import { Sudoku, SudokuZkApp } from './sudoku.js';
 
 // setup
 const Local = await Mina.LocalBlockchain();

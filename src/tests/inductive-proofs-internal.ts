@@ -1,4 +1,5 @@
-import { Field, ZkProgram, assert, Provable, Proof, Experimental } from 'o1js';
+import { Experimental, Field, Proof, Provable, ZkProgram, assert } from 'o1js';
+
 import { tic, toc } from '../examples/utils/tic-toc.js';
 
 let log: string[] = [];

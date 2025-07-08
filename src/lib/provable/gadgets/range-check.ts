@@ -1,12 +1,13 @@
 import { Snarky } from '../../../bindings.js';
 import { Fp } from '../../../bindings/crypto/finite-field.js';
 import { BinableFp } from '../../../mina-signer/src/field-bigint.js';
-import type { Field } from '../field.js';
-import { Gates } from '../gates.js';
-import { assert, bitSlice, toVar, toVars } from './common.js';
+import { TupleN } from '../../util/types.js';
 import { exists } from '../core/exists.js';
 import { createBool, createField } from '../core/field-constructor.js';
-import { TupleN } from '../../util/types.js';
+import type { Field } from '../field.js';
+import { Gates } from '../gates.js';
+
+import { assert, bitSlice, toVar, toVars } from './common.js';
 
 export {
   rangeCheck64,

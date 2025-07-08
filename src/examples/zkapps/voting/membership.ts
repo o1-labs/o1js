@@ -4,19 +4,20 @@
  * in progress to mitigate this limitation.
  */
 import {
-  Field,
-  SmartContract,
-  state,
-  State,
-  method,
-  Permissions,
+  AccountUpdate,
   Bool,
+  Field,
+  Permissions,
+  Provable,
   PublicKey,
   Reducer,
+  SmartContract,
+  State,
+  method,
   provablePure,
-  AccountUpdate,
-  Provable,
+  state,
 } from 'o1js';
+
 import { Member } from './member.js';
 import { ParticipantPreconditions } from './preconditions.js';
 

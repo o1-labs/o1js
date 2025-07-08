@@ -1,4 +1,4 @@
-import { ZkProgram, Field, DynamicProof, Proof, VerificationKey, Undefined, verify } from 'o1js';
+import { DynamicProof, Field, Proof, Undefined, VerificationKey, ZkProgram, verify } from 'o1js';
 
 /**
  * This example showcases mutual recursion (A -> B -> A) through two circuits that respectively

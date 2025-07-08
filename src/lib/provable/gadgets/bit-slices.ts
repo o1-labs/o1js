@@ -2,11 +2,12 @@
  * Gadgets for converting between field elements and bit slices of various lengths
  */
 import { bigIntToBits } from '../../../bindings/crypto/bigint-helpers.js';
+import { chunk } from '../../util/arrays.js';
+import { exists } from '../core/exists.js';
 import { Field } from '../field.js';
 import { UInt8 } from '../int.js';
-import { exists } from '../core/exists.js';
 import { Provable } from '../provable.js';
-import { chunk } from '../../util/arrays.js';
+
 import { assert } from './common.js';
 import type { Field3 } from './foreign-field.js';
 import { l } from './range-check.js';

@@ -1,4 +1,4 @@
-import { Field, Cache, Gadgets, ZkProgram } from 'o1js';
+import { Cache, Field, Gadgets, ZkProgram } from 'o1js';
 
 let MyProgram = ZkProgram({
   chunks: 1,

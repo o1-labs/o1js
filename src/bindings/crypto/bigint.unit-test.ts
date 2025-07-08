@@ -1,13 +1,15 @@
 import { expect } from 'expect';
+
+import { Random, test } from '../../lib/testing/property.js';
+
 import {
-  bytesToBigInt,
   bigIntToBytes,
   bigintToBytes32,
+  bytesToBigInt,
   bytesToBigint32,
   parseHexString32,
 } from './bigint-helpers.js';
 import { Fp } from './finite-field.js';
-import { Random, test } from '../../lib/testing/property.js';
 
 function testBigintRoundtrip(x: bigint, size: number) {
   let bytes = bigIntToBytes(x, size);

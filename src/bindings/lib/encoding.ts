@@ -1,5 +1,5 @@
-import { bytesToBigInt, changeBase } from '../crypto/bigint-helpers.js';
 import { Field } from '../../lib/provable/wrapped.js';
+import { bytesToBigInt, changeBase } from '../crypto/bigint-helpers.js';
 
 export { stringToFields, stringFromFields, bytesToFields, bytesFromFields, Bijective };
 

@@ -1,15 +1,15 @@
 import {
-  Field,
-  state,
-  State,
-  method,
-  PrivateKey,
-  SmartContract,
-  Mina,
   AccountUpdate,
-  UInt32,
+  Field,
+  Mina,
+  PrivateKey,
   PublicKey,
+  SmartContract,
+  State,
   Struct,
+  UInt32,
+  method,
+  state,
 } from 'o1js';
 
 const doProofs = false;

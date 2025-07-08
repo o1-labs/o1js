@@ -5,14 +5,15 @@
  *
  * The inputs are `SnarkKeyHeader` and `SnarkKey`, which are OCaml tagged enums defined in pickles_bindings.ml
  */
+import { Pickles, wasm } from '../../bindings.js';
 import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
-import { Pickles, wasm } from '../../bindings.js';
-import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
+import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { MlString } from '../ml/base.js';
+
 import { CacheHeader, cacheHeaderVersion } from './cache.js';
 import type { MethodInterface } from './zkprogram.js';
 

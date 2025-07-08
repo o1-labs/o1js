@@ -1,9 +1,10 @@
-import * as BindingsLeaves from './leaves.js';
-import { FieldsDecoder, ProvableSerializable } from './util.js';
-import { versionBytes } from '../../crypto/constants.js';
 import { Provable } from '../../../lib/provable/provable.js';
 import { HashInput } from '../../../lib/provable/types/provable-derivers.js';
 import { toBase58Check } from '../../../lib/util/base58.js';
+import { versionBytes } from '../../crypto/constants.js';
+
+import * as BindingsLeaves from './leaves.js';
+import { FieldsDecoder, ProvableSerializable } from './util.js';
 
 const JsArray = Array;
 
