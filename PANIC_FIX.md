@@ -1,241 +1,361 @@
-# Fix Plan: Integrate Pool Health Monitoring with Rayon Thread Pool
-Created: 2025-01-08 00:39:00 UTC
-Last Modified: 2025-01-08 00:39:00 UTC
+# Fix Plan: WASM Module Reloading for Memory Management
+Created: 2025-01-08 01:23:00 UTC
+Last Modified: 2025-01-08 01:23:00 UTC
 
-## Problem Statement
+## Critical Realization
 
-The current implementation monitors worker health and sets recycling flags but **never actually recycles the Rayon thread pool**. This means:
-- Rayon threads will still panic when memory is exhausted
-- The `THREAD_POOL` static in Rust remains unchanged
-- We're monitoring health but not acting on it
+The current implementation **does not actually prevent WASM memory panics** because:
 
-## Critical Integration Points
+1. We only recycle the Rayon thread pool (worker threads)
+2. The WASM module instance with its linear memory remains the same
+3. Memory leaks in WASM linear memory will still cause panics when approaching limits
 
-### 1. Rayon Thread Pool Lifecycle (Rust/WASM)
-- **Location**: `src/mina/src/lib/crypto/proof-systems/plonk-wasm/src/rayon.rs`
-- **Static Pool**: `static mut THREAD_POOL: Option<rayon::ThreadPool>`
-- **Init**: `init_thread_pool()` → `build()` → creates Rayon pool
-- **Exit**: `exit_thread_pool()` → terminates workers, sets `THREAD_POOL = None`
-- **Usage**: `run_in_pool()` uses the static pool
+## The Real Problem
 
-### 2. JavaScript Backend Integration
-- **Node.js**: `src/bindings/js/node/node-backend.js`
-  - `initThreadPool()`: Calls `wasm.initThreadPool()`
-  - `exitThreadPool()`: Calls `wasm.exitThreadPool()`
-  - `WithThreadPool`: State machine managing pool lifecycle
-- **Web**: `src/bindings/js/web/web-backend.js` (similar structure)
+```javascript
+// This is a singleton that never changes:
+const wasm = wasm_;  // src/bindings/js/node/node-backend.js
 
-### 3. Current Gap
-- `PoolHealthCoordinator` triggers recycling but doesn't call `exitThreadPool()`/`initThreadPool()`
-- `WithThreadPool` checks recycling flags but doesn't actually recycle
-- No connection between health monitoring and Rayon pool lifecycle
+// Even after "recycling", all workers use the same WASM instance
+// with the same exhausted linear memory!
+```
 
-## Detailed Fix Plan
+WASM linear memory:
+- Grows but never shrinks
+- Has hard limits (1GB iOS, 4GB desktop)
+- When exhausted, ANY allocation causes immediate panic
+- Cannot be garbage collected or freed
 
-### Phase 1: Connect Pool Health Coordinator to Thread Pool Lifecycle
+## What Actually Needs to Happen
 
-1. **Modify `WithThreadPool` to accept pool health coordinator**
-   ```typescript
-   // workers.ts
-   function WithThreadPool({
-     initThreadPool,
-     exitThreadPool,
-     poolHealthCoordinator, // NEW
-   }: {
-     initThreadPool: () => Promise<void>;
-     exitThreadPool: () => Promise<void>;
-     poolHealthCoordinator?: PoolHealthCoordinator; // NEW
-   })
+### Option A: Full WASM Module Reload (Complex but Complete)
+
+1. **Detect memory approaching critical**
+2. **Block new operations**
+3. **Save critical state** (if any needs to persist)
+4. **Terminate all workers**
+5. **Unload current WASM module**
+6. **Load fresh WASM module instance**
+7. **Reinitialize all bindings**
+8. **Restore critical state**
+9. **Create new workers with new WASM**
+10. **Resume operations**
+
+### Option B: Worker-Level WASM Isolation (Fundamental Redesign)
+
+1. Each worker loads its own WASM instance
+2. Workers don't share memory
+3. Can reload individual workers without affecting others
+4. But loses shared memory benefits
+
+### Option C: Pre-emptive Operation Limits (Workaround)
+
+1. Track operations that consume memory
+2. Force restart after N operations
+3. Schedule maintenance windows
+4. Not a real fix but prevents reaching limits
+
+## Deep Dive: Current Architecture
+
+### 1. WASM Loading Flow
+
+```
+node-backend.js:
+  import wasm_ from 'plonk_wasm.cjs'
+  const wasm = wasm_  // Singleton!
+  
+  initThreadPool():
+    wasm.initThreadPool()  // Uses existing wasm
+    
+  Workers:
+    All reference the same wasm instance
+```
+
+### 2. What's in WASM Memory
+
+Need to investigate what state is stored:
+- Compiled circuits
+- SRS (Structured Reference String)
+- Prover/verifier keys  
+- Intermediate computation results
+- Memory leak accumulation
+
+### 3. State Preservation Requirements
+
+Critical question: What MUST survive a WASM reload?
+- Compiled circuits? (Expensive to recompile)
+- Proving keys? (Can be regenerated)
+- SRS? (Large, expensive to reload)
+
+## Investigation Results
+
+### What's Actually in WASM Memory
+
+Based on code analysis, WASM memory contains:
+
+1. **SRS (Structured Reference String)** - `src/bindings/crypto/bindings/srs.ts`
+   - Large cryptographic setup (can be >100MB)
+   - Cached globally in `srsStore[f][size]`
+   - Can be serialized/deserialized from cache
+   - Expensive to recreate
+
+2. **Compiled Circuits** - Created by `Pickles.compile()`
+   - Prover keys (large, cached to disk if possible)
+   - Verification keys
+   - Gates and constraint systems
+   - Tagged with unique identifiers
+
+3. **Rayon Thread Pool State**
+   - `static mut THREAD_POOL: Option<rayon::ThreadPool>`
+   - Worker thread contexts
+   - Shared work queues
+
+4. **OCaml/WASM Bridge State**
+   - js_of_ocaml runtime
+   - Bindings between OCaml (Pickles) and WASM (plonk)
+
+### Memory Lifecycle
+
+1. **Initialization**:
+   ```javascript
+   // web-backend.js
+   await init(undefined, memory);  // Loads WASM with SharedArrayBuffer
+   new Function(o1jsWebSrc)();     // Loads js_of_ocaml runtime
    ```
 
-2. **Give pool health coordinator the recycling functions**
-   ```typescript
-   // pool-health-coordinator.ts
-   interface PoolRecyclingCallbacks {
-     exitThreadPool: () => Promise<void>;
-     initThreadPool: () => Promise<void>;
-   }
-   
-   setRecyclingCallbacks(callbacks: PoolRecyclingCallbacks) {
-     this.recyclingCallbacks = callbacks;
-   }
-   ```
+2. **Compilation** (`ZkProgram.compile()`):
+   - Creates SRS if not cached
+   - Runs `Pickles.compile()` → stores circuits in WASM
+   - Caches prover keys to disk if possible
+   - **Memory is allocated but never freed**
 
-3. **Actually recycle the pool in `executePoolRecycling`**
-   ```typescript
-   private async executePoolRecycling(reason: string): Promise<void> {
-     // ... existing code ...
-     
-     // NEW: Actually recycle the Rayon pool
-     if (this.recyclingCallbacks) {
-       await this.recyclingCallbacks.exitThreadPool();
-       await this.recyclingCallbacks.initThreadPool();
-     }
-     
-     // ... rest of existing code ...
-   }
-   ```
+3. **Proving** (each proof):
+   - Allocates witness data
+   - Intermediate computations
+   - **Some memory is leaked each time**
 
-### Phase 2: Integrate Memory Reporting from Worker Threads
+### Phase 2: Identify Shared State
 
-1. **Add memory reporting to Rayon worker threads**
-   ```rust
-   // rayon.rs - in wbg_rayon_start_worker
-   pub fn wbg_rayon_start_worker(receiver: *const Receiver<rayon::ThreadBuilder>) {
-       let receiver = unsafe { &*receiver };
-       
-       // Set up periodic memory reporting
-       std::thread::spawn(|| {
-           loop {
-               std::thread::sleep(std::time::Duration::from_millis(500));
-               let memory_mb = crate::memory_reporter::get_memory_usage_mb();
-               let is_critical = memory_mb > crate::memory_reporter::get_critical_memory_threshold_mb();
-               
-               // Report to JS via postMessage
-               report_health_to_js(memory_mb, is_critical);
-           }
-       });
-       
-       receiver.recv().unwrap_throw().run();
-   }
-   ```
+1. **Find all global WASM state**
+   - Static variables in Rust
+   - Cached computations
+   - Shared data structures
 
-2. **Create worker-side health monitoring**
-   ```typescript
-   // In worker thread (node-backend.js)
-   if (!isMainThread) {
-     // Start health monitoring
-     const reporter = new WorkerHealthReporter({
-       workerId: workerData.workerId,
-       onReport: (report) => {
-         parentPort.postMessage({ type: 'health_report', report });
-       }
-     });
-     reporter.start();
-   }
-   ```
+2. **Determine reload impact**
+   - What breaks if we reload
+   - What needs to be preserved
+   - Performance implications
 
-### Phase 3: Handle State Machine Integration
+### Phase 3: Design State Preservation
 
-1. **Modify `WithThreadPool` state machine**
-   ```typescript
-   // Add recycling state
-   type ThreadPoolState =
-     | { type: 'none' }
-     | { type: 'initializing'; initPromise: Promise<void> }
-     | { type: 'running' }
-     | { type: 'recycling'; recyclePromise: Promise<void> } // NEW
-     | { type: 'exiting'; exitPromise: Promise<void> };
-   ```
+1. **Serialization strategy**
+   - What can be serialized to JS
+   - What must stay in WASM
+   - Format and size considerations
 
-2. **Handle recycling in state transitions**
-   ```typescript
-   // In withThreadPool function
-   if (poolHealthCoordinator?.isPoolRecycling()) {
-     // Wait for recycling to complete
-     await poolHealthCoordinator.waitForRecyclingToComplete();
-     
-     // Pool has been recycled, ensure we're in correct state
-     if (state.type === 'running') {
-       // Pool was recycled while we were waiting
-       state = { type: 'none' }; // Force re-initialization
-     }
-   }
-   ```
+2. **Critical path analysis**
+   - Minimum state for continuity
+   - Acceptable recomputation cost
+   - User-visible impact
 
-### Phase 4: Ensure Safe Pool Replacement
+## Implementation Strategy (Option A - Full Reload)
 
-1. **Track in-flight operations**
-   ```typescript
-   // pool-health-coordinator.ts
-   private inFlightOperations = new Set<string>();
-   
-   registerOperation(id: string) {
-     this.inFlightOperations.add(id);
-   }
-   
-   unregisterOperation(id: string) {
-     this.inFlightOperations.delete(id);
-   }
-   
-   private async waitForInFlightOperations() {
-     while (this.inFlightOperations.size > 0) {
-       await new Promise(resolve => setTimeout(resolve, 100));
-     }
-   }
-   ```
+### Step 1: Create WASM Module Manager
 
-2. **Graceful shutdown sequence**
-   ```typescript
-   private async executePoolRecycling(reason: string): Promise<void> {
-     // 1. Set recycling flag
-     this.setGlobalRecyclingFlag(true);
-     
-     // 2. Wait for in-flight operations
-     await this.waitForInFlightOperations();
-     
-     // 3. Stop health reporters
-     this.stopAllHealthReporters();
-     
-     // 4. Exit current pool
-     await this.recyclingCallbacks.exitThreadPool();
-     
-     // 5. Clear memory reports
-     this.workerHealthReports.clear();
-     
-     // 6. Initialize new pool
-     await this.recyclingCallbacks.initThreadPool();
-     
-     // 7. Clear recycling flag
-     this.setGlobalRecyclingFlag(false);
-   }
-   ```
+```typescript
+class WasmModuleManager {
+  private currentModule: any;
+  private moduleGeneration: number = 0;
+  
+  async reloadModule(): Promise<void> {
+    // 1. Save critical state
+    const state = await this.saveState();
+    
+    // 2. Cleanup old module
+    await this.cleanup();
+    
+    // 3. Load fresh module
+    this.currentModule = await this.loadFreshModule();
+    
+    // 4. Restore state
+    await this.restoreState(state);
+    
+    this.moduleGeneration++;
+  }
+  
+  private async saveState(): Promise<SerializedState> {
+    // Extract what we need to preserve
+  }
+  
+  private async loadFreshModule(): Promise<WasmModule> {
+    // Force fresh load - may need cache busting
+    delete require.cache[require.resolve('plonk_wasm.cjs')];
+    return require('plonk_wasm.cjs');
+  }
+}
+```
 
-### Phase 5: Testing Strategy
+### Step 2: Modify Backend Integration
 
-1. **Unit Tests**
-   - Test pool recycling triggers actual WASM calls
-   - Test state machine handles recycling correctly
-   - Test memory reporting from workers
+```typescript
+// Instead of const wasm = wasm_
+let wasm = wasmManager.getCurrentModule();
 
-2. **Integration Tests**
-   - Test ZK proving works before/during/after recycling
-   - Test concurrent operations handle recycling gracefully
-   - Test memory pressure triggers actual pool replacement
+// Add module generation tracking
+let currentGeneration = wasmManager.getGeneration();
 
-3. **Memory Leak Test**
-   - Simulate memory leak
-   - Verify pool is recycled before panic
-   - Verify system recovers and continues operating
+// Check before operations
+if (wasmManager.getGeneration() !== currentGeneration) {
+  throw new Error('WASM module reloaded during operation');
+}
+```
 
-## Implementation Order
+### Step 3: Coordinate Reload
 
-1. **First**: Fix the core integration (Phase 1) - without this, nothing works
-2. **Second**: Handle state machine (Phase 3) - ensure safe transitions
-3. **Third**: Add memory reporting from workers (Phase 2)
-4. **Fourth**: Implement graceful shutdown (Phase 4)
-5. **Finally**: Comprehensive testing (Phase 5)
+```typescript
+class PoolHealthCoordinator {
+  private async executePoolRecycling(reason: string): Promise<void> {
+    // ... existing code ...
+    
+    if (reason === 'memory_critical') {
+      // Don't just recycle pool - reload WASM!
+      await this.reloadWasmModule();
+    }
+  }
+  
+  private async reloadWasmModule(): Promise<void> {
+    // 1. Stop all operations
+    await this.blockAllOperations();
+    
+    // 2. Wait for in-flight to complete
+    await this.waitForInFlight();
+    
+    // 3. Terminate all workers
+    await this.terminateAllWorkers();
+    
+    // 4. Reload WASM module
+    await wasmManager.reloadModule();
+    
+    // 5. Reinitialize workers
+    await this.initializeWorkers();
+    
+    // 6. Resume operations
+    this.unblockOperations();
+  }
+}
+```
+
+## Challenges and Risks
+
+### 1. State Loss
+- Compiled circuits may be lost
+- Proving keys need regeneration
+- Performance hit from recompilation
+
+### 2. Operation Interruption
+- In-flight proofs may fail
+- Need graceful handling
+- User-visible delays
+
+### 3. Memory Measurement
+- WASM memory not easily measurable from JS
+- Need accurate threshold detection
+- Platform differences
+
+### 4. Module Caching
+- Node.js aggressively caches modules
+- Need to ensure fresh instance
+- May need dynamic loading
+
+## Alternative Approaches
+
+### 1. Process-Level Restart
+- Restart entire Node.js process
+- Clean but disruptive
+- Loses all state
+
+### 2. Web Worker Style
+- Each proof in isolated worker
+- Load/unload per operation
+- High overhead but safe
+
+### 3. WASM Memory Limits
+- Set lower limits proactively
+- Fail fast and clean
+- Requires app-level retry
+
+## Next Steps
+
+1. **Investigate current WASM state** - What exactly is stored?
+2. **Measure reload cost** - How expensive is circuit recompilation?
+3. **Prototype module reloading** - Can we actually get a fresh instance?
+4. **Design state preservation** - What's the minimum viable state?
+5. **Test memory behavior** - Verify fresh module = fresh memory
 
 ## Success Criteria
 
-1. When memory threshold is exceeded, the actual Rayon thread pool is terminated and recreated
-2. No panics occur due to memory exhaustion
-3. ZK proving continues to work across pool recycling events
-4. No data corruption or lost computations during recycling
-5. Performance impact is minimal (< 100ms recycling time)
+1. WASM linear memory is actually reset on reload
+2. Critical state (compiled circuits) can be preserved or quickly restored
+3. No panics due to memory exhaustion
+4. Acceptable performance impact (<30s delay)
+5. Transparent to end users
 
-## Risks and Mitigations
+## Critical Questions to Answer
 
-1. **Risk**: Race conditions during pool replacement
-   - **Mitigation**: Use proper state machine and wait for in-flight operations
+1. **Can we serialize compiled circuits?** If not, reload is very expensive
+2. **Is the SRS in WASM memory?** This is large and static
+3. **What causes the memory leak?** Can we fix root cause instead?
+4. **How do other WASM apps handle this?** Industry best practices?
 
-2. **Risk**: Memory reporting overhead
-   - **Mitigation**: Use efficient reporting intervals and batch reports
+## The Core Challenge
 
-3. **Risk**: Pool recycling causes proof generation failures
-   - **Mitigation**: Ensure clean state transitions and proper error handling
+Reloading WASM to reset memory is extremely complex because:
 
-4. **Risk**: Different behavior between Node.js and Web
-   - **Mitigation**: Test both environments thoroughly
+### 1. Multi-Layer Architecture
+```
+JavaScript (o1js API)
+    ↓
+OCaml (js_of_ocaml - Pickles)
+    ↓
+WASM (Rust - plonk/kimchi)
+    ↓
+Rayon Thread Pool
+```
 
-This plan addresses the critical oversight where we monitor health but never actually recycle the Rayon pool that would panic.
+### 2. Singleton Design
+- `const wasm = wasm_` is used everywhere
+- No abstraction layer for swapping instances
+- Direct function calls like `wasm.caml_pasta_fp_plonk_prover_create()`
+
+### 3. State Interdependencies
+- SRS references are held in JavaScript (`srsStore`)
+- Compiled circuits have IDs that reference WASM memory
+- Prover functions closure over WASM state
+
+### 4. Performance Impact
+- Recompiling circuits: 10-60 seconds per program
+- Recreating SRS: Several seconds
+- Total recovery time: Could exceed 1 minute
+
+## Recommendation
+
+Given the investigation, **Option A (Full WASM Reload) is not practical** without major architectural changes. The system was not designed for hot-reloading.
+
+Better alternatives:
+
+### Option D: Fix the Root Cause
+- Profile and fix the actual memory leaks
+- This is the correct long-term solution
+
+### Option E: Process Isolation  
+- Run each proof in a separate process
+- Clean process exit = clean memory
+- Higher overhead but guaranteed safety
+
+### Option F: Batch Processing with Planned Restarts
+- Track number of proofs generated
+- Plan restart after N proofs
+- Notify application to save state
+- Graceful restart with state preservation
+
+This is a much harder problem than just recycling threads. We're essentially trying to retrofit hot-reloading into a system designed as a singleton.
