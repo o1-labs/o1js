@@ -1,6 +1,6 @@
-# WASM Proxy Pattern for Memory Management
+# WASM Proxy Pattern for Memory Management - Implementation Guide
 Created: 2025-01-08 02:11:00 UTC
-Last Modified: 2025-01-08 02:11:00 UTC
+Last Modified: 2025-01-08 02:43:00 UTC
 
 ## Core Concept
 
@@ -414,3 +414,31 @@ The proxy pattern with SRS sharing gives us:
 - Actually prevents panics
 
 The complexity is worth it to prevent production outages from memory exhaustion.
+
+## Integration with Pool Health Coordinator
+
+The proxy pattern can work together with the existing pool health infrastructure:
+
+```typescript
+class WasmProxy {
+  constructor(healthCoordinator: PoolHealthCoordinator) {
+    // Use existing health reports to trigger preparation
+    healthCoordinator.onMemoryWarning = () => {
+      this.prepareStandby();
+    };
+    
+    healthCoordinator.onMemoryCritical = async () => {
+      await this.swapInstances();
+      // After swap, recycle Rayon pool for clean slate
+      await healthCoordinator.recycleThreadPool();
+    };
+  }
+}
+```
+
+This gives us defense in depth:
+1. **Pool Health Coordinator**: Monitors memory, coordinates actions
+2. **WASM Proxy**: Actually fixes memory by swapping instances  
+3. **Thread Pool Recycling**: Cleans up Rayon state after swap
+
+Together they provide a complete solution to prevent memory exhaustion panics.
