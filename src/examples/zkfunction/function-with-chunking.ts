@@ -1,27 +1,72 @@
-import { Field, Cache, Gadgets, ZkFunction, UInt64, UInt32, Provable, Undefined, assert } from 'o1js';
+import { Field, Cache, Bytes, Gadgets, ZkFunction, UInt64, UInt32, Provable, Undefined, assert } from 'o1js';
 
-const Chunking = ZkFunction({
+import { ZkProgram, Crypto, createEcdsa, createForeignCurve, Bool, Hash } from 'o1js';
+
+class Bytes32 extends Bytes(32) {}
+
+/*
+
+
+const ChunkedProgram = ZkProgram({
   name: 'function-with-chunking',
-  privateInputTypes: [],
-  main: () => {
-    // FIXME: this function runs forever in my local test @querolita
-    let a = Provable.witness(Field, () => 10n);
-    a.div(2).assertEquals(Field.from(5));  
+  numChunks: 1,
+  methods: {
+    main: {
+      privateInputs: [],
+      async method() {
+        Gadgets.SHA2.hash(256, Bytes.fromString('abc'));
+      },
+    },
   },
 });
 
 (async () => {
+  console.log('ChunkedProgram...');
   console.log('compiling Chunking...');
-  const { verificationKey } = await Chunking.compile();
+  const { verificationKey } = await ChunkedProgram.compile();
   console.log('Chunking compiled!');
 
   console.log('analyzing Chunking...');
-  let analysis = await Chunking.constraintSystem();
-  console.log(analysis); // or analysis.summary() if you define one
+  let analysis = await ChunkedProgram.analyzeMethods();
+  console.log(analysis);
 
-  let proof = await Chunking.prove();
+  let { proof } = await ChunkedProgram.main();
   console.log('Proof:', proof);
 
-  let ok = await Chunking.verify(proof, verificationKey);
+  let ok = await ChunkedProgram.verify(proof);
   console.log('Verified?', ok);
 })();
+*/
+
+// **************************************
+
+
+
+const ChunkedFunction = ZkFunction({
+  name: 'function-with-chunking',
+  privateInputTypes: [],
+  lazyMode: true,
+  main: () => {
+    Gadgets.SHA2.hash(256, Bytes.fromString('abc'));
+  },
+});
+
+
+
+(async () => {
+  console.log('ChunkedFunction...');
+  console.log('compiling Chunking...');
+  const { verificationKey } = await ChunkedFunction.compile();
+  console.log('Chunking compiled!');
+
+  console.log('analyzing Chunking...');
+  let analysis = await ChunkedFunction.constraintSystem();
+  console.log(analysis);
+
+  let proof = await ChunkedFunction.prove();
+  console.log('Proof:', proof);
+
+  let ok = await ChunkedFunction.verify(proof, verificationKey);
+  console.log('Verified?', ok);
+})();
+
