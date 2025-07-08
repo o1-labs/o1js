@@ -38,6 +38,7 @@ async function buildNode({ production }) {
     plugins: [makeNodeModulesExternal(), makeJsooExternal()],
     dropLabels: ['ESM'],
     minify: false,
+    sourcemap: true,
   });
 }
 
