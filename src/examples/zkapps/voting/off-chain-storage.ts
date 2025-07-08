@@ -7,7 +7,7 @@ export { OffchainStorage };
 class OffchainStorage<
   V extends {
     getHash(): Field;
-  }
+  },
 > extends Map<bigint, V> {
   private merkleTree;
 

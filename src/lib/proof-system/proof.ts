@@ -373,7 +373,7 @@ function provableProof<
   Input = any,
   Output = any,
   InputV = any,
-  OutputV = any
+  OutputV = any,
 >(
   Class: Class,
   input: Provable<Input>,

@@ -65,10 +65,10 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
       output: isJson
         ? `(${output} | null)`
         : optionType === 'implicit'
-        ? output
-        : optionType === 'flaggedOption' || optionType === 'closedInterval'
-        ? `{isSome: Bool, value: ${output}}`
-        : `(${output} | undefined)`,
+          ? output
+          : optionType === 'flaggedOption' || optionType === 'closedInterval'
+            ? `{isSome: Bool, value: ${output}}`
+            : `(${output} | undefined)`,
       dependencies,
       converters,
     };

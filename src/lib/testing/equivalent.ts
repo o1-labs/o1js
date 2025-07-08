@@ -466,15 +466,15 @@ type Param1<In extends OrUnion<any, any>> = In extends {
 }
   ? In
   : In extends FromSpecUnion<infer T1, any>
-  ? T1
-  : never;
+    ? T1
+    : never;
 type Param2<In extends OrUnion<any, any>> = In extends {
   there: (x: any) => infer In;
 }
   ? In
   : In extends FromSpecUnion<any, infer T2>
-  ? T2
-  : never;
+    ? T2
+    : never;
 
 type Params1<Ins extends Tuple<OrUnion<any, any>>> = {
   [k in keyof Ins]: Param1<Ins[k]>;

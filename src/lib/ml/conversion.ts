@@ -35,7 +35,7 @@ const Ml = {
 type MlHashInput = [
   flag: 0,
   field_elements: MlArray<FieldConst>,
-  packed: MlArray<MlPair<FieldConst, number>>
+  packed: MlArray<MlPair<FieldConst, number>>,
 ];
 
 const MlHashInput = {
