@@ -12,3 +12,6 @@ src/mina/
 # no need to run prettier on it
 src/bindings/crypto/test-vectors/poseidon-kimchi.ts
 src/bindings/crypto/test-vectors/poseidon-legacy.ts
+# Files with parser issues
+# See https://github.com/trivago/prettier-plugin-sort-imports/issues/287
+src/lib/mina/v1/zkapp.ts
