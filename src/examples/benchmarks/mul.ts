@@ -76,7 +76,7 @@ if (withPickles) {
   toc();
 
   tic('compile 2');
-  verificationKey = (await circuit.compile()).verificationKey;
+  ({ verificationKey } = await circuit.compile());
   toc();
 
   tic('prove');
