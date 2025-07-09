@@ -216,7 +216,7 @@ ${output}`;
 
 async function writeTsFile(content, relPath) {
   let absPath = path.resolve(selfPath, relPath);
-  content = prettier.format(content, {
+  content = await prettier.format(content, {
     filepath: absPath,
     ...prettierRc,
   });

@@ -341,7 +341,7 @@ for (const typeName of depOrderTypeNames) {
 out += `\
   \ const Types: {[key: string]: BindingsType<any>} = {${Object.keys(jsTypes).join(', ')}};\n`;
 
-const prettyOut = prettier.format(out, {
+const prettyOut = await prettier.format(out, {
   parser: 'typescript',
   ...prettierRc,
 });
