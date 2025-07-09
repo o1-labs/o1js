@@ -2,8 +2,10 @@
 
 import assert from 'node:assert';
 import fs from 'node:fs/promises';
-import prettier from 'prettier';
+import prettier from 'prettier/standalone';
 import prettierRc from '../../.prettierrc.cjs';
+import parserTypeScript from 'prettier/parser-typescript';
+import * as prettierPluginEstree from 'prettier/plugins/estree';
 
 const leafTypes = {
   number: 'number',
@@ -343,6 +345,7 @@ out += `\
 
 const prettyOut = await prettier.format(out, {
   parser: 'typescript',
+  plugins: [parserTypeScript, prettierPluginEstree],
   ...prettierRc,
 });
 

@@ -1,7 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import prettier from 'prettier';
+import prettier from 'prettier/standalone';
+import parserTypeScript from 'prettier/parser-typescript';
+import * as prettierPluginEstree from 'prettier/plugins/estree';
+
 import prettierRc from '../../.prettierrc.cjs';
 
 // let jsLayout = JSON.parse(process.argv[2]);
@@ -218,6 +221,7 @@ async function writeTsFile(content, relPath) {
   let absPath = path.resolve(selfPath, relPath);
   content = await prettier.format(content, {
     filepath: absPath,
+    plugins: [parserTypeScript, prettierPluginEstree],
     ...prettierRc,
   });
   await fs.writeFile(absPath, content);
