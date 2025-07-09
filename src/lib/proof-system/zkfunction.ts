@@ -20,6 +20,7 @@ type ZkFunctionConfig = {
   name: string;
   publicInputType?: ProvableTypePure;
   privateInputTypes: Tuple<ProvableTypePure>;
+  lazyMode?: boolean;
 };
 
 type MainType<
@@ -83,10 +84,11 @@ function ZkFunction<Config extends ZkFunctionConfig>(
     async compile() {
       const main = mainFromCircuitData(config);
       const publicInputSize = publicInputType.sizeInFields();
+      const lazyMode = config.lazyMode ?? false;
       await initializeBindings();
       _keypair = await prettifyStacktracePromise(
         withThreadPool(async () => {
-          return Snarky.circuit.compile(main, publicInputSize, false);
+          return Snarky.circuit.compile(main, publicInputSize, lazyMode);
         })
       );
       const verificationKey = new VerificationKey(
