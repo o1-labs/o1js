@@ -2,10 +2,10 @@
 
 import assert from 'node:assert';
 import fs from 'node:fs/promises';
-import prettier from 'prettier/standalone';
+import prettier from 'prettier/standalone.js';
 import prettierRc from '../../.prettierrc.cjs';
-import parserTypeScript from 'prettier/parser-typescript';
-import * as prettierPluginEstree from 'prettier/plugins/estree';
+import parserTypeScript from 'prettier/plugins/typescript.js';
+import prettierPluginEstree from 'prettier/plugins/estree.js';
 
 const leafTypes = {
   number: 'number',
