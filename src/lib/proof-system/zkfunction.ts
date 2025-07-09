@@ -2,7 +2,12 @@ import { Gate, Snarky, initializeBindings } from '../../bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { withThreadPool } from '../../bindings.js';
 import { Provable } from '../provable/provable.js';
-import { snarkContext, gatesFromJson } from '../provable/core/provable-context.js';
+import {
+  snarkContext,
+  gatesFromJson,
+  summarizeGates,
+  printGates,
+} from '../provable/core/provable-context.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
 import { ProvableTypePure } from '../provable/types/provable-intf.js';
 import { provablePure, InferProvable } from '../provable/types/provable-derivers.js';
@@ -59,7 +64,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
   }
 ): {
   compile: () => Promise<{ verificationKey: VerificationKey }>;
-  constraintSystem: () => Promise<Gate[]>;
+  analyzeMethod: () => Promise<ConstraintSystemSummary>;
   prove: ProveMethodType<Config>;
   verify: VerifyMethodType<Config>;
 } {
@@ -109,10 +114,23 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * console.log(cs);
      * ```
      */
-    async constraintSystem() {
+    async analyzeMethod() {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
       try {
-        return gatesFromJson(Snarky.circuit.keypair.getConstraintSystemJSON(_keypair)).gates;
+        let { gates, publicInputSize } = gatesFromJson(
+          Snarky.circuit.keypair.getConstraintSystemJSON(_keypair)
+        );
+        return {
+          rows: gates.length,
+          gates,
+          publicInputSize,
+          print() {
+            printGates(gates);
+          },
+          summary() {
+            return summarizeGates(gates);
+          },
+        };
       } catch (error) {
         throw prettifyStacktrace(error);
       }
@@ -200,6 +218,20 @@ function ZkFunction<Config extends ZkFunctionConfig>(
     },
   };
 }
+
+type ConstraintSystemSummary = {
+  /**
+   * Number of rows in the constraint system
+   */
+  rows: number;
+  /**
+   * List of gates which make up the constraint system
+   */
+  gates: Gate[];
+  publicInputSize: number;
+  print(): void;
+  summary(): Record<string, number>;
+};
 
 /**
  * Proofs can be verified using a {@link VerificationKey} and the public input.
