@@ -189,8 +189,6 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * ```
      */
     async verify(...args: any[]) {
-      if (!_keypair) throw new Error('Cannot find VerificationKey. Please call compile() first!');
-
       let publicInput: PublicInput<Config>;
       let proof: Proof;
       let verificationKey: VerificationKey;
