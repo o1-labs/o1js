@@ -12,7 +12,7 @@ import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js
 import { ProvableTypePure } from '../provable/types/provable-intf.js';
 import { provablePure, InferProvable } from '../provable/types/provable-derivers.js';
 import { Tuple } from '../util/types.js';
-import { TupleToInstances, Undefined } from './zkprogram.js';
+import { TupleToInstances } from './zkprogram.js';
 
 // external API
 export { ZkFunction, Proof, VerificationKey };
@@ -68,7 +68,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
   prove: ProveMethodType<Config>;
   verify: VerifyMethodType<Config>;
 } {
-  const publicInputType = provablePure(config.publicInputType ?? Undefined);
+  const publicInputType = provablePure(config.publicInputType ?? undefined);
   const hasPublicInput = config.publicInputType !== undefined;
 
   type Keypair = Snarky.Keypair;
@@ -154,7 +154,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
     async prove(...args: any[]) {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
 
-      const publicInput = hasPublicInput ? args[0] : Undefined.empty();
+      const publicInput = hasPublicInput ? args[0] : undefined;
       const privateInputs = (hasPublicInput ? args.slice(1) : args) as PrivateInputs<Config>;
 
       const publicInputSize = publicInputType.sizeInFields();
@@ -199,7 +199,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
         proof = args[1] as Proof;
         verificationKey = args[2] as VerificationKey;
       } else {
-        publicInput = Undefined.empty() as PublicInput<Config>;
+        publicInput = undefined as PublicInput<Config>;
         proof = args[0] as Proof;
         verificationKey = args[1] as VerificationKey;
       }
@@ -262,7 +262,7 @@ function mainFromCircuitData<Config extends ZkFunctionConfig>(
   return function main(publicInputFields: MlFieldArray) {
     let id = snarkContext.enter({ inCheckedComputation: true });
     try {
-      const publicInput = provablePure(config.publicInputType ?? Undefined).fromFields(
+      const publicInput = provablePure(config.publicInputType ?? undefined).fromFields(
         MlFieldArray.from(publicInputFields)
       ) as PublicInput<Config>;
 
