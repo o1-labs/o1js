@@ -7,7 +7,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     reviewers:
-      - "o1-labs/o1js-maintainers"
+      - "o1-labs/o1js-admins"
     labels:
       - "dependencies"
       - "javascript"
@@ -22,7 +22,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     reviewers:
-      - "o1-labs/o1js-maintainers"
+      - "o1-labs/o1js-admins"
     labels:
       - "dependencies"
       - "github-actions"
