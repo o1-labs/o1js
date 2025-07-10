@@ -1,11 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import prettier from 'prettier/standalone.js';
-import parserTypeScript from 'prettier/plugins/typescript.js';
-import prettierPluginEstree from 'prettier/plugins/estree.js';
-
-import prettierRc from '../../.prettierrc.cjs';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
@@ -219,11 +214,6 @@ ${output}`;
 
 async function writeTsFile(content, relPath) {
   let absPath = path.resolve(selfPath, relPath);
-  content = await prettier.format(content, {
-    filepath: absPath,
-    plugins: [parserTypeScript, prettierPluginEstree],
-    ...prettierRc,
-  });
   await fs.writeFile(absPath, content);
 }
 let genPath = '../../bindings/mina-transaction/gen/v1';
