@@ -1,12 +1,13 @@
-import { mod, Fp, FiniteField, createField } from '../../bindings/crypto/finite-field.js';
-import { checkBitLength, Field, withMessage } from './field.js';
-import { Provable } from './provable.js';
-import { Bool } from './bool.js';
+import { FiniteField, Fp, createField, mod } from '../../bindings/crypto/finite-field.js';
 import { Tuple, TupleMap, TupleN } from '../util/types.js';
-import { Gadgets } from './gadgets/gadgets.js';
-import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
+
+import { Bool } from './bool.js';
+import { Field, checkBitLength, withMessage } from './field.js';
 import { assert } from './gadgets/common.js';
-import { l3, l } from './gadgets/range-check.js';
+import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
+import { Gadgets } from './gadgets/gadgets.js';
+import { l, l3 } from './gadgets/range-check.js';
+import { Provable } from './provable.js';
 import { ProvablePureExtended } from './types/struct.js';
 
 // external API

@@ -1,4 +1,4 @@
-import { Field, SmartContract, method, Bool, state, State, Poseidon, Struct, Provable } from 'o1js';
+import { Bool, Field, Poseidon, Provable, SmartContract, State, Struct, method, state } from 'o1js';
 
 export { Sudoku, SudokuZkApp };
 

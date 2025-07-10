@@ -1,16 +1,17 @@
 import {
-  Field,
-  state,
-  State,
-  method,
-  UInt64,
-  PrivateKey,
-  SmartContract,
-  Mina,
   AccountUpdate,
   Bool,
+  Field,
+  Mina,
+  PrivateKey,
   PublicKey,
+  SmartContract,
+  State,
+  UInt64,
+  method,
+  state,
 } from 'o1js';
+
 import { getProfiler } from './utils/profiler.js';
 
 const doProofs = true;

@@ -1,5 +1,6 @@
-import { MlFeatureFlags, Gate, GateType } from '../../bindings.js';
-import { MlBool, MlOption, MlArrayOptionalElements } from '../ml/base.js';
+import { Gate, GateType, MlFeatureFlags } from '../../bindings.js';
+import { MlArrayOptionalElements, MlBool, MlOption } from '../ml/base.js';
+
 import type { analyzeMethod } from './zkprogram.js';
 
 // public API

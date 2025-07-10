@@ -6,17 +6,18 @@ import {
   Bool,
   Experimental,
   Field,
-  method,
   Poseidon,
   Provable,
   PublicKey,
   SmartContract,
   State,
-  state,
   UInt64,
   assert,
+  method,
+  state,
 } from '../../../../index.js';
 import { TestInstruction, expectBalance, testLocal, transaction } from '../test/test-contract.js';
+
 const { IndexedMerkleMap, BatchReducer } = Experimental;
 
 const MINA = 1_000_000_000n;

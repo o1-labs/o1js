@@ -1,4 +1,4 @@
-import { SmartContract, method, UInt64, AccountUpdate, PublicKey } from 'o1js';
+import { AccountUpdate, PublicKey, SmartContract, UInt64, method } from 'o1js';
 
 export class Escrow extends SmartContract {
   @method async deposit(user: PublicKey) {

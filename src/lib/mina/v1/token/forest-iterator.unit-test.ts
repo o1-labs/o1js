@@ -1,21 +1,23 @@
-import { Random, test } from '../../../testing/property.js';
+import assert from 'assert';
+
+import { Pickles, initializeBindings } from '../../../../bindings.js';
+import { TypesBigint } from '../../../../bindings/mina-transaction/v1/types.js';
 import { RandomTransaction } from '../../../../mina-signer/src/random-transaction.js';
-import { TokenAccountUpdateIterator } from './forest-iterator.js';
+import {
+  accountUpdatesToCallForest,
+  callForestHash,
+} from '../../../../mina-signer/src/sign-zkapp-command.js';
+import { PublicKey } from '../../../provable/crypto/signature.js';
+import { Bool, Field } from '../../../provable/wrapped.js';
+import { Random, test } from '../../../testing/property.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
   TokenId,
   hashAccountUpdate,
 } from '../account-update.js';
-import { TypesBigint } from '../../../../bindings/mina-transaction/v1/types.js';
-import { Pickles, initializeBindings } from '../../../../bindings.js';
-import {
-  accountUpdatesToCallForest,
-  callForestHash,
-} from '../../../../mina-signer/src/sign-zkapp-command.js';
-import assert from 'assert';
-import { Field, Bool } from '../../../provable/wrapped.js';
-import { PublicKey } from '../../../provable/crypto/signature.js';
+
+import { TokenAccountUpdateIterator } from './forest-iterator.js';
 
 // RANDOM NUMBER GENERATORS for account updates
 

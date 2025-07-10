@@ -1,13 +1,15 @@
-import { Bool, Field } from '../wrapped.js';
-import { MerkleTree, conditionalSwap } from '../merkle-tree.js';
-import { Random, test } from '../../testing/property.js';
 import { expect } from 'expect';
-import { MerkleMap, MerkleMapWitness } from '../merkle-map.js';
-import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
-import { synchronousRunners } from '../core/provable-context.js';
-import { Provable } from '../provable.js';
+
 import { constraintSystem } from '../../testing/constraint-system.js';
 import { field } from '../../testing/equivalent.js';
+import { Random, test } from '../../testing/property.js';
+import { synchronousRunners } from '../core/provable-context.js';
+import { MerkleMap, MerkleMapWitness } from '../merkle-map.js';
+import { IndexedMerkleMap, Leaf } from '../merkle-tree-indexed.js';
+import { MerkleTree, conditionalSwap } from '../merkle-tree.js';
+import { Provable } from '../provable.js';
+import { Bool, Field } from '../wrapped.js';
+
 import { throwError } from './test-utils.js';
 
 const height = 31;

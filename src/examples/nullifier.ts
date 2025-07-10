@@ -1,15 +1,15 @@
 import {
-  Nullifier,
+  AccountUpdate,
   Field,
-  SmartContract,
-  state,
-  State,
-  method,
   MerkleMap,
   MerkleMapWitness,
   Mina,
-  AccountUpdate,
+  Nullifier,
   Provable,
+  SmartContract,
+  State,
+  method,
+  state,
 } from 'o1js';
 
 class PayoutOnlyOnce extends SmartContract {

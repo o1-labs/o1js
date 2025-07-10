@@ -1,4 +1,5 @@
-import { Field, Bool, Provable } from 'o1js';
+import { Bool, Field, Provable } from 'o1js';
+
 describe('bool', () => {
   describe('inside circuit', () => {
     describe('toField', () => {

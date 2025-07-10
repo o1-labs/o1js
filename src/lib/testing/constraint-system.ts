@@ -6,18 +6,19 @@
  */
 import { Gate, GateType } from '../../bindings.js';
 import { randomBytes } from '../../bindings/crypto/random.js';
-import { Field } from '../provable/field.js';
-import { FieldType, FieldVar } from '../provable/core/fieldvar.js';
-import { Provable } from '../provable/provable.js';
-import { Tuple } from '../util/types.js';
-import { Random } from './random.js';
-import { test } from './property.js';
 import { Undefined, ZkProgram } from '../proof-system/zkprogram.js';
+import { FieldType, FieldVar } from '../provable/core/fieldvar.js';
 import {
   printGates,
   summarizeGates,
   synchronousRunners,
 } from '../provable/core/provable-context.js';
+import { Field } from '../provable/field.js';
+import { Provable } from '../provable/provable.js';
+import { Tuple } from '../util/types.js';
+
+import { test } from './property.js';
+import { Random } from './random.js';
 
 export {
   constraintSystem,

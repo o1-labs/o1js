@@ -1,17 +1,9 @@
-import { createCurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
-import {
-  Ecdsa,
-  EllipticCurve,
-  Point,
-  initialAggregator,
-  verifyEcdsaConstant,
-} from '../gadgets/elliptic-curve.js';
-import { Field3 } from '../gadgets/foreign-field.js';
+import { expect } from 'expect';
+
+import { bytesToBigInt } from '../../../bindings/crypto/bigint-helpers.js';
 import { CurveParams } from '../../../bindings/crypto/elliptic-curve-examples.js';
-import { Provable } from '../provable.js';
+import { createCurveAffine } from '../../../bindings/crypto/elliptic-curve.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { assert } from '../gadgets/common.js';
-import { foreignField, uniformForeignField } from './test-utils.js';
 import {
   First,
   Second,
@@ -22,10 +14,20 @@ import {
   oneOf,
   record,
 } from '../../testing/equivalent.js';
-import { Bool } from '../bool.js';
 import { Random } from '../../testing/random.js';
-import { bytesToBigInt } from '../../../bindings/crypto/bigint-helpers.js';
-import { expect } from 'expect';
+import { Bool } from '../bool.js';
+import { assert } from '../gadgets/common.js';
+import {
+  Ecdsa,
+  EllipticCurve,
+  Point,
+  initialAggregator,
+  verifyEcdsaConstant,
+} from '../gadgets/elliptic-curve.js';
+import { Field3 } from '../gadgets/foreign-field.js';
+import { Provable } from '../provable.js';
+
+import { foreignField, uniformForeignField } from './test-utils.js';
 
 // quick tests
 const Secp256k1 = createCurveAffine(CurveParams.Secp256k1);

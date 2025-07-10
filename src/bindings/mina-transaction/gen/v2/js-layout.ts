@@ -1,5 +1,4 @@
 // @generated this file is auto-generated - don't edit it directly
-import { BindingsType } from '../../v2/schema.js';
 import {
   Actions,
   AuthRequired,
@@ -18,6 +17,8 @@ import {
   UInt64,
   ZkappUri,
 } from '../../v2/leaves.js';
+import { BindingsType } from '../../v2/schema.js';
+
 export {
   Types,
   ZkappCommand,

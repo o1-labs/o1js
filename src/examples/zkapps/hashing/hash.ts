@@ -1,4 +1,4 @@
-import { Hash, Field, SmartContract, state, State, method, Permissions, Bytes } from 'o1js';
+import { Bytes, Field, Hash, Permissions, SmartContract, State, method, state } from 'o1js';
 
 let initialCommitment = Field(0);
 class Bytes32 extends Bytes(32) {}

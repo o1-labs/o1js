@@ -3,8 +3,8 @@
  * complex type: `AccountUpdate`.
  */
 import assert from 'assert/strict';
-import { AccountUpdate, PrivateKey, Provable, Empty, ProvableExtended } from 'o1js';
 import { expect } from 'expect';
+import { AccountUpdate, Empty, PrivateKey, Provable, ProvableExtended } from 'o1js';
 
 /**
  * Example of a complex provable type: `AccountUpdate`

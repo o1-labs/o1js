@@ -1,4 +1,5 @@
 import { assert } from '../../lib/util/assert.js';
+
 import { bytesToBigInt, log2 } from './bigint-helpers.js';
 import { randomBytes } from './random.js';
 

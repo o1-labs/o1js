@@ -1,4 +1,4 @@
-import { Poseidon, Field, Circuit, circuitMain, public_ } from 'o1js';
+import { Circuit, Field, Poseidon, circuitMain, public_ } from 'o1js';
 
 /**
  * Public input: a hash value h

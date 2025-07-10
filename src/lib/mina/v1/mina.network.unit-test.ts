@@ -1,6 +1,6 @@
-import { UInt64, Mina, AccountUpdate, PublicKey, Field, TokenId, PrivateKey } from 'o1js';
-import { describe, it, before, beforeEach, afterEach } from 'node:test';
 import { expect } from 'expect';
+import { afterEach, before, beforeEach, describe, it } from 'node:test';
+import { AccountUpdate, Field, Mina, PrivateKey, PublicKey, TokenId, UInt64 } from 'o1js';
 
 const defaultNetwork = Mina.Network({
   networkId: 'testnet',

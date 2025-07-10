@@ -1,7 +1,8 @@
+import { Mina, PrivateKey } from 'o1js';
+
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
 import { Voting_ } from './voting.js';
-import { Mina, PrivateKey } from 'o1js';
 
 /**
  * Updates off-chain storage when registering a member or candidate

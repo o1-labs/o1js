@@ -1,17 +1,17 @@
 import { Snarky } from '../../bindings.js';
 import { Fp } from '../../bindings/crypto/finite-field.js';
-import { BinableFp, SignableFp } from '../../mina-signer/src/field-bigint.js';
-import { defineBinable } from '../../bindings/lib/binable.js';
 import type { NonNegativeInteger } from '../../bindings/crypto/non-negative.js';
-import { inCheckedComputation } from './core/provable-context.js';
-import { Bool } from './bool.js';
+import { defineBinable } from '../../bindings/lib/binable.js';
+import { BinableFp, SignableFp } from '../../mina-signer/src/field-bigint.js';
 import { assert } from '../util/errors.js';
-import { Provable } from './provable.js';
-import { assertEqual, assertMul, assertSquare, assertBoolean } from './gadgets/compatible.js';
-import { assertBilinear, toLinearCombination } from './gadgets/basic.js';
-import { FieldType, FieldVar, FieldConst, VarFieldVar, ConstantFieldVar } from './core/fieldvar.js';
+
+import { Bool } from './bool.js';
 import { exists, existsOne } from './core/exists.js';
 import { setFieldConstructor } from './core/field-constructor.js';
+import { ConstantFieldVar, FieldConst, FieldType, FieldVar, VarFieldVar } from './core/fieldvar.js';
+import { inCheckedComputation } from './core/provable-context.js';
+import { assertBilinear, toLinearCombination } from './gadgets/basic.js';
+import { toVar } from './gadgets/common.js';
 import {
   assertLessThanFull,
   assertLessThanOrEqualFull,
@@ -19,7 +19,8 @@ import {
   lessThanFull,
   lessThanOrEqualFull,
 } from './gadgets/comparison.js';
-import { toVar } from './gadgets/common.js';
+import { assertBoolean, assertEqual, assertMul, assertSquare } from './gadgets/compatible.js';
+import { Provable } from './provable.js';
 
 // external API
 export { Field };

@@ -1,10 +1,5 @@
-import { inverse, mod } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../field.js';
-import { Provable } from '../provable.js';
-import { assert } from './common.js';
-import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
-import { l, l2, l2Mask, multiRangeCheck } from './range-check.js';
 import { sha256 } from 'js-sha256';
+
 import { bigIntToBytes, bytesToBigInt } from '../../../bindings/crypto/bigint-helpers.js';
 import {
   CurveAffine,
@@ -12,12 +7,19 @@ import {
   affineAdd,
   affineDouble,
 } from '../../../bindings/crypto/elliptic-curve.js';
-import { Bool } from '../bool.js';
-import { provable } from '../types/provable-derivers.js';
+import { inverse, mod } from '../../../bindings/crypto/finite-field.js';
 import { assertPositiveInteger } from '../../../bindings/crypto/non-negative.js';
+import { Bool } from '../bool.js';
+import { exists } from '../core/exists.js';
+import { Field } from '../field.js';
+import { Provable } from '../provable.js';
+import { provable } from '../types/provable-derivers.js';
+
 import { arrayGetGeneric, assertNotVectorEquals } from './basic.js';
 import { sliceField3 } from './bit-slices.js';
-import { exists } from '../core/exists.js';
+import { assert } from './common.js';
+import { Field3, ForeignField, split, weakBound } from './foreign-field.js';
+import { l, l2, l2Mask, multiRangeCheck } from './range-check.js';
 
 // external API
 export { EllipticCurve, Point, Ecdsa };

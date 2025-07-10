@@ -1,12 +1,13 @@
+import { randomBytes } from '../../bindings/crypto/random.js';
+import { chunk, chunkString } from '../util/arrays.js';
+
+import { Bool } from './bool.js';
+import { Field } from './field.js';
+import { assert } from './gadgets/common.js';
+import { UInt8 } from './int.js';
+import { Provable } from './provable.js';
 import { provableFromClass } from './types/provable-derivers.js';
 import type { ProvablePureExtended } from './types/struct.js';
-import { assert } from './gadgets/common.js';
-import { chunk, chunkString } from '../util/arrays.js';
-import { Provable } from './provable.js';
-import { UInt8 } from './int.js';
-import { randomBytes } from '../../bindings/crypto/random.js';
-import { Field } from './field.js';
-import { Bool } from './bool.js';
 
 // external API
 export { Bytes, FlexibleBytes };

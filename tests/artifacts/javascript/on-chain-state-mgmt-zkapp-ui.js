@@ -1,5 +1,5 @@
 import { logEvents } from './e2e-tests-helpers.js';
-import { adminPrivateKey, HelloWorld } from './examples/zkapps/hello-world/hello-world.js';
+import { HelloWorld, adminPrivateKey } from './examples/zkapps/hello-world/hello-world.js';
 import { RecursiveProgram } from './examples/zkprogram/recursive-program.js';
 import { AccountUpdate, Field, Mina, verify } from './index.js';
 

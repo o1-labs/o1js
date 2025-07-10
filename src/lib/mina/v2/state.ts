@@ -8,16 +8,15 @@
  * in preconditions and updates within AccountUpdates. There is also a GenericState representation
  * which maps to the standard field array representation which is used by the protocol.
  */
-
 // TODO: there is a lot of duplication here on the generic representation that we can reduce
-
-import { Empty, Eq, ProvableInstance, Update } from './core.js';
-import { Precondition } from './preconditions.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Provable } from '../../provable/provable.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { ZkappConstants } from '../v1/constants.js';
+
+import { Empty, Eq, ProvableInstance, Update } from './core.js';
+import { Precondition } from './preconditions.js';
 
 export {
   StateValues,

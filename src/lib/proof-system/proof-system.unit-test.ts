@@ -1,6 +1,18 @@
-import { Field, Bool } from '../provable/wrapped.js';
-import { Struct } from '../provable/types/struct.js';
+import { expect } from 'expect';
+import { it } from 'node:test';
+
+import { Pickles, Snarky } from '../../bindings.js';
+import { FieldConst, FieldVar } from '../provable/core/fieldvar.js';
+import { snarkContext } from '../provable/core/provable-context.js';
 import { UInt64 } from '../provable/int.js';
+import { Provable } from '../provable/provable.js';
+import { ProvablePure } from '../provable/types/provable-intf.js';
+import { Struct } from '../provable/types/struct.js';
+import { Bool, Field } from '../provable/wrapped.js';
+import { bool, equivalentAsync, field, record } from '../testing/equivalent.js';
+import { AnyFunction } from '../util/types.js';
+
+import { Proof } from './proof.js';
 import {
   CompiledTag,
   Empty,
@@ -9,16 +21,6 @@ import {
   picklesRuleFromFunction,
   sortMethodArguments,
 } from './zkprogram.js';
-import { Proof } from './proof.js';
-import { expect } from 'expect';
-import { Pickles, Snarky } from '../../bindings.js';
-import { AnyFunction } from '../util/types.js';
-import { snarkContext } from '../provable/core/provable-context.js';
-import { it } from 'node:test';
-import { Provable } from '../provable/provable.js';
-import { bool, equivalentAsync, field, record } from '../testing/equivalent.js';
-import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
-import { ProvablePure } from '../provable/types/provable-intf.js';
 
 const EmptyProgram = ZkProgram({
   name: 'empty',

@@ -4,7 +4,7 @@
  *
  * We implement this as a self-recursive ZkProgram, using `proveRecursivelyIf()`
  */
-import { assert, Bool, Experimental, Field, Poseidon, Provable, Struct, ZkProgram } from 'o1js';
+import { Bool, Experimental, Field, Poseidon, Provable, Struct, ZkProgram, assert } from 'o1js';
 
 const HASHES_PER_PROOF = 30;
 

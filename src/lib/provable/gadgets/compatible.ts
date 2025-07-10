@@ -2,13 +2,14 @@
  * Basic gadgets that only use generic gates, and are compatible with (create the same constraints as)
  * `plonk_constraint_system.ml` / R1CS_constraint_system.
  */
-import { Fp } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../field.js';
-import { FieldVar } from '../core/fieldvar.js';
-import { assert } from './common.js';
-import { Gates } from '../gates.js';
-import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
 import { Snarky } from '../../../bindings.js';
+import { Fp } from '../../../bindings/crypto/finite-field.js';
+import { FieldVar } from '../core/fieldvar.js';
+import { Field } from '../field.js';
+import { Gates } from '../gates.js';
+
+import { ScaledVar, emptyCell, reduceToScaledVar } from './basic.js';
+import { assert } from './common.js';
 
 export {
   assertMulCompatible as assertMul,

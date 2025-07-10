@@ -1,4 +1,4 @@
-import { Experimental, method, Provable, SmartContract, state, State } from 'o1js';
+import { Experimental, Provable, SmartContract, State, method, state } from 'o1js';
 
 const { createProvableBigInt } = Experimental;
 

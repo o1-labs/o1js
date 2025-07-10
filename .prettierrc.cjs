@@ -13,4 +13,14 @@ module.exports = {
       },
     },
   ],
+  plugins: ['@trivago/prettier-plugin-sort-imports'],
+  importOrder: [
+    '<THIRD_PARTY_MODULES>', // External libraries
+    '^@/.*', // Absolute aliases (e.g., `@/components`)
+    '^\\.\\./.*', // Relative parent imports
+    '^\\./.*', // Relative sibling imports
+  ],
+  importOrderSeparation: true,
+  importOrderSortSpecifiers: true,
+  importOrderParserPlugins: ['typescript', 'decorators-legacy'],
 };

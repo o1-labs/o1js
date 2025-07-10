@@ -1,13 +1,13 @@
 import {
-  Field,
   Bool,
+  Field,
   Group,
-  Scalar,
-  PrivateKey,
-  PublicKey,
-  Signature,
   Int64,
+  PrivateKey,
   Provable,
+  PublicKey,
+  Scalar,
+  Signature,
   Struct,
 } from 'o1js';
 

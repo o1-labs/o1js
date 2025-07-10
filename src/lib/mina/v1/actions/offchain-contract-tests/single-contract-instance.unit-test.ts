@@ -1,6 +1,7 @@
+import assert from 'assert';
+
 import { UInt64 } from '../../../../../index.js';
 import * as Mina from '../../mina.js';
-import assert from 'assert';
 
 import { ExampleContract, offchainState as exampleOffchainState } from './ExampleContract.js';
 import { settle, transfer } from './utils.js';

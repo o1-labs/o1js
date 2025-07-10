@@ -1,11 +1,10 @@
 /**
  * This file contains all code related to the [Merkle Tree](https://en.wikipedia.org/wiki/Merkle_tree) implementation available in o1js.
  */
-
-import { CircuitValue, arrayProp } from './types/circuit-value.js';
 import { Poseidon } from './crypto/poseidon.js';
-import { Bool, Field } from './wrapped.js';
 import { Provable } from './provable.js';
+import { CircuitValue, arrayProp } from './types/circuit-value.js';
+import { Bool, Field } from './wrapped.js';
 
 // external API
 export { Witness, MerkleTree, MerkleWitness, BaseMerkleWitness };

@@ -1,11 +1,12 @@
 import { Snarky } from '../../bindings.js';
-import { Field, readVarMessage, withMessage } from './field.js';
-import { FieldVar, FieldConst, FieldType } from './core/fieldvar.js';
-import { defineBinable } from '../../bindings/lib/binable.js';
 import { NonNegativeInteger } from '../../bindings/crypto/non-negative.js';
+import { defineBinable } from '../../bindings/lib/binable.js';
+
 import { existsOne } from './core/exists.js';
-import { assertMul } from './gadgets/compatible.js';
 import { setBoolConstructor } from './core/field-constructor.js';
+import { FieldConst, FieldType, FieldVar } from './core/fieldvar.js';
+import { Field, readVarMessage, withMessage } from './field.js';
+import { assertMul } from './gadgets/compatible.js';
 
 export { BoolVar, Bool };
 

@@ -1,7 +1,9 @@
 import { expect } from 'expect';
 import { AccountUpdate, Lightnet, Mina, PrivateKey, UInt64, fetchAccount } from 'o1js';
 import os from 'os';
+
 import { tic, toc } from '../../utils/tic-toc.node.js';
+
 import { Dex, DexTokenHolder, addresses, keys, tokenIds } from './dex-with-actions.js';
 import { TrivialCoin as TokenContract } from './erc20.js';
 

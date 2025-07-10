@@ -1,8 +1,10 @@
-import plonkWasm from '../../../web_bindings/plonk_wasm.js';
-import { workerSpec } from './worker-spec.js';
-import { srcFromFunctionModule, inlineWorker, waitForMessage } from './worker-helpers.js';
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
+
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
+import plonkWasm from '../../../web_bindings/plonk_wasm.js';
+
+import { inlineWorker, srcFromFunctionModule, waitForMessage } from './worker-helpers.js';
+import { workerSpec } from './worker-spec.js';
 
 export { initializeBindings, withThreadPool, wasm };
 

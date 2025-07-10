@@ -1,13 +1,13 @@
 import {
-  state,
-  State,
-  method,
-  UInt64,
+  AccountUpdate,
+  Mina,
   PrivateKey,
   SmartContract,
-  Mina,
-  AccountUpdate,
+  State,
   TransactionPromise,
+  UInt64,
+  method,
+  state,
 } from 'o1js';
 
 class SimpleZkapp extends SmartContract {

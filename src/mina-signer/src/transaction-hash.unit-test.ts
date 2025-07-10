@@ -1,29 +1,31 @@
+import { expect } from 'expect';
+
 import { Test } from '../../bindings.js';
+import { versionBytes } from '../../bindings/crypto/constants.js';
+import { test } from '../../lib/testing/property.js';
+
+import { PublicKey } from './curve-bigint.js';
+import { Memo } from './memo.js';
+import { RandomTransaction } from './random-transaction.js';
+import {
+  CommonJson,
+  DelegationJson,
+  PaymentJson,
+  commonFromJson,
+  delegationFromJson,
+  paymentFromJson,
+} from './sign-legacy.js';
+import { Signature, SignatureJson } from './signature.js';
 import {
   Common,
-  hashPayment,
-  hashStakeDelegation,
   SignedCommand,
   SignedCommandV1,
   SignedLegacy,
+  hashPayment,
+  hashStakeDelegation,
   userCommandToEnum,
   userCommandToV1,
 } from './transaction-hash.js';
-import {
-  PaymentJson,
-  commonFromJson,
-  paymentFromJson,
-  CommonJson,
-  DelegationJson,
-  delegationFromJson,
-} from './sign-legacy.js';
-import { Signature, SignatureJson } from './signature.js';
-import { PublicKey } from './curve-bigint.js';
-import { Memo } from './memo.js';
-import { expect } from 'expect';
-import { versionBytes } from '../../bindings/crypto/constants.js';
-import { test } from '../../lib/testing/property.js';
-import { RandomTransaction } from './random-transaction.js';
 
 let mlTest = await Test();
 

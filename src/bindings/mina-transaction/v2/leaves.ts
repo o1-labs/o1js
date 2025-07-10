@@ -1,15 +1,15 @@
 // NOTE: these leaves are currently backwards compatible with the old encoding format, but the
 // auxiliary components may change format in the future
-
-import { FieldsDecoder, ProvableSerializable } from './util.js';
-import { versionBytes } from '../../crypto/constants.js';
-import { withVersionNumber } from '../../lib/binable.js';
 import { Bool } from '../../../lib/provable/bool.js';
 import { Field } from '../../../lib/provable/field.js';
 import { Provable } from '../../../lib/provable/provable.js';
 import { HashInput } from '../../../lib/provable/types/provable-derivers.js';
 import { Struct } from '../../../lib/provable/types/struct.js';
 import { toBase58Check } from '../../../lib/util/base58.js';
+import { versionBytes } from '../../crypto/constants.js';
+import { withVersionNumber } from '../../lib/binable.js';
+
+import { FieldsDecoder, ProvableSerializable } from './util.js';
 
 export { Bool } from '../../../lib/provable/bool.js';
 export { Field } from '../../../lib/provable/field.js';

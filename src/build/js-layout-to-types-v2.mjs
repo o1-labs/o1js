@@ -1,5 +1,4 @@
 // TODO: refactor hack
-
 import assert from 'node:assert';
 import fs from 'node:fs/promises';
 

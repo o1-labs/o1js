@@ -1,11 +1,12 @@
+import * as BindingsLayout from '../../../bindings/mina-transaction/gen/v2/js-layout.js';
+import { Field } from '../../provable/field.js';
+import { Provable } from '../../provable/provable.js';
+
 import {
   AuthorizationLevel,
   AuthorizationLevelIdentifier,
   VerificationKeyAuthorizationLevel,
 } from './authorization.js';
-import { Field } from '../../provable/field.js';
-import { Provable } from '../../provable/provable.js';
-import * as BindingsLayout from '../../../bindings/mina-transaction/gen/v2/js-layout.js';
 
 // TODO: rename some of these to make them clearer (eg editActionState, timing)
 // TODO: consider only allowing the identifiers to be specified to some special Permissions.constant function (to avoid people breaking the DSL pattern accidentally)

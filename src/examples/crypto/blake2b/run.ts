@@ -1,4 +1,4 @@
-import { Bytes12, BLAKE2BProgram } from './blake2b.js';
+import { BLAKE2BProgram, Bytes12 } from './blake2b.js';
 
 console.time('compile');
 await BLAKE2BProgram.compile();

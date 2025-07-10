@@ -1,21 +1,21 @@
+import assert from 'node:assert';
 import {
   AccountUpdate,
-  Provable,
   Field,
   Lightnet,
   Mina,
   PrivateKey,
-  Struct,
+  Provable,
   PublicKey,
+  Reducer,
   SmartContract,
   State,
-  state,
-  method,
-  Reducer,
-  fetchAccount,
+  Struct,
   TokenId,
+  fetchAccount,
+  method,
+  state,
 } from 'o1js';
-import assert from 'node:assert';
 
 class Event extends Struct({ pub: PublicKey, value: Field }) {}
 

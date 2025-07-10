@@ -1,11 +1,5 @@
 import { mod } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../wrapped.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
-import { Random } from '../../testing/property.js';
-import { assert } from '../gadgets/common.js';
-import { Gadgets } from '../gadgets/gadgets.js';
-import { l } from '../gadgets/range-check.js';
 import {
   constraintSystem,
   contains,
@@ -13,6 +7,12 @@ import {
   ifNotAllConstant,
   withoutGenerics,
 } from '../../testing/constraint-system.js';
+import { Spec, boolean, equivalentAsync, fieldWithRng } from '../../testing/equivalent.js';
+import { Random } from '../../testing/property.js';
+import { assert } from '../gadgets/common.js';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { l } from '../gadgets/range-check.js';
+import { Field } from '../wrapped.js';
 
 let uint = (n: number | bigint): Spec<bigint, Field> => {
   let uint = Random.bignat((1n << BigInt(n)) - 1n);

@@ -1,4 +1,4 @@
-import { equivalent, SpecFromFunctions } from '../../../lib/testing/equivalent.js';
+import { SpecFromFunctions, equivalent } from '../../../lib/testing/equivalent.js';
 
 export { equivalentRecord };
 

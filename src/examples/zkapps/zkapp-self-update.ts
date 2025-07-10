@@ -2,13 +2,13 @@
  * This example deploys a zkApp and then updates its verification key via proof, self-replacing the zkApp
  */
 import {
+  AccountUpdate,
+  Mina,
+  Permissions,
+  Provable,
   SmartContract,
   VerificationKey,
   method,
-  Permissions,
-  Mina,
-  AccountUpdate,
-  Provable,
 } from 'o1js';
 
 class SelfUpdater extends SmartContract {

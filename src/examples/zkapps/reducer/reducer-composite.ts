@@ -5,22 +5,22 @@
  * method breaks if more than the hard-coded number (default: 32) of actions are pending. Work is actively
  * in progress to mitigate this limitation.
  */
-
+import assert from 'node:assert/strict';
 import {
-  Field,
-  state,
-  State,
-  method,
-  PrivateKey,
-  SmartContract,
-  Mina,
   AccountUpdate,
   Bool,
-  Struct,
-  Reducer,
+  Field,
+  Mina,
+  PrivateKey,
   Provable,
+  Reducer,
+  SmartContract,
+  State,
+  Struct,
+  method,
+  state,
 } from 'o1js';
-import assert from 'node:assert/strict';
+
 import { getProfiler } from '../../utils/profiler.js';
 
 class MaybeIncrement extends Struct({

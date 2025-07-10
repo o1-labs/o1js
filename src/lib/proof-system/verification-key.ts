@@ -1,8 +1,9 @@
-import { initializeBindings, Pickles } from '../../bindings.js';
+import { Pickles, initializeBindings } from '../../bindings.js';
 import { synchronousRunners } from '../provable/core/provable-context.js';
 import { provable } from '../provable/types/provable-derivers.js';
 import { Struct } from '../provable/types/struct.js';
 import { Field } from '../provable/wrapped.js';
+
 import { inCircuitVkHash } from './zkprogram.js';
 
 export { VerificationKey };

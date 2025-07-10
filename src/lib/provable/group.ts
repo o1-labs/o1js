@@ -1,12 +1,13 @@
-import { Field } from './field.js';
-import { FieldVar } from './core/fieldvar.js';
-import { Scalar } from './scalar.js';
-import { Fp } from '../../bindings/crypto/finite-field.js';
 import { GroupAffine, Pallas, PallasAffine } from '../../bindings/crypto/elliptic-curve.js';
-import { Provable } from './provable.js';
-import { Bool } from './bool.js';
+import { Fp } from '../../bindings/crypto/finite-field.js';
 import { assert } from '../util/assert.js';
+
+import { Bool } from './bool.js';
+import { FieldVar } from './core/fieldvar.js';
+import { Field } from './field.js';
 import { add, scaleField, scaleShifted } from './gadgets/native-curve.js';
+import { Provable } from './provable.js';
+import { Scalar } from './scalar.js';
 
 export { Group };
 

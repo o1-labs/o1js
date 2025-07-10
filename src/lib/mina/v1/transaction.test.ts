@@ -1,4 +1,4 @@
-import { UInt64, SmartContract, Mina, AccountUpdate, method } from 'o1js';
+import { AccountUpdate, Mina, SmartContract, UInt64, method } from 'o1js';
 
 class MyContract extends SmartContract {
   @method async shouldMakeCompileThrow() {

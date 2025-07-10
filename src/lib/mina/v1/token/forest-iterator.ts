@@ -1,14 +1,14 @@
+import { assert } from '../../../provable/gadgets/common.js';
+import { MerkleList, MerkleListIterator } from '../../../provable/merkle-list.js';
+import { Provable } from '../../../provable/provable.js';
+import { Struct } from '../../../provable/types/struct.js';
+import { Field } from '../../../provable/wrapped.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
   AccountUpdateTreeBase,
   TokenId,
 } from '../account-update.js';
-import { Field } from '../../../provable/wrapped.js';
-import { Provable } from '../../../provable/provable.js';
-import { Struct } from '../../../provable/types/struct.js';
-import { assert } from '../../../provable/gadgets/common.js';
-import { MerkleListIterator, MerkleList } from '../../../provable/merkle-list.js';
 
 export { TokenAccountUpdateIterator };
 

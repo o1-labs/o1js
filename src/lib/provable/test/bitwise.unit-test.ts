@@ -1,24 +1,24 @@
+import { GateType } from '../../../bindings.js';
+import { Fp, mod } from '../../../bindings/crypto/finite-field.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
+import {
+  and,
+  constraintSystem,
+  contains,
+  equals,
+  ifNotAllConstant,
+  repeat,
+  withoutGenerics,
+} from '../../testing/constraint-system.js';
 import {
   equivalentProvable as equivalent,
   equivalentAsync,
   field,
   fieldWithRng,
 } from '../../testing/equivalent.js';
-import { Fp, mod } from '../../../bindings/crypto/finite-field.js';
-import { Field } from '../wrapped.js';
-import { Gadgets } from '../gadgets/gadgets.js';
 import { Random } from '../../testing/property.js';
-import {
-  constraintSystem,
-  contains,
-  equals,
-  ifNotAllConstant,
-  repeat,
-  and,
-  withoutGenerics,
-} from '../../testing/constraint-system.js';
-import { GateType } from '../../../bindings.js';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { Field } from '../wrapped.js';
 
 const maybeField = {
   ...field,

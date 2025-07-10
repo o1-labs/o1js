@@ -1,13 +1,14 @@
-import { Group } from '../wrapped.js';
-import { test, Random } from '../../testing/property.js';
-import { Provable } from '../provable.js';
-import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
-import { synchronousRunners } from '../core/provable-context.js';
-import { Scalar } from '../scalar.js';
-import { Field } from '../field.js';
-import { equivalentProvable, spec, unit } from '../../testing/equivalent.js';
-import { Bool } from '../bool.js';
 import assert from 'assert';
+
+import { Poseidon } from '../../../mina-signer/src/poseidon-bigint.js';
+import { equivalentProvable, spec, unit } from '../../testing/equivalent.js';
+import { Random, test } from '../../testing/property.js';
+import { Bool } from '../bool.js';
+import { synchronousRunners } from '../core/provable-context.js';
+import { Field } from '../field.js';
+import { Provable } from '../provable.js';
+import { Scalar } from '../scalar.js';
+import { Group } from '../wrapped.js';
 
 let { runAndCheckSync } = await synchronousRunners();
 

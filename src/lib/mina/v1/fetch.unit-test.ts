@@ -1,4 +1,7 @@
+import { expect } from 'expect';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { PrivateKey, TokenId } from 'o1js';
+
 import {
   createActionsList,
   fetchAccount,
@@ -11,9 +14,7 @@ import {
 } from './fetch.js';
 import { mockFetchActionsResponse as fetchResponseWithTxInfo } from './fixtures/fetch-actions-response-with-transaction-info.js';
 import { mockFetchActionsResponse as fetchResponseNoTxInfo } from './fixtures/fetch-actions-response-without-transaction-info.js';
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import { removeJsonQuotes } from './graphql.js';
-import { expect } from 'expect';
 
 console.log('testing regex helpers');
 

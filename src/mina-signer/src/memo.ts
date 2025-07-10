@@ -1,5 +1,6 @@
+import { versionBytes } from '../../bindings/crypto/constants.js';
 import {
-  Binable,
+  Binable as BinableT,
   defineBinable,
   stringFromBytes,
   stringLengthInBytes,
@@ -7,13 +8,13 @@ import {
   withBits,
 } from '../../bindings/lib/binable.js';
 import { base58 } from '../../lib/util/base58.js';
+
 import {
   HashInputLegacy,
   hashWithPrefix,
   packToFieldsLegacy,
   prefixes,
 } from './poseidon-bigint.js';
-import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export { Memo };
 
@@ -43,7 +44,7 @@ function hash(memo: string) {
 }
 
 const SIZE = 34;
-const Binable: Binable<string> = defineBinable({
+const Binable: BinableT<string> = defineBinable({
   toBytes(memo) {
     return stringToBytes(memo);
   },

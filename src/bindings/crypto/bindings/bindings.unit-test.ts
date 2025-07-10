@@ -6,6 +6,19 @@
  * - They throw errors for the same inputs
  * - If they don't throw an error, outputs must be the same
  */
+import { MlBool, MlOption } from '../../../lib/ml/base.js';
+import { FromSpec, Spec, ToSpec, defaultAssertEqual, id } from '../../../lib/testing/equivalent.js';
+import { Random } from '../../../lib/testing/property.js';
+import {
+  WasmGPallas,
+  WasmGVesta,
+  WasmPallasGProjective,
+  WasmVestaGProjective,
+} from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { wasm } from '../../js/node/node-backend.js';
+import { GroupProjective, Pallas, ProjectiveCurve, Vesta } from '../elliptic-curve.js';
+import { FiniteField, Fp, Fq } from '../finite-field.js';
+
 import {
   Bigint256,
   Bigint256Bindings,
@@ -15,9 +28,6 @@ import {
   mlBytesToUint8Array,
   toMlStringAscii,
 } from './bigint256.js';
-import { wasm } from '../../js/node/node-backend.js';
-import { Spec, ToSpec, FromSpec, defaultAssertEqual, id } from '../../../lib/testing/equivalent.js';
-import { Random } from '../../../lib/testing/property.js';
 import {
   WasmAffine,
   WasmProjective,
@@ -26,18 +36,9 @@ import {
   fieldFromRust,
   fieldToRust,
 } from './conversion-base.js';
-import { equivalentRecord } from './test-utils.js';
-import { Field, FpBindings, FqBindings } from './field.js';
-import { MlBool, MlOption } from '../../../lib/ml/base.js';
 import { OrInfinity, PallasBindings, VestaBindings, toMlOrInfinity } from './curve.js';
-import { GroupProjective, Pallas, ProjectiveCurve, Vesta } from '../elliptic-curve.js';
-import {
-  WasmGPallas,
-  WasmGVesta,
-  WasmPallasGProjective,
-  WasmVestaGProjective,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { FiniteField, Fp, Fq } from '../finite-field.js';
+import { Field, FpBindings, FqBindings } from './field.js';
+import { equivalentRecord } from './test-utils.js';
 
 let number: ToSpec<number, number> = { back: id };
 let numberLessThan = (max: number): FromSpec<number, number> => ({

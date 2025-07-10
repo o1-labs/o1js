@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, DeployArgs, Permissions } from 'o1js';
+import { DeployArgs, Field, Permissions, SmartContract, State, method, state } from 'o1js';
 
 export class DummyContract extends SmartContract {
   @state(Field) sum = State<Field>();

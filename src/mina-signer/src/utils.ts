@@ -1,12 +1,12 @@
 import { SignatureJson } from './signature.js';
 import type {
   Payment,
-  StakeDelegation,
-  ZkappCommand,
+  SignableData,
   Signed,
   SignedAny,
   SignedLegacy,
-  SignableData,
+  StakeDelegation,
+  ZkappCommand,
 } from './types.js';
 
 function hasCommonProperties(data: SignableData | ZkappCommand) {

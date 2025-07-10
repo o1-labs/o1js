@@ -1,15 +1,17 @@
 // unit tests dedicated to testing consistency of the signature algorithm
 import { expect } from 'expect';
-import { sign, Signature, signFieldElement, verify, verifyFieldElement } from './signature.js';
+
 import { Test } from '../../bindings.js';
-import { Field } from './field-bigint.js';
-import { PrivateKey, PublicKey } from './curve-bigint.js';
-import { PrivateKey as PrivateKeySnarky } from '../../lib/provable/crypto/signature.js';
 import { p } from '../../bindings/crypto/finite-field.js';
 import { AccountUpdate } from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
-import { HashInput } from './derivers-bigint.js';
 import { Ml } from '../../lib/ml/conversion.js';
 import { FieldConst } from '../../lib/provable/core/fieldvar.js';
+import { PrivateKey as PrivateKeySnarky } from '../../lib/provable/crypto/signature.js';
+
+import { PrivateKey, PublicKey } from './curve-bigint.js';
+import { HashInput } from './derivers-bigint.js';
+import { Field } from './field-bigint.js';
+import { Signature, sign, signFieldElement, verify, verifyFieldElement } from './signature.js';
 import { NetworkId } from './types.js';
 
 let mlTest = await Test();

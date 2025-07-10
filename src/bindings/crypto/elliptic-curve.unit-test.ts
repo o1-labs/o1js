@@ -1,8 +1,10 @@
-import { createCurveAffine, createCurveProjective, Pallas, Vesta } from './elliptic-curve.js';
-import { Fp, Fq } from './finite-field.js';
 import assert from 'node:assert/strict';
-import { test, Random } from '../../lib/testing/property.js';
+
+import { Random, test } from '../../lib/testing/property.js';
+
 import { CurveParams } from './elliptic-curve-examples.js';
+import { Pallas, Vesta, createCurveAffine, createCurveProjective } from './elliptic-curve.js';
+import { Fp, Fq } from './finite-field.js';
 
 for (let [G, Field, Scalar] of [
   [Pallas, Fp, Fq] as const,

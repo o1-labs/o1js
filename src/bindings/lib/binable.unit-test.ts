@@ -1,5 +1,9 @@
 import { expect } from 'expect';
-import { test, Random } from '../../lib/testing/property.js';
+
+import { Random, test } from '../../lib/testing/property.js';
+import { PublicKey, Scalar } from '../../mina-signer/src/curve-bigint.js';
+import { Bool, Field, UInt64 } from '../../mina-signer/src/field-bigint.js';
+
 import {
   Binable,
   BinableString,
@@ -10,8 +14,6 @@ import {
   withCheck,
   withVersionNumber,
 } from './binable.js';
-import { PublicKey, Scalar } from '../../mina-signer/src/curve-bigint.js';
-import { Bool, Field, UInt64 } from '../../mina-signer/src/field-bigint.js';
 
 // uint
 

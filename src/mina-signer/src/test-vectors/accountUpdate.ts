@@ -1,5 +1,5 @@
-import * as Json from '../../../bindings/mina-transaction/gen/v1/transaction-json.js';
 import { mocks } from '../../../bindings/crypto/constants.js';
+import * as Json from '../../../bindings/mina-transaction/gen/v1/transaction-json.js';
 
 export { accountUpdateExample };
 

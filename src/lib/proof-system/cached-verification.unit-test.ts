@@ -1,7 +1,7 @@
-import { JsonProof, verify } from '../proof-system/zkprogram.js';
-
-import { it, describe } from 'node:test';
 import { expect } from 'expect';
+import { describe, it } from 'node:test';
+
+import { JsonProof, verify } from '../proof-system/zkprogram.js';
 import { Field } from '../provable/field.js';
 
 const verificationKey = {

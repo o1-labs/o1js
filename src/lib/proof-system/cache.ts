@@ -1,5 +1,5 @@
-import { writeFileSync, readFileSync, mkdirSync, resolve, cacheDir } from '../util/fs.js';
 import { jsEnvironment } from '../../bindings/crypto/bindings/env.js';
+import { cacheDir, mkdirSync, readFileSync, resolve, writeFileSync } from '../util/fs.js';
 
 // external API
 export { Cache, CacheHeader };

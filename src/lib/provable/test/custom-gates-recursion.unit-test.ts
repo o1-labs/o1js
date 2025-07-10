@@ -1,13 +1,13 @@
 /**
  * This tests that we can use optional custom gates plus recursion in the same zkprogram proof.
  */
-import { Bool } from '../wrapped.js';
 import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Provable } from '../provable.js';
+import { Crypto } from '../crypto/crypto.js';
 import { assert } from '../gadgets/common.js';
 import { Ecdsa, Point } from '../gadgets/elliptic-curve.js';
 import { Field3 } from '../gadgets/foreign-field.js';
-import { Crypto } from '../crypto/crypto.js';
+import { Provable } from '../provable.js';
+import { Bool } from '../wrapped.js';
 
 const Secp256k1 = Crypto.createCurve(Crypto.CurveParams.Secp256k1);
 
