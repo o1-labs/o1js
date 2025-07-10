@@ -35,7 +35,7 @@ jobs:
           ./pin.sh
           nix run o1js#update-npm-deps
       # if the npmDepsHash is out of date auto commit the new one
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v6
         with:
           commit_message: "auto update npmDepsHash"
           file_pattern: "npmDepsHash"
