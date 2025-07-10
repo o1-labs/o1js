@@ -63,7 +63,7 @@ jobs:
 
       - name: Create Pull Request if merge failed
         if: failure()
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           branch: auto-merge-main-to-version-next-${{ github.sha }}
           title: 'Auto-merge main to version-next (commit ${{ github.sha }})'
