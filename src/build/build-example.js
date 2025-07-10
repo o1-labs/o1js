@@ -3,6 +3,7 @@ import path from 'path';
 import ts from 'typescript';
 import esbuild from 'esbuild';
 import { platform } from 'node:process';
+import { makeNodeModulesExternal, makeJsooExternal, makeO1jsExternal } from './esbuild-plugins.js';
 
 export { buildAndImport, build, buildOne };
 
@@ -98,46 +99,6 @@ function typescriptPlugin(tsConfig) {
         let src = await fs.readFile(args.path, { encoding: 'utf8' });
         let { outputText: contents } = ts.transpileModule(src, tsConfig);
         return { contents };
-      });
-    },
-  };
-}
-
-function makeNodeModulesExternal() {
-  let isNodeModule = /^[^./\\]|^\.[^./\\]|^\.\.[^/\\]/;
-  return {
-    name: 'plugin-external',
-    setup(build) {
-      build.onResolve({ filter: isNodeModule }, ({ path }) => ({
-        path,
-        external: !(platform === 'win32' && path.endsWith('index.js')),
-      }));
-    },
-  };
-}
-
-function makeO1jsExternal() {
-  return {
-    name: 'plugin-external',
-    setup(build) {
-      build.onResolve({ filter: /^o1js$/ }, () => ({
-        path: './index.js',
-        external: true,
-      }));
-    },
-  };
-}
-
-function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
-  return {
-    name: 'plugin-external',
-    setup(build) {
-      build.onResolve({ filter: isJsoo }, ({ path: filePath, resolveDir }) => {
-        return {
-          path: path.resolve(resolveDir, filePath),
-          external: true,
-        };
       });
     },
   };
