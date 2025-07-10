@@ -32,6 +32,12 @@ This project adheres to
     methods of a ZkProgram by executing them.
   - Now only a single method is analyzed at a time.
 
+### Changed
+- `IndexedMerkleMap` has been promoted from the `Experimental` namespace and is now part of the public API. https://github.com/o1-labs/o1js/pull/2114
+- 
+### Fixed
+- The `IndexedMerkleMap` root now includes the tree length in its root(commitment), addressing a vulnerability where a malicious user could insert a larger leaf and render the tree unreconstructable by others.
+  
 ## [2.6.0](https://github.com/o1-labs/o1js/compare/4e23a60...3eef10d) - 2025-05-30
 
 ### Added
