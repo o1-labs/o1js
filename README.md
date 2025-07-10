@@ -2,19 +2,22 @@
 
 ## o1js
 
-o1js makes it easy for developers to build applications powered by zero-knowledge (zk) cryptography.
+o1js makes it easy for developers to build applications powered by
+zero-knowledge (zk) cryptography.
 
-Developers can use o1js to write zk circuits and prove + verify them in browser or node environment,
-or create proofs to be verified by the Mina Protocol.
+Developers can use o1js to write zk circuits and prove + verify them in browser
+or node environment, or create proofs to be verified by the Mina Protocol.
 
 ## Learn More
 
-- [zkApp CLI](https://www.npmjs.com/package/zkapp-cli) is a scaffolding tool to start a new project
-  with o1js
+- [zkApp CLI](https://www.npmjs.com/package/zkapp-cli) is a scaffolding tool to
+  start a new project with o1js
 
-- To learn more about the language features, see the [o1js documentation](https://docs.o1labs.org/o1js).
+- To learn more about the language features, see the
+  [o1js documentation](https://docs.o1labs.org/o1js).
 
-- To learn how to build ZkApps on Mina, see the [zkApp documentation](https://docs.minaprotocol.com/zkapps).
+- To learn how to build ZkApps on Mina, see the
+  [zkApp documentation](https://docs.minaprotocol.com/zkapps).
 
 - To meet other developers building zkApps with o1js, participate in the
   [#zkapps-developers](https://discord.com/channels/484437221055922177/915745847692636181)
@@ -23,7 +26,8 @@ or create proofs to be verified by the Mina Protocol.
 - For a list of changes between versions, see the
   [CHANGELOG](https://github.com/o1-labs/o1js/blob/main/CHANGELOG.md).
 
-- To stay up to date with o1js, see the [o1Labs Blog](https://www.o1labs.org/blog?topics=o1js).
+- To stay up to date with o1js, see the
+  [o1Labs Blog](https://www.o1labs.org/blog?topics=o1js).
 
 ## Contributing
 
