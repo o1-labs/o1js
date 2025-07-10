@@ -1,5 +1,4 @@
 import {
-  Account,
   AccountUpdate,
   AccountUpdateForest,
   TokenContract as BaseTokenContract,

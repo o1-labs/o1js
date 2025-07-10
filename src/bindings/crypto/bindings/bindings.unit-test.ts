@@ -37,7 +37,7 @@ import {
   fieldToRust,
 } from './conversion-base.js';
 import { OrInfinity, PallasBindings, VestaBindings, toMlOrInfinity } from './curve.js';
-import { Field, FpBindings, FqBindings } from './field.js';
+import { Field } from './field.js';
 import { equivalentRecord } from './test-utils.js';
 
 let number: ToSpec<number, number> = { back: id };
@@ -45,11 +45,6 @@ let numberLessThan = (max: number): FromSpec<number, number> => ({
   rng: Random.nat(max - 1),
   there: id,
 });
-let uint31: Spec<number, number> = {
-  rng: Random.nat(0x7fffffff),
-  there: id,
-  back: id,
-};
 
 let bigint256: Spec<Bigint256, Uint8Array> = {
   rng: Random.map(Random.biguint(256), (x) => [0, x]),

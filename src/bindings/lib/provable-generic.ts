@@ -284,7 +284,6 @@ function createDerivers<Field>(): {
   ): InferredSignable<A, Field> {
     type T = InferSignable<A, Field>;
     type J = InferJson<A>;
-    let objectKeys = typeof typeObj === 'object' && typeObj !== null ? Object.keys(typeObj) : [];
     let primitives = new Set([Number, String, Boolean, BigInt, null, undefined]);
     if (!primitives.has(typeObj as any) && !complexTypes.has(typeof typeObj)) {
       throw Error(`provable: unsupported type "${typeObj}"`);

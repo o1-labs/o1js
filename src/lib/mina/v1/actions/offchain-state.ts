@@ -465,7 +465,7 @@ function OffchainState<const Config extends { [key: string]: OffchainStateKind }
     };
   }
 
-  const memoizedInstances = new Map<String, OffchainStateInstance<Config>>();
+  const memoizedInstances = new Map<string, OffchainStateInstance<Config>>();
 
   return {
     init(contractInstance: OffchainStateContract<Config>) {

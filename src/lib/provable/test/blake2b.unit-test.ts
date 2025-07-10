@@ -1,5 +1,4 @@
 import { blake2b as nobleBlake2b } from '@noble/hashes/blake2b';
-import { expect } from 'expect';
 
 import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { equivalentAsync, equivalentProvable } from '../../testing/equivalent.js';
@@ -25,7 +24,7 @@ for (let { digest_length, preimage, hash } of testVectors()) {
   let outputBytes = bytes(digest_length);
   equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
     () => Bytes.fromHex(hash).toBytes(),
-    (x) => Gadgets.BLAKE2B.hash(Bytes.fromString(preimage), digest_length),
+    (_x) => Gadgets.BLAKE2B.hash(Bytes.fromString(preimage), digest_length),
     `provable: blake2b preimage length ${preimage.length}`
   );
 }

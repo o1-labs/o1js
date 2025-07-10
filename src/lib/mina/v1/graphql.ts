@@ -38,7 +38,7 @@ export {
 // removes the quotes on JSON keys
 function removeJsonQuotes(json: string) {
   let cleaned = JSON.stringify(JSON.parse(json), null, 2);
-  return cleaned.replace(/\"(\S+)\"\s*:/gm, '$1:');
+  return cleaned.replace(/"(\S+)"\s*:/gm, '$1:');
 }
 
 type ActionsQueryInputs = {

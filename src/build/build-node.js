@@ -22,7 +22,7 @@ if (isMain) {
   console.log('finished build');
 }
 
-async function buildNode({ production }) {
+async function buildNode({ production: _production }) {
   // bundle the index.js file with esbuild and create a new index.cjs file which conforms to CJS
   let jsEntry = path.resolve('dist/node', path.basename(entry).replace('.ts', '.js'));
   let outfile = jsEntry.replace('.js', '.cjs');
