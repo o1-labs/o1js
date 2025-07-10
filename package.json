@@ -51,7 +51,6 @@
     "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:bindings-remote": "./src/bindings/scripts/remote-build-bindings.sh && npm run build",
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
-    "build:wasm": "./src/bindings/scripts/update-wasm-and-types.sh",
     "build:web": "rimraf ./dist/web && node src/build/build-web.js",
     "build:examples": "npm run build && rimraf ./dist/examples && npx tsc -p tsconfig.examples.json && npx tsc -p benchmark/tsconfig.json",
     "checkForBindings": "test -d ./src/bindings/compiled || npm run build:bindings-download",
