@@ -8,6 +8,7 @@
   (:script ../../../../build/js-layout-to-types-v2.mjs)
   (:data ../../../ocaml/jsLayout.json)
   ../../../../../.prettierrc.cjs
-  (glob_files ../../../../../node_modules/prettier/*))
+  ../../../../../node_modules/prettier/standalone.js
+  (glob_files ../../../../../node_modules/prettier/plugins/*))
  (action
   (run node %{script} %{data} js-layout.ts)))

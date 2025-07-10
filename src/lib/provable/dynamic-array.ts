@@ -40,7 +40,7 @@ type DynamicArray<T = any, V = any> = DynamicArrayBase<T, V>;
 function DynamicArray<
   ElementType extends ProvableType,
   ProvableValue extends InferProvable<ElementType> = InferProvable<ElementType>,
-  Value extends InferValue<ElementType> = InferValue<ElementType>
+  Value extends InferValue<ElementType> = InferValue<ElementType>,
 >(
   type: ElementType,
   {
@@ -274,12 +274,26 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * Iterate over all elements of the array.
    *
    * The callback will be passed an element and a boolean `isDummy` indicating
-   * whether the value is part of the actual array.
+   * whether the value is part of the actual array. Optionally, an index can be
+   * passed as a third argument (used in `forEachReversed`)
    */
-  forEach(f: (t: ProvableValue, isDummy: Bool) => void) {
-    zip(this.array, this.#dummyMask()).forEach(([t, isDummy]) => {
-      f(t, isDummy);
-    });
+  forEach(f: (t: ProvableValue, isDummy: Bool, i?: number) => void): void {
+    zip(this.array, this.#dummyMask()).forEach(([t, isDummy], i) => f(t, isDummy, i));
+  }
+
+  /**
+   * Iterate over all elements of the array, in reverse order.
+   *
+   * The callback will be passed an element and a boolean `isDummy` indicating whether the value is part of the actual array.
+   *
+   * Note: the indices are also passed in reverse order, i.e. we always have `t = this.array[i]`.
+   */
+  forEachReverse(f: (t: ProvableValue, isDummy: Bool, i: number) => void) {
+    zip(this.array, this.#dummyMask())
+      .reverse()
+      .forEach(([t, isDummy], i) => {
+        f(t, isDummy, this.capacity - 1 - i);
+      });
   }
 
   /**
@@ -517,6 +531,19 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     sliced.shiftLeft(start, `slice(): provided start is greater than current length`);
     sliced.pop(this.length.sub(end), `slice(): provided end is greater than current length`);
     return sliced;
+  }
+
+  /**
+   * Returns a new array with the elements reversed.
+   */
+  reverse(): DynamicArray<ProvableValue, Value> {
+    let Array = DynamicArray(this.innerType, { capacity: this.capacity });
+    // first, copy the inner array of length capacity and reverse it
+    let array = this.array.slice().reverse();
+
+    // now, slice off the padding that is now at the beginning of the array
+    let capacity = new Field(this.capacity);
+    return new Array(array, capacity).slice(capacity.sub(this.length).seal());
   }
 
   /**

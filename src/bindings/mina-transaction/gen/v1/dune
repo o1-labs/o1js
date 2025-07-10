@@ -11,6 +11,7 @@
   (:script ../../../../build/js-layout-to-types.mjs)
   ../../../ocaml/jsLayout.json
   ../../../../../.prettierrc.cjs
-  (glob_files ../../../../../node_modules/prettier/*))
+  ../../../../../node_modules/prettier/standalone.js
+  (glob_files ../../../../../node_modules/prettier/plugins/*))
  (action
   (run node %{script})))

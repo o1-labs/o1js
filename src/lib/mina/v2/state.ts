@@ -108,7 +108,7 @@ const StateDefinition = {
     GenericIn2,
     CustomIn2,
     GenericOut,
-    CustomOut
+    CustomOut,
   >(
     definition: StateDefinition<State>,
     value1: State extends 'GenericState' ? GenericIn1 : CustomIn1,
@@ -351,8 +351,8 @@ const StateUpdates = {
             update === undefined
               ? new Update(new Bool(false), T.empty())
               : update instanceof Update
-              ? update
-              : new Update(new Bool(true), update);
+                ? update
+                : new Update(new Bool(true), update);
           const fields = T.toFields(update2.value);
           return fields.map((field) => new Update(update2.set, field));
         });
@@ -584,7 +584,10 @@ const StateReader = {
 };
 
 class StateFieldsArray<T> {
-  constructor(private fieldElements: T[], empty: () => T) {
+  constructor(
+    private fieldElements: T[],
+    empty: () => T
+  ) {
     if (this.fieldElements.length > MAX_ZKAPP_STATE_FIELDS) {
       throw new Error('exceeded maximum number of state elements');
     }
