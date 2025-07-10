@@ -1,50 +1,23 @@
 # o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![npm](https://img.shields.io/npm/dm/o1js)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
 
-ℹ️ **o1js** is an evolution of
-[SnarkyJS](https://www.npmjs.com/package/snarkyjs) which saw 49 updated versions
-over two years of development with 43,141 downloads.
-
-This name change to o1js reflects the evolution of our vision for the premiere
-toolkit used by developers to build zero knowledge-enabled applications, while
-paying homage to our technology's recursive proof generation capabilities.
-
-Your favorite functionality stays the same and transitioning to o1js is a quick
-and easy process:
-
-- To update zkApp-cli, run the following command:
-
-  `npm i -g zkapp-cli@latest`
-
-- To remove the now-deprecated SnarkyJS package and install o1js, run the
-  following command:
-
-  `npm remove snarkyjs && npm install o1js`
-
-- For existing zkApps, make sure to update your imports from `snarkyjs` to
-  `o1js`
-- No need to redeploy, you are good to go!
-
 ## o1js
 
-o1js helps developers build apps powered by zero knowledge (zk) cryptography.
+o1js makes it easy for developers to build applications powered by
+zero-knowledge (zk) cryptography.
 
-The easiest way to write zk programs is using o1js.
-
-o1js is a TypeScript library for
-[zk-SNARKs](https://minaprotocol.com/blog/what-are-zk-snarks) and zkApps. You
-can use o1js to write zk smart contracts based on zero-knowledge proofs for the
-Mina Protocol.
-
-o1js is automatically included when you create a project using the
-[zkApp CLI](https://www.npmjs.com/package/zkapp-cli).
+Developers can use o1js to write zk circuits and prove + verify them in browser
+or node environment, or create proofs to be verified by the Mina Protocol.
 
 ## Learn More
 
-- To learn more about developing zkApps, see the
-  [zkApp Developers](https://docs.minaprotocol.com/zkapps) docs.
+- [zkApp CLI](https://www.npmjs.com/package/zkapp-cli) is a scaffolding tool to
+  start a new project with o1js
 
-- For guided steps building and using zkApps, see the
-  [zkApp Developers Tutorials](https://docs.minaprotocol.com/zkapps/tutorials/hello-world).
+- To learn more about the language features, see the
+  [o1js documentation](https://docs.o1labs.org/o1js).
+
+- To learn how to build ZkApps on Mina, see the
+  [zkApp documentation](https://docs.minaprotocol.com/zkapps).
 
 - To meet other developers building zkApps with o1js, participate in the
   [#zkapps-developers](https://discord.com/channels/484437221055922177/915745847692636181)
@@ -54,7 +27,7 @@ o1js is automatically included when you create a project using the
   [CHANGELOG](https://github.com/o1-labs/o1js/blob/main/CHANGELOG.md).
 
 - To stay up to date with o1js, see the
-  [O(1) Labs Blog](https://www.o1labs.org/blog?topics=o1js).
+  [o1Labs Blog](https://www.o1labs.org/blog?topics=o1js).
 
 ## Contributing
 

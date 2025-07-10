@@ -4,4 +4,13 @@ module.exports = {
   semi: true,
   singleQuote: true,
   printWidth: 100,
+  overrides: [
+    {
+      files: '*.md',
+      options: {
+        printWidth: 80,
+        proseWrap: 'always',
+      },
+    },
+  ],
 };
