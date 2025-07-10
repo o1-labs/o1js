@@ -78,13 +78,13 @@ let bytes: Spec<MlBytes, Uint8Array> = {
   back: mlBytesFromUint8Array,
 };
 
-function option<T, S>(spec: Spec<T, S>): Spec<MlOption<T>, S | undefined> {
-  return {
-    rng: Random.map(Random.oneOf(spec.rng, undefined), (o) => MlOption(o)),
-    there: (x) => MlOption.mapFrom(x, spec.there),
-    back: (x) => MlOption.mapTo(x, spec.back),
-  };
-}
+// function option<T, S>(spec: Spec<T, S>): Spec<MlOption<T>, S | undefined> {
+//   return {
+//     rng: Random.map(Random.oneOf(spec.rng, undefined), (o) => MlOption(o)),
+//     there: (x) => MlOption.mapFrom(x, spec.there),
+//     back: (x) => MlOption.mapTo(x, spec.back),
+//   };
+// }
 
 equivalentRecord(
   Bigint256Bindings as Omit<

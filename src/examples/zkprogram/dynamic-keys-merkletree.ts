@@ -162,10 +162,10 @@ const validProof2 = await verify(proof2, mainVk);
 console.log('ok?', validProof2);
 
 console.log('Proving different method of child program');
-const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
+const { proof: _childProof2 } = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
 
 console.log('Proving verification inside main program');
-const proof3 = await mainProgram.validateUsingTree(
+const _proof3 = await mainProgram.validateUsingTree(
   proof1.publicOutput,
   proof1,
   programVk,
@@ -173,5 +173,5 @@ const proof3 = await mainProgram.validateUsingTree(
   SideloadedProgramProof.fromProof(childProof)
 );
 
-const validProof3 = await verify(proof2, mainVk);
+const _validProof3 = await verify(proof2, mainVk);
 console.log('ok?', validProof2);

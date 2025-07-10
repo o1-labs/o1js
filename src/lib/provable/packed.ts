@@ -5,7 +5,7 @@ import { Provable } from './provable.js';
 import { fields, modifiedField } from './types/fields.js';
 import { mapValue, provableFromClass } from './types/provable-derivers.js';
 import { ProvableType, WithProvable } from './types/provable-intf.js';
-import { HashInput, ProvableExtended } from './types/struct.js';
+import { HashInput } from './types/struct.js';
 import { Unconstrained } from './types/unconstrained.js';
 
 export { Packed, Hashed };

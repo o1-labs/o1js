@@ -541,11 +541,10 @@ class SmartContract extends SmartContractBase {
    * Returns a Proof type that belongs to this {@link SmartContract}.
    */
   static Proof() {
-    let Contract = this;
     return class extends Proof<ZkappPublicInput, Empty> {
       static publicInputType = ZkappPublicInput;
       static publicOutputType = Empty;
-      static tag = () => Contract;
+      static tag = () => this;
     };
   }
 

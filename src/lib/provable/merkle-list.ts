@@ -528,7 +528,6 @@ class MerkleListIterator<T> implements MerkleListIteratorBase<T> {
    * Low-level APIs for advanced uses
    */
   get Unsafe() {
-    let self = this;
     return {
       /**
        * Version of {@link previous} which doesn't guarantee anything about

@@ -17,10 +17,11 @@ async function initializeBindings() {
 
   // this dynamic import makes jest respect the import order
   // otherwise the cjs file gets imported before its implicit esm dependencies and fails
-  CJS: if (typeof require !== 'undefined') {
+  if (typeof require !== 'undefined') {
     snarky = require('./bindings/compiled/_node_bindings/o1js_node.bc.cjs');
+  } else {
+    snarky = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
   }
-  ESM: snarky = (await import('./bindings/compiled/_node_bindings/o1js_node.bc.cjs')).default;
   ({ Snarky, Ledger, Pickles, Test: Test_ } = snarky);
   resolve();
   initializingPromise = undefined;

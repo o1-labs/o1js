@@ -17,6 +17,7 @@ function main(nMuls: number) {
   for (let i = 0; i < nMuls; i++) {
     z = z.mul(x);
   }
+  return z;
 }
 
 tic('run and check');
