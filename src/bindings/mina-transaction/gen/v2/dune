@@ -1,6 +1,5 @@
 (rule
- (targets
-  js-layout.ts)
+ (targets js-layout.ts)
  (mode promote)
  (enabled_if
   (<> %{env:NO_JS_BUILD=0} 1))
