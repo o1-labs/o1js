@@ -9,9 +9,6 @@
   (<> %{env:NO_JS_BUILD=0} 1))
  (deps
   (:script ../../../../build/js-layout-to-types.mjs)
-  ../../../ocaml/jsLayout.json
-  ../../../../../.prettierrc.cjs
-  ../../../../../node_modules/prettier/standalone.js
-  (glob_files ../../../../../node_modules/prettier/plugins/*))
+  ../../../ocaml/jsLayout.json)
  (action
   (run node %{script})))
