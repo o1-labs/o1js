@@ -745,14 +745,12 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 
   get balance() {
-    let accountUpdate = this;
-
     return {
-      addInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        accountUpdate.body.balanceChange = accountUpdate.body.balanceChange.add(x);
+      addInPlace: (x: Int64 | UInt32 | UInt64 | string | number | bigint) => {
+        this.body.balanceChange = this.body.balanceChange.add(x);
       },
-      subInPlace(x: Int64 | UInt32 | UInt64 | string | number | bigint) {
-        accountUpdate.body.balanceChange = accountUpdate.body.balanceChange.sub(x);
+      subInPlace: (x: Int64 | UInt32 | UInt64 | string | number | bigint) => {
+        this.body.balanceChange = this.body.balanceChange.sub(x);
       },
     };
   }

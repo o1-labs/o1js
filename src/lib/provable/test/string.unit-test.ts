@@ -174,7 +174,7 @@ describe('Circuit String', () => {
     test('cannot use a character out of range', () => {
       expect(() => {
         Provable.runAndCheck(() => {
-          const str = Provable.witness(CircuitString, () => {
+          const _str = Provable.witness(CircuitString, () => {
             return CircuitString.fromCharacters([
               new Character(Field(100)),
               new Character(Field(10000)),

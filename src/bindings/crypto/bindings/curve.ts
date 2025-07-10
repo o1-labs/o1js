@@ -10,7 +10,7 @@ import { withPrefix } from './util.js';
 export {
   VestaBindings,
   PallasBindings,
-  Infinity,
+  InfinityPoint as Infinity,
   OrInfinity,
   OrInfinityJson,
   toMlOrInfinity,
@@ -35,7 +35,7 @@ function createCurveBindings(Curve: ProjectiveCurve) {
     random(): GroupProjective {
       throw Error('random not implemented');
     },
-    rng(i: number): GroupProjective {
+    rng(_i: number): GroupProjective {
       throw Error('rng not implemented');
     },
     endo_base(): Field {
@@ -63,18 +63,18 @@ function createCurveBindings(Curve: ProjectiveCurve) {
 const affineZero = { x: 0n, y: 0n, infinity: true };
 
 // Kimchi_types.or_infinity
-type Infinity = 0;
-const Infinity = 0;
+type InfinityType = 0;
+const InfinityPoint = 0;
 type Finite<T> = [0, T];
-type OrInfinity = Infinity | Finite<MlPair<Field, Field>>;
+type OrInfinity = InfinityType | Finite<MlPair<Field, Field>>;
 
 function toMlOrInfinity(g: GroupAffine): OrInfinity {
-  if (g.infinity) return 0;
+  if (g.infinity) return InfinityPoint;
   return [0, [0, [0, g.x], [0, g.y]]];
 }
 
 function fromMlOrInfinity(g: OrInfinity): GroupAffine {
-  if (g === 0) return affineZero;
+  if (g === InfinityPoint) return affineZero;
   return { x: g[1][1][1], y: g[1][2][1], infinity: false };
 }
 
@@ -82,11 +82,11 @@ type OrInfinityJson = 'Infinity' | { x: string; y: string };
 
 const OrInfinity = {
   toJSON(g: OrInfinity): OrInfinityJson {
-    if (g === 0) return 'Infinity';
+    if (g === InfinityPoint) return 'Infinity';
     return { x: g[1][1][1].toString(), y: g[1][2][1].toString() };
   },
   fromJSON(g: OrInfinityJson): OrInfinity {
-    if (g === 'Infinity') return 0;
+    if (g === 'Infinity') return InfinityPoint;
     return [0, [0, [0, BigInt(g.x)], [0, BigInt(g.y)]]];
   },
 };

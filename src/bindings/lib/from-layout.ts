@@ -233,7 +233,7 @@ function SignableFromLayout<TypeMap extends AnyTypeMap, JsonMap extends AnyTypeM
           return type.toJSON(value);
         },
         reduceArray(array) {
-          if (array.length === 0 || array.every((x) => x === null)) return null;
+          if (array.every((x) => x === null)) return null;
           return array;
         },
         reduceObject(_, object) {

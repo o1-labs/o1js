@@ -5,7 +5,6 @@ import {
   Lightnet,
   Mina,
   PrivateKey,
-  Provable,
   PublicKey,
   Reducer,
   SmartContract,

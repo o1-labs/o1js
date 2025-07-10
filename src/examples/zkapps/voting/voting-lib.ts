@@ -57,7 +57,7 @@ export function getResults(voting: Voting_, votesStore: OffchainStorage<Member>)
   }
 
   let result: Record<string, number> = {};
-  votesStore.forEach((m, i) => {
+  votesStore.forEach((m, _i) => {
     result[m.publicKey.toBase58()] = Number(m.votes.toString());
   });
   return result;

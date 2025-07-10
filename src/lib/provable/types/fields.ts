@@ -45,7 +45,7 @@ function fields(length: number): ProvablePureExtended<Field[], bigint[], string[
     fromJSON: (x) => x.map(getField().fromJSON),
     empty: () => {
       let zero = createField(0);
-      return new Array(length).fill(zero);
+      return Array.from({ length }, () => zero);
     },
   };
 }

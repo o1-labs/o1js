@@ -87,7 +87,7 @@ let RegressionJson: {
 
 try {
   RegressionJson = JSON.parse(fs.readFileSync(filePath).toString());
-} catch (error) {
+} catch (_error) {
   if (!dump) {
     throw Error(
       `The requested file ${filePath} does not yet exist, try dumping the verification keys first. npm run dump-vks`

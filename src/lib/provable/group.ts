@@ -2,7 +2,6 @@ import { GroupAffine, Pallas, PallasAffine } from '../../bindings/crypto/ellipti
 import { Fp } from '../../bindings/crypto/finite-field.js';
 import { assert } from '../util/assert.js';
 
-import { Bool } from './bool.js';
 import { FieldVar } from './core/fieldvar.js';
 import { Field } from './field.js';
 import { add, scaleField, scaleShifted } from './gadgets/native-curve.js';
@@ -266,7 +265,7 @@ class Group {
    *
    * Returns an empty array.
    */
-  static toAuxiliary(g?: Group) {
+  static toAuxiliary(_g?: Group) {
     return [];
   }
 

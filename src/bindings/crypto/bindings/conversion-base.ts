@@ -7,7 +7,7 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { bigintToBytes32, bytesToBigint32 } from '../bigint-helpers.js';
 
-import { Infinity, OrInfinity } from './curve.js';
+import { Infinity as InfinityPoint, OrInfinity } from './curve.js';
 import { Field } from './field.js';
 
 export {
@@ -81,7 +81,7 @@ const tmpBytes = new Uint8Array(32);
 
 function affineToRust<A extends WasmAffine>(pt: OrInfinity, makeAffine: () => A) {
   let res = makeAffine();
-  if (pt === Infinity) {
+  if (pt === InfinityPoint) {
     res.infinity = true;
   } else {
     let [, [, x, y]] = pt;

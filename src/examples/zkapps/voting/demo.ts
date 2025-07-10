@@ -293,7 +293,7 @@ function printResult() {
   }
 
   let result: any = [];
-  votesStore.forEach((m, i) => {
+  votesStore.forEach((m, _i) => {
     result.push({
       [m.publicKey.toBase58()]: m.votes.toString(),
     });

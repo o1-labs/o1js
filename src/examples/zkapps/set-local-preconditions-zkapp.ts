@@ -68,7 +68,7 @@ try {
   });
   await tx.prove();
   await tx.sign([feePayer.key]).send();
-} catch (error) {
+} catch (_error) {
   console.log(
     `Expected to fail! block height is ${Local.getNetworkState().blockchainLength.toString()}, but trying to assert ${blockHeight.toString()}`
   );

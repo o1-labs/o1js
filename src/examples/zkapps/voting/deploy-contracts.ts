@@ -1,6 +1,5 @@
 import {
   AccountUpdate,
-  DeployArgs,
   Field,
   Mina,
   Permissions,
