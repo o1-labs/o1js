@@ -233,6 +233,7 @@ function ZkProgram<
       [I in keyof Config['methods']]: InferMethodType<Config>[I];
     };
     overrideWrapDomain?: 0 | 1 | 2;
+    numChunks?: number;
   }
 ): {
   name: string;
@@ -387,6 +388,7 @@ function ZkProgram<
         cache,
         forceRecompile,
         overrideWrapDomain: config.overrideWrapDomain,
+        numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
       });
@@ -691,6 +693,7 @@ async function compileProgram({
   cache,
   forceRecompile,
   overrideWrapDomain,
+  numChunks,
   state,
   withRuntimeTables,
 }: {
@@ -704,6 +707,7 @@ async function compileProgram({
   cache: Cache;
   forceRecompile: boolean;
   overrideWrapDomain?: 0 | 1 | 2;
+  numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
 }) {
