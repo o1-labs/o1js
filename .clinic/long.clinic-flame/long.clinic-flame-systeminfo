@@ -1,0 +1,31 @@
+{
+  "mainDirectory": "/home/anais/codes/o1js-v2.4.0/dist/examples/zkprogram",
+  "pathSeparator": "/",
+  "nodeVersions": {
+    "node": "21.4.0",
+    "acorn": "8.11.2",
+    "ada": "2.7.4",
+    "ares": "1.20.1",
+    "base64": "0.5.1",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "1.2.2",
+    "cldr": "44.0",
+    "icu": "74.1",
+    "llhttp": "9.1.3",
+    "modules": "120",
+    "napi": "9",
+    "nghttp2": "1.58.0",
+    "nghttp3": "0.7.0",
+    "ngtcp2": "0.8.1",
+    "openssl": "3.0.12+quic",
+    "simdutf": "4.0.4",
+    "tz": "2023c",
+    "undici": "5.28.1",
+    "unicode": "15.1",
+    "uv": "1.46.0",
+    "uvwasi": "0.0.19",
+    "v8": "11.8.172.17-node.17",
+    "zlib": "1.2.13.1-motley-5daffc7"
+  },
+  "toolVersion": "13.0.0"
+}
