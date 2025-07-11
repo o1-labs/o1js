@@ -243,6 +243,7 @@ function ZkProgram<
     forceRecompile?: boolean;
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
+    numChunks?: number;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -760,6 +761,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           publicOutputSize: publicOutputType.sizeInFields(),
           storable: picklesCache,
           overrideWrapDomain,
+          numChunks: numChunks ?? 1,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
