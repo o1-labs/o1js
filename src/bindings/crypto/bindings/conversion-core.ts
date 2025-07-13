@@ -6,7 +6,7 @@ import type {
   WasmGPallas,
   WasmGVesta,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { OrInfinity, Gate, PolyComm, Wire } from './kimchi-types.js';
+import type { OrInfinity, Gate as GateType, PolyComm as PolyCommType, Wire } from './kimchi-types.js';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { MlArray } from '../../../lib/ml/base.js';
 import { mapTuple } from './util.js';
@@ -74,7 +74,7 @@ function conversionCore(wasm: wasm) {
 
 function conversionCorePerField(
   wasm: wasm,
-  { CommitmentCurve, makeAffine, Gate, PolyComm }: WasmClasses
+  { CommitmentCurve, makeAffine, Gate: GateClass, PolyComm: PolyCommClass }: WasmClasses
 ) {
   let self = {
     wireToRust([, row, col]: Wire) {
@@ -84,11 +84,11 @@ function conversionCorePerField(
     vectorToRust: fieldsToRustFlat,
     vectorFromRust: fieldsFromRustFlat,
 
-    gateToRust(gate: Gate) {
-      let [, typ, [, ...wires], coeffs] = gate;
+    gateToRust(gateTuple: GateType) {
+      let [, typ, [, ...wires], coeffs] = gateTuple;
       let rustWires = new wasm.WasmGateWires(...mapTuple(wires, self.wireToRust));
       let rustCoeffs = fieldsToRustFlat(coeffs);
-      return new Gate(typ, rustWires, rustCoeffs);
+      return new GateClass(typ, rustWires, rustCoeffs);
     },
     gateFromRust(wasmGate: WasmFpGate | WasmFqGate) {
       // note: this was never used and the old implementation was wrong
@@ -109,13 +109,13 @@ function conversionCorePerField(
       return [0, ...arr];
     },
 
-    polyCommToRust(polyComm: PolyComm): WasmPolyComm {
-      let [, camlElems] = polyComm;
+    polyCommToRust(polyCommTuple: PolyCommType) {
+      let [, camlElems] = polyCommTuple;
       let rustShifted = undefined;
       let rustUnshifted = self.pointsToRust(camlElems);
-      return new PolyComm(rustUnshifted, rustShifted);
+      return new PolyCommClass(rustUnshifted, rustShifted);
     },
-    polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
+    polyCommFromRust(polyComm: WasmPolyComm): PolyCommType {
       let rustUnshifted = polyComm.unshifted;
       let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
         return affineFromRust(wrap(ptr, CommitmentCurve));
@@ -123,11 +123,11 @@ function conversionCorePerField(
       return [0, [0, ...mlUnshifted]];
     },
 
-    polyCommsToRust([, ...comms]: MlArray<PolyComm>): Uint32Array {
+    polyCommsToRust([, ...comms]: MlArray<PolyCommType>): Uint32Array {
       return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
     },
-    polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyComm> {
-      let comms = mapFromUintArray(rustComms, (ptr) => self.polyCommFromRust(wrap(ptr, PolyComm)));
+    polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyCommType> {
+      let comms = mapFromUintArray(rustComms, (ptr) => self.polyCommFromRust(wrap(ptr, PolyCommClass)));
       return [0, ...comms];
     },
   };
