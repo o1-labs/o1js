@@ -62,12 +62,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {
     main: InferMainType<Config>;
   }
-): {
-  compile: () => Promise<{ verificationKey: VerificationKey }>;
-  analyzeMethod: () => Promise<ConstraintSystemSummary>;
-  prove: ProveMethodType<Config>;
-  verify: VerifyMethodType<Config>;
-} {
+) {
   const publicInputType = provablePure(config.publicInputType ?? undefined);
   const hasPublicInput = config.publicInputType !== undefined;
 
@@ -151,12 +146,11 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * const proof = await zkf.prove(publicInput, privateInput1, privateInput2);
      * ```
      */
-    async prove(...args: any[]) {
+    async prove(...args: Parameters<ProveMethodType<Config>>) {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
 
       const publicInput = hasPublicInput ? args[0] : undefined;
       const privateInputs = (hasPublicInput ? args.slice(1) : args) as PrivateInputs<Config>;
-
       const publicInputSize = publicInputType.sizeInFields();
       const publicInputFields = publicInputType.toFields(publicInput);
       const main = mainFromCircuitData(config, privateInputs);
@@ -188,7 +182,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * const isValid = await zkf.verify(publicInput, proof, verificationKey);
      * ```
      */
-    async verify(...args: any[]) {
+    async verify(...args: Parameters<VerifyMethodType<Config>>) {
       let publicInput: PublicInput<Config>;
       let proof: Proof;
       let verificationKey: VerificationKey;
