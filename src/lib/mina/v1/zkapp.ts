@@ -706,16 +706,38 @@ super.init();
       }
     });
   }
-  // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
   /**
    * `SmartContract.init()` will be called only when a {@link SmartContract} will be first deployed, not for redeployment.
    * This method can be overridden as follows
-   * ```
+   *
+   * @example
+   * ```ts
    * class MyContract extends SmartContract {
-   *  init() {
+   *  @method async init() {
    *    super.init();
    *    this.account.permissions.set(...);
    *    this.x.set(Field(1));
+   *  }
+   * }
+   * ```
+   *
+   * @note
+   * `init` is specifically called during the smart contract deployment.  It cannot be given parameters for additional customization.
+   * In order to inizialize a smart contract with parameters (dynamic initialization), you should write another method to be called after the deployment.
+   *
+   * @example
+   * ```ts
+   * class MyContract extends SmartContract {
+   *  @method async init() {
+   *   super.init();
+   *   this.account.permissions.set(...);
+   *   this.x.set(Field(1));
+   *  }
+   *
+   *  @method async initializeY(y: Field) {
+   *    this.y.getAndRequireEquals();
+   *    this.y.assertEquals(Field(0)); // ensure y is not set yet
+   *    this.y.set(y);
    *  }
    * }
    * ```
