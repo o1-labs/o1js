@@ -36,7 +36,6 @@ This project adheres to
 
 - `IndexedMerkleMap` has been promoted from the `Experimental` namespace and is
   now part of the public API. https://github.com/o1-labs/o1js/pull/2114
--
 
 ### Fixed
 
