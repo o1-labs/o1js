@@ -19,10 +19,8 @@
 ## Debugging
 
 - **Q: How do I profile o1js performance using flame graphs? ?**
-
   - A: Use Clinic.js to generate flame graphs for performance profiling. Install
     it and follow this workflow:
-
     - Setup:
       ```bash
       npm install -g clinic
@@ -36,7 +34,6 @@
     performance bottlenecks.
 
     Best practices:
-
     - Keep scripts focused - only profile what you need (e.g., just
       compilation + one proof)
     - Use clean builds - `run build:examples` after script changes to see
@@ -48,7 +45,6 @@
       (leaves)
 
     Analysis tips:
-
     - Click "Show how to use this" for an interactive tour Check total time in
       the top-left corner Learn the color coding for different operation types
     - Toggle dependencies at the bottom to focus on specific areas Zoom into
