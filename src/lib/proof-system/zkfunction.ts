@@ -13,6 +13,7 @@ import { ProvableTypePure } from '../provable/types/provable-intf.js';
 import { provablePure, InferProvable } from '../provable/types/provable-derivers.js';
 import { Tuple } from '../util/types.js';
 import { TupleToInstances } from './zkprogram.js';
+import { Field } from '../provable/wrapped.js';
 
 // external API
 export { ZkFunction, Proof, VerificationKey };
@@ -44,20 +45,17 @@ type ProveMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? (...args: PrivateInputs<Config>) => Promise<Proof<PublicInput<Config>>>
-  : (
-      publicInput: PublicInput<Config>,
-      ...args: PrivateInputs<Config>
-    ) => Promise<Proof<PublicInput<Config>>>;
+  ? (...args: PrivateInputs<Config>) => Promise<Proof>
+  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<Proof>;
 
 type VerifyMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? (proof: Proof<PublicInput<Config>>, verificationKey: VerificationKey) => Promise<boolean>
+  ? (proof: Proof, verificationKey: VerificationKey) => Promise<boolean>
   : (
       publicInput: PublicInput<Config>,
-      proof: Proof<PublicInput<Config>>,
+      proof: Proof,
       verificationKey: VerificationKey
     ) => Promise<boolean>;
 
@@ -165,7 +163,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
           MlFieldConstArray.to(publicInputFields),
           _keypair!
         );
-        return new Proof<PublicInput<Config>>(proof, config.publicInputType);
+        return new Proof(proof, publicInputFields);
       });
     },
 
@@ -187,15 +185,15 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      */
     async verify(...args: Parameters<VerifyMethodType<Config>>) {
       let publicInput: PublicInput<Config>;
-      let proof: Proof<PublicInput<Config>>;
+      let proof: Proof;
       let verificationKey: VerificationKey;
       if (hasPublicInput) {
         publicInput = args[0] as PublicInput<Config>;
-        proof = args[1] as Proof<PublicInput<Config>>;
+        proof = args[1] as Proof;
         verificationKey = args[2] as VerificationKey;
       } else {
         publicInput = undefined as PublicInput<Config>;
-        proof = args[0] as Proof<PublicInput<Config>>;
+        proof = args[0] as Proof;
         verificationKey = args[1] as VerificationKey;
       }
 
@@ -228,41 +226,24 @@ type ConstraintSystemSummary = {
   summary(): Record<string, number>;
 };
 
-type ProofVerifyMethod<PublicInput> = PublicInput extends undefined
-  ? (verificationKey: VerificationKey) => Promise<boolean>
-  : (publicInput: PublicInput, verificationKey: VerificationKey) => Promise<boolean>;
-
 /**
  * Proofs can be verified using a {@link VerificationKey} and the public input.
  */
-class Proof<P> {
+class Proof {
   value: Snarky.Proof;
-  publicInputType?: ProvableTypePure<P>;
+  publicInputFields: Field[];
 
-  constructor(value: Snarky.Proof, publicInputType?: ProvableTypePure<P>) {
+  constructor(value: Snarky.Proof, publicInputFields: Field[]) {
     this.value = value;
-    this.publicInputType = publicInputType;
+    this.publicInputFields = publicInputFields;
   }
 
-  async verify(...args: Parameters<ProofVerifyMethod<P>>) {
-    const publicInputType = provablePure(this.publicInputType);
-
-    let publicInput: P;
-    let verificationKey: VerificationKey;
-    if (this.publicInputType !== undefined) {
-      publicInput = args[0] as P;
-      verificationKey = args[1] as VerificationKey;
-    } else {
-      publicInput = undefined as P;
-      verificationKey = args[0] as VerificationKey;
-    }
-
-    const publicInputFields = publicInputType.toFields(publicInput);
+  async verify(verificationKey: VerificationKey) {
     await initializeBindings();
     return prettifyStacktracePromise(
       withThreadPool(async () =>
         Snarky.circuit.verify(
-          MlFieldConstArray.to(publicInputFields),
+          MlFieldConstArray.to(this.publicInputFields),
           this.value,
           verificationKey.value
         )
