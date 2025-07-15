@@ -1,4 +1,4 @@
-# `Circuit` examples
+# `ZkFunction` examples
 
 These examples show how to use `ZkFunction`, which is a simple API to write a
 single circuit and create proofs for it.
