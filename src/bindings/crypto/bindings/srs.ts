@@ -1,8 +1,5 @@
 import type { Wasm, RustConversion } from '../bindings.js';
-import type {
-  WasmFpSrs,
-  WasmFqSrs,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type { WasmFpSrs, WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { PolyComm } from './kimchi-types.js';
 import {
   type CacheHeader,
@@ -80,10 +77,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   let lagrangeCommitment = (srs: WasmFpSrs, domain_size: number, i: number) =>
     wasm[`caml_${f}_srs_lagrange_commitment`](srs, domain_size, i);
   let lagrangeCommitmentsWholeDomainPtr = (srs: WasmSrs, domain_size: number) =>
-    wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](
-      srs,
-      domain_size
-    );
+    wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](srs, domain_size);
   let setLagrangeBasis = wasm[`caml_${f}_srs_set_lagrange_basis`];
   let getLagrangeBasis = (srs: WasmSrs, n: number) =>
     wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
@@ -107,9 +101,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
           srs = readCache(cache, header, (bytes) => {
             // TODO: this takes a bit too long, about 300ms for 2^16
             // `pointsToRust` is the clear bottleneck
-            let jsonSrs: OrInfinityJson[] = JSON.parse(
-              new TextDecoder().decode(bytes)
-            );
+            let jsonSrs: OrInfinityJson[] = JSON.parse(new TextDecoder().decode(bytes));
             let mlSrs = MlArray.mapTo(jsonSrs, OrInfinity.fromJSON);
             let wasmSrs = conversion[f].pointsToRust(mlSrs);
             return setSrs(wasmSrs);
@@ -153,9 +145,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
           let header = cacheHeaderLagrange(f, domainSize);
 
           let didRead = readCache(cache, header, (bytes) => {
-            let comms: PolyCommJson[] = JSON.parse(
-              new TextDecoder().decode(bytes)
-            );
+            let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
             let mlComms = polyCommsFromJSON(comms);
             let wasmComms = conversion[f].polyCommsToRust(mlComms);
 

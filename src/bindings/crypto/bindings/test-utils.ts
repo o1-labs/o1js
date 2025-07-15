@@ -1,7 +1,4 @@
-import {
-  equivalent,
-  SpecFromFunctions,
-} from '../../../lib/testing/equivalent.js';
+import { equivalent, SpecFromFunctions } from '../../../lib/testing/equivalent.js';
 
 export { equivalentRecord };
 
@@ -12,7 +9,7 @@ function equivalentRecord<
   S extends Record<keyof T, AnyFunction>,
   Specs extends {
     [k in keyof T]: SpecFromFunctions<T[k], S[k]> | undefined;
-  }
+  },
 >(t: T, s: S, specs: Specs) {
   for (let key in specs) {
     let spec = specs[key];

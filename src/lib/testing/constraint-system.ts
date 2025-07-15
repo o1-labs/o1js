@@ -436,8 +436,8 @@ type CsVarSpec<T> = Provable<T, any> | { provable: Provable<T, any> };
 type InferCsVar<T> = T extends { provable: Provable<infer U, any> }
   ? U
   : T extends Provable<infer U, any>
-  ? U
-  : never;
+    ? U
+    : never;
 type CsParams<In extends Tuple<CsVarSpec<any>>> = {
   [k in keyof In]: InferCsVar<In[k]>;
 };

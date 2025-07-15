@@ -225,7 +225,7 @@ type InferMethodType<Config extends ConfigBaseType> = {
  */
 function ZkProgram<
   Config extends ConfigBaseType,
-  _ extends unknown = unknown // weird hack that makes methods infer correctly when their inputs are not annotated
+  _ extends unknown = unknown, // weird hack that makes methods infer correctly when their inputs are not annotated
 >(
   config: Config & {
     name: string;
@@ -245,6 +245,7 @@ function ZkProgram<
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
     numChunks?: number;
+    lazyMode?: boolean;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -257,13 +258,19 @@ function ZkProgram<
   digest: () => Promise<string>;
   /**
    * Analyze the constraint system created by each method in the program.
+   * Every method is executed in a circuit, and the constraints are analyzed.
    *
    * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
    */
   analyzeMethods: () => Promise<{
     [I in keyof Config['methods']]: MethodAnalysis;
   }>;
-
+  /**
+   * Analyze the constraint system created by a single method in the program without analyzing any other methods and executing them.
+   *
+   * @returns A summary of this method, with a value of the {@link MethodAnalysis} for that method
+   */
+  analyzeSingleMethod<K extends keyof Config['methods']>(methodName: K): Promise<MethodAnalysis>;
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
   privateInputTypes: InferPrivateInput<Config>;
@@ -350,6 +357,14 @@ function ZkProgram<
     };
   }
 
+  async function analyzeSingleMethod<K extends keyof Methods>(
+    methodName: K
+  ): Promise<MethodAnalysis> {
+    let methodIntf = methodIntfs[methodKeys.indexOf(methodName)];
+    let methodImpl = methodFunctions[methodKeys.indexOf(methodName)];
+    return await analyzeMethod(publicInputType, methodIntf, methodImpl);
+  }
+
   let compileOutput:
     | {
         provers: Pickles.Prover[];
@@ -368,6 +383,7 @@ function ZkProgram<
     forceRecompile = false,
     proofsEnabled = undefined as boolean | undefined,
     withRuntimeTables = false,
+    lazyMode = false,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -391,6 +407,7 @@ function ZkProgram<
         numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
+        lazyMode,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -546,7 +563,9 @@ function ZkProgram<
       compile,
       verify,
       digest,
+
       analyzeMethods,
+      analyzeSingleMethod,
 
       publicInputType: publicInputType as ProvableOrUndefined<Get<Config, 'publicInput'>>,
       publicOutputType: publicOutputType as ProvableOrVoid<Get<Config, 'publicOutput'>>,
@@ -584,7 +603,7 @@ type ZkProgram<
         auxiliaryOutput?: ProvableType;
       };
     };
-  }
+  },
 > = ReturnType<typeof ZkProgram<Config>>;
 
 /**
@@ -696,6 +715,7 @@ async function compileProgram({
   numChunks,
   state,
   withRuntimeTables,
+  lazyMode,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -710,6 +730,7 @@ async function compileProgram({
   numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
+  lazyMode?: boolean;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -766,6 +787,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           storable: picklesCache,
           overrideWrapDomain,
           numChunks: numChunks ?? 1,
+          lazyMode: lazyMode ?? false,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
@@ -1037,7 +1059,7 @@ function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
 
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvable<any>,
-  PublicOutputType extends FlexibleProvable<any>
+  PublicOutputType extends FlexibleProvable<any>,
 >(program: {
   name: string;
   publicInputType: PublicInputType;
@@ -1089,11 +1111,12 @@ function Prover<ProverData>() {
 
 // helper types
 
-type Infer<T> = T extends Subclass<typeof ProofBase>
-  ? InstanceType<T>
-  : T extends ProvableType
-  ? InferProvableType<T>
-  : never;
+type Infer<T> =
+  T extends Subclass<typeof ProofBase>
+    ? InstanceType<T>
+    : T extends ProvableType
+      ? InferProvableType<T>
+      : never;
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
@@ -1111,13 +1134,13 @@ type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
         auxiliaryOutput: AuxiliaryOutput;
       }
   : AuxiliaryOutput extends undefined
-  ? {
-      publicOutput: PublicOutput;
-    }
-  : {
-      publicOutput: PublicOutput;
-      auxiliaryOutput: AuxiliaryOutput;
-    };
+    ? {
+        publicOutput: PublicOutput;
+      }
+    : {
+        publicOutput: PublicOutput;
+        auxiliaryOutput: AuxiliaryOutput;
+      };
 
 type Method<
   PublicInput,
@@ -1125,7 +1148,7 @@ type Method<
   MethodSignature extends {
     privateInputs: Tuple<PrivateInput>;
     auxiliaryOutput?: ProvableType;
-  }
+  },
 > = PublicInput extends undefined
   ? {
       method(
@@ -1154,7 +1177,7 @@ type RegularProver<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput
+  AuxiliaryOutput,
 > = (
   publicInput: From<PublicInputType>,
   ...args: TupleFrom<Args>
@@ -1168,7 +1191,7 @@ type Prover<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput
+  AuxiliaryOutput,
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
@@ -1188,8 +1211,8 @@ type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : A extends ProvableType
-  ? InferProvable<A>
-  : InferProvable<A> | undefined;
+    ? InferProvable<A>
+    : InferProvable<A> | undefined;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;

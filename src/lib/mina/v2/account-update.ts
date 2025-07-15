@@ -213,7 +213,10 @@ type AccountUpdateTreeDescription<RootDescription, Child> = RootDescription & {
 // TODO: CONSIDER -- merge this logic into AccountUpdate
 //  class AccountUpdateTree<AccountUpdateType> {
 class AccountUpdateTree<Root, Child = Root> {
-  constructor(public rootAccountUpdate: Root, public children: AccountUpdateTree<Child, Child>[]) {}
+  constructor(
+    public rootAccountUpdate: Root,
+    public children: AccountUpdateTree<Child, Child>[]
+  ) {}
 
   // depth first traversal (parents before children)
   static forEachNode<T>(
@@ -379,7 +382,7 @@ class AccountUpdateTree<Root, Child = Root> {
 interface ContextFreeAccountUpdateDescription<
   State extends StateLayout = 'GenericState',
   Event = Field[],
-  Action = Field[]
+  Action = Field[],
 > {
   // TODO: accept identifiers for authorization kind
   authorizationKind: AccountUpdateAuthorizationKindIdentifier | AccountUpdateAuthorizationKind;
@@ -406,7 +409,7 @@ interface ContextFreeAccountUpdateDescription<
 class ContextFreeAccountUpdate<
   State extends StateLayout = 'GenericState',
   Event = Field[],
-  Action = Field[]
+  Action = Field[],
 > {
   readonly State: StateDefinition<State>;
   authorizationKind: AccountUpdateAuthorizationKind;
@@ -601,7 +604,7 @@ type AccountUpdateDescription<State extends StateLayout, Event = Field[], Action
 class AccountUpdate<
   State extends StateLayout = 'GenericState',
   Event = Field[],
-  Action = Field[]
+  Action = Field[],
 > extends ContextFreeAccountUpdate<State, Event, Action> {
   accountId: AccountId;
   verificationKeyHash: Field;
@@ -964,9 +967,9 @@ class Authorized<State extends StateLayout = 'GenericState', Event = Field[], Ac
       {
         // when the internal representation is returned from the previous version when casting from fields,
         // (if there is no proof or authorization, values are set to false rather than to undefined)
-        proof: (x.authorization.proof as any) !== false ? x.authorization.proof ?? null : null,
+        proof: (x.authorization.proof as any) !== false ? (x.authorization.proof ?? null) : null,
         signature:
-          (x.authorization.proof as any) !== false ? x.authorization.signature ?? null : null,
+          (x.authorization.proof as any) !== false ? (x.authorization.signature ?? null) : null,
       },
       AccountUpdate.fromInternalRepr(x.body)
     );

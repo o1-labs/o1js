@@ -127,7 +127,7 @@ function Struct<
   T extends InferProvable<A> = InferProvable<A>,
   V extends InferValue<A> = InferValue<A>,
   J extends InferJson<A> = InferJson<A>,
-  Pure extends boolean = IsPure<A>
+  Pure extends boolean = IsPure<A>,
 >(
   type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true
@@ -259,7 +259,7 @@ function Struct<
 function StructNoJson<
   A,
   T extends InferProvable<A> = InferProvable<A>,
-  Pure extends boolean = IsPure<A>
+  Pure extends boolean = IsPure<A>,
 >(
   type: A
 ): (new (value: T) => T) & { _isStruct: true } & (Pure extends true

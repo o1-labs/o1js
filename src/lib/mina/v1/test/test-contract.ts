@@ -281,11 +281,12 @@ function expectBalance(
 
 type State = OffchainField<any, any> | OffchainMap<any, any, any>;
 
-type Expected<S extends State> = S extends OffchainField<any, infer V>
-  ? V | undefined
-  : S extends OffchainMap<infer K, any, infer V>
-  ? [K, V | undefined]
-  : never;
+type Expected<S extends State> =
+  S extends OffchainField<any, infer V>
+    ? V | undefined
+    : S extends OffchainMap<infer K, any, infer V>
+      ? [K, V | undefined]
+      : never;
 
 // error helper
 

@@ -108,7 +108,10 @@ class ZkappFeePayment {
 }
 
 class AuthorizedZkappFeePayment {
-  constructor(public readonly body: ZkappFeePayment, public readonly signature: string) {}
+  constructor(
+    public readonly body: ZkappFeePayment,
+    public readonly signature: string
+  ) {}
 
   toInternalRepr(): BindingsLayout.ZkappFeePayer {
     return {

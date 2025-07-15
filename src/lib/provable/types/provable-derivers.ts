@@ -86,7 +86,7 @@ function provableFromClass<
   A extends NestedProvable,
   T extends InferProvableNested<Field, A>,
   V extends InferValueNested<Field, A>,
-  J extends InferJsonNested<Field, A>
+  J extends InferJsonNested<Field, A>,
 >(
   Class: Constructor<T> & { check?: (x: T) => void; empty?: () => T },
   typeObj: A
@@ -165,7 +165,7 @@ function mapValue<
   A extends ProvableHashable<any>,
   V extends InferValue<A>,
   W,
-  T extends InferProvable<A>
+  T extends InferProvable<A>,
 >(provable: A, there: (x: V) => W, back: (x: W | T) => V | T): ProvableHashable<T, W> {
   return {
     sizeInFields() {

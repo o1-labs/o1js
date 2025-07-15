@@ -81,9 +81,7 @@ async function startWorkers(module, memory, builder) {
     self._workers.push(worker);
   }
   URL.revokeObjectURL(url);
-  await Promise.all(
-    self._workers.map((w) => waitForMessage(w, 'wasm_bindgen_worker_ready'))
-  );
+  await Promise.all(self._workers.map((w) => waitForMessage(w, 'wasm_bindgen_worker_ready')));
   builder.build();
 }
 startWorkers.deps = [srcFromFunctionModule, waitForMessage, workerHelperMain];

@@ -198,7 +198,7 @@ type MlSnarkKeysHeader = [
   constraintConstants: unknown,
   length: number,
   constraintSystemHash: MlString,
-  identifyingHash: MlString
+  identifyingHash: MlString,
 ];
 
 // Pickles.Cache.{Step,Wrap}.Key.Proving.t
@@ -208,7 +208,7 @@ type MlStepProvingKeyHeader = [
   typeEqual: number,
   snarkKeysHeader: MlSnarkKeysHeader,
   index: number,
-  constraintSystem: MlConstraintSystem
+  constraintSystem: MlConstraintSystem,
 ];
 
 type MlStepVerificationKeyHeader = [
@@ -216,21 +216,21 @@ type MlStepVerificationKeyHeader = [
   typeEqual: number,
   snarkKeysHeader: MlSnarkKeysHeader,
   index: number,
-  digest: unknown
+  digest: unknown,
 ];
 
 type MlWrapProvingKeyHeader = [
   _: 0,
   typeEqual: number,
   snarkKeysHeader: MlSnarkKeysHeader,
-  constraintSystem: MlConstraintSystem
+  constraintSystem: MlConstraintSystem,
 ];
 
 type MlWrapVerificationKeyHeader = [
   _: 0,
   typeEqual: number,
   snarkKeysHeader: MlSnarkKeysHeader,
-  digest: unknown
+  digest: unknown,
 ];
 
 // Pickles.Verification_key.t

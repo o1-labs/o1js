@@ -60,7 +60,7 @@ export { actionStackProgram, proveActionStack };
 class BatchReducer<
   ActionType extends Actionable<any>,
   BatchSize extends number = number,
-  Action = InferProvable<ActionType>
+  Action = InferProvable<ActionType>,
 > {
   batchSize: BatchSize;
   actionType: ProvableHashable<Action> & ProvablePure<Action>;

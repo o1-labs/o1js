@@ -12,17 +12,7 @@ import {
 import { provable } from '../../../lib/provable/types/provable-derivers.js';
 import { mocks, protocolVersions } from '../../crypto/constants.js';
 
-export {
-  PublicKey,
-  Field,
-  Bool,
-  AuthRequired,
-  UInt64,
-  UInt32,
-  Sign,
-  BalanceChange,
-  TokenId,
-};
+export { PublicKey, Field, Bool, AuthRequired, UInt64, UInt32, Sign, BalanceChange, TokenId };
 
 export {
   Events,
@@ -47,8 +37,12 @@ type StateHash = Field;
 type TokenSymbol = { symbol: string; field: Field };
 type ZkappUri = { data: string; hash: Field };
 
-const { TokenId, StateHash, TokenSymbol, AuthRequired, ZkappUri } =
-  derivedLeafTypes({ Field, Bool, HashHelpers, packToFields });
+const { TokenId, StateHash, TokenSymbol, AuthRequired, ZkappUri } = derivedLeafTypes({
+  Field,
+  Bool,
+  HashHelpers,
+  packToFields,
+});
 
 type Event = Field[];
 type Events = {
@@ -96,8 +90,6 @@ const MayUseToken = {
     Bool.check(inheritFromParent);
     parentsOwnToken
       .and(inheritFromParent)
-      .assertFalse(
-        'MayUseToken: parentsOwnToken and inheritFromParent cannot both be true'
-      );
+      .assertFalse('MayUseToken: parentsOwnToken and inheritFromParent cannot both be true');
   },
 };

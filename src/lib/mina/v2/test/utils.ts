@@ -78,7 +78,7 @@ export function testV2Encoding<V2 extends V2Value<any, any>>(
 export function testV1V2ClassEquivalence<
   InternalReprArg,
   V1,
-  V2 extends V2Value<InternalReprArg, V1>
+  V2 extends V2Value<InternalReprArg, V1>,
 >(V1Type: V1Type<V1>, V2Type: V2Type<InternalReprArg, V1, V2>, v2InternalReprArg: InternalReprArg) {
   expect(V2Type.sizeInFields()).toBe(V1Type.sizeInFields());
   testV1V2ValueEquivalence(V1Type, V2Type, V1Type.empty(), V2Type.empty(), v2InternalReprArg);
@@ -87,7 +87,7 @@ export function testV1V2ClassEquivalence<
 export function testV1V2ValueEquivalence<
   InternalReprArg,
   V1,
-  V2 extends V2Value<InternalReprArg, V1>
+  V2 extends V2Value<InternalReprArg, V1>,
 >(
   V1Type: V1Type<V1>,
   V2Type: V2Type<InternalReprArg, V1, V2>,

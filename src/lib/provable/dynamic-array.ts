@@ -40,7 +40,7 @@ type DynamicArray<T = any, V = any> = DynamicArrayBase<T, V>;
 function DynamicArray<
   ElementType extends ProvableType,
   ProvableValue extends InferProvable<ElementType> = InferProvable<ElementType>,
-  Value extends InferValue<ElementType> = InferValue<ElementType>
+  Value extends InferValue<ElementType> = InferValue<ElementType>,
 >(
   type: ElementType,
   {
@@ -119,16 +119,16 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   /**
    * Create a new {@link DynamicArrayBase} instance from an optional list of
    * {@link ProvableValue} elements, and optional length.
-   * 
+   *
    * - If no parameters are passed, it creates an empty array of length 0.
    * - If only `array` is passed, it creates a new array with the elements
    *   of the array.
    * - If only `length` is passed, it creates a dummy array of the given length
    *   filled with NULL values.
    * - If both `array` and `length` are passed, it creates a new array with the
-   *   elements of the array, and the length of the dynamic array is set to the 
+   *   elements of the array, and the length of the dynamic array is set to the
    *   `length` passed, which should be less or equal than the length of the
-   *   `array` passed (this is to allow for arrays with dummy values at the end). 
+   *   `array` passed (this is to allow for arrays with dummy values at the end).
    * - In any case, if `length` is larger than the capacity, it throws.
    *
    * @example
@@ -141,14 +141,11 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    */
   constructor(array?: ProvableValue[], length?: Field) {
     const NULL = ProvableType.synthesize(this.innerType);
-  
+
     const a = array ?? [];
     const l = length ?? new Field(a.length);
-  
-    assert(
-      a.length <= this.capacity,
-      'DynamicArray(): array must not exceed capacity'
-    );
+
+    assert(a.length <= this.capacity, 'DynamicArray(): array must not exceed capacity');
     if (length?.isConstant()) {
       assert(
         l.toBigInt() <= BigInt(a.length),
@@ -166,7 +163,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * Asserts 0 <= i < this.length, using a cached check that's not
    * duplicated when doing it on the same variable multiple times, failing
    * with an error message otherwise.
-   * 
+   *
    * @param i - the index to check
    * @param message - optional error message to use in case the assertion fails
    */
@@ -196,7 +193,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * the array.
    *
    * Note: The correct type for `i` is actually UInt16 which doesn't exist. The
-   * method is not complete (but sound) for i >= 2^16. This means that if the 
+   * method is not complete (but sound) for i >= 2^16. This means that if the
    * index is larger than 2^16, the constraints could be satisfiable but the
    * result is not correct (because the capacity can at most be 2^16).
    */
@@ -277,12 +274,26 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * Iterate over all elements of the array.
    *
    * The callback will be passed an element and a boolean `isDummy` indicating
-   * whether the value is part of the actual array.
+   * whether the value is part of the actual array. Optionally, an index can be
+   * passed as a third argument (used in `forEachReversed`)
    */
-  forEach(f: (t: ProvableValue, isDummy: Bool) => void) {
-    zip(this.array, this.#dummyMask()).forEach(([t, isDummy]) => {
-      f(t, isDummy);
-    });
+  forEach(f: (t: ProvableValue, isDummy: Bool, i?: number) => void): void {
+    zip(this.array, this.#dummyMask()).forEach(([t, isDummy], i) => f(t, isDummy, i));
+  }
+
+  /**
+   * Iterate over all elements of the array, in reverse order.
+   *
+   * The callback will be passed an element and a boolean `isDummy` indicating whether the value is part of the actual array.
+   *
+   * Note: the indices are also passed in reverse order, i.e. we always have `t = this.array[i]`.
+   */
+  forEachReverse(f: (t: ProvableValue, isDummy: Bool, i: number) => void) {
+    zip(this.array, this.#dummyMask())
+      .reverse()
+      .forEach(([t, isDummy], i) => {
+        f(t, isDummy, this.capacity - 1 - i);
+      });
   }
 
   /**
@@ -292,14 +303,14 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    *
    * **Note**: this doesn't cost constraints, but currently doesn't preserve any
    * cached constraints.
-   * 
+   *
    * @param capacity - the new capacity of the array
    */
   growCapacityTo(capacity: number, message?: string): DynamicArray<ProvableValue, Value> {
     let errorMessage =
       message ??
       `growCapacityTo: new capacity ${capacity} must be greater than current capacity ${this.capacity}`;
-    assert(capacity >= this.capacity,errorMessage);
+    assert(capacity >= this.capacity, errorMessage);
     let NewArray = DynamicArray(this.innerType, { capacity });
     let NULL = ProvableType.synthesize(this.innerType);
     let array = pad(this.array, capacity, NULL);
@@ -314,7 +325,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * **Note**: this doesn't cost constraints, but currently doesn't preserve any
    * cached constraints.
    *
-   * @param increment - the amount to increase the capacity by  
+   * @param increment - the amount to increase the capacity by
    */
   growCapacityBy(increment: number): DynamicArray<ProvableValue> {
     return this.growCapacityTo(this.capacity + increment);
@@ -369,8 +380,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    */
   setLengthTo(n: Field, message?: string): void {
     let errorMessage =
-      message ??
-      `setLengthTo: cannot set length to n because it exceeds capacity ${this.capacity}`;
+      message ?? `setLengthTo: cannot set length to n because it exceeds capacity ${this.capacity}`;
     n.assertLessThanOrEqual(new Field(this.capacity), errorMessage);
     this.length = n;
   }
@@ -386,14 +396,13 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * array = array.growCapacityhBy(1);
    * array.push(value);
    * ```
-   * 
+   *
    * @param value - the value to push into the array
    * @param message - optional error message to use in case the assertion fails
    */
   push(value: ProvableValue, message?: string): void {
     let errorMessage =
-      message ??
-      `push(): cannot push value because it would exceed capacity ${this.capacity}.`;
+      message ?? `push(): cannot push value because it would exceed capacity ${this.capacity}.`;
     let oldLength = this.length;
     this.increaseLengthBy(new Field(1), errorMessage);
     this.setOrDoNothing(oldLength, value);
@@ -408,9 +417,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * @param message - optional error message to use in case the assertion fails
    */
   pop(n?: Field, message?: string): void {
-    let errorMessage =
-      message ??
-      `pop(): cannot pop n elements because the length is smaller`;
+    let errorMessage = message ?? `pop(): cannot pop n elements because the length is smaller`;
 
     let dec = n !== undefined ? n : new Field(1);
     this.decreaseLengthBy(dec, errorMessage);
@@ -451,8 +458,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    */
   shiftLeft(n: Field, message?: string): void {
     let errorMessage =
-      message ??
-      `shiftLeft(): cannot shift left because provided n would exceed current length.`;
+      message ?? `shiftLeft(): cannot shift left because provided n would exceed current length.`;
     let NULL = ProvableType.synthesize(this.innerType);
     for (let i = 0; i < this.capacity; i++) {
       let offset = new Field(i).add(n);
@@ -469,7 +475,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   /**
    * Shifts all elements of the array to the right by `n` positions, increasing
    * the length by `n`, which must result in less than or equal to the capacity
-   * (failing with an error message otherwise). The new elements on the left are 
+   * (failing with an error message otherwise). The new elements on the left are
    * set to NULL values.
    *
    * @param n - the number of positions to shift right
@@ -515,7 +521,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    *
    * @param start - the starting index of the slice (inclusive)
    * @param end - the ending index of the slice (exclusive)
-   * 
+   *
    * @returns a new DynamicArray instance with the sliced values
    */
   slice(start?: Field, end?: Field): DynamicArray<ProvableValue, Value> {
@@ -528,12 +534,25 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   }
 
   /**
+   * Returns a new array with the elements reversed.
+   */
+  reverse(): DynamicArray<ProvableValue, Value> {
+    let Array = DynamicArray(this.innerType, { capacity: this.capacity });
+    // first, copy the inner array of length capacity and reverse it
+    let array = this.array.slice().reverse();
+
+    // now, slice off the padding that is now at the beginning of the array
+    let capacity = new Field(this.capacity);
+    return new Array(array, capacity).slice(capacity.sub(this.length).seal());
+  }
+
+  /**
    * Concatenates the current array with another dynamic array, returning a new
    * dynamic array with the values of both arrays. The capacity of the new array
    * is the sum of the capacities of the two arrays.
    *
    * @param other - the dynamic array to concatenate
-   * 
+   *
    * @returns a new DynamicArray instance with the concatenated values
    */
   concat(other: DynamicArray<ProvableValue, Value>): DynamicArray<ProvableValue, Value> {
@@ -581,7 +600,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
 
   /**
    * Checks whether the dynamic array includes a value.
-   * 
+   *
    * @param value - the value to check for inclusion in the array
    * @returns
    */
@@ -591,7 +610,6 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     let isSome = isIncluded.reduce((acc, curr) => acc.or(curr), new Bool(false));
     return isSome;
   }
-
 
   // cached variables to not duplicate constraints if we do something like
   // array.get(i), array.set(i, ..) on the same index
@@ -634,11 +652,11 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     return mask;
   }
 
-/**
- * Converts the current instance of the dynamic array to a plain array of values.
- *
- * @returns An array of values representing the elements in the dynamic array.
- */
+  /**
+   * Converts the current instance of the dynamic array to a plain array of values.
+   *
+   * @returns An array of values representing the elements in the dynamic array.
+   */
   toValue(): Value[] {
     return (this.constructor as any as { provable: Provable<any, Value[]> }).provable.toValue(this);
   }

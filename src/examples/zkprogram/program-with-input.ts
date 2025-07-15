@@ -71,7 +71,7 @@ console.log('ok?', ok && proof2.publicInput.toString() === '2');
 
 function testJsonRoundtrip<
   P extends Proof<any, any>,
-  MyProof extends { fromJSON(jsonProof: JsonProof): Promise<P> }
+  MyProof extends { fromJSON(jsonProof: JsonProof): Promise<P> },
 >(MyProof: MyProof, proof: P) {
   let jsonProof = proof.toJSON();
   console.log(

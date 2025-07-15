@@ -104,8 +104,7 @@ function createFieldBindings(Field: FiniteField) {
       return [0, x];
     },
     of_bigint([, x]: Bigint256): Field {
-      if (x >= Field.modulus)
-        throw Error('of_bigint: input exceeds field size');
+      if (x >= Field.modulus) throw Error('of_bigint: input exceeds field size');
       // copying to a new array to break mutable reference
       return [0, x];
     },
@@ -117,9 +116,7 @@ function createFieldBindings(Field: FiniteField) {
       // w^(2^i) = 1, w^(2^(i-1)) = -1
       // computed by taking the 2^32th root and squaring 32-i times
       if (i > 32 || i < 0)
-        throw Error(
-          'log2 size of evaluation domain must be in [0, 32], got ' + i
-        );
+        throw Error('log2 size of evaluation domain must be in [0, 32], got ' + i);
       if (i === 0) return [0, 1n];
       let generator = Field.twoadicRoot;
       for (let j = 32; j > i; j--) {
