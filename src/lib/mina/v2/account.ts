@@ -23,10 +23,7 @@ function accountIdKeys(accountId: AccountId): {
 }
 
 class AccountId {
-  constructor(
-    public publicKey: PublicKey,
-    public tokenId: TokenId
-  ) {}
+  constructor(public publicKey: PublicKey, public tokenId: TokenId) {}
 
   equals(x: AccountId): Bool {
     return Bool.allTrue([this.publicKey.equals(x.publicKey), this.tokenId.equals(x.tokenId)]);

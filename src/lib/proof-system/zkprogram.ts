@@ -225,7 +225,7 @@ type InferMethodType<Config extends ConfigBaseType> = {
  */
 function ZkProgram<
   Config extends ConfigBaseType,
-  _ extends unknown = unknown, // weird hack that makes methods infer correctly when their inputs are not annotated
+  _ extends unknown = unknown // weird hack that makes methods infer correctly when their inputs are not annotated
 >(
   config: Config & {
     name: string;
@@ -603,7 +603,7 @@ type ZkProgram<
         auxiliaryOutput?: ProvableType;
       };
     };
-  },
+  }
 > = ReturnType<typeof ZkProgram<Config>>;
 
 /**
@@ -1059,7 +1059,7 @@ function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
 
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvable<any>,
-  PublicOutputType extends FlexibleProvable<any>,
+  PublicOutputType extends FlexibleProvable<any>
 >(program: {
   name: string;
   publicInputType: PublicInputType;
@@ -1111,12 +1111,11 @@ function Prover<ProverData>() {
 
 // helper types
 
-type Infer<T> =
-  T extends Subclass<typeof ProofBase>
-    ? InstanceType<T>
-    : T extends ProvableType
-      ? InferProvableType<T>
-      : never;
+type Infer<T> = T extends Subclass<typeof ProofBase>
+  ? InstanceType<T>
+  : T extends ProvableType
+  ? InferProvableType<T>
+  : never;
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
@@ -1134,13 +1133,13 @@ type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
         auxiliaryOutput: AuxiliaryOutput;
       }
   : AuxiliaryOutput extends undefined
-    ? {
-        publicOutput: PublicOutput;
-      }
-    : {
-        publicOutput: PublicOutput;
-        auxiliaryOutput: AuxiliaryOutput;
-      };
+  ? {
+      publicOutput: PublicOutput;
+    }
+  : {
+      publicOutput: PublicOutput;
+      auxiliaryOutput: AuxiliaryOutput;
+    };
 
 type Method<
   PublicInput,
@@ -1148,7 +1147,7 @@ type Method<
   MethodSignature extends {
     privateInputs: Tuple<PrivateInput>;
     auxiliaryOutput?: ProvableType;
-  },
+  }
 > = PublicInput extends undefined
   ? {
       method(
@@ -1177,7 +1176,7 @@ type RegularProver<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput,
+  AuxiliaryOutput
 > = (
   publicInput: From<PublicInputType>,
   ...args: TupleFrom<Args>
@@ -1191,7 +1190,7 @@ type Prover<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput,
+  AuxiliaryOutput
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
@@ -1211,8 +1210,8 @@ type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : A extends ProvableType
-    ? InferProvable<A>
-    : InferProvable<A> | undefined;
+  ? InferProvable<A>
+  : InferProvable<A> | undefined;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
