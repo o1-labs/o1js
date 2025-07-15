@@ -543,9 +543,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
 
     // now, slice off the padding that is now at the beginning of the array
     let capacity = new Field(this.capacity);
-    return new Array(array, capacity).slice(
-      capacity.sub(this.length).seal()
-    );
+    return new Array(array, capacity).slice(capacity.sub(this.length).seal());
   }
 
   /**

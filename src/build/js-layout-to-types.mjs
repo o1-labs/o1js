@@ -1,8 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import prettier from 'prettier';
-import prettierRc from '../../.prettierrc.cjs';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
@@ -65,10 +63,10 @@ function writeType(typeData, isValue, isJson, withTypeMap) {
       output: isJson
         ? `(${output} | null)`
         : optionType === 'implicit'
-        ? output
-        : optionType === 'flaggedOption' || optionType === 'closedInterval'
-        ? `{isSome: Bool, value: ${output}}`
-        : `(${output} | undefined)`,
+          ? output
+          : optionType === 'flaggedOption' || optionType === 'closedInterval'
+            ? `{isSome: Bool, value: ${output}}`
+            : `(${output} | undefined)`,
       dependencies,
       converters,
     };
@@ -216,10 +214,6 @@ ${output}`;
 
 async function writeTsFile(content, relPath) {
   let absPath = path.resolve(selfPath, relPath);
-  content = prettier.format(content, {
-    filepath: absPath,
-    ...prettierRc,
-  });
   await fs.writeFile(absPath, content);
 }
 let genPath = '../../bindings/mina-transaction/gen/v1';

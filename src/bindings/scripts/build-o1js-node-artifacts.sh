@@ -39,7 +39,6 @@ fi
 dune b src/bindings/mina-transaction/gen/v1/js-layout.ts \
   src/bindings/mina-transaction/gen/v2/js-layout.ts \
   src/bindings/crypto/constants.ts \
-  src/bindings/crypto/test-vectors/poseidon-kimchi.ts \
 || exit 1
 
 # Cleanup mina config files

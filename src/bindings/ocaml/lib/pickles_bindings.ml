@@ -617,7 +617,7 @@ let pickles_compile (choices : pickles_rule_js array)
       < publicInputSize : int Js.prop
       ; publicOutputSize : int Js.prop
       ; storable : Cache.js_storable Js.optdef_prop
-      ; overrideWrapDomain : int Js.optdef_prop 
+      ; overrideWrapDomain : int Js.optdef_prop
       ; numChunks : int Js.optdef_prop
       ; lazyMode : bool Js.optdef_prop >
       Js.t ) =
@@ -638,9 +638,7 @@ let pickles_compile (choices : pickles_rule_js array)
     Js.Optdef.to_option config##.overrideWrapDomain
     |> Option.map ~f:Pickles_base.Proofs_verified.of_int_exn
   in
-  let num_chunks =
-    Js.Optdef.get config##.numChunks (fun () -> 1)
-  in
+  let num_chunks = Js.Optdef.get config##.numChunks (fun () -> 1) in
   let lazy_mode = Js.Optdef.get config##.lazyMode (fun () -> false) in
   let (Choices choices) =
     Choices.of_js ~public_input_size ~public_output_size choices
