@@ -44,17 +44,20 @@ type ProveMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? (...args: PrivateInputs<Config>) => Promise<Proof>
-  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<Proof>;
+  ? (...args: PrivateInputs<Config>) => Promise<Proof<PublicInput<Config>>>
+  : (
+      publicInput: PublicInput<Config>,
+      ...args: PrivateInputs<Config>
+    ) => Promise<Proof<PublicInput<Config>>>;
 
 type VerifyMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? (proof: Proof, verificationKey: VerificationKey) => Promise<boolean>
+  ? (proof: Proof<PublicInput<Config>>, verificationKey: VerificationKey) => Promise<boolean>
   : (
       publicInput: PublicInput<Config>,
-      proof: Proof,
+      proof: Proof<PublicInput<Config>>,
       verificationKey: VerificationKey
     ) => Promise<boolean>;
 
@@ -109,7 +112,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * console.log(cs);
      * ```
      */
-    async analyzeMethod() {
+    async analyzeMethod(): Promise<ConstraintSystemSummary> {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
       try {
         let { gates, publicInputSize } = gatesFromJson(
@@ -162,7 +165,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
           MlFieldConstArray.to(publicInputFields),
           _keypair!
         );
-        return new Proof(proof);
+        return new Proof<PublicInput<Config>>(proof, config.publicInputType);
       });
     },
 
@@ -184,15 +187,15 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      */
     async verify(...args: Parameters<VerifyMethodType<Config>>) {
       let publicInput: PublicInput<Config>;
-      let proof: Proof;
+      let proof: Proof<PublicInput<Config>>;
       let verificationKey: VerificationKey;
       if (hasPublicInput) {
         publicInput = args[0] as PublicInput<Config>;
-        proof = args[1] as Proof;
+        proof = args[1] as Proof<PublicInput<Config>>;
         verificationKey = args[2] as VerificationKey;
       } else {
         publicInput = undefined as PublicInput<Config>;
-        proof = args[0] as Proof;
+        proof = args[0] as Proof<PublicInput<Config>>;
         verificationKey = args[1] as VerificationKey;
       }
 
@@ -225,14 +228,46 @@ type ConstraintSystemSummary = {
   summary(): Record<string, number>;
 };
 
+type ProofVerifyMethod<PublicInput> = PublicInput extends undefined
+  ? (verificationKey: VerificationKey) => Promise<boolean>
+  : (publicInput: PublicInput, verificationKey: VerificationKey) => Promise<boolean>;
+
 /**
  * Proofs can be verified using a {@link VerificationKey} and the public input.
  */
-class Proof {
+class Proof<P> {
   value: Snarky.Proof;
+  publicInputType?: ProvableTypePure<P>;
 
-  constructor(value: Snarky.Proof) {
+  constructor(value: Snarky.Proof, publicInputType?: ProvableTypePure<P>) {
     this.value = value;
+    this.publicInputType = publicInputType;
+  }
+
+  async verify(...args: Parameters<ProofVerifyMethod<P>>) {
+    const publicInputType = provablePure(this.publicInputType);
+
+    let publicInput: P;
+    let verificationKey: VerificationKey;
+    if (this.publicInputType !== undefined) {
+      publicInput = args[0] as P;
+      verificationKey = args[1] as VerificationKey;
+    } else {
+      publicInput = undefined as P;
+      verificationKey = args[0] as VerificationKey;
+    }
+
+    const publicInputFields = publicInputType.toFields(publicInput);
+    await initializeBindings();
+    return prettifyStacktracePromise(
+      withThreadPool(async () =>
+        Snarky.circuit.verify(
+          MlFieldConstArray.to(publicInputFields),
+          this.value,
+          verificationKey.value
+        )
+      )
+    );
   }
 }
 
