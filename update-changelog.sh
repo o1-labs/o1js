@@ -12,6 +12,7 @@
 # 5. Updates the CHANGELOG.md file:
 #    - Adds a new entry for the upcoming release using the incremented version number and the current date.
 #    - Updates the link for the [Unreleased] section to point from the current commit to HEAD.
+#    - Checks the compare URL for the newest versions to match the commit hashes of the corresponding releases.
 #
 # Usage:
 # It should be run in the root directory of the repository where the CHANGELOG.md is located.
@@ -35,5 +36,12 @@ echo "Current commit: $current_commit"
 current_date=$(date +%Y-%m-%d)
 echo "Current date: $current_date"
 
-# Step 5: Update the CHANGELOG
-sed -i "s/\[Unreleased\](.*\.\.\.HEAD)/\[Unreleased\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$current_commit...HEAD)\n\n## \[$new_version\](https:\/\/github.com\/o1-labs\/o1js\/compare\/1ad7333e9e...$current_commit) - $current_date/" CHANGELOG.md
+# Step 5: Extract the second SHA from the compare URL of the latest version
+previous_commit=$(grep -m 1 -oP '\[.*?\]\(https://github.com/o1-labs/o1js/compare/[a-f0-9]+\.\.\.\K[a-f0-9]+(?=\))' CHANGELOG.md)
+echo "Previous commit: $previous_commit"
+
+# Step 6: Update the CHANGELOG
+sed -i "s/\[Unreleased\](.*\.\.\.HEAD)/\[Unreleased\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$current_commit...HEAD)\n\n## \[$new_version\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$previous_commit...$current_commit) - $current_date/" CHANGELOG.md
+
+# Step 7: Auto-fix compare URLs for all past versions
+python3 fix_changelog_commits.py
