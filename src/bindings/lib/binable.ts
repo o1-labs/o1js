@@ -57,18 +57,12 @@ function defineBinable<T>({
 }): Binable<T> {
   // spec: input offset has to be a non-negative integer, and be smaller than the bytes length
   // output offset has to be greater or equal input, and not exceed the bytes length
-  let readBytes_ = <N extends number>(
-    bytes: number[],
-    offset: NonNegativeInteger<N>
-  ) => {
+  let readBytes_ = <N extends number>(bytes: number[], offset: NonNegativeInteger<N>) => {
     assertNonNegativeInteger(offset, 'readBytes: offset must be integer >= 0');
-    if (offset >= bytes.length)
-      throw Error('readBytes: offset must be within bytes length');
+    if (offset >= bytes.length) throw Error('readBytes: offset must be within bytes length');
     let [value, end] = readBytes(bytes, offset);
     if (end < offset)
-      throw Error(
-        'offset returned by readBytes must be greater than initial offset'
-      );
+      throw Error('offset returned by readBytes must be greater than initial offset');
     if (end > bytes.length)
       throw Error('offset returned by readBytes must not exceed bytes length');
     return [value, end] as [T, number];
@@ -79,17 +73,13 @@ function defineBinable<T>({
     // spec: fromBytes throws if the input bytes are not all used
     fromBytes(bytes) {
       let [value, offset] = readBytes_(bytes, 0);
-      if (offset < bytes.length)
-        throw Error('fromBytes: input bytes left over');
+      if (offset < bytes.length) throw Error('fromBytes: input bytes left over');
       return value;
     },
   };
 }
 
-function withVersionNumber<T>(
-  binable: Binable<T>,
-  versionNumber: number
-): Binable<T> {
+function withVersionNumber<T>(binable: Binable<T>, versionNumber: number): Binable<T> {
   return defineBinable({
     toBytes(t) {
       let bytes = binable.toBytes(t);
@@ -99,19 +89,14 @@ function withVersionNumber<T>(
     readBytes(bytes, offset) {
       let version = bytes[offset++];
       if (version !== versionNumber) {
-        throw Error(
-          `fromBytes: Invalid version byte. Expected ${versionNumber}, got ${version}.`
-        );
+        throw Error(`fromBytes: Invalid version byte. Expected ${versionNumber}, got ${version}.`);
       }
       return binable.readBytes(bytes, offset);
     },
   });
 }
 
-function withCheck<T>(
-  { toBytes, readBytes }: Binable<T>,
-  check: (t: T) => void
-): Binable<T> {
+function withCheck<T>({ toBytes, readBytes }: Binable<T>, check: (t: T) => void): Binable<T> {
   return defineBinable({
     toBytes,
     readBytes(bytes, start) {
@@ -139,9 +124,7 @@ function record<Types extends Record<string, any>>(
     },
     readBytes(bytes, start) {
       let [tupleValue, end] = tupleBinable.readBytes(bytes, start);
-      let value = Object.fromEntries(
-        keys.map((key, i) => [key, tupleValue[i]])
-      ) as any;
+      let value = Object.fromEntries(keys.map((key, i) => [key, tupleValue[i]])) as any;
       return [value, end];
     },
   });
@@ -233,8 +216,7 @@ function BinableInt<N extends number>(bits: PositiveInteger<N>) {
   if (nBytes * 8 !== bits) throw Error('bits must be evenly divisible by 8');
   return defineBinable({
     toBytes(n: bigint) {
-      if (n < -maxValue || n >= maxValue)
-        throw Error(`int${bits} out of range, got ${n}`);
+      if (n < -maxValue || n >= maxValue) throw Error(`int${bits} out of range, got ${n}`);
       if (n >= 0) {
         if (n < 0x80n) return bigIntToBytes(n, 1);
         if (n < 0x8000n) return [CODE_INT16, ...bigIntToBytes(n, 2)];
@@ -242,12 +224,9 @@ function BinableInt<N extends number>(bits: PositiveInteger<N>) {
         else return [CODE_INT64, ...bigIntToBytes(n, 8)];
       } else {
         let M = 1n << 64n;
-        if (n >= -0x80n)
-          return [CODE_NEG_INT8, ...bigIntToBytes((M + n) & 0xffn, 1)];
-        if (n >= -0x8000n)
-          return [CODE_INT16, ...bigIntToBytes((M + n) & 0xffffn, 2)];
-        if (n >= -0x80000000)
-          return [CODE_INT32, ...bigIntToBytes((M + n) & 0xffff_ffffn, 4)];
+        if (n >= -0x80n) return [CODE_NEG_INT8, ...bigIntToBytes((M + n) & 0xffn, 1)];
+        if (n >= -0x8000n) return [CODE_INT16, ...bigIntToBytes((M + n) & 0xffffn, 2)];
+        if (n >= -0x80000000) return [CODE_INT32, ...bigIntToBytes((M + n) & 0xffff_ffffn, 4)];
         else return [CODE_INT64, ...bigIntToBytes(M + n, 8)];
       }
     },
@@ -293,15 +272,13 @@ function BinableUint<N extends number>(bits: PositiveInteger<N>) {
   let maxValue = 1n << BigInt(bits - 1);
   return iso(binableInt, {
     to(uint: bigint) {
-      if (uint < 0n || uint >= 2n * maxValue)
-        throw Error(`uint${bits} out of range, got ${uint}`);
+      if (uint < 0n || uint >= 2n * maxValue) throw Error(`uint${bits} out of range, got ${uint}`);
       let ret = uint >= maxValue ? uint - 2n * maxValue : uint;
       return ret;
     },
     from(int: bigint) {
       let uint = int < 0n ? int + 2n * maxValue : int;
-      if (uint < 0n || uint >= 2n * maxValue)
-        throw Error(`uint${bits} out of range, got ${uint}`);
+      if (uint < 0n || uint >= 2n * maxValue) throw Error(`uint${bits} out of range, got ${uint}`);
       return uint;
     },
   });
@@ -314,16 +291,11 @@ const BinableUint32 = BinableUint(32);
 
 // same as Random_oracle.prefix_to_field in OCaml
 // converts string to bytes and bytes to field; throws if bytes don't fit in one field
-function prefixToField<Field>(
-  Field: GenericSignableField<Field>,
-  prefix: string
-) {
+function prefixToField<Field>(Field: GenericSignableField<Field>, prefix: string) {
   let fieldSize = Field.sizeInBytes;
   if (prefix.length >= fieldSize) throw Error('prefix too long');
   let stringBytes = stringToBytes(prefix);
-  return Field.fromBytes(
-    stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0))
-  );
+  return Field.fromBytes(stringBytes.concat(Array(fieldSize - stringBytes.length).fill(0)));
 }
 
 function bitsToBytes([...bits]: boolean[]) {
@@ -363,10 +335,7 @@ function bytesToBits(bytes: number[]) {
  * This is useful for serializing field elements, where -- depending on the circumstance -- we either want a
  * 32-byte (= 256-bit) serialization, or a 255-bit serialization
  */
-function withBits<T>(
-  binable: Binable<T>,
-  sizeInBits: number
-): BinableWithBits<T> {
+function withBits<T>(binable: Binable<T>, sizeInBits: number): BinableWithBits<T> {
   return {
     ...binable,
     toBits(t: T) {
@@ -380,10 +349,7 @@ function withBits<T>(
   };
 }
 
-function iso<T, S>(
-  binable: Binable<T>,
-  { to, from }: { to(s: S): T; from(t: T): S }
-): Binable<S> {
+function iso<T, S>(binable: Binable<T>, { to, from }: { to(s: S): T; from(t: T): S }): Binable<S> {
   return defineBinable({
     toBytes(s: S) {
       return binable.toBytes(to(s));

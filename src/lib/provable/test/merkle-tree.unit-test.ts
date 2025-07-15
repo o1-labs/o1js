@@ -9,6 +9,7 @@ import { Provable } from '../provable.js';
 import { constraintSystem } from '../../testing/constraint-system.js';
 import { field } from '../../testing/equivalent.js';
 import { throwError } from './test-utils.js';
+import { Poseidon } from '../crypto/poseidon.js';
 
 const height = 31;
 const IndexedMap30 = IndexedMerkleMap(height);
@@ -99,7 +100,9 @@ console.log(
   expect(map.length.toBigInt()).toEqual(1n);
   let initialTree = new MerkleTree(3);
   initialTree.setLeaf(0n, Leaf.hashNode(IndexedMerkleMap(3)._firstLeaf));
-  expect(map.root).toEqual(initialTree.getRoot());
+  // The merkle root is combined with length for safety
+  let expectedRoot = Poseidon.hash([initialTree.getRoot(), Field(1)]);
+  expect(map.root).toEqual(expectedRoot);
 
   // the initial value at key 0 is 0
   expect(map.getOption(0n).assertSome().toBigInt()).toEqual(0n);

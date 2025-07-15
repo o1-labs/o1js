@@ -44,7 +44,12 @@ export { Types } from './bindings/mina-transaction/v1/types.js';
 export { DynamicArray } from './lib/provable/dynamic-array.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
-import { IndexedMerkleMap, IndexedMerkleMapBase } from './lib/provable/merkle-tree-indexed.js';
+import {
+  IndexedMerkleMap as IndexedMerkleMap_,
+  IndexedMerkleMapBase,
+} from './lib/provable/merkle-tree-indexed.js';
+export let IndexedMerkleMap = IndexedMerkleMap_;
+export type IndexedMerkleMap = IndexedMerkleMapBase;
 export { Option } from './lib/provable/option.js';
 
 export * as Mina from './lib/mina/v1/mina.js';
@@ -130,7 +135,6 @@ import { Field } from './lib/provable/wrapped.js';
 
 const Experimental_ = {
   memoizeWitness,
-  IndexedMerkleMap,
   V2: V2_,
 };
 
@@ -147,7 +151,7 @@ namespace Experimental {
     export type MinaProgramMethodReturn<
       State extends V2_.StateLayout = 'GenericState',
       Event = Field[],
-      Action = Field[]
+      Action = Field[],
     > = V2_.MinaProgramMethodReturn<State, Event, Action>;
     export type StateDefinition<State extends V2_.StateLayout> = V2_.StateDefinition<State>;
     export type ZkappCommandAuthorizationEnvironment = V2_.ZkappCommandAuthorizationEnvironment;
@@ -155,7 +159,7 @@ namespace Experimental {
       State extends StateLayout,
       Event,
       Action,
-      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple }
+      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple },
     > = V2_.MinaProgram<State, Event, Action, MethodPrivateInputs>;
     export type DynamicProvable<P> = V2_.DynamicProvable<P>;
   }
@@ -166,10 +170,6 @@ namespace Experimental {
 
   export let ProvableBigInt = ProvableBigInt_;
   export let createProvableBigInt = createProvableBigInt_;
-
-  // indexed merkle map
-  export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;
-  export type IndexedMerkleMap = IndexedMerkleMapBase;
 
   // offchain state
   export let OffchainState = OffchainState_.OffchainState;
@@ -209,7 +209,7 @@ namespace Experimental {
   export class BatchReducer<
     ActionType extends Actionable<any>,
     BatchSize extends number = number,
-    Action = InferProvable<ActionType>
+    Action = InferProvable<ActionType>,
   > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
 
   /**

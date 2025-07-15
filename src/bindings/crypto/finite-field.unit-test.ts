@@ -37,16 +37,8 @@ for (let F of fields) {
 
     assert.equal(F.mul(p - 1n, 2n), p - 2n, 'mul');
     assert.equal(F.mul(p - 3n, p - 3n), 9n, 'mul');
-    assert.equal(
-      F.mul(F.mul(x, y), z),
-      F.mul(x, F.mul(y, z)),
-      'mul associative'
-    );
-    assert.equal(
-      F.mul(z, F.add(x, y)),
-      F.add(F.mul(z, x), F.mul(z, y)),
-      'mul distributive'
-    );
+    assert.equal(F.mul(F.mul(x, y), z), F.mul(x, F.mul(y, z)), 'mul associative');
+    assert.equal(F.mul(z, F.add(x, y)), F.add(F.mul(z, x), F.mul(z, y)), 'mul distributive');
 
     assert.equal(F.inverse(0n), undefined, '0 has no inverse');
     assert.equal(F.inverse(1n), 1n, 'inverse 1');
@@ -76,11 +68,7 @@ for (let F of fields) {
 
     if (F.M >= 2n) {
       assert(F.isSquare(p - 1n), 'isSquare -1');
-      assert.equal(
-        F.isSquare(0n),
-        F.isSquare(p),
-        'isSquare handles non-canonical 0'
-      );
+      assert.equal(F.isSquare(0n), F.isSquare(p), 'isSquare handles non-canonical 0');
       let i = F.power(F.twoadicRoot, 1n << (F.M - 2n));
       assert([i, F.negate(i)].includes(F.sqrt(p - 1n)!), 'sqrt -1');
     }
@@ -89,11 +77,7 @@ for (let F of fields) {
     assert.equal(F.power(2n, p - 1n), 1n, 'power mod p-1');
     assert.equal(F.power(2n, p - 1n + 3n), 8n, 'power mod p-1');
     assert.equal(F.power(x, 4n), F.square(F.square(x)), 'power');
-    assert.equal(
-      F.power(x, y + z),
-      F.mul(F.power(x, y), F.power(x, z)),
-      'power & mul'
-    );
+    assert.equal(F.power(x, y + z), F.mul(F.power(x, y), F.power(x, z)), 'power & mul');
 
     assert.equal(F.dot([x, y], [y, x]), F.mul(2n, F.mul(x, y)), 'dot');
     assert.equal(F.dot([x, y], [F.negate(y), x]), 0n, 'dot');

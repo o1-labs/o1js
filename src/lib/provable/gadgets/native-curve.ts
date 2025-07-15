@@ -309,7 +309,7 @@ function add(g: Point, h: Point): { result: Point; isInfinity: Bool } {
 
     let sameX = BigInt(x1 === x2);
     let inf = BigInt(sameX && y1 !== y2);
-    let infZ = sameX ? Fp.inverse(y2 - y1) ?? 0n : 0n;
+    let infZ = sameX ? (Fp.inverse(y2 - y1) ?? 0n) : 0n;
     let x21Inv = Fp.inverse(x2 - x1) ?? 0n;
 
     let slopeDouble = Fp.div(3n * x1 ** 2n, 2n * y1) ?? 0n;

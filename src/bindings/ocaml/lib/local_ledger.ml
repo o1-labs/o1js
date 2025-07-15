@@ -139,11 +139,12 @@ let check_account_update_signatures zkapp_command =
     zkapp_command
   in
   let tx_commitment = Zkapp_command.commitment zkapp_command in
+  let signature_kind = Mina_signature_kind.t_DEPRECATED in
   let full_tx_commitment =
     Zkapp_command.Transaction_commitment.create_complete tx_commitment
       ~memo_hash:(Mina_base.Signed_command_memo.hash memo)
       ~fee_payer_hash:
-        (Zkapp_command.Digest.Account_update.create
+        (Zkapp_command.Digest.Account_update.create ~signature_kind
            (Account_update.of_fee_payer fee_payer) )
   in
   let key_to_string = Signature_lib.Public_key.Compressed.to_base58_check in

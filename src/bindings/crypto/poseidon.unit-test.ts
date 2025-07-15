@@ -45,9 +45,7 @@ console.log('poseidon implementation matches the test vectors! 🎉');
 
 test(Random.array(Random.field, Random.nat(20)), (xs) => {
   let g1 = Poseidon.hashToGroup(xs)!;
-  let [, g2x, g2y] = mlTest.poseidon.hashToGroup(
-    MlArray.to(xs.map(FieldConst.fromBigint))
-  );
+  let [, g2x, g2y] = mlTest.poseidon.hashToGroup(MlArray.to(xs.map(FieldConst.fromBigint)));
 
   expect(g1).toBeDefined();
   expect(g1.x).toEqual(FieldConst.toBigint(g2x));

@@ -22,6 +22,8 @@ function workerSpec(wasm) {
         undefined /* number */,
         // srs
         wasm.WasmFpSrs,
+        // lazy_mode
+        undefined /* boolean */,
       ],
       res: wasm.WasmPastaFpPlonkIndex,
     },
@@ -39,6 +41,8 @@ function workerSpec(wasm) {
         undefined /* number */,
         // srs
         wasm.WasmFqSrs,
+        // lazy_mode
+        undefined /* boolean */,
       ],
       res: wasm.WasmPastaFqPlonkIndex,
     },
@@ -130,35 +134,19 @@ function workerSpec(wasm) {
       res: wasm.WasmFqPolyComm,
     },
     fp_oracles_create: {
-      args: [
-        undefined /* Uint32Array */,
-        wasm.WasmFpPlonkVerifierIndex,
-        wasm.WasmFpProverProof,
-      ],
+      args: [undefined /* Uint32Array */, wasm.WasmFpPlonkVerifierIndex, wasm.WasmFpProverProof],
       res: wasm.WasmFpOracles,
     },
     fq_oracles_create: {
-      args: [
-        undefined /* Uint32Array */,
-        wasm.WasmFqPlonkVerifierIndex,
-        wasm.WasmFqProverProof,
-      ],
+      args: [undefined /* Uint32Array */, wasm.WasmFqPlonkVerifierIndex, wasm.WasmFqProverProof],
       res: wasm.WasmFqOracles,
     },
     caml_fp_srs_batch_accumulator_check: {
-      args: [
-        wasm.WasmFpSrs,
-        undefined /* UintXArray */,
-        undefined /* UintXArray */,
-      ],
+      args: [wasm.WasmFpSrs, undefined /* UintXArray */, undefined /* UintXArray */],
       res: bool,
     },
     caml_fq_srs_batch_accumulator_check: {
-      args: [
-        wasm.WasmFqSrs,
-        undefined /* UintXArray */,
-        undefined /* UintXArray */,
-      ],
+      args: [wasm.WasmFqSrs, undefined /* UintXArray */, undefined /* UintXArray */],
       res: bool,
     },
     caml_fp_srs_lagrange_commitment: {

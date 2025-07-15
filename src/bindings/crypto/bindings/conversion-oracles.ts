@@ -6,12 +6,7 @@ import type {
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { MlOption } from '../../../lib/ml/base.js';
-import {
-  Field,
-  Oracles,
-  RandomOracles,
-  ScalarChallenge,
-} from './kimchi-types.js';
+import { Field, Oracles, RandomOracles, ScalarChallenge } from './kimchi-types.js';
 import {
   fieldFromRust,
   fieldToRust,
@@ -80,11 +75,7 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: WasmClasses) {
     let jointCombiner = ro.joint_combiner;
     let jointCombinerOption = MlOption<[0, ScalarChallenge, Field]>(
       jointCombinerChal &&
-        jointCombiner && [
-          0,
-          [0, fieldFromRust(jointCombinerChal)],
-          fieldFromRust(jointCombiner),
-        ]
+        jointCombiner && [0, [0, fieldFromRust(jointCombinerChal)], fieldFromRust(jointCombiner)]
     );
     let mlRo: RandomOracles = [
       0,
