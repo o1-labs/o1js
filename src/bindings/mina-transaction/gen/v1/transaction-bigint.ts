@@ -125,10 +125,10 @@ let customTypes: CustomTypes = {
   VerificationKeyHash,
   ReceiptChainHash,
 };
-let { signableFromLayout, toJSONEssential, empty } = SignableFromLayout<TypeMap, Json.TypeMap>(
+let { signableFromLayout, toJSONEssential, empty } = SignableFromLayout<
   TypeMap,
-  customTypes
-);
+  Json.TypeMap
+>(TypeMap, customTypes);
 
 type ZkappCommand = {
   feePayer: {
@@ -593,4 +593,6 @@ type Account = {
   };
 };
 
-let Account = signableFromLayout<Account, Json.Account>(jsLayout.Account as any);
+let Account = signableFromLayout<Account, Json.Account>(
+  jsLayout.Account as any
+);

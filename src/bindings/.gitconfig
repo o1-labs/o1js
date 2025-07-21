@@ -1,0 +1,3 @@
+[diff "wasm"]
+    textconv = hexdump
+    command = hexdump -C "$1"
