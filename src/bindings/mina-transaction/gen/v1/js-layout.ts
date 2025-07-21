@@ -22,19 +22,10 @@ let jsLayout = {
             entries: {
               publicKey: { type: 'PublicKey' },
               fee: { type: 'UInt64' },
-              validUntil: {
-                type: 'option',
-                optionType: 'orUndefined',
-                inner: { type: 'UInt32' },
-              },
+              validUntil: { type: 'option', optionType: 'orUndefined', inner: { type: 'UInt32' } },
               nonce: { type: 'UInt32' },
             },
-            docEntries: {
-              publicKey: null,
-              fee: null,
-              validUntil: null,
-              nonce: null,
-            },
+            docEntries: { publicKey: null, fee: null, validUntil: null, nonce: null },
           },
           authorization: { type: 'string' },
         },
@@ -108,10 +99,7 @@ let jsLayout = {
                         name: 'VerificationKeyWithHash',
                         docs: null,
                         keys: ['data', 'hash'],
-                        entries: {
-                          data: { type: 'string' },
-                          hash: { type: 'Field' },
-                        },
+                        entries: { data: { type: 'string' }, hash: { type: 'Field' } },
                         docEntries: { data: null, hash: null },
                       },
                     },
@@ -193,10 +181,7 @@ let jsLayout = {
                           name: 'Events',
                           docs: null,
                           keys: ['data', 'hash'],
-                          entries: {
-                            data: { type: 'string' },
-                            hash: { type: 'Field' },
-                          },
+                          entries: { data: { type: 'string' }, hash: { type: 'Field' } },
                           docEntries: { data: null, hash: null },
                         },
                         checkedTypeName: 'ZkappUri',
@@ -212,10 +197,7 @@ let jsLayout = {
                           name: 'Anonymous',
                           docs: null,
                           keys: ['symbol', 'field'],
-                          entries: {
-                            symbol: { type: 'string' },
-                            field: { type: 'Field' },
-                          },
+                          entries: { symbol: { type: 'string' }, field: { type: 'Field' } },
                           docEntries: { symbol: '', field: '' },
                         },
                         checkedTypeName: 'TokenSymbol',
@@ -277,10 +259,7 @@ let jsLayout = {
                   name: 'BalanceChange',
                   docs: null,
                   keys: ['magnitude', 'sgn'],
-                  entries: {
-                    magnitude: { type: 'UInt64' },
-                    sgn: { type: 'Sign' },
-                  },
+                  entries: { magnitude: { type: 'UInt64' }, sgn: { type: 'Sign' } },
                   docEntries: { magnitude: null, sgn: null },
                   checkedType: { type: 'BalanceChange' },
                   checkedTypeName: 'BalanceChange',
@@ -288,11 +267,7 @@ let jsLayout = {
                 incrementNonce: { type: 'Bool' },
                 events: {
                   type: 'array',
-                  inner: {
-                    type: 'array',
-                    inner: { type: 'Field' },
-                    staticLength: null,
-                  },
+                  inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
                   staticLength: null,
                   checkedType: {
                     type: 'object',
@@ -302,11 +277,7 @@ let jsLayout = {
                     entries: {
                       data: {
                         type: 'array',
-                        inner: {
-                          type: 'array',
-                          inner: { type: 'Field' },
-                          staticLength: null,
-                        },
+                        inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
                         staticLength: null,
                       },
                       hash: { type: 'Field' },
@@ -317,11 +288,7 @@ let jsLayout = {
                 },
                 actions: {
                   type: 'array',
-                  inner: {
-                    type: 'array',
-                    inner: { type: 'Field' },
-                    staticLength: null,
-                  },
+                  inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
                   staticLength: null,
                   checkedType: {
                     type: 'object',
@@ -331,11 +298,7 @@ let jsLayout = {
                     entries: {
                       data: {
                         type: 'array',
-                        inner: {
-                          type: 'array',
-                          inner: { type: 'Field' },
-                          staticLength: null,
-                        },
+                        inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
                         staticLength: null,
                       },
                       hash: { type: 'Field' },
@@ -381,10 +344,7 @@ let jsLayout = {
                             name: 'LengthInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt32' },
-                              upper: { type: 'UInt32' },
-                            },
+                            entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                             docEntries: { lower: null, upper: null },
                           },
                         },
@@ -398,10 +358,7 @@ let jsLayout = {
                             name: 'LengthInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt32' },
-                              upper: { type: 'UInt32' },
-                            },
+                            entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                             docEntries: { lower: null, upper: null },
                           },
                         },
@@ -415,10 +372,7 @@ let jsLayout = {
                             name: 'CurrencyAmountInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt64' },
-                              upper: { type: 'UInt64' },
-                            },
+                            entries: { lower: { type: 'UInt64' }, upper: { type: 'UInt64' } },
                             docEntries: { lower: null, upper: null },
                           },
                         },
@@ -432,10 +386,7 @@ let jsLayout = {
                             name: 'GlobalSlotSinceGenesisInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt32' },
-                              upper: { type: 'UInt32' },
-                            },
+                            entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                             docEntries: { lower: null, upper: null },
                           },
                         },
@@ -507,10 +458,7 @@ let jsLayout = {
                                 name: 'LengthInterval',
                                 docs: null,
                                 keys: ['lower', 'upper'],
-                                entries: {
-                                  lower: { type: 'UInt32' },
-                                  upper: { type: 'UInt32' },
-                                },
+                                entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                                 docEntries: { lower: null, upper: null },
                               },
                             },
@@ -591,10 +539,7 @@ let jsLayout = {
                                 name: 'LengthInterval',
                                 docs: null,
                                 keys: ['lower', 'upper'],
-                                entries: {
-                                  lower: { type: 'UInt32' },
-                                  upper: { type: 'UInt32' },
-                                },
+                                entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                                 docEntries: { lower: null, upper: null },
                               },
                             },
@@ -643,10 +588,7 @@ let jsLayout = {
                             name: 'BalanceInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt64' },
-                              upper: { type: 'UInt64' },
-                            },
+                            entries: { lower: { type: 'UInt64' }, upper: { type: 'UInt64' } },
                             docEntries: { lower: null, upper: null },
                           },
                         },
@@ -660,10 +602,7 @@ let jsLayout = {
                             name: 'NonceInterval',
                             docs: null,
                             keys: ['lower', 'upper'],
-                            entries: {
-                              lower: { type: 'UInt32' },
-                              upper: { type: 'UInt32' },
-                            },
+                            entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                             docEntries: { lower: null, upper: null },
                           },
                         },
@@ -727,19 +666,12 @@ let jsLayout = {
                         name: 'GlobalSlotSinceGenesisInterval',
                         docs: null,
                         keys: ['lower', 'upper'],
-                        entries: {
-                          lower: { type: 'UInt32' },
-                          upper: { type: 'UInt32' },
-                        },
+                        entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                         docEntries: { lower: null, upper: null },
                       },
                     },
                   },
-                  docEntries: {
-                    network: null,
-                    account: null,
-                    validWhile: null,
-                  },
+                  docEntries: { network: null, account: null, validWhile: null },
                 },
                 useFullCommitment: { type: 'Bool' },
                 implicitAccountCreationFee: { type: 'Bool' },
@@ -752,10 +684,7 @@ let jsLayout = {
                     parentsOwnToken: { type: 'Bool' },
                     inheritFromParent: { type: 'Bool' },
                   },
-                  docEntries: {
-                    parentsOwnToken: null,
-                    inheritFromParent: null,
-                  },
+                  docEntries: { parentsOwnToken: null, inheritFromParent: null },
                   checkedType: {
                     type: 'object',
                     name: 'Anonymous',
@@ -783,11 +712,7 @@ let jsLayout = {
                       checkedTypeName: 'VerificationKeyHash',
                     },
                   },
-                  docEntries: {
-                    isSigned: null,
-                    isProved: null,
-                    verificationKeyHash: null,
-                  },
+                  docEntries: { isSigned: null, isProved: null, verificationKeyHash: null },
                 },
               },
               docEntries: {
@@ -813,16 +738,8 @@ let jsLayout = {
               docs: null,
               keys: ['proof', 'signature'],
               entries: {
-                proof: {
-                  type: 'option',
-                  optionType: 'orUndefined',
-                  inner: { type: 'string' },
-                },
-                signature: {
-                  type: 'option',
-                  optionType: 'orUndefined',
-                  inner: { type: 'string' },
-                },
+                proof: { type: 'option', optionType: 'orUndefined', inner: { type: 'string' } },
+                signature: { type: 'option', optionType: 'orUndefined', inner: { type: 'string' } },
               },
               docEntries: { proof: null, signature: null },
             },
@@ -881,11 +798,7 @@ let jsLayout = {
             entries: {
               appState: {
                 type: 'array',
-                inner: {
-                  type: 'option',
-                  optionType: 'flaggedOption',
-                  inner: { type: 'Field' },
-                },
+                inner: { type: 'option', optionType: 'flaggedOption', inner: { type: 'Field' } },
                 staticLength: 8,
               },
               delegate: {
@@ -901,10 +814,7 @@ let jsLayout = {
                   name: 'VerificationKeyWithHash',
                   docs: null,
                   keys: ['data', 'hash'],
-                  entries: {
-                    data: { type: 'string' },
-                    hash: { type: 'Field' },
-                  },
+                  entries: { data: { type: 'string' }, hash: { type: 'Field' } },
                   docEntries: { data: null, hash: null },
                 },
               },
@@ -986,10 +896,7 @@ let jsLayout = {
                     name: 'Events',
                     docs: null,
                     keys: ['data', 'hash'],
-                    entries: {
-                      data: { type: 'string' },
-                      hash: { type: 'Field' },
-                    },
+                    entries: { data: { type: 'string' }, hash: { type: 'Field' } },
                     docEntries: { data: null, hash: null },
                   },
                   checkedTypeName: 'ZkappUri',
@@ -1005,10 +912,7 @@ let jsLayout = {
                     name: 'Anonymous',
                     docs: null,
                     keys: ['symbol', 'field'],
-                    entries: {
-                      symbol: { type: 'string' },
-                      field: { type: 'Field' },
-                    },
+                    entries: { symbol: { type: 'string' }, field: { type: 'Field' } },
                     docEntries: { symbol: '', field: '' },
                   },
                   checkedTypeName: 'TokenSymbol',
@@ -1078,11 +982,7 @@ let jsLayout = {
           incrementNonce: { type: 'Bool' },
           events: {
             type: 'array',
-            inner: {
-              type: 'array',
-              inner: { type: 'Field' },
-              staticLength: null,
-            },
+            inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
             staticLength: null,
             checkedType: {
               type: 'object',
@@ -1092,11 +992,7 @@ let jsLayout = {
               entries: {
                 data: {
                   type: 'array',
-                  inner: {
-                    type: 'array',
-                    inner: { type: 'Field' },
-                    staticLength: null,
-                  },
+                  inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
                   staticLength: null,
                 },
                 hash: { type: 'Field' },
@@ -1107,11 +1003,7 @@ let jsLayout = {
           },
           actions: {
             type: 'array',
-            inner: {
-              type: 'array',
-              inner: { type: 'Field' },
-              staticLength: null,
-            },
+            inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
             staticLength: null,
             checkedType: {
               type: 'object',
@@ -1121,11 +1013,7 @@ let jsLayout = {
               entries: {
                 data: {
                   type: 'array',
-                  inner: {
-                    type: 'array',
-                    inner: { type: 'Field' },
-                    staticLength: null,
-                  },
+                  inner: { type: 'array', inner: { type: 'Field' }, staticLength: null },
                   staticLength: null,
                 },
                 hash: { type: 'Field' },
@@ -1171,10 +1059,7 @@ let jsLayout = {
                       name: 'LengthInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt32' },
-                        upper: { type: 'UInt32' },
-                      },
+                      entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                       docEntries: { lower: null, upper: null },
                     },
                   },
@@ -1188,10 +1073,7 @@ let jsLayout = {
                       name: 'LengthInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt32' },
-                        upper: { type: 'UInt32' },
-                      },
+                      entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                       docEntries: { lower: null, upper: null },
                     },
                   },
@@ -1205,10 +1087,7 @@ let jsLayout = {
                       name: 'CurrencyAmountInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt64' },
-                        upper: { type: 'UInt64' },
-                      },
+                      entries: { lower: { type: 'UInt64' }, upper: { type: 'UInt64' } },
                       docEntries: { lower: null, upper: null },
                     },
                   },
@@ -1222,10 +1101,7 @@ let jsLayout = {
                       name: 'GlobalSlotSinceGenesisInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt32' },
-                        upper: { type: 'UInt32' },
-                      },
+                      entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                       docEntries: { lower: null, upper: null },
                     },
                   },
@@ -1233,13 +1109,7 @@ let jsLayout = {
                     type: 'object',
                     name: 'EpochDataPrecondition',
                     docs: null,
-                    keys: [
-                      'ledger',
-                      'seed',
-                      'startCheckpoint',
-                      'lockCheckpoint',
-                      'epochLength',
-                    ],
+                    keys: ['ledger', 'seed', 'startCheckpoint', 'lockCheckpoint', 'epochLength'],
                     entries: {
                       ledger: {
                         type: 'object',
@@ -1262,10 +1132,7 @@ let jsLayout = {
                               name: 'CurrencyAmountInterval',
                               docs: null,
                               keys: ['lower', 'upper'],
-                              entries: {
-                                lower: { type: 'UInt64' },
-                                upper: { type: 'UInt64' },
-                              },
+                              entries: { lower: { type: 'UInt64' }, upper: { type: 'UInt64' } },
                               docEntries: { lower: null, upper: null },
                             },
                           },
@@ -1297,10 +1164,7 @@ let jsLayout = {
                           name: 'LengthInterval',
                           docs: null,
                           keys: ['lower', 'upper'],
-                          entries: {
-                            lower: { type: 'UInt32' },
-                            upper: { type: 'UInt32' },
-                          },
+                          entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                           docEntries: { lower: null, upper: null },
                         },
                       },
@@ -1317,13 +1181,7 @@ let jsLayout = {
                     type: 'object',
                     name: 'EpochDataPrecondition',
                     docs: null,
-                    keys: [
-                      'ledger',
-                      'seed',
-                      'startCheckpoint',
-                      'lockCheckpoint',
-                      'epochLength',
-                    ],
+                    keys: ['ledger', 'seed', 'startCheckpoint', 'lockCheckpoint', 'epochLength'],
                     entries: {
                       ledger: {
                         type: 'object',
@@ -1346,10 +1204,7 @@ let jsLayout = {
                               name: 'CurrencyAmountInterval',
                               docs: null,
                               keys: ['lower', 'upper'],
-                              entries: {
-                                lower: { type: 'UInt64' },
-                                upper: { type: 'UInt64' },
-                              },
+                              entries: { lower: { type: 'UInt64' }, upper: { type: 'UInt64' } },
                               docEntries: { lower: null, upper: null },
                             },
                           },
@@ -1381,10 +1236,7 @@ let jsLayout = {
                           name: 'LengthInterval',
                           docs: null,
                           keys: ['lower', 'upper'],
-                          entries: {
-                            lower: { type: 'UInt32' },
-                            upper: { type: 'UInt32' },
-                          },
+                          entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                           docEntries: { lower: null, upper: null },
                         },
                       },
@@ -1433,10 +1285,7 @@ let jsLayout = {
                       name: 'BalanceInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt64' },
-                        upper: { type: 'UInt64' },
-                      },
+                      entries: { lower: { type: 'UInt64' }, upper: { type: 'UInt64' } },
                       docEntries: { lower: null, upper: null },
                     },
                   },
@@ -1450,10 +1299,7 @@ let jsLayout = {
                       name: 'NonceInterval',
                       docs: null,
                       keys: ['lower', 'upper'],
-                      entries: {
-                        lower: { type: 'UInt32' },
-                        upper: { type: 'UInt32' },
-                      },
+                      entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                       docEntries: { lower: null, upper: null },
                     },
                   },
@@ -1490,11 +1336,7 @@ let jsLayout = {
                     optionType: 'flaggedOption',
                     inner: { type: 'Bool' },
                   },
-                  isNew: {
-                    type: 'option',
-                    optionType: 'flaggedOption',
-                    inner: { type: 'Bool' },
-                  },
+                  isNew: { type: 'option', optionType: 'flaggedOption', inner: { type: 'Bool' } },
                 },
                 docEntries: {
                   balance: null,
@@ -1517,10 +1359,7 @@ let jsLayout = {
                   name: 'GlobalSlotSinceGenesisInterval',
                   docs: null,
                   keys: ['lower', 'upper'],
-                  entries: {
-                    lower: { type: 'UInt32' },
-                    upper: { type: 'UInt32' },
-                  },
+                  entries: { lower: { type: 'UInt32' }, upper: { type: 'UInt32' } },
                   docEntries: { lower: null, upper: null },
                 },
               },
@@ -1534,20 +1373,14 @@ let jsLayout = {
             name: 'MayUseToken',
             docs: null,
             keys: ['parentsOwnToken', 'inheritFromParent'],
-            entries: {
-              parentsOwnToken: { type: 'Bool' },
-              inheritFromParent: { type: 'Bool' },
-            },
+            entries: { parentsOwnToken: { type: 'Bool' }, inheritFromParent: { type: 'Bool' } },
             docEntries: { parentsOwnToken: null, inheritFromParent: null },
             checkedType: {
               type: 'object',
               name: 'Anonymous',
               docs: null,
               keys: ['parentsOwnToken', 'inheritFromParent'],
-              entries: {
-                parentsOwnToken: { type: 'Bool' },
-                inheritFromParent: { type: 'Bool' },
-              },
+              entries: { parentsOwnToken: { type: 'Bool' }, inheritFromParent: { type: 'Bool' } },
               docEntries: { parentsOwnToken: '', inheritFromParent: '' },
             },
             checkedTypeName: 'MayUseToken',
@@ -1566,11 +1399,7 @@ let jsLayout = {
                 checkedTypeName: 'VerificationKeyHash',
               },
             },
-            docEntries: {
-              isSigned: null,
-              isProved: null,
-              verificationKeyHash: null,
-            },
+            docEntries: { isSigned: null, isProved: null, verificationKeyHash: null },
           },
         },
         docEntries: {
@@ -1596,16 +1425,8 @@ let jsLayout = {
         docs: null,
         keys: ['proof', 'signature'],
         entries: {
-          proof: {
-            type: 'option',
-            optionType: 'orUndefined',
-            inner: { type: 'string' },
-          },
-          signature: {
-            type: 'option',
-            optionType: 'orUndefined',
-            inner: { type: 'string' },
-          },
+          proof: { type: 'option', optionType: 'orUndefined', inner: { type: 'string' } },
+          signature: { type: 'option', optionType: 'orUndefined', inner: { type: 'string' } },
         },
         docEntries: { proof: null, signature: null },
       },
@@ -1640,11 +1461,7 @@ let jsLayout = {
         checkedType: { type: 'Field' },
         checkedTypeName: 'ReceiptChainHash',
       },
-      delegate: {
-        type: 'option',
-        optionType: 'orUndefined',
-        inner: { type: 'PublicKey' },
-      },
+      delegate: { type: 'option', optionType: 'orUndefined', inner: { type: 'PublicKey' } },
       votingFor: { type: 'Field' },
       timing: {
         type: 'object',
@@ -1756,11 +1573,7 @@ let jsLayout = {
             'zkappUri',
           ],
           entries: {
-            appState: {
-              type: 'array',
-              inner: { type: 'Field' },
-              staticLength: 8,
-            },
+            appState: { type: 'array', inner: { type: 'Field' }, staticLength: 8 },
             verificationKey: {
               type: 'option',
               optionType: 'orUndefined',
@@ -1774,11 +1587,7 @@ let jsLayout = {
               },
             },
             zkappVersion: { type: 'UInt32' },
-            actionState: {
-              type: 'array',
-              inner: { type: 'Field' },
-              staticLength: 5,
-            },
+            actionState: { type: 'array', inner: { type: 'Field' }, staticLength: 5 },
             lastActionSlot: { type: 'UInt32' },
             provedState: { type: 'Bool' },
             zkappUri: { type: 'string' },
