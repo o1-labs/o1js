@@ -18,6 +18,12 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/ad17c4a1...HEAD)
 
+### Changed
+
+- Replace the `Circuit` API with the `ZkFunction` API, which provides the same
+  functionality with a more ergonomic and consistent structure, inspired by
+  `ZkProgram`. https://github.com/o1-labs/o1js/pull/2245
+
 ## [2.7.0](https://github.com/o1-labs/o1js/compare/3eef10d...ad17c4a1) - 2025-07-23
 
 ### Added
@@ -52,10 +58,6 @@ This project adheres to
 - Dynamic array provable type. https://github.com/o1-labs/o1js/pull/1848
 
 ## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
-
-### Changed
-
-- Replace the `Circuit` API with the `ZkFunction` API, which provides the same functionality with a more ergonomic and consistent structure, inspired by `ZkProgram`. https://github.com/o1-labs/o1js/pull/2245
 
 ### Fixed
 
