@@ -44,4 +44,4 @@ echo "Previous commit: $previous_commit"
 sed -i "s/\[Unreleased\](.*\.\.\.HEAD)/\[Unreleased\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$current_commit...HEAD)\n\n## \[$new_version\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$previous_commit...$current_commit) - $current_date/" CHANGELOG.md
 
 # Step 7: Auto-fix compare URLs for all past versions
-python3 fix_changelog_commits.py
+node fix-changelog-links.cjs
