@@ -131,7 +131,7 @@ console.log('Testing Field to ForeignField conversion...');
   expect(zero.toBigInt()).toBe(0n);
 
   // Test large valid value within native Field range
-  // Use a large value that fits in native Field (~2^254) rather than foreign field modulus (~2^259)  
+  // Use a large value that fits in native Field (~2^254) rather than foreign field modulus (~2^259)
   let largeValue = (1n << 200n) - 1n; // Safe value within native Field range
   let large = Field(largeValue);
   let foreignLarge = ForeignScalar.from(large);

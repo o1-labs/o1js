@@ -14,26 +14,6 @@ import { ProvablePureExtended } from './types/struct.js';
 export { createForeignField };
 export type { ForeignField, UnreducedForeignField, AlmostForeignField, CanonicalForeignField };
 
-/**
- * Internal helper function to convert Field to Field3.
- * Handles both constant and variable contexts with proper range checking.
- */
-function fromField(field: Field, modulus: bigint): Field3 {
-  // For constants, use direct conversion with validation
-  if (field.isConstant()) {
-    let value = field.toBigInt();
-    if (value >= modulus) {
-      throw new Error(
-        `Field value ${value} exceeds foreign field modulus ${modulus}. Use 'Gadgets.ForeignField.assertLessThan()' if needed.`
-      );
-    }
-    return Field3.from(value);
-  }
-
-  // For variables, use the existing fieldToField3 logic
-  return fieldToField3(field);
-}
-
 class ForeignField {
   static _Bigint: FiniteField | undefined = undefined;
   static _modulus: bigint | undefined = undefined;
@@ -101,7 +81,8 @@ class ForeignField {
    * @example
    * ```ts
    * let x = new ForeignField(5);
-   * let y = new ForeignField(Field(42)); // Now supported!
+   * let y = ForeignField.from(10n);
+   * let z = new ForeignField(Field(42));
    * ```
    *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
@@ -124,7 +105,15 @@ class ForeignField {
     }
     // Field
     if (x instanceof Field) {
-      this.value = fromField(x, p);
+      if (x.isConstant()) {
+        let value = x.toBigInt();
+        if (value >= p) {
+          throw new Error(
+            `Field value ${value} exceeds foreign field modulus ${p}. Please ensure the value is reduced to the modulus.`
+          );
+        }
+      }
+      this.value = fieldToField3(x);
       return;
     }
     // Field3
