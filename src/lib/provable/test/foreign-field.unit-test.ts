@@ -100,3 +100,64 @@ equivalent({ from: [f], to: f })(
     return ForeignScalar.fromBits(bits);
   }
 );
+
+// Field to ForeignField conversion tests
+
+console.log('Testing Field to ForeignField conversion...');
+
+// Test 1: Constant Field conversion
+{
+  let field = Field(123);
+  let foreignField = ForeignScalar.from(field);
+  expect(foreignField.toBigInt()).toBe(123n);
+  expect(foreignField.isConstant()).toBe(true);
+  console.log('✓ Constant Field conversion');
+}
+
+// Test 2: Constructor with Field
+{
+  let field = Field(456);
+  let foreignField = new ForeignScalar(field);
+  expect(foreignField.toBigInt()).toBe(456n);
+  expect(foreignField.isConstant()).toBe(true);
+  console.log('✓ Constructor with Field');
+}
+
+// Test 3: Boundary values
+{
+  // Test zero
+  let zero = ForeignScalar.from(Field(0));
+  expect(zero.toBigInt()).toBe(0n);
+  
+  // Test large valid value (modulus - 1)
+  let large = Field(ForeignScalar.modulus - 1n);
+  let foreignLarge = ForeignScalar.from(large);
+  expect(foreignLarge.toBigInt()).toBe(ForeignScalar.modulus - 1n);
+  console.log('✓ Boundary values');
+}
+
+// Test 4: Small field modulus overflow error
+{
+  // Using SmallField (modulus 17) to easily test overflow
+  expect(() => {
+    SmallField.from(Field(18)); // 18 > 17 (modulus)
+  }).toThrow('exceeds foreign field modulus');
+  console.log('✓ Modulus overflow error');
+}
+
+// Test 5: Round-trip conversion
+{
+  let original = Field(12345);
+  let foreign = ForeignScalar.from(original);
+  let reconstructed = Field(foreign.toBigInt());
+  expect(reconstructed.toBigInt()).toBe(original.toBigInt());
+  console.log('✓ Round-trip conversion');
+}
+
+// Test 6: Variable Field conversion in provable context
+equivalent({ from: [spec({ rng: Random.scalar, there: Field, back: (x) => x.toBigInt() })], to: f })( 
+  (x) => x,
+  (field) => ForeignScalar.from(field)
+);
+
+console.log('✓ All Field conversion tests passed!');

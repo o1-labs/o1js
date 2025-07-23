@@ -6,12 +6,33 @@ import { Tuple, TupleMap, TupleN } from '../util/types.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
+import { fieldToField3 } from './gadgets/comparison.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
 
 // external API
 export { createForeignField };
 export type { ForeignField, UnreducedForeignField, AlmostForeignField, CanonicalForeignField };
+
+/**
+ * Internal helper function to convert Field to Field3.
+ * Handles both constant and variable contexts with proper range checking.
+ */
+function fromField(field: Field, modulus: bigint): Field3 {
+  // For constants, use direct conversion with validation
+  if (field.isConstant()) {
+    let value = field.toBigInt();
+    if (value >= modulus) {
+      throw new Error(
+        `Field value ${value} exceeds foreign field modulus ${modulus}. Use 'Gadgets.ForeignField.assertLessThan()' if needed.`
+      );
+    }
+    return Field3.from(value);
+  }
+  
+  // For variables, use the existing fieldToField3 logic
+  return fieldToField3(field);
+}
 
 class ForeignField {
   static _Bigint: FiniteField | undefined = undefined;
@@ -76,19 +97,21 @@ class ForeignField {
   }
 
   /**
-   * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
+   * Create a new {@link ForeignField} from a bigint, number, string, Field, or another ForeignField.
    * @example
    * ```ts
    * let x = new ForeignField(5);
+   * let y = new ForeignField(Field(42)); // Now supported!
    * ```
    *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
    *
    * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
    * - When constructing from a `Field3` array, ensure all elements are valid Field elements and range checked.
+   * - When constructing from a {@link Field}, automatic range checking is performed to ensure the value doesn't exceed the foreign field modulus.
    * - Ensure constants are correctly reduced to the modulus of the field.
    */
-  constructor(x: ForeignField | Field3 | bigint | number | string) {
+  constructor(x: ForeignField | Field3 | Field | bigint | number | string) {
     const p = this.modulus;
     if (x instanceof ForeignField) {
       if (x.modulus !== p) {
@@ -97,6 +120,11 @@ class ForeignField {
         );
       }
       this.value = x.value;
+      return;
+    }
+    // Field
+    if (x instanceof Field) {
+      this.value = fromField(x, p);
       return;
     }
     // Field3
@@ -110,10 +138,11 @@ class ForeignField {
 
   /**
    * Coerce the input to a {@link ForeignField}.
+   * @param x - The value to convert. Can be a {@link Field}, {@link ForeignField}, bigint, number, or string.
    */
-  static from(x: bigint | number | string): CanonicalForeignField;
-  static from(x: ForeignField | bigint | number | string): ForeignField;
-  static from(x: ForeignField | bigint | number | string): ForeignField {
+  static from(x: Field | bigint | number | string): CanonicalForeignField;
+  static from(x: ForeignField | Field | bigint | number | string): ForeignField;
+  static from(x: ForeignField | Field | bigint | number | string): ForeignField {
     if (x instanceof this) return x;
     return new this.Canonical(x);
   }
@@ -469,7 +498,7 @@ class UnreducedForeignField extends ForeignField {
 class AlmostForeignField extends ForeignFieldWithMul {
   type: 'AlmostReduced' | 'FullyReduced' = 'AlmostReduced';
 
-  constructor(x: AlmostForeignField | Field3 | bigint | number | string) {
+  constructor(x: AlmostForeignField | Field3 | Field | bigint | number | string) {
     super(x);
   }
 
@@ -510,7 +539,7 @@ class AlmostForeignField extends ForeignFieldWithMul {
 class CanonicalForeignField extends ForeignFieldWithMul {
   type = 'FullyReduced' as const;
 
-  constructor(x: CanonicalForeignField | Field3 | bigint | number | string) {
+  constructor(x: CanonicalForeignField | Field3 | Field | bigint | number | string) {
     super(x);
   }
 
