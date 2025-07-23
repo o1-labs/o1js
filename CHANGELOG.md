@@ -16,7 +16,7 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/ad17c4a1...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/045b1ab...HEAD)
 
 ### Changed
 
@@ -24,7 +24,7 @@ This project adheres to
   functionality with a more ergonomic and consistent structure, inspired by
   `ZkProgram`. https://github.com/o1-labs/o1js/pull/2245
 
-## [2.7.0](https://github.com/o1-labs/o1js/compare/3eef10d...ad17c4a1) - 2025-07-23
+## [2.7.0](https://github.com/o1-labs/o1js/compare/6b6d8b9...045b1ab) - 2025-07-23
 
 ### Added
 
@@ -49,7 +49,7 @@ This project adheres to
   root(commitment), addressing a vulnerability where a malicious user could
   insert a larger leaf and render the tree unreconstructable by others.
 
-## [2.6.0](https://github.com/o1-labs/o1js/compare/4e23a60...3eef10d) - 2025-05-30
+## [2.6.0](https://github.com/o1-labs/o1js/compare/065a15f...6b6d8b9) - 2025-05-30
 
 ### Added
 
@@ -57,7 +57,7 @@ This project adheres to
   - work in progress, still requires memory optimizations to be fully functional
 - Dynamic array provable type. https://github.com/o1-labs/o1js/pull/1848
 
-## [2.5.0](https://github.com/o1-labs/o1js/compare/6ff7f8470a...4e23a60)
+## [2.5.0](https://github.com/o1-labs/o1js/compare/9628358...065a15f)
 
 ### Fixed
 
@@ -89,7 +89,7 @@ This project adheres to
 - Added verification key validity checks to `LocalBlockchain`.
   https://github.com/o1-labs/o1js/pull/2171
 
-## [2.4.0](https://github.com/o1-labs/o1js/compare/fb625f...6ff7f8470a) - 2025-04-01
+## [2.4.0](https://github.com/o1-labs/o1js/compare/c476f09...9628358) - 2025-04-01
 
 ### Added
 
@@ -116,7 +116,7 @@ This project adheres to
 - **Provable BigInt** exposed through the `createProvableBigInt()` class factory
   https://github.com/o1-labs/o1js/pull/2008
 
-## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...fb625f)
+## [2.3.0](https://github.com/o1-labs/o1js/compare/b857516...c476f09)
 
 ### Added
 
