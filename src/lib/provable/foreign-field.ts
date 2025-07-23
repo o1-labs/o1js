@@ -29,7 +29,7 @@ function fromField(field: Field, modulus: bigint): Field3 {
     }
     return Field3.from(value);
   }
-  
+
   // For variables, use the existing fieldToField3 logic
   return fieldToField3(field);
 }
@@ -718,7 +718,7 @@ type Constructor<T> = new (...args: any[]) => T;
 function provable<
   F extends ForeignField & {
     type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced';
-  },
+  }
 >(
   Class: Constructor<F> & { check(x: ForeignField): void }
 ): ProvablePureExtended<F, bigint, string> {
