@@ -169,7 +169,10 @@ const False = () => Bool(false);
 type Permission = Types.AuthRequired;
 
 class VerificationKeyPermission {
-  constructor(public auth: Permission, public txnVersion: UInt32) {}
+  constructor(
+    public auth: Permission,
+    public txnVersion: UInt32
+  ) {}
 
   // TODO this class could be made incompatible with a plain object (breaking change)
   // private _ = undefined;

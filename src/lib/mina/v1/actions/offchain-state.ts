@@ -581,9 +581,9 @@ type OffchainStateIntf<Kind extends OffchainStateKind> = Kind extends {
 }
   ? OffchainField<InferProvable<T>, InferValue<T>>
   : Kind extends {
-      kind: 'offchain-map';
-      keyType: infer K;
-      valueType: infer V;
-    }
-  ? OffchainMap<InferProvable<K>, InferProvable<V>, InferValue<V>>
-  : never;
+        kind: 'offchain-map';
+        keyType: infer K;
+        valueType: infer V;
+      }
+    ? OffchainMap<InferProvable<K>, InferProvable<V>, InferValue<V>>
+    : never;

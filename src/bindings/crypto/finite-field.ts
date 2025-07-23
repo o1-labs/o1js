@@ -137,8 +137,8 @@ function fastInverse(x: bigint, p: bigint, n: number, kmax: bigint, twoToMinusKm
     u = unew >> wn;
     v = vnew >> wn;
 
-    if (u < 0) (u = -u), (f0n = -f0n), (g0n = -g0n);
-    if (v < 0) (v = -v), (f1n = -f1n), (g1n = -g1n);
+    if (u < 0) ((u = -u), (f0n = -f0n), (g0n = -g0n));
+    if (v < 0) ((v = -v), (f1n = -f1n), (g1n = -g1n));
 
     let rnew = r * f0n + s * g0n;
     let snew = s * g1n + r * f1n;

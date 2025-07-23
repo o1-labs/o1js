@@ -31,7 +31,7 @@ type ZkFunctionConfig = {
 
 type MainType<
   PublicInput,
-  PrivateInputs extends Tuple<ProvableTypePure>
+  PrivateInputs extends Tuple<ProvableTypePure>,
 > = PublicInput extends undefined
   ? (...args: TupleToInstances<PrivateInputs>) => void
   : (publicInput: InferProvable<PublicInput>, ...args: TupleToInstances<PrivateInputs>) => void;
@@ -41,23 +41,19 @@ type InferMainType<Config extends ZkFunctionConfig> = MainType<
   Config['privateInputTypes']
 >;
 
-type ProveMethodType<Config extends ZkFunctionConfig> = Get<
-  Config,
-  'publicInputType'
-> extends undefined
-  ? (...args: PrivateInputs<Config>) => Promise<Proof>
-  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<Proof>;
+type ProveMethodType<Config extends ZkFunctionConfig> =
+  Get<Config, 'publicInputType'> extends undefined
+    ? (...args: PrivateInputs<Config>) => Promise<Proof>
+    : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<Proof>;
 
-type VerifyMethodType<Config extends ZkFunctionConfig> = Get<
-  Config,
-  'publicInputType'
-> extends undefined
-  ? (proof: Proof, verificationKey: VerificationKey) => Promise<boolean>
-  : (
-      publicInput: PublicInput<Config>,
-      proof: Proof,
-      verificationKey: VerificationKey
-    ) => Promise<boolean>;
+type VerifyMethodType<Config extends ZkFunctionConfig> =
+  Get<Config, 'publicInputType'> extends undefined
+    ? (proof: Proof, verificationKey: VerificationKey) => Promise<boolean>
+    : (
+        publicInput: PublicInput<Config>,
+        proof: Proof,
+        verificationKey: VerificationKey
+      ) => Promise<boolean>;
 
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {

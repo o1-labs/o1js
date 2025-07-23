@@ -44,7 +44,7 @@ type Gate = [
   _: 0,
   typ: GateType,
   wires: [0, Wire, Wire, Wire, Wire, Wire, Wire, Wire],
-  coeffs: MlArray<Field>
+  coeffs: MlArray<Field>,
 ];
 
 type PolyComm = [_: 0, elems: MlArray<OrInfinity>];
@@ -68,7 +68,7 @@ type VerificationEvals = [
   range_check1_comm: MlOption<PolyComm>,
   foreign_field_add_comm: MlOption<PolyComm>,
   foreign_field_mul_comm: MlOption<PolyComm>,
-  rot_comm: MlOption<PolyComm>
+  rot_comm: MlOption<PolyComm>,
 ];
 
 type VerifierIndex = [
@@ -81,7 +81,7 @@ type VerifierIndex = [
   evals: VerificationEvals,
   shifts: MlArray<Field>,
   lookup_index: MlOption<Lookup<PolyComm>>,
-  zkRows: number
+  zkRows: number,
 ];
 
 // oracles
@@ -99,14 +99,14 @@ type RandomOracles = [
   u: Field,
   zeta_chal: ScalarChallenge,
   v_chal: ScalarChallenge,
-  u_chal: ScalarChallenge
+  u_chal: ScalarChallenge,
 ];
 type Oracles = [
   _: 0,
   o: RandomOracles,
   p_eval: [0, Field, Field],
   opening_prechallenges: MlArray<Field>,
-  digest_before_evaluations: Field
+  digest_before_evaluations: Field,
 ];
 
 // proof
@@ -115,14 +115,14 @@ type LookupCommitments = [
   _: 0,
   sorted: MlArray<PolyComm>,
   aggreg: PolyComm,
-  runtime: MlOption<PolyComm>
+  runtime: MlOption<PolyComm>,
 ];
 type ProverCommitments = [
   _: 0,
   w_comm: MlTuple<PolyComm, 15>,
   z_comm: PolyComm,
   t_comm: PolyComm,
-  lookup: MlOption<LookupCommitments>
+  lookup: MlOption<LookupCommitments>,
 ];
 type OpeningProof = [
   _: 0,
@@ -130,7 +130,7 @@ type OpeningProof = [
   delta: OrInfinity,
   z1: Field,
   z2: Field,
-  sg: OrInfinity
+  sg: OrInfinity,
 ];
 type PointEvaluations<Field> = [_: 0, zeta: MlArray<Field>, zeta_omega: MlArray<Field>];
 
@@ -163,7 +163,7 @@ type ProofEvaluations<Field> = [
   xor_lookup_selector: MlOption<PointEvaluations<Field>>,
   lookup_gate_lookup_selector: MlOption<PointEvaluations<Field>>,
   range_check_lookup_selector: MlOption<PointEvaluations<Field>>,
-  foreign_field_mul_lookup_selector: MlOption<PointEvaluations<Field>>
+  foreign_field_mul_lookup_selector: MlOption<PointEvaluations<Field>>,
 ];
 
 type RecursionChallenge = [_: 0, chals: MlArray<Field>, comm: PolyComm];
@@ -175,7 +175,7 @@ type ProverProof = [
   evals: ProofEvaluations<Field>,
   ft_eval1: Field,
   public_: MlArray<Field>,
-  prev_challenges: MlArray<RecursionChallenge>
+  prev_challenges: MlArray<RecursionChallenge>,
 ];
 
 type ProofWithPublic = [_: 0, public_evals: MlOption<PointEvaluations<Field>>, proof: ProverProof];

@@ -26,7 +26,10 @@ export {
 
 namespace Precondition {
   export class Equals<T extends Eq<T>> {
-    constructor(public isEnabled: Bool, public value: T) {}
+    constructor(
+      public isEnabled: Bool,
+      public value: T
+    ) {}
 
     toStringHuman(): string {
       if (!this.isEnabled.toBoolean()) {
@@ -84,7 +87,11 @@ namespace Precondition {
   }
 
   export class InRange<T extends Compare<T>> {
-    constructor(public isEnabled: Bool, public lower: T, public upper: T) {}
+    constructor(
+      public isEnabled: Bool,
+      public lower: T,
+      public upper: T
+    ) {}
 
     toStringHuman(): string {
       if (!this.isEnabled.toBoolean()) {

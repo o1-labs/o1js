@@ -165,7 +165,7 @@ class MinaProgramEnv<State extends StateLayout> {
 type MinaProgramMethodReturn<
   State extends StateLayout = 'GenericState',
   Event = Field[],
-  Action = Field[]
+  Action = Field[],
 > =
   | Omit<
       AccountUpdateTreeDescription<
@@ -180,7 +180,7 @@ type MinaProgramMethodImpl<
   State extends StateLayout,
   Event,
   Action,
-  PrivateInputs extends ProvableTuple
+  PrivateInputs extends ProvableTuple,
 > = {
   privateInputs: PrivateInputs;
   method(
@@ -194,7 +194,7 @@ type MinaProgramMethodProver<
   State extends StateLayout,
   Event,
   Action,
-  PrivateInputs extends ProvableTuple
+  PrivateInputs extends ProvableTuple,
 > = (
   env: ZkappCommandContext,
   accountId: AccountId,
@@ -205,7 +205,7 @@ interface MinaProgramDescription<
   State extends StateLayout,
   Event,
   Action,
-  MethodPrivateInputs extends { [key: string]: ProvableTuple }
+  MethodPrivateInputs extends { [key: string]: ProvableTuple },
 > {
   name: string;
   State: StateDefinition<State>;
@@ -226,7 +226,7 @@ type MinaProgram<
   State extends StateLayout,
   Event,
   Action,
-  MethodPrivateInputs extends { [key: string]: ProvableTuple }
+  MethodPrivateInputs extends { [key: string]: ProvableTuple },
 > = {
   name: string;
   State: StateDefinition<State>;
@@ -252,7 +252,7 @@ function zkProgramMethod<
   State extends StateLayout,
   Event,
   Action,
-  PrivateInputs extends ProvableTuple
+  PrivateInputs extends ProvableTuple,
 >(
   State: StateDefinition<State>,
   Event: DynamicProvable<Event>,
@@ -335,7 +335,7 @@ function proverMethod<
   State extends StateLayout,
   Event,
   Action,
-  PrivateInputs extends ProvableTuple
+  PrivateInputs extends ProvableTuple,
 >(
   State: StateDefinition<State>,
   Event: DynamicProvable<Event>,
@@ -436,7 +436,7 @@ function MinaProgram<
   State extends StateLayout,
   Event,
   Action,
-  MethodPrivateInputs extends { [key: string]: ProvableTuple }
+  MethodPrivateInputs extends { [key: string]: ProvableTuple },
 >(
   descr: MinaProgramDescription<State, Event, Action, MethodPrivateInputs>
 ): MinaProgram<State, Event, Action, MethodPrivateInputs> {
