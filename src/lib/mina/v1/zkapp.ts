@@ -707,37 +707,60 @@ super.init();
     });
   }
   /**
-   * `SmartContract.init()` will be called only when a {@link SmartContract} will be first deployed, not for redeployment.
-   * This method can be overridden as follows
+   * `SmartContract.init()` is called when a {@link SmartContract} is first deployed.
+   * By default, it initializes the smart contract's state to zero, and sets the
+   * `provedState` to `false`.
+   *
+   * @note The first time any {@link method} is called on the smart contract, `provedState`
+   * will be set to `true`.  The `init` method itself may be decorated with `@method`
+   * in this way.  Review the examples below to see how init can be called with or
+   * without a method decorator.
+   *
+   * @note `init` may be overridden to set state fields to values other than zero, but the
+   * method takes no arguments.  Therefore, only static values may be set.
+   *
+   * @note To initialize a smart contract with custom values provided as arguments, a separate
+   * method is required.
    *
    * @example
    * ```ts
    * class MyContract extends SmartContract {
-   *  @method async init() {
-   *    super.init();
-   *    this.account.permissions.set(...);
-   *    this.x.set(Field(1));
+   *  @state(Field) x = State<Field>();
+   *
+   *  // Overwrite init to set static, non-zero values
+   *  init() {
+   *   super.init();
+   *   this.x.set(Field(1));
+   *  }
+   *
+   *  // Use custom method to initialize dyamic values
+   *  @method async initialize(x: Field) {
+   *    // This method may only be called once, immediately after deployment
+   *    this.account.provedState.getAndRequireEquals().assertFalse();
+   *
+   *    this.x.set(x);
    *  }
    * }
    * ```
    *
-   * @note
-   * `init` is specifically called during the smart contract deployment.  It cannot be given parameters for additional customization.
-   * In order to inizialize a smart contract with parameters (dynamic initialization), you should write another method to be called after the deployment.
-   *
    * @example
    * ```ts
    * class MyContract extends SmartContract {
+   *  @state(Field) x = State<Field>();
+   *
+   *  // Use init as a @method to set state fields to zero, and also
+   *  // set provedState to true, making any other initialization impossible.
    *  @method async init() {
-   *   super.init();
-   *   this.account.permissions.set(...);
-   *   this.x.set(Field(1));
+   *    super.init();
+   *    this.x.set(Field(1));
    *  }
    *
-   *  @method async initializeY(y: Field) {
-   *    this.y.getAndRequireEquals();
-   *    this.y.assertEquals(Field(0)); // ensure y is not set yet
-   *    this.y.set(y);
+   *  // This method is invalid because `init` is a `@method`
+   *  @method async initialize(x: Field) {
+   *    // This assertion will fail because `provedState` is true after `init` is called
+   *    this.account.provedState.getAndRequireEquals().assertFalse();
+   *
+   *    this.x.set(x);
    *  }
    * }
    * ```
