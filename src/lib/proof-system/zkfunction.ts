@@ -11,6 +11,7 @@ import {
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
 import { ProvableTypePure } from '../provable/types/provable-intf.js';
 import { provablePure, InferProvable } from '../provable/types/provable-derivers.js';
+import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
 import { Tuple, Get } from '../util/types.js';
 import { TupleToInstances } from './zkprogram.js';
 import { Field } from '../provable/wrapped.js';
@@ -109,7 +110,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * console.log(cs);
      * ```
      */
-    analyzeMethod(): ConstraintSystemSummary {
+    analyzeMethod(): Omit<ConstraintSystemSummary, 'digest'> {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
       try {
         let { gates, publicInputSize } = gatesFromJson(
@@ -210,20 +211,6 @@ function ZkFunction<Config extends ZkFunctionConfig>(
     },
   };
 }
-
-type ConstraintSystemSummary = {
-  /**
-   * Number of rows in the constraint system
-   */
-  rows: number;
-  /**
-   * List of gates which make up the constraint system
-   */
-  gates: Gate[];
-  publicInputSize: number;
-  print(): void;
-  summary(): Record<string, number>;
-};
 
 /**
  * Proofs can be verified using a {@link VerificationKey} and the public input.
