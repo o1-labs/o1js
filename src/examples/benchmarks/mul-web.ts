@@ -7,7 +7,7 @@ import { tic, toc } from '../utils/tic-toc.js';
 // parameters
 let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
 // let nMuls = 1 << 5;
-let withPickles = false;
+let withPickles = true;
 // the circuit: multiply a number with itself n times
 let xConst = Field.random();
 
