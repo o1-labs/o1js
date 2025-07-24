@@ -105,11 +105,11 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * @example
      * ```ts
      * await zkf.compile();
-     * const cs = await zkf.analyzeMethod();
+     * const cs = zkf.analyzeMethod();
      * console.log(cs);
      * ```
      */
-    async analyzeMethod(): Promise<ConstraintSystemSummary> {
+    analyzeMethod(): ConstraintSystemSummary {
       if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
       try {
         let { gates, publicInputSize } = gatesFromJson(
