@@ -111,7 +111,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * ```
      */
     analyzeMethod(): Omit<ConstraintSystemSummary, 'digest'> {
-      if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
+      if (!_keypair) throw new Error('Cannot find prover artifacts. Please call compile() first!');
       try {
         let { gates, publicInputSize } = gatesFromJson(
           Snarky.circuit.keypair.getConstraintSystemJSON(_keypair)
@@ -148,7 +148,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * ```
      */
     async prove(...args: Parameters<ProveMethodType<Config>>) {
-      if (!_keypair) throw new Error('Cannot find Keypair. Please call compile() first!');
+      if (!_keypair) throw new Error('Cannot find prover artifacts. Please call compile() first!');
 
       const publicInput = hasPublicInput ? args[0] : undefined;
       const privateInputs = (hasPublicInput ? args.slice(1) : args) as PrivateInputs<Config>;
