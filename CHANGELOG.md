@@ -18,6 +18,9 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/045b1ab...HEAD)
 
+### Added
+- Support for `Field` as an input type to `ForeignField.from` https://github.com/o1-labs/o1js/pull/2322
+
 ## [2.7.0](https://github.com/o1-labs/o1js/compare/6b6d8b9...045b1ab) - 2025-07-23
 
 ### Added

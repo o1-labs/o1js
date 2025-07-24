@@ -89,7 +89,7 @@ class ForeignField {
    *
    * - When constructing from another {@link ForeignField} instance, ensure the modulus matches. If not, check the modulus using `Gadgets.ForeignField.assertLessThan()` and handle appropriately.
    * - When constructing from a `Field3` array, ensure all elements are valid Field elements and range checked.
-   * - When constructing from a {@link Field}, automatic range checking is performed to ensure the value doesn't exceed the foreign field modulus.
+   * - When constructing from a {@link Field}, {@link fieldToField3} range checks the individual limbs, but you should ensure that the value is within the foreign field modulus, especially if the foreign field has a smaller modulus than the native field.
    * - Ensure constants are correctly reduced to the modulus of the field.
    */
   constructor(x: ForeignField | Field3 | Field | bigint | number | string) {
