@@ -79,7 +79,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * ```ts
      * const { verificationKey } = await zkf.compile();
      * ```
-     * @warning Must be called before `prove` or `verify`.
+     * @warning Must be called before `prove` or `analyzeMethod`.
      */
     async compile() {
       const main = mainFromCircuitData(config);
@@ -105,7 +105,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * @example
      * ```ts
      * await zkf.compile();
-     * const cs = await zkf.constraintSystem();
+     * const cs = await zkf.analyzeMethod();
      * console.log(cs);
      * ```
      */
@@ -237,6 +237,11 @@ class Proof {
     this.publicInputFields = publicInputFields;
   }
 
+  /**
+   * Verifies this proof using the provided verification key.
+   * @param verificationKey The key to verify against.
+   * @returns A promise that resolves to `true` if valid, otherwise `false`.
+   */
   async verify(verificationKey: VerificationKey) {
     await initializeBindings();
     return prettifyStacktracePromise(
