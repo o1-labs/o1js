@@ -29,6 +29,6 @@ let proof = await reserves.prove(message, signature, publicKey);
 console.timeEnd('prove');
 
 console.time('verify');
-let isValid = await reserves.verify(message, proof, verificationKey);
+let isValid = await reserves.verify(proof, verificationKey);
 assert(isValid, 'verifies');
 console.timeEnd('verify');

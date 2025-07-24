@@ -1,4 +1,4 @@
-import { Gate, Snarky, initializeBindings } from '../../bindings.js';
+import { Snarky, initializeBindings } from '../../bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import { withThreadPool } from '../../bindings.js';
 import { Provable } from '../provable/provable.js';
@@ -47,17 +47,6 @@ type ProveMethodType<Config extends ZkFunctionConfig> = Get<
 > extends undefined
   ? (...args: PrivateInputs<Config>) => Promise<Proof>
   : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<Proof>;
-
-type VerifyMethodType<Config extends ZkFunctionConfig> = Get<
-  Config,
-  'publicInputType'
-> extends undefined
-  ? (proof: Proof, verificationKey: VerificationKey) => Promise<boolean>
-  : (
-      publicInput: PublicInput<Config>,
-      proof: Proof,
-      verificationKey: VerificationKey
-    ) => Promise<boolean>;
 
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {
@@ -135,8 +124,8 @@ function ZkFunction<Config extends ZkFunctionConfig>(
     /**
      * Proves a statement using the public input and private inputs of the circuit(ZkFunction).
      *
-     * @param privateInputs The private inputs to the circuit.
      * @param publicInput The public input to the circuit.
+     * @param privateInputs The private inputs to the circuit.
      * @returns The generated proof.
      *
      * @throws If `compile` has not been called.
@@ -170,44 +159,20 @@ function ZkFunction<Config extends ZkFunctionConfig>(
     /**
      * Verifies a proof using the public input, the proof, and optionally a verification key of the circuit(ZkFunction).
      *
-     * @param publicInput The public input to the circuit.
      * @param proof The proof to verify.
-     * @returns `true` if the proof is valid, otherwise `false`.
+     * @param verificationKey The key to verify against.
      *
-     * @throws If `compile` has not been called.
+     * @returns `true` if the proof is valid, otherwise `false`.
      *
      * @example
      * ```ts
      * const { verificationKey } = await zkf.compile();
      * const proof = await zkf.prove(publicInput, privateInput1, privateInput2);
-     * const isValid = await zkf.verify(publicInput, proof, verificationKey);
+     * const isValid = await zkf.verify(proof, verificationKey);
      * ```
      */
-    async verify(...args: Parameters<VerifyMethodType<Config>>) {
-      let publicInput: PublicInput<Config>;
-      let proof: Proof;
-      let verificationKey: VerificationKey;
-      if (hasPublicInput) {
-        publicInput = args[0] as PublicInput<Config>;
-        proof = args[1] as Proof;
-        verificationKey = args[2] as VerificationKey;
-      } else {
-        publicInput = undefined as PublicInput<Config>;
-        proof = args[0] as Proof;
-        verificationKey = args[1] as VerificationKey;
-      }
-
-      const publicInputFields = publicInputType.toFields(publicInput);
-      await initializeBindings();
-      return prettifyStacktracePromise(
-        withThreadPool(async () =>
-          Snarky.circuit.verify(
-            MlFieldConstArray.to(publicInputFields),
-            proof.value,
-            verificationKey.value
-          )
-        )
-      );
+    async verify(proof: Proof, verificationKey: VerificationKey) {
+      return await proof.verify(verificationKey);
     },
   };
 }
@@ -244,7 +209,7 @@ class Proof {
 }
 
 /**
- * Part of the circuit {@link Keypair}. A verification key can be used to verify a {@link Proof} when you provide the correct public input.
+ * A verification key can be used to verify a {@link Proof} when you provide the correct public input.
  */
 class VerificationKey {
   value: Snarky.VerificationKey;

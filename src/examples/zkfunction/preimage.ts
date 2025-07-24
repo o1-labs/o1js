@@ -25,7 +25,7 @@ console.log('prove...');
 const pi = await main.prove(hash, preimage);
 
 console.log('verify...');
-let ok = await main.verify(hash, pi, verificationKey);
+let ok = await main.verify(pi, verificationKey);
 console.log('ok?', ok);
 
 if (!ok) throw Error('verification failed');

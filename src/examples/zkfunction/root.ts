@@ -28,7 +28,7 @@ const proof = await main.prove(x, y);
 console.timeEnd('prove...');
 
 console.time('verify...');
-let ok = await main.verify(x, proof, verificationKey);
+let ok = await main.verify(proof, verificationKey);
 console.timeEnd('verify...');
 
 console.log('ok?', ok);
