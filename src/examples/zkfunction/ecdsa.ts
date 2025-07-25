@@ -1,4 +1,5 @@
-import { ZkFunction, Crypto, createForeignCurve, Bytes, assert, createEcdsa } from 'o1js';
+import { Experimental, Crypto, createForeignCurve, Bytes, assert, createEcdsa } from 'o1js';
+const { ZkFunction } = Experimental;
 
 export { Secp256k1, Ecdsa, Bytes32, reserves };
 

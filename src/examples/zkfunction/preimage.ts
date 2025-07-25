@@ -1,4 +1,5 @@
-import { Poseidon, Field, ZkFunction } from 'o1js';
+import { Poseidon, Field, Experimental } from 'o1js';
+const { ZkFunction } = Experimental;
 
 /**
  * Public input: a hash value h

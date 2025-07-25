@@ -36,7 +36,6 @@ export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';
 export { Provable } from './lib/provable/provable.js';
 export { Circuit, Keypair, public_, circuitMain } from './lib/proof-system/circuit.js';
-export { ZkFunction } from './lib/proof-system/zkfunction.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
 export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
@@ -129,6 +128,7 @@ import {
   ProvableBigInt as ProvableBigInt_,
   createProvableBigInt as createProvableBigInt_,
 } from './lib/provable/bigint.js';
+import { ZkFunction as ZkFunction_ } from './lib/proof-system/zkfunction.js';
 export { Experimental };
 
 import * as V2_ from './lib/mina/v2/index.js';
@@ -171,6 +171,8 @@ namespace Experimental {
 
   export let ProvableBigInt = ProvableBigInt_;
   export let createProvableBigInt = createProvableBigInt_;
+
+  export let ZkFunction = ZkFunction_;
 
   // offchain state
   export let OffchainState = OffchainState_.OffchainState;

@@ -1,4 +1,5 @@
-import { Field, ZkFunction, Gadgets } from 'o1js';
+import { Field, Experimental, Gadgets } from 'o1js';
+const { ZkFunction } = Experimental;
 
 /**
  * Public input: a field element x
