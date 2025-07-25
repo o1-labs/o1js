@@ -79,9 +79,9 @@ build the bindings for your commit and download them once it finishes.
 
 ## Building with nix
 
-You can build with nix in two ways:
-Using a flake app `nix run .#generate-bindings`
-or using a devshell `nix develop`, and inside that devshell `npm run build:update-bindings`.
+You can build with nix in two ways: Using a flake app
+`nix run .#generate-bindings` or using a devshell `nix develop`, and inside that
+devshell `npm run build:update-bindings`.
 
 ## Building Bindings
 

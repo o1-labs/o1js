@@ -81,8 +81,8 @@ cd o1js
 # npm install
 ```
 
-From a new shell, go to `{REPO_PATH}/o1js` then, you can open a Nix shell
-with all the dependencies required executing `nix develop`.
+From a new shell, go to `{REPO_PATH}/o1js` then, you can open a Nix shell with
+all the dependencies required executing `nix develop`.
 
 ```console
 nix develop
