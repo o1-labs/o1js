@@ -13,6 +13,10 @@ inputs:
     description: 'Build method: "default" or "devshell"'
     required: false
     default: 'default'
+  nix_version:
+    description: 'Nix version to use'
+    required: false
+    default: '2.29.1'
 
 runs:
   using: "composite"
@@ -20,6 +24,7 @@ runs:
     - uses: nixbuild/nix-quick-install-action@v32
       continue-on-error: true
       with:
+        nix_version: ${{ inputs.nix_version }}
         nix_conf: |
           keep-env-derivations = true
           keep-outputs = true
