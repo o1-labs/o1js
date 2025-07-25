@@ -35,6 +35,7 @@ export { provable, provablePure } from './lib/provable/types/provable-derivers.j
 export { Struct } from './lib/provable/types/struct.js';
 export { Unconstrained } from './lib/provable/types/unconstrained.js';
 export { Provable } from './lib/provable/provable.js';
+export { Circuit, Keypair, public_, circuitMain } from './lib/proof-system/circuit.js';
 export { ZkFunction } from './lib/proof-system/zkfunction.js';
 export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
 export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
@@ -151,7 +152,7 @@ namespace Experimental {
     export type MinaProgramMethodReturn<
       State extends V2_.StateLayout = 'GenericState',
       Event = Field[],
-      Action = Field[],
+      Action = Field[]
     > = V2_.MinaProgramMethodReturn<State, Event, Action>;
     export type StateDefinition<State extends V2_.StateLayout> = V2_.StateDefinition<State>;
     export type ZkappCommandAuthorizationEnvironment = V2_.ZkappCommandAuthorizationEnvironment;
@@ -159,7 +160,7 @@ namespace Experimental {
       State extends StateLayout,
       Event,
       Action,
-      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple },
+      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple }
     > = V2_.MinaProgram<State, Event, Action, MethodPrivateInputs>;
     export type DynamicProvable<P> = V2_.DynamicProvable<P>;
   }
@@ -209,7 +210,7 @@ namespace Experimental {
   export class BatchReducer<
     ActionType extends Actionable<any>,
     BatchSize extends number = number,
-    Action = InferProvable<ActionType>,
+    Action = InferProvable<ActionType>
   > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
 
   /**
