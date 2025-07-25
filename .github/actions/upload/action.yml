@@ -35,7 +35,6 @@ runs:
       shell: bash
       run: |
         set -Eeu
-        ./pin.sh
         nix build .#bindings-tar --out-link bindings.tar.gz
     - name: Upload bindings
       uses: actions/upload-artifact@v4
