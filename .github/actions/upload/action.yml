@@ -24,8 +24,7 @@ runs:
       shell: bash
       run: |
         set -Eeu
-        ./pin.sh
-        nix build o1js#bindings --accept-flake-config
+        nix build .#bindings --accept-flake-config
         temp_key=$(mktemp)
         echo ${{ inputs.nar_secret }} > "$temp_key"
         nix store sign --key-file "$temp_key" --recursive ./result
@@ -37,7 +36,7 @@ runs:
       run: |
         set -Eeu
         ./pin.sh
-        nix build o1js#bindings-tar --out-link bindings.tar.gz
+        nix build .#bindings-tar --out-link bindings.tar.gz
     - name: Upload bindings
       uses: actions/upload-artifact@v4
       with:

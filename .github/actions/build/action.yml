@@ -51,8 +51,7 @@ runs:
       shell: bash
       run: |
         set -Eeu
-        ./pin.sh
-        nix run o1js#generate-bindings --max-jobs auto
+        nix run .#generate-bindings --max-jobs auto
     - name: Cache dependencies and build
       uses: actions/cache@v4
       id: cache
