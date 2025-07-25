@@ -1,14 +1,16 @@
 {
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
+    self.submodules = true;
     nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-24.11-small";
-    mina.url = "git+file:src/mina?submodules=1";
+    mina.url = ./src/mina;
+    mina.inputs.dune-nix.follows = "dune-nix";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
     describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
-    dune-nix.url = "github:o1-labs/dune-nix";
+    dune-nix.url = "github:o1-labs/dune-nix?ref=brian/relative-flakes-fix";
     dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
@@ -128,7 +130,7 @@
           [
             nodejs
             nodePackages.npm
-            #nodePackages.prettier
+            nodePackages.prettier
             typescript
             nodePackages.typescript-language-server
             rustup
@@ -293,6 +295,7 @@
                 > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
 
               npm run build:update-bindings
+              prettier -w ./src/bindings/mina-transaction/
 
               mkdir -p $out/mina-transaction
               pushd ./src/bindings
