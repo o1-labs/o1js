@@ -175,7 +175,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2024-06-13 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
+                if [ "$1" = run ] && [ "$2" = nightly-2024-09-05 ]
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
@@ -263,7 +263,6 @@
                 > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
 
               npm run build:update-bindings
-              prettier -w ./src/bindings/mina-transaction/
 
               mkdir -p $out/mina-transaction
               pushd ./src/bindings
@@ -286,10 +285,15 @@
             then { packages = bindings-pkgs; }
             # on linux wrap rustup like in the derivation
             else {
-              packages = [ rustupWrapper ] ++ bindings-pkgs;
+              packages = [ rustupWrapper mina.base-libs ] ++ bindings-pkgs;
+
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
+                # fixes linking issue with wasm-pack
+                export LD_LIBRARY_PATH="${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH"
+                # TODO ideally we shouldn't install toolchains like this in a devshell
+                rustup toolchain install nightly-x86_64-unknown-linux-gnu
                 rustup toolchain link nix ${rust-channel'}
               '';
             });

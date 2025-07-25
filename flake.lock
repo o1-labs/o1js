@@ -58,11 +58,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1753456385,
-        "narHash": "sha256-IbI6fNsfNjexmkShDvlVV+LvTHTwPLD+gqzKgVXaRxU=",
+        "lastModified": 1753462905,
+        "narHash": "sha256-6AtfyAkiVQKQYQlxj5r770qPvizkyhM4PkUO/dynlpM=",
         "owner": "o1-labs",
         "repo": "dune-nix",
-        "rev": "980cf861e65b3ae5cc13c494dff8c3154aa2d18a",
+        "rev": "3db28322f3225c56d591e66d2b9a728eedc18e52",
         "type": "github"
       },
       "original": {
