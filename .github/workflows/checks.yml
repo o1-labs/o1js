@@ -58,7 +58,7 @@ jobs:
       matrix:
         method: ["default","devshell"]
         system: [ "ubuntu-latest"] # TODO macos here
-        nix_version: ["2.29.1","2.28.4","2.26.4","2.24.15"]
+        nix_version: ["2.29.1","2.28.4"] # We require nix 2.28+
     runs-on: ${{ matrix.system }}
     steps:
       - name: Checkout repository with submodules
