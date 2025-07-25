@@ -9,8 +9,10 @@ const primitives = ZkFunction({
   main: () => {
     // division
     let x64 = Provable.witness(UInt64, () => 10n);
+    // divide 10 by 2: expect quotient 5 and remainder 0
     x64.div(2).assertEquals(UInt64.from(5));
     let x32 = Provable.witness(UInt32, () => 15n);
+    // divide 15 by 4: expect quotient 3 and remainder 3
     x32.div(4).assertEquals(UInt32.from(3));
   },
 });
