@@ -17,7 +17,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: nixbuild/nix-quick-install-action@v30
+    - uses: nixbuild/nix-quick-install-action@v32
       continue-on-error: true
       with:
         nix_conf: |
