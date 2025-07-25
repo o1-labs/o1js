@@ -139,38 +139,6 @@
             dune_3
           ] ++ commonOverrides.buildInputs;
 
-        inherit (pkgs) lib;
-        # All the submodules required by .gitmodules
-        submodules = map builtins.head (builtins.filter lib.isList
-          (map (builtins.match "	path = (.*)")
-            (lib.splitString "\n" (builtins.readFile ./.gitmodules))));
-
-        # Warn about missing submodules
-        requireSubmodules =
-          let
-            ref = r: "[34;1m${r}[31;1m";
-            command = c: "[37;1m${c}[31;1m";
-          in
-          lib.warnIf
-            (
-              !builtins.all (x: x)
-                (map (x: builtins.pathExists ./${x} && builtins.readDir ./${x} != { })
-                  submodules)
-            ) ''
-            Some submodules are missing, you may get errors. Consider one of the following:
-            - run ${command "./pin.sh"} and use "${
-              ref "o1js"
-            }" flake ref, e.g. ${command "nix develop o1js"} or ${
-              command "nix build o1js"
-            };
-            - use "${ref "git+file://$PWD?submodules=1"}";
-            - use "${
-              ref "git+https://github.com/o1-labs/o1js?submodules=1"
-            }";
-            - use non-flake commands like ${command "nix-build"} and ${
-              command "nix-shell"
-            }.
-          '';
         o1js-npm-deps = pkgs.buildNpmPackage
           {
             name = "o1js";
@@ -232,7 +200,7 @@
           CARGO_TARGET_DIR = "./target";
           cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
         };
-        bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
+        bindings = pkgs.stdenv.mkDerivation {
           name = "o1js_bindings";
           src = with pkgs.lib.fileset;
             (toSource {
@@ -304,15 +272,15 @@
                 cp -Lr ./mina-transaction/gen $out/mina-transaction/
               popd
             '';
-        });
+        };
       in
       {
         formatter = pkgs.nixfmt;
         inherit mina;
         devShells = {
           # This seems to work better for macos
-          mina-shell = requireSubmodules inputs.mina.devShells."${system}".with-lsp;
-          default = requireSubmodules (pkgs.mkShell
+          mina-shell = inputs.mina.devShells."${system}".with-lsp;
+          default = pkgs.mkShell
             (if pkgs.stdenv.isDarwin
             # on macos use plain rustup
             then { packages = bindings-pkgs; }
@@ -324,7 +292,7 @@
                 export RUSTUP_HOME
                 rustup toolchain link nix ${rust-channel'}
               '';
-            }));
+            });
 
 
         };
