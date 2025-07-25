@@ -9,6 +9,10 @@ inputs:
     description: 'proof_systems commit to use'
     required: false
     default: ''
+  method:
+    description: 'Build method: "default" or "devshell"'
+    required: false
+    default: 'default'
 
 runs:
   using: "composite"
@@ -45,13 +49,19 @@ runs:
         path: |
           src/bindings/compiled
           src/bindings/mina-transaction/gen
-        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}
-    - name: Build the o1js bindings
-      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' }}
+        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}-${{ inputs.method }}
+    - name: Build the o1js bindings (default)
+      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' && inputs.method == 'default' }}
       shell: bash
       run: |
         set -Eeu
         nix run .#generate-bindings --max-jobs auto
+    - name: Build the o1js bindings (devshell)
+      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' && inputs.method == 'devshell' }}
+      shell: bash
+      run: |
+        set -Eeu
+        nix develop . --command npm run build:update-bindings
     - name: Cache dependencies and build
       uses: actions/cache@v4
       id: cache
