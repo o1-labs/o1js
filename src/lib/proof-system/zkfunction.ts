@@ -17,7 +17,7 @@ import { TupleToInstances } from './zkprogram.js';
 import { Field } from '../provable/wrapped.js';
 
 // external API
-export { ZkFunction, Proof, VerificationKey };
+export { ZkFunction, KimchiProof, KimchiVKey };
 
 type PublicInput<Config extends ZkFunctionConfig> = InferProvable<Get<Config, 'publicInputType'>>;
 type PrivateInputs<Config extends ZkFunctionConfig> = TupleToInstances<Config['privateInputTypes']>;
@@ -45,8 +45,8 @@ type ProveMethodType<Config extends ZkFunctionConfig> = Get<
   Config,
   'publicInputType'
 > extends undefined
-  ? (...args: PrivateInputs<Config>) => Promise<Proof>
-  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<Proof>;
+  ? (...args: PrivateInputs<Config>) => Promise<KimchiProof>
+  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<KimchiProof>;
 
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {
@@ -81,9 +81,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
           return Snarky.circuit.compile(main, publicInputSize, lazyMode);
         })
       );
-      const verificationKey = new VerificationKey(
-        Snarky.circuit.keypair.getVerificationKey(_keypair)
-      );
+      const verificationKey = new KimchiVKey(Snarky.circuit.keypair.getVerificationKey(_keypair));
       return { verificationKey };
     },
 
@@ -152,7 +150,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
           MlFieldConstArray.to(publicInputFields),
           _keypair!
         );
-        return new Proof(proof, publicInputFields);
+        return new KimchiProof(proof, publicInputFields);
       });
     },
 
@@ -171,7 +169,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * const isValid = await zkf.verify(proof, verificationKey);
      * ```
      */
-    async verify(proof: Proof, verificationKey: VerificationKey) {
+    async verify(proof: KimchiProof, verificationKey: KimchiVKey) {
       return await proof.verify(verificationKey);
     },
   };
@@ -186,7 +184,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
  * You can call `verify` on a `Proof` to check its validity against a
  * {@link VerificationKey}.
  */
-class Proof {
+class KimchiProof {
   value: Snarky.Proof;
   publicInputFields: Field[];
 
@@ -200,7 +198,7 @@ class Proof {
    * @param verificationKey The key to verify against.
    * @returns A promise that resolves to `true` if valid, otherwise `false`.
    */
-  async verify(verificationKey: VerificationKey) {
+  async verify(verificationKey: KimchiVKey) {
     await initializeBindings();
     return prettifyStacktracePromise(
       withThreadPool(async () =>
@@ -217,7 +215,7 @@ class Proof {
 /**
  * A verification key is used to verify a {@link Proof}.
  */
-class VerificationKey {
+class KimchiVKey {
   value: Snarky.VerificationKey;
 
   constructor(value: Snarky.VerificationKey) {
