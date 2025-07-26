@@ -57,7 +57,7 @@ jobs:
       fail-fast: false
       matrix:
         method: ["default","devshell"]
-        system: [ "ubuntu-latest"] # TODO macos here
+        system: [ "ubuntu-latest","macos-latest"]
         nix_version: ["2.29.1","2.28.4"] # We require nix 2.28+
     runs-on: ${{ matrix.system }}
     steps:
