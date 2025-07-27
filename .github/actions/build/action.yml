@@ -25,14 +25,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: nixbuild/nix-quick-install-action@v32
-      continue-on-error: true
-      with:
-        nix_conf: |
-          keep-env-derivations = true
-          keep-outputs = true
-          require-sigs = false
-          post-build-hook = /tmp/upload-to-cache.sh
     - name: Create post-build hook for continuous cache upload
       shell: bash
       run: |
@@ -60,6 +52,14 @@ runs:
         fi
         EOF
         chmod +x /tmp/upload-to-cache.sh
+    - uses: nixbuild/nix-quick-install-action@v32
+      continue-on-error: true
+      with:
+        nix_conf: |
+          keep-env-derivations = true
+          keep-outputs = true
+          require-sigs = false
+          post-build-hook = /tmp/upload-to-cache.sh
     - name: Disable smudging
       shell: bash
       run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
