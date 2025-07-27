@@ -9,26 +9,57 @@ inputs:
     description: 'proof_systems commit to use'
     required: false
     default: ''
-  method:
-    description: 'Build method: "default" or "devshell"'
+  cache_id:
+    description: 'AWS access key ID for nix cache'
     required: false
-    default: 'default'
-  nix_version:
-    description: 'Nix version to use'
+    default: ''
+  nar_secret:
+    description: 'NAR signing secret key'
     required: false
-    default: '2.29.1'
+    default: ''
+  gcp_secret:
+    description: 'GCP secret access key'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
   steps:
+    - name: Create post-build hook for continuous cache upload
+      shell: bash
+      run: |
+        # Create script with embedded credentials (no echoing)
+        cat > /tmp/upload-to-cache.sh << EOF
+        #!/bin/bash
+        set -eu
+        echo "=== Post-build hook triggered ==="
+        if [ -n "\${OUT_PATHS:-}" ] && [ -n "${{ inputs.cache_id }}" ] && [ -n "${{ inputs.nar_secret }}" ]; then
+          echo "Signing and uploading \$(echo \$OUT_PATHS | wc -w) derivations"
+          export AWS_ACCESS_KEY_ID="${{ inputs.cache_id }}"
+          export AWS_SECRET_ACCESS_KEY="${{ inputs.gcp_secret }}"
+          # Create temporary key file
+          temp_key=\$(mktemp)
+          echo "${{ inputs.nar_secret }}" > "\$temp_key"
+          # Sign the outputs
+          nix store sign --key-file "\$temp_key" --recursive \$OUT_PATHS 2>/dev/null || true
+          # Upload to cache
+          nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" \$OUT_PATHS 2>/dev/null || true
+          # Clean up
+          rm "\$temp_key"
+          echo "Upload completed"
+        else
+          echo "Skipping upload - missing credentials or no outputs"
+        fi
+        EOF
+        chmod +x /tmp/upload-to-cache.sh
     - uses: nixbuild/nix-quick-install-action@v32
       continue-on-error: true
       with:
-        nix_version: ${{ inputs.nix_version }}
         nix_conf: |
           keep-env-derivations = true
           keep-outputs = true
           require-sigs = false
+          post-build-hook = /tmp/upload-to-cache.sh
     - name: Disable smudging
       shell: bash
       run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
@@ -54,19 +85,13 @@ runs:
         path: |
           src/bindings/compiled
           src/bindings/mina-transaction/gen
-        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}-${{ inputs.method }}
-    - name: Build the o1js bindings (default)
-      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' && inputs.method == 'default' }}
+        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}
+    - name: Build the o1js bindings
+      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         set -Eeu
         nix run .#generate-bindings --max-jobs auto
-    - name: Build the o1js bindings (devshell)
-      if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' && inputs.method == 'devshell' }}
-      shell: bash
-      run: |
-        set -Eeu
-        nix develop . --command npm run build:update-bindings
     - name: Cache dependencies and build
       uses: actions/cache@v4
       id: cache
@@ -95,4 +120,3 @@ runs:
       with:
         path: .
         key: repo-${{ github.sha }}
-
