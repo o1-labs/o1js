@@ -9,6 +9,18 @@ inputs:
     description: 'proof_systems commit to use'
     required: false
     default: ''
+  cache_id:
+    description: 'AWS access key ID for nix cache'
+    required: false
+    default: ''
+  nar_secret:
+    description: 'NAR signing secret key'
+    required: false
+    default: ''
+  gcp_secret:
+    description: 'GCP secret access key'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -20,6 +32,34 @@ runs:
           keep-env-derivations = true
           keep-outputs = true
           require-sigs = false
+          post-build-hook = /tmp/upload-to-cache.sh
+    - name: Create post-build hook for continuous cache upload
+      shell: bash
+      run: |
+        # Create script with embedded credentials (no echoing)
+        cat > /tmp/upload-to-cache.sh << EOF
+        #!/bin/bash
+        set -eu
+        echo "=== Post-build hook triggered ==="
+        if [ -n "\${OUT_PATHS:-}" ] && [ -n "${{ inputs.cache_id }}" ] && [ -n "${{ inputs.nar_secret }}" ]; then
+          echo "Signing and uploading \$(echo \$OUT_PATHS | wc -w) derivations"
+          export AWS_ACCESS_KEY_ID="${{ inputs.cache_id }}"
+          export AWS_SECRET_ACCESS_KEY="${{ inputs.gcp_secret }}"
+          # Create temporary key file
+          temp_key=\$(mktemp)
+          echo "${{ inputs.nar_secret }}" > "\$temp_key"
+          # Sign the outputs
+          nix store sign --key-file "\$temp_key" --recursive \$OUT_PATHS 2>/dev/null || true
+          # Upload to cache
+          nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" \$OUT_PATHS 2>/dev/null || true
+          # Clean up
+          rm "\$temp_key"
+          echo "Upload completed"
+        else
+          echo "Skipping upload - missing credentials or no outputs"
+        fi
+        EOF
+        chmod +x /tmp/upload-to-cache.sh
     - name: Disable smudging
       shell: bash
       run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
