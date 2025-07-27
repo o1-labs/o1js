@@ -67,14 +67,33 @@ jobs:
           submodules: recursive
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
-      - name: Build
-        uses: ./.github/actions/build
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - name: Install nix
+      - uses: nixbuild/nix-quick-install-action@v32
         with:
-          method: ${{ matrix.method }}
           nix_version: ${{ matrix.nix_version }}
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+            require-sigs = false
+      - name: Build the o1js bindings (default)
+        if: ${{ matrix.method == 'default' }}
+        run: |
+          set -Eeu
+          nix run .#generate-bindings --max-jobs auto
+      - name: Build the o1js bindings (devshell)
+        if: ${{ matrix.method == 'devshell' }}
+        run: |
+          set -Eeu
+          nix develop . --command npm run build:update-bindings
+      - name: Build o1js
+        run: |
+          nix develop --command npm ci
+          nix develop --command npm run build
+      - name: Run some tests
+        run: |
+          nix develop --command npm run test
 
   Lint-Format-and-TypoCheck:
     strategy:
