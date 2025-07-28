@@ -1,0 +1,196 @@
+Running benchmark for o1js commit 5679460
+                      mina commit 5a9145f
+             proof-systems commit 0c5a4c0
+compile (without cache): 15.824s
+12289
+proving: 9.901s
+
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit af40c3caae0d1e5de8e2176f746acce43223ba2f
+             proof-systems commit 0c5a4c07c2438c1ad99a5ef934934cb514c58eb5
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.973s
+12289
+proving: 12.618s
+ 
+Running benchmark for o1js commit b9873e84945533dc84e0c5e30cb7feb99d548589
+                      mina commit 2acc44a51c697ff01e0fb5dc7857c6116c865094
+             proof-systems commit bc92b424423212c8ae296d19f2da916962c49c8e
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.583s
+12289
+proving: 12.585s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 0c5a4c07c2438c1ad99a5ef934934cb514c58eb5
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.646s
+12289
+proving: 11.728s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit 2e170c87327ed475714de2aed50b4c93147d89ed
+             proof-systems commit 16a9ca703b12db05df82aae0822746ac03979e76
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 14.888s
+12289
+proving: 9.387s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 0c5a4c07c2438c1ad99a5ef934934cb514c58eb5
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 20.151s
+12289
+proving: 13.387s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 16a9ca703b12db05df82aae0822746ac03979e76
+compile (without cache): 15.296s
+12289
+proving: 9.504s 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 19ea62d,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 20.134s
+12289
+proving: 12.173s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 9072d51,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.928s
+12289
+proving: 12.433s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit ff149a4,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.989s
+12289
+proving: 12.189s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 83a5b85,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.770s
+12289
+proving: 11.945s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 822ed5b,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.871s
+12289
+proving: 11.937s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit b59b705,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.823s
+12289
+proving: 11.954s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 35f9ca0,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.873s
+12289
+proving: 12.028s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 89d06a0,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.745s
+12289
+proving: 12.245s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit de54622,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.694s
+12289
+proving: 11.871s
+ 
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit a00a080,
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 19.596s
+12289
+proving: 12.5
+
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 137f513
+running /home/anais/codes/o1js-v2.4.0/dist/node/examples/zkprogram/bench-regression-medium.js
+compile (without cache): 16.026s
+12289
+proving: 9.203s
+
+
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 2474eddb3cfab8c6384b589db92f4583551216bc
+compile (without cache): 15.148s
+12289
+proving: 9.358s
+
+plonk-wasm
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit af40c3caae0d1e5de8e2176f746acce43223ba2f
+             proof-systems commit 2474eddb3cfab8c6384b589db92f4583551216bc
+compile (without cache): 21.142s
+12289
+proving: 12.223s
+
+kimchi-stubs
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit 2e170c87327ed475714de2aed50b4c93147d89ed
+             proof-systems commit 16a9ca703b12db05df82aae0822746ac03979e76
+compile (without cache): 14.793s
+12289
+proving: 9.305s
+
+plonk-wasm
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit a34f54a2de8e4069afb27838da96318d979c4913
+             proof-systems commit 2474eddb3cfab8c6384b589db92f4583551216bc
+compile (without cache): 19.688s
+12289
+proving: 11.663s
+
+stubs hotfix
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit af40c3caae0d1e5de8e2176f746acce43223ba2f
+             proof-systems commit 2474eddb3cfab8c6384b589db92f4583551216bc
+compile (without cache): 19.550s
+12289
+proving: 11.419s
+
+kimchi-stubs
+Running benchmark for o1js commit 5679460e0375fe2b62e074acbb7d243c6fbdaaa4
+                      mina commit 2e170c87327ed475714de2aed50b4c93147d89ed
+             proof-systems commit 16a9ca703b12db05df82aae0822746ac03979e76
+compile (without cache): 14.965s
+12289
+proving: 9.412s
+
+revert plonkwasm
+Running benchmark for o1js commit b9873e84945533dc84e0c5e30cb7feb99d548589
+                      mina commit 9577f1b8cdd4ab50fabe5285e9ad1fb476439559
+             proof-systems commit 65b4d7d1a3fa3d9a5bd17db8729ac66f407752ee
+compile (without cache): 14.909s
+12289
+proving: 9.407s
