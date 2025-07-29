@@ -17,7 +17,7 @@ import { TupleToInstances } from './zkprogram.js';
 import { Field } from '../provable/wrapped.js';
 
 // external API
-export { ZkFunction, KimchiProof, KimchiVKey };
+export { ZkFunction, KimchiProof, KimchiVerificationKey };
 
 type PublicInput<Config extends ZkFunctionConfig> = InferProvable<Get<Config, 'publicInputType'>>;
 type PrivateInputs<Config extends ZkFunctionConfig> = TupleToInstances<Config['privateInputTypes']>;
@@ -81,7 +81,9 @@ function ZkFunction<Config extends ZkFunctionConfig>(
           return Snarky.circuit.compile(main, publicInputSize, lazyMode);
         })
       );
-      const verificationKey = new KimchiVKey(Snarky.circuit.keypair.getVerificationKey(_keypair));
+      const verificationKey = new KimchiVerificationKey(
+        Snarky.circuit.keypair.getVerificationKey(_keypair)
+      );
       return { verificationKey };
     },
 
@@ -169,7 +171,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * const isValid = await zkf.verify(proof, verificationKey);
      * ```
      */
-    async verify(proof: KimchiProof, verificationKey: KimchiVKey) {
+    async verify(proof: KimchiProof, verificationKey: KimchiVerificationKey) {
       return await proof.verify(verificationKey);
     },
   };
@@ -198,7 +200,7 @@ class KimchiProof {
    * @param verificationKey The key to verify against.
    * @returns A promise that resolves to `true` if valid, otherwise `false`.
    */
-  async verify(verificationKey: KimchiVKey) {
+  async verify(verificationKey: KimchiVerificationKey) {
     await initializeBindings();
     return prettifyStacktracePromise(
       withThreadPool(async () =>
@@ -215,7 +217,7 @@ class KimchiProof {
 /**
  * A verification key is used to verify a {@link Proof}.
  */
-class KimchiVKey {
+class KimchiVerificationKey {
   value: Snarky.VerificationKey;
 
   constructor(value: Snarky.VerificationKey) {
