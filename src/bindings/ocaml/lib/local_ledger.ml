@@ -230,7 +230,8 @@ let proof_cache_db = Proof_cache_tag.create_identity_db ()
 let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
     (account_creation_fee : string)
     (network_state : Mina_base.Zkapp_precondition.Protocol_state.View.t) =
-  let txn = Zkapp_command.write_all_proofs_to_disk ~proof_cache_db txn in
+  let signature_kind = Mina_signature_kind_type.Testnet in
+  let txn = Zkapp_command.write_all_proofs_to_disk ~signature_kind ~proof_cache_db txn in
   check_account_update_signatures txn ;
   let ledger = l##.value in
   let application_result =
