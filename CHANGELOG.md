@@ -20,9 +20,13 @@ This project adheres to
 
 ### Deprecated
 
-- Deprecate the `Circuit` API in favor of the `ZkFunction` API, now exposed via
-  the `Experimental` namespace (`Experimental.ZkFunction`), which provides the
-  same functionality with a more ergonomic and consistent structure, inspired by
+- Deprecate the `Circuit` API in favor of the `ZkFunction` API.
+
+### Added
+
+- Added the `ZkFunction` API, exposed via the `Experimental` namespace
+  (`Experimental.ZkFunction`), which provides the same functionality as the
+  `Circuit` API with a more ergonomic and consistent structure, inspired by
   `ZkProgram`. https://github.com/o1-labs/o1js/pull/2245
 
 ### Fixed
