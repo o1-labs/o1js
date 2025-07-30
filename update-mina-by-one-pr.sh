@@ -41,6 +41,10 @@ advance(){
   # Go back to parent repo and update submodule reference
   popd
 
+}
+
+
+rebuild(){
   # Clean build
   git clean -fdx
   nix flake update mina
@@ -49,8 +53,7 @@ advance(){
   nix develop --command npm run build
 }
 
-
-test_commit(){
+run_test(){
   # Replace this with any appropriate test that fails on the newest mina commit
   nix develop --command timeout 300s ./run ./src/examples/zkprogram/program.ts --bundle
 
@@ -59,7 +62,12 @@ test_commit(){
 }
 
 
-while test_commit
-do
-  advance
-done
+#while run_test
+#do
+#  advance
+#  rebuild
+#done
+#run_test
+#advance
+#rebuild
+#run_test
