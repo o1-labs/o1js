@@ -10,6 +10,10 @@ import { ProvablePure } from '../provable/types/provable-intf.js';
 // external API
 export { public_, circuitMain, Circuit, Keypair, Proof, VerificationKey };
 
+/**
+ * @deprecated The `Circuit` API is deprecated in favor of {@link ZkFunction}, which features the same
+ * functionality with a more ergonomic and consistent structure, inspired by {@link ZkProgram}.
+ */
 class Circuit {
   // circuit-writing interface
 
