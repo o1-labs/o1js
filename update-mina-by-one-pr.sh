@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
 
 advance(){
   # Navigate to mina submodule
@@ -47,8 +46,8 @@ advance(){
 rebuild(){
   # Clean build
   git clean -fdx
-  nix flake update mina
-  nix run .#generate-bindings
+  #nix flake update mina
+  nix run .#generate-bindings --refresh
   nix develop --command npm ci
   nix develop --command npm run build
 }
@@ -62,12 +61,12 @@ run_test(){
 }
 
 
-#while run_test
-#do
-#  advance
-#  rebuild
-#done
-#run_test
-#advance
-#rebuild
-#run_test
+test_prs(){
+  set -e
+  while run_test
+  do
+    advance
+    rebuild
+  done
+  set +e
+}
