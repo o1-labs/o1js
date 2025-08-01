@@ -20,6 +20,17 @@ This project adheres to
 
 ## [2.7.1](https://github.com/o1-labs/o1js/compare/045b1ab...db9e40899) - 2025-07-27
 
+### Deprecated
+
+- Deprecate the `Circuit` API in favor of the `ZkFunction` API.
+
+### Added
+
+- Added the `ZkFunction` API, exposed via the `Experimental` namespace
+  (`Experimental.ZkFunction`), which provides the same functionality as the
+  `Circuit` API with a more ergonomic and consistent structure, inspired by
+  `ZkProgram`. https://github.com/o1-labs/o1js/pull/2245
+
 ### Fixed
 
 - Sourcemaps properly work with the .cjs distribution of `o1js` now.

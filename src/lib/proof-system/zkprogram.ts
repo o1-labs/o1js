@@ -23,7 +23,7 @@ import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.j
 import { ProvableType, ToProvable } from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
-import { Subclass, Tuple } from '../util/types.js';
+import { Subclass, Tuple, Get } from '../util/types.js';
 import {
   dummyProof,
   DynamicProof,
@@ -225,7 +225,7 @@ type InferMethodType<Config extends ConfigBaseType> = {
  */
 function ZkProgram<
   Config extends ConfigBaseType,
-  _ extends unknown = unknown, // weird hack that makes methods infer correctly when their inputs are not annotated
+  _ extends unknown = unknown // weird hack that makes methods infer correctly when their inputs are not annotated
 >(
   config: Config & {
     name: string;
@@ -603,7 +603,7 @@ type ZkProgram<
         auxiliaryOutput?: ProvableType;
       };
     };
-  },
+  }
 > = ReturnType<typeof ZkProgram<Config>>;
 
 /**
@@ -1059,7 +1059,7 @@ function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
 
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvable<any>,
-  PublicOutputType extends FlexibleProvable<any>,
+  PublicOutputType extends FlexibleProvable<any>
 >(program: {
   name: string;
   publicInputType: PublicInputType;
@@ -1111,12 +1111,11 @@ function Prover<ProverData>() {
 
 // helper types
 
-type Infer<T> =
-  T extends Subclass<typeof ProofBase>
-    ? InstanceType<T>
-    : T extends ProvableType
-      ? InferProvableType<T>
-      : never;
+type Infer<T> = T extends Subclass<typeof ProofBase>
+  ? InstanceType<T>
+  : T extends ProvableType
+  ? InferProvableType<T>
+  : never;
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
@@ -1134,13 +1133,13 @@ type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
         auxiliaryOutput: AuxiliaryOutput;
       }
   : AuxiliaryOutput extends undefined
-    ? {
-        publicOutput: PublicOutput;
-      }
-    : {
-        publicOutput: PublicOutput;
-        auxiliaryOutput: AuxiliaryOutput;
-      };
+  ? {
+      publicOutput: PublicOutput;
+    }
+  : {
+      publicOutput: PublicOutput;
+      auxiliaryOutput: AuxiliaryOutput;
+    };
 
 type Method<
   PublicInput,
@@ -1148,7 +1147,7 @@ type Method<
   MethodSignature extends {
     privateInputs: Tuple<PrivateInput>;
     auxiliaryOutput?: ProvableType;
-  },
+  }
 > = PublicInput extends undefined
   ? {
       method(
@@ -1177,7 +1176,7 @@ type RegularProver<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput,
+  AuxiliaryOutput
 > = (
   publicInput: From<PublicInputType>,
   ...args: TupleFrom<Args>
@@ -1191,7 +1190,7 @@ type Prover<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput,
+  AuxiliaryOutput
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
@@ -1211,17 +1210,8 @@ type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : A extends ProvableType
-    ? InferProvable<A>
-    : InferProvable<A> | undefined;
+  ? InferProvable<A>
+  : InferProvable<A> | undefined;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
-
-/**
- * helper to get property type from an object, in place of `T[Key]`
- *
- * assume `T extends { Key?: Something }`.
- * if we use `Get<T, Key>` instead of `T[Key]`, we allow `T` to be inferred _without_ the `Key` key,
- * and thus retain the precise type of `T` during inference
- */
-type Get<T, Key extends string> = T extends { [K in Key]: infer _Value } ? _Value : undefined;
