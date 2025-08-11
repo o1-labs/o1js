@@ -79,8 +79,22 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   let lagrangeCommitmentsWholeDomainPtr = (srs: WasmSrs, domain_size: number) =>
     wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](srs, domain_size);
   let setLagrangeBasis = wasm[`caml_${f}_srs_set_lagrange_basis`];
-  let getLagrangeBasis = (srs: WasmSrs, n: number) =>
-    wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
+  
+  // Environment-aware getLagrangeBasis function
+  let getLagrangeBasis = (srs: WasmSrs, n: number) => {
+    // Detect if we're in a web environment (has Worker API)
+    const isWeb = typeof window !== 'undefined' && typeof Worker !== 'undefined';
+    
+    if (isWeb) {
+      // Web: Use new pointer-based functions for worker compatibility
+      const ptr = wasm[`caml_${f}_srs_get_lagrange_basis_ptr`](srs, n);
+      return wasm[`caml_${f}_srs_get_lagrange_basis_read_from_ptr`](ptr);
+    } else {
+      // Node.js: Use original direct function
+      return wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
+    }
+  };
+  
   let getCommitmentsWholeDomainByPtr =
     wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_read_from_ptr`];
   return {
@@ -156,8 +170,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
           if (didRead !== true) {
             // not in cache
             if (cache.canWrite) {
-              // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
-              // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
+              // ✅ FIXED: getLagrangeBasis now works on web via environment-aware pointer functions
               let wasmComms = getLagrangeBasis(srs, domainSize);
               let mlComms = conversion[f].polyCommsFromRust(wasmComms);
               let comms = polyCommsToJSON(mlComms);
