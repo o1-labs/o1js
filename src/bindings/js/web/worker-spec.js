@@ -165,5 +165,23 @@ function workerSpec(wasm) {
       args: [wasm.WasmFqSrs, undefined /* number */],
       res: undefined /* number, ptr */,
     },
+    // New get_lagrange_basis pointer functions for web compatibility
+    // These fix zkProgram.compile() with cache writing in browsers
+    caml_fp_srs_get_lagrange_basis_ptr: {
+      args: [wasm.WasmFpSrs, undefined /* number */],
+      res: undefined /* number, ptr */,  // Returns pointer for worker communication
+    },
+    caml_fp_srs_get_lagrange_basis_read_from_ptr: {
+      args: [undefined /* number, ptr */],
+      res: undefined /* WasmVector */,  // Returns actual data
+    },
+    caml_fq_srs_get_lagrange_basis_ptr: {
+      args: [wasm.WasmFqSrs, undefined /* number */],
+      res: undefined /* number, ptr */,  // Returns pointer for worker communication
+    },
+    caml_fq_srs_get_lagrange_basis_read_from_ptr: {
+      args: [undefined /* number, ptr */],
+      res: undefined /* WasmVector */,  // Returns actual data
+    },
   };
 }
