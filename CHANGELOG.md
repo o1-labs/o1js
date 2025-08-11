@@ -23,6 +23,7 @@ This project adheres to
 ### Deprecated
 
 - Deprecate the `Circuit` API in favor of the `ZkFunction` API.
+  https://github.com/o1-labs/o1js/pull/2245
 
 ### Added
 
