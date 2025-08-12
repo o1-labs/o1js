@@ -2,16 +2,15 @@
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
     self.submodules = true;
-    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-24.11-small";
     mina.url = ./src/mina;
     mina.inputs.dune-nix.follows = "dune-nix";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
-    describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
+    describe-dune.inputs.nixpkgs.follows = "mina/nixpkgs";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
     dune-nix.url = "github:o1-labs/dune-nix?ref=brian/relative-flakes-fix";
-    dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
+    dune-nix.inputs.nixpkgs.follows = "mina/nixpkgs";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -29,13 +28,13 @@
         "nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c="
       ];
   };
-  outputs = { self, nixpkgs-mina, flake-utils, ... }@inputs:
+  outputs = { self, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
+        pkgs = ((inputs.mina.inputs.nixpkgs.legacyPackages."${system}".extend
           (import inputs.nixpkgs-mozilla)).extend
           inputs.mina.overlays.rust).extend
-          (final: prev: { inherit (nixpkgs-mina.legacyPackages."${system}")
+          (final: prev: { inherit (inputs.mina.inputs.nixpkgs.legacyPackages."${system}")
             nodePackages nodejs; });
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
@@ -76,6 +75,8 @@
           (builtins.attrNames minaDeps_));
         commonOverrides = {
           DUNE_PROFILE = "dev";
+          OCAML_WARN_ERROR = "";
+          WARN_ERROR = "";
           buildInputs = [ mina.base-libs ] ++ mina.external-libs
             ++ pkgs.lib.attrVals minaDeps mina.pkgs;
         };
@@ -240,6 +241,8 @@
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
           JUST_BINDINGS = true;
+          OCAMLPARAM = "_,w=-67";
+          DUNE_BUILD_OPTIONS = "--promote-install-files";
           buildInputs = (with pkgs;
             [
               rustupWrapper

@@ -2,6 +2,7 @@
 
 
 advance(){
+  ( set -e
   # Navigate to mina submodule
   pushd src/mina
 
@@ -39,34 +40,29 @@ advance(){
 
   # Go back to parent repo and update submodule reference
   popd
-
+  )
 }
 
 
 rebuild(){
-  # Clean build
-  git clean -fdx
-  #nix flake update mina
-  nix run .#generate-bindings --refresh
-  nix develop --command npm ci
-  nix develop --command npm run build
+  ( set -e
+    git clean -fdx && \
+    nix run .\#generate-bindings --refresh && \
+    nix develop --refresh --command npm ci && \
+    nix develop --refresh --command npm run build
+  )
 }
 
 run_test(){
-  # Replace this with any appropriate test that fails on the newest mina commit
   nix develop --command timeout 300s ./run ./src/examples/zkprogram/program.ts --bundle
-
-  # stage only if the test worked
-  git add src/mina
 }
 
 
 test_prs(){
-  set -e
-  while run_test
+  while advance && rebuild && run_test
   do
-    advance
-    rebuild
+    git add src/mina
   done
-  set +e
 }
+
+#test_prs

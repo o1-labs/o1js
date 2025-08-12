@@ -236,6 +236,7 @@ let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
   let ledger = l##.value in
   let application_result =
     Transaction_logic.apply_zkapp_command_unchecked
+      (* ~signature_kind TODO uncoment when you get the OK error *)
       ~global_slot:network_state.global_slot_since_genesis
       ~state_view:network_state
       ~constraint_constants:
