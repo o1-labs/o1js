@@ -1,0 +1,386 @@
+{
+  "ecdsa-only": {
+    "digest": "19133e0612c2ca2116e67ea9955f71be09c53a2bbf2e5973639cfa5fa022ad3b",
+    "methods": {
+      "verifySignedHash": {
+        "rows": 31723,
+        "digest": "7f7068290459ac8114b1387d24f2625f"
+      }
+    },
+    "performance": {
+      "compile": 19.141238842999563,
+      "prove": 0
+    }
+  },
+  "ecdsa": {
+    "digest": "1d55da663014c4a67c32905ab7b3af6b0ec7682931048131f9ef4454eabe9b8f",
+    "methods": {
+      "verifyEcdsa": {
+        "rows": 46221,
+        "digest": "d0f4f1d987923683410ebeeee0e3cca1"
+      }
+    },
+    "performance": {
+      "compile": 32.05598194600083,
+      "prove": 0
+    }
+  },
+  "Voting_": {
+    "digest": "2d12b9235eac7fe8188447969463455160abb01ddd682efdd4147fe28fc8c608",
+    "methods": {
+      "voterRegistration": {
+        "rows": 1184,
+        "digest": "9c062fcec57d40cb66449114c4d47492"
+      },
+      "candidateRegistration": {
+        "rows": 1184,
+        "digest": "00a85f550b1e9992343b98337ee084e7"
+      },
+      "approveRegistrations": {
+        "rows": 1158,
+        "digest": "a732d8dbfd1ce0f10e79dec743096b6a"
+      },
+      "vote": {
+        "rows": 1519,
+        "digest": "5049903802328e22481bb66e0d43c361"
+      },
+      "countVotes": {
+        "rows": 5780,
+        "digest": "ae311805b235c1fc4f2a6be2ab8e48bf"
+      }
+    },
+    "performance": {
+      "compile": 7.227235571000725,
+      "prove": 0
+    }
+  },
+  "Membership_": {
+    "digest": "2dcddd890f32e12d56469f8e1cf25706d9b7c83f12342ade821aff42f18f53e9",
+    "methods": {
+      "addEntry": {
+        "rows": 5522,
+        "digest": "d6f8fe5b934d1e70fabbf057f33feee5"
+      },
+      "isMember": {
+        "rows": 430,
+        "digest": "c77a92337b58bdee792dd60f826a4229"
+      },
+      "publish": {
+        "rows": 693,
+        "digest": "e8770d3ceb53359de268c6f7e7cf376a"
+      }
+    },
+    "performance": {
+      "compile": 3.4075715010017156,
+      "prove": 0
+    }
+  },
+  "HelloWorld": {
+    "digest": "309ebdd97930d6c753207d62c84147fe540f62d1623a1251f1d0b4f5f8bd400d",
+    "methods": {
+      "update": {
+        "rows": 475,
+        "digest": "f1ace9d626cb47fb5612579a1a608fc5"
+      }
+    },
+    "performance": {
+      "compile": 1.066024374000728,
+      "prove": 0
+    }
+  },
+  "TokenContract": {
+    "digest": "37ad5c458b0b9f5a44650d16fe16200b3fafff89af0c3b4d0ad57eda5df05d54",
+    "methods": {
+      "init": {
+        "rows": 654,
+        "digest": "ffd967e8be9e5e221c4d1c848751e7d6"
+      },
+      "init2": {
+        "rows": 651,
+        "digest": "9392237b6907f8d3d4a97d6102fa8749"
+      },
+      "approveBase": {
+        "rows": 6175,
+        "digest": "d94976313c552b9d141ce08a5944614f"
+      }
+    },
+    "performance": {
+      "compile": 3.725300395000726,
+      "prove": 0
+    }
+  },
+  "Dex": {
+    "digest": "fee88991bcc3331978a787642273ee02cbfc738949c6daad38c3bab65a8e81e",
+    "methods": {
+      "approveBase": {
+        "rows": 6175,
+        "digest": "d94976313c552b9d141ce08a5944614f"
+      },
+      "supplyLiquidityBase": {
+        "rows": 2872,
+        "digest": "532a9120613a7204a72c74769f77f7c0"
+      },
+      "swapX": {
+        "rows": 1532,
+        "digest": "c4f96b4cfded7cae567c8bc674ffd18d"
+      },
+      "swapY": {
+        "rows": 1532,
+        "digest": "60d123f69c83b6a2a6a6559bf38b5d44"
+      },
+      "burnLiquidity": {
+        "rows": 706,
+        "digest": "a79619c4968cf4128de1f6a94050ef9b"
+      }
+    },
+    "performance": {
+      "compile": 21.313036892000586,
+      "prove": 0
+    }
+  },
+  "Group Primitive": {
+    "digest": "Group Primitive",
+    "methods": {
+      "add": {
+        "rows": 29,
+        "digest": "c9da933b8ee30b9467e4b0abacb503bf"
+      },
+      "sub": {
+        "rows": 30,
+        "digest": "ad4216530ea5b80273e0115825a5dce1"
+      },
+      "scale": {
+        "rows": 132,
+        "digest": "752c83aacb96abdf457a54018fcfda1a"
+      },
+      "equals": {
+        "rows": 37,
+        "digest": "59cd8f24e1e0f3ba721f9c5380801335"
+      },
+      "assertions": {
+        "rows": 19,
+        "digest": "7d87f453433117a306b19e50a5061443"
+      }
+    },
+    "performance": {
+      "compile": 0.000055577000603079794,
+      "prove": 0
+    }
+  },
+  "Bitwise Primitive": {
+    "digest": "Bitwise Primitive",
+    "methods": {
+      "rot32": {
+        "rows": 31,
+        "digest": "3e39e3f7bfdef1c546700c0294407fc2"
+      },
+      "rot64": {
+        "rows": 10,
+        "digest": "c38703de755b10edf77bf24269089274"
+      },
+      "xor": {
+        "rows": 15,
+        "digest": "b3595a9cc9562d4f4a3a397b6de44971"
+      },
+      "notUnchecked": {
+        "rows": 2,
+        "digest": "bc6dd8d1aa3f7fe3718289fe4a07f81d"
+      },
+      "notChecked": {
+        "rows": 17,
+        "digest": "b12ad7e8a3fd28b765e059357dbe9e44"
+      },
+      "leftShift": {
+        "rows": 5,
+        "digest": "451f550bf73fecf53c9be82367572cb8"
+      },
+      "rightShift": {
+        "rows": 5,
+        "digest": "d0793d4a326d480eaa015902dc34bc39"
+      },
+      "and": {
+        "rows": 19,
+        "digest": "647e6fd1852873d1c326ba1cd269cff2"
+      },
+      "or": {
+        "rows": 25,
+        "digest": "8b43e6612b329bf012a3e056f933625d"
+      }
+    },
+    "performance": {
+      "compile": 0.000024852000176906587,
+      "prove": 0
+    }
+  },
+  "Hashes": {
+    "digest": "Hashes",
+    "methods": {
+      "SHA2_256": {
+        "rows": 5190,
+        "digest": "2e340a67bb8fbfda59af5cb40e2a6823"
+      },
+      "SHA2_224": {
+        "rows": 5190,
+        "digest": "4d5f3228c58edad2958d1ac422765493"
+      },
+      "SHA2_512": {
+        "rows": 7508,
+        "digest": "08838c02a27f88502070800784b0a5fe"
+      },
+      "SHA2_384": {
+        "rows": 7508,
+        "digest": "aa4b65b7c3ebcae1e127e1b518229371"
+      },
+      "SHA3_256": {
+        "rows": 14494,
+        "digest": "949539824d56622702d9ac048e8111e9"
+      },
+      "SHA3_384": {
+        "rows": 14541,
+        "digest": "93dedf5824cab797d48e7a98c53c6bf3"
+      },
+      "SHA3_512": {
+        "rows": 14588,
+        "digest": "3756008585b30a3951ed6455a7fbcdb0"
+      },
+      "Keccak256": {
+        "rows": 14493,
+        "digest": "1ab08bd64002a0dd0a82f74df445de05"
+      },
+      "Poseidon": {
+        "rows": 208,
+        "digest": "afa1f9920f1f657ab015c02f9b2f6c52"
+      },
+      "BLAKE2B": {
+        "rows": 4150,
+        "digest": "3ed9ffb5915ed4e2c3855662534725c7"
+      }
+    },
+    "performance": {
+      "compile": 0.00011857399903237819,
+      "prove": 0
+    }
+  },
+  "Basic": {
+    "digest": "Basic",
+    "methods": {
+      "equals": {
+        "rows": 4,
+        "digest": "941bc7a3f1bc61dd9a031a90eda35257"
+      },
+      "if": {
+        "rows": 4,
+        "digest": "8bb444eb77c99f065f108e1dd124bdc0"
+      },
+      "toBits": {
+        "rows": 254,
+        "digest": "49e0fdd67c13bd800f641f2375301322"
+      },
+      "assertLessThan": {
+        "rows": 24,
+        "digest": "f7979c1aef4fb5672c7bd77ea927c10f"
+      },
+      "lessThan": {
+        "rows": 38,
+        "digest": "eed5490ecb8d1d6a8e9d3699cf5e175a"
+      },
+      "assertLessThanUInt64": {
+        "rows": 14,
+        "digest": "caadec00ee68eb4510555fed0dc4f0d6"
+      },
+      "lessThanUInt64": {
+        "rows": 15,
+        "digest": "87c70877d218c093b8ab5e2848a44611"
+      }
+    },
+    "performance": {
+      "compile": 0.00017625799961388112,
+      "prove": 0
+    }
+  },
+  "Crypto": {
+    "digest": "Crypto",
+    "methods": {
+      "nullifier": {
+        "rows": 726,
+        "digest": "64ba0a06a559a3f5a5e68a88c8ec550a"
+      }
+    },
+    "performance": {
+      "compile": 0.00003900500014424324,
+      "prove": 0
+    }
+  },
+  "ecdsa-ethers": {
+    "digest": "1e5226693cb4d6e6de8d9ffa1b8d5c845912b03d8e64a3b11120dffa30100571",
+    "methods": {
+      "verifyEthers": {
+        "rows": 46248,
+        "digest": "2278723f3c48ee7041964ebfc58f9f0f"
+      }
+    },
+    "performance": {
+      "compile": 32.811076635999605,
+      "prove": 0
+    }
+  },
+  "sha256": {
+    "digest": "38eaa6264b1e4c1c0b5787c06efd92aa7855890aeeafed91818d466f1b109ca5",
+    "methods": {
+      "sha256": {
+        "rows": 5036,
+        "digest": "c3952f2bd0dbb6b16ed43add7c57c9c5"
+      }
+    },
+    "performance": {
+      "compile": 5.136650781000033,
+      "prove": 0
+    }
+  },
+  "blake2b": {
+    "digest": "796335f933bc134f73352ce784270a5354382ecc4f5b48d68cfa302e3b2421c",
+    "methods": {
+      "blake2b": {
+        "rows": 3937,
+        "digest": "9a34a081e72a974dc8d663e338ba3a58"
+      }
+    },
+    "performance": {
+      "compile": 5.46795949300006,
+      "prove": 0
+    }
+  },
+  "diverse": {
+    "digest": "e5400cb7967d5a1f41e41b0ea0b5ef59b90591fc9e22149e2ce71de32261326",
+    "methods": {
+      "ecdsa": {
+        "rows": 31723,
+        "digest": "f672c175907019640d82dfc3165b320c"
+      },
+      "generic": {
+        "rows": 6,
+        "digest": "c23e00e466878466ae8ab23bde562792"
+      },
+      "pallas": {
+        "rows": 469,
+        "digest": "6ee38bce85ca4c6a852fdbe25bf096a9"
+      },
+      "poseidon": {
+        "rows": 948,
+        "digest": "7dc8bce23975131f24b2cc5fcd5c4a89"
+      },
+      "recursive": {
+        "rows": 0,
+        "digest": "4f5ddea76d29cfcfd8c595f14e31f21b"
+      },
+      "sha3": {
+        "rows": 14919,
+        "digest": "cfc49005fe4a108be200834e064354c3"
+      }
+    },
+    "performance": {
+      "compile": 57.520914209000765,
+      "prove": 0
+    }
+  }
+}
