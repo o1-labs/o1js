@@ -1,56 +1,41 @@
 #!/usr/bin/env bash
 
+set -e
 
-advance(){
-  ( set -e
+advance_prs(){
+  count=${1:-1}
+
   # Navigate to mina submodule
   pushd src/mina
-
-  # Fetch latest changes
-  git fetch origin compatible
 
   # Get current commit
   current_commit=$(git rev-parse HEAD)
 
   # Get all merge commits that contain "Merge pull request" in chronological order
-  all_merges=$(git log --oneline --grep="Merge pull request" compatible --reverse)
-
-  # Find the current commit in the list and get the next one
-  next_merge=$(echo "$all_merges" | grep -A 1 "^$(git rev-parse --short $current_commit)" | tail -n 1 | cut -d' ' -f1)
-
-  # If that didn't work, try a different approach - find commits after current commit date
-  if [ -z "$next_merge" ] || [ "$next_merge" = "$(git rev-parse --short $current_commit)" ]; then
-      current_date=$(git log -1 --format="%ct" $current_commit)
-      next_merge=$(git log --oneline --grep="Merge pull request" compatible --since="$current_date" --reverse | head -n 2 | tail -n 1 | cut -d' ' -f1)
-  fi
-
-  if [ -z "$next_merge" ]; then
-      echo "No newer merge commits found on compatible branch"
-      exit 1
-  fi
+  commit=$(git log --oneline --grep="Merge pull request" compatible --reverse \
+    | sed '1,/'"$(git rev-parse --short HEAD)"'/d' \
+    | sed -n "$count"'{p;q}' \
+    | cut -d' ' -f1
+  )
 
   # Get the commit message for informative output
-  commit_msg=$(git log --oneline -1 $next_merge)
+  commit_msg=$(git log --oneline -1 $commit)
 
   echo "Updating mina submodule to next PR: $commit_msg"
 
   # Checkout the next merge commit
-  git checkout $next_merge
+  git checkout $commit
   git reset --hard --recurse-submodules
 
   # Go back to parent repo and update submodule reference
   popd
-  )
 }
 
-
 rebuild(){
-  ( set -e
-    git clean -fdx && \
-    nix run .\#generate-bindings --refresh && \
-    nix develop --refresh --command npm ci && \
-    nix develop --refresh --command npm run build
-  )
+  git clean -fdx && \
+  nix run .\#generate-bindings --refresh && \
+  nix develop --refresh --command npm ci && \
+  nix develop --refresh --command npm run build
 }
 
 run_test(){
@@ -58,11 +43,54 @@ run_test(){
 }
 
 
-test_prs(){
-  while advance && rebuild && run_test
-  do
-    git add src/mina
-  done
+reset_mina(){
+  prev=$(git rev-parse HEAD^)
+  sub_sha=$(git ls-tree $prev src/mina | awk '{print $3}')
+  git -C src/mina checkout $sub_sha
+  git -C src/mina reset --hard --recurse-submodules
+
 }
 
-#test_prs
+check_num_prs(){
+  reset_mina
+  echo "SANITY CHECK"
+  rebuild && run_test
+  echo "END SANITY CHECK"
+  advance_prs "$1"
+  rebuild && run_test
+}
+
+reset_mina
+num_prs=$( \
+  git -C src/mina log --oneline --grep="Merge pull request" compatible --reverse \
+  | sed '1,/'"$(git -C src/mina rev-parse --short HEAD)"'/d' \
+  | wc -l)
+
+echo $num_prs
+
+low=0
+high=$num_prs
+
+while (( low < high -1 )); do
+    mid=$(( (low + high + 1) / 2 ))
+    echo TESTING $mid
+    if check_num_prs $mid
+    then
+      echo "$(git -C src/mina rev-parse HEAD) - Works" >> builds.log
+      low=$(( mid ))
+    else
+      high=$(( mid ))
+      echo "$(git -C src/mina rev-parse HEAD) - Fails" >> builds.log
+    fi
+    echo $low $mid $high
+done
+
+reset_mina
+advance_prs $low
+works=$(git -C src/mina rev-parse HEAD)
+reset_mina
+advance_prs $high
+breaks=$(git -C src/mina rev-parse HEAD)
+echo Works at $works
+echo Broken at $breaks
+echo Broken by $(git -C src/mina log --oneline -1 $breaks)
