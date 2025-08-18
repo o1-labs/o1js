@@ -1,0 +1,2 @@
+#!/bin/bash
+node --expose-gc --enable-source-maps --stack-trace-limit=1000 src/build/run.js $@
