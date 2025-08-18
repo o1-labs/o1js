@@ -18,6 +18,11 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/4b1dccdd...HEAD)
 
+### Fixed
+
+- Updated `VerificationKey.toJSON()` to include the verification key hash for
+  compliant encoding. https://github.com/o1-labs/o1js/pull/2332
+
 ## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
 
 ### Deprecated
