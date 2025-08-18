@@ -13,10 +13,14 @@ let vkIsValid = await VerificationKey.checkValidity(generated);
 assert(vkIsValid, 'valid verification key is being rejected as invalid');
 
 const invalidVerificationKey = new VerificationKey({
-    data: generated.data,
-    hash: Field.random(),
-  });
-
+  data: generated.data,
+  hash: Field.random(),
+});
 
 let vkIsNotValid = await VerificationKey.checkValidity(invalidVerificationKey);
 assert(vkIsNotValid === false, 'invalid verification key is being accepted as valid');
+
+const jsonVk = VerificationKey.toJSON(generated);
+const decodedVk = VerificationKey.fromJSON(jsonVk);
+let decodedVkIsValid = await VerificationKey.checkValidity(decodedVk);
+assert(decodedVkIsValid === true, 'decoded valid verification key is being rejected as invalid');
