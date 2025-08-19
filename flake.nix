@@ -376,12 +376,9 @@
               patchShebangs *.sh
               '';
             buildPhase = ''
-              # Make sure dependencies are in place
-              # Use only the npm-deps to avoid conflicting node_modules
               cp -r ${o1js-npm-deps}/lib/node_modules ./
               chmod +w -R ./node_modules
 
-              # Copy built bindings for correct TypeScript types
               cp -r ${bindings}/* ./src/bindings/
               chmod +w -R ./src/bindings/compiled
 

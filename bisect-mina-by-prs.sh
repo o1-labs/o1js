@@ -32,20 +32,22 @@ advance_prs(){
 }
 
 rebuild(){
-  git clean -fdx && \
-  nix run .\#generate-bindings --refresh && \
-  nix develop --refresh --command npm ci && \
-  nix develop --refresh --command npm run build
+  nom build .
+  #git clean -fdx && \
+  #nix run .\#generate-bindings --refresh && \
+  #nix develop --refresh --command npm ci && \
+  #nix develop --refresh --command npm run build
 }
 
 run_test(){
   # Replace with any test that fails
-  nix develop --command timeout 300s ./run ./src/examples/zkprogram/program.ts --bundle
+  #nix develop --command timeout 300s ./run ./src/examples/zkprogram/program.ts --bundle
+  nix flake check --refresh
 }
 
 
 reset_mina(){
-  prev=$(git rev-parse HEAD^)
+  prev=$(git rev-parse HEAD)
   sub_sha=$(git ls-tree $prev src/mina | awk '{print $3}')
   git -C src/mina checkout $sub_sha
   git -C src/mina reset --hard --recurse-submodules
@@ -54,9 +56,9 @@ reset_mina(){
 
 check_num_prs(){
   reset_mina
-  echo "SANITY CHECK"
-  rebuild && run_test
-  echo "END SANITY CHECK"
+  #echo "SANITY CHECK"
+  #rebuild && run_test
+  #echo "END SANITY CHECK"
   advance_prs "$1"
   rebuild && run_test
 }
