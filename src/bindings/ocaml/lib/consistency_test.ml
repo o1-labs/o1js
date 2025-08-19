@@ -170,7 +170,7 @@ module Hash_from_json = struct
       (network_id : Js.js_string Js.t) =
     let signature_kind = get_network_id_of_js_string network_id in
     let tx =
-      Zkapp_command.write_all_proofs_to_disk ~proof_cache_db
+      Zkapp_command.write_all_proofs_to_disk ~signature_kind ~proof_cache_db
       @@ Zkapp_command.of_json @@ Yojson.Safe.from_string
       @@ Js.to_string tx_json
     in
@@ -206,8 +206,9 @@ module Hash_from_json = struct
 
   let zkapp_public_input (tx_json : Js.js_string Js.t)
       (account_update_index : int) =
+    let signature_kind = Mina_signature_kind_type.Testnet in
     let tx =
-      Zkapp_command.write_all_proofs_to_disk ~proof_cache_db
+      Zkapp_command.write_all_proofs_to_disk ~signature_kind ~proof_cache_db
       @@ Zkapp_command.of_json @@ Yojson.Safe.from_string
       @@ Js.to_string tx_json
     in
