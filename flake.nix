@@ -142,7 +142,7 @@
 
         o1js-npm-deps = pkgs.buildNpmPackage
           {
-            name = "o1js";
+            name = "o1js-npm-deps";
             src = with pkgs.lib.fileset;
               (toSource {
                 root = ./.;
@@ -275,6 +275,44 @@
               popd
             '';
         };
+
+        #mina-signer-npm-deps = pkgs.buildNpmPackage
+        #  {
+        #    name = "mina-signer";
+        #    src = with pkgs.lib.fileset;
+        #      (toSource {
+        #        root = ./src/mina-signer;
+        #        fileset = unions [
+        #          ./src/mina-signer/package.json
+        #          ./src/mina-signer/package-lock.json
+        #        ];
+        #      });
+        #    npmDepsHash = "sha256-6uvxEH9pjZG9vtah9wQW6R+iVtJCRC6h/hutMRpZcic=";
+        #    dontNpmBuild = true;
+        #    installPhase = ''
+        #      runHook preInstall
+        #      mkdir -p $out/lib
+        #      cp -r node_modules $out/lib
+        #      runHook postInstall
+        #    '';
+        #  };
+        o1js = pkgs.buildNpmPackage
+          {
+            name = "o1js";
+            src = with pkgs.lib.fileset;
+              (toSource {
+                root = ./.;
+                fileset = unions [
+                  ./.
+                ];
+              });
+            npmDepsHash = builtins.readFile ./npmDepsHash;
+            preBuild = ''
+              cp -r ${bindings}/* ./src/bindings
+              ls src/bindings/compiled/
+              chmod +w -R src/bindings/compiled
+            '';
+          };
       in
       {
         formatter = pkgs.nixfmt;
@@ -306,6 +344,9 @@
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
           inherit dune-description bindings;
+          npm-deps = o1js-npm-deps;
+          npm-deps-alt = o1js.npmDeps;
+          default = o1js;
           bindings-tar = pkgs.stdenv.mkDerivation {
             name = "bindings.tar.gz";
             src = bindings;
@@ -317,7 +358,45 @@
                 tar czf $out .
             '';
           };
-          npm-deps = o1js-npm-deps;
+        };
+        checks = {
+          default = pkgs.stdenv.mkDerivation {
+            name = "o1js-checks";
+            src = with pkgs.lib.fileset;
+              (toSource {
+                root = ./.;
+                fileset = unions [
+                  ./.
+                ];
+              });
+            nativeBuildInputs = bindings-pkgs ++ [ o1js ];
+            patchPhase = ''
+              patchShebangs ./src/bindings/scripts/
+              patchShebangs ./src/bindings/crypto/test-vectors/
+              patchShebangs *.sh
+              '';
+            buildPhase = ''
+              # Make sure dependencies are in place
+              # Use only the npm-deps to avoid conflicting node_modules
+              cp -r ${o1js-npm-deps}/lib/node_modules ./
+              chmod +w -R ./node_modules
+
+              # Copy built bindings for correct TypeScript types
+              cp -r ${bindings}/* ./src/bindings/
+              chmod +w -R ./src/bindings/compiled
+
+              ln -sf node_bindings ./src/bindings/compiled/_node_bindings
+              npm run dev
+
+              #npm run test
+              #TODO go back to normal test, come up with reasonable timeout
+              timeout 300 ./run ./src/examples/zkprogram/program.ts --bundle
+            '';
+            installPhase = ''
+              mkdir -p $out
+              echo "Test finished." > $out/result.txt
+            '';
+          };
         };
         apps = {
           update-npm-deps = {
