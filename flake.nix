@@ -364,7 +364,7 @@
               ln -sf node_bindings ./src/bindings/compiled/_node_bindings
               npm run dev
 
-              npm run test
+              timeout 600s npm run test
             '';
             installPhase = ''
               mkdir -p $out
