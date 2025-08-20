@@ -32,7 +32,7 @@ advance_prs(){
 }
 
 rebuild(){
-  nom build .
+  nom build . --no-eval-cache
   #git clean -fdx && \
   #nix run .\#generate-bindings --refresh && \
   #nix develop --refresh --command npm ci && \
@@ -42,7 +42,7 @@ rebuild(){
 run_test(){
   # Replace with any test that fails
   #nix develop --command timeout 300s ./run ./src/examples/zkprogram/program.ts --bundle
-  nix flake check --refresh
+  nom flake check --no-eval-cache
 }
 
 
