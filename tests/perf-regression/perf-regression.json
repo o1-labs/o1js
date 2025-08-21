@@ -1,15 +1,20 @@
 {
   "ecdsa-only": {
-    "digest": "19133e0612c2ca2116e67ea9955f71be09c53a2bbf2e5973639cfa5fa022ad3b",
+    "digest": "115c4ceb00a16a57a49b9af46d32203e65a9c993d629ad0c2c6491c3c7166b3c",
     "methods": {
       "verifySignedHash": {
-        "rows": 31723,
-        "digest": "7f7068290459ac8114b1387d24f2625f"
+        "rows": 31810,
+        "digest": "05640dc4f6d501cb4e82c19676ea8b7a"
       }
     },
     "performance": {
-      "compile": 19.141238842999563,
-      "prove": 0
+      "compile": 8.969909159999341,
+      "prove": [
+        {
+          "method": "_",
+          "proveTime": 0
+        }
+      ]
     }
   },
   "ecdsa": {
@@ -21,8 +26,13 @@
       }
     },
     "performance": {
-      "compile": 32.05598194600083,
-      "prove": 0
+      "compile": 14.48753818500042,
+      "prove": [
+        {
+          "method": "verifyEcdsa",
+          "proveTime": 231.6965674739983
+        }
+      ]
     }
   },
   "Voting_": {
@@ -50,8 +60,8 @@
       }
     },
     "performance": {
-      "compile": 7.227235571000725,
-      "prove": 0
+      "compile": 3.4800056940000506,
+      "prove": []
     }
   },
   "Membership_": {
@@ -71,8 +81,8 @@
       }
     },
     "performance": {
-      "compile": 3.4075715010017156,
-      "prove": 0
+      "compile": 2.3740103289987893,
+      "prove": []
     }
   },
   "HelloWorld": {
@@ -84,8 +94,8 @@
       }
     },
     "performance": {
-      "compile": 1.066024374000728,
-      "prove": 0
+      "compile": 0.8838772420007736,
+      "prove": []
     }
   },
   "TokenContract": {
@@ -105,8 +115,8 @@
       }
     },
     "performance": {
-      "compile": 3.725300395000726,
-      "prove": 0
+      "compile": 2.8008700190000235,
+      "prove": []
     }
   },
   "Dex": {
@@ -134,8 +144,8 @@
       }
     },
     "performance": {
-      "compile": 21.313036892000586,
-      "prove": 0
+      "compile": 9.786757288001478,
+      "prove": []
     }
   },
   "Group Primitive": {
@@ -163,8 +173,8 @@
       }
     },
     "performance": {
-      "compile": 0.000055577000603079794,
-      "prove": 0
+      "compile": 0.000040156999602913857,
+      "prove": []
     }
   },
   "Bitwise Primitive": {
@@ -208,8 +218,8 @@
       }
     },
     "performance": {
-      "compile": 0.000024852000176906587,
-      "prove": 0
+      "compile": 0.000018593998625874518,
+      "prove": []
     }
   },
   "Hashes": {
@@ -257,8 +267,8 @@
       }
     },
     "performance": {
-      "compile": 0.00011857399903237819,
-      "prove": 0
+      "compile": 0.00004553399980068207,
+      "prove": []
     }
   },
   "Basic": {
@@ -294,8 +304,8 @@
       }
     },
     "performance": {
-      "compile": 0.00017625799961388112,
-      "prove": 0
+      "compile": 0.000015204999595880509,
+      "prove": []
     }
   },
   "Crypto": {
@@ -307,8 +317,8 @@
       }
     },
     "performance": {
-      "compile": 0.00003900500014424324,
-      "prove": 0
+      "compile": 0.000023890001699328422,
+      "prove": []
     }
   },
   "ecdsa-ethers": {
@@ -320,8 +330,13 @@
       }
     },
     "performance": {
-      "compile": 32.811076635999605,
-      "prove": 0
+      "compile": 16.028840081000702,
+      "prove": [
+        {
+          "method": "verifyEthers",
+          "proveTime": 190.2657806819994
+        }
+      ]
     }
   },
   "sha256": {
@@ -333,8 +348,13 @@
       }
     },
     "performance": {
-      "compile": 5.136650781000033,
-      "prove": 0
+      "compile": 3.0393549690004438,
+      "prove": [
+        {
+          "method": "sha256",
+          "proveTime": 58.67885668599978
+        }
+      ]
     }
   },
   "blake2b": {
@@ -346,8 +366,13 @@
       }
     },
     "performance": {
-      "compile": 5.46795949300006,
-      "prove": 0
+      "compile": 3.264745735000819,
+      "prove": [
+        {
+          "method": "blake2b",
+          "proveTime": 57.0577172339987
+        }
+      ]
     }
   },
   "diverse": {
@@ -379,8 +404,13 @@
       }
     },
     "performance": {
-      "compile": 57.520914209000765,
-      "prove": 0
+      "compile": 26.037485232999547,
+      "prove": [
+        {
+          "method": "_",
+          "proveTime": 0
+        }
+      ]
     }
   }
 }

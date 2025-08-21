@@ -3,8 +3,15 @@ import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
 import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
 import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
-import { ecdsa, keccakAndEcdsa, ecdsaEthers } from '../../src/examples/crypto/ecdsa/ecdsa.js';
-import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
+import {
+  ecdsa,
+  keccakAndEcdsa,
+  ecdsaEthers,
+  Secp256k1,
+  Bytes32,
+  Ecdsa,
+} from '../../src/examples/crypto/ecdsa/ecdsa.js';
+import { SHA256Program, Bytes12 } from '../../src/examples/crypto/sha256/sha256.js';
 import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js';
 import {
   GroupCS,
@@ -15,10 +22,7 @@ import {
 } from '../vk-regression/plain-constraint-system.js';
 import { diverse } from '../vk-regression/diverse-zk-program.js';
 import { tic, toc } from '../../src/lib/util/tic-toc.js';
-
-//! slippage is not relevant for very small circuits e.g 0.000015055999159812927
-// toggle this for quick iteration when debugging vk regressions
-const skipVerificationKeys = false;
+import { Keccak } from 'o1js';
 
 // toggle to override caches
 const forceRecompile = false;
@@ -27,6 +31,43 @@ const forceRecompile = false;
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 let perfTest = process.env.PERF_TEST;
+
+type Provers =
+  | typeof ecdsa.rawMethods // verifySignedHash
+  | typeof keccakAndEcdsa.rawMethods // verifyEcdsa
+  | typeof ecdsaEthers.rawMethods // verifyEthers
+  | typeof SHA256Program.rawMethods // sha256
+  | typeof BLAKE2BProgram.rawMethods // blake2b
+  | typeof diverse.rawMethods; // ecdsa + sha3 + poseidon + pallas + generic + recursive
+
+const privateKey = Secp256k1.Scalar.random();
+const publicKey = Secp256k1.generator.scale(privateKey);
+const message = Bytes32.fromString("what's up");
+const signature = Ecdsa.sign(message.toBytes(), privateKey.toBigInt());
+
+const msgHashBytes = Keccak.ethereum(message);
+
+const compressedPublicKey = '0x020957928494c38660d254dc03ba78f091a4aea0270afb447f193c4daf6648f02b';
+const publicKeyE = Secp256k1.fromEthers(compressedPublicKey);
+const rawSignature =
+  '0x6fada464c3bc2ae127f8c907c0c4bccbd05ba83a584156edb808b7400346b4c9558598d9c7869f5fd75d81128711f6621e4cb5ba2f52a2a51c46c859f49a833a1b';
+const signatureE = Ecdsa.fromHex(rawSignature);
+const msg = 'Secrets hidden, truth in ZKPs ;)';
+const msgBytes = Bytes32.fromString(msg);
+
+const preimage = Bytes12.random();
+
+const proverInputs = {
+  sha256: { sha256: [preimage] },
+  'ecdsa-only': {
+    verifySignedHash: [msgHashBytes, signature, publicKey],
+  },
+  ecdsa: {
+    verifyEcdsa: [message, signature, publicKey],
+  },
+  'ecdsa-ethers': { verifyEthers: [msgBytes, signatureE, publicKeyE] },
+  blake2b: { blake2b: [preimage] },
+};
 
 type MinimumConstraintSystem = {
   analyzeMethods(): Promise<
@@ -46,9 +87,9 @@ type MinimumConstraintSystem = {
   }>;
   digest(): Promise<string>;
   name: string;
+  rawMethods?: Provers;
 };
-// ecdsa => verifySignedHash
-// keccakAndEcdsa => verifyEcdsa
+
 const ConstraintSystems: MinimumConstraintSystem[] = [
   ecdsa,
   keccakAndEcdsa,
@@ -67,9 +108,43 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   BLAKE2BProgram,
   diverse,
 ];
-// console.log('TokenContract._methods: ', TokenContract._methods);
-// console.log('ecdsa.rawMethods: ', ecdsa.rawMethods);
-// ecdsa.rawMethods.verifySignedHash()
+
+function hasProp<T extends object, K extends PropertyKey>(
+  obj: T,
+  key: K
+): obj is T & Record<K, unknown> {
+  return key in obj;
+}
+
+type ProveResult = { method: string; proveTime: number };
+
+async function prove(c: MinimumConstraintSystem, skip?: string[]): Promise<ProveResult[]> {
+  const results: ProveResult[] = [];
+  if (skip !== undefined)
+    if (skip.includes(c.name)) {
+      console.log(`skipped proving (${c.name})`);
+      return [{ method: '_', proveTime: 0 }];
+    }
+
+  if (!c.rawMethods) return results;
+
+  for (const methodName of Object.keys(c.rawMethods)) {
+    const inputs = proverInputs[c.name][methodName];
+    if (!inputs) continue; // skip methods we didn't wire inputs for
+
+    if (!hasProp(c as any, methodName)) continue;
+    const method = (c as any)[methodName];
+    if (typeof method !== 'function') continue;
+
+    tic(`prove (${c.name}): ${methodName}`);
+    await method(...inputs);
+    const proveTime = toc();
+
+    results.push({ method: methodName, proveTime });
+  }
+  return results;
+}
+
 let selectedConstraintSystems: MinimumConstraintSystem[] = [];
 
 if (perfTest === '1') {
@@ -92,7 +167,7 @@ let RegressionJson: {
     methods: Record<string, { rows: number; digest: string }>;
     performance: {
       compile: number;
-      prove: number;
+      prove: ProveResult[];
     };
   };
 };
@@ -119,9 +194,7 @@ async function checkPerf(contracts: typeof ConstraintSystems) {
     let perf = ref.performance;
 
     tic(`compile (${c.name})`);
-    let {
-      verificationKey: { data, hash },
-    } = await c.compile({ forceRecompile });
+    await c.compile({ forceRecompile });
     let compileTime = toc();
 
     let methodData = await c.analyzeMethods();
@@ -144,7 +217,9 @@ async function checkPerf(contracts: typeof ConstraintSystems) {
     if (compileTime > perf.compile * 1.05) {
       errorStack += `\n\nRegression test for contract ${
         c.name
-      } failed, because of a notable performance tolerance breach.
+      } failed, because of a notable performance tolerance breach of ${
+        (compileTime - perf.compile) / 100
+      }.
 Contract has
   ${JSON.stringify(compileTime, undefined, 2)}
 \n
@@ -158,25 +233,20 @@ but expected was
   }
 }
 
-// Should have the option to update method digest following vk-regression
-async function dumpVk(contracts: typeof ConstraintSystems) {
+async function dumpPerf(contracts: typeof ConstraintSystems) {
   let newEntries: typeof RegressionJson = {};
   for await (const c of contracts) {
     let data = await c.analyzeMethods();
     let digest = await c.digest();
-    // let verificationKey: { data: string; hash: { toString(): string } } | undefined;
-    let perf:
-      | {
-          compile: number;
-          prove: number;
-        }
-      | undefined;
+
     let compileTime = 0;
-    if (!skipVerificationKeys) {
-      tic(`compile (${c.name})`);
-      await c.compile({ forceRecompile });
-      compileTime = toc();
-    }
+    let proveResults: ProveResult[] = [];
+    tic(`compile (${c.name})`);
+    await c.compile({ forceRecompile });
+    compileTime = toc();
+
+    if (c.rawMethods) proveResults = await prove(c, ['ecdsa-only', 'diverse']);
+
     newEntries[c.name] = {
       digest,
       methods: Object.fromEntries(
@@ -184,8 +254,7 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
       ),
       performance: {
         compile: compileTime,
-        // prove: verificationKey?.hash.toString() ?? '0',
-        prove: 0,
+        prove: proveResults,
       },
     };
   }
@@ -193,5 +262,5 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
   fs.writeFileSync(filePath, JSON.stringify(newEntries, undefined, 2));
 }
 
-if (dump) await dumpVk(ConstraintSystems);
+if (dump) await dumpPerf(ConstraintSystems);
 else await checkPerf(selectedConstraintSystems);
