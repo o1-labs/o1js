@@ -26,13 +26,13 @@ const keccakAndEcdsa = ZkProgram({
 
 const ecdsa = ZkProgram({
   name: 'ecdsa-only',
-  publicInput: Scalar,
+  publicInput: Bytes32,
   publicOutput: Bool,
 
   methods: {
     verifySignedHash: {
       privateInputs: [Ecdsa, Secp256k1],
-      async method(message: Scalar, signature: Ecdsa, publicKey: Secp256k1) {
+      async method(message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) {
         return {
           publicOutput: signature.verifySignedHash(message, publicKey),
         };
