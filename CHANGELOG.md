@@ -25,8 +25,7 @@ This project adheres to
 
 ### Fixed
 
-- Fixed a previously introduced performance regression that occured when proving
-  circuits. Circuit proving speeds are now in some cases about 4x faster.
+- Fixed a performance regression that occured when proving circuits.
   https://github.com/o1-labs/o1js/pull/2388
 
 ## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
