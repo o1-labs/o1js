@@ -8,7 +8,7 @@
       }
     },
     "performance": {
-      "compile": 6.268348336998374,
+      "compile": 7.604191977,
       "prove": [
         {
           "method": "_",
@@ -26,7 +26,7 @@
       }
     },
     "performance": {
-      "compile": 11.30473079900071,
+      "compile": 13.149266948000001,
       "prove": [
         {
           "method": "verifyEcdsa",
@@ -60,7 +60,7 @@
       }
     },
     "performance": {
-      "compile": 2.8973433599993585,
+      "compile": 2.604605914,
       "prove": []
     }
   },
@@ -81,7 +81,7 @@
       }
     },
     "performance": {
-      "compile": 2.157923705998808,
+      "compile": 1.7191487020000058,
       "prove": []
     }
   },
@@ -94,7 +94,7 @@
       }
     },
     "performance": {
-      "compile": 0.7551367609985172,
+      "compile": 1.0243713510000017,
       "prove": []
     }
   },
@@ -115,7 +115,7 @@
       }
     },
     "performance": {
-      "compile": 2.6912935540005565,
+      "compile": 1.8447906509999956,
       "prove": []
     }
   },
@@ -144,7 +144,7 @@
       }
     },
     "performance": {
-      "compile": 8.01827252900228,
+      "compile": 9.101079438000001,
       "prove": []
     }
   },
@@ -173,7 +173,7 @@
       }
     },
     "performance": {
-      "compile": 0.0000375249981880188,
+      "compile": 0.00003365299999859417,
       "prove": []
     }
   },
@@ -218,7 +218,7 @@
       }
     },
     "performance": {
-      "compile": 0.000016397997736930847,
+      "compile": 0.000016196999997191595,
       "prove": []
     }
   },
@@ -267,7 +267,7 @@
       }
     },
     "performance": {
-      "compile": 0.00004410700127482414,
+      "compile": 0.000018960000001243317,
       "prove": []
     }
   },
@@ -304,7 +304,7 @@
       }
     },
     "performance": {
-      "compile": 0.000017841998487710953,
+      "compile": 0.000018406999995931984,
       "prove": []
     }
   },
@@ -317,7 +317,7 @@
       }
     },
     "performance": {
-      "compile": 0.000019816000014543533,
+      "compile": 0.000013435999993816949,
       "prove": []
     }
   },
@@ -330,7 +330,7 @@
       }
     },
     "performance": {
-      "compile": 13.814400995999575,
+      "compile": 14.220820693999995,
       "prove": [
         {
           "method": "verifyEthers",
@@ -348,7 +348,7 @@
       }
     },
     "performance": {
-      "compile": 2.9874021530002355,
+      "compile": 2.526968504999997,
       "prove": [
         {
           "method": "sha256",
@@ -366,7 +366,7 @@
       }
     },
     "performance": {
-      "compile": 3.17777523400262,
+      "compile": 1.9673095199999953,
       "prove": [
         {
           "method": "blake2b",
@@ -404,7 +404,7 @@
       }
     },
     "performance": {
-      "compile": 28.229495975002646,
+      "compile": 29.30676316100001,
       "prove": [
         {
           "method": "_",

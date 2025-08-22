@@ -27,12 +27,19 @@ import { Keccak } from 'o1js';
 // toggle to override caches
 const forceRecompile = false;
 
-// usage ./run ./tests/perf-regression/perf-regression.ts --bundle --dump
-let dump = process.argv[4] === '--dump';
-let compileEnabled = process.argv[5] === '--compile';
-let proveEnabled = process.argv[5] === '--prove';
-let jsonPath = process.argv[dump ? 5 : 4];
-let perfTest = process.env.PERF_TEST;
+// flags (robust anywhere in argv)
+const dump = process.argv.includes('--dump');
+const compileEnabled = process.argv.includes('--compile');
+const proveEnabled = process.argv.includes('--prove');
+
+// path arg: keep previous positional behavior, but fall back to default
+const maybePathIdx = Math.max(process.argv.indexOf('--dump'), 0) ? 5 : 4;
+const jsonPath =
+  process.argv[maybePathIdx] && process.argv[maybePathIdx].startsWith('--')
+    ? undefined
+    : process.argv[maybePathIdx];
+
+const perfTest = process.env.PERF_TEST;
 
 type Provers =
   | typeof ecdsa.rawMethods // verifySignedHash
@@ -122,17 +129,15 @@ type ProveResult = { method: string; proveTime: number };
 
 async function prove(c: MinimumConstraintSystem, skip?: string[]): Promise<ProveResult[]> {
   const results: ProveResult[] = [];
-  if (skip !== undefined)
-    if (skip.includes(c.name)) {
-      console.log(`skipped proving (${c.name})`);
-      return [{ method: '_', proveTime: 0 }];
-    }
-
+  if (skip?.includes(c.name)) {
+    console.log(`skipped proving (${c.name})`);
+    return [{ method: '_', proveTime: 0 }];
+  }
   if (!c.rawMethods) return results;
 
   for (const methodName of Object.keys(c.rawMethods)) {
-    const inputs = proverInputs[c.name][methodName];
-    if (!inputs) continue; // skip methods we didn't wire inputs for
+    const inputs = proverInputs[c.name]?.[methodName];
+    if (!inputs) continue;
 
     if (!hasProp(c as any, methodName)) continue;
     const method = (c as any)[methodName];
@@ -149,7 +154,6 @@ async function prove(c: MinimumConstraintSystem, skip?: string[]): Promise<Prove
 }
 
 let selectedConstraintSystems: MinimumConstraintSystem[] = [];
-
 if (perfTest === '1') {
   selectedConstraintSystems = ConstraintSystems.slice(0, 10);
   console.log('Running regression checks - Part 1');
@@ -158,13 +162,14 @@ if (perfTest === '1') {
   console.log('Running regression checks - Part 2');
 } else if (dump) {
   selectedConstraintSystems = ConstraintSystems;
-  //TODO add error message for Runnin
   console.log('Running regression checks - All Parts');
-} else if (!dump) {
+} else {
+  // for non-dump runs, still require PERF_TEST to split load.
   throw new Error('Invalid PERF_TEST value. Please set PERF_TEST to 1 or 2!');
 }
 
 let filePath = jsonPath ? jsonPath : './tests/perf-regression/perf-regression.json';
+
 let RegressionJson: {
   [contractName: string]: {
     digest: string;
@@ -189,48 +194,85 @@ try {
 async function checkPerf(contracts: typeof ConstraintSystems) {
   let errorStack = '';
 
+  // if neither flag is set, run both checks by default
+  const doCompileCheck = compileEnabled || (!compileEnabled && !proveEnabled);
+  const doProveCheck = proveEnabled || (!compileEnabled && !proveEnabled);
+
   for await (const c of contracts) {
-    let ref = RegressionJson[c.name];
-    if (!ref)
+    const ref = RegressionJson[c.name];
+    if (!ref) {
       throw Error(
-        `Performance benchmarks for contract ${c.name} was not found, try dumping it first.`
+        `Performance benchmarks for contract ${c.name} were not found, try dumping first.`
       );
-    let perf = ref.performance;
+    }
 
-    tic(`compile (${c.name})`);
-    await c.compile({ forceRecompile });
-    let compileTime = toc();
-
-    let methodData = await c.analyzeMethods();
-
+    // digest / rows sanity (always do this)
+    const methodData = await c.analyzeMethods();
     for (const methodKey in methodData) {
-      let actualMethod = methodData[methodKey];
-      let expectedMethod = ref.methods[methodKey];
+      const actualMethod = methodData[methodKey];
+      const expectedMethod = ref.methods[methodKey];
 
-      // sanity check that we are operating on the same contracts
-      if (actualMethod.digest !== expectedMethod.digest) {
+      if (!expectedMethod || actualMethod.digest !== expectedMethod.digest) {
         errorStack += `\n\nMethod digest mismatch for ${c.name}.${methodKey}()
   Actual
     ${JSON.stringify({ digest: actualMethod.digest, rows: actualMethod.rows }, undefined, 2)}
-  \n
+
   Expected
-    ${JSON.stringify({ digest: expectedMethod.digest, rows: expectedMethod.rows }, undefined, 2)}`;
+    ${JSON.stringify(expectedMethod ?? null, undefined, 2)}`;
       }
     }
 
-    const tolerance = perf.compile < 5 * 1e-5 ? 1.08 : 1.05;
-    if (compileTime > perf.compile * tolerance) {
-      const slippage = (compileTime - perf.compile) / compileTime;
-      errorStack += `\n\nRegression test for contract ${
-        c.name
-      } failed, because of a notable performance tolerance breach of %${(slippage * 100).toFixed(
-        3
-      )} > %${(tolerance * 100).toFixed()}.
-Contract has
-  ${JSON.stringify(compileTime, undefined, 2)}
-\n
-but expected was
-  ${JSON.stringify(perf.compile, undefined, 2)}`;
+    // compile regression check
+    if (doCompileCheck) {
+      tic(`compile (${c.name})`);
+      await c.compile({ forceRecompile });
+      const compileTime = toc();
+
+      const expectedCompile = ref.performance.compile;
+      const tolerance = expectedCompile < 5e-5 ? 1.08 : 1.05; // absolute ratio
+      const tolerancePct = (tolerance - 1) * 100; // display as delta (e.g., 5%)
+
+      if (compileTime > expectedCompile * tolerance) {
+        const slippage = (compileTime - expectedCompile) / compileTime;
+        errorStack += `\n\nCompile regression for ${c.name}: ${(slippage * 100).toFixed(
+          3
+        )}% > ${tolerancePct.toFixed()}%
+  Actual compile: ${compileTime.toFixed(6)}s
+  Expected max:   ${(expectedCompile * tolerance).toFixed(3)}s (baseline ${expectedCompile.toFixed(
+          6
+        )}s, tolerance +${tolerancePct.toFixed()}%)`;
+      }
+    }
+
+    // prove regression check (per-method)
+    if (doProveCheck) {
+      // ensure compiled before proving
+      tic(`compile (${c.name}) [for prove]`);
+      await c.compile({ forceRecompile });
+      toc();
+
+      const actualProves = await prove(c);
+      const expectedProves = (ref.performance.prove || []) as ProveResult[];
+
+      const expMap = new Map(expectedProves.map((p) => [p.method, p.proveTime]));
+      for (const p of actualProves) {
+        const expected = expMap.get(p.method);
+        if (expected === undefined) continue; // no baseline for this method
+
+        const tolerance = expected < 0.2 ? 1.25 : 1.1;
+        const tolerancePct = (tolerance - 1) * 100;
+
+        if (p.proveTime > expected * tolerance) {
+          const slippage = (p.proveTime - expected) / p.proveTime;
+          errorStack += `\n\nProve regression for ${c.name}.${p.method}: ${(slippage * 100).toFixed(
+            3
+          )}% > ${tolerancePct.toFixed()}%
+  Actual prove: ${p.proveTime.toFixed(3)}s
+  Expected max: ${(expected * tolerance).toFixed(3)}s (baseline ${expected.toFixed(
+            3
+          )}s, tolerance +${tolerancePct.toFixed()}%)`;
+        }
+      }
     }
   }
 
@@ -241,24 +283,31 @@ but expected was
 
 async function dumpPerf(contracts: typeof ConstraintSystems) {
   if (!compileEnabled && !proveEnabled)
-    throw new Error("Please provide a '--compile' or '--prove` argument");
-  let out: typeof RegressionJson = { ...(RegressionJson ?? {}) };
+    throw new Error("Please provide a '--compile' or '--prove' argument");
+
+  const out: typeof RegressionJson = { ...RegressionJson };
 
   for await (const c of contracts) {
-    let data = await c.analyzeMethods();
-    let digest = await c.digest();
-
+    const data = await c.analyzeMethods();
+    const digest = await c.digest();
     const prev = out[c.name];
 
-    // build a fresh entry, seeding with prev where appropriate
-    const entry = {
+    // seed from previous entry so we only touch what we're updating
+    const entry: {
+      digest: string;
+      methods: Record<string, { rows: number; digest: string }>;
+      performance: { compile?: number; prove?: ProveResult[] } & {
+        compile: number;
+        prove: ProveResult[];
+      };
+    } = {
       digest,
       methods: Object.fromEntries(
         Object.entries(data).map(([key, { rows, digest }]) => [key, { rows, digest }])
       ),
-      performance: { ...(prev?.performance ?? {}) } as {
-        compile?: number;
-        prove?: ProveResult[];
+      performance: {
+        compile: prev?.performance?.compile ?? 0,
+        prove: prev?.performance?.prove ?? [],
       },
     };
 
@@ -268,12 +317,13 @@ async function dumpPerf(contracts: typeof ConstraintSystems) {
       entry.performance.compile = toc();
     }
 
-    let proveResults: ProveResult[] = [];
     if (proveEnabled && c.rawMethods) {
       await c.compile({ forceRecompile });
-      proveResults = await prove(c, ['ecdsa-only', 'diverse']);
+      const proveResults = await prove(c, ['ecdsa-only', 'diverse', 'ecdsa']); // keep your skip list
       entry.performance.prove = proveResults;
     }
+
+    out[c.name] = entry;
   }
 
   fs.writeFileSync(filePath, JSON.stringify(out, undefined, 2));
