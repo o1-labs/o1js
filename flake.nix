@@ -270,6 +270,8 @@
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
           JUST_BINDINGS = true;
+          OCAMLPARAM = "_,w=-67";
+          DUNE_BUILD_OPTIONS = "--promote-install-files";
           buildInputs = (with pkgs;
             [
               rustupWrapper
