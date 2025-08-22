@@ -1,14 +1,16 @@
 {
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
+    self.submodules = true;
     nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-24.11-small";
-    mina.url = "git+file:src/mina?submodules=1";
+    mina.url = ./src/mina;
+    mina.inputs.dune-nix.follows = "dune-nix";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
     describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
-    dune-nix.url = "github:o1-labs/dune-nix";
+    dune-nix.url = "github:o1-labs/dune-nix?ref=brian/relative-flakes-fix";
     dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
@@ -128,7 +130,7 @@
           [
             nodejs
             nodePackages.npm
-            #nodePackages.prettier
+            nodePackages.prettier
             typescript
             nodePackages.typescript-language-server
             rustup
@@ -137,38 +139,6 @@
             dune_3
           ] ++ commonOverrides.buildInputs;
 
-        inherit (pkgs) lib;
-        # All the submodules required by .gitmodules
-        submodules = map builtins.head (builtins.filter lib.isList
-          (map (builtins.match "	path = (.*)")
-            (lib.splitString "\n" (builtins.readFile ./.gitmodules))));
-
-        # Warn about missing submodules
-        requireSubmodules =
-          let
-            ref = r: "[34;1m${r}[31;1m";
-            command = c: "[37;1m${c}[31;1m";
-          in
-          lib.warnIf
-            (
-              !builtins.all (x: x)
-                (map (x: builtins.pathExists ./${x} && builtins.readDir ./${x} != { })
-                  submodules)
-            ) ''
-            Some submodules are missing, you may get errors. Consider one of the following:
-            - run ${command "./pin.sh"} and use "${
-              ref "o1js"
-            }" flake ref, e.g. ${command "nix develop o1js"} or ${
-              command "nix build o1js"
-            };
-            - use "${ref "git+file://$PWD?submodules=1"}";
-            - use "${
-              ref "git+https://github.com/o1-labs/o1js?submodules=1"
-            }";
-            - use non-flake commands like ${command "nix-build"} and ${
-              command "nix-shell"
-            }.
-          '';
         o1js-npm-deps = pkgs.buildNpmPackage
           {
             name = "o1js";
@@ -181,7 +151,7 @@
                 ];
               });
             # If you get ERROR: npmDepsHash is out of date
-            # you can update the hash with `nix run o1js#update-npm-deps`.
+            # you can update the hash with `nix run .#update-npm-deps`.
             # Failing that you can remove the hash from ./npmDepsHash and try again
             # which should get an error message with the correct hash
             # You can also just push and CI should suggest a fix which updates the hash
@@ -205,7 +175,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2024-09-05 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
+                if [ "$1" = run ] && [ "$2" = nightly-2024-09-05 ]
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
@@ -230,7 +200,7 @@
           CARGO_TARGET_DIR = "./target";
           cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
         };
-        bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
+        bindings = pkgs.stdenv.mkDerivation {
           name = "o1js_bindings";
           src = with pkgs.lib.fileset;
             (toSource {
@@ -301,27 +271,32 @@
                 cp -Lr ./mina-transaction/gen $out/mina-transaction/
               popd
             '';
-        });
+        };
       in
       {
         formatter = pkgs.nixfmt;
         inherit mina;
         devShells = {
           # This seems to work better for macos
-          mina-shell = requireSubmodules inputs.mina.devShells."${system}".with-lsp;
-          default = requireSubmodules (pkgs.mkShell
+          mina-shell = inputs.mina.devShells."${system}".with-lsp;
+          default = pkgs.mkShell
             (if pkgs.stdenv.isDarwin
             # on macos use plain rustup
             then { packages = bindings-pkgs; }
             # on linux wrap rustup like in the derivation
             else {
-              packages = [ rustupWrapper ] ++ bindings-pkgs;
+              packages = [ rustupWrapper mina.base-libs ] ++ bindings-pkgs;
+
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
+                # fixes linking issue with wasm-pack
+                export LD_LIBRARY_PATH="${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH"
+                # TODO ideally we shouldn't install toolchains like this in a devshell
+                rustup toolchain install nightly-x86_64-unknown-linux-gnu
                 rustup toolchain link nix ${rust-channel'}
               '';
-            }));
+            });
 
 
         };

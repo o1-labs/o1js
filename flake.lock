@@ -58,40 +58,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1723653683,
-        "narHash": "sha256-n7h3X1PCp+pPOu/bwUQ0Gwv0yXrdjA+h3Zp6CQSS4jQ=",
+        "lastModified": 1753462905,
+        "narHash": "sha256-6AtfyAkiVQKQYQlxj5r770qPvizkyhM4PkUO/dynlpM=",
         "owner": "o1-labs",
         "repo": "dune-nix",
-        "rev": "303e4cea2e035c84d4067754a9275a053dac1564",
+        "rev": "3db28322f3225c56d591e66d2b9a728eedc18e52",
         "type": "github"
       },
       "original": {
         "owner": "o1-labs",
-        "repo": "dune-nix",
-        "type": "github"
-      }
-    },
-    "dune-nix_2": {
-      "inputs": {
-        "flake-utils": [
-          "mina",
-          "utils"
-        ],
-        "nixpkgs": [
-          "mina",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1742933757,
-        "narHash": "sha256-FI8sVvIJuKscrnOUj/cqbZRVOxTzgBwYMyZSNcXq+58=",
-        "owner": "o1-labs",
-        "repo": "dune-nix",
-        "rev": "5eedc211a4cfc3bae1833c5a85542be49b4a9f6b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "o1-labs",
+        "ref": "brian/relative-flakes-fix",
         "repo": "dune-nix",
         "type": "github"
       }
@@ -248,7 +224,9 @@
     "mina": {
       "inputs": {
         "describe-dune": "describe-dune_2",
-        "dune-nix": "dune-nix_2",
+        "dune-nix": [
+          "dune-nix"
+        ],
         "flake-buildkite-pipeline": "flake-buildkite-pipeline",
         "flake-compat": "flake-compat",
         "flockenzeit": "flockenzeit",
@@ -266,16 +244,14 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1751976294,
-        "narHash": "sha256-iQiich3yamIKYSq+zRKcs7zWNUC22/Bi33swjwcfc5g=",
         "path": "src/mina",
         "type": "path"
       },
       "original": {
-        "submodules": true,
-        "type": "git",
-        "url": "file:src/mina"
-      }
+        "path": "src/mina",
+        "type": "path"
+      },
+      "parent": []
     },
     "mirage-opam-overlays": {
       "flake": false,
