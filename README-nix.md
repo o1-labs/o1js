@@ -163,6 +163,10 @@ The proposed solutions might not work universally, and could vary depending on y
 This section should be read as a starting roadmap, and engineers are highly encouraged to add any new error found
 and possible fixes to improve the helpfulness of this document.
 ```
+### Flake caching
+
+The way nix caches flake evaluations can be really unhelpfull.
+If you expect any changes in mina or the bindings it's recomended to add `--refresh --no-eval-cache` to all your nix commands. If you use direnv this should be automatic.
 
 ### Compiling _export_test_vectors_
 
