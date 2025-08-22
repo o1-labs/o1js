@@ -27,8 +27,10 @@ import { Keccak } from 'o1js';
 // toggle to override caches
 const forceRecompile = false;
 
-// usage ./run ./tests/perf-regression/perf-regression.ts --bundle --dump ./tests/perf-regression/perf-regression.json
+// usage ./run ./tests/perf-regression/perf-regression.ts --bundle --dump
 let dump = process.argv[4] === '--dump';
+let compileEnabled = process.argv[5] === '--compile';
+let proveEnabled = process.argv[5] === '--prove';
 let jsonPath = process.argv[dump ? 5 : 4];
 let perfTest = process.env.PERF_TEST;
 
@@ -142,6 +144,7 @@ async function prove(c: MinimumConstraintSystem, skip?: string[]): Promise<Prove
 
     results.push({ method: methodName, proveTime });
   }
+
   return results;
 }
 
@@ -155,6 +158,7 @@ if (perfTest === '1') {
   console.log('Running regression checks - Part 2');
 } else if (dump) {
   selectedConstraintSystems = ConstraintSystems;
+  //TODO add error message for Runnin
   console.log('Running regression checks - All Parts');
 } else if (!dump) {
   throw new Error('Invalid PERF_TEST value. Please set PERF_TEST to 1 or 2!');
@@ -203,6 +207,7 @@ async function checkPerf(contracts: typeof ConstraintSystems) {
       let actualMethod = methodData[methodKey];
       let expectedMethod = ref.methods[methodKey];
 
+      // sanity check that we are operating on the same contracts
       if (actualMethod.digest !== expectedMethod.digest) {
         errorStack += `\n\nMethod digest mismatch for ${c.name}.${methodKey}()
   Actual
@@ -213,13 +218,14 @@ async function checkPerf(contracts: typeof ConstraintSystems) {
       }
     }
 
-    //TODO diplay the ratio if positive or negative
-    if (compileTime > perf.compile * 1.05) {
+    const tolerance = perf.compile < 5 * 1e-5 ? 1.08 : 1.05;
+    if (compileTime > perf.compile * tolerance) {
+      const slippage = (compileTime - perf.compile) / compileTime;
       errorStack += `\n\nRegression test for contract ${
         c.name
-      } failed, because of a notable performance tolerance breach of ${
-        (compileTime - perf.compile) / 100
-      }.
+      } failed, because of a notable performance tolerance breach of %${(slippage * 100).toFixed(
+        3
+      )} > %${(tolerance * 100).toFixed()}.
 Contract has
   ${JSON.stringify(compileTime, undefined, 2)}
 \n
@@ -234,32 +240,43 @@ but expected was
 }
 
 async function dumpPerf(contracts: typeof ConstraintSystems) {
-  let newEntries: typeof RegressionJson = {};
+  if (!compileEnabled && !proveEnabled)
+    throw new Error("Please provide a '--compile' or '--prove` argument");
+  let out: typeof RegressionJson = { ...(RegressionJson ?? {}) };
+
   for await (const c of contracts) {
     let data = await c.analyzeMethods();
     let digest = await c.digest();
 
-    let compileTime = 0;
-    let proveResults: ProveResult[] = [];
-    tic(`compile (${c.name})`);
-    await c.compile({ forceRecompile });
-    compileTime = toc();
+    const prev = out[c.name];
 
-    if (c.rawMethods) proveResults = await prove(c, ['ecdsa-only', 'diverse']);
-
-    newEntries[c.name] = {
+    // build a fresh entry, seeding with prev where appropriate
+    const entry = {
       digest,
       methods: Object.fromEntries(
         Object.entries(data).map(([key, { rows, digest }]) => [key, { rows, digest }])
       ),
-      performance: {
-        compile: compileTime,
-        prove: proveResults,
+      performance: { ...(prev?.performance ?? {}) } as {
+        compile?: number;
+        prove?: ProveResult[];
       },
     };
+
+    if (compileEnabled) {
+      tic(`compile (${c.name})`);
+      await c.compile({ forceRecompile });
+      entry.performance.compile = toc();
+    }
+
+    let proveResults: ProveResult[] = [];
+    if (proveEnabled && c.rawMethods) {
+      await c.compile({ forceRecompile });
+      proveResults = await prove(c, ['ecdsa-only', 'diverse']);
+      entry.performance.prove = proveResults;
+    }
   }
 
-  fs.writeFileSync(filePath, JSON.stringify(newEntries, undefined, 2));
+  fs.writeFileSync(filePath, JSON.stringify(out, undefined, 2));
 }
 
 if (dump) await dumpPerf(ConstraintSystems);
