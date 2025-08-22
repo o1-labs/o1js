@@ -135,6 +135,7 @@ jobs:
       matrix:
         test_type:
           [
+            'Simple ZkProgram Test',
             'Simple integration tests',
             'Reducer integration tests',
             'DEX integration tests',
