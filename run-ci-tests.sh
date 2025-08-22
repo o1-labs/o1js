@@ -34,6 +34,12 @@ case $TEST_TYPE in
   ./run src/examples/zkapps/dex/happy-path-with-proofs.ts --bundle
   ;;
 
+
+"Simple ZkProgram Test")
+  echo "Running Simple ZkProgram Test"
+  ./run src/examples/zkprogram/program.ts --bundle
+  ;;
+  
 "Verification Key Regression Check 1")
   echo "Running Regression checks part 1"
   VK_TEST=1 ./run ./tests/vk-regression/vk-regression.ts --bundle
