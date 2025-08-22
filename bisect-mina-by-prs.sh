@@ -42,7 +42,7 @@ rebuild(){
 run_test(){
   # Replace with any test that fails
   #nix develop --command timeout 300s ./run ./src/examples/zkprogram/program.ts --bundle
-  nom flake check --no-eval-cache
+  nix flake check --no-eval-cache
 }
 
 

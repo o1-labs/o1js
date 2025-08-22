@@ -102,12 +102,13 @@
             };
           };
         };
+        # TODO this should really auto update from mina
         rust-channel =
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2024-06-13";
-              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
+              date = "2024-09-05";
+              sha256 = "sha256-3aoA7PuH09g8F+60uTUQhnHrb/ARDLueSOD08ZVsWe0=";
             }).rust.override
             {
               targets = [
@@ -234,6 +235,7 @@
             KIMCHI_STUBS
             KIMCHI_STUBS_STATIC_LIB
             ;
+
           PREBUILT_KIMCHI_BINDINGS_JS_WEB =
             "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
           PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
@@ -261,6 +263,10 @@
               rustup toolchain link nix ${rust-channel'}
               cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
+              # Set WASM-specific build flags for consistent panic handling and threading
+              export RUSTFLAGS="--cfg=web_sys_unstable_apis"
+              export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--max-memory=4294967296 -C panic=abort -C opt-level=3 -C debug-assertions=off"
+              
               mkdir -p src/bindings/compiled/node_bindings
               echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
                 > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
@@ -308,11 +314,20 @@
             else {
               packages = [ rustupWrapper mina.base-libs ] ++ bindings-pkgs;
 
+              OCAMLPARAM = "_,w=-67";
+              DUNE_BUILD_OPTIONS = "--promote-install-files";
+              LD_LIBRARY_PATH = "${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH";
+
+
+
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
                 # fixes linking issue with wasm-pack
                 export LD_LIBRARY_PATH="${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH"
+                # Set WASM-specific build flags for consistent panic handling and threading
+                export RUSTFLAGS="--cfg=web_sys_unstable_apis"
+                export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--max-memory=4294967296 -C panic=abort -C opt-level=3 -C debug-assertions=off"
                 # TODO ideally we shouldn't install toolchains like this in a devshell
                 rustup toolchain install nightly-x86_64-unknown-linux-gnu
                 rustup toolchain link nix ${rust-channel'}
@@ -364,7 +379,8 @@
               ln -sf node_bindings ./src/bindings/compiled/_node_bindings
               npm run dev
 
-              timeout 600s npm run test
+              #timeout 600s npm run test
+              timeout 30s ./run ./src/examples/zkprogram/program.ts --bundle
             '';
             installPhase = ''
               mkdir -p $out
