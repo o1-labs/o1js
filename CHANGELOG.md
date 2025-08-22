@@ -18,6 +18,11 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/4b1dccdd...HEAD)
 
+### Changed
+
+- Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
+  version used in Mina proof-systems repository.
+
 ## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
 
 ### Deprecated
