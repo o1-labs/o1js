@@ -8,6 +8,9 @@
     "type": "git",
     "url": "https://github.com/o1-labs/o1js.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "mina",
     "zkapp",
