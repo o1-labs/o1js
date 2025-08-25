@@ -32,17 +32,16 @@ advance_prs(){
 }
 
 rebuild(){
-  nom build . --no-eval-cache
-  #git clean -fdx && \
-  #nix run .\#generate-bindings --refresh && \
-  #nix develop --refresh --command npm ci && \
-  #nix develop --refresh --command npm run build
+  git clean -fdx && \
+  nix run .\#generate-bindings --refresh --no-eval-cache && \
+  nix develop --refresh --no-eval-cache --command npm ci && \
+  nix develop --command npm run build
 }
 
 run_test(){
+  nix develop --refresh --no-eval-cache --command \
+    npm run test
   # Replace with any test that fails
-  #nix develop --command timeout 300s ./run ./src/examples/zkprogram/program.ts --bundle
-  nix flake check --no-eval-cache
 }
 
 
@@ -56,9 +55,6 @@ reset_mina(){
 
 check_num_prs(){
   reset_mina
-  #echo "SANITY CHECK"
-  #rebuild && run_test
-  #echo "END SANITY CHECK"
   advance_prs "$1"
   rebuild && run_test
 }
@@ -76,16 +72,15 @@ high=$num_prs
 
 while (( low < high -1 )); do
     mid=$(( (low + high + 1) / 2 ))
-    echo TESTING $mid
+    echo Fails $high Passes $low TESTING $mid
     if check_num_prs $mid
     then
-      echo "$(git -C src/mina rev-parse HEAD) - Works" >> builds.log
+      echo "$(git -C src/mina rev-parse HEAD) - Works" >> /tmp/o1js-builds.log
       low=$(( mid ))
     else
       high=$(( mid ))
-      echo "$(git -C src/mina rev-parse HEAD) - Fails" >> builds.log
+      echo "$(git -C src/mina rev-parse HEAD) - Fails" >> /tmp/o1js-builds.log
     fi
-    echo $low $mid $high
 done
 
 reset_mina
