@@ -66,7 +66,7 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
 
     - name: use proof_systems_commit if provided
       if: ${{ inputs.proof_systems_commit != '' }}
