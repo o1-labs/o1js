@@ -31,11 +31,13 @@
   outputs = { self, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = ((inputs.mina.inputs.nixpkgs.legacyPackages."${system}".extend
-          (import inputs.nixpkgs-mozilla)).extend
-          inputs.mina.overlays.rust).extend
-          (final: prev: { inherit (inputs.mina.inputs.nixpkgs.legacyPackages."${system}")
-            nodePackages nodejs; });
+        pkgs = import inputs.mina.inputs.nixpkgs {
+          inherit system;
+          overlays = [
+            (import inputs.nixpkgs-mozilla)
+            inputs.mina.overlays.rust
+          ];
+        };
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
