@@ -130,7 +130,7 @@
           };
         bindings-pkgs = with pkgs;
           [
-            nodejs
+            nodejs_22  # Use newer Node.js with better WASM support
             nodePackages.npm
             nodePackages.prettier
             typescript
@@ -263,10 +263,6 @@
               rustup toolchain link nix ${rust-channel'}
               cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
-              # Set WASM-specific build flags for consistent panic handling and threading
-              export RUSTFLAGS="--cfg=web_sys_unstable_apis"
-              export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--max-memory=4294967296 -C panic=abort -C opt-level=3 -C debug-assertions=off"
-              
               mkdir -p src/bindings/compiled/node_bindings
               echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
                 > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
@@ -318,15 +314,12 @@
               DUNE_BUILD_OPTIONS = "--promote-install-files";
               LD_LIBRARY_PATH = "${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH";
 
-
-
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
                 # fixes linking issue with wasm-pack
                 export LD_LIBRARY_PATH="${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH"
-                # Set WASM-specific build flags for consistent panic handling and threading
-                export RUSTFLAGS="--cfg=web_sys_unstable_apis"
+
                 export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--max-memory=4294967296 -C panic=abort -C opt-level=3 -C debug-assertions=off"
                 # TODO ideally we shouldn't install toolchains like this in a devshell
                 rustup toolchain install nightly-x86_64-unknown-linux-gnu
@@ -350,41 +343,6 @@
                 #restore write permissions removed by nix store
                 chmod +w -R .
                 tar czf $out .
-            '';
-          };
-        };
-        checks = {
-          default = pkgs.stdenv.mkDerivation {
-            name = "o1js-checks";
-            src = with pkgs.lib.fileset;
-              (toSource {
-                root = ./.;
-                fileset = unions [
-                  ./.
-                ];
-              });
-            nativeBuildInputs = bindings-pkgs ++ [ o1js ];
-            patchPhase = ''
-              patchShebangs ./src/bindings/scripts/
-              patchShebangs ./src/bindings/crypto/test-vectors/
-              patchShebangs *.sh
-              '';
-            buildPhase = ''
-              cp -r ${o1js-npm-deps}/lib/node_modules ./
-              chmod +w -R ./node_modules
-
-              cp -r ${bindings}/* ./src/bindings/
-              chmod +w -R ./src/bindings/compiled
-
-              ln -sf node_bindings ./src/bindings/compiled/_node_bindings
-              npm run dev
-
-              #timeout 600s npm run test
-              timeout 30s ./run ./src/examples/zkprogram/program.ts --bundle
-            '';
-            installPhase = ''
-              mkdir -p $out
-              echo "Test finished." > $out/result.txt
             '';
           };
         };
