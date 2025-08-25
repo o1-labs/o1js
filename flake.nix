@@ -319,8 +319,6 @@
                 export RUSTUP_HOME
                 # fixes linking issue with wasm-pack
                 export LD_LIBRARY_PATH="${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH"
-
-                export CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--max-memory=4294967296 -C panic=abort -C opt-level=3 -C debug-assertions=off"
                 # TODO ideally we shouldn't install toolchains like this in a devshell
                 rustup toolchain install nightly-x86_64-unknown-linux-gnu
                 rustup toolchain link nix ${rust-channel'}
