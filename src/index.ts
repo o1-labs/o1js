@@ -152,7 +152,7 @@ namespace Experimental {
     export type MinaProgramMethodReturn<
       State extends V2_.StateLayout = 'GenericState',
       Event = Field[],
-      Action = Field[]
+      Action = Field[],
     > = V2_.MinaProgramMethodReturn<State, Event, Action>;
     export type StateDefinition<State extends V2_.StateLayout> = V2_.StateDefinition<State>;
     export type ZkappCommandAuthorizationEnvironment = V2_.ZkappCommandAuthorizationEnvironment;
@@ -160,7 +160,7 @@ namespace Experimental {
       State extends StateLayout,
       Event,
       Action,
-      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple }
+      MethodPrivateInputs extends { [key: string]: V2_.ProvableTuple },
     > = V2_.MinaProgram<State, Event, Action, MethodPrivateInputs>;
     export type DynamicProvable<P> = V2_.DynamicProvable<P>;
   }
@@ -212,7 +212,7 @@ namespace Experimental {
   export class BatchReducer<
     ActionType extends Actionable<any>,
     BatchSize extends number = number,
-    Action = InferProvable<ActionType>
+    Action = InferProvable<ActionType>,
   > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
 
   /**

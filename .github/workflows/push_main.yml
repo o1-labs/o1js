@@ -18,7 +18,7 @@ jobs:
   Build-Doc:
     strategy:
       matrix:
-        node: [20]
+        node: [22]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -74,7 +74,7 @@ jobs:
   Pkg-pr-new:
     strategy:
       matrix:
-        node: [20]
+        node: [22]
 
     runs-on: [ubuntu-latest]
     steps:
@@ -118,7 +118,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Build o1js
         run: |

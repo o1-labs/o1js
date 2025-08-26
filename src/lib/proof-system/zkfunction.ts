@@ -31,7 +31,7 @@ type ZkFunctionConfig = {
 
 type MainType<
   PublicInput,
-  PrivateInputs extends Tuple<ProvableTypePure>
+  PrivateInputs extends Tuple<ProvableTypePure>,
 > = PublicInput extends undefined
   ? (...args: TupleToInstances<PrivateInputs>) => void
   : (publicInput: InferProvable<PublicInput>, ...args: TupleToInstances<PrivateInputs>) => void;
@@ -41,12 +41,10 @@ type InferMainType<Config extends ZkFunctionConfig> = MainType<
   Config['privateInputTypes']
 >;
 
-type ProveMethodType<Config extends ZkFunctionConfig> = Get<
-  Config,
-  'publicInputType'
-> extends undefined
-  ? (...args: PrivateInputs<Config>) => Promise<KimchiProof>
-  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<KimchiProof>;
+type ProveMethodType<Config extends ZkFunctionConfig> =
+  Get<Config, 'publicInputType'> extends undefined
+    ? (...args: PrivateInputs<Config>) => Promise<KimchiProof>
+    : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<KimchiProof>;
 
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {

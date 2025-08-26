@@ -10,7 +10,7 @@ type AnyTuple = Tuple<any>;
 type TupleMap<T extends Tuple<any>, B> = [
   ...{
     [i in keyof T]: B;
-  }
+  },
 ];
 
 const Tuple = {
