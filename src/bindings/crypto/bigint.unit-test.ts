@@ -37,9 +37,7 @@ test(Random.field, (x) => testBigintRoundtrip(x, fieldSize));
 // failure cases
 expect(() => bigIntToBytes(256n, 1)).toThrow(/does not fit in 1 bytes/);
 expect(() => bigIntToBytes(100_000n, 2)).toThrow(/does not fit in 2 bytes/);
-expect(() => bigIntToBytes(4n * Fp.modulus, 32)).toThrow(
-  /does not fit in 32 bytes/
-);
+expect(() => bigIntToBytes(4n * Fp.modulus, 32)).toThrow(/does not fit in 32 bytes/);
 
 // parseHexString32
 

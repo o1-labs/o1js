@@ -13,7 +13,7 @@ export { Reducer, getReducer };
 
 const Reducer: (<
   T extends FlexibleProvablePure<any>,
-  A extends InferProvable<T> = InferProvable<T>
+  A extends InferProvable<T> = InferProvable<T>,
 >(reducer: {
   actionType: T;
 }) => ReducerReturn<A>) & {

@@ -31,7 +31,7 @@ function pad<T>(array: T[], size: number, value: T): T[] {
 
 function mapObject<
   T extends Record<string, any>,
-  F extends <K extends keyof T>(value: T[K], key: K, i: number) => any
+  F extends <K extends keyof T>(value: T[K], key: K, i: number) => any,
 >(t: T, fn: F) {
   let s = {} as { [K in keyof T]: ReturnType<F> };
   let i = 0;
@@ -43,7 +43,7 @@ function mapObject<
 }
 function mapToObject<
   Key extends string | number | symbol,
-  F extends <K extends Key>(key: K, i: number) => any
+  F extends <K extends Key>(key: K, i: number) => any,
 >(keys: Key[], fn: F) {
   let s = {} as { [K in Key]: ReturnType<F> };
   keys.forEach((key, i) => {

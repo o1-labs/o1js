@@ -37,6 +37,7 @@ async function buildWeb({ production }) {
     target: 'esnext',
     plugins: [wasmPlugin()],
     allowOverwrite: true,
+    sourcemap: true,
   });
   bindings = await readFile(tmpBindingsPath, 'utf8');
   bindings = rewriteBundledWasmBindings(bindings);
@@ -89,6 +90,7 @@ async function buildWeb({ production }) {
     allowOverwrite: true,
     logLevel: 'error',
     minify,
+    sourcemap: true,
   });
 }
 

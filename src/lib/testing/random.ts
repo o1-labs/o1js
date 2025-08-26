@@ -475,7 +475,7 @@ function step<T extends readonly any[], S>(
   ...args: [
     ...rngs: { [K in keyof T]: Random<T[K]> },
     step: (current: S, ...values: T) => S,
-    initial: S
+    initial: S,
   ]
 ): Random<S> {
   let initial = args.pop()! as S;

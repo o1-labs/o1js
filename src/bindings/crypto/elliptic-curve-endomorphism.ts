@@ -13,13 +13,7 @@ import {
 } from './elliptic-curve.js';
 import { FiniteField, mod } from './finite-field.js';
 
-export {
-  Endomorphism,
-  decompose,
-  computeEndoConstants,
-  computeGlvData,
-  GlvData,
-};
+export { Endomorphism, decompose, computeEndoConstants, computeGlvData, GlvData };
 
 /**
  * Define methods leveraging a curve endomorphism
@@ -34,12 +28,7 @@ function Endomorphism(
 ) {
   if (endoScalar === undefined || endoBase === undefined) {
     try {
-      ({ endoScalar, endoBase } = computeEndoConstants(
-        Field,
-        Scalar,
-        generator,
-        a
-      ));
+      ({ endoScalar, endoBase } = computeEndoConstants(Field, Scalar, generator, a));
     } catch (e: any) {
       return undefined;
     }
@@ -66,14 +55,7 @@ function Endomorphism(
     },
     scale(g: GroupAffine, s: bigint) {
       let gProj = projectiveFromAffine(g);
-      let sGProj = glvScaleProjective(
-        gProj,
-        s,
-        Field.modulus,
-        a,
-        endoBase_,
-        glvData
-      );
+      let sGProj = glvScaleProjective(gProj, s, Field.modulus, a, endoBase_, glvData);
       return projectiveToAffine(sGProj, Field.modulus);
     },
   };
@@ -131,11 +113,7 @@ function endomorphism(P: GroupAffine, endoBase: bigint, p: bigint) {
   return { x: mod(endoBase * P.x, p), y: P.y };
 }
 
-function endomorphismProjective(
-  P: GroupProjective,
-  endoBase: bigint,
-  p: bigint
-) {
+function endomorphismProjective(P: GroupProjective, endoBase: bigint, p: bigint) {
   return { x: mod(endoBase * P.x, p), y: P.y, z: P.z };
 }
 
@@ -185,12 +163,7 @@ function glvScaleProjective(
  *
  * Throws if conditions for a cube root-based endomorphism are not met.
  */
-function computeEndoConstants(
-  Field: FiniteField,
-  Scalar: FiniteField,
-  G: GroupAffine,
-  a: bigint
-) {
+function computeEndoConstants(Field: FiniteField, Scalar: FiniteField, G: GroupAffine, a: bigint) {
   let p = Field.modulus;
   let q = Scalar.modulus;
   // if there is a cube root of unity, it generates a subgroup of order 3
@@ -260,10 +233,7 @@ type GlvData = ReturnType<typeof computeGlvData>;
  *
  * For random / "typical" l, we will have |vij| ~ sqrt(p) for all vij
  */
-function egcdStopEarly(
-  l: bigint,
-  p: bigint
-): [[bigint, bigint], [bigint, bigint]] {
+function egcdStopEarly(l: bigint, p: bigint): [[bigint, bigint], [bigint, bigint]] {
   if (l > p) throw Error('a > p');
   let [r0, r1] = [p, l];
   let [s0, s1] = [1n, 0n];

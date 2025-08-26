@@ -15,7 +15,7 @@ function Recursive<
   PublicOutputType extends Provable<any>,
   PrivateInputs extends {
     [Key in string]: Tuple<ProvableType>;
-  }
+  },
 >(
   zkprogram: {
     name: string;
@@ -163,7 +163,7 @@ type RecursiveProver<
   PublicInput,
   PublicInputType,
   PublicOutput,
-  Args extends Tuple<ProvableType>
+  Args extends Tuple<ProvableType>,
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<PublicOutput>
   : (publicInput: From<PublicInputType>, ...args: TupleFrom<Args>) => Promise<PublicOutput>;
@@ -172,7 +172,7 @@ type ConditionalRecursiveProver<
   PublicInput,
   PublicInputType,
   PublicOutput,
-  Args extends Tuple<ProvableType>
+  Args extends Tuple<ProvableType>,
 > = PublicInput extends undefined
   ? (
       condition: Bool | { condition: Bool; domainLog2?: number },

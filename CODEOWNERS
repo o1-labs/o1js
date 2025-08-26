@@ -1,7 +1,2 @@
-# By default, review is required by o1js-admins
-* @o1-labs/o1js-admins
-
-# Changes to the following paths should be reviewed by o1js-admins, but we will tag current and future zkapps teams as well (incorrect use of codeowners)
-# We are relying on good faith to wait for admin approval on these PRs
-# Dangerous PRs that could release a new version, new consensus rules, or anything like that will necessarily touch more than `/src/lib`, so this is minimally risky
-/src/lib @o1-labs/o1js-admins @o1-labs/exploration-team @o1-labs/future-zkapps
+# Default owners for this repository
+* @o1-labs/exploration-team @o1-labs/future-zkapps @o1-labs/eng-admin

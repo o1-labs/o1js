@@ -1,13 +1,7 @@
 import { bytesToBigInt, changeBase } from '../crypto/bigint-helpers.js';
 import { Field } from '../../lib/provable/wrapped.js';
 
-export {
-  stringToFields,
-  stringFromFields,
-  bytesToFields,
-  bytesFromFields,
-  Bijective,
-};
+export { stringToFields, stringFromFields, bytesToFields, bytesFromFields, Bijective };
 
 // functions for encoding data as field elements
 
@@ -147,8 +141,7 @@ function bigIntToBytes(x: bigint, length: number) {
   }
   let array = new Uint8Array(bytes);
   if (length === undefined) return array;
-  if (array.length > length)
-    throw Error(`bigint doesn't fit into ${length} bytes.`);
+  if (array.length > length) throw Error(`bigint doesn't fit into ${length} bytes.`);
   let sizedArray = new Uint8Array(length);
   sizedArray.set(array);
   return sizedArray;

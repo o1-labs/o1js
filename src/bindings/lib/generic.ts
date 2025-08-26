@@ -43,28 +43,17 @@ type GenericSignable<T, TJson, Field> = {
   empty: () => T;
 };
 
-type GenericProvableExtended<T, TValue, TJson, Field> = GenericProvable<
-  T,
-  TValue,
-  Field
-> &
+type GenericProvableExtended<T, TValue, TJson, Field> = GenericProvable<T, TValue, Field> &
   GenericSignable<T, TJson, Field>;
 
-type GenericProvableExtendedPure<T, TValue, TJson, Field> = GenericProvablePure<
-  T,
-  TValue,
-  Field
-> &
+type GenericProvableExtendedPure<T, TValue, TJson, Field> = GenericProvablePure<T, TValue, Field> &
   GenericSignable<T, TJson, Field>;
 
-type GenericSignableField<Field> = ((
-  value: number | string | bigint | Field
-) => Field) &
+type GenericSignableField<Field> = ((value: number | string | bigint | Field) => Field) &
   GenericSignable<Field, string, Field> &
   Binable<Field> & { sizeInBytes: number; toBigint: (x: Field) => bigint };
 
-type GenericField<Field> = GenericSignableField<Field> &
-  GenericProvable<Field, bigint, Field>;
+type GenericField<Field> = GenericSignableField<Field> & GenericProvable<Field, bigint, Field>;
 
 type GenericSignableBool<Field, Bool = unknown> = ((value: boolean) => Bool) &
   GenericSignable<Bool, boolean, Field> &
@@ -101,28 +90,13 @@ const undefinedType = {
 
 let primitiveTypes = new Set(['number', 'string', 'null']);
 
-function EmptyNull<Field>(): GenericProvableExtendedPure<
-  null,
-  null,
-  null,
-  Field
-> {
+function EmptyNull<Field>(): GenericProvableExtendedPure<null, null, null, Field> {
   return emptyType;
 }
-function EmptyUndefined<Field>(): GenericProvableExtendedPure<
-  undefined,
-  undefined,
-  null,
-  Field
-> {
+function EmptyUndefined<Field>(): GenericProvableExtendedPure<undefined, undefined, null, Field> {
   return undefinedType;
 }
-function EmptyVoid<Field>(): GenericProvableExtendedPure<
-  void,
-  void,
-  null,
-  Field
-> {
+function EmptyVoid<Field>(): GenericProvableExtendedPure<void, void, null, Field> {
   return undefinedType;
 }
 

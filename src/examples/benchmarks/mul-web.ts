@@ -1,14 +1,15 @@
 /**
  * benchmark a circuit filled with generic gates
  */
-import { Circuit, Field, Provable, circuitMain, ZkProgram } from 'o1js';
+import { Field, Provable, Experimental, ZkProgram } from 'o1js';
 import { tic, toc } from '../utils/tic-toc.js';
+
+const { ZkFunction } = Experimental;
 
 // parameters
 let nMuls = (1 << 16) + (1 << 15); // not quite 2^17 generic gates = not quite 2^16 rows
 // let nMuls = 1 << 5;
 let withPickles = true;
-
 // the circuit: multiply a number with itself n times
 let xConst = Field.random();
 
@@ -26,14 +27,13 @@ async function getRows(nMuls: number) {
 }
 
 function simpleKimchiCircuit(nMuls: number) {
-  class MulChain extends Circuit {
-    @circuitMain
-    static run() {
+  return ZkFunction({
+    name: 'mul-chain',
+    privateInputTypes: [],
+    main: () => {
       main(nMuls);
-    }
-  }
-  // circuitMain(MulChain, 'run');
-  return MulChain;
+    },
+  });
 }
 
 function picklesCircuit(nMuls: number) {
@@ -76,19 +76,19 @@ if (withPickles) {
   let circuit = simpleKimchiCircuit(nMuls);
 
   tic('compile 1 (includes srs creation)');
-  let kp = await circuit.generateKeypair();
+  let { verificationKey } = await circuit.compile();
   toc();
 
   tic('compile 2');
-  kp = await circuit.generateKeypair();
+  ({ verificationKey } = await circuit.compile());
   toc();
 
   tic('prove');
-  let p = await circuit.prove([], [], kp);
+  let p = await circuit.prove();
   toc();
 
   tic('verify');
-  let ok = await circuit.verify([], kp.verificationKey(), p);
+  let ok = await circuit.verify(p, verificationKey);
   toc();
   if (!ok) throw Error('invalid proof');
 }

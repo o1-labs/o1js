@@ -34,10 +34,10 @@ type OptionOrValue<T, V> = { isSome: boolean | Bool; value: T | V } | T | V | un
 function Option<A extends ProvableType>(
   type: A
 ): ProvableInferPureFrom<A, Option<InferProvable<A>, InferValue<A>>, InferValue<A> | undefined> &
-  (new (option: { isSome: Bool; value: InferProvable<A> }) => Option<
-    InferProvable<A>,
-    InferValue<A>
-  >) & {
+  (new (option: {
+    isSome: Bool;
+    value: InferProvable<A>;
+  }) => Option<InferProvable<A>, InferValue<A>>) & {
     fromValue(
       value:
         | { isSome: boolean | Bool; value: InferProvable<A> | InferValue<A> }

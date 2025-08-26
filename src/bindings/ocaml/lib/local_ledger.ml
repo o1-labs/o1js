@@ -139,11 +139,12 @@ let check_account_update_signatures zkapp_command =
     zkapp_command
   in
   let tx_commitment = Zkapp_command.commitment zkapp_command in
+  let signature_kind = Mina_signature_kind.t_DEPRECATED in
   let full_tx_commitment =
     Zkapp_command.Transaction_commitment.create_complete tx_commitment
       ~memo_hash:(Mina_base.Signed_command_memo.hash memo)
       ~fee_payer_hash:
-        (Zkapp_command.Digest.Account_update.create
+        (Zkapp_command.Digest.Account_update.create ~signature_kind
            (Account_update.of_fee_payer fee_payer) )
   in
   let key_to_string = Signature_lib.Public_key.Compressed.to_base58_check in
@@ -229,7 +230,10 @@ let proof_cache_db = Proof_cache_tag.create_identity_db ()
 let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
     (account_creation_fee : string)
     (network_state : Mina_base.Zkapp_precondition.Protocol_state.View.t) =
-  let txn = Zkapp_command.write_all_proofs_to_disk ~proof_cache_db txn in
+  let signature_kind = Mina_signature_kind_type.Testnet in
+  let txn =
+    Zkapp_command.write_all_proofs_to_disk ~signature_kind ~proof_cache_db txn
+  in
   check_account_update_signatures txn ;
   let ledger = l##.value in
   let application_result =

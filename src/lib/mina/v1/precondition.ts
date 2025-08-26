@@ -595,10 +595,10 @@ type PreconditionBaseTypes<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
     ? U
     : T[K] extends FlaggedOptionCondition<infer U>
-    ? U
-    : T[K] extends Field
-    ? Field
-    : PreconditionBaseTypes<T[K]>;
+      ? U
+      : T[K] extends Field
+        ? Field
+        : PreconditionBaseTypes<T[K]>;
 };
 
 type PreconditionSubclassType<U> = {
@@ -616,10 +616,10 @@ type PreconditionClassType<T> = {
   [K in keyof T]: T[K] extends RangeCondition<infer U>
     ? PreconditionSubclassRangeType<U>
     : T[K] extends FlaggedOptionCondition<infer U>
-    ? PreconditionSubclassType<U>
-    : T[K] extends Field
-    ? PreconditionSubclassType<Field>
-    : PreconditionClassType<T[K]>;
+      ? PreconditionSubclassType<U>
+      : T[K] extends Field
+        ? PreconditionSubclassType<Field>
+        : PreconditionClassType<T[K]>;
 };
 
 // update
@@ -635,8 +635,8 @@ type UpdateValue = {
   [K in keyof Update_]: K extends 'zkappUri' | 'tokenSymbol'
     ? string
     : K extends 'permissions'
-    ? Permissions
-    : Update_[K]['value'];
+      ? Permissions
+      : Update_[K]['value'];
 };
 
 // TS magic for computing flattened precondition types
@@ -647,11 +647,12 @@ type JoinEntries<K, P> = K extends string
     : never
   : never;
 
-type PreconditionFlatEntry<T> = T extends RangeCondition<infer V>
-  ? ['', T, V]
-  : T extends FlaggedOptionCondition<infer U>
-  ? ['', T, U]
-  : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
+type PreconditionFlatEntry<T> =
+  T extends RangeCondition<infer V>
+    ? ['', T, V]
+    : T extends FlaggedOptionCondition<infer U>
+      ? ['', T, U]
+      : { [K in keyof T]: JoinEntries<K, PreconditionFlatEntry<T[K]>> }[keyof T];
 
 type FlatPreconditionValue = {
   [S in PreconditionFlatEntry<NetworkPrecondition> as `network.${S[0]}`]: S[2];

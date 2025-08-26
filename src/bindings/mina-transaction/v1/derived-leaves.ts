@@ -39,16 +39,9 @@ function derivedLeafTypes<Field, Bool>({
   const fieldBase = provable(Field);
 
   return {
-    TokenId: createEncodedField(
-      fieldBase,
-      Encoding.TokenId,
-      Field(defaultTokenId)
-    ),
+    TokenId: createEncodedField(fieldBase, Encoding.TokenId, Field(defaultTokenId)),
     StateHash: createEncodedField(fieldBase, Encoding.StateHash),
-    TokenSymbol: createTokenSymbol(
-      provable({ field: Field, symbol: String }),
-      Field
-    ),
+    TokenSymbol: createTokenSymbol(provable({ field: Field, symbol: String }), Field),
     AuthRequired: createAuthRequired(
       provable({
         constant: Bool,
@@ -77,16 +70,9 @@ function derivedLeafTypesSignable<Field, Bool>({
   const fieldBase = signable(Field);
 
   return {
-    TokenId: createEncodedField(
-      fieldBase,
-      Encoding.TokenId,
-      Field(defaultTokenId)
-    ),
+    TokenId: createEncodedField(fieldBase, Encoding.TokenId, Field(defaultTokenId)),
     StateHash: createEncodedField(fieldBase, Encoding.StateHash),
-    TokenSymbol: createTokenSymbol(
-      signable({ field: Field, symbol: String }),
-      Field
-    ),
+    TokenSymbol: createTokenSymbol(signable({ field: Field, symbol: String }), Field),
     AuthRequired: createAuthRequired(
       signable({
         constant: Bool,
@@ -103,10 +89,11 @@ function derivedLeafTypesSignable<Field, Bool>({
 
 const defaultTokenId = 1;
 
-function createEncodedField<
-  Field,
-  Base extends GenericSignable<Field, string, Field>
->(base: Base, encoding: Base58<Field>, empty?: Field) {
+function createEncodedField<Field, Base extends GenericSignable<Field, string, Field>>(
+  base: Base,
+  encoding: Base58<Field>,
+  empty?: Field
+) {
   return {
     ...(base as Omit<Base, 'toJSON' | 'fromJSON'>),
     empty: empty !== undefined ? () => empty : base.empty,
@@ -121,10 +108,10 @@ function createEncodedField<
 
 type TokenSymbol<Field> = { symbol: string; field: Field };
 
-function createTokenSymbol<
-  Field,
-  Base extends GenericSignable<TokenSymbol<Field>, any, Field>
->(base: Base, Field: GenericSignableField<Field>) {
+function createTokenSymbol<Field, Base extends GenericSignable<TokenSymbol<Field>, any, Field>>(
+  base: Base,
+  Field: GenericSignableField<Field>
+) {
   let self = {
     ...(base as Omit<Base, 'toJSON' | 'fromJSON'>),
     toInput({ field }: TokenSymbol<Field>): GenericHashInput<Field> {
@@ -136,9 +123,7 @@ function createTokenSymbol<
     fromJSON(symbol: string): TokenSymbol<Field> {
       let bytesLength = stringLengthInBytes(symbol);
       if (bytesLength > tokenSymbolLength)
-        throw Error(
-          `Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`
-        );
+        throw Error(`Token symbol ${symbol} should be a maximum of 6 bytes, but is ${bytesLength}`);
       return { symbol, field: prefixToField(Field, symbol) };
     },
   };
@@ -154,7 +139,7 @@ type AuthRequired<Bool> = {
 function createAuthRequired<
   Field,
   Bool,
-  Base extends GenericSignable<AuthRequired<Bool>, AuthRequired<boolean>, Field>
+  Base extends GenericSignable<AuthRequired<Bool>, AuthRequired<boolean>, Field>,
 >(base: Base, Bool: GenericSignableBool<Field, Bool>) {
   return {
     ...(base as Omit<Base, 'toJSON' | 'fromJSON'>),
@@ -215,10 +200,7 @@ function createZkappUri<Field>(
 
   return dataAsHash<string, string, string, Field>({
     empty() {
-      let hash = HashHelpers.hashWithPrefix(prefixes.zkappUri, [
-        Field(0),
-        Field(0),
-      ]);
+      let hash = HashHelpers.hashWithPrefix(prefixes.zkappUri, [Field(0), Field(0)]);
       return { data: '', hash };
     },
     toValue(data) {

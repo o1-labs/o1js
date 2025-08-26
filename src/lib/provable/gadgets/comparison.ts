@@ -197,7 +197,7 @@ function isOddAndHigh(x: Field) {
 
   // prevent overflow case when x = 0
   // we witness x' such that b == x * x', which makes it impossible to have x = 0 and b = 1
-  let x_ = existsOne(() => (b.toBigInt() === 0n ? 0n : Fp.inverse(x.toBigInt()) ?? 0n));
+  let x_ = existsOne(() => (b.toBigInt() === 0n ? 0n : (Fp.inverse(x.toBigInt()) ?? 0n)));
   x.mul(x_).assertEquals(b);
 
   return { isOdd, high: z };

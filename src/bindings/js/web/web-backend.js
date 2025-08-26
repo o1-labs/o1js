@@ -1,10 +1,6 @@
 import plonkWasm from '../../../web_bindings/plonk_wasm.js';
 import { workerSpec } from './worker-spec.js';
-import {
-  srcFromFunctionModule,
-  inlineWorker,
-  waitForMessage,
-} from './worker-helpers.js';
+import { srcFromFunctionModule, inlineWorker, waitForMessage } from './worker-helpers.js';
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
 
@@ -54,19 +50,14 @@ async function initializeBindings() {
 }
 
 async function initThreadPool() {
-  if (workerPromise === undefined)
-    throw Error('need to initialize worker first');
+  if (workerPromise === undefined) throw Error('need to initialize worker first');
   let worker = await workerPromise;
-  numWorkers ??= Math.max(
-    1,
-    workers.numWorkers ?? (navigator.hardwareConcurrency ?? 1) - 1
-  );
+  numWorkers ??= Math.max(1, workers.numWorkers ?? (navigator.hardwareConcurrency ?? 1) - 1);
   await workerCall(worker, 'initThreadPool', numWorkers);
 }
 
 async function exitThreadPool() {
-  if (workerPromise === undefined)
-    throw Error('need to initialize worker first');
+  if (workerPromise === undefined) throw Error('need to initialize worker first');
   let worker = await workerPromise;
   await workerCall(worker, 'exitThreadPool');
 }
@@ -125,20 +116,13 @@ async function mainWorker() {
   await init(module, memory);
   postMessage({ type: data.id });
 }
-mainWorker.deps = [
-  plonkWasm,
-  workerSpec,
-  workerExport,
-  onMessage,
-  waitForMessage,
-];
+mainWorker.deps = [plonkWasm, workerSpec, workerExport, onMessage, waitForMessage];
 
 function overrideBindings(plonk_wasm, worker) {
   let spec = workerSpec(plonk_wasm);
   for (let key in spec) {
     plonk_wasm[key] = (...args) => {
-      if (spec[key].disabled)
-        throw Error(`Wasm method '${key}' is disabled on the web.`);
+      if (spec[key].disabled) throw Error(`Wasm method '${key}' is disabled on the web.`);
       let u32_ptr = wasm.create_zero_u32_ptr();
       worker.postMessage({
         type: 'run',
