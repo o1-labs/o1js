@@ -131,7 +131,10 @@ type ProvableTupleInstances<T extends ProvableTuple> = {
 };
 
 class Update<T> {
-  constructor(public set: Bool, public value: T) {}
+  constructor(
+    public set: Bool,
+    public value: T
+  ) {}
 
   toOption(): Option<T> {
     return { isSome: this.set, value: this.value };

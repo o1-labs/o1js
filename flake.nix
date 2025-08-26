@@ -16,12 +16,12 @@
   nixConfig = {
     auto-optimize-store = true;
     max-jobs = "auto";
-    #coppied from flake.nix in mina
+    # taken from flake.nix in mina
     allow-import-from-derivation = "true";
-    substituters =
+    extra-substituters =
       [ "https://storage.googleapis.com/mina-nix-cache"
       ];
-    trusted-public-keys =
+    extra-trusted-public-keys =
       [ "mina-nix-cache-1:djtioLfv2oxuK2lqPUgmZbf8bY8sK/BnYZCU2iU5Q10="
         "nix-cache.minaprotocol.org:fdcuDzmnM0Kbf7yU4yywBuUEJWClySc1WIF6t6Mm8h4="
         "nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c="
@@ -103,8 +103,8 @@
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2024-06-13";
-              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
+              date = "2024-09-05";
+              sha256 = "sha256-3aoA7PuH09g8F+60uTUQhnHrb/ARDLueSOD08ZVsWe0=";
             }).rust.override
             {
               targets = [
@@ -205,7 +205,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2024-06-13 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
+                if [ "$1" = run ] && { [ "$2" = nightly-2024-09-05 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"

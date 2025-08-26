@@ -1,6 +1,6 @@
 import { Field } from '../../../lib/provable/field.js';
 import { Provable } from '../../../lib/provable/provable.js';
-import { HashInput } from '../../../lib/provable/types/provable-derivers.js'
+import { HashInput } from '../../../lib/provable/types/provable-derivers.js';
 
 export type ProvableSerializable<T, Val = any> = Provable<T, Val> & {
   toJSON(x: T): any;
@@ -21,4 +21,3 @@ export class FieldsDecoder {
     return f(subFields);
   }
 }
-

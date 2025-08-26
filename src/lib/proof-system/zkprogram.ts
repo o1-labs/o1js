@@ -23,7 +23,7 @@ import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.j
 import { ProvableType, ToProvable } from '../provable/types/provable-intf.js';
 import { prefixToField } from '../../bindings/lib/binable.js';
 import { prefixes } from '../../bindings/crypto/constants.js';
-import { Subclass, Tuple } from '../util/types.js';
+import { Subclass, Tuple, Get } from '../util/types.js';
 import {
   dummyProof,
   DynamicProof,
@@ -245,6 +245,7 @@ function ZkProgram<
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
     numChunks?: number;
+    lazyMode?: boolean;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -257,13 +258,19 @@ function ZkProgram<
   digest: () => Promise<string>;
   /**
    * Analyze the constraint system created by each method in the program.
+   * Every method is executed in a circuit, and the constraints are analyzed.
    *
    * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
    */
   analyzeMethods: () => Promise<{
     [I in keyof Config['methods']]: MethodAnalysis;
   }>;
-
+  /**
+   * Analyze the constraint system created by a single method in the program without analyzing any other methods and executing them.
+   *
+   * @returns A summary of this method, with a value of the {@link MethodAnalysis} for that method
+   */
+  analyzeSingleMethod<K extends keyof Config['methods']>(methodName: K): Promise<MethodAnalysis>;
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
   privateInputTypes: InferPrivateInput<Config>;
@@ -350,6 +357,14 @@ function ZkProgram<
     };
   }
 
+  async function analyzeSingleMethod<K extends keyof Methods>(
+    methodName: K
+  ): Promise<MethodAnalysis> {
+    let methodIntf = methodIntfs[methodKeys.indexOf(methodName)];
+    let methodImpl = methodFunctions[methodKeys.indexOf(methodName)];
+    return await analyzeMethod(publicInputType, methodIntf, methodImpl);
+  }
+
   let compileOutput:
     | {
         provers: Pickles.Prover[];
@@ -368,6 +383,7 @@ function ZkProgram<
     forceRecompile = false,
     proofsEnabled = undefined as boolean | undefined,
     withRuntimeTables = false,
+    lazyMode = false,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -391,6 +407,7 @@ function ZkProgram<
         numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
+        lazyMode,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -546,7 +563,9 @@ function ZkProgram<
       compile,
       verify,
       digest,
+
       analyzeMethods,
+      analyzeSingleMethod,
 
       publicInputType: publicInputType as ProvableOrUndefined<Get<Config, 'publicInput'>>,
       publicOutputType: publicOutputType as ProvableOrVoid<Get<Config, 'publicOutput'>>,
@@ -696,6 +715,7 @@ async function compileProgram({
   numChunks,
   state,
   withRuntimeTables,
+  lazyMode,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -710,6 +730,7 @@ async function compileProgram({
   numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
+  lazyMode?: boolean;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -766,6 +787,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           storable: picklesCache,
           overrideWrapDomain,
           numChunks: numChunks ?? 1,
+          lazyMode: lazyMode ?? false,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
@@ -1193,12 +1215,3 @@ type InferProvableOrUndefined<A> = A extends undefined
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
-
-/**
- * helper to get property type from an object, in place of `T[Key]`
- *
- * assume `T extends { Key?: Something }`.
- * if we use `Get<T, Key>` instead of `T[Key]`, we allow `T` to be inferred _without_ the `Key` key,
- * and thus retain the precise type of `T` during inference
- */
-type Get<T, Key extends string> = T extends { [K in Key]: infer _Value } ? _Value : undefined;

@@ -5,6 +5,7 @@ module Other_impl = Pickles.Impls.Wrap
 module Field = Impl.Field
 module Account_update = Mina_base.Account_update
 module Zkapp_command = Mina_base.Zkapp_command
+(*module Signed_command = Mina_base.Signed_command*)
 
 (* Test - functions that have a ts implementation, exposed for ts-ml consistency tests *)
 
@@ -169,7 +170,7 @@ module Hash_from_json = struct
       (network_id : Js.js_string Js.t) =
     let signature_kind = get_network_id_of_js_string network_id in
     let tx =
-      Zkapp_command.write_all_proofs_to_disk ~proof_cache_db
+      Zkapp_command.write_all_proofs_to_disk ~signature_kind ~proof_cache_db
       @@ Zkapp_command.of_json @@ Yojson.Safe.from_string
       @@ Js.to_string tx_json
     in
@@ -205,8 +206,9 @@ module Hash_from_json = struct
 
   let zkapp_public_input (tx_json : Js.js_string Js.t)
       (account_update_index : int) =
+    let signature_kind = Mina_signature_kind_type.Testnet in
     let tx =
-      Zkapp_command.write_all_proofs_to_disk ~proof_cache_db
+      Zkapp_command.write_all_proofs_to_disk ~signature_kind ~proof_cache_db
       @@ Zkapp_command.of_json @@ Yojson.Safe.from_string
       @@ Js.to_string tx_json
     in
@@ -287,7 +289,7 @@ module Transaction_hash = struct
       |> Signed_command.of_yojson |> ok_exn
     in
     Mina_transaction.Transaction_hash.(
-      command |> hash_signed_command |> to_base58_check |> Js.string)
+      command |> hash_signed_command |> to_base58_check |> Js.string )
 
   let hash_zkapp_command (command : Js.js_string Js.t) =
     let command : Zkapp_command.Stable.Latest.t =
@@ -295,7 +297,7 @@ module Transaction_hash = struct
       |> Zkapp_command.of_json
     in
     Mina_transaction.Transaction_hash.(
-      command |> hash_zkapp_command |> to_base58_check |> Js.string)
+      command |> hash_zkapp_command |> to_base58_check |> Js.string )
 
   let hash_payment_v1 (command : Js.js_string Js.t) =
     let command : Signed_command.Stable.V1.t =
@@ -339,7 +341,8 @@ module Transaction_hash = struct
           }
       }
     in
-    let payment = Signed_command.sign kp payload in
+    let signature_kind = Mina_signature_kind.t_DEPRECATED in
+    let payment = Signed_command.sign ~signature_kind kp payload in
     (payment :> Signed_command.t)
     |> Signed_command.to_yojson |> Yojson.Safe.to_string |> Js.string
 end

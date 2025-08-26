@@ -130,10 +130,10 @@ type Nexts<T extends readonly Random<any>[]> = {
 
 type ArrayTestArgs<T extends readonly Random<any>[]> = [
   ...gens: T,
-  run: (...args: ArrayRunArgs<Nexts<T>>) => void
+  run: (...args: ArrayRunArgs<Nexts<T>>) => void,
 ];
 
 type ArrayRunArgs<Nexts extends readonly (() => any)[]> = [
   ...values: { [i in keyof Nexts]: Nexts[i] extends () => infer U ? U : never },
-  assert: (b: boolean, message?: string) => void
+  assert: (b: boolean, message?: string) => void,
 ];
