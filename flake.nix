@@ -2,16 +2,15 @@
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
     self.submodules = true;
-    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-24.11-small";
     mina.url = ./src/mina;
     mina.inputs.dune-nix.follows = "dune-nix";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
-    describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
+    describe-dune.inputs.nixpkgs.follows = "mina/nixpkgs";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
     dune-nix.url = "github:o1-labs/dune-nix?ref=brian/relative-flakes-fix";
-    dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
+    dune-nix.inputs.nixpkgs.follows = "mina/nixpkgs";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -29,14 +28,16 @@
         "nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c="
       ];
   };
-  outputs = { self, nixpkgs-mina, flake-utils, ... }@inputs:
+  outputs = { self, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
-          (import inputs.nixpkgs-mozilla)).extend
-          inputs.mina.overlays.rust).extend
-          (final: prev: { inherit (nixpkgs-mina.legacyPackages."${system}")
-            nodePackages nodejs; });
+        pkgs = import inputs.mina.inputs.nixpkgs {
+          inherit system;
+          overlays = [
+            (import inputs.nixpkgs-mozilla)
+            inputs.mina.overlays.rust
+          ];
+        };
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
@@ -76,6 +77,8 @@
           (builtins.attrNames minaDeps_));
         commonOverrides = {
           DUNE_PROFILE = "dev";
+          OCAML_WARN_ERROR = "";
+          WARN_ERROR = "";
           buildInputs = [ mina.base-libs ] ++ mina.external-libs
             ++ pkgs.lib.attrVals minaDeps mina.pkgs;
         };
@@ -101,6 +104,7 @@
             };
           };
         };
+        # TODO this should really auto update from mina
         rust-channel =
           ((pkgs.rustChannelOf
             {
@@ -128,7 +132,7 @@
           };
         bindings-pkgs = with pkgs;
           [
-            nodejs
+            nodejs_22  # Use newer Node.js with better WASM support
             nodePackages.npm
             nodePackages.prettier
             typescript
@@ -141,7 +145,7 @@
 
         o1js-npm-deps = pkgs.buildNpmPackage
           {
-            name = "o1js";
+            name = "o1js-npm-deps";
             src = with pkgs.lib.fileset;
               (toSource {
                 root = ./.;
@@ -175,7 +179,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && [ "$2" = nightly-2024-09-05 ]
+                if [ "$1" = run ] && { [ "$2" = nightly-2024-09-05 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
@@ -233,6 +237,7 @@
             KIMCHI_STUBS
             KIMCHI_STUBS_STATIC_LIB
             ;
+
           PREBUILT_KIMCHI_BINDINGS_JS_WEB =
             "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
           PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
@@ -240,6 +245,8 @@
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
           JUST_BINDINGS = true;
+          OCAMLPARAM = "_,w=-67";
+          DUNE_BUILD_OPTIONS = "--promote-install-files";
           buildInputs = (with pkgs;
             [
               rustupWrapper
@@ -272,6 +279,24 @@
               popd
             '';
         };
+
+        o1js = pkgs.buildNpmPackage
+          {
+            name = "o1js";
+            src = with pkgs.lib.fileset;
+              (toSource {
+                root = ./.;
+                fileset = unions [
+                  ./.
+                ];
+              });
+            npmDepsHash = builtins.readFile ./npmDepsHash;
+            preBuild = ''
+              cp -r ${bindings}/* ./src/bindings
+              ls src/bindings/compiled/
+              chmod +w -R src/bindings/compiled
+            '';
+          };
       in
       {
         formatter = pkgs.nixfmt;
@@ -286,6 +311,10 @@
             # on linux wrap rustup like in the derivation
             else {
               packages = [ rustupWrapper mina.base-libs ] ++ bindings-pkgs;
+
+              OCAMLPARAM = "_,w=-67";
+              DUNE_BUILD_OPTIONS = "--promote-install-files";
+              LD_LIBRARY_PATH = "${pkgs.bzip2.out}/lib:$LD_LIBRARY_PATH";
 
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
@@ -303,6 +332,8 @@
         # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
         packages = {
           inherit dune-description bindings;
+          npm-deps = o1js-npm-deps;
+          default = o1js;
           bindings-tar = pkgs.stdenv.mkDerivation {
             name = "bindings.tar.gz";
             src = bindings;
@@ -314,7 +345,6 @@
                 tar czf $out .
             '';
           };
-          npm-deps = o1js-npm-deps;
         };
         apps = {
           update-npm-deps = {
