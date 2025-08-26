@@ -14,6 +14,8 @@ required across the codebase, including npm scripts.
 
 ## Installing Nix
 
+We require nix 2.28+
+
 The following command will install Nix on your machine.
 
 ```console
@@ -79,13 +81,11 @@ cd o1js
 # npm install
 ```
 
-From a new shell, go to `{REPO_PATH}/o1js` and from there execute `./pin.sh` to
-update the submodules and add the flakes entries. Then, you can open a Nix shell
-with all the dependencies required executing `nix develop o1js#default`.
+From a new shell, go to `{REPO_PATH}/o1js` then, you can open a Nix shell with
+all the dependencies required executing `nix develop`.
 
 ```console
-./pin.sh
-nix develop o1js#default
+nix develop
 ```
 
 On macos the first time you run this command, you can expect it to take hours
@@ -132,7 +132,7 @@ This can be mitigated with [direnv](https://github.com/direnv/direnv) and
 garbage collector roots, keeping one gc-root to the latest build of the dev
 shell so that `nix-store --gc` won't remove it. You can also create a gc root
 any time you run `nix build` (until you remove `./result`) so running
-`nix build o1js#bindings` before `nix-store --gc` may also help.
+`nix build .#bindings` before `nix-store --gc` may also help.
 
 ### Runtime optimization
 
@@ -163,6 +163,13 @@ The proposed solutions might not work universally, and could vary depending on y
 This section should be read as a starting roadmap, and engineers are highly encouraged to add any new error found
 and possible fixes to improve the helpfulness of this document.
 ```
+
+### Flake caching
+
+The way nix caches flake evaluations can be really unhelpfull. If you expect any
+changes in mina or the bindings it's recomended to add
+`--refresh --no-eval-cache` to all your nix commands. If you use direnv this
+should be automatic.
 
 ### Compiling _export_test_vectors_
 
@@ -305,27 +312,4 @@ Then, the error message would still contain old directories.
 
 #### Fix
 
-Rerun `pin.sh` and `src/mina/nix/pin.sh`.
-
-### Changes to nix flakes aren't taking effect
-
-On MacOS, nix may ignore changes to files when nix commands are run and reuse
-the flake cached in its registry. Running commands like `nix develop o1js` and
-`nix run o1js#update-bindings` will reuse the cached version of the flake. As a
-result:
-
-- The devshell could be missing newly added dependencies.
-- Builds executed directly with `nix run` could be generated from old source
-  files.
-
-#### Fix
-
-There are two ways to ensure Nix recognizes flake changes:
-
-- Rerun `pin.sh` to force an update to the registry, then run your command.
-- Reference the flake by its directory path rather than its registry name. This
-  forces Nix to use the current contents of the directory:
-
-```bash
-nix develop .'?submodules=1#default'
-```
+Rerun `src/mina/nix/pin.sh`.

@@ -41,6 +41,8 @@ dune b src/bindings/mina-transaction/gen/v1/js-layout.ts \
   src/bindings/crypto/constants.ts \
 || exit 1
 
+prettier -w src/bindings/mina-transaction/gen src/bindings/crypto/constants.ts
+
 # Cleanup mina config files
 rm -rf "src/config" \
 && rm "src/config.mlh" || exit 1

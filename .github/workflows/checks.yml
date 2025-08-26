@@ -50,6 +50,82 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
+
+  # TODO move to nightly maybe? it's a lot of builds to run
+  BuildMatrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        method: ["default"] # ,"devshell"
+        #TODO enable devshell
+        #Currently disabled because the free runners don't have enough disk space
+        system: [ "ubuntu-latest"] # TODO macos here
+        nix_version: ["2.29.1","2.28.4"] # We require nix 2.28+
+    runs-on: ${{ matrix.system }}
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Disable smudging
+        run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
+      - name: Create post-build hook for continuous cache upload
+        run: |
+          # Create script with embedded credentials (no echoing)
+          cat > /tmp/upload-to-cache.sh << EOF
+          #!/bin/bash
+          set -eu
+          echo "=== Post-build hook triggered ==="
+          if [ -n "\${OUT_PATHS:-}" ] && [ -n "${{ secrets.NIX_CACHE_GCP_ID }}" ] && [ -n "${{ secrets.NIX_CACHE_NAR_SECRET }}" ]; then
+            echo "Signing and uploading \$(echo \$OUT_PATHS | wc -w) derivations"
+            export AWS_ACCESS_KEY_ID="${{ secrets.NIX_CACHE_GCP_ID }}"
+            export AWS_SECRET_ACCESS_KEY="${{ secrets.NIX_CACHE_GCP_SECRET }}"
+            # Create temporary key file
+            temp_key=\$(mktemp)
+            echo "${{ secrets.NIX_CACHE_NAR_SECRET }}" > "\$temp_key"
+            # Sign the outputs
+            nix store sign --key-file "\$temp_key" --recursive \$OUT_PATHS 2>/dev/null || true
+            # Upload to cache
+            nix copy --to "s3://mina-nix-cache?endpoint=https://storage.googleapis.com" \$OUT_PATHS 2>/dev/null || true
+            # Clean up
+            rm "\$temp_key"
+            echo "Upload completed"
+          else
+            echo "Skipping upload - missing credentials or no outputs"
+          fi
+          EOF
+          chmod +x /tmp/upload-to-cache.sh
+      - name: Install nix
+        uses: nixbuild/nix-quick-install-action@v32
+        with:
+          nix_version: ${{ matrix.nix_version }}
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+            require-sigs = false
+            post-build-hook = /tmp/upload-to-cache.sh
+      - name: Build the o1js bindings (default)
+        if: ${{ matrix.method == 'default' }}
+        run: |
+          set -Eeu
+          nix run .#generate-bindings --max-jobs auto
+      - name: Build the o1js bindings (devshell)
+        if: ${{ matrix.method == 'devshell' }}
+        run: |
+          set -Eeu
+          nix develop . --command npm run build:update-bindings
+      - name: Build o1js
+        run: |
+          nix develop --command npm ci
+          nix develop --command npm run build
+      - name: Run some tests
+        run: |
+          nix develop --command npm run test
 
   Lint-Format-and-TypoCheck:
     strategy:
@@ -109,23 +185,6 @@ jobs:
           check_hidden: false
           ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
 
-  Upload-bindings:
-    name: upload bindings artifact
-    if: ${{ inputs.proof_systems_commit == '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-      - name: upload
-        uses: ./.github/actions/upload
-        with:
-          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
-          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
-          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
-
   Build-And-Test-Server:
     needs: [Prepare]
     timeout-minutes: 210
@@ -158,6 +217,9 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
@@ -192,6 +254,9 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Count tests
         id: count_tests
         run: |
@@ -306,7 +371,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
-    if: github.event.pull_request.base.ref != 'develop' 
+    if: github.event.pull_request.base.ref != 'develop'
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -333,6 +398,9 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -342,7 +410,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
-    if: github.event.pull_request.base.ref != 'develop' 
+    if: github.event.pull_request.base.ref != 'develop'
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet
@@ -369,6 +437,9 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:
@@ -405,6 +476,9 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          cache_id: ${{ secrets.NIX_CACHE_GCP_ID }}
+          nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}
+          gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
         with:

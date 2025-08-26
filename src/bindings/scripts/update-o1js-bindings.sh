@@ -40,6 +40,7 @@ then
   dune b "${DUNE_PATH}"/o1js_web.bc.js
   cp "_build/o1js_node.bc.map" "$BUILD_PATH/o1js_node.bc.map"
 
+  mkdir -p "${WEB_BINDINGS}"
   cp _build/default/"${KIMCHI_BINDINGS}"/js/web/plonk_wasm* "${WEB_BINDINGS}"/
   cp "${BUILD_PATH}"/o1js_web*.js "${WEB_BINDINGS}"/
   chmod -R 666 "${WEB_BINDINGS}"/*
