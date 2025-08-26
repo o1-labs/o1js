@@ -25,7 +25,6 @@ This project adheres to
 
 ### Added
 
-
 ### Changed
 
 - Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
