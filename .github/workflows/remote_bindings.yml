@@ -12,7 +12,7 @@ jobs:
         with:
           submodules: recursive
       - name: upload
-        uses: ./.github/actions/upload
+        uses: ./.github/actions/build
         with:
           cache_id: ${{ secrets.NIX_CACHE_ID }}
           nar_secret: ${{ secrets.NIX_CACHE_NAR_SECRET }}

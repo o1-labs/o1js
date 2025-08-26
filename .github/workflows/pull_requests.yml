@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: nixbuild/nix-quick-install-action@v30
+      - uses: nixbuild/nix-quick-install-action@v32
         continue-on-error: true
         with:
           nix_conf: |
@@ -32,8 +32,7 @@ jobs:
       - name: fix npmDepsHash
         run: |
           set -Eeu
-          ./pin.sh
-          nix run o1js#update-npm-deps
+          nix run .#update-npm-deps
       # if the npmDepsHash is out of date auto commit the new one
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:

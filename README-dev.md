@@ -79,11 +79,9 @@ build the bindings for your commit and download them once it finishes.
 
 ## Building with nix
 
-Much like the mina repo, we use the nix registry to conveniently handle git
-submodules. You can enter the devshell with `./pin.sh` and
-`nix develop o1js#default` or by using direnv with the `.envrc` provided. This
-devshell provides all the dependencies required for npm scripts including
-`npm run build:update-bindings`.
+You can build with nix in two ways: Using a flake app
+`nix run .#generate-bindings` or using a devshell `nix develop`, and inside that
+devshell `npm run build:update-bindings`.
 
 ## Building Bindings
 
