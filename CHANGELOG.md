@@ -16,7 +16,9 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/4b1dccdd...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/4d1d5411f...HEAD)
+
+## [2.8.1](https://github.com/o1-labs/o1js/compare/4b1dccdd...4d1d5411f) - 2025-08-27
 
 ### Changed
 
@@ -28,7 +30,7 @@ This project adheres to
 - Fixed a performance regression that occured when proving circuits.
   https://github.com/o1-labs/o1js/pull/2388
 
-## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
+## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...70bca22) - 2025-08-01
 
 ### Deprecated
 
