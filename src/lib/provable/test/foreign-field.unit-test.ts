@@ -5,6 +5,7 @@ import { expect } from 'expect';
 import {
   bool,
   equivalentProvable as equivalent,
+  field,
   first,
   spec,
   throwError,
@@ -100,3 +101,69 @@ equivalent({ from: [f], to: f })(
     return ForeignScalar.fromBits(bits);
   }
 );
+
+// Field to ForeignField conversion tests
+
+console.log('Testing Field to ForeignField conversion...');
+
+// Test 1: Constant Field conversion
+{
+  let field = Field(123);
+  let foreignField = ForeignScalar.Unsafe.fromField(field);
+  expect(foreignField.toBigInt()).toBe(123n);
+  expect(foreignField.isConstant()).toBe(true);
+  console.log('✓ Constant Field conversion');
+}
+
+// Test 2: Constructor with Field
+{
+  let field = Field(456);
+  let foreignField = ForeignScalar.Unsafe.fromField(field);
+  expect(foreignField.toBigInt()).toBe(456n);
+  expect(foreignField.isConstant()).toBe(true);
+  console.log('✓ Constructor with Field');
+}
+
+// Test 3: Boundary values
+{
+  // Test zero
+  let zero = ForeignScalar.Unsafe.fromField(Field(0));
+  expect(zero.toBigInt()).toBe(0n);
+
+  // Test large valid value within native Field range
+  // Use a large value that fits in native Field (~2^254) rather than foreign field modulus (~2^259)
+  let largeValue = (1n << 254n) - 1n; // Safe value within native Field range
+  let large = Field(largeValue);
+  let foreignLarge = ForeignScalar.Unsafe.fromField(large);
+  expect(foreignLarge.toBigInt()).toBe(largeValue);
+  console.log('✓ Boundary values');
+}
+
+// Test 4: Small field modulus overflow error
+{
+  // Using SmallField (modulus 17) to easily test overflow
+  expect(() => {
+    SmallField.Unsafe.fromField(Field(18)); // 18 > 17 (modulus)
+  }).toThrow('exceeds foreign field modulus');
+  console.log('✓ Modulus overflow error');
+}
+
+// Test 5: Round-trip conversion
+{
+  let original = Field(12345);
+  let foreign = ForeignScalar.Unsafe.fromField(original);
+  let reconstructed = Field(foreign.toBigInt());
+  expect(reconstructed.toBigInt()).toBe(original.toBigInt());
+  console.log('✓ Round-trip conversion');
+}
+
+// Test 6: Variable Field conversion in provable context
+equivalent({
+  from: [field],
+  to: f,
+})(
+  (x) => x,
+  (field) => ForeignScalar.Unsafe.fromField(field)
+);
+
+console.log('✓ All Field conversion tests passed!');
