@@ -16,11 +16,24 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/045b1ab...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/4b1dccdd...HEAD)
+
+### Changed
+
+- Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
+  version used in Mina proof-systems repository.
+
+### Fixed
+
+- Fixed a performance regression that occured when proving circuits.
+  https://github.com/o1-labs/o1js/pull/2388
+
+## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
 
 ### Deprecated
 
 - Deprecate the `Circuit` API in favor of the `ZkFunction` API.
+  https://github.com/o1-labs/o1js/pull/2245
 
 ### Added
 
