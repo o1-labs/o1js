@@ -706,16 +706,61 @@ super.init();
       }
     });
   }
-  // TODO make this a @method and create a proof during `zk deploy` (+ add mechanism to skip this)
   /**
-   * `SmartContract.init()` will be called only when a {@link SmartContract} will be first deployed, not for redeployment.
-   * This method can be overridden as follows
-   * ```
+   * `SmartContract.init()` is called when a {@link SmartContract} is first deployed.
+   * By default, it initializes the smart contract's state to zero, and sets the
+   * `provedState` to `false`.
+   *
+   * @note The first time any {@link method} is called on the smart contract, `provedState`
+   * will be set to `true`.  The `init` method itself may be decorated with `@method`
+   * in this way.  Review the examples below to see how init can be called with or
+   * without a method decorator.
+   *
+   * @note `init` may be overridden to set state fields to values other than zero, but the
+   * method takes no arguments.  Therefore, only static values may be set.
+   *
+   * @note To initialize a smart contract with custom values provided as arguments, a separate
+   * method is required.
+   *
+   * @example
+   * ```ts
    * class MyContract extends SmartContract {
+   *  @state(Field) x = State<Field>();
+   *
+   *  // Overwrite init to set static, non-zero values
    *  init() {
+   *   super.init();
+   *   this.x.set(Field(1));
+   *  }
+   *
+   *  // Use custom method to initialize dyamic values
+   *  @method async initialize(x: Field) {
+   *    // This method may only be called once, immediately after deployment
+   *    this.account.provedState.getAndRequireEquals().assertFalse();
+   *
+   *    this.x.set(x);
+   *  }
+   * }
+   * ```
+   *
+   * @example
+   * ```ts
+   * class MyContract extends SmartContract {
+   *  @state(Field) x = State<Field>();
+   *
+   *  // Use init as a @method to set state fields to zero, and also
+   *  // set provedState to true, making any other initialization impossible.
+   *  @method async init() {
    *    super.init();
-   *    this.account.permissions.set(...);
    *    this.x.set(Field(1));
+   *  }
+   *
+   *  // This method is invalid because `init` is a `@method`
+   *  @method async initialize(x: Field) {
+   *    // This assertion will fail because `provedState` is true after `init` is called
+   *    this.account.provedState.getAndRequireEquals().assertFalse();
+   *
+   *    this.x.set(x);
    *  }
    * }
    * ```

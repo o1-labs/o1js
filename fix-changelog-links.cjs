@@ -1,12 +1,12 @@
-const fs = require("fs");
-const https = require("https");
+const fs = require('fs');
+const https = require('https');
 
-const REPO = "o1-labs/o1js";
-const CHANGELOG_PATH = "CHANGELOG.md";
+const REPO = 'o1-labs/o1js';
+const CHANGELOG_PATH = 'CHANGELOG.md';
 const GITHUB_TOKEN = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 const HEADERS = GITHUB_TOKEN
-  ? { Authorization: `token ${GITHUB_TOKEN}`, "User-Agent": "node.js" }
-  : { "User-Agent": "node.js" };
+  ? { Authorization: `token ${GITHUB_TOKEN}`, 'User-Agent': 'node.js' }
+  : { 'User-Agent': 'node.js' };
 
 // Because incremental releases only occurred after 2.3.0, we will exclude the rest of the versions in the automation.
 
@@ -15,9 +15,9 @@ function getJSON(url) {
     const options = { headers: HEADERS };
     https
       .get(url, options, (res) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
           if (res.statusCode === 200) {
             resolve(JSON.parse(data));
           } else {
@@ -26,13 +26,14 @@ function getJSON(url) {
           }
         });
       })
-      .on("error", reject);
+      .on('error', reject);
   });
 }
 
 function getCommitMapFromChangelog(changelog) {
   const commitMap = {};
-  const regex = /## \[(\d+\.\d+\.\d+)\]\(https:\/\/github\.com\/o1-labs\/o1js\/compare\/([a-f0-9]+)\.\.\.([a-f0-9]+)\)/g;
+  const regex =
+    /## \[(\d+\.\d+\.\d+)\]\(https:\/\/github\.com\/o1-labs\/o1js\/compare\/([a-f0-9]+)\.\.\.([a-f0-9]+)\)/g;
   let match;
   while ((match = regex.exec(changelog))) {
     const [_, version, fromCommit, toCommit] = match;
@@ -56,7 +57,7 @@ async function getCommitRangeFromPermalink(version1, version2) {
 }
 
 async function fixChangelogLinks() {
-  let changelog = fs.readFileSync(CHANGELOG_PATH, "utf-8");
+  let changelog = fs.readFileSync(CHANGELOG_PATH, 'utf-8');
 
   // Step 1: Extract versions from changelog
   const versionPattern = /## \[(\d+\.\d+\.\d+)\]\([^)]+\)/g;
@@ -85,12 +86,13 @@ async function fixChangelogLinks() {
   // Step 4: Update [Unreleased] section
   if (versions.length && commitMap[versions[0]]) {
     const unreleasedCommit = commitMap[versions[0]][1];
-    const unreleasedPattern = /\[Unreleased\]\(https:\/\/github\.com\/.+?\/compare\/[a-f0-9]+\.\.\.HEAD\)/;
+    const unreleasedPattern =
+      /\[Unreleased\]\(https:\/\/github\.com\/.+?\/compare\/[a-f0-9]+\.\.\.HEAD\)/;
     const newUnreleased = `[Unreleased](https://github.com/${REPO}/compare/${unreleasedCommit}...HEAD)`;
     changelog = changelog.replace(unreleasedPattern, newUnreleased);
     console.log(`🔁 Updated [Unreleased] → ${unreleasedCommit}...HEAD`);
   } else {
-    console.warn("⚠️ Could not update [Unreleased] — latest version not found in commitMap.");
+    console.warn('⚠️ Could not update [Unreleased] — latest version not found in commitMap.');
   }
 
   // Step 5: Replace compare URLs
@@ -98,19 +100,19 @@ async function fixChangelogLinks() {
     const pattern = new RegExp(
       `\\[${version}\\]\\(https://github\\.com/${REPO.replace(
         /\//g,
-        "\\/"
+        '\\/'
       )}\\/compare\\/[a-f0-9]+\\.\\.\\.[a-f0-9]+\\)`,
-      "g"
+      'g'
     );
     const newUrl = `[${version}](https://github.com/${REPO}/compare/${from}...${to})`;
     changelog = changelog.replace(pattern, newUrl);
   }
 
   // Step 6: Write updated changelog
-  fs.writeFileSync(CHANGELOG_PATH, changelog, "utf-8");
-  console.log("✅ CHANGELOG.md updated.");
+  fs.writeFileSync(CHANGELOG_PATH, changelog, 'utf-8');
+  console.log('✅ CHANGELOG.md updated.');
 }
 
 fixChangelogLinks().catch((err) => {
-  console.error("Unhandled error:", err);
+  console.error('Unhandled error:', err);
 });
