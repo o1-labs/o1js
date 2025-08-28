@@ -23,6 +23,8 @@ This project adheres to
 - Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
   version used in Mina proof-systems repository.
 
+- Updated the runtime table API with less abstract function names.
+
 ### Fixed
 
 - Fixed a performance regression that occured when proving circuits.
