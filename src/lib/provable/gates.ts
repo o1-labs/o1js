@@ -17,7 +17,6 @@ export {
   foreignFieldAdd,
   foreignFieldMul,
   KimchiGateType,
-  addRuntimeTableConfig,
 };
 
 export { fieldVar };
