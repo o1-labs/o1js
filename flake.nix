@@ -316,6 +316,8 @@
             # on linux wrap rustup like in the derivation
             else {
               packages = [ rustupWrapper ] ++ bindings-pkgs;
+              OCAMLPARAM = "_,w=-67";
+              DUNE_BUILD_OPTIONS = "--promote-install-files";
               shellHook = ''
                 RUSTUP_HOME=$(pwd)/.rustup
                 export RUSTUP_HOME
