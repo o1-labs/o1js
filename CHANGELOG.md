@@ -23,13 +23,13 @@ This project adheres to
 - Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
   version used in Mina proof-systems repository.
 
-- Improved the runtime table API with a `RuntimeTable` class with better 
+- Improved the runtime table API with a `RuntimeTable` class with better
   readability.
 
 ### Deprecated
 
-- Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in favor
-  of the `RuntimeTable` class API. 
+- Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in
+  favor of the `RuntimeTable` class API.
 
 ### Fixed
 
