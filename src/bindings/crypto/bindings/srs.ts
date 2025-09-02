@@ -84,26 +84,13 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   let getLagrangeBasis = (srs: WasmSrs, n: number) => {
     // Detect if we're in a web environment (has Worker API)
     const isWeb = typeof window !== 'undefined' && typeof Worker !== 'undefined';
-
-    console.log(`[getLagrangeBasis ${f}] Called with domain size: ${n}, isWeb: ${isWeb}`);
-
+    
     if (isWeb) {
       // Web: Use new pointer-based functions for worker compatibility
-      console.log(`[getLagrangeBasis ${f}] Calling caml_${f}_srs_get_lagrange_basis_ptr...`);
       const ptr = wasm[`caml_${f}_srs_get_lagrange_basis_ptr`](srs, n);
-      console.log(`[getLagrangeBasis ${f}] Got pointer: ${ptr}`);
-
-      console.log(
-        `[getLagrangeBasis ${f}] Calling caml_${f}_srs_get_lagrange_basis_read_from_ptr...`
-      );
-      const result = wasm[`caml_${f}_srs_get_lagrange_basis_read_from_ptr`](ptr);
-      console.log(`[getLagrangeBasis ${f}] Got result from read_from_ptr`);
-      return result;
+      return wasm[`caml_${f}_srs_get_lagrange_basis_read_from_ptr`](ptr);
     } else {
       // Node.js: Use original direct function
-      console.log(
-        `[getLagrangeBasis ${f}] Using Node.js path - calling caml_${f}_srs_get_lagrange_basis`
-      );
       return wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
     }
   };
