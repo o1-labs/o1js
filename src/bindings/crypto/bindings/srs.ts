@@ -79,22 +79,35 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   let lagrangeCommitmentsWholeDomainPtr = (srs: WasmSrs, domain_size: number) =>
     wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](srs, domain_size);
   let setLagrangeBasis = wasm[`caml_${f}_srs_set_lagrange_basis`];
-  
+
   // Environment-aware getLagrangeBasis function
   let getLagrangeBasis = (srs: WasmSrs, n: number) => {
     // Detect if we're in a web environment (has Worker API)
     const isWeb = typeof window !== 'undefined' && typeof Worker !== 'undefined';
-    
+
+    console.log(`[getLagrangeBasis ${f}] Called with domain size: ${n}, isWeb: ${isWeb}`);
+
     if (isWeb) {
       // Web: Use new pointer-based functions for worker compatibility
+      console.log(`[getLagrangeBasis ${f}] Calling caml_${f}_srs_get_lagrange_basis_ptr...`);
       const ptr = wasm[`caml_${f}_srs_get_lagrange_basis_ptr`](srs, n);
-      return wasm[`caml_${f}_srs_get_lagrange_basis_read_from_ptr`](ptr);
+      console.log(`[getLagrangeBasis ${f}] Got pointer: ${ptr}`);
+
+      console.log(
+        `[getLagrangeBasis ${f}] Calling caml_${f}_srs_get_lagrange_basis_read_from_ptr...`
+      );
+      const result = wasm[`caml_${f}_srs_get_lagrange_basis_read_from_ptr`](ptr);
+      console.log(`[getLagrangeBasis ${f}] Got result from read_from_ptr`);
+      return result;
     } else {
       // Node.js: Use original direct function
+      console.log(
+        `[getLagrangeBasis ${f}] Using Node.js path - calling caml_${f}_srs_get_lagrange_basis`
+      );
       return wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
     }
   };
-  
+
   let getCommitmentsWholeDomainByPtr =
     wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_read_from_ptr`];
   return {
@@ -170,7 +183,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
           if (didRead !== true) {
             // not in cache
             if (cache.canWrite) {
-              // ✅ FIXED: getLagrangeBasis now works on web via environment-aware pointer functions
+              // getLagrangeBasis now works on web via environment-aware pointer functions
               let wasmComms = getLagrangeBasis(srs, domainSize);
               let mlComms = conversion[f].polyCommsFromRust(wasmComms);
               let comms = polyCommsToJSON(mlComms);
