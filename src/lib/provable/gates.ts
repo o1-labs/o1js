@@ -17,6 +17,7 @@ export {
   foreignFieldAdd,
   foreignFieldMul,
   KimchiGateType,
+  addRuntimeTableConfig,
 };
 
 export { fieldVar };
@@ -292,6 +293,9 @@ function raw(kind: KimchiGateType, values: Field[], coefficients: bigint[]) {
  *
  * @param id
  * @param firstColumn
+ * 
+ * @deprecated {@link addRuntimeTableConfig} is deprecated in favor of RuntimeTable
+ * class, which provides a more ergonomic API.
  */
 function addRuntimeTableConfig(id: number, firstColumn: bigint[]) {
   Snarky.gates.addRuntimeTableConfig(
