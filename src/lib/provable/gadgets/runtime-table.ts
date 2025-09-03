@@ -2,7 +2,7 @@
  * This module defines the `RuntimeTable` class, which represents a runtime table used in zk-SNARKs.
  */
 
-import { assert } from "console";
+import { assert } from '../../util/assert.js';
 import { Field } from "../field.js";
 import { Gates } from "../gates.js";
 
