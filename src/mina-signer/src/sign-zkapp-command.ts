@@ -38,11 +38,14 @@ function signZkappCommand(
 
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
-  let publicKey = zkappCommand.feePayer.body.publicKey;
+  let publicKey = PrivateKey.toPublicKey(privateKey);
+
+  let signature = signFieldElement(fullCommitment, privateKey, networkId);
 
   // sign fee payer
-  let signature = signFieldElement(fullCommitment, privateKey, networkId);
-  zkappCommand.feePayer.authorization = Signature.toBase58(signature);
+  if (PublicKey.equal(zkappCommand.feePayer.body.publicKey, publicKey)) {
+    zkappCommand.feePayer.authorization = Signature.toBase58(signature);
+  }
 
   // sign other updates with the same public key that require a signature
   for (let update of zkappCommand.accountUpdates) {
