@@ -21,13 +21,9 @@ This project adheres to
 ## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
 
 ### Added
+
 - Support for `ForeignField.Unsafe.fromField` as an alternative constructor
   https://github.com/o1-labs/o1js/pull/2322
-
-### Changed
-
-- Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
-  version used in Mina proof-systems repository.
 
 ### Fixed
 
