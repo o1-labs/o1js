@@ -23,6 +23,19 @@ error()  { printf "\033[31m%s✖ %s\033[0m\n" "$SCRIPT_PREFIX" "$*"; }
 ok()     { printf "\033[32m%s✔ %s\033[0m\n" "$SCRIPT_PREFIX" "$*"; }
 
 
+# Run a command with prefixed output
+run_with_prefix() {
+    "$@" 2>&1 | while IFS= read -r line; do
+        printf "%s%s\n" "$SCRIPT_PREFIX" "$line"
+    done
+    return "${PIPESTATUS[0]}"
+}
+
+# Run a command quietly (no prefix, for tools that produce too much noise)
+run_quiet() {
+    "$@"
+}
+
 # Get the repository root directory relative to any script location
 get_repo_root() {
     # Find the directory containing package.json (which should be repo root)
