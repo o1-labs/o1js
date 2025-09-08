@@ -29,4 +29,4 @@ info "Compiling benchmarks..."
 npx tsc -p benchmark/tsconfig.json
 ok "Benchmarks compilation complete"
 
-bold "Examples build complete"
+success "Examples build complete"
