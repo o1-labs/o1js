@@ -8,8 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/ux.sh"
 ROOT_DIR="$(get_repo_root)"
 
 # ---------- setup ----------
-setup_script_name "${BASH_SOURCE[0]}"
-setup_error_handling "Development build"
+setup_script "${BASH_SOURCE[0]}" "Development build"
 
 # ---------- steps ----------
 bold "Building development version"

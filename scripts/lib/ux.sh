@@ -6,10 +6,13 @@
 SCRIPT_PREFIX=""
 
 # Set up script name prefix for all messages
-setup_script_name() {
+setup_script() {
     local script_path="$1"
     local script_name="$(basename "$script_path")"
     SCRIPT_PREFIX="[$script_name] "
+
+    local script_name="${2:-script}"
+    trap "error \"${script_name} failed (command: \${BASH_COMMAND})\"; exit 1" ERR
 }
 
 # Color and formatting functions
@@ -19,11 +22,6 @@ warn()   { printf "\033[33m%s⚠ %s\033[0m\n" "$SCRIPT_PREFIX" "$*"; }
 error()  { printf "\033[31m%s✖ %s\033[0m\n" "$SCRIPT_PREFIX" "$*"; }
 ok()     { printf "\033[32m%s✔ %s\033[0m\n" "$SCRIPT_PREFIX" "$*"; }
 
-# Set up error handling with consistent messaging
-setup_error_handling() {
-    local script_name="${1:-script}"
-    trap "error \"${script_name} failed (command: \${BASH_COMMAND})\"; exit 1" ERR
-}
 
 # Get the repository root directory relative to any script location
 get_repo_root() {
