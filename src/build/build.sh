@@ -10,15 +10,11 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BINDINGS_CHECK_PATH="${BINDINGS_CHECK_PATH:-$ROOT_DIR/src/bindings/compiled}"  # presence gate
 
-# ---------- UX helpers ----------
-bold()   { printf "\033[1m%s\033[0m\n" "$*"; }
-info()   { printf "• %s\n" "$*"; }
-warn()   { printf "\033[33m⚠ %s\033[0m\n" "$*"; }
-error()  { printf "\033[31m✖ %s\033[0m\n" "$*"; }
-ok()     { printf "\033[32m✔ %s\033[0m\n" "$*"; }
+# ---------- shared libraries ----------
+source "$ROOT_DIR/scripts/lib/ux.sh"
 
-# Print a helpful message on any *critical* failure after this point
-trap 'error "Build failed (command: ${BASH_COMMAND})"; exit 1' ERR
+# ---------- setup ----------
+setup_error_handling "Build"
 
 # ---------- steps ----------
 ensure_bindings() {
