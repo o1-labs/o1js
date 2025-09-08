@@ -80,4 +80,4 @@ copy_artifacts          # fatal on error
 clean_dist_node         # fatal on error
 build_dev               # fatal on error
 build_node              # fatal on error
-bold "Build finished successfully."
+success "Build finished successfully."

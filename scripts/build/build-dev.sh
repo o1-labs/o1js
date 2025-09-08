@@ -21,4 +21,4 @@ info "Copying artifacts to dist..."
 node src/build/copy-to-dist.js
 ok "Artifacts copied"
 
-bold "Development build complete"
+success "Development build complete"
