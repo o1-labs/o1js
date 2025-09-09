@@ -18,7 +18,7 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/f54dd40...HEAD)
 
-## [3.0.8](https://github.com/o1-labs/o1js/compare/e3e758b...f54dd40) - 2025-09-09
+## [3.1.0](https://github.com/o1-labs/o1js/compare/e3e758b...f54dd40) - 2025-09-09
 
 ### Added
 
