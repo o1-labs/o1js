@@ -14,11 +14,11 @@ setup_script "${BASH_SOURCE[0]}" "Web build"
 bold "Building web distribution"
 
 info "Cleaning previous web build..."
-rimraf ./dist/web
+run_cmd rimraf ./dist/web
 ok "Web directory cleaned"
 
 info "Building web bundle..."
-node src/build/build-web.js
+run_cmd node src/build/build-web.js
 ok "Web bundle built"
 
 success "Web build complete"

@@ -74,6 +74,15 @@ run_quiet() {
     "$@"
 }
 
+# run a command with a prefix (only in verbose mode)
+run_cmd() {
+    if is_verbose; then
+        printf "\033[90m%s$ %s\033[0m\n" "$SCRIPT_PREFIX" "$*"
+    fi
+    "$@"
+}
+
+
 # Get the repository root directory relative to any script location
 get_repo_root() {
     # Find the directory containing package.json (which should be repo root)
