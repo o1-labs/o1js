@@ -22,4 +22,5 @@ This project adheres to
 
 ### Added
 
-- Allow signing zkApp command without fee payer private key https://github.com/o1-labs/o1js/pull/2417
+- Allow signing zkApp command without fee payer private key
+  https://github.com/o1-labs/o1js/pull/2417
