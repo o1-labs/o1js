@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# ---------- shared libraries ----------
+# shared libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$ROOT_DIR/scripts/lib/ux.sh"
 
-# ---------- paths ----------
+# paths
 MINA_PATH=src/mina
 DUNE_PATH=src/bindings/ocaml/jsoo_exports # this is the path to where we build the jsoo artifacts from
 BUILD_PATH=_build/default/"${DUNE_PATH}" # this is where dune puts the build artifacts
 KIMCHI_BINDINGS="${MINA_PATH}"/src/lib/crypto/kimchi_bindings # path to kimchi bindings in the mina repo
 BINDINGS_PATH=src/bindings/compiled/_node_bindings/ # output path for node bindings
 
-# ---------- setup ----------
+# setup
 setup_script "${BASH_SOURCE[0]}" "Node artifacts build"
 
 export DUNE_USE_DEFAULT_LINKER="y"

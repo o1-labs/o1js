@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# ---------- shared libraries ----------
+# shared libraries
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/ux.sh"
 
-# ---------- paths ----------
+# paths
 ROOT_DIR="$(get_repo_root)"
 
-# ---------- setup ----------
+# setup
 setup_script "${BASH_SOURCE[0]}" "Web build"
 
-# ---------- steps ----------
+# steps
 bold "Building web distribution"
 
 info "Cleaning previous web build..."
