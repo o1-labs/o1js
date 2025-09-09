@@ -29,6 +29,24 @@ export {
   CallForest,
 };
 
+/**
+ * Signs a zkApp command JSON object with the provided private key.
+ *
+ * This function applies a Schnorr signature to the fee payer and any account
+ * updates within the command that require signatures and are owned by the same
+ * public key. 
+ * 
+ * If this method is not called as the fee payer (i.e. the private key provided 
+ * does not match the fee payer's public key), the fee payer authorization will 
+ * remain unsigned after this method returns. This behavior allows for collaborative
+ * construction of zkApp commands where two different users sign the account update
+ * and pay the fee.
+ *
+ * @param zkappCommand_ - The zkApp command in JSON format, before signatures.
+ * @param privateKeyBase58 - The Base58-encoded private key used for signing.
+ * @param networkId - The network identifier that determines the signature domain.
+ * @returns The signed zkApp command in JSON format.
+ */
 function signZkappCommand(
   zkappCommand_: Json.ZkappCommand,
   privateKeyBase58: string,
@@ -42,7 +60,7 @@ function signZkappCommand(
 
   let signature = signFieldElement(fullCommitment, privateKey, networkId);
 
-  // sign fee payer
+  // sign fee payer whenever the public key matches
   if (PublicKey.equal(zkappCommand.feePayer.body.publicKey, publicKey)) {
     zkappCommand.feePayer.authorization = Signature.toBase58(signature);
   }
