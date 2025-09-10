@@ -7,13 +7,15 @@ import { RuntimeTable } from '../gadgets/runtime-table.js';
 import { constraintSystem, contains } from '../../testing/constraint-system.js';
 import { FeatureFlags } from '../../proof-system/feature-flags.js';
 import { Cache } from '../../proof-system/cache.js';
+import { Provable } from '../provable.js';
 
-let uint = (n: number | bigint): Spec<bigint, Field> => {
-  return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
-};
 
-// Runtime table tests
+// in-circuit unit tests
 {
+  let uint = (n: number | bigint): Spec<bigint, Field> => {
+    return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
+  };
+
   let RuntimeTableZkProgram = ZkProgram({
     name: 'runtime-table',
     methods: {
@@ -67,4 +69,40 @@ let uint = (n: number | bigint): Spec<bigint, Field> => {
       return await RuntimeTableZkProgram.verify(proof);
     }
   );
+}
+
+// off-circuit checks
+{
+    function expectThrows(fn: () => void | Promise<void>, msg: string) {
+    let threw = false;
+    try {
+      fn();
+    } catch {
+      threw = true;
+    }
+    assert(threw, msg);
+  }
+
+  // Cannot create a table with reserved id
+  expectThrows(() => {
+    new RuntimeTable(0, [0n, 1n]);
+  }, 'Table id 0 is reserved');
+
+  expectThrows(() => {
+    new RuntimeTable(1, [0n, 1n]);
+  }, 'Table id 1 is reserved');
+
+  // Cannot create a table with duplicate indices
+  expectThrows(() => {
+    new RuntimeTable(3, [0n, 1n, 2n, 2n]);
+  }, 'Indices must be unique');
+
+  // Cannot insert pairs with indices not in the table
+  await Provable.runAndCheck(async () => {
+      let table = new RuntimeTable(42, [0n, 1n, 2n, 3n, 4n, 5n]);
+
+      expectThrows(() => {
+        table.insert([[0n, new Field(1)], [6n, new Field(2)]]);
+      }, 'Indices must be preallocated at creation of the runtime table'); 
+  });
 }

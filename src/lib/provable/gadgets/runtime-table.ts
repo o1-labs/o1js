@@ -38,10 +38,14 @@ export {
  *   should consider an optimized custom solution.
  * - **mutable data**: runtime tables are write-once only, so once inserted entries in table are
  *   remain fixed. To represent changing data, consider using DynamicArrays.
- *
+ * - **unknown bounded size**: runtime lookup tables require all possible `indices` to be preallocated
+ *   at construction time. If the set of possible indices is not known in advance, consider using
+ *   DynamicArrays instead.
+ * 
  * ## Invariants & constraints
  * - `id !== 0 && id !== 1`. (Reserved for XOR and range-check tables.)
  * - `indices` are **unique**. Duplicates are rejected.
+ * - `indices` must be **known** at construction time.
  * - `lookup()` **batches** each 3 calls (for the same table) into **one** gate automatically.
  * - `check()` call is required for soundness to flush 1–2 pending pairs before the end of the circuit.
  *
