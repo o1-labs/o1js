@@ -1,5 +1,7 @@
 /**
- * This module defines the `RuntimeTable` class, which represents a runtime table used in zk-SNARKs.
+ * This module defines the `RuntimeTable` class, which represents a provable table whose entries
+ * can be defined at runtime within the SNARK circuit. It allows inserting key-value pairs and
+ * checking for their existence.
  */
 
 import { assert } from '../../util/assert.js';
