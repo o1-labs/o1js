@@ -6,6 +6,7 @@ import { Tuple, TupleMap, TupleN } from '../util/types.js';
 import { Gadgets } from './gadgets/gadgets.js';
 import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
+import { fieldToField3 } from './gadgets/comparison.js';
 import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
 
@@ -43,6 +44,36 @@ class ForeignField {
   }
 
   /**
+   * Unsafe constructor methods for advanced usage.
+   */
+  static get Unsafe() {
+    const Constructor = this;
+    return {
+      /**
+       * Converts a {@link Field} into a {@link ForeignField}. This is an **unsafe** operation
+       * as the native Field size may be larger than the Foreign Field size, and changes in modulus
+       * can have unintended consequences.
+       *
+       * Only use this if you have already constrained the Field element to be within the foreign field modulus.
+       *
+       * @param x a {@link Field}
+       */
+      fromField(x: Field) {
+        const p = Constructor.modulus;
+        if (x.isConstant()) {
+          let value = x.toBigInt();
+          if (value >= p) {
+            throw new Error(
+              `Field value ${value} exceeds foreign field modulus ${p}. Please ensure the value is reduced to the modulus.`
+            );
+          }
+        }
+        return new Constructor.Canonical(fieldToField3(x));
+      },
+    };
+  }
+
+  /**
    * Sibling classes that represent different ranges of field elements.
    */
   static _variants:
@@ -76,10 +107,11 @@ class ForeignField {
   }
 
   /**
-   * Create a new {@link ForeignField} from a bigint, number, string or another ForeignField.
+   * Create a new {@link ForeignField} from a bigint, number, string, or another ForeignField.
    * @example
    * ```ts
    * let x = new ForeignField(5);
+   * let y = ForeignField.from(10n);
    * ```
    *
    * Note: Inputs must be range checked if they originate from a different field with a different modulus or if they are not constants.
@@ -110,6 +142,7 @@ class ForeignField {
 
   /**
    * Coerce the input to a {@link ForeignField}.
+   * @param x - The value to convert. Can be a {@link ForeignField}, bigint, number, or string.
    */
   static from(x: bigint | number | string): CanonicalForeignField;
   static from(x: ForeignField | bigint | number | string): ForeignField;
@@ -689,7 +722,7 @@ type Constructor<T> = new (...args: any[]) => T;
 function provable<
   F extends ForeignField & {
     type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced';
-  },
+  }
 >(
   Class: Constructor<F> & { check(x: ForeignField): void }
 ): ProvablePureExtended<F, bigint, string> {

@@ -16,12 +16,14 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/4b1dccdd...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/114acff...HEAD)
 
-### Changed
+## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
 
-- Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
-  version used in Mina proof-systems repository.
+### Added
+
+- Support for `ForeignField.Unsafe.fromField` as an alternative constructor
+  https://github.com/o1-labs/o1js/pull/2322
 
 - Improved the runtime table API with a `RuntimeTable` class with better
   readability.
@@ -36,7 +38,7 @@ This project adheres to
 - Fixed a performance regression that occured when proving circuits.
   https://github.com/o1-labs/o1js/pull/2388
 
-## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
+## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...70bca22) - 2025-08-01
 
 ### Deprecated
 
