@@ -25,6 +25,14 @@ This project adheres to
 - Support for `ForeignField.Unsafe.fromField` as an alternative constructor
   https://github.com/o1-labs/o1js/pull/2322
 
+- Improved the runtime table API with a `RuntimeTable` class with better
+  readability.
+
+### Deprecated
+
+- Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in
+  favor of the `RuntimeTable` class API.
+
 ### Fixed
 
 - Fixed a performance regression that occured when proving circuits.
