@@ -3,6 +3,7 @@ import { platform } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import esbuild from 'esbuild';
 import minimist from 'minimist';
+import { makeNodeModulesExternal, makeJsooExternal } from './esbuild-plugins.js';
 
 let { bindings = './src/bindings/compiled/node_bindings/' } = minimist(process.argv.slice(2));
 
@@ -23,7 +24,8 @@ if (isMain) {
 }
 
 async function buildNode({ production }) {
-  // bundle the index.js file with esbuild and create a new index.cjs file which conforms to CJS
+  // bundle the index.js file with esbuild and create a new index.cjs file which
+  // conforms to CJS
   let jsEntry = path.resolve('dist/node', path.basename(entry).replace('.ts', '.js'));
   let outfile = jsEntry.replace('.js', '.cjs');
   await esbuild.build({
@@ -35,36 +37,9 @@ async function buildNode({ production }) {
     target,
     resolveExtensions: ['.node.js', '.ts', '.js'],
     allowOverwrite: true,
-    plugins: [makeNodeModulesExternal(), makeJsooExternal()],
+    plugins: [makeNodeModulesExternal(), makeJsooExternal({ useRelativePath: true })],
     dropLabels: ['ESM'],
     minify: false,
     sourcemap: true,
   });
-}
-
-function makeNodeModulesExternal() {
-  let isNodeModule = /^[^./\\]|^\.[^./\\]|^\.\.[^/\\]/;
-  return {
-    name: 'plugin-external',
-    setup(build) {
-      build.onResolve({ filter: isNodeModule }, ({ path }) => ({
-        path,
-        external: !(platform === 'win32' && path.endsWith('index.js')),
-      }));
-    },
-  };
-}
-
-function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
-  return {
-    name: 'plugin-external',
-    setup(build) {
-      build.onResolve({ filter: isJsoo }, ({ path: filePath, resolveDir }) => ({
-        path:
-          './' + path.relative(path.resolve('.', 'dist/node'), path.resolve(resolveDir, filePath)),
-        external: true,
-      }));
-    },
-  };
 }
