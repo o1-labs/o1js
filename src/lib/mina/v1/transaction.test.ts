@@ -65,7 +65,7 @@ describe('transactions', () => {
 
     // Serialize to JSON string
     let jsonString = originalTx.toJSON();
-    
+
     // Deserialize using fromJSON with string input
     let deserializedTx = Transaction.fromJSON(jsonString);
 
@@ -80,5 +80,22 @@ describe('transactions', () => {
       originalTx.transaction.accountUpdates.length
     );
     expect(deserializedTx.toJSON()).toEqual(originalTx.toJSON());
+  });
+
+  it('should throw proper error for malformed JSON string input', async () => {
+    // Test invalid JSON syntax
+    expect(() => {
+      Transaction.fromJSON('{"invalid": json}');
+    }).toThrow('Failed to parse ZkappCommand from JSON string:');
+
+    // Test valid JSON but invalid ZkappCommand structure
+    expect(() => {
+      Transaction.fromJSON('{"not": "a", "valid": "zkapp", "command": true}');
+    }).toThrow('Failed to construct ZkappCommand from parsed JSON:');
+
+    // Test completely malformed string
+    expect(() => {
+      Transaction.fromJSON('not json at all');
+    }).toThrow('Failed to parse ZkappCommand from JSON string:');
   });
 });

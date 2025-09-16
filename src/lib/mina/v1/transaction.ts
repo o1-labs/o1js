@@ -100,9 +100,6 @@ namespace Transaction {
    * ```
    */
   export function fromJSON(json: Types.Json.ZkappCommand | string): Transaction<false, false> {
-    if (typeof json === 'string') {
-      json = JSON.parse(json) as Types.Json.ZkappCommand;
-    }
     let transaction = ZkappCommand.fromJSON(json);
     return newTransaction(transaction, activeInstance.proofsEnabled);
   }
