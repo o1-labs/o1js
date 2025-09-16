@@ -16,24 +16,37 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/4b1dccdd...HEAD)
-
-### Changed
-
-- Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
-  version used in Mina proof-systems repository.
+## [Unreleased](https://github.com/o1-labs/o1js/compare/114acff...HEAD)
 
 ### Added
 
-Added `caml_fp_srs_get_lagrange_basis_ptr` and
-`caml_fq_srs_get_lagrange_basis_ptr` pointer functions to enable using a browser
-cache with `zkProgram.compile()`. https://github.com/o1-labs/o1js/pull/2404
+- Internal o1js and protocol constants, hashes and prefixes are now exported via
+  the `Core´ namespace. https://github.com/o1-labs/o1js/pull/2421
+- Added `caml_fp_srs_get_lagrange_basis_ptr` and
+  `caml_fq_srs_get_lagrange_basis_ptr` pointer functions to enable using a browser
+  cache with `zkProgram.compile()`. https://github.com/o1-labs/o1js/pull/2404
+
+## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
+
+### Added
+
+- Support for `ForeignField.Unsafe.fromField` as an alternative constructor
+  https://github.com/o1-labs/o1js/pull/2322
+
+- Improved the runtime table API with a `RuntimeTable` class with better
+  readability.
+
+### Deprecated
+
+- Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in
+  favor of the `RuntimeTable` class API.
 
 ### Fixed
 
 - Fixed a performance regression that occured when proving circuits.
   https://github.com/o1-labs/o1js/pull/2388
 
+<<<<<<< HEAD
 - Fixed issue where `zkProgram.compile()` was not able to use a browser cache.
   Previously, the `get_lagrange_basis` functions were disabled on the web
   because they would hang indefinitely when cache writing was enabled. The issue
@@ -41,6 +54,9 @@ cache with `zkProgram.compile()`. https://github.com/o1-labs/o1js/pull/2404
   worker transfer. https://github.com/o1-labs/o1js/pull/2404
 
 ## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
+=======
+## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...70bca22) - 2025-08-01
+>>>>>>> origin/main
 
 ### Deprecated
 
