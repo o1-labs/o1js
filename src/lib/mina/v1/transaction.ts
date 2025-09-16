@@ -83,7 +83,26 @@ type TransactionCommon = {
 };
 
 namespace Transaction {
-  export function fromJSON(json: Types.Json.ZkappCommand): Transaction<false, false> {
+  /**
+   * Deserializes a transaction from a JSON object or JSON string representation.
+   * This method accepts both parsed JSON objects and JSON strings, making it flexible for different use cases.
+   *
+   * @param json A JSON object representation of a transaction (Types.Json.ZkappCommand) or a JSON string
+   * @returns A new Transaction instance reconstructed from the JSON input
+   *
+   * @example
+   * ```ts
+   * const originalTx = await Mina.transaction(sender, () => {
+   *   zkapp.someMethod();
+   * });
+   * const serialized = originalTx.toJSON();
+   * const deserializedTx = Transaction.fromJSON(serialized);
+   * ```
+   */
+  export function fromJSON(json: Types.Json.ZkappCommand | string): Transaction<false, false> {
+    if (typeof json === 'string') {
+      json = JSON.parse(json) as Types.Json.ZkappCommand;
+    }
     let transaction = ZkappCommand.fromJSON(json);
     return newTransaction(transaction, activeInstance.proofsEnabled);
   }
