@@ -23,20 +23,20 @@ PREBUILT_KIMCHI_BINDINGS_JS_WEB="${PREBUILT_KIMCHI_BINDINGS_JS_WEB:-}"
 PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS="${PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS:-}"
 
 # steps
-bold "Updating o1js bindings (Node.js + Web)"
+bold "Updating o1js bindings (node + Web)"
 
 info "Preparing output directories..."
 run_cmd mkdir -p "${NODE_BINDINGS}" "${WEB_BINDINGS}"
 ok "Output directories prepared"
 
-# Phase 1: Node.js bindings
-bold "Phase 1: Building Node.js bindings"
+# phase 1: node bindings
+bold "Phase 1: Building node bindings"
 
-info "Building Node.js artifacts..."
+info "Building node artifacts..."
 run_cmd "${SCRIPT_DIR}"/build-o1js-node-artifacts.sh
-ok "Node.js artifacts built"
+ok "node artifacts built"
 
-info "Copying additional Node.js bindings files..."
+info "Copying additional node bindings files..."
 run_cmd cp src/bindings/compiled/_node_bindings/plonk_wasm.d.cts "${NODE_BINDINGS}"/plonk_wasm.d.cts
 ok "Additional bindings files copied"
 
@@ -44,11 +44,11 @@ info "Copying build artifacts to dist..."
 run_cmd node src/build/copy-to-dist.js
 ok "Build artifacts copied"
 
-info "Setting Node.js bindings permissions..."
+info "Setting node bindings permissions..."
 run_cmd chmod -R 777 "${NODE_BINDINGS}"
 ok "Permissions set"
 
-info "Copying final Node.js bindings from dist..."
+info "Copying final node bindings from dist..."
 BINDINGS_PATH=dist/node/bindings/compiled/_node_bindings
 run_cmd cp "${BINDINGS_PATH}"/o1js_node.bc.cjs "${NODE_BINDINGS}"/o1js_node.bc.cjs
 if [ -f "${BINDINGS_PATH}"/o1js_node.bc.map ]; then
@@ -58,9 +58,9 @@ else
     warn "No source map found in dist, skipping"
 fi
 run_cmd cp "${BINDINGS_PATH}"/plonk_wasm* "${NODE_BINDINGS}"/
-ok "Final Node.js bindings copied"
+ok "Final node bindings copied"
 
-info "Updating WASM references in Node.js bindings..."
+info "Updating WASM references in node bindings..."
 run_cmd sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "${NODE_BINDINGS}"/o1js_node.bc.cjs
 ok "WASM references updated"
 
@@ -72,8 +72,8 @@ else
     info "Skipping main build (JUST_BINDINGS set)"
 fi
 
-# Phase 2: Web bindings
-bold "Phase 2: Building Web bindings"
+# phase 2 web bindings
+bold "Phase 2: Building web bindings"
 
 info "Checking for prebuilt bindings..."
 if [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}" ] || [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS}" ]; then
@@ -89,7 +89,7 @@ if [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}" ] || [ -z "${PREBUILT_KIMCHI_BINDIN
     
     info "Building web JavaScript bytecode..."
     run_cmd dune b "${DUNE_PATH}"/o1js_web.bc.js
-    ok "Web bytecode built"
+    ok "web bytecode built"
     
     info "Restoring source map..."
     if [ -f "_build/o1js_node.bc.map" ]; then
@@ -99,15 +99,15 @@ if [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}" ] || [ -z "${PREBUILT_KIMCHI_BINDIN
     
     info "Copying web WASM bindings..."
     run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/web/plonk_wasm* "${WEB_BINDINGS}"/
-    ok "Web WASM bindings copied"
+    ok "web WASM bindings copied"
     
     info "Copying web JavaScript bindings..."
     run_cmd cp "${BUILD_PATH}"/o1js_web*.js "${WEB_BINDINGS}"/
-    ok "Web JavaScript bindings copied"
+    ok "web JavaScript bindings copied"
     
     info "Setting web bindings permissions..."
     run_cmd chmod -R 666 "${WEB_BINDINGS}"/*
-    ok "Web permissions set"
+    ok "web permissions set"
     
 else
     info "Using prebuilt bindings from Nix environment..."
@@ -136,7 +136,7 @@ else
     info "Building web JavaScript bytecode with prebuilt bindings..."
     run_cmd dune b "${DUNE_PATH}"/o1js_web.bc.js
     run_cmd cp "${BUILD_PATH}"/o1js_web*.js "${WEB_BINDINGS}"/
-    ok "Web JavaScript built and copied"
+    ok "web JavaScript built and copied"
 fi
 
 # Phase 3: Web optimization
@@ -171,9 +171,9 @@ ok "Optimization complete"
 if [ -z "${JUST_BINDINGS}" ]; then
     info "Running web build..."
     run_cmd npm run build:web
-    ok "Web build complete"
+    ok "web build complete"
 else
     info "Skipping web build (JUST_BINDINGS set)"
 fi
 
-success "Bindings update complete (Node.js + Web)"
+success "Bindings update complete (node + web)"
