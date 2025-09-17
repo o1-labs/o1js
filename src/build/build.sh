@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-#
-# - If bindings are missing, *attempt* to build node bindings via `npm run build:bindings` and continue regardless.
+
+# - If bindings are missing, try `npm run checkForBindings` (downloads CI artifacts).
+# - If that fails, fall back to `npm run build:bindings` (local build).
 # - Subsequent steps (copy/clean/builds) are critical: failures stop the script with a clear message.
 
 set -Eeuo pipefail
@@ -12,7 +13,6 @@ BINDINGS_CHECK_PATH="${BINDINGS_CHECK_PATH:-$ROOT_DIR/src/bindings/compiled}"  #
 
 # ---------- UX helpers ----------
 bold()   { printf "\033[1m%s\033[0m\n" "$*"; }
-info()   { printf "• %s\n" "$*"; }
 warn()   { printf "\033[33m⚠ %s\033[0m\n" "$*"; }
 error()  { printf "\033[31m✖ %s\033[0m\n" "$*"; }
 ok()     { printf "\033[32m✔ %s\033[0m\n" "$*"; }
@@ -23,29 +23,34 @@ trap 'error "Build failed (command: ${BASH_COMMAND})"; exit 1' ERR
 # ---------- steps ----------
 ensure_bindings() {
   bold "[1/5] Ensuring compiled bindings"
+
   if [[ -d "$BINDINGS_CHECK_PATH" ]]; then
     ok "Found compiled bindings at: $BINDINGS_CHECK_PATH"
     return 0
   fi
 
   warn "Compiled bindings not found at: $BINDINGS_CHECK_PATH"
-  info "Attempting to build node bindings via: npm run build:bindings"
+  warn "Trying npm run checkForBindings (downloads prebuilt artifacts)..."
 
-  # Try to build node bindings but DON'T fail the whole build if this step fails
-  set +e
-  (cd "$ROOT_DIR" && npm run build:bindings)
-  local rc=$?
-  set -e
+  # Non-fatal attempt to fetch CI-built bindings
+  ( cd "$ROOT_DIR" && npm run checkForBindings ) || true
 
-  if [[ $rc -eq 0 ]]; then
-    if [[ -d "$BINDINGS_CHECK_PATH" ]]; then
-      ok "Bindings built successfully at: $BINDINGS_CHECK_PATH"
-    else
-      warn "Bindings script completed but directory still missing. Continuing."
-    fi
+  if [[ -d "$BINDINGS_CHECK_PATH" ]]; then
+    ok "Bindings downloaded successfully at: $BINDINGS_CHECK_PATH"
+    return 0
+  fi
+
+  warn "checkForBindings did not produce bindings. Falling back to local build via npm run build:bindings (fatal)..."
+
+  # FATAL fallback: if this fails, the ERR trap will abort the build
+  ( cd "$ROOT_DIR" && npm run build:bindings )
+
+  # Extra safety: ensure the directory actually exists after a 'successful' run
+  if [[ -d "$BINDINGS_CHECK_PATH" ]]; then
+    ok "Bindings built locally at: $BINDINGS_CHECK_PATH"
   else
-    warn "npm run build:bindings exited with code $rc. Continuing without bindings."
-    info "Tip: You can also build full (node+web) bindings later with: npm run build:update-bindings"
+    error "Local bindings build completed but ${BINDINGS_CHECK_PATH} is still missing."
+    exit 1
   fi
 }
 
@@ -79,7 +84,7 @@ build_node() {
 
 # ---------- main ----------
 bold "Starting build"
-ensure_bindings         # non-fatal if missing or failed
+ensure_bindings         # use checkForBindings first(non-fatal on error), then fallback to build:bindings(fatal on error)
 copy_artifacts          # fatal on error
 clean_dist_node         # fatal on error
 build_dev               # fatal on error
