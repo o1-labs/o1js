@@ -22,6 +22,8 @@ This project adheres to
 
 - Internal o1js and protocol constants, hashes and prefixes are now exported via
   the `Core´ namespace. https://github.com/o1-labs/o1js/pull/2421
+- Support for string type input to `Transaction.fromJSON`
+  https://github.com/o1-labs/o1js/pull/2436
 
 ## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
 
