@@ -22,7 +22,6 @@ This project adheres to
 
 - Internal o1js and protocol constants, hashes and prefixes are now exported via
   the `Core´ namespace. https://github.com/o1-labs/o1js/pull/2421
-  
 - Added `caml_fp_srs_get_lagrange_basis_ptr` and
   `caml_fq_srs_get_lagrange_basis_ptr` pointer functions to enable using a
   browser cache with `zkProgram.compile()`.
@@ -48,16 +47,13 @@ This project adheres to
 - Fixed a performance regression that occured when proving circuits.
   https://github.com/o1-labs/o1js/pull/2388
 
-
 - Fixed issue where `zkProgram.compile()` was not able to use a browser cache.
   Previously, the `get_lagrange_basis` functions were disabled on the web
   because they would hang indefinitely when cache writing was enabled. The issue
   was caused by lagrange basis functions returning types incompatible with web
   worker transfer. https://github.com/o1-labs/o1js/pull/2404
 
-
 ## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...70bca22) - 2025-08-01
-
 
 ### Deprecated
 
