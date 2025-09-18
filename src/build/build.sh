@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# - If bindings are missing, try `npm run checkForBindings` (downloads CI artifacts).
+# - If bindings are missing, try `npm run check:bindings` (downloads CI artifacts).
 # - If that fails, fall back to `npm run build:bindings` (local build).
 # - Subsequent steps (copy/clean/builds) are critical: failures stop the script with a clear message.
 
@@ -30,17 +30,17 @@ ensure_bindings() {
   fi
 
   warn "Compiled bindings not found at: $BINDINGS_CHECK_PATH"
-  warn "Trying npm run checkForBindings (downloads prebuilt artifacts)..."
+  warn "Trying npm run check:bindings (downloads prebuilt artifacts)..."
 
   # Non-fatal attempt to fetch CI-built bindings
-  ( cd "$ROOT_DIR" && npm run checkForBindings ) || true
+  ( cd "$ROOT_DIR" && npm run check:bindings ) || true
 
   if [[ -d "$BINDINGS_CHECK_PATH" ]]; then
     ok "Bindings downloaded successfully at: $BINDINGS_CHECK_PATH"
     return 0
   fi
 
-  warn "checkForBindings did not produce bindings. Falling back to local build via npm run build:bindings (fatal)..."
+  warn "check:bindings did not produce bindings. Falling back to local build via npm run build:bindings (fatal)..."
 
   # FATAL fallback: if this fails, the ERR trap will abort the build
   ( cd "$ROOT_DIR" && npm run build:bindings )
@@ -84,7 +84,7 @@ build_node() {
 
 # ---------- main ----------
 bold "Starting build"
-ensure_bindings         # use checkForBindings first(non-fatal on error), then fallback to build:bindings(fatal on error)
+ensure_bindings         # use check:bindings first(non-fatal on error), then fallback to build:bindings(fatal on error)
 copy_artifacts          # fatal on error
 clean_dist_node         # fatal on error
 build_dev               # fatal on error
