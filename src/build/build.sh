@@ -13,8 +13,6 @@ BINDINGS_CHECK_PATH="${BINDINGS_CHECK_PATH:-$ROOT_DIR/src/bindings/compiled}"  #
 
 # ---------- shared libraries ----------
 source "$ROOT_DIR/scripts/lib/ux.sh"
-
-# ---------- setup ----------
 setup_script "${BASH_SOURCE[0]}" "Build"
 
 # ---------- steps ----------
