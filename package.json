@@ -76,7 +76,7 @@
     "test:unit": "./run-unit-tests.sh",
     "test:e2e": "rimraf ./tests/report && rimraf ./tests/test-artifacts && npx playwright test",
     "test:all": "./run-all-local-tests.sh",
-    "e2e:prepare-server": "npm run build:examples && (cp -rf dist/examples dist/web || :) && node src/build/e2e-tests-build-helper.js && cp -rf src/examples/plain-html/index.html src/examples/plain-html/server.js tests/artifacts/html/*.html tests/artifacts/javascript/*.js dist/web",
+    "e2e:prepare-server": "./scripts/e2e/prepare-server.sh",
     "e2e:run-server": "node dist/web/server.js",
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report",
