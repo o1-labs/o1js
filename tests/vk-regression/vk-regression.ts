@@ -88,7 +88,7 @@ try {
 } catch (error) {
   if (!dump) {
     throw Error(
-      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. npm run dump-vks`
+      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. npm run test:dump-verification-keys`
     );
   }
 }

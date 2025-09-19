@@ -10,6 +10,9 @@ KIMCHI_BINDINGS="$MINA_PATH/src/lib/crypto/kimchi_bindings"
 NODE_BINDINGS="src/bindings/compiled/node_bindings"
 WEB_BINDINGS="src/bindings/compiled/web_bindings"
 
+# Ensure target directories exist before any cp
+mkdir -p "${NODE_BINDINGS}" "${WEB_BINDINGS}"
+
 # 1. node build
 
 "${DIR_PATH}"/build-o1js-node-artifacts.sh
@@ -48,7 +51,7 @@ else
   cp "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}"/*.js \
      "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}"/*.ts \
      "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}"/*.wasm \
-     """${WEB_BINDINGS}"
+     "${WEB_BINDINGS}"
   mkdir -p "${NODE_BINDINGS}"
   cp "${PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS}"/*.js \
      "${PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS}"/*.ts \
