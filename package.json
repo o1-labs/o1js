@@ -66,7 +66,7 @@
     "format:check": "prettier --check --ignore-unknown",
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
     "format:md:check": "prettier --config .prettierrc.md.cjs --check '**/*.md'",
-    "clean": "rimraf ./dist && rimraf ./src/bindings/compiled/_node_bindings",
+    "clean": "./scripts/clean/clean.sh",
     "clean-all": "npm run clean && rimraf ./tests/report && rimraf ./tests/test-artifacts",
     "lint": "npx oxlint",
     "lint:fix": "npx oxlint --fix --fix-suggestions",
