@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # - If bindings are missing, try `npm run check:bindings` (downloads CI artifacts).
-# - If that fails, fall back to `npm run build:bindings` (local build).
+# - If that fails, fall back to `npm run build:bindings-node` (local build).
 # - Subsequent steps (copy/clean/builds) are critical: failures stop the script with a clear message.
 
 set -Eeuo pipefail
@@ -40,10 +40,10 @@ ensure_bindings() {
     return 0
   fi
 
-  warn "check:bindings did not produce bindings. Falling back to local build via npm run build:bindings (fatal)..."
+  warn "check:bindings did not produce bindings. Falling back to local build via npm run build:bindings-node (fatal)..."
 
   # FATAL fallback: if this fails, the ERR trap will abort the build
-  ( cd "$ROOT_DIR" && npm run build:bindings )
+  ( cd "$ROOT_DIR" && npm run build:bindings-node )
 
   # Extra safety: ensure the directory actually exists after a 'successful' run
   if [[ -d "$BINDINGS_CHECK_PATH" ]]; then
@@ -84,7 +84,7 @@ build_node() {
 
 # ---------- main ----------
 bold "Starting build"
-ensure_bindings         # use check:bindings first(non-fatal on error), then fallback to build:bindings(fatal on error)
+ensure_bindings         # use check:bindings first(non-fatal on error), then fallback to build:bindings-node(fatal on error)
 copy_artifacts          # fatal on error
 clean_dist_node         # fatal on error
 build_dev               # fatal on error
