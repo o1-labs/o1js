@@ -51,7 +51,7 @@
     "build:dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",
     "build": "./src/build/build.sh",
     "build:bindings-node": "./src/bindings/scripts/build-o1js-node.sh",
-    "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
+    "build:bindings-all": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:bindings-remote": "./src/bindings/scripts/remote-build-bindings.sh && npm run build",
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
     "build:web": "rimraf ./dist/web && node src/build/build-web.js",
