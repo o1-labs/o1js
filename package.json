@@ -52,7 +52,7 @@
     "build": "./src/build/build.sh",
     "build:bindings": "./src/bindings/scripts/build-o1js-node.sh",
     "build:update-bindings": "./src/bindings/scripts/update-o1js-bindings.sh",
-    "build:bindings-remote": "./src/bindings/scripts/remote-build-bindings.sh && npm run build",
+    "build:bindings-remote": "./scripts/build/build-bindings-remote.sh",
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
     "build:web": "./scripts/build/build-web.sh",
     "build:examples": "./scripts/build/build-examples.sh",
