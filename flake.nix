@@ -248,6 +248,7 @@
                 ./src/bindings/ocaml/dune
                 ./src/bindings/ocaml/dune-project
                 (fileFilter (file: file.hasExt "ml") ./src/bindings/ocaml)
+                ./scripts/lib
                 ./package.json
                 ./package-lock.json
                 ./src/bindings/ocaml/jsoo_exports
@@ -292,7 +293,7 @@
               echo '// this file exists to prevent TS from type-checking `o1js_node.bc.cjs`' \
                 > src/bindings/compiled/node_bindings/o1js_node.bc.d.cts
 
-              npm run build:update-bindings
+              npm run build:bindings-all
 
               mkdir -p $out/mina-transaction
               pushd ./src/bindings

@@ -97,7 +97,7 @@ From within the shell, you can build o1js and update the bindings.
 
 ```console
 npm run build
-npm run build:update-bindings
+npm run build:bindings-all
 ```
 
 If you need to update the underlying `mina` code, you can also do so with Nix,
