@@ -81,7 +81,6 @@
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report",
     "update-changelog": "./update-changelog.sh",
-    "checkCommit": "./src/bindings/scripts/check-commit.sh",
     "prepare": "husky"
   },
   "author": "O(1) Labs",
