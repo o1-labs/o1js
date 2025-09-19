@@ -60,7 +60,7 @@
     "build:docs": "npx typedoc",
     "prepublish:web": "npm run checkForBindings && NODE_ENV=production node src/build/build-web.js",
     "prepublish:node": "npm run checkForBindings && node src/build/copy-artifacts.js && rimraf ./dist/node && tsc -p tsconfig.node.json && node src/build/copy-to-dist.js && NODE_ENV=production node src/build/build-node.js",
-    "prepublishOnly": "npm run prepublish:web && npm run prepublish:node",
+    "prepublish:only": "npm run prepublish:web && npm run prepublish:node",
     "dump-vks": "npm run build && ./run tests/vk-regression/vk-regression.ts --bundle --dump",
     "format": "prettier --write --ignore-unknown",
     "format:check": "prettier --check --ignore-unknown",
