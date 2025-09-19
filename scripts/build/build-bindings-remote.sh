@@ -5,10 +5,8 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/ux.sh"
 
-# paths
 ROOT_DIR="$(get_repo_root)"
 
-# setup
 setup_script "${BASH_SOURCE[0]}" "Remote bindings build"
 
 # ensure we run from repo root

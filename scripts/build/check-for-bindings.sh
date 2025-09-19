@@ -5,11 +5,8 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/ux.sh"
 
-# paths
 ROOT_DIR="$(get_repo_root)"
 BINDINGS_DIR="$ROOT_DIR/src/bindings/compiled"
-
-# setup
 setup_script "${BASH_SOURCE[0]}" "Bindings check"
 
 cd "$ROOT_DIR"
