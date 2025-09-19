@@ -62,6 +62,7 @@
     "prepublish:node": "./scripts/prepublish/prepublish-node.sh",
     "prepublish:only": "./scripts/prepublish/prepublish-all.sh",
     "dump-vks": "./scripts/tests/dump-vks.sh",
+    "regression:check-vks": "./scripts/tests/check-vks.sh",
     "format": "prettier --write --ignore-unknown",
     "format:check": "prettier --check --ignore-unknown",
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
