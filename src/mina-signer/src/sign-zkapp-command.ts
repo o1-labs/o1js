@@ -29,24 +29,6 @@ export {
   CallForest,
 };
 
-/**
- * Signs a zkApp command JSON object with the provided private key.
- *
- * This function applies a Schnorr signature to the fee payer and any account
- * updates within the command that require signatures and are owned by the same
- * public key. 
- * 
- * If this method is not called as the fee payer (i.e. the private key provided 
- * does not match the fee payer's public key), the fee payer authorization will 
- * remain unsigned after this method returns. This behavior allows for collaborative
- * construction of zkApp commands where two different users sign the account update
- * and pay the fee.
- *
- * @param zkappCommand_ - The zkApp command in JSON format, before signatures.
- * @param privateKeyBase58 - The Base58-encoded private key used for signing.
- * @param networkId - The network identifier that determines the signature domain.
- * @returns The signed zkApp command in JSON format.
- */
 function signZkappCommand(
   zkappCommand_: Json.ZkappCommand,
   privateKeyBase58: string,
@@ -56,14 +38,11 @@ function signZkappCommand(
 
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
-  let publicKey = PrivateKey.toPublicKey(privateKey);
+  let publicKey = zkappCommand.feePayer.body.publicKey;
 
+  // sign fee payer
   let signature = signFieldElement(fullCommitment, privateKey, networkId);
-
-  // sign fee payer whenever the public key matches
-  if (PublicKey.equal(zkappCommand.feePayer.body.publicKey, publicKey)) {
-    zkappCommand.feePayer.authorization = Signature.toBase58(signature);
-  }
+  zkappCommand.feePayer.authorization = Signature.toBase58(signature);
 
   // sign other updates with the same public key that require a signature
   for (let update of zkappCommand.accountUpdates) {
@@ -77,39 +56,19 @@ function signZkappCommand(
   return ZkappCommand.toJSON(zkappCommand);
 }
 
-/**
- * Verifies the signature of a zkApp command JSON object.
- * 
- * This function verifies the signatures of the fee payer and any account
- * updates within the command that require signatures and are owned by the
- * same public key. 
- *
- * @param zkappCommand_ - The zkApp command in JSON format, after signatures.
- * @param publicKeyBase58 - The Base58-encoded public key used for verification.
- * @param networkId - The network identifier that determines the signature domain.
- * @param feePayerPublicKeyBase58 - Optional Base58-encoded public key of the fee
- *                            payer, required if the provided public key does not
- *                            match the fee payer's public key.
- * @returns True if the signature is valid, false otherwise.
- *
- * @warning To verify the zkApp command signature, the public key must match the
- * fee payer's public key, or the parameter `feePayerPublicKey` must be provided.
- */
 function verifyZkappCommandSignature(
   zkappCommand_: Json.ZkappCommand,
   publicKeyBase58: string,
-  networkId: NetworkId,
-  feePayerPublicKeyBase58?: string
+  networkId: NetworkId
 ) {
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
   let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId);
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
 
-  // verify fee payer signature when public keys match
-  let feePayerPublicKey = feePayerPublicKeyBase58 ? PublicKey.fromBase58(feePayerPublicKeyBase58) : publicKey;
+  // verify fee payer signature
   let signature = Signature.fromBase58(zkappCommand.feePayer.authorization);
-  let ok = verifyFieldElement(signature, fullCommitment, feePayerPublicKey, networkId) && PublicKey.equal(zkappCommand.feePayer.body.publicKey, feePayerPublicKey);
+  let ok = verifyFieldElement(signature, fullCommitment, publicKey, networkId);
   if (!ok) return false;
 
   // verify other signatures for the same public key

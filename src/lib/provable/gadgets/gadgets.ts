@@ -598,9 +598,6 @@ const Gadgets = {
    * @param pair0
    * @param pair1
    * @param pair2
-   *
-   * @deprecated {@link inTable} is deprecated in favor of RuntimeTable class, 
-   * which provides a more ergonomic API.
    */
   inTable(
     id: number,

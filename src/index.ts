@@ -1,6 +1,3 @@
-/**
- * Include in this file all the exports that should be part of the public API.
- */
 export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings } from './bindings.js';
@@ -43,7 +40,6 @@ export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
 export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
-export { RuntimeTable } from './lib/provable/gadgets/runtime-table.js';
 export { Types } from './bindings/mina-transaction/v1/types.js';
 export { DynamicArray } from './lib/provable/dynamic-array.js';
 

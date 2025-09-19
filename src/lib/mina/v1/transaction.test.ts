@@ -1,4 +1,4 @@
-import { UInt64, SmartContract, Mina, AccountUpdate, method, Transaction } from 'o1js';
+import { UInt64, SmartContract, Mina, AccountUpdate, method } from 'o1js';
 
 class MyContract extends SmartContract {
   @method async shouldMakeCompileThrow() {
@@ -54,48 +54,5 @@ describe('transactions', () => {
     await new_fee.send();
     // check that tx was applied, by checking nonce was incremented
     expect((await new_fee).transaction.feePayer.body.nonce).toEqual(nonce);
-  });
-
-  it('fromJSON should serialize and deserialize transaction correctly', async () => {
-    // Create a transaction
-    let originalTx = await Mina.transaction(feePayer, async () => {
-      contract.requireSignature();
-      AccountUpdate.attachToTransaction(contract.self);
-    });
-
-    // Serialize to JSON string
-    let jsonString = originalTx.toJSON();
-
-    // Deserialize using fromJSON with string input
-    let deserializedTx = Transaction.fromJSON(jsonString);
-
-    // Verify the deserialized transaction has the same structure
-    expect(deserializedTx.transaction.feePayer.body.publicKey.x).toEqual(
-      originalTx.transaction.feePayer.body.publicKey.x
-    );
-    expect(deserializedTx.transaction.feePayer.body.nonce).toEqual(
-      originalTx.transaction.feePayer.body.nonce
-    );
-    expect(deserializedTx.transaction.accountUpdates.length).toEqual(
-      originalTx.transaction.accountUpdates.length
-    );
-    expect(deserializedTx.toJSON()).toEqual(originalTx.toJSON());
-  });
-
-  it('should throw proper error for malformed JSON string input', async () => {
-    // Test invalid JSON syntax
-    expect(() => {
-      Transaction.fromJSON('{"invalid": json}');
-    }).toThrow('Failed to parse ZkappCommand from JSON string:');
-
-    // Test valid JSON but invalid ZkappCommand structure
-    expect(() => {
-      Transaction.fromJSON('{"not": "a", "valid": "zkapp", "command": true}');
-    }).toThrow('Failed to construct ZkappCommand from parsed JSON:');
-
-    // Test completely malformed string
-    expect(() => {
-      Transaction.fromJSON('not json at all');
-    }).toThrow('Failed to parse ZkappCommand from JSON string:');
   });
 });

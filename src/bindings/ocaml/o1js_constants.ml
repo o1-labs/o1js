@@ -14,8 +14,6 @@ let field f = `String (Field.to_string f)
 
 let array element array = `List (array |> Array.map ~f:element |> Array.to_list)
 
-let ledger_merkle_tree_depth = 35
-
 let prefixes =
   let open Hash_prefixes in
   `Assoc
@@ -26,18 +24,12 @@ let prefixes =
     ; ("zkappBodyTestnet", `String (zkapp_body_testnet :> string))
     ; ("accountUpdateCons", `String (account_update_cons :> string))
     ; ("accountUpdateNode", `String (account_update_node :> string))
-    ; ("account", `String (account :> string))
-    ; ("zkappAccount", `String (zkapp_account :> string))
     ; ("zkappMemo", `String (zkapp_memo :> string))
     ; ("signatureMainnet", `String (signature_mainnet :> string))
     ; ("signatureTestnet", `String (signature_testnet :> string))
     ; ("zkappUri", `String (zkapp_uri :> string))
     ; ("deriveTokenId", `String (derive_token_id :> string))
     ; ("sideLoadedVK", `String (side_loaded_vk :> string))
-    ; ( "merkleTree"
-      , `List
-          (List.init ledger_merkle_tree_depth ~f:(fun idx ->
-               `String (merkle_tree idx :> string) ) ) )
     ]
 
 type hash_prefix_kind = Kimchi | Legacy
@@ -56,55 +48,53 @@ let prefix_hashes =
   let open Hash_prefixes in
   `Assoc
     (List.map ~f:(prefix_hash_entry Kimchi)
-       ( [ (receipt_chain_user_command :> string)
-         ; (receipt_chain_zkapp :> string)
-         ; (coinbase :> string)
-         ; (pending_coinbases :> string)
-         ; (coinbase_stack_data :> string)
-         ; (coinbase_stack_state_hash :> string)
-         ; (coinbase_stack :> string)
-         ; (checkpoint_list :> string)
-         ; (merge_snark :> string)
-         ; (base_snark :> string)
-         ; (protocol_state :> string)
-         ; (protocol_state_body :> string)
-         ; (vrf_message :> string)
-         ; (signature_mainnet :> string)
-         ; (signature_testnet :> string)
-         ; (vrf_output :> string)
-         ; (vrf_evaluation :> string)
-         ; (epoch_seed :> string)
-         ; (transition_system_snark :> string)
-         ; (account :> string)
-         ; (zkapp_account :> string)
-         ; (side_loaded_vk :> string)
-         ; (zkapp_payload :> string)
-         ; (zkapp_body_mainnet :> string)
-         ; (zkapp_body_testnet :> string)
-         ; (zkapp_precondition :> string)
-         ; (zkapp_precondition_account :> string)
-         ; (zkapp_precondition_protocol_state :> string)
-         ; (account_update_account_precondition :> string)
-         ; (account_update_cons :> string)
-         ; (account_update_node :> string)
-         ; (account_update_stack_frame :> string)
-         ; (account_update_stack_frame_cons :> string)
-         ; (zkapp_uri :> string)
-         ; (zkapp_event :> string)
-         ; (zkapp_events :> string)
-         ; (zkapp_actions :> string)
-         ; (zkapp_memo :> string)
-         ; (zkapp_test :> string)
-         ; (derive_token_id :> string)
-         ; "CodaReceiptEmpty"
-         ; "MinaZkappEventsEmpty"
-         ; "MinaZkappActionsEmpty"
-         ; "MinaZkappActionStateEmptyElt"
-         ; "CoinbaseStack"
-         ; "PendingCoinbaseMerkleTree"
-         ]
-       @ List.init ledger_merkle_tree_depth ~f:(fun idx ->
-             (merkle_tree idx :> string) ) ) )
+       [ (receipt_chain_user_command :> string)
+       ; (receipt_chain_zkapp :> string)
+       ; (coinbase :> string)
+       ; (pending_coinbases :> string)
+       ; (coinbase_stack_data :> string)
+       ; (coinbase_stack_state_hash :> string)
+       ; (coinbase_stack :> string)
+       ; (checkpoint_list :> string)
+       ; (merge_snark :> string)
+       ; (base_snark :> string)
+       ; (protocol_state :> string)
+       ; (protocol_state_body :> string)
+       ; (vrf_message :> string)
+       ; (signature_mainnet :> string)
+       ; (signature_testnet :> string)
+       ; (vrf_output :> string)
+       ; (vrf_evaluation :> string)
+       ; (epoch_seed :> string)
+       ; (transition_system_snark :> string)
+       ; (account :> string)
+       ; (side_loaded_vk :> string)
+       ; (zkapp_account :> string)
+       ; (zkapp_payload :> string)
+       ; (zkapp_body_mainnet :> string)
+       ; (zkapp_body_testnet :> string)
+       ; (zkapp_precondition :> string)
+       ; (zkapp_precondition_account :> string)
+       ; (zkapp_precondition_protocol_state :> string)
+       ; (account_update_account_precondition :> string)
+       ; (account_update_cons :> string)
+       ; (account_update_node :> string)
+       ; (account_update_stack_frame :> string)
+       ; (account_update_stack_frame_cons :> string)
+       ; (zkapp_uri :> string)
+       ; (zkapp_event :> string)
+       ; (zkapp_events :> string)
+       ; (zkapp_actions :> string)
+       ; (zkapp_memo :> string)
+       ; (zkapp_test :> string)
+       ; (derive_token_id :> string)
+       ; "CodaReceiptEmpty"
+       ; "MinaZkappEventsEmpty"
+       ; "MinaZkappActionsEmpty"
+       ; "MinaZkappActionStateEmptyElt"
+       ; "CoinbaseStack"
+       ; "PendingCoinbaseMerkleTree"
+       ] )
 
 let prefix_hashes_legacy =
   let open Hash_prefixes in
