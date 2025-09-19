@@ -3,7 +3,6 @@ set -Eeuo pipefail
 
 # shared ux library
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/ux.sh"
-ROOT_DIR="$(get_repo_root)"
 
 # logging setup
 setup_script "${BASH_SOURCE[0]}" "Development build"
