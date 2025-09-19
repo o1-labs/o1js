@@ -248,6 +248,7 @@
                 ./src/bindings/ocaml/dune
                 ./src/bindings/ocaml/dune-project
                 (fileFilter (file: file.hasExt "ml") ./src/bindings/ocaml)
+                ./scripts/lib
                 ./package.json
                 ./package-lock.json
                 ./src/bindings/ocaml/jsoo_exports
