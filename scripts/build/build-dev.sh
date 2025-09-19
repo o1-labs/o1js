@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# shared libraries
+# shared ux library
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/ux.sh"
 
-# paths
-ROOT_DIR="$(get_repo_root)"
-
-# setup
+# logging setup
 setup_script "${BASH_SOURCE[0]}" "Development build"
 
-# steps
+# main steps
 bold "Building development version"
 
 info "Compiling TypeScript with test configuration..."

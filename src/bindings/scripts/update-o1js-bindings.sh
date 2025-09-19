@@ -29,7 +29,6 @@ info "Preparing output directories..."
 run_cmd mkdir -p "${NODE_BINDINGS}" "${WEB_BINDINGS}"
 ok "Output directories prepared"
 
-# phase 1: node bindings
 bold "Phase 1: Building node bindings"
 
 info "Building node artifacts..."
@@ -72,7 +71,6 @@ else
     info "Skipping main build (JUST_BINDINGS set)"
 fi
 
-# phase 2 web bindings
 bold "Phase 2: Building web bindings"
 
 info "Checking for prebuilt bindings..."
@@ -139,7 +137,6 @@ else
     ok "web JavaScript built and copied"
 fi
 
-# Phase 3: Web optimization
 bold "Phase 3: Web bindings optimization"
 
 info "Improving error messages in web bindings..."
@@ -167,7 +164,9 @@ ok "JavaScript minified"
 run_cmd popd
 ok "Optimization complete"
 
-# Phase 4: Final build
+
+bold "Phase 4: Building final project"
+
 if [ -z "${JUST_BINDINGS}" ]; then
     info "Running web build..."
     run_cmd npm run build:web
