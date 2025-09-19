@@ -16,8 +16,8 @@ setup_script() {
 
 # read VERBOSE_OUTPUT env, default 1
 # 0 = quiet (only errors and success)
-# 1 = normal (show steps and progress)  
-# 2 = verbose (show commands and "called by" prefixes)
+# 1 = normal (shows steps and progress)  
+# 2 = verbose (shows commands and "called by" prefixes)
 get_log_level() {
     echo "${VERBOSE_OUTPUT:-1}"
 }
