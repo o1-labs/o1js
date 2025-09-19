@@ -91,11 +91,6 @@ run_with_prefix() {
     fi
 }
 
-# Run a command quietly (no prefix, for tools that produce too much noise)
-run_quiet() {
-    "$@"
-}
-
 # run a command with a prefix
 run_cmd() {
     if should_show_commands; then
@@ -109,18 +104,3 @@ run_cmd() {
     fi
 }
 
-
-# Get the repository root directory relative to any script location
-get_repo_root() {
-    # Find the directory containing package.json (which should be repo root)
-    local current_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
-    while [[ "$current_dir" != "/" ]]; do
-        if [[ -f "$current_dir/package.json" ]]; then
-            echo "$current_dir"
-            return 0
-        fi
-        current_dir="$(dirname "$current_dir")"
-    done
-    error "Could not find repository root (no package.json found)"
-    exit 1
-}
