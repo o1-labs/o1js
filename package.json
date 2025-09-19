@@ -56,7 +56,7 @@
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
     "build:web": "./scripts/build/build-web.sh",
     "build:examples": "./scripts/build/build-examples.sh",
-    "checkForBindings": "test -d ./src/bindings/compiled || npm run build:bindings-download",
+    "check:bindings": "./scripts/build/check-for-bindings.sh",
     "build:docs": "npx typedoc",
     "prepublish:web": "npm run checkForBindings && NODE_ENV=production node src/build/build-web.js",
     "prepublish:node": "npm run checkForBindings && node src/build/copy-artifacts.js && rimraf ./dist/node && tsc -p tsconfig.node.json && node src/build/copy-to-dist.js && NODE_ENV=production node src/build/build-node.js",
