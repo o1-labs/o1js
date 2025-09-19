@@ -48,7 +48,7 @@
     "node": ">=18.14.0"
   },
   "scripts": {
-    "build:dev": "npx tsc -p tsconfig.test.json && node src/build/copy-to-dist.js",
+    "build:dev": "./scripts/build/build-dev.sh",
     "build": "./src/build/build.sh",
     "build:bindings-node": "./src/bindings/scripts/build-o1js-node.sh",
     "build:bindings-all": "./src/bindings/scripts/update-o1js-bindings.sh",
