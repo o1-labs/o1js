@@ -67,7 +67,7 @@
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
     "format:md:check": "prettier --config .prettierrc.md.cjs --check '**/*.md'",
     "clean": "./scripts/clean/clean.sh",
-    "clean-all": "npm run clean && rimraf ./tests/report && rimraf ./tests/test-artifacts",
+    "clean:all": "./scripts/clean/clean-all.sh",
     "lint": "npx oxlint",
     "lint:fix": "npx oxlint --fix --fix-suggestions",
     "lint:strict": "npx oxlint --max-warnings 0",

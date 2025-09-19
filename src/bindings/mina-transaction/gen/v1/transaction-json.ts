@@ -1,39 +1,34 @@
 // @generated this file is auto-generated - don't edit it directly
 
-import {
-  PublicKey,
-  UInt64,
-  UInt32,
-  TokenId,
-  Field,
-  AuthRequired,
-  BalanceChange,
-  Sign,
-  Bool,
-} from '../../v1/transaction-leaves-json.js';
+import { PublicKey, UInt64, UInt32, TokenId, Field, AuthRequired, BalanceChange, Sign, Bool } from '../../v1/transaction-leaves-json.js';
+
 
 export { ZkappCommand, AccountUpdate, Account };
 export * from '../../v1/transaction-leaves-json.js';
 export { TypeMap };
 
+
 type TypeMap = {
   PublicKey: PublicKey;
-  UInt64: UInt64;
-  UInt32: UInt32;
-  TokenId: TokenId;
-  Field: Field;
-  AuthRequired: AuthRequired;
-  BalanceChange: BalanceChange;
-  Sign: Sign;
-  Bool: Bool;
-};
+UInt64: UInt64;
+UInt32: UInt32;
+TokenId: TokenId;
+Field: Field;
+AuthRequired: AuthRequired;
+BalanceChange: BalanceChange;
+Sign: Sign;
+Bool: Bool;
+}
+
+
+
 
 type ZkappCommand = {
   feePayer: {
     body: {
       publicKey: PublicKey;
       fee: UInt64;
-      validUntil: UInt32 | null;
+      validUntil: (UInt32 | null);
       nonce: UInt32;
     };
     authorization: string;
@@ -44,12 +39,12 @@ type ZkappCommand = {
       tokenId: TokenId;
       update: {
         appState: (Field | null)[];
-        delegate: PublicKey | null;
-        verificationKey: {
+        delegate: (PublicKey | null);
+        verificationKey: ({
           data: string;
           hash: Field;
-        } | null;
-        permissions: {
+        } | null);
+        permissions: ({
           editState: AuthRequired;
           access: AuthRequired;
           send: AuthRequired;
@@ -66,17 +61,17 @@ type ZkappCommand = {
           incrementNonce: AuthRequired;
           setVotingFor: AuthRequired;
           setTiming: AuthRequired;
-        } | null;
-        zkappUri: string | null;
-        tokenSymbol: string | null;
-        timing: {
+        } | null);
+        zkappUri: (string | null);
+        tokenSymbol: (string | null);
+        timing: ({
           initialMinimumBalance: UInt64;
           cliffTime: UInt32;
           cliffAmount: UInt64;
           vestingPeriod: UInt32;
           vestingIncrement: UInt64;
-        } | null;
-        votingFor: Field | null;
+        } | null);
+        votingFor: (Field | null);
       };
       balanceChange: {
         magnitude: UInt64;
@@ -89,76 +84,76 @@ type ZkappCommand = {
       callDepth: number;
       preconditions: {
         network: {
-          snarkedLedgerHash: Field | null;
-          blockchainLength: {
+          snarkedLedgerHash: (Field | null);
+          blockchainLength: ({
             lower: UInt32;
             upper: UInt32;
-          } | null;
-          minWindowDensity: {
+          } | null);
+          minWindowDensity: ({
             lower: UInt32;
             upper: UInt32;
-          } | null;
-          totalCurrency: {
+          } | null);
+          totalCurrency: ({
             lower: UInt64;
             upper: UInt64;
-          } | null;
-          globalSlotSinceGenesis: {
+          } | null);
+          globalSlotSinceGenesis: ({
             lower: UInt32;
             upper: UInt32;
-          } | null;
+          } | null);
           stakingEpochData: {
             ledger: {
-              hash: Field | null;
-              totalCurrency: {
+              hash: (Field | null);
+              totalCurrency: ({
                 lower: UInt64;
                 upper: UInt64;
-              } | null;
+              } | null);
             };
-            seed: Field | null;
-            startCheckpoint: Field | null;
-            lockCheckpoint: Field | null;
-            epochLength: {
+            seed: (Field | null);
+            startCheckpoint: (Field | null);
+            lockCheckpoint: (Field | null);
+            epochLength: ({
               lower: UInt32;
               upper: UInt32;
-            } | null;
+            } | null);
           };
           nextEpochData: {
             ledger: {
-              hash: Field | null;
-              totalCurrency: {
+              hash: (Field | null);
+              totalCurrency: ({
                 lower: UInt64;
                 upper: UInt64;
-              } | null;
+              } | null);
             };
-            seed: Field | null;
-            startCheckpoint: Field | null;
-            lockCheckpoint: Field | null;
-            epochLength: {
+            seed: (Field | null);
+            startCheckpoint: (Field | null);
+            lockCheckpoint: (Field | null);
+            epochLength: ({
               lower: UInt32;
               upper: UInt32;
-            } | null;
+            } | null);
           };
         };
         account: {
-          balance: {
+          balance: ({
             lower: UInt64;
             upper: UInt64;
-          } | null;
-          nonce: {
+          } | null);
+          nonce: ({
             lower: UInt32;
             upper: UInt32;
-          } | null;
-          receiptChainHash: Field | null;
-          delegate: PublicKey | null;
+          } | null);
+          receiptChainHash: (Field | null);
+          delegate: (PublicKey | null);
           state: (Field | null)[];
-          actionState: Field | null;
-          provedState: Bool | null;
-          isNew: Bool | null;
+          actionState: (Field | null);
+          provedState: (Bool | null);
+          isNew: (Bool | null);
         };
-        validWhile: {
+        validWhile: ({
           lower: UInt32;
           upper: UInt32;
-        } | null;
+        } | null);
       };
       useFullCommitment: Bool;
       implicitAccountCreationFee: Bool;
@@ -173,8 +168,8 @@ type ZkappCommand = {
       };
     };
     authorization: {
-      proof: string | null;
-      signature: string | null;
+      proof: (string | null);
+      signature: (string | null);
     };
   }[];
   memo: string;
@@ -186,12 +181,12 @@ type AccountUpdate = {
     tokenId: TokenId;
     update: {
       appState: (Field | null)[];
-      delegate: PublicKey | null;
-      verificationKey: {
+      delegate: (PublicKey | null);
+      verificationKey: ({
         data: string;
         hash: Field;
-      } | null;
-      permissions: {
+      } | null);
+      permissions: ({
         editState: AuthRequired;
         access: AuthRequired;
         send: AuthRequired;
@@ -208,17 +203,17 @@ type AccountUpdate = {
         incrementNonce: AuthRequired;
         setVotingFor: AuthRequired;
         setTiming: AuthRequired;
-      } | null;
-      zkappUri: string | null;
-      tokenSymbol: string | null;
-      timing: {
+      } | null);
+      zkappUri: (string | null);
+      tokenSymbol: (string | null);
+      timing: ({
         initialMinimumBalance: UInt64;
         cliffTime: UInt32;
         cliffAmount: UInt64;
         vestingPeriod: UInt32;
         vestingIncrement: UInt64;
-      } | null;
-      votingFor: Field | null;
+      } | null);
+      votingFor: (Field | null);
     };
     balanceChange: {
       magnitude: UInt64;
@@ -231,76 +226,76 @@ type AccountUpdate = {
     callDepth: number;
     preconditions: {
       network: {
-        snarkedLedgerHash: Field | null;
-        blockchainLength: {
+        snarkedLedgerHash: (Field | null);
+        blockchainLength: ({
           lower: UInt32;
           upper: UInt32;
-        } | null;
-        minWindowDensity: {
+        } | null);
+        minWindowDensity: ({
           lower: UInt32;
           upper: UInt32;
-        } | null;
-        totalCurrency: {
+        } | null);
+        totalCurrency: ({
           lower: UInt64;
           upper: UInt64;
-        } | null;
-        globalSlotSinceGenesis: {
+        } | null);
+        globalSlotSinceGenesis: ({
           lower: UInt32;
           upper: UInt32;
-        } | null;
+        } | null);
         stakingEpochData: {
           ledger: {
-            hash: Field | null;
-            totalCurrency: {
+            hash: (Field | null);
+            totalCurrency: ({
               lower: UInt64;
               upper: UInt64;
-            } | null;
+            } | null);
           };
-          seed: Field | null;
-          startCheckpoint: Field | null;
-          lockCheckpoint: Field | null;
-          epochLength: {
+          seed: (Field | null);
+          startCheckpoint: (Field | null);
+          lockCheckpoint: (Field | null);
+          epochLength: ({
             lower: UInt32;
             upper: UInt32;
-          } | null;
+          } | null);
         };
         nextEpochData: {
           ledger: {
-            hash: Field | null;
-            totalCurrency: {
+            hash: (Field | null);
+            totalCurrency: ({
               lower: UInt64;
               upper: UInt64;
-            } | null;
+            } | null);
           };
-          seed: Field | null;
-          startCheckpoint: Field | null;
-          lockCheckpoint: Field | null;
-          epochLength: {
+          seed: (Field | null);
+          startCheckpoint: (Field | null);
+          lockCheckpoint: (Field | null);
+          epochLength: ({
             lower: UInt32;
             upper: UInt32;
-          } | null;
+          } | null);
         };
       };
       account: {
-        balance: {
+        balance: ({
           lower: UInt64;
           upper: UInt64;
-        } | null;
-        nonce: {
+        } | null);
+        nonce: ({
           lower: UInt32;
           upper: UInt32;
-        } | null;
-        receiptChainHash: Field | null;
-        delegate: PublicKey | null;
+        } | null);
+        receiptChainHash: (Field | null);
+        delegate: (PublicKey | null);
         state: (Field | null)[];
-        actionState: Field | null;
-        provedState: Bool | null;
-        isNew: Bool | null;
+        actionState: (Field | null);
+        provedState: (Bool | null);
+        isNew: (Bool | null);
       };
-      validWhile: {
+      validWhile: ({
         lower: UInt32;
         upper: UInt32;
-      } | null;
+      } | null);
     };
     useFullCommitment: Bool;
     implicitAccountCreationFee: Bool;
@@ -315,8 +310,8 @@ type AccountUpdate = {
     };
   };
   authorization: {
-    proof: string | null;
-    signature: string | null;
+    proof: (string | null);
+    signature: (string | null);
   };
 };
 
@@ -327,7 +322,7 @@ type Account = {
   balance: UInt64;
   nonce: UInt32;
   receiptChainHash: Field;
-  delegate: PublicKey | null;
+  delegate: (PublicKey | null);
   votingFor: Field;
   timing: {
     isTimed: Bool;
@@ -355,16 +350,17 @@ type Account = {
     setVotingFor: AuthRequired;
     setTiming: AuthRequired;
   };
-  zkapp: {
+  zkapp: ({
     appState: Field[];
-    verificationKey: {
+    verificationKey: ({
       data: string;
       hash: Field;
-    } | null;
+    } | null);
     zkappVersion: UInt32;
     actionState: Field[];
     lastActionSlot: UInt32;
     provedState: Bool;
     zkappUri: string;
-  } | null;
+  } | null);
 };
+
