@@ -48,8 +48,8 @@ This project adheres to
   https://github.com/o1-labs/o1js/pull/2388
 
 - Fixed issue where `zkProgram.compile()` was not able to use a browser cache.
-  Previously, the `get_lagrange_basis` functions were disabled on the web
-  because they would hang indefinitely when cache writing was enabled. The issue
+  Previously, reading from cache was disabled on the web
+  because they would hang indefinitely when cache reading was enabled. The issue
   was caused by lagrange basis functions returning types incompatible with web
   worker transfer. https://github.com/o1-labs/o1js/pull/2404
 
