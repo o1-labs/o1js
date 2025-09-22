@@ -24,6 +24,14 @@ This project adheres to
   the `Core´ namespace. https://github.com/o1-labs/o1js/pull/2421
 - Support for string type input to `Transaction.fromJSON`
   https://github.com/o1-labs/o1js/pull/2436
+- Improved the runtime table API with a `RuntimeTable` class with better
+  readability https://github.com/o1-labs/o1js/pull/2402
+
+### Deprecated
+
+- Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in
+  favor of the `RuntimeTable` class API
+  https://github.com/o1-labs/o1js/pull/2402
 
 ## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
 
@@ -31,14 +39,6 @@ This project adheres to
 
 - Support for `ForeignField.Unsafe.fromField` as an alternative constructor
   https://github.com/o1-labs/o1js/pull/2322
-
-- Improved the runtime table API with a `RuntimeTable` class with better
-  readability.
-
-### Deprecated
-
-- Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in
-  favor of the `RuntimeTable` class API.
 
 ### Fixed
 
