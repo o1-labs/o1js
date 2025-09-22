@@ -11,14 +11,9 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BINDINGS_CHECK_PATH="${BINDINGS_CHECK_PATH:-$ROOT_DIR/src/bindings/compiled}"  # presence gate
 
-# ---------- UX helpers ----------
-bold()   { printf "\033[1m%s\033[0m\n" "$*"; }
-warn()   { printf "\033[33m⚠ %s\033[0m\n" "$*"; }
-error()  { printf "\033[31m✖ %s\033[0m\n" "$*"; }
-ok()     { printf "\033[32m✔ %s\033[0m\n" "$*"; }
-
-# Print a helpful message on any *critical* failure after this point
-trap 'error "Build failed (command: ${BASH_COMMAND})"; exit 1' ERR
+# ---------- shared libraries ----------
+source "$ROOT_DIR/scripts/lib/ux.sh"
+setup_script "${BASH_SOURCE[0]}" "Build"
 
 # ---------- steps ----------
 ensure_bindings() {
@@ -89,4 +84,4 @@ copy_artifacts          # fatal on error
 clean_dist_node         # fatal on error
 build_dev               # fatal on error
 build_node              # fatal on error
-bold "Build finished successfully."
+success "Build finished successfully."
