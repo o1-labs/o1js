@@ -6,7 +6,8 @@ import { assert } from '../gadgets/common.js';
 import { Gadgets } from '../gadgets/gadgets.js';
 import { Gates } from '../gates.js';
 import { constraintSystem, contains } from '../../testing/constraint-system.js';
-import { FeatureFlags, Cache } from 'o1js';
+import { FeatureFlags } from '../../proof-system/feature-flags.js';
+import { Cache } from '../../proof-system/cache.js';
 
 let uint = (n: number | bigint): Spec<bigint, Field> => {
   return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
