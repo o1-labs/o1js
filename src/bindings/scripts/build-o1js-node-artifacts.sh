@@ -121,7 +121,7 @@ else
     info "No temporary source map to clean up"
 fi
 
-info "Improving error messages in JavaScript bindings..."
+info "Fixing JavaScript bindings for better error handling..."
 # TODO: find a less hacky way to make adjustments to jsoo compiler output
 # `s` is the jsoo representation of the error message string, and `s.c` is the actual JS string
 run_cmd sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw globalThis.Error(s.c)/' "${BINDINGS_PATH}"/o1js_node.bc.cjs
@@ -129,7 +129,7 @@ run_cmd sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/functio
 run_cmd sed -i 's/return \[0,Exn,t\]/return globalThis.Error(t.c)/' "${BINDINGS_PATH}"/o1js_node.bc.cjs
 # TODO: this doesn't cover all cases, maybe should rewrite to_exn instead
 run_cmd sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "Unknown error thrown by raise")}/' "${BINDINGS_PATH}"/o1js_node.bc.cjs
-ok "Error messages improved"
+ok "JavaScript bindings fixed"
 
 info "Setting final permissions..."
 run_cmd chmod 777 "${BINDINGS_PATH}"/*
