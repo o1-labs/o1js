@@ -32,6 +32,9 @@ function rangeCheck3x12(v0: Field, v1: Field, v2: Field) {
  * @param pair0
  * @param pair1
  * @param pair2
+ * 
+ * @deprecated {@link inTable} is deprecated in favor of {@link RuntimeTable} class, 
+ * which provides a more ergonomic API.
  */
 function inTable(
   id: number,
