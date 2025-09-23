@@ -16,19 +16,36 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/4b1dccdd...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/114acff...HEAD)
 
-### Changed
+### Added
 
-- Updated Rust nightly version from `2024-06-13` to `2024-09-05` to match the
-  version used in Mina proof-systems repository.
+- Internal o1js and protocol constants, hashes and prefixes are now exported via
+  the `Core´ namespace. https://github.com/o1-labs/o1js/pull/2421
+- Support for string type input to `Transaction.fromJSON`
+  https://github.com/o1-labs/o1js/pull/2436
+- Improved the runtime table API with a `RuntimeTable` class with better
+  readability https://github.com/o1-labs/o1js/pull/2402
+
+### Deprecated
+
+- Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in
+  favor of the `RuntimeTable` class API
+  https://github.com/o1-labs/o1js/pull/2402
+
+## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
+
+### Added
+
+- Support for `ForeignField.Unsafe.fromField` as an alternative constructor
+  https://github.com/o1-labs/o1js/pull/2322
 
 ### Fixed
 
 - Fixed a performance regression that occured when proving circuits.
   https://github.com/o1-labs/o1js/pull/2388
 
-## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...4b1dccdd) - 2025-08-01
+## [2.8.0](https://github.com/o1-labs/o1js/compare/045b1ab...70bca22) - 2025-08-01
 
 ### Deprecated
 

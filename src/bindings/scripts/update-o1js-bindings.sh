@@ -151,6 +151,11 @@ info "Optimizing WASM and minifying JavaScript..."
 # Change to web bindings directory for optimization
 run_cmd pushd "${WEB_BINDINGS}"
 
+if ! command -v wasm-opt >/dev/null 2>&1; then
+    error "wasm-opt is required for web bindings optimization"
+    exit 1
+fi
+
 info "Optimizing WASM with wasm-opt..."
 run_cmd wasm-opt --detect-features --enable-mutable-globals -O4 plonk_wasm_bg.wasm -o plonk_wasm_bg.wasm.opt
 run_cmd mv plonk_wasm_bg.wasm.opt plonk_wasm_bg.wasm
