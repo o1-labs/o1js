@@ -16,7 +16,8 @@ cd "$ROOT_DIR"
 bold "Building bindings remotely"
 
 info "Running remote bindings build script..."
-run_cmd "$ROOT_DIR/src/bindings/scripts/remote-build-bindings.sh"
+sleep 5 # wait a bit to make sure the job exists
+run_cmd "$(dirname "$0")"/../../src/bindings/scripts/download-bindings.sh
 ok "Remote bindings build finished"
 
 info "Running local build after remote bindings..."
