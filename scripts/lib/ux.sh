@@ -104,3 +104,16 @@ run_cmd() {
     fi
 }
 
+get_repo_root() {
+    # Find the directory containing package.json (which should be repo root)
+    local current_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
+    while [[ "$current_dir" != "/" ]]; do
+        if [[ -f "$current_dir/package.json" ]]; then
+            echo "$current_dir"
+            return 0
+        fi
+        current_dir="$(dirname "$current_dir")"
+    done
+    error "Could not find repository root (no package.json found)"
+    exit 1
+}
