@@ -60,7 +60,7 @@
     "build:docs": "npx typedoc",
     "prepublish:web": "./scripts/prepublish/prepublish-web.sh",
     "prepublish:node": "./scripts/prepublish/prepublish-node.sh",
-    "prepublish:full": "./scripts/prepublish/prepublish-all.sh",
+    "prepublish:full": "./scripts/prepublish/prepublish-full.sh",
     "regression:dump-vks": "./scripts/tests/dump-vks.sh",
     "regression:check-vks": "./scripts/tests/check-vks.sh",
     "format": "prettier --write --ignore-unknown",
