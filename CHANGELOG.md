@@ -18,6 +18,10 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/114acff...HEAD)
 
+### Changed
+
+- Bump up Mina to a custom branch
+
 ### Added
 
 - Internal o1js and protocol constants, hashes and prefixes are now exported via
