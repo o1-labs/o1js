@@ -187,6 +187,6 @@ function featureFlagsToMlOption(
     MlOption.mapTo(xor, MlBool),
     MlOption.mapTo(rot, MlBool),
     MlOption.mapTo(lookup, MlBool),
-    MlOption.mapTo(runtimeTables || withRuntimeTables, MlBool),
+    MlOption.mapTo(withRuntimeTables ?? runtimeTables, MlBool),
   ];
 }
