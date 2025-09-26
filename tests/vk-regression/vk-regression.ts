@@ -8,7 +8,7 @@ import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
 import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js';
 import { GroupCS, BitwiseCS, HashCS, BasicCS, CryptoCS } from './plain-constraint-system.js';
 import { diverse } from './diverse-zk-program.js';
-
+import { mainProgram as DynamicMerkleTreeProofs} from '../../src/examples/zkprogram/side-loading/dynamic-keys-merkletree.js';
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
 
@@ -57,6 +57,7 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   SHA256Program,
   BLAKE2BProgram,
   diverse,
+  DynamicMerkleTreeProofs
 ];
 
 let selectedConstraintSystems: MinimumConstraintSystem[] = [];
