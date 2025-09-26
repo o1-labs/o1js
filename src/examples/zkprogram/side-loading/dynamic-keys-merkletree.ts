@@ -54,7 +54,7 @@ class SideloadedProgramProof extends DynamicProof<Field, Field> {
   static maxProofsVerified = 0 as const;
 
   // we use the feature flags that we computed from the `sideloadedProgram` ZkProgram
-  //static featureFlags = featureFlags;
+  static featureFlags = featureFlags;
 }
 
 class MerkleTreeWitness extends MerkleWitness(64) {}
