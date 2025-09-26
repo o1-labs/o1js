@@ -27,6 +27,10 @@ This project adheres to
 - Improved the runtime table API with a `RuntimeTable` class with better
   readability https://github.com/o1-labs/o1js/pull/2402
 
+### Fixed
+
+- Fixed a verification key regression that was caused by incorrectly enabling a proof system feature that wasn't needed. https://github.com/o1-labs/o1js/pull/2449 
+
 ### Deprecated
 
 - Deprecate the `Gates.addRuntimeTableConfig` and `Gadgets.inTable` functions in
