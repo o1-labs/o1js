@@ -8,7 +8,8 @@ import { SHA256Program } from '../../src/examples/crypto/sha256/sha256.js';
 import { BLAKE2BProgram } from '../../src/examples/crypto/blake2b/blake2b.js';
 import { GroupCS, BitwiseCS, HashCS, BasicCS, CryptoCS } from './plain-constraint-system.js';
 import { diverse } from './diverse-zk-program.js';
-
+import { mainProgram as DynamicMerkleTreeProofs } from '../../src/examples/zkprogram/side-loading/dynamic-keys-merkletree.js';
+import { PayrollRuntimeTableZkProgram } from '../../src/examples/zkprogram/runtime-table/payroll.js';
 // toggle this for quick iteration when debugging vk regressions
 const skipVerificationKeys = false;
 
@@ -30,12 +31,13 @@ type MinimumConstraintSystem = {
       }
     >
   >;
-  compile(options?: { forceRecompile?: boolean }): Promise<{
+  compile(options?: { forceRecompile?: boolean; withRuntimeTables?: boolean }): Promise<{
     verificationKey: {
       hash: { toString(): string };
       data: string;
     };
   }>;
+  withRuntimeTables?: boolean;
   digest(): Promise<string>;
   name: string;
 };
@@ -57,6 +59,8 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   SHA256Program,
   BLAKE2BProgram,
   diverse,
+  DynamicMerkleTreeProofs,
+  { ...PayrollRuntimeTableZkProgram, withRuntimeTables: true },
 ];
 
 let selectedConstraintSystems: MinimumConstraintSystem[] = [];
@@ -104,8 +108,10 @@ async function checkVk(contracts: typeof ConstraintSystems) {
 
     let {
       verificationKey: { data, hash },
-    } = await c.compile({ forceRecompile });
-
+    } = await c.compile({
+      forceRecompile,
+      withRuntimeTables: c.withRuntimeTables,
+    });
     let methodData = await c.analyzeMethods();
 
     for (const methodKey in methodData) {
@@ -145,7 +151,11 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
     let data = await c.analyzeMethods();
     let digest = await c.digest();
     let verificationKey: { data: string; hash: { toString(): string } } | undefined;
-    if (!skipVerificationKeys) ({ verificationKey } = await c.compile({ forceRecompile }));
+    if (!skipVerificationKeys)
+      ({ verificationKey } = await c.compile({
+        forceRecompile,
+        withRuntimeTables: c.withRuntimeTables,
+      }));
     newEntries[c.name] = {
       digest,
       methods: Object.fromEntries(
