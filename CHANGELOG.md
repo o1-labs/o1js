@@ -29,7 +29,9 @@ This project adheres to
 
 ### Fixed
 
-- Fixed a verification key regression that was caused by incorrectly enabling a proof system feature that wasn't needed. https://github.com/o1-labs/o1js/pull/2449 
+- Fixed a verification key regression that was caused by incorrectly enabling a
+  proof system feature that wasn't needed.
+  https://github.com/o1-labs/o1js/pull/2449
 
 ### Deprecated
 
