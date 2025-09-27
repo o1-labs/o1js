@@ -16,7 +16,9 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/114acff...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3453d1e53...HEAD)
+
+## [2.9.1](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
 ### Added
 
@@ -33,7 +35,7 @@ This project adheres to
   favor of the `RuntimeTable` class API
   https://github.com/o1-labs/o1js/pull/2402
 
-## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
+## [2.9.0](https://github.com/o1-labs/o1js/compare/70bca22...2265adc) - 2025-09-02
 
 ### Added
 
