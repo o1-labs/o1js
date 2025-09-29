@@ -171,7 +171,6 @@ function perfEnd() {
       ? { ...prev, methods: { ...(prev.methods ?? {}) } }
       : { methods: {} };
 
-    const prevMethod = merged.methods[methodName] ?? {};
     merged.methods[methodName] = {
       rows: info.rows,
       digest: info.digest,
