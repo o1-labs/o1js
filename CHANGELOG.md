@@ -20,6 +20,8 @@ This project adheres to
 
 ### Added
 
+- Added a new internal framework for testing proving and compilation time
+  regression. https://github.com/o1-labs/o1js/pull/2451
 - Internal o1js and protocol constants, hashes and prefixes are now exported via
   the `Core´ namespace. https://github.com/o1-labs/o1js/pull/2421
 - Support for string type input to `Transaction.fromJSON`
