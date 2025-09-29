@@ -5,6 +5,7 @@ await copyFromTo(
   [
     'src/bindings.d.ts',
     'src/bindings/compiled/_node_bindings',
+    'src/bindings/compiled/native',
     'src/bindings/compiled/node_bindings/plonk_wasm.d.cts',
   ],
   'src/',
