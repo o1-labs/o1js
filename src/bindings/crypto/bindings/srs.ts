@@ -87,8 +87,8 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
 
     if (isWeb) {
       // Web: Use new pointer-based functions for worker compatibility
-      const ptr = wasm[`caml_${f}_srs_get_lagrange_basis_ptr`](srs, n);
-      return wasm[`caml_${f}_srs_get_lagrange_basis_read_from_ptr`](ptr);
+      let getLagrangeBasisPtr = wasm[`caml_${f}_srs_get_lagrange_basis_ptr`](srs, n);
+      return wasm[`caml_${f}_srs_get_lagrange_basis_read_from_ptr`](getLagrangeBasisPtr);
     } else {
       // Node.js: Use original direct function
       return wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
