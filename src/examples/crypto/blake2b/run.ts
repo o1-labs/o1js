@@ -1,16 +1,19 @@
 import { Bytes12, BLAKE2BProgram } from './blake2b.js';
+import { perfStart, perfEnd } from '../../../lib/testing/perf-regression.js';
 
-console.time('compile');
+const cs = await BLAKE2BProgram.analyzeMethods();
+perfStart('compile', BLAKE2BProgram.name, cs);
 await BLAKE2BProgram.compile();
-console.timeEnd('compile');
+perfEnd();
 
 let preimage = Bytes12.fromString('hello world!');
 
 console.log('blake2b rows:', (await BLAKE2BProgram.analyzeMethods()).blake2b.rows);
 
-console.time('prove');
+perfStart('prove', BLAKE2BProgram.name, cs, 'blake2b');
 let { proof } = await BLAKE2BProgram.blake2b(preimage);
-console.timeEnd('prove');
+perfEnd();
+
 let isValid = await BLAKE2BProgram.verify(proof);
 
 console.log('digest:', proof.publicOutput.toHex());

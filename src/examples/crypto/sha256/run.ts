@@ -1,16 +1,18 @@
 import { Bytes12, SHA256Program } from './sha256.js';
+import { perfStart, perfEnd } from '../../../lib/testing/perf-regression.js';
 
-console.time('compile');
+const cs = await SHA256Program.analyzeMethods();
+perfStart('compile', SHA256Program.name, cs);
 await SHA256Program.compile();
-console.timeEnd('compile');
+perfEnd();
 
 let preimage = Bytes12.fromString('hello world!');
 
 console.log('sha256 rows:', (await SHA256Program.analyzeMethods()).sha256.rows);
 
-console.time('prove');
+perfStart('prove', SHA256Program.name, cs, 'sha256');
 let { proof } = await SHA256Program.sha256(preimage);
-console.timeEnd('prove');
+perfEnd();
 let isValid = await SHA256Program.verify(proof);
 
 console.log('digest:', proof.publicOutput.toHex());
