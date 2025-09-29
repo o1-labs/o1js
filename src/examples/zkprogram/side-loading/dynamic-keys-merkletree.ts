@@ -9,8 +9,9 @@ import {
   Struct,
   VerificationKey,
   ZkProgram,
-  verify,
 } from 'o1js';
+
+export { mainProgram, sideloadedProgram, SideloadedProgramProof,MerkleTreeWitness, MainProgramState };
 
 /**
  * This example showcases how DynamicProofs can be used along with a merkletree that stores
@@ -56,7 +57,6 @@ class SideloadedProgramProof extends DynamicProof<Field, Field> {
   static featureFlags = featureFlags;
 }
 
-const tree = new MerkleTree(64);
 class MerkleTreeWitness extends MerkleWitness(64) {}
 
 class MainProgramState extends Struct({
@@ -128,50 +128,3 @@ const mainProgram = ZkProgram({
   },
 });
 
-console.log('Compiling circuits...');
-const programVk = (await sideloadedProgram.compile()).verificationKey;
-const mainVk = (await mainProgram.compile()).verificationKey;
-
-console.log('Proving deployment of side-loaded key');
-const rootBefore = tree.getRoot();
-tree.setLeaf(1n, programVk.hash);
-const witness = new MerkleTreeWitness(tree.getWitness(1n));
-
-const { proof: proof1 } = await mainProgram.addSideloadedProgram(
-  new MainProgramState({
-    treeRoot: rootBefore,
-    state: Field(0),
-  }),
-  programVk,
-  witness
-);
-
-console.log('Proving child program execution');
-const { proof: childProof } = await sideloadedProgram.compute(Field(0), Field(10));
-
-console.log('Proving verification inside main program');
-const { proof: proof2 } = await mainProgram.validateUsingTree(
-  proof1.publicOutput,
-  proof1,
-  programVk,
-  witness,
-  SideloadedProgramProof.fromProof(childProof)
-);
-
-const validProof2 = await verify(proof2, mainVk);
-console.log('ok?', validProof2);
-
-console.log('Proving different method of child program');
-const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
-
-console.log('Proving verification inside main program');
-const proof3 = await mainProgram.validateUsingTree(
-  proof1.publicOutput,
-  proof1,
-  programVk,
-  witness,
-  SideloadedProgramProof.fromProof(childProof)
-);
-
-const validProof3 = await verify(proof2, mainVk);
-console.log('ok?', validProof2);
