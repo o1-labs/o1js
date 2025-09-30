@@ -1,17 +1,32 @@
-import { Field, MerkleTree, verify } from "o1js";
-import { sideloadedProgram, mainProgram, SideloadedProgramProof, MerkleTreeWitness, MainProgramState } from "./dynamic-keys-merkletree.js";
+import { Field, MerkleTree, verify } from 'o1js';
+import {
+  sideloadedProgram,
+  mainProgram,
+  SideloadedProgramProof,
+  MerkleTreeWitness,
+  MainProgramState,
+} from './dynamic-keys-merkletree.js';
+import { perfStart, perfEnd } from '../../../lib/testing/perf-regression.js';
 
-console.log('Compiling circuits...');
+const csSide = await sideloadedProgram.analyzeMethods();
+const csMain = await mainProgram.analyzeMethods();
+
+perfStart('compile', sideloadedProgram.name);
 const programVk = (await sideloadedProgram.compile()).verificationKey;
+perfEnd();
+
+perfStart('compile', mainProgram.name);
 const mainVk = (await mainProgram.compile()).verificationKey;
+perfEnd();
 
 const tree = new MerkleTree(64);
 
-console.log('Proving deployment of side-loaded key');
+console.log('\nProving deployment of side-loaded key');
 const rootBefore = tree.getRoot();
 tree.setLeaf(1n, programVk.hash);
 const witness = new MerkleTreeWitness(tree.getWitness(1n));
 
+perfStart('prove', mainProgram.name, csMain, 'addSideloadedProgram');
 const { proof: proof1 } = await mainProgram.addSideloadedProgram(
   new MainProgramState({
     treeRoot: rootBefore,
@@ -20,11 +35,15 @@ const { proof: proof1 } = await mainProgram.addSideloadedProgram(
   programVk,
   witness
 );
+perfEnd();
 
-console.log('Proving child program execution');
+console.log('\nProving child program execution');
+perfStart('prove', sideloadedProgram.name, csSide, 'compute');
 const { proof: childProof } = await sideloadedProgram.compute(Field(0), Field(10));
+perfEnd();
 
-console.log('Proving verification inside main program');
+console.log('\nProving verification inside main program');
+perfStart('prove', mainProgram.name, csMain, 'validateUsingTree');
 const { proof: proof2 } = await mainProgram.validateUsingTree(
   proof1.publicOutput,
   proof1,
@@ -32,14 +51,17 @@ const { proof: proof2 } = await mainProgram.validateUsingTree(
   witness,
   SideloadedProgramProof.fromProof(childProof)
 );
+perfEnd();
 
 const validProof2 = await verify(proof2, mainVk);
 console.log('ok?', validProof2);
 
-console.log('Proving different method of child program');
+console.log('\nProving different method of child program');
+perfStart('prove', sideloadedProgram.name, csSide, 'assertAndAdd');
 const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
+perfEnd();
 
-console.log('Proving verification inside main program');
+console.log('\nProving verification inside main program');
 const proof3 = await mainProgram.validateUsingTree(
   proof1.publicOutput,
   proof1,
