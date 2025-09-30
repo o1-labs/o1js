@@ -1,4 +1,5 @@
 import { ZkProgram, Field, DynamicProof, Proof, VerificationKey, Undefined, verify } from 'o1js';
+import { perfStart, perfEnd } from '../../lib/testing/perf-regression.js';
 
 /**
  * This example showcases mutual recursion (A -> B -> A) through two circuits that respectively
@@ -51,19 +52,29 @@ const multiply = ZkProgram({
   },
 });
 
-console.log('Compiling circuits...');
-const addVk = (await add.compile()).verificationKey;
-const multiplyVk = (await multiply.compile()).verificationKey;
+const csAdd = await add.analyzeMethods();
+const csMultiply = await multiply.analyzeMethods();
 
-console.log('Proving basecase');
+perfStart('compile', add.name);
+const addVk = (await add.compile()).verificationKey;
+perfEnd();
+
+perfStart('compile', multiply.name);
+const multiplyVk = (await multiply.compile()).verificationKey;
+perfEnd();
+
 const dummyProof = await DynamicMultiplyProof.dummy(undefined, Field(0), 1);
+
+perfStart('prove', add.name, csAdd, 'performAddition');
 const { proof: baseCase } = await add.performAddition(Field(5), dummyProof, multiplyVk);
+perfEnd();
 
 const validBaseCase = await verify(baseCase, addVk);
 console.log('ok?', validBaseCase);
 
-console.log('Proving first multiplication');
+perfStart('prove', multiply.name, csMultiply, 'performMultiplication');
 const { proof: multiply1 } = await multiply.performMultiplication(Field(3), baseCase);
+perfEnd();
 
 const validMultiplication = await verify(multiply1, multiplyVk);
 console.log('ok?', validMultiplication);
