@@ -38,6 +38,15 @@ jobs:
   Prepare:
     runs-on: ubuntu-latest
     steps:
+      - name: Free space on runner
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android \
+                      /usr/share/dotnet \
+                      /opt/ghc \
+                      "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af --volumes || true
+          df -h
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
@@ -114,6 +123,15 @@ jobs:
     if: ${{ inputs.proof_systems_commit == '' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Free space on runner
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android \
+                      /usr/share/dotnet \
+                      /opt/ghc \
+                      "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af --volumes || true
+          df -h
       - uses: actions/checkout@v4
         with:
           submodules: recursive
