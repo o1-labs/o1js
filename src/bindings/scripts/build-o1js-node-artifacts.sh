@@ -51,6 +51,10 @@ run_cmd cp "${MINA_PATH}"/src/config.mlh "src"
 run_cmd cp -r "${MINA_PATH}"/src/config "src/config"
 ok "Mina config files copied"
 
+info "Building Kimchi native bindings for Node.js..."
+run_cmd dune b "${KIMCHI_BINDINGS}"/js/native
+ok "Kimchi native bindings built"
+
 info "Building Kimchi bindings for Node.js..."
 run_cmd dune b "${KIMCHI_BINDINGS}"/js/node_js
 ok "Kimchi bindings built"
@@ -90,6 +94,14 @@ run_cmd mkdir -p "${BINDINGS_PATH}"
 run_cmd chmod -R 777 "${BINDINGS_PATH}"
 ok "Output directory prepared"
 
+info "Preparing native bindings directory..."
+run_cmd mkdir -p src/bindings/compiled/native
+ok "Native bindings directory prepared"
+
+info "Copying N-API bindings..."
+run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/native/plonk_napi* "${BINDINGS_PATH}"
+ok "N-API bindings copied"
+
 info "Copying WASM bindings..."
 run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/node_js/plonk_wasm* "${BINDINGS_PATH}"
 run_cmd mv -f "${BINDINGS_PATH}"/plonk_wasm.js "${BINDINGS_PATH}"/plonk_wasm.cjs
@@ -107,6 +119,11 @@ else
 fi
 run_cmd mv -f "${BINDINGS_PATH}"/o1js_node.bc.js "${BINDINGS_PATH}"/o1js_node.bc.cjs
 ok "Node.js bindings copied"
+
+info "Copying native bindings..."
+run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/native/plonk_napi.node src/bindings/compiled/native/
+run_cmd chmod 777 src/bindings/compiled/native/plonk_napi.node
+ok "Native bindings copied"
 
 info "Updating WASM references in bindings..."
 run_cmd sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "${BINDINGS_PATH}"/o1js_node.bc.cjs
