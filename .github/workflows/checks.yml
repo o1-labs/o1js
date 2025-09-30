@@ -46,6 +46,30 @@ jobs:
           submodules: recursive
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+
+      - name: Mount /nix onto workspace volume
+        shell: bash
+        run: |
+          set -euxo pipefail
+          WORK_ROOT="$(dirname "$GITHUB_WORKSPACE")"
+          BIG_NIX="$WORK_ROOT/_nix"       
+          sudo mkdir -p "$BIG_NIX"
+          if mountpoint -q /nix; then sudo umount /nix; fi
+          sudo rm -rf /nix || true
+          sudo mkdir -p /nix
+          sudo mount --bind "$BIG_NIX" /nix
+          df -h / /nix "$GITHUB_WORKSPACE"
+      - name: Use workspace volume for temp
+        shell: bash
+        run: |
+          WORK_ROOT="$(dirname "$GITHUB_WORKSPACE")"
+          mkdir -p "$WORK_ROOT/_tmp" "$WORK_ROOT/_runtime"
+          chmod 700 "$WORK_ROOT/_tmp" "$WORK_ROOT/_runtime"
+          {
+            echo "TMPDIR=$WORK_ROOT/_tmp"
+            echo "NIX_BUILD_TMPDIR=$WORK_ROOT/_tmp"
+            echo "XDG_RUNTIME_DIR=$WORK_ROOT/_runtime"
+          } >> "$GITHUB_ENV"
       - name: Build
         uses: ./.github/actions/build
         with:
