@@ -46,13 +46,13 @@ console.log('Proving different method of child program');
 const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(Field(0), Field(10));
 
 console.log('Proving verification inside main program');
-const proof3 = await mainProgram.validateUsingTree(
+const { proof: proof3 } = await mainProgram.validateUsingTree(
   proof1.publicOutput,
   proof1,
   sideVk,
   witness,
-  SideloadedProgramProof.fromProof(childProof1)
+  SideloadedProgramProof.fromProof(childProof2)
 );
 
-const validProof3 = await verify(proof2, mainVk);
-console.log('ok?', validProof2);
+const validProof3 = await verify(proof3, mainVk);
+console.log('ok?', validProof3);
