@@ -1,4 +1,5 @@
 import { Field, Cache, Gadgets, ZkProgram } from 'o1js';
+import { perfStart, perfEnd } from '../../lib/testing/perf-regression.js';
 
 let MyProgram = ZkProgram({
   chunks: 1,
@@ -22,13 +23,16 @@ let MyProgram = ZkProgram({
   },
 });
 
-console.log(await MyProgram.analyzeMethods());
+const cs = await MyProgram.analyzeMethods();
+console.log('MyProgram baseCase method rows: ', cs.baseCase.rows);
 
-console.log('compiling MyProgram...');
+perfStart('compile', MyProgram.name);
 await MyProgram.compile({ cache: Cache.None });
+perfEnd();
 
-console.log('proving base case...');
+perfStart('prove', MyProgram.name, cs, 'baseCase');
 let { proof } = await MyProgram.baseCase(Field(0));
+perfEnd();
 
 console.log('verify...');
 let ok = await MyProgram.verify(proof);
