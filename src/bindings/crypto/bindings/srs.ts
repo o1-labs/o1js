@@ -143,14 +143,15 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
         } else {
           // try to read lagrange basis from cache / recompute and write if not found
           let header = cacheHeaderLagrange(f, domainSize);
-          let didRead = readCache(cache, header, (bytes) => {
-            let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
-            let mlComms = polyCommsFromJSON(comms);
-            let wasmComms = conversion[f].polyCommsToRust(mlComms);
-
-            setLagrangeBasis(srs, domainSize, wasmComms);
-            return true;
-          });
+          let didRead = lazyReadCache(
+            cache,
+            header,
+            conversion,
+            f,
+            srs,
+            domainSize,
+            setLagrangeBasis
+          );
           if (didRead !== true) {
             // not in cache
             if (cache.canWrite) {
@@ -174,16 +175,19 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
 
       // edge case - commitment exists and cache exists, then check if its already in the cache
       if (commitment && cache && cache.canWrite) {
+        console.log('edge case 1');
         let header = cacheHeaderLagrange(f, domainSize);
-        let didRead = readCache(cache, header, (bytes) => {
-          let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
-          let mlComms = polyCommsFromJSON(comms);
-          let wasmComms = conversion[f].polyCommsToRust(mlComms);
-
-          setLagrangeBasis(srs, domainSize, wasmComms);
-          return true;
-        });
+        let didRead = lazyReadCache(
+          cache,
+          header,
+          conversion,
+          f,
+          srs,
+          domainSize,
+          setLagrangeBasis
+        );
         if (didRead !== true) {
+          console.log('edge case writing');
           // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
           // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
           let wasmComms = getLagrangeBasis(srs, domainSize);
@@ -241,5 +245,27 @@ function polyCommsToJSON(comms: MlArray<PolyComm>): PolyCommJson[] {
 function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
   return MlArray.mapTo(json, ({ shifted, unshifted }) => {
     return [0, MlArray.mapTo(shifted, OrInfinity.fromJSON)];
+  });
+}
+
+const LazyReadCache = new Map<string, boolean>();
+function lazyReadCache(
+  cache: Cache,
+  header: CacheHeader,
+  conversion: RustConversion,
+  f: 'fp' | 'fq',
+  srs: WasmSrs,
+  domainSize: number,
+  setLagrangeBasis: (srs: WasmSrs, domainSize: number, comms: Uint32Array) => void
+) {
+  return readCache(cache, header, (bytes) => {
+    if (LazyReadCache.get(header.uniqueId) === true) return true;
+    let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
+    let mlComms = polyCommsFromJSON(comms);
+    let wasmComms = conversion[f].polyCommsToRust(mlComms);
+
+    setLagrangeBasis(srs, domainSize, wasmComms);
+    LazyReadCache.set(header.uniqueId, true);
+    return true;
   });
 }
