@@ -12,7 +12,7 @@ const csSide = await sideloadedProgram.analyzeMethods();
 const csMain = await mainProgram.analyzeMethods();
 
 perfStart('compile', sideloadedProgram.name);
-const programVk = (await sideloadedProgram.compile()).verificationKey;
+const sideVk = (await sideloadedProgram.compile()).verificationKey;
 perfEnd();
 
 perfStart('compile', mainProgram.name);
@@ -23,7 +23,7 @@ const tree = new MerkleTree(64);
 
 console.log('\nProving deployment of side-loaded key');
 const rootBefore = tree.getRoot();
-tree.setLeaf(1n, programVk.hash);
+tree.setLeaf(1n, sideVk.hash);
 const witness = new MerkleTreeWitness(tree.getWitness(1n));
 
 perfStart('prove', mainProgram.name, csMain, 'addSideloadedProgram');
@@ -32,14 +32,14 @@ const { proof: proof1 } = await mainProgram.addSideloadedProgram(
     treeRoot: rootBefore,
     state: Field(0),
   }),
-  programVk,
+  sideVk,
   witness
 );
 perfEnd();
 
 console.log('\nProving child program execution');
 perfStart('prove', sideloadedProgram.name, csSide, 'compute');
-const { proof: childProof } = await sideloadedProgram.compute(Field(0), Field(10));
+const { proof: childProof1 } = await sideloadedProgram.compute(Field(0), Field(10));
 perfEnd();
 
 console.log('\nProving verification inside main program');
@@ -47,9 +47,9 @@ perfStart('prove', mainProgram.name, csMain, 'validateUsingTree');
 const { proof: proof2 } = await mainProgram.validateUsingTree(
   proof1.publicOutput,
   proof1,
-  programVk,
+  sideVk,
   witness,
-  SideloadedProgramProof.fromProof(childProof)
+  SideloadedProgramProof.fromProof(childProof1)
 );
 perfEnd();
 
@@ -62,13 +62,13 @@ const { proof: childProof2 } = await sideloadedProgram.assertAndAdd(Field(0), Fi
 perfEnd();
 
 console.log('\nProving verification inside main program');
-const proof3 = await mainProgram.validateUsingTree(
+const { proof: proof3 } = await mainProgram.validateUsingTree(
   proof1.publicOutput,
   proof1,
-  programVk,
+  sideVk,
   witness,
-  SideloadedProgramProof.fromProof(childProof)
+  SideloadedProgramProof.fromProof(childProof2)
 );
 
-const validProof3 = await verify(proof2, mainVk);
-console.log('ok?', validProof2);
+const validProof3 = await verify(proof3, mainVk);
+console.log('ok?', validProof3);
