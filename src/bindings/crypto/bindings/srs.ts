@@ -24,6 +24,8 @@ function empty(): SrsStore {
 
 const srsStore = { fp: empty(), fq: empty() };
 
+const CacheReadRegister = new Map<string, boolean>();
+
 let cache: Cache | undefined;
 
 function setSrsCache(c: Cache) {
@@ -143,7 +145,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
         } else {
           // try to read lagrange basis from cache / recompute and write if not found
           let header = cacheHeaderLagrange(f, domainSize);
-          let didRead = lazyReadCache(
+          let didRead = readCacheLazy(
             cache,
             header,
             conversion,
@@ -176,7 +178,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
       // edge case - commitment exists and cache exists, then check if its already in the cache
       if (commitment && cache && cache.canWrite) {
         let header = cacheHeaderLagrange(f, domainSize);
-        let didRead = lazyReadCache(
+        let didRead = readCacheLazy(
           cache,
           header,
           conversion,
@@ -245,8 +247,7 @@ function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
   });
 }
 
-const LazyReadCache = new Map<string, boolean>();
-function lazyReadCache(
+function readCacheLazy(
   cache: Cache,
   header: CacheHeader,
   conversion: RustConversion,
@@ -255,14 +256,14 @@ function lazyReadCache(
   domainSize: number,
   setLagrangeBasis: (srs: WasmSrs, domainSize: number, comms: Uint32Array) => void
 ) {
-  if (LazyReadCache.get(header.uniqueId) === true) return true;
+  if (CacheReadRegister.get(header.uniqueId) === true) return true;
   return readCache(cache, header, (bytes) => {
     let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
     let mlComms = polyCommsFromJSON(comms);
     let wasmComms = conversion[f].polyCommsToRust(mlComms);
 
     setLagrangeBasis(srs, domainSize, wasmComms);
-    LazyReadCache.set(header.uniqueId, true);
+    CacheReadRegister.set(header.uniqueId, true);
     return true;
   });
 }
