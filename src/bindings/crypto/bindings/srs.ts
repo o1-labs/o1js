@@ -175,7 +175,8 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
         }
       }
 
-      // edge case - commitment exists and cache exists, then check if its already in the cache
+      // edge case for when we have a writeable cache and the basis was already stored on the srs
+      // but we didn't store it in the cache seperately yet
       if (commitment && cache && cache.canWrite) {
         let header = cacheHeaderLagrange(f, domainSize);
         let didRead = readCacheLazy(
@@ -187,9 +188,11 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
           domainSize,
           setLagrangeBasis
         );
+        // only proceed for entries we haven't written to the cache yet
         if (didRead !== true) {
-          // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
-          // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
+          // same code as above - write the lagrange basis to the cache if it wasn't there already
+          // currently we re-generate the basis via `getLagrangeBasis` - we could derive this from the
+          // already existing `commitment` instead, but this is simpler and the performance impact is negligible
           let wasmComms = getLagrangeBasis(srs, domainSize);
           let mlComms = conversion[f].polyCommsFromRust(wasmComms);
           let comms = polyCommsToJSON(mlComms);
