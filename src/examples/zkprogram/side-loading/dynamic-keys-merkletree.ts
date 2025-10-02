@@ -2,7 +2,6 @@ import {
   DynamicProof,
   FeatureFlags,
   Field,
-  MerkleTree,
   MerkleWitness,
   Proof,
   SelfProof,
@@ -11,7 +10,13 @@ import {
   ZkProgram,
 } from 'o1js';
 
-export { mainProgram, sideloadedProgram, SideloadedProgramProof,MerkleTreeWitness, MainProgramState };
+export {
+  mainProgram,
+  sideloadedProgram,
+  SideloadedProgramProof,
+  MerkleTreeWitness,
+  MainProgramState,
+};
 
 /**
  * This example showcases how DynamicProofs can be used along with a merkletree that stores
@@ -127,4 +132,3 @@ const mainProgram = ZkProgram({
     },
   },
 });
-
