@@ -17,7 +17,7 @@ import { oraclesConversion } from './bindings/conversion-oracles.js';
 import { jsEnvironment } from './bindings/env.js';
 import { srs } from './bindings/srs.js';
 
-export { getRustConversion, RustConversion, Wasm };
+export { getRustConversion, RustConversion, Wasm, createNativeRustConversion };
 
 const tsBindings = {
   jsEnvironment,
@@ -31,6 +31,7 @@ const tsBindings = {
   ...FpVectorBindings,
   ...FqVectorBindings,
   rustConversion: createRustConversion,
+  nativeRustConversion: createNativeRustConversion,
   srs: (wasm: Wasm) => srs(wasm, getRustConversion(wasm)),
 };
 
@@ -39,7 +40,15 @@ const tsBindings = {
 
 type Wasm = typeof wasmNamespace;
 
+function createNativeRustConversion(wasm: Wasm) {
+  return buildConversion(wasm);
+}
+
 function createRustConversion(wasm: Wasm) {
+  return buildConversion(wasm);
+}
+
+function buildConversion(wasm: Wasm) {
   let core = conversionCore(wasm);
   let verifierIndex = verifierIndexConversion(wasm, core);
   let oracles = oraclesConversion(wasm);
@@ -55,7 +64,7 @@ function createRustConversion(wasm: Wasm) {
   };
 }
 
-type RustConversion = ReturnType<typeof createRustConversion>;
+type RustConversion = ReturnType<typeof buildConversion>;
 
 let rustConversion: RustConversion | undefined;
 
