@@ -2,7 +2,7 @@ import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
 import fs from 'fs';
 import path from 'path';
 
-export { perfStart, perfEnd, PerfRegressionEntry };
+export { Performance, PerfRegressionEntry };
 
 type MethodsSummary = Record<string, ConstraintSystemSummary>;
 
@@ -23,169 +23,181 @@ type PerfRegressionEntry = {
 
 type PerfStack = {
   start: number;
-  label?: string;
+  label?: 'compile' | 'prove' | string;
   contractName?: string;
   methodsSummary?: MethodsSummary;
   methodName?: string; // required for prove; optional for compile
 };
 
 const FILE_PATH = path.join(process.cwd(), './tests/perf-regression/perf-regression.json');
-
 const DUMP = flag('--dump');
 const CHECK = flag('--check');
-
-const perfStack: PerfStack[] = [];
-
-function perfStart(
-  label?: string,
-  contractName?: string,
-  methodsSummary?: MethodsSummary,
-  methodName?: string
-) {
-  perfStack.push({ label, start: performance.now(), contractName, methodsSummary, methodName });
-}
 
 // Stops the process after the N-th end() call, if STOP_AFTER env is set.
 // If STOP_AFTER is not set or invalid, the script runs through normally.
 const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
   ? Number(process.env.STOP_AFTER)
   : undefined;
-let __endCounter = 0;
 
-function maybeStop() {
-  if (typeof STOP_AFTER === 'number' && STOP_AFTER > 0) {
-    __endCounter++;
-    if (__endCounter >= STOP_AFTER) {
-      process.exit(0);
+function createPerfSession(contractName?: string, methodsSummary?: MethodsSummary) {
+  const perfStack: PerfStack[] = [];
+  let __endCounter = 0;
+
+  function maybeStop() {
+    if (typeof STOP_AFTER === 'number' && STOP_AFTER > 0) {
+      __endCounter++;
+      if (__endCounter >= STOP_AFTER) {
+        process.exit(0);
+      }
     }
   }
-}
 
-function perfEnd() {
-  const frame = perfStack.pop()!;
-  const { label, start, contractName } = frame;
-  let { methodsSummary: cs, methodName } = frame;
-
-  const time = (performance.now() - start) / 1000;
-
-  // Base logging — show contract.method for prove
-  if (label === 'prove' && contractName && methodName) {
-    console.log(`${label} ${contractName}.${methodName}... ${time.toFixed(3)} sec`);
-  } else if (label) {
-    console.log(`${label} ${contractName ?? ''}... ${time.toFixed(3)} sec`);
-  }
-
-  // If neither --dump nor --check, just log and honor STOP_AFTER
-  if (!DUMP && !CHECK) {
-    maybeStop();
-    return;
-  }
-
-  // Only act for compile/prove with required context
-  if (!contractName || (label !== 'compile' && label !== 'prove')) {
-    maybeStop();
-    return;
-  }
-
-  // Read existing JSON (assumed to exist & non-empty by your workflow)
-  const raw = fs.readFileSync(FILE_PATH, 'utf8');
-  const perfRegressionJson: Record<string, PerfRegressionEntry> = JSON.parse(raw);
-
-  if (label === 'compile') {
-    // CHECK: validate against baseline (no writes)
-    if (CHECK) {
-      checkAgainstBaseline({
-        perfRegressionJson,
+  return {
+    start(label?: 'compile' | 'prove' | string, methodName?: string) {
+      perfStack.push({
+        label,
+        start: performance.now(),
         contractName,
-        label: 'compile', // compile checks don't use method/digest; pass empty strings
-        methodName: '',
-        digest: '',
-        actualTime: time,
+        methodsSummary,
+        methodName,
       });
+    },
+
+    end() {
+      const frame = perfStack.pop()!;
+      const { label, start, contractName } = frame;
+      let { methodsSummary: cs, methodName } = frame;
+
+      const time = (performance.now() - start) / 1000;
+
+      // Base logging — show contract.method for prove
+      if (label === 'prove' && contractName && methodName) {
+        console.log(`${label} ${contractName}.${methodName}... ${time.toFixed(3)} sec`);
+      } else if (label) {
+        console.log(`${label} ${contractName ?? ''}... ${time.toFixed(3)} sec`);
+      }
+
+      // If neither --dump nor --check, just log and honor STOP_AFTER
+      if (!DUMP && !CHECK) {
+        maybeStop();
+        return;
+      }
+
+      // Only act for compile/prove with required context
+      if (!contractName || (label !== 'compile' && label !== 'prove')) {
+        maybeStop();
+        return;
+      }
+
+      // Read existing JSON (assumed to exist & non-empty by your workflow)
+      const raw = fs.readFileSync(FILE_PATH, 'utf8');
+      const perfRegressionJson: Record<string, PerfRegressionEntry> = JSON.parse(raw);
+
+      if (label === 'compile') {
+        // CHECK: validate against baseline (no writes)
+        if (CHECK) {
+          checkAgainstBaseline({
+            perfRegressionJson,
+            contractName,
+            label: 'compile', // compile checks don't use method/digest; pass empty strings
+            methodName: '',
+            digest: '',
+            actualTime: time,
+          });
+          maybeStop();
+          return;
+        }
+
+        // DUMP: update only contract-level compileTime (does not touch methods)
+        if (DUMP) {
+          const prev = perfRegressionJson[contractName];
+          const merged: PerfRegressionEntry = prev
+            ? { ...prev, compileTime: time }
+            : { compileTime: time, methods: {} };
+
+          perfRegressionJson[contractName] = merged;
+          fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+          maybeStop();
+          return;
+        }
+      }
+
+      // For prove we need the analyzed methods and a valid methodName
+      if (!cs) {
+        maybeStop();
+        return;
+      }
+
+      const csMethodNames = Object.keys(cs);
+      if (csMethodNames.length === 0) {
+        maybeStop();
+        return;
+      }
+
+      if (!methodName) {
+        throw new Error(
+          'Please provide the method name you are proving (pass it to start(..., methodName)).'
+        );
+      }
+      if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
+        throw new Error(
+          `The method "${methodName}" does not exist in the analyzed constraint systems for "${contractName}". ` +
+            `Available: ${csMethodNames.join(', ')}`
+        );
+      }
+
+      const info = cs[methodName];
+      if (!info) {
+        maybeStop();
+        return;
+      }
+
+      // CHECK: validate only, no writes
+      if (CHECK) {
+        checkAgainstBaseline({
+          perfRegressionJson,
+          contractName,
+          label: 'prove',
+          methodName,
+          digest: info.digest,
+          actualTime: time,
+        });
+        maybeStop();
+        return;
+      }
+
+      // DUMP: update per-method rows/digest and proveTime; leave compileTime untouched
+      if (DUMP) {
+        const prev = perfRegressionJson[contractName];
+        const merged: PerfRegressionEntry = prev
+          ? { ...prev, methods: { ...(prev.methods ?? {}) } }
+          : { methods: {} };
+
+        merged.methods[methodName] = {
+          rows: info.rows,
+          digest: info.digest,
+          proveTime: time,
+        };
+
+        perfRegressionJson[contractName] = merged;
+        fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+        maybeStop();
+        return;
+      }
+
+      // Fallback
       maybeStop();
-      return;
-    }
-
-    // DUMP: update only contract-level compileTime (does not touch methods)
-    if (DUMP) {
-      const prev = perfRegressionJson[contractName];
-      const merged: PerfRegressionEntry = prev
-        ? { ...prev, compileTime: time }
-        : { compileTime: time, methods: {} };
-
-      perfRegressionJson[contractName] = merged;
-      fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
-      maybeStop();
-      return;
-    }
-  }
-
-  // For prove we need the analyzed methods and a valid methodName
-  if (!cs) {
-    maybeStop();
-    return;
-  }
-
-  const csMethodNames = Object.keys(cs);
-  if (csMethodNames.length === 0) {
-    maybeStop();
-    return;
-  }
-
-  if (!methodName) {
-    throw new Error(
-      'Please provide the method name you are proving (pass it to start(..., methodName)).'
-    );
-  }
-  if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
-    throw new Error(
-      `The method "${methodName}" does not exist in the analyzed constraint systems for "${contractName}". ` +
-        `Available: ${csMethodNames.join(', ')}`
-    );
-  }
-
-  const info = cs[methodName];
-  if (!info) {
-    maybeStop();
-    return;
-  }
-
-  // CHECK: validate only, no writes
-  if (CHECK) {
-    checkAgainstBaseline({
-      perfRegressionJson,
-      contractName,
-      label: 'prove',
-      methodName,
-      digest: info.digest,
-      actualTime: time,
-    });
-    maybeStop();
-    return;
-  }
-
-  // DUMP: update per-method rows/digest and proveTime; leave compileTime untouched
-  if (DUMP) {
-    const prev = perfRegressionJson[contractName];
-    const merged: PerfRegressionEntry = prev
-      ? { ...prev, methods: { ...(prev.methods ?? {}) } }
-      : { methods: {} };
-
-    merged.methods[methodName] = {
-      rows: info.rows,
-      digest: info.digest,
-      proveTime: time,
-    };
-
-    perfRegressionJson[contractName] = merged;
-    fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
-    maybeStop();
-    return;
-  }
-
-  // Fallback
-  maybeStop();
+    },
+  };
 }
+
+/// Public API
+const Performance = {
+  //TODO add jsdoc
+  create(contractName: string, methodsSummary?: MethodsSummary) {
+    return createPerfSession(contractName, methodsSummary);
+  },
+};
 
 // HELPERS
 
