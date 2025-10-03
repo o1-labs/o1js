@@ -7,10 +7,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$ROOT_DIR/scripts/lib/ux.sh"
 
 # paths
-MINA_PATH="src/mina"
-DUNE_PATH="src/bindings/ocaml/jsoo_exports"
-BUILD_PATH="_build/default/$DUNE_PATH"
-KIMCHI_BINDINGS="$MINA_PATH/src/lib/crypto/kimchi_bindings"
+BUILD_PATH="src/mina/src/lib/o1js_bindings/artifacts"
+KIMCHI_BINDINGS="src/lib/crypto/kimchi_bindings"
 NODE_BINDINGS="src/bindings/compiled/node_bindings"
 WEB_BINDINGS="src/bindings/compiled/web_bindings"
 
@@ -76,27 +74,16 @@ bold "Phase 2: Building web bindings"
 info "Checking for prebuilt bindings..."
 if [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_WEB}" ] || [ -z "${PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS}" ]; then
     info "No prebuilt bindings found, building from source..."
-    
-    info "Preserving source map during web build..."
-    if [ -f "$BUILD_PATH/o1js_node.bc.map" ]; then
-        run_cmd cp "$BUILD_PATH/o1js_node.bc.map" "_build/o1js_node.bc.map"
-        info "Source map backed up"
-    else
-        info "No source map to backup"
-    fi
-    
+
     info "Building web JavaScript bytecode..."
-    run_cmd dune b "${DUNE_PATH}"/o1js_web.bc.js
+    run_cmd pushd src/mina
+    run_cmd dune b src/lib/o1js_bindings
+    run_cmd popd
     ok "web bytecode built"
-    
-    info "Restoring source map..."
-    if [ -f "_build/o1js_node.bc.map" ]; then
-        run_cmd cp "_build/o1js_node.bc.map" "$BUILD_PATH/o1js_node.bc.map"
-        info "Source map restored"
-    fi
-    
+
     info "Copying web WASM bindings..."
-    run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/web/plonk_wasm* "${WEB_BINDINGS}"/
+
+    run_cmd cp src/mina/_build/default/"${KIMCHI_BINDINGS}"/js/web/plonk_wasm* "${WEB_BINDINGS}"/
     ok "web WASM bindings copied"
     
     info "Copying web JavaScript bindings..."

@@ -272,10 +272,13 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1759504549,
-        "narHash": "sha256-2Jx58hMSJdODih3ziezpKqWJKoG4BHFlzo66pgmYPsI=",
-        "path": "/home/leon/github/o1js/src/mina",
-        "type": "path"
+        "lastModified": 1759521661,
+        "narHash": "sha256-rW4rgl1ile7RNJERJXe1U6DuBpwPj++NrOwCehs35Wc=",
+        "rev": "d3aad252fcecb4e366d48c167e080daff2c48d50",
+        "revCount": 37865,
+        "submodules": true,
+        "type": "git",
+        "url": "file:src/mina"
       },
       "original": {
         "submodules": true,
