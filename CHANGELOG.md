@@ -18,6 +18,10 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/114acff...HEAD)
 
+### Changed
+
+- Bump up Mina to `(compatible 8f958aac99f53f27ce34e62861775d7117821a2c)`
+
 ### Added
 
 - Internal o1js and protocol constants, hashes and prefixes are now exported via

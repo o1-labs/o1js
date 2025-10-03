@@ -1,15 +1,14 @@
 {
   description = "o1js - TypeScript framework for zk-SNARKs and zkApps";
   inputs = {
-    nixpkgs-mina.url = "github:nixos/nixpkgs/nixos-24.11-small";
     mina.url = "git+file:src/mina?submodules=1";
     nixpkgs-mozilla.url = "github:mozilla/nixpkgs-mozilla";
     nixpkgs-mozilla.flake = false;
     describe-dune.url = "github:o1-labs/describe-dune";
-    describe-dune.inputs.nixpkgs.follows = "nixpkgs-mina";
+    describe-dune.inputs.nixpkgs.follows = "mina/nixpkgs";
     describe-dune.inputs.flake-utils.follows = "flake-utils";
     dune-nix.url = "github:o1-labs/dune-nix";
-    dune-nix.inputs.nixpkgs.follows = "nixpkgs-mina";
+    dune-nix.inputs.nixpkgs.follows = "mina/nixpkgs";
     dune-nix.inputs.flake-utils.follows = "flake-utils";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -27,14 +26,17 @@
         "nix-cache.minaprotocol.org:D3B1W+V7ND1Fmfii8EhbAbF1JXoe2Ct4N34OKChwk2c="
       ];
   };
-  outputs = { self, nixpkgs-mina, flake-utils, ... }@inputs:
+  outputs = { self, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = ((nixpkgs-mina.legacyPackages."${system}".extend
-          (import inputs.nixpkgs-mozilla)).extend
-          inputs.mina.overlays.rust).extend
-          (final: prev: { inherit (nixpkgs-mina.legacyPackages."${system}")
-            nodePackages nodejs; });
+        pkgs = import inputs.mina.inputs.nixpkgs {
+          inherit system;
+          overlays = [
+            (import inputs.nixpkgs-mozilla)
+            inputs.mina.overlays.rust
+          ];
+        };
+
         dune-nix = inputs.dune-nix.lib.${system};
         describe-dune = inputs.describe-dune.defaultPackage.${system};
         dune-description = pkgs.stdenv.mkDerivation {
@@ -103,8 +105,8 @@
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2024-06-13";
-              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
+              date = "2024-09-05";
+              sha256 = "sha256-3aoA7PuH09g8F+60uTUQhnHrb/ARDLueSOD08ZVsWe0=";
             }).rust.override
             {
               targets = [
@@ -205,7 +207,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2024-06-13 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
+                if [ "$1" = run ] && { [ "$2" = nightly-2024-09-05 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
