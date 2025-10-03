@@ -7,10 +7,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$ROOT_DIR/scripts/lib/ux.sh"
 
 # paths
-MINA_PATH=src/mina
-DUNE_PATH=src/bindings/ocaml/jsoo_exports # this is the path to where we build the jsoo artifacts from
-BUILD_PATH=_build/default/"${DUNE_PATH}" # this is where dune puts the build artifacts
-KIMCHI_BINDINGS="${MINA_PATH}"/src/lib/crypto/kimchi_bindings # path to kimchi bindings in the mina repo
+KIMCHI_BINDINGS=src/lib/crypto/kimchi_bindings # path to kimchi bindings in the mina repo
 BINDINGS_PATH=src/bindings/compiled/_node_bindings/ # output path for node bindings
 
 # setup
@@ -29,61 +26,26 @@ else
     ok "Dependencies already installed"
 fi
 
-info "Checking existing build artifacts..."
-if [ -f "${BUILD_PATH}"/o1js_node.bc.js ]; then
-  info "Found existing o1js_node.bc.js"
-  if [ -f "${BUILD_PATH}"/o1js_node.bc.map ]; then
-    info "Found o1js_node.bc.map, saving at temp location (dune will delete it)"
-    run_cmd cp "${BUILD_PATH}"/o1js_node.bc.map _build/o1js_node.bc.map
-    ok "Source map saved"
-  else
-    warn "Missing o1js_node.bc.map, removing o1js_node.bc.js to force rebuild"
-    run_cmd rm -f "${BUILD_PATH}"/o1js_node.bc.js
-    ok "Stale artifacts cleaned"
-  fi
-else
-  info "No existing o1js_node.bc.js found, will build from scratch"
-fi
-
-info "Setting up Mina configuration files..."
-run_cmd dune b "${MINA_PATH}"/src/config.mlh
-run_cmd cp "${MINA_PATH}"/src/config.mlh "src"
-run_cmd cp -r "${MINA_PATH}"/src/config "src/config"
-ok "Mina config files copied"
+info "moving into Mina context..."
+run_cmd pushd src/mina
 
 info "Building Kimchi bindings for Node.js..."
 run_cmd dune b "${KIMCHI_BINDINGS}"/js/node_js
 ok "Kimchi bindings built"
 
 info "Building JSOO artifacts for o1js"
-run_cmd dune b --debug-dependency-path "${DUNE_PATH}"/o1js_node.bc.js
+run_cmd dune b src/lib/o1js_bindings
 ok "JSOO artifacts built"
 
-info "Checking for updated source map..."
-if [ -f "${BUILD_PATH}"/o1js_node.bc.map ]; then
-  info "New source map created, saving it"
-  run_cmd cp "${BUILD_PATH}"/o1js_node.bc.map _build/o1js_node.bc.map
-  ok "Source map updated"
-else
-  info "No new source map created"
-fi
+info "Done in Mina, leaving..."
+run_cmd popd
 
 info "Building transaction layout TypeScript definitions..."
-run_cmd dune b src/bindings/mina-transaction/gen/v1/js-layout.ts \
-  src/bindings/mina-transaction/gen/v2/js-layout.ts \
-  src/bindings/crypto/constants.ts
+run_cmd node src/build/js-layout-to-types.mjs
+run_cmd node src/build/js-layout-to-types-v2.mjs ./src/mina/src/lib/o1js_bindings/artifacts/jsLayout.json
+run_cmd cp src/mina/src/lib/o1js_bindings/artifacts/constants.ts src/bindings/crypto/constants.ts
 ok "TypeScript definitions built"
 
-info "Formatting generated transaction layout definitions..."
-run_cmd npx prettier --write \
-  src/bindings/crypto/constants.ts \
-  src/bindings/mina-transaction/gen/**/*.ts
-ok "TypeScript definitions formatted"
-
-info "Cleaning up Mina config files..."
-run_cmd rm -rf "src/config"
-run_cmd rm "src/config.mlh"
-ok "Config files cleaned up"
 
 info "Setting up TypeScript declaration files..."
 run_cmd mkdir -p src/bindings/compiled/node_bindings
@@ -97,35 +59,20 @@ run_cmd chmod -R 777 "${BINDINGS_PATH}"
 ok "Output directory prepared"
 
 info "Copying WASM bindings..."
-run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/node_js/plonk_wasm* "${BINDINGS_PATH}"
+run_cmd cp src/mina/_build/default/"${KIMCHI_BINDINGS}"/js/node_js/plonk_wasm* "${BINDINGS_PATH}"
 run_cmd mv -f "${BINDINGS_PATH}"/plonk_wasm.js "${BINDINGS_PATH}"/plonk_wasm.cjs
 run_cmd mv -f "${BINDINGS_PATH}"/plonk_wasm.d.ts "${BINDINGS_PATH}"/plonk_wasm.d.cts
 ok "WASM bindings copied and renamed"
 
 info "Copying Node.js bindings..."
-run_cmd cp "${BUILD_PATH}"/o1js_node*.js "${BINDINGS_PATH}"
+run_cmd cp src/mina/src/lib/o1js_bindings/artifacts/o1js_node*.js "${BINDINGS_PATH}"
 run_cmd cp src/bindings/compiled/node_bindings/o1js_node.bc.d.cts "${BINDINGS_PATH}"/
-if [ -f "_build/o1js_node.bc.map" ]; then
-    run_cmd cp "_build/o1js_node.bc.map" "${BINDINGS_PATH}"/o1js_node.bc.map
-    info "Source map copied"
-else
-    warn "No source map found at _build/o1js_node.bc.map, skipping"
-fi
 run_cmd mv -f "${BINDINGS_PATH}"/o1js_node.bc.js "${BINDINGS_PATH}"/o1js_node.bc.cjs
 ok "Node.js bindings copied"
 
 info "Updating WASM references in bindings..."
 run_cmd sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' "${BINDINGS_PATH}"/o1js_node.bc.cjs
 ok "WASM references updated"
-
-info "Cleaning up temporary source map..."
-if [ -f "_build/o1js_node.bc.map" ]; then
-    run_cmd cp _build/o1js_node.bc.map "${BUILD_PATH}"/o1js_node.bc.map
-    run_cmd rm -f _build/o1js_node.bc.map
-    ok "Temporary source map cleaned up"
-else
-    info "No temporary source map to clean up"
-fi
 
 info "Fixing JavaScript bindings for better error handling..."
 # TODO: find a less hacky way to make adjustments to jsoo compiler output

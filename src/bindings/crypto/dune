@@ -1,7 +1,0 @@
-(rule
- (targets constants.ts)
- (mode promote)
- (action
-  (with-stdout-to
-   constants.ts
-   (run %{exe:../ocaml/o1js_constants.exe}))))

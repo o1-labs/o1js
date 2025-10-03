@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 // let jsLayout = JSON.parse(process.argv[2]);
 let selfPath = fileURLToPath(import.meta.url);
-let jsonPath = path.resolve(selfPath, '../../bindings/ocaml/jsLayout.json');
+let jsonPath = path.resolve(selfPath, '../../mina/src/lib/o1js_bindings/artifacts/jsLayout.json');
 let jsLayout = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
 
 console.log(`js-layout-to-types.mjs: generating TS types from ${jsonPath}`);
