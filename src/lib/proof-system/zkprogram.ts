@@ -2,9 +2,9 @@ import {
   Base64ProofString,
   Base64VerificationKeyString,
   Gate,
+  initializeBindings,
   Pickles,
   Snarky,
-  initializeBindings,
   withThreadPool,
 } from '../../bindings.js';
 import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
@@ -29,39 +29,39 @@ import { Get, Subclass, Tuple } from '../util/types.js';
 import { Cache, readCache, writeCache } from './cache.js';
 import { featureFlagsFromGates, featureFlagsToMlOption } from './feature-flags.js';
 import {
+  dummyProof,
   DynamicProof,
+  extractProofs,
+  extractProofTypes,
   Proof,
   ProofBase,
   ProofClass,
   ProofValue,
-  dummyProof,
-  extractProofTypes,
-  extractProofs,
 } from './proof.js';
 import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
 import { VerificationKey } from './verification-key.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 
 // public API
-export { Empty, JsonProof, Method, SelfProof, Undefined, Void, ZkProgram, verify };
+export { Empty, JsonProof, Method, SelfProof, Undefined, verify, Void, ZkProgram };
 
 // internal API
 export {
-  CompiledTag,
-  MethodInterface,
-  MethodReturnType,
-  PrivateInput,
-  Proof,
-  Prover,
-  RegularProver,
-  TupleToInstances,
   analyzeMethod,
+  CompiledTag,
   compileProgram,
   computeMaxProofsVerified,
   dummyBase64Proof,
   inCircuitVkHash,
+  MethodInterface,
+  MethodReturnType,
   picklesRuleFromFunction,
+  PrivateInput,
+  Proof,
+  Prover,
+  RegularProver,
   sortMethodArguments,
+  TupleToInstances,
 };
 
 type Undefined = undefined;
@@ -168,7 +168,7 @@ let SideloadedTag = {
   },
 };
 
-type ConfigBaseType = {
+export type ConfigBaseType = {
   publicInput?: ProvableType;
   publicOutput?: ProvableType;
   methods: {
@@ -195,6 +195,21 @@ type InferMethodType<Config extends ConfigBaseType> = {
     InferProvableOrVoid<Get<Config, 'publicOutput'>>,
     Config['methods'][I]
   >;
+};
+
+export type CompileOptions = {
+  cache?: Cache;
+  forceRecompile?: boolean;
+  proofsEnabled?: boolean;
+  withRuntimeTables?: boolean;
+  lazyMode?: boolean;
+};
+export const CompileOptionsDefault: Required<CompileOptions> = {
+  cache: Cache.FileSystemDefault,
+  forceRecompile: false,
+  proofsEnabled: false,
+  withRuntimeTables: false,
+  lazyMode: false,
 };
 
 /**
@@ -240,14 +255,7 @@ function ZkProgram<
   name: string;
   maxProofsVerified(): Promise<0 | 1 | 2>;
 
-  compile: (options?: {
-    cache?: Cache;
-    forceRecompile?: boolean;
-    proofsEnabled?: boolean;
-    withRuntimeTables?: boolean;
-    numChunks?: number;
-    lazyMode?: boolean;
-  }) => Promise<{
+  compile: (options?: CompileOptions) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
   verify: (
@@ -379,13 +387,12 @@ function ZkProgram<
 
   const programState = createProgramState();
 
-  async function compile({
-    cache = Cache.FileSystemDefault,
-    forceRecompile = false,
-    proofsEnabled = undefined as boolean | undefined,
-    withRuntimeTables = false,
-    lazyMode = false,
-  } = {}) {
+  async function compile(options: CompileOptions = {}) {
+    const { cache, forceRecompile, proofsEnabled, withRuntimeTables, lazyMode } = {
+      ...CompileOptionsDefault,
+      ...options,
+    };
+
     doProving = proofsEnabled ?? doProving;
 
     if (doProving) {
