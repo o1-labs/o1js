@@ -15,9 +15,9 @@ STOP_AFTER=4 ./run src/examples/crypto/ecdsa/run.ts --bundle "$MODE"
 STOP_AFTER=2 ./run src/examples/crypto/blake2b/run.ts --bundle "$MODE"
 STOP_AFTER=2 ./run src/examples/crypto/rsa/run.ts --bundle "$MODE"
 
-STOP_AFTER=4 ./run src/examples/zkprogram/mutual-recursion.ts "$MODE"
-STOP_AFTER=2 ./run src/examples/zkprogram/hash-chain.ts "$MODE"
-STOP_AFTER=4 ./run src/examples/zkprogram/gadgets.ts "$MODE"
+STOP_AFTER=4 ./run src/examples/zkprogram/mutual-recursion.ts --bundle "$MODE"
+STOP_AFTER=2 ./run src/examples/zkprogram/hash-chain.ts --bundle "$MODE"
+STOP_AFTER=4 ./run src/examples/zkprogram/gadgets.ts --bundle "$MODE"
 STOP_AFTER=6 ./run src/examples/zkprogram/side-loading/run.ts --bundle "$MODE"
 
 # Run CS + zkApps performance regression tests
