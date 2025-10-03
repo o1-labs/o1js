@@ -1,3 +1,19 @@
+/**
+ * Performance regression framework for constraint systems (CS) and zkApp
+ * instances.
+ *
+ * This script benchmarks compile-time performance and validates digests for a
+ * fixed set of zkApps and CS examples. It supports two modes:
+ * - **Dump**: record baseline digests and compile times into
+ *   {@link tests/perf-regression/perf-regression.json}
+ * - **Check**: compare current results against stored baselines and fail on
+ *   regressions or digest mismatches
+ *
+ * Unlike {@link src/lib/testing/perf-regression.ts}, which records results for
+ * each ZkProgram examples separately, this file iterates over imported CS/zkApp
+ * instances and updates their digests and compile times as a whole.
+ */
+
 import fs from 'fs';
 import path from 'path';
 import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';

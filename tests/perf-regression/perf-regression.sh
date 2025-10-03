@@ -9,7 +9,7 @@ fi
 
 MODE=$1
 
-# Run ZkProgram perf regression tests with STOP_AFTER controls
+# Run ZkProgram performance regression tests with STOP_AFTER controls
 STOP_AFTER=2 ./run src/examples/crypto/sha256/run.ts --bundle "$MODE"
 STOP_AFTER=4 ./run src/examples/crypto/ecdsa/run.ts --bundle "$MODE"
 STOP_AFTER=2 ./run src/examples/crypto/blake2b/run.ts --bundle "$MODE"
@@ -20,5 +20,5 @@ STOP_AFTER=2 ./run src/examples/zkprogram/hash-chain.ts "$MODE"
 STOP_AFTER=4 ./run src/examples/zkprogram/gadgets.ts "$MODE"
 STOP_AFTER=6 ./run src/examples/zkprogram/side-loading/run.ts --bundle "$MODE"
 
-# Run CS + zkApps perf regression tests
+# Run CS + zkApps performance regression tests
 ./run tests/perf-regression/perf-regression.ts --bundle "$MODE"
