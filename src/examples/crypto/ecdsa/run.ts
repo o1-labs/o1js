@@ -1,6 +1,7 @@
 import { Secp256k1, Ecdsa, keccakAndEcdsa, ecdsa, ecdsaEthers, Bytes32 } from './ecdsa.js';
 import assert from 'assert';
-import { perfStart, perfEnd } from '../../../lib/testing/perf-regression.js';
+import { Performance } from '../../../lib/testing/perf-regression.js';
+
 // create an example ecdsa signature
 
 let privateKey = Secp256k1.Scalar.random();
@@ -24,13 +25,14 @@ console.log(cs.verifyEcdsa.summary());
 
 // compile and prove
 
-perfStart('compile', keccakAndEcdsa.name, cs);
+const perfKeccakEcdsa = Performance.create(keccakAndEcdsa.name, cs);
+perfKeccakEcdsa.start('compile');
 await keccakAndEcdsa.compile();
-perfEnd();
+perfKeccakEcdsa.end();
 
-perfStart('prove', keccakAndEcdsa.name, cs, 'verifyEcdsa');
+perfKeccakEcdsa.start('prove', 'verifyEcdsa');
 let { proof } = await keccakAndEcdsa.verifyEcdsa(message, signature, publicKey);
-perfEnd();
+perfKeccakEcdsa.end();
 
 proof.publicOutput.assertTrue('signature verifies');
 assert(await keccakAndEcdsa.verify(proof), 'proof verifies');
@@ -62,13 +64,14 @@ console.timeEnd('ethers verify only (build constraint system)');
 console.log(csEcdsaEthers.verifyEthers.summary());
 
 // compile and prove
-perfStart('compile', ecdsaEthers.name, csEcdsaEthers);
+const perfEcdsaEthers = Performance.create(ecdsaEthers.name, csEcdsaEthers);
+perfEcdsaEthers.start('compile');
 await ecdsaEthers.compile();
-perfEnd();
+perfEcdsaEthers.end();
 
-perfStart('prove', ecdsaEthers.name, csEcdsaEthers, 'verifyEthers');
+perfEcdsaEthers.start('prove', 'verifyEthers');
 let { proof: proofE } = await ecdsaEthers.verifyEthers(msgBytes, signatureE, publicKeyE);
-perfEnd();
+perfEcdsaEthers.end();
 
 proofE.publicOutput.assertTrue('signature verifies');
 assert(await ecdsaEthers.verify(proofE), 'proof verifies');
