@@ -1,5 +1,5 @@
 import type { Wasm, RustConversion } from '../bindings.js';
-import type { WasmFpSrs, WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { PolyComm } from './kimchi-types.js';
 import {
   type CacheHeader,
@@ -23,6 +23,8 @@ function empty(): SrsStore {
 }
 
 const srsStore = { fp: empty(), fq: empty() };
+
+const CacheReadRegister = new Map<string, boolean>();
 
 let cache: Cache | undefined;
 
@@ -143,16 +145,15 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
         } else {
           // try to read lagrange basis from cache / recompute and write if not found
           let header = cacheHeaderLagrange(f, domainSize);
-
-          let didRead = readCache(cache, header, (bytes) => {
-            let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
-            let mlComms = polyCommsFromJSON(comms);
-            let wasmComms = conversion[f].polyCommsToRust(mlComms);
-
-            setLagrangeBasis(srs, domainSize, wasmComms);
-            return true;
-          });
-
+          let didRead = readCacheLazy(
+            cache,
+            header,
+            conversion,
+            f,
+            srs,
+            domainSize,
+            setLagrangeBasis
+          );
           if (didRead !== true) {
             // not in cache
             if (cache.canWrite) {
@@ -167,11 +168,37 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
               lagrangeCommitment(srs, domainSize, i);
             }
           }
-
           // here, basis is definitely stored on the srs
           let c = maybeLagrangeCommitment(srs, domainSize, i);
           assert(c !== undefined, 'commitment exists after setting');
           commitment = c;
+        }
+      }
+
+      // edge case for when we have a writeable cache and the basis was already stored on the srs
+      // but we didn't store it in the cache seperately yet
+      if (commitment && cache && cache.canWrite) {
+        let header = cacheHeaderLagrange(f, domainSize);
+        let didRead = readCacheLazy(
+          cache,
+          header,
+          conversion,
+          f,
+          srs,
+          domainSize,
+          setLagrangeBasis
+        );
+        // only proceed for entries we haven't written to the cache yet
+        if (didRead !== true) {
+          // same code as above - write the lagrange basis to the cache if it wasn't there already
+          // currently we re-generate the basis via `getLagrangeBasis` - we could derive this from the
+          // already existing `commitment` instead, but this is simpler and the performance impact is negligible
+          let wasmComms = getLagrangeBasis(srs, domainSize);
+          let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+          let comms = polyCommsToJSON(mlComms);
+          let bytes = new TextEncoder().encode(JSON.stringify(comms));
+
+          writeCache(cache, header, bytes);
         }
       }
       return conversion[f].polyCommFromRust(commitment);
@@ -220,5 +247,26 @@ function polyCommsToJSON(comms: MlArray<PolyComm>): PolyCommJson[] {
 function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
   return MlArray.mapTo(json, ({ shifted, unshifted }) => {
     return [0, MlArray.mapTo(shifted, OrInfinity.fromJSON)];
+  });
+}
+
+function readCacheLazy(
+  cache: Cache,
+  header: CacheHeader,
+  conversion: RustConversion,
+  f: 'fp' | 'fq',
+  srs: WasmSrs,
+  domainSize: number,
+  setLagrangeBasis: (srs: WasmSrs, domainSize: number, comms: Uint32Array) => void
+) {
+  if (CacheReadRegister.get(header.uniqueId) === true) return true;
+  return readCache(cache, header, (bytes) => {
+    let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
+    let mlComms = polyCommsFromJSON(comms);
+    let wasmComms = conversion[f].polyCommsToRust(mlComms);
+
+    setLagrangeBasis(srs, domainSize, wasmComms);
+    CacheReadRegister.set(header.uniqueId, true);
+    return true;
   });
 }
