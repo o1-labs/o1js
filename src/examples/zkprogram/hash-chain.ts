@@ -5,6 +5,7 @@
  * We implement this as a self-recursive ZkProgram, using `proveRecursivelyIf()`
  */
 import { assert, Bool, Experimental, Field, Poseidon, Provable, Struct, ZkProgram } from 'o1js';
+import { Performance } from '../../lib/testing/perf-regression.js';
 
 const HASHES_PER_PROOF = 30;
 
@@ -47,12 +48,18 @@ const hashChain = ZkProgram({
 });
 let hashChainRecursive = Experimental.Recursive(hashChain);
 
+const cs = await hashChain.analyzeMethods();
+const perfHashChain = Performance.create(hashChain.name, cs);
+perfHashChain.start('compile');
 await hashChain.compile();
+perfHashChain.end();
 
 let n = 100;
 let x = Field.random();
 
+perfHashChain.start('prove', 'chain');
 let { proof } = await hashChain.chain({ x, n });
+perfHashChain.end();
 
 assert(await hashChain.verify(proof), 'Proof invalid');
 
