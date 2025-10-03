@@ -45,12 +45,7 @@
           src = with pkgs.lib.fileset;
             (toSource {
               root = ./src/bindings;
-              fileset = unions [
-                ./src/bindings/ocaml/dune
-                ./src/bindings/ocaml/lib/dune
-                ./src/bindings/ocaml/dune-project
-                ./src/bindings/ocaml/jsoo_exports/dune
-              ];
+              fileset = unions []
             });
           phases = [ "unpackPhase" "buildPhase" ];
           buildPhase = ''
@@ -243,18 +238,11 @@
                 ./src/bindings/js
                 ./src/bindings/crypto
                 ./src/bindings/lib
-                ./src/bindings/mina-transaction/gen/v1/dune
-                ./src/bindings/mina-transaction/gen/v2/dune
                 (fileFilter (file: file.hasExt "js") ./src/bindings/mina-transaction)
-                ./src/bindings/ocaml/lib
-                ./src/bindings/ocaml/dune
-                ./src/bindings/ocaml/dune-project
                 (fileFilter (file: file.hasExt "ml") ./src/bindings/ocaml)
                 ./scripts/lib
                 ./package.json
                 ./package-lock.json
-                ./src/bindings/ocaml/jsoo_exports
-                ./dune-project
                 ./.prettierrc.cjs
                 ./src/build
                 ./src/bindings.d.ts
@@ -328,7 +316,7 @@
 
 
         };
-        # TODO build from ./ocaml root, not ./. (after fixing a bug in dune-nix)
+
         packages = {
           inherit dune-description bindings;
           bindings-tar = pkgs.stdenv.mkDerivation {
