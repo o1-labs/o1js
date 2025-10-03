@@ -161,6 +161,7 @@ jobs:
             'Verification Key Regression Check 1',
             'Verification Key Regression Check 2',
             'CommonJS test',
+            'Cache Regression',
           ]
     steps:
       - name: Checkout repository with submodules
@@ -176,6 +177,10 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - uses: 'google-github-actions/auth@v3'
+        name: Setup gcloud authentication
+        with:
+          credentials_json: '${{ secrets.GCP_O1JS_CI_BUCKET_SERVICE_ACCOUNT_KEY }}'
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
