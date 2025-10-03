@@ -1,5 +1,5 @@
 import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
-import { perfStart, perfEnd } from '../../lib/testing/perf-regression.js';
+import { Performance } from '../../lib/testing/perf-regression.js';
 
 let cs = await Provable.constraintSystem(() => {
   let f = Provable.witness(Field, () => 12);
@@ -56,26 +56,27 @@ const BitwiseProver = ZkProgram({
 });
 
 const csBitwise = await BitwiseProver.analyzeMethods();
+const perfBitwise = Performance.create(BitwiseProver.name, csBitwise);
 
 console.log('\ncompiling..');
 
-perfStart('compile', BitwiseProver.name);
+perfBitwise.start('compile');
 await BitwiseProver.compile();
-perfEnd();
+perfBitwise.end();
 
 console.log('\nproving..');
 
-perfStart('prove', BitwiseProver.name, csBitwise, 'rot');
+perfBitwise.start('prove', 'rot');
 let { proof: rotProof } = await BitwiseProver.rot();
-perfEnd();
+perfBitwise.end();
 if (!(await BitwiseProver.verify(rotProof))) throw Error('rot: Invalid proof');
 
-perfStart('prove', BitwiseProver.name, csBitwise, 'xor');
+perfBitwise.start('prove', 'xor');
 let { proof: xorProof } = await BitwiseProver.xor();
-perfEnd();
+perfBitwise.end();
 if (!(await BitwiseProver.verify(xorProof))) throw Error('xor: Invalid proof');
 
-perfStart('prove', BitwiseProver.name, csBitwise, 'and');
+perfBitwise.start('prove', 'and');
 let { proof: andProof } = await BitwiseProver.and();
-perfEnd();
+perfBitwise.end();
 if (!(await BitwiseProver.verify(andProof))) throw Error('and: Invalid proof');

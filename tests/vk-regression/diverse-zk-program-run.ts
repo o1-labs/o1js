@@ -1,19 +1,20 @@
 import assert from 'node:assert';
 import { diverse, Bytes128 } from './diverse-zk-program.js';
-import { perfStart, perfEnd } from '../../src/lib/testing/perf-regression.js';
+import { Performance } from '../../src/lib/testing/perf-regression.js';
 
 const cs = await diverse.analyzeMethods();
+const perfDiverse = Performance.create(diverse.name, cs);
 
-perfStart('compile', diverse.name, cs);
+perfDiverse.start('compile');
 await diverse.compile();
-perfEnd();
+perfDiverse.end();
 
-perfStart('prove', diverse.name, cs, 'sha3');
+perfDiverse.start('prove', 'sha3');
 let { proof: proof1 } = await diverse.sha3(Bytes128.fromString('hello'));
-perfEnd();
+perfDiverse.end();
 
-perfStart('prove', diverse.name, cs, 'recursive');
+perfDiverse.start('prove', 'recursive');
 let { proof: proof2 } = await diverse.recursive(proof1);
-perfEnd();
+perfDiverse.end();
 
 assert(await diverse.verify(proof2), 'verifies');
