@@ -1,3 +1,16 @@
+/**
+ * Regression testing framework for individual ZkProgram examples.
+ *
+ * Stores and compares metadata such as compile & proving times.
+ * Can run in two modes:
+ * - **Dump**: write baseline results into
+ *   {@link tests/perf-regression/perf-regression.json}
+ * - **Check**: validate current results against the stored baselines
+ *
+ * For regression testing of constraint systems (CS) and zkApps,
+ * see {@link tests/perf-regression/perf-regression.ts}.
+ */
+
 import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
 import fs from 'fs';
 import path from 'path';
@@ -24,7 +37,7 @@ type PerfRegressionEntry = {
 type PerfStack = {
   start: number;
   label?: 'compile' | 'prove' | string;
-  contractName?: string;
+  programName?: string;
   methodsSummary?: MethodsSummary;
   methodName?: string; // required for prove; optional for compile
 };
@@ -39,7 +52,14 @@ const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
   ? Number(process.env.STOP_AFTER)
   : undefined;
 
-function createPerfSession(contractName?: string, methodsSummary?: MethodsSummary) {
+/**
+ * Create a new performance tracking session for a contract.
+ *
+ * @param programName Name of the program (key in perf-regression.json)
+ * @param methodsSummary Optional methods analysis (required for prove checks)
+ * @returns An object with `start()` and `end()` methods
+ */
+function createPerfSession(programName?: string, methodsSummary?: MethodsSummary) {
   const perfStack: PerfStack[] = [];
   let __endCounter = 0;
 
@@ -53,28 +73,40 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
   }
 
   return {
+    /**
+     * Start measuring performance for a given phase.
+     *
+     * @param label The phase label: `'compile' | 'prove' | string`
+     * @param methodName Method name (required for `prove`)
+     */
     start(label?: 'compile' | 'prove' | string, methodName?: string) {
       perfStack.push({
         label,
         start: performance.now(),
-        contractName,
+        programName,
         methodsSummary,
         methodName,
       });
     },
 
+    /**
+     * End the most recent measurement and:
+     * - Log results to console
+     * - Dump into baseline JSON (if `--dump`)
+     * - Check against baseline (if `--check`)
+     */
     end() {
       const frame = perfStack.pop()!;
-      const { label, start, contractName } = frame;
+      const { label, start, programName } = frame;
       let { methodsSummary: cs, methodName } = frame;
 
       const time = (performance.now() - start) / 1000;
 
       // Base logging — show contract.method for prove
-      if (label === 'prove' && contractName && methodName) {
-        console.log(`${label} ${contractName}.${methodName}... ${time.toFixed(3)} sec`);
+      if (label === 'prove' && programName && methodName) {
+        console.log(`${label} ${programName}.${methodName}... ${time.toFixed(3)} sec`);
       } else if (label) {
-        console.log(`${label} ${contractName ?? ''}... ${time.toFixed(3)} sec`);
+        console.log(`${label} ${programName ?? ''}... ${time.toFixed(3)} sec`);
       }
 
       // If neither --dump nor --check, just log and honor STOP_AFTER
@@ -84,7 +116,7 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
       }
 
       // Only act for compile/prove with required context
-      if (!contractName || (label !== 'compile' && label !== 'prove')) {
+      if (!programName || (label !== 'compile' && label !== 'prove')) {
         maybeStop();
         return;
       }
@@ -98,7 +130,7 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
         if (CHECK) {
           checkAgainstBaseline({
             perfRegressionJson,
-            contractName,
+            programName,
             label: 'compile', // compile checks don't use method/digest; pass empty strings
             methodName: '',
             digest: '',
@@ -110,12 +142,12 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
 
         // DUMP: update only contract-level compileTime (does not touch methods)
         if (DUMP) {
-          const prev = perfRegressionJson[contractName];
+          const prev = perfRegressionJson[programName];
           const merged: PerfRegressionEntry = prev
             ? { ...prev, compileTime: time }
             : { compileTime: time, methods: {} };
 
-          perfRegressionJson[contractName] = merged;
+          perfRegressionJson[programName] = merged;
           fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
           maybeStop();
           return;
@@ -141,7 +173,7 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
       }
       if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
         throw new Error(
-          `The method "${methodName}" does not exist in the analyzed constraint systems for "${contractName}". ` +
+          `The method "${methodName}" does not exist in the analyzed constraint systems for "${programName}". ` +
             `Available: ${csMethodNames.join(', ')}`
         );
       }
@@ -156,7 +188,7 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
       if (CHECK) {
         checkAgainstBaseline({
           perfRegressionJson,
-          contractName,
+          programName,
           label: 'prove',
           methodName,
           digest: info.digest,
@@ -168,9 +200,9 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
 
       // DUMP: update per-method rows/digest and proveTime; leave compileTime untouched
       if (DUMP) {
-        const prev = perfRegressionJson[contractName];
+        const prev = perfRegressionJson[programName];
         const merged: PerfRegressionEntry = prev
-          ? { ...prev, methods: { ...(prev.methods ?? {}) } }
+          ? { ...prev, methods: { ...prev.methods } }
           : { methods: {} };
 
         merged.methods[methodName] = {
@@ -179,7 +211,7 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
           proveTime: time,
         };
 
-        perfRegressionJson[contractName] = merged;
+        perfRegressionJson[programName] = merged;
         fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
         maybeStop();
         return;
@@ -191,11 +223,22 @@ function createPerfSession(contractName?: string, methodsSummary?: MethodsSummar
   };
 }
 
-/// Public API
 const Performance = {
-  //TODO add jsdoc
-  create(contractName: string, methodsSummary?: MethodsSummary) {
-    return createPerfSession(contractName, methodsSummary);
+  /**
+   * Initialize a new performance session.
+   *
+   * @param programName Optional identifier for the program or label.
+   *   - When provided with a ZkProgram name and its `methodsSummary`, the session
+   *     benchmarks compile and prove phases, storing or checking results against
+   *     `perf-regression.json`.
+   *   - When used without a ZkProgram, `programName` acts as a freeform label and
+   *     the session can be used like `console.time` / `console.timeEnd` to log
+   *     timestamps for arbitrary phases.
+   * @param methodsSummary Optional analysis of ZkProgram methods, required when
+   *   measuring prove performance.
+   */
+  create(programName?: string, methodsSummary?: MethodsSummary) {
+    return createPerfSession(programName, methodsSummary);
   },
 };
 
@@ -205,20 +248,23 @@ function flag(name: string) {
   return process.argv.includes(name);
 }
 
-// Compare against baseline; throw on mismatch/regression
+/**
+ * Compare a measured time/digest against stored baselines.
+ * Throws an error if regression exceeds tolerance.
+ */
 function checkAgainstBaseline(params: {
   perfRegressionJson: Record<string, PerfRegressionEntry>;
-  contractName: string;
+  programName: string;
   label: 'compile' | 'prove';
   methodName: string;
   digest: string;
   actualTime: number;
 }) {
-  const { perfRegressionJson, contractName, label, methodName, digest, actualTime } = params;
+  const { perfRegressionJson, programName, label, methodName, digest, actualTime } = params;
 
-  const baseline = perfRegressionJson[contractName];
+  const baseline = perfRegressionJson[programName];
   if (!baseline) {
-    throw new Error(`No baseline for "${contractName}". Seed it with --dump first.`);
+    throw new Error(`No baseline for "${programName}". Seed it with --dump first.`);
   }
 
   // tolerances (same as other file)
@@ -231,7 +277,7 @@ function checkAgainstBaseline(params: {
     const expected = baseline.compileTime;
     if (expected == null) {
       throw new Error(
-        `No baseline compileTime for "${contractName}". Run --dump (compile) to set it.`
+        `No baseline compileTime for "${programName}". Run --dump (compile) to set it.`
       );
     }
     const tol = expected < 5e-5 ? compileTiny : compileTol;
@@ -240,7 +286,7 @@ function checkAgainstBaseline(params: {
     if (actualTime > expected * tol) {
       const regressionPct = ((actualTime - expected) / expected) * 100;
       throw new Error(
-        `Compile regression for ${contractName}\n` +
+        `Compile regression for ${programName}\n` +
           `  Actual:   ${actualTime.toFixed(6)}s\n` +
           `  Regression: +${regressionPct.toFixed(2)}% (allowed +${allowedPct.toFixed(0)}%)`
       );
@@ -252,12 +298,12 @@ function checkAgainstBaseline(params: {
   const baseMethod = baseline.methods?.[methodName];
   if (!baseMethod) {
     throw new Error(
-      `No baseline method entry for ${contractName}.${methodName}. Run --dump (prove) to add it.`
+      `No baseline method entry for ${programName}.${methodName}. Run --dump (prove) to add it.`
     );
   }
   if (baseMethod.digest !== digest) {
     throw new Error(
-      `Digest mismatch for ${contractName}.${methodName}\n` +
+      `Digest mismatch for ${programName}.${methodName}\n` +
         `  Actual:   ${digest}\n` +
         `  Expected: ${baseMethod.digest}\n`
     );
@@ -265,7 +311,7 @@ function checkAgainstBaseline(params: {
   const expected = baseMethod.proveTime;
   if (expected == null) {
     throw new Error(
-      `No baseline proveTime for ${contractName}.${methodName}. Run --dump (prove) to set it.`
+      `No baseline proveTime for ${programName}.${methodName}. Run --dump (prove) to set it.`
     );
   }
   const tol = expected < 0.2 ? proveTolSmall : proveTolDefault;
@@ -274,7 +320,7 @@ function checkAgainstBaseline(params: {
   if (actualTime > expected * tol) {
     const regressionPct = ((actualTime - expected) / expected) * 100;
     throw new Error(
-      `Prove regression for ${contractName}.${methodName}\n` +
+      `Prove regression for ${programName}.${methodName}\n` +
         `  Actual:   ${actualTime.toFixed(3)}s\n` +
         `  Regression: +${regressionPct.toFixed(2)}% (allowed +${allowedPct.toFixed(0)}%)`
     );
