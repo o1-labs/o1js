@@ -1,11 +1,10 @@
-import { ZkProgram } from '../../proof-system/zkprogram.js';
-import { Bytes } from '../wrapped-classes.js';
-import { Gadgets } from '../gadgets/gadgets.js';
 import { blake2b as nobleBlake2b } from '@noble/hashes/blake2b';
-import { bytes } from './test-utils.js';
+import { ZkProgram } from '../../proof-system/zkprogram.js';
 import { equivalentAsync, equivalentProvable } from '../../testing/equivalent.js';
 import { Random, sample } from '../../testing/random.js';
-import { expect } from 'expect';
+import { Gadgets } from '../gadgets/gadgets.js';
+import { Bytes } from '../wrapped-classes.js';
+import { bytes } from './test-utils.js';
 
 sample(Random.nat(400), 5).forEach((preimageLength) => {
   let inputBytes = bytes(preimageLength);
@@ -23,7 +22,7 @@ for (let { digest_length, preimage, hash } of testVectors()) {
   let outputBytes = bytes(digest_length);
   equivalentProvable({ from: [inputBytes], to: outputBytes, verbose: true })(
     () => Bytes.fromHex(hash).toBytes(),
-    (x) => Gadgets.BLAKE2B.hash(Bytes.fromString(preimage), digest_length),
+    () => Gadgets.BLAKE2B.hash(Bytes.fromString(preimage), digest_length),
     `provable: blake2b preimage length ${preimage.length}`
   );
 }

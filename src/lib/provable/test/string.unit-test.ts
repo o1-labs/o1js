@@ -40,66 +40,6 @@ describe('Circuit String', () => {
     });
   });
 
-  /*   describe('#contains', () => {
-    test('returns true when str contains other str', () => {
-      const str = CircuitString.fromString(
-        'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
-      );
-      const contained_str = CircuitString.fromString(
-        'Everything we hear is an opinion, not a fact.'
-      );
-      expect(str.contains(contained_str)).toEqual(new Bool(true));
-
-      await Provable.runAndCheck(() => {
-        const str = CircuitString.fromString(
-          'Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth'
-        );
-        const contained_str = CircuitString.fromString(
-          'Everything we hear is an opinion, not a fact.'
-        );
-        expect(str.contains(contained_str)).toEqual(new Bool(true));
-      });
-    });
-
-    test('returns false when str does not contain other str', () => {
-      const str = CircuitString.fromString('abcdefghijklmnop');
-      const not_contained_str = CircuitString.fromString('defhij');
-      expect(str.contains(not_contained_str)).toEqual(new Bool(false));
-
-      await Provable.runAndCheck(() => {
-        const str = CircuitString.fromString('abcdefghijklmnop');
-        const not_contained_str = CircuitString.fromString('defhij');
-        expect(str.contains(not_contained_str)).toEqual(new Bool(false));
-      });
-    });
-
-    describe('compatibility with implementing classes', () => {
-      test('string8 may contain string', () => {
-        const str = CircuitString8.fromString('abcd');
-        const contained_str = CircuitString.fromString('ab');
-        expect(str.contains(contained_str)).toEqual(new Bool(true));
-
-        await Provable.runAndCheck(() => {
-          const str = CircuitString8.fromString('abcd');
-          const contained_str = CircuitString.fromString('ab');
-          expect(str.contains(contained_str)).toEqual(new Bool(true));
-        });
-      });
-
-      test('string may contain string8', () => {
-        const str = CircuitString.fromString('abcd');
-        const contained_str = CircuitString8.fromString('ab');
-        expect(str.contains(contained_str)).toEqual(new Bool(true));
-
-        await Provable.runAndCheck(() => {
-          const str = CircuitString.fromString('abcd');
-          const contained_str = CircuitString8.fromString('ab');
-          expect(str.contains(contained_str)).toEqual(new Bool(true));
-        });
-      });
-    });
-  }); */
-
   describe('#toString', () => {
     test('serializes to string', async () => {
       const js_str =
@@ -158,23 +98,11 @@ describe('Circuit String', () => {
     });
   });
 
-  /*   describe('CircuitString8', async () => {
-    test('cannot create more than 8 chars', () => {
-      expect(() => {
-        await Provable.runAndCheck(() => {
-          Provable.witness(CircuitString8, () => {
-            return CircuitString8.fromString('More than eight chars');
-          });
-        });
-      }).toThrow();
-    });
-  }); */
-
   describe.skip('with invalid input', () => {
     test('cannot use a character out of range', () => {
       expect(() => {
         Provable.runAndCheck(() => {
-          const str = Provable.witness(CircuitString, () => {
+          Provable.witness(CircuitString, () => {
             return CircuitString.fromCharacters([
               new Character(Field(100)),
               new Character(Field(10000)),
