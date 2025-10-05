@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Disable smudging
         run: echo "GIT_LFS_SKIP_SMUDGE=1" >> $GITHUB_ENV
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: nixbuild/nix-quick-install-action@v30
