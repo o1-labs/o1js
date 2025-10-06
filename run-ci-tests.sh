@@ -49,6 +49,10 @@ case $TEST_TYPE in
   node src/examples/commonjs.cjs
   ;;
 
+"Cache Regression")
+  echo "Cache Regression"
+  ./scripts/tests/check-cache-regressions.sh
+  ;;
 *)
   echo "ERROR: Invalid environment variable, not clear what tests to run! $CI_NODE_INDEX"
   exit 1

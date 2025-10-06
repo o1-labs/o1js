@@ -74,6 +74,12 @@ run_cmd dune b src/bindings/mina-transaction/gen/v1/js-layout.ts \
   src/bindings/crypto/constants.ts
 ok "TypeScript definitions built"
 
+info "Formatting generated transaction layout definitions..."
+run_cmd npx prettier --write \
+  src/bindings/crypto/constants.ts \
+  src/bindings/mina-transaction/gen/**/*.ts
+ok "TypeScript definitions formatted"
+
 info "Cleaning up Mina config files..."
 run_cmd rm -rf "src/config"
 run_cmd rm "src/config.mlh"

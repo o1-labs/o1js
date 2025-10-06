@@ -81,7 +81,7 @@
     "e2e:run-server": "node dist/web/server.js",
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report",
-    "update-changelog": "./update-changelog.sh",
+    "update-changelog": "./scripts/changelog/update-changelog.sh",
     "prepare": "husky"
   },
   "author": "O(1) Labs",
@@ -92,6 +92,7 @@
     "@playwright/test": "^1.48.0",
     "@types/jest": "^27.0.0",
     "@types/libsodium-wrappers-sumo": "^0.7.8",
+    "@types/minimist": "^1.2.5",
     "@types/node": "^18.14.2",
     "esbuild": "^0.25.5",
     "expect": "^29.0.1",
