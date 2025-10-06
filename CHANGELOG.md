@@ -32,6 +32,9 @@ This project adheres to
 - Fixed a verification key regression that was caused by incorrectly enabling a
   proof system feature that wasn't needed.
   https://github.com/o1-labs/o1js/pull/2449
+- Fixed an edge case where not all the artefacts needed for the cache were
+  stored properly, resulting in them being re-computed after loading the cache.
+  https://github.com/o1-labs/o1js/pull/2460
 
 ### Deprecated
 
