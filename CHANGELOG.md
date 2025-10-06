@@ -27,7 +27,7 @@ This project adheres to
 - Support for string type input to `Transaction.fromJSON`
   https://github.com/o1-labs/o1js/pull/2436
 - Improved the runtime table API with a `RuntimeTable` class with better
-  readability. https://github.com/o1-labs/o1js/pull/2402
+  readability https://github.com/o1-labs/o1js/pull/2402
 
 ### Fixed
 
