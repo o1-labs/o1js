@@ -1,12 +1,13 @@
 import { Field, verify } from 'o1js';
 import { PayrollRuntimeTableZkProgram } from './payroll.js';
-import { perfStart, perfEnd } from '../../../lib/testing/perf-regression.js';
+import { Performance } from '../../../lib/testing/perf-regression.js';
 
 const cs = await PayrollRuntimeTableZkProgram.analyzeMethods();
+const perfPayroll = Performance.create(PayrollRuntimeTableZkProgram.name, cs);
 
-perfStart('compile', PayrollRuntimeTableZkProgram.name);
+perfPayroll.start('compile');
 let { verificationKey } = await PayrollRuntimeTableZkProgram.compile({ withRuntimeTables: true });
-perfEnd();
+perfPayroll.end();
 
 export const examplePayrollPublicInput = Field(1600_00); // total withheld (cents)
 export const examplePayrollPrivateInputs = [
@@ -18,11 +19,11 @@ export const examplePayrollPrivateInputs = [
   Field(3_000), // Charlie rate
 ] as const;
 
-perfStart('prove', PayrollRuntimeTableZkProgram.name, cs, 'verifyPayroll');
+perfPayroll.start('prove', 'verifyPayroll');
 let { proof } = await PayrollRuntimeTableZkProgram.verifyPayroll(
   examplePayrollPublicInput,
   ...examplePayrollPrivateInputs
 );
-perfEnd();
+perfPayroll.end();
 
 verify(proof, verificationKey);
