@@ -1,7 +1,5 @@
 {
-  "extends": [
-    "oxlint/recommended"
-  ],
+  "extends": ["oxlint/recommended"],
   "rules": {
     "erasing-op": "off",
     "no-new-array": "off",

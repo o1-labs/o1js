@@ -77,9 +77,9 @@ function runSubprocess(lazyMode: boolean): Promise<void> {
     child.on('exit', (code) => {
       console.log(`(Parent) Process lazyMode=${lazyMode} exited with code ${code}`);
       if (code === 0) {
-        resolve()
+        resolve();
       } else {
-        reject(new Error(`Test failed for lazyMode=${lazyMode}`))
+        reject(new Error(`Test failed for lazyMode=${lazyMode}`));
       }
     });
   });

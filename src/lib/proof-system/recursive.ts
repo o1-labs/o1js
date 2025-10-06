@@ -34,20 +34,20 @@ function Recursive<
     }>;
   }
 ): {
-    [Key in keyof PrivateInputs]: RecursiveProver<
+  [Key in keyof PrivateInputs]: RecursiveProver<
+    InferProvable<PublicInputType>,
+    PublicInputType,
+    InferProvable<PublicOutputType>,
+    PrivateInputs[Key]
+  > & {
+    if: ConditionalRecursiveProver<
       InferProvable<PublicInputType>,
       PublicInputType,
       InferProvable<PublicOutputType>,
       PrivateInputs[Key]
-    > & {
-      if: ConditionalRecursiveProver<
-        InferProvable<PublicInputType>,
-        PublicInputType,
-        InferProvable<PublicOutputType>,
-        PrivateInputs[Key]
-      >;
-    };
-  } {
+    >;
+  };
+} {
   type PublicInput = InferProvable<PublicInputType>;
   type PublicOutput = InferProvable<PublicOutputType>;
   type MethodKey = keyof PrivateInputs;
@@ -175,14 +175,14 @@ type ConditionalRecursiveProver<
   Args extends Tuple<ProvableType>,
 > = PublicInput extends undefined
   ? (
-    condition: Bool | { condition: Bool; domainLog2?: number },
-    ...args: TupleFrom<Args>
-  ) => Promise<PublicOutput>
+      condition: Bool | { condition: Bool; domainLog2?: number },
+      ...args: TupleFrom<Args>
+    ) => Promise<PublicOutput>
   : (
-    condition: Bool | { condition: Bool; domainLog2?: number },
-    publicInput: From<PublicInputType>,
-    ...args: TupleFrom<Args>
-  ) => Promise<PublicOutput>;
+      condition: Bool | { condition: Bool; domainLog2?: number },
+      publicInput: From<PublicInputType>,
+      ...args: TupleFrom<Args>
+    ) => Promise<PublicOutput>;
 
 type TupleFrom<T> = {
   [I in keyof T]: From<T[I]>;
