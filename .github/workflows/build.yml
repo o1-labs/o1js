@@ -1,0 +1,127 @@
+name: Build
+on:
+  pull_request:
+  workflow_dispatch:
+env:
+  OCAML_VERSION: 4.14.0
+jobs:
+
+  build:
+    name: Build (Node.JS ${{ matrix.node_version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        node_version: [20, 22]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: apt, apt
+        run: |
+          set -Eeuxo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update
+          sudo apt install --no-install-recommends --yes \
+            libboost-dev \
+            libboost-program-options-dev \
+            libbz2-dev \
+            libcap-dev \
+            libffi-dev \
+            libgflags-dev \
+            libgmp-dev \
+            libgmp3-dev \
+            libjemalloc-dev \
+            liblmdb-dev \
+            liblmdb0 \
+            libpq-dev \
+            libprocps-dev \
+            libsodium-dev \
+            libssl-dev \
+            build-essential \
+            ca-certificates \
+            capnproto \
+            cmake \
+            curl \
+            file \
+            git \
+            git-lfs \
+            m4 \
+            pkg-config \
+            rsync \
+            sudo \
+            unzip \
+            binaryen \
+            zlib1g-dev
+      
+      - name: Setup Node.JS ${{ matrix.node_version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node_version }}
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Set-up OCaml ${{ env.OCAML_VERSION }}
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_VERSION }}
+      
+      - name: Pin opam dependencies
+        run: |
+          set -Eeuxo pipefail
+          opam repository set-url default https://github.com/ocaml/opam-repository.git\#08d8c16c16dc6b23a5278b06dff0ac6c7a217356
+          opam repository add --yes --all --set-default o1-labs https://github.com/o1-labs/opam-repository.git
+
+      - name: Cache opam switch
+        id: cache-opam
+        uses: actions/cache@v4
+        with:
+          path: ./_opam/
+          key: ${{ runner.os }}-${{ env.OCAML_VERSION }}-${{ hashFiles('./src/mina/opam.export') }}
+
+      - name: Setup opam switch
+        if: steps.cache-opam.outputs.cache-hit != 'true'
+        run: |
+          set -Eeuxo pipefail
+
+          pushd src/mina
+          opam switch import opam.export
+      
+      - name: Debug opam switch
+        if: steps.cache-opam.outputs.cache-hit == 'true'
+        run: |
+          set -Eeuxo pipefail
+          eval $(opam env)
+          opam switch
+          which dune
+      
+      - name: Setup rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2024-09-05
+          target: wasm32-unknown-unknown
+      
+      - name: Setup rust toolchain again
+        run: rustup component add rust-src --toolchain nightly-2024-09-05-x86_64-unknown-linux-gnu
+      
+      - name: Setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.18.10
+      
+      - name: Build bindings
+        run: |
+          eval $(opam env)
+          npm run build:bindings-all
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Run simple test
+        env:
+          TEST_TYPE: "Simple integration tests"
+        run: ./run-ci-tests.sh
+        timeout-minutes: 30
+        
