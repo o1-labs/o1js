@@ -67,7 +67,7 @@ jobs:
           git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > changed_files.txt
           TOTAL=$(wc -l < changed_files.txt)
           echo "count=$TOTAL" >> $GITHUB_OUTPUT
-          echo "files=$(cat changed_files.txt | xargs)" >> $GITHUB_OUTPUT
+
       - name: Run Prettier Check
         if: steps.changed_files.outputs.count > 0
         run: xargs npm run format:check < changed_files.txt
@@ -78,3 +78,9 @@ jobs:
 
       - name: Run Markdown Format Check
         run: npm run format:md:check
+
+      - name: Run cspell
+        if: github.event.pull_request.labels.*.name != 'no-typo-check'
+        uses: streetsidesoftware/cspell-action@v7
+        with:
+          config: .config/cspell.json
