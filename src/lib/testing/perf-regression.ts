@@ -59,7 +59,7 @@ const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
  * @param methodsSummary Optional methods analysis (required for prove checks)
  * @returns An object with `start()` and `end()` methods
  */
-function createPerfSession(programName?: string, methodsSummary?: MethodsSummary) {
+function createPerformanceSession(programName?: string, methodsSummary?: MethodsSummary) {
   const perfStack: PerfStack[] = [];
   let __endCounter = 0;
 
@@ -238,7 +238,7 @@ const Performance = {
    *   measuring prove performance.
    */
   create(programName?: string, methodsSummary?: MethodsSummary) {
-    return createPerfSession(programName, methodsSummary);
+    return createPerformanceSession(programName, methodsSummary);
   },
 };
 
