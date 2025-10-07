@@ -106,6 +106,7 @@
     "oxlint": "^1.0.0",
     "pkg-pr-new": "^0.0.9",
     "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.3.0",
     "replace-in-file": "^6.3.5",
     "rimraf": "^3.0.2",
     "ts-jest": "^28.0.8",
