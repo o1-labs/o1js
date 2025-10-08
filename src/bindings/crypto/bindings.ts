@@ -16,6 +16,7 @@ import { verifierIndexConversion } from './bindings/conversion-verifier-index.js
 import { oraclesConversion } from './bindings/conversion-oracles.js';
 import { jsEnvironment } from './bindings/env.js';
 import { srs } from './bindings/srs.js';
+import { bindingsNapi } from './bindings-napi.js';
 
 export { getRustConversion, RustConversion, Wasm, createNativeRustConversion };
 
@@ -40,8 +41,8 @@ const tsBindings = {
 
 type Wasm = typeof wasmNamespace;
 
-function createNativeRustConversion(wasm: Wasm) {
-  return buildConversion(wasm);
+function createNativeRustConversion(napi: any) {
+  return bindingsNapi(napi);
 }
 
 function createRustConversion(wasm: Wasm) {
