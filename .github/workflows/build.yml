@@ -7,18 +7,50 @@ env:
 jobs:
 
   build:
-    name: Build (Node.JS ${{ matrix.node_version }})
-    runs-on: ubuntu-22.04
+    name: "[${{ matrix.os }}] Build (Node.JS ${{ matrix.node_version }})"
     strategy:
       matrix:
+        os: [ubuntu-22.04, macos-latest]
         node_version: [20, 22]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
       
+      - name: Set up Homebrew
+        if: runner.os == 'macOS'
+        uses: Homebrew/actions/setup-homebrew@v4
+      
+      - name: Install Homebrew dependencies
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install \
+            capnp \
+            binaryen \
+            bzip2 \
+            gcc \
+            gnu-sed \
+            libffi \
+            libpq \
+            libsodium \
+            lmdb \
+            pkgconf \
+            postgresql@14 \
+            wasm-pack \
+            wasm-tools \
+            wabt \
+            bash
+
+      - name: Debug env
+        if: runner.os == 'macOS'
+        run: env
+
       - name: apt, apt
+        if: runner.os == "Linux"
         run: |
           set -Eeuxo pipefail
           export DEBIAN_FRONTEND=noninteractive
