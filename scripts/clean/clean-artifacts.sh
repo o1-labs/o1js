@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Also remove _build/default/src/bindings/ocaml/jsoo_exports
+
 # shared libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/ux.sh"
@@ -9,6 +11,7 @@ source "$SCRIPT_DIR/../lib/ux.sh"
 ROOT_DIR="$(get_repo_root)"
 DIST_DIR="$ROOT_DIR/dist"
 COMPILED_DIR="$ROOT_DIR/src/bindings/compiled"
+JSOO_DIR="_build/default/src/bindings/ocaml/jsoo_exports"
 CRYPTO_CONSTANTS="$ROOT_DIR/src/bindings/crypto/constants.ts"
 GEN_CONST_DIR="$ROOT_DIR/src/bindings/mina-transaction/gen"
 
@@ -32,6 +35,15 @@ if [ -d "$COMPILED_DIR" ]; then
   info "Removing compiled artifact files from $COMPILED_DIR..."
   run_cmd rimraf "$COMPILED_DIR"
   ok "Compiled artifact files removed"
+else
+  warn "Compiled directory not found, skipping"
+fi
+
+bold "Cleaning compiled OCaml jsoo artifacts"
+if [ -d "$JSOO_DIR" ]; then
+  info "Removing compiled artifact files from $JSOO_DIR..."
+  run_cmd rimraf "$JSOO_DIR"
+  ok "Compiled jsoo artifact files removed"
 else
   warn "Compiled directory not found, skipping"
 fi
