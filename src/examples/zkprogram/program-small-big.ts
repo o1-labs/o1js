@@ -1,4 +1,4 @@
-import { Bytes, UInt8, Field, ZkProgram, Poseidon, Hash, verify } from 'o1js';
+import { Bytes, Field, Hash, Poseidon, UInt8, ZkProgram, verify } from 'o1js';
 
 const SmallProgram = ZkProgram({
   name: 'small-program',
