@@ -6,8 +6,7 @@
           "flake-utils"
         ],
         "nixpkgs": [
-          "mina",
-          "nixpkgs"
+          "nixpkgs-mina"
         ]
       },
       "locked": {
@@ -55,8 +54,7 @@
           "flake-utils"
         ],
         "nixpkgs": [
-          "mina",
-          "nixpkgs"
+          "nixpkgs-mina"
         ]
       },
       "locked": {
@@ -265,17 +263,19 @@
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-mozilla": "nixpkgs-mozilla",
         "nixpkgs-old": "nixpkgs-old",
-        "nixpkgs-unstable": "nixpkgs-unstable",
         "o1-opam-repository": "o1-opam-repository",
         "opam-nix": "opam-nix",
         "opam-repository": "opam-repository",
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1759504549,
-        "narHash": "sha256-2Jx58hMSJdODih3ziezpKqWJKoG4BHFlzo66pgmYPsI=",
-        "path": "/home/leon/github/o1js/src/mina",
-        "type": "path"
+        "lastModified": 1759149946,
+        "narHash": "sha256-YbHO3O1wPkLLEqO1lDlOEXgD1ibLEJX63DFHVvzROss=",
+        "rev": "2c70f34e3a78a194fba5bb55230d5df5fec5efb5",
+        "revCount": 37826,
+        "submodules": true,
+        "type": "git",
+        "url": "file:src/mina"
       },
       "original": {
         "submodules": true,
@@ -399,6 +399,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-mina": {
+      "locked": {
+        "lastModified": 1751290243,
+        "narHash": "sha256-kNf+obkpJZWar7HZymXZbW+Rlk3HTEIMlpc6FCNz0Ds=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "5ab036a8d97cb9476fbe81b09076e6e91d15e1b6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-24.11-small",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs-mozilla": {
       "flake": false,
       "locked": {
@@ -443,22 +459,6 @@
       "original": {
         "owner": "nixos",
         "ref": "nixos-23.05-small",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs-unstable": {
-      "locked": {
-        "lastModified": 1759036355,
-        "narHash": "sha256-0m27AKv6ka+q270dw48KflE0LwQYrO7Fm4/2//KCVWg=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "e9f00bd893984bc8ce46c895c3bf7cac95331127",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -587,6 +587,7 @@
         "dune-nix": "dune-nix",
         "flake-utils": "flake-utils",
         "mina": "mina",
+        "nixpkgs-mina": "nixpkgs-mina",
         "nixpkgs-mozilla": "nixpkgs-mozilla_2"
       }
     },
