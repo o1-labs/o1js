@@ -50,7 +50,7 @@ jobs:
         run: env
 
       - name: apt, apt
-        if: runner.os == "Linux"
+        if: runner.os == 'Linux'
         run: |
           set -Eeuxo pipefail
           export DEBIAN_FRONTEND=noninteractive
