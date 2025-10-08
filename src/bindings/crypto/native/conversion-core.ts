@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import type * as napiNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import { MlArray } from '../../../lib/ml/base.js';
 import { OrInfinity, Gate, PolyComm, Wire } from './kimchi-types.js';
@@ -93,20 +94,21 @@ function conversionCorePerField({ makeAffine, PolyComm: PolyCommClass }: NapiCla
       return affineFromRust(point);
     },
 
-    pointsToRust([, ...points]: MlArray<OrInfinity>): any[] {
+    pointsToRust([, ...points]: MlArray<OrInfinity>): NapiAffine[] {
       return points.map(self.pointToRust);
     },
     pointsFromRust(points: unknown): MlArray<OrInfinity> {
-      return [0, ...asArray(points, 'pointsFromRust').map(self.pointFromRust)];
+      const list = asArray<any>(points, 'pointsFromRust');
+      return [0, ...list.map(self.pointFromRust)];
     },
 
     polyCommToRust(polyComm: PolyComm): NapiPolyComm {
       const [, camlElems] = polyComm;
       const rustUnshifted = self.pointsToRust(camlElems);
-      return new PolyCommClass(rustUnshifted, undefined);
+      return new PolyCommClass(rustUnshifted as any, undefined as any);
     },
     polyCommFromRust(polyComm: NapiPolyComm): PolyComm {
-      const rustUnshifted = asArray((polyComm as any).unshifted, 'polyComm.unshifted');
+      const rustUnshifted = asArray<any>((polyComm as any).unshifted, 'polyComm.unshifted');
       const mlUnshifted = rustUnshifted.map(self.pointFromRust);
       return [0, [0, ...mlUnshifted]];
     },
@@ -114,8 +116,9 @@ function conversionCorePerField({ makeAffine, PolyComm: PolyCommClass }: NapiCla
     polyCommsToRust([, ...comms]: MlArray<PolyComm>): NapiPolyComm[] {
       return comms.map(self.polyCommToRust);
     },
-    polyCommsFromRust(rustComms: NapiPolyComm[]): MlArray<PolyComm> {
-      return [0, ...asArray(rustComms, 'polyCommsFromRust').map(self.polyCommFromRust)];
+    polyCommsFromRust(rustComms: unknown): MlArray<PolyComm> {
+      const list = asArray<NapiPolyComm>(rustComms, 'polyCommsFromRust');
+      return [0, ...list.map((comm) => self.polyCommFromRust(comm))];
     },
   };
 
