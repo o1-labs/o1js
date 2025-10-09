@@ -1,5 +1,5 @@
-import { Bytes12, BLAKE2BProgram } from './blake2b.js';
 import { Performance } from '../../../lib/testing/perf-regression.js';
+import { BLAKE2BProgram, Bytes12 } from './blake2b.js';
 
 const cs = await BLAKE2BProgram.analyzeMethods();
 const perfBlake2b = Performance.create(BLAKE2BProgram.name, cs);
