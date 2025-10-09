@@ -122,6 +122,8 @@ ok "Node.js bindings copied"
 
 info "Copying native bindings..."
 run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/native/plonk_napi.node src/bindings/compiled/native/
+run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/native/plonk_napi.js src/bindings/compiled/native/
+run_cmd cp _build/default/"${KIMCHI_BINDINGS}"/js/native/plonk_napi.d.ts src/bindings/compiled/native/
 run_cmd chmod 777 src/bindings/compiled/native/plonk_napi.node
 ok "Native bindings copied"
 
