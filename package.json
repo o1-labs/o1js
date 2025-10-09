@@ -63,6 +63,8 @@
     "prepublish:full": "./scripts/prepublish/prepublish-full.sh",
     "regression:dump-vks": "./scripts/tests/dump-vks.sh",
     "regression:check-vks": "./scripts/tests/check-vks.sh",
+    "regression:dump-perf": "./tests/perf-regression/perf-regression.sh --dump",
+    "regression:check-perf": "./tests/perf-regression/perf-regression.sh --check",
     "format": "prettier --write --ignore-unknown",
     "format:check": "prettier --check --ignore-unknown",
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
