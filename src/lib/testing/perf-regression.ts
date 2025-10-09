@@ -59,7 +59,8 @@ const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
  */
 function createPerformanceSession(
   programName?: string,
-  methodsSummary?: Record<string, ConstraintSystemSummary>
+  methodsSummary?: Record<string, ConstraintSystemSummary>,
+  log = true
 ) {
   const perfStack: PerfStack[] = [];
   let endCounter = 0;
@@ -92,7 +93,7 @@ function createPerformanceSession(
 
     /**
      * End the most recent measurement and:
-     * - Log results to console
+     * - Optionally log results to console
      * - Dump into baseline JSON (if `--dump`)
      * - Check against baseline (if `--check`)
      */
@@ -103,13 +104,17 @@ function createPerformanceSession(
 
       const time = (performance.now() - start) / 1000;
 
-      // Base logging — show contract.method for prove
-      if (label)
+      // Base logging — only if log is enabled
+      //              — shows contract.method for prove
+      if (log && label) {
         console.log(
-          `${label} ${programName ?? ''}${label === 'prove' && methodName ? '.' + methodName : ''}... ${time.toFixed(3)} sec`
+          `${label} ${programName ?? ''}${
+            label === 'prove' && methodName ? '.' + methodName : ''
+          }... ${time.toFixed(3)} sec`
         );
+      }
 
-      // If neither --dump nor --check, just log and honor STOP_AFTER
+      // If neither --dump nor --check, just optionally log and honor STOP_AFTER
       if (!DUMP && !CHECK) {
         maybeStop();
         return;
@@ -140,7 +145,7 @@ function createPerformanceSession(
           return;
         }
 
-        // DUMP: update only contract-level compileTime (does not touch methods)
+        // DUMP: update only contract-level compileTime
         if (DUMP) {
           const prev = perfRegressionJson[programName];
           const merged: PerfRegressionEntry = prev
@@ -236,9 +241,16 @@ const Performance = {
    *     timestamps for arbitrary phases.
    * @param methodsSummary Optional analysis of ZkProgram methods, required when
    *   measuring prove performance.
+   * @param log Optional boolean flag (default: `true`).
+   *   When set to `false`, disables all console output for both general labels
+   *   and compile/prove phase logs.
    */
-  create(programName?: string, methodsSummary?: Record<string, ConstraintSystemSummary>) {
-    return createPerformanceSession(programName, methodsSummary);
+  create(
+    programName?: string,
+    methodsSummary?: Record<string, ConstraintSystemSummary>,
+    log?: boolean
+  ) {
+    return createPerformanceSession(programName, methodsSummary, log);
   },
 };
 
