@@ -9,6 +9,16 @@
  *
  * For regression testing of constraint systems (CS) and zkApps,
  * see {@link tests/perf-regression/perf-regression.ts}.
+ *
+ * @note
+ * Command-line arguments:
+ * - `--dump` (alias `-d`): dump performance data into the baseline file.
+ * - `--check` (alias `-c`): check performance against the existing baseline.
+ * - `--file` (alias `-f`): specify a custom JSON path (default: `./tests/perf-regression/perf-regression.json`).
+ * - `--silent`: suppress all console output.
+ *
+ * These flags are mutually exclusive for modes (`--dump` and `--check` cannot be used together).
+ * When neither is provided, the script runs in log-only mode.
  */
 
 import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
@@ -44,12 +54,22 @@ type PerfStack = {
 const argv = minimist(process.argv.slice(2), {
   boolean: ['dump', 'check', 'silent'],
   string: ['file'],
-  alias: { f: 'file' },
+  alias: {
+    f: 'file',
+    d: 'dump',
+    c: 'check',
+  },
 });
 
 const DUMP = Boolean(argv.dump);
 const CHECK = Boolean(argv.check);
 const SILENT = Boolean(argv.silent);
+
+// Cannot use both dump and check
+if (DUMP && CHECK) {
+  console.error('Error: You cannot use both --dump and --check at the same time!');
+  process.exit(1);
+}
 
 const FILE_PATH = path.isAbsolute(argv.file ?? '')
   ? argv.file
