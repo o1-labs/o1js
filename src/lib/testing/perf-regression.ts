@@ -21,12 +21,12 @@
  * When neither is provided, the script runs in log-only mode.
  */
 
-import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
-import minimist from 'minimist';
 import fs from 'fs';
+import minimist from 'minimist';
 import path from 'path';
+import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
 
-export { Performance, PerfRegressionEntry };
+export { PerfRegressionEntry, Performance };
 
 type MethodsInfo = Record<
   string,
