@@ -14,8 +14,10 @@ perfDiverse.start('prove', 'sha3');
 let { proof: proof1 } = await diverse.sha3(Bytes128.fromString('hello'));
 perfDiverse.end();
 
+assert(await verify(proof1, verificationKey), 'proof1 verification failed!');
+
 perfDiverse.start('prove', 'recursive');
 let { proof: proof2 } = await diverse.recursive(proof1);
 perfDiverse.end();
 
-assert(await verify(proof2, verificationKey), 'verifies');
+assert(await verify(proof2, verificationKey), 'proof2 verification failed!');
