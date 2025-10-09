@@ -1,27 +1,32 @@
+import { Bool } from '../../provable/bool.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { Field } from '../../provable/field.js';
+import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
+import { ZkappConstants } from '../v1/constants.js';
 import { AccountUpdate } from './account-update.js';
 import { Account } from './account.js';
 import { AuthorizationLevel } from './authorization.js';
 import { Update } from './core.js';
 import { Permissions } from './permissions.js';
 import {
-  Preconditions,
   EpochDataPreconditions,
   EpochLedgerPreconditions,
+  Preconditions,
 } from './preconditions.js';
 import { StateLayout, StateUpdates, StateValues } from './state.js';
 import { ZkappFeePayment } from './transaction.js';
 import { ChainView, EpochData, EpochLedgerData } from './views.js';
-import { Bool } from '../../provable/bool.js';
-import { Field } from '../../provable/field.js';
-import { Int64, Sign, UInt64, UInt32 } from '../../provable/int.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
-import { ZkappConstants } from '../v1/constants.js';
 
-export { checkAndApplyAccountUpdate, checkAndApplyFeePayment, ApplyState };
+export { ApplyState, checkAndApplyAccountUpdate, checkAndApplyFeePayment };
 
 type ApplyResult<T> = ({ status: 'Applied' } & T) | { status: 'Failed'; errors: Error[] };
 
 type ApplyState<T> = { status: 'Alive'; value: T } | { status: 'Dead' };
+
+export const InitialApplyState = {
+  status: 'Alive',
+  value: Int64.zero,
+};
 
 function updateApplyState<T>(
   applyState: ApplyState<T>,

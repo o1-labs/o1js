@@ -1,12 +1,11 @@
 import {
-  DeployArgs,
-  Field,
-  Permissions,
-  Mina,
   AccountUpdate,
+  Field,
+  Mina,
+  Permissions,
   PrivateKey,
-  SmartContract,
   Reducer,
+  SmartContract
 } from 'o1js';
 import { VotingAppParams } from './factory.js';
 
@@ -49,7 +48,7 @@ export async function deployContracts(
   voterContract: Membership_;
   candidateContract: Membership_;
   voting: Voting_;
-  Local: any;
+  Local: Mina.LocalBlockchain;
   feePayer: PrivateKey;
 }> {
   let Local = await Mina.LocalBlockchain({
