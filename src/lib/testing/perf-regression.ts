@@ -43,6 +43,7 @@ type PerfStack = {
 const FILE_PATH = path.join(process.cwd(), './tests/perf-regression/perf-regression.json');
 const DUMP = flag('--dump');
 const CHECK = flag('--check');
+const SILENT = flag('--silent');
 
 // Stops the process after the N-th end() call, if STOP_AFTER env is set.
 // If STOP_AFTER is not set or invalid, the script runs through normally.
@@ -55,6 +56,8 @@ const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
  *
  * @param programName Name of the program (key in perf-regression.json)
  * @param methodsSummary Optional methods analysis (required for prove checks)
+ * @param log Optional boolean (default: true). If `--silent` is passed via CLI,
+ *            it overrides this and disables all logs.
  * @returns An object with `start()` and `end()` methods
  */
 function createPerformanceSession(
@@ -64,6 +67,8 @@ function createPerformanceSession(
 ) {
   const perfStack: PerfStack[] = [];
   let endCounter = 0;
+
+  const shouldLog = SILENT ? false : log;
 
   function maybeStop() {
     if (STOP_AFTER && STOP_AFTER > 0) {
@@ -93,7 +98,8 @@ function createPerformanceSession(
 
     /**
      * End the most recent measurement and:
-     * - Optionally log results to console
+     * - Logs results to the console by default. This can be disabled by setting `log` to `false`
+     *   when creating the session, or by passing the `--silent` flag when running the file.
      * - Dump into baseline JSON (if `--dump`)
      * - Check against baseline (if `--check`)
      */
@@ -106,7 +112,7 @@ function createPerformanceSession(
 
       // Base logging — only if log is enabled
       //              — shows contract.method for prove
-      if (log && label) {
+      if (shouldLog && label) {
         console.log(
           `${label} ${programName ?? ''}${
             label === 'prove' && methodName ? '.' + methodName : ''
@@ -242,9 +248,10 @@ const Performance = {
    * @param methodsSummary Optional analysis of ZkProgram methods, required when
    *   measuring prove performance.
    * @param log Optional boolean flag (default: `true`).
-   *   When set to `false`, disables all console output for both general labels
-   *   and compile/prove phase logs.
-   */
+   *   - When set to `false`, disables all console output for both general labels
+   *     and compile/prove phase logs.
+   *   - When the `--silent` flag is provided, it overrides this setting and disables
+   *     all logging regardless of the `log` value.   */
   create(
     programName?: string,
     methodsSummary?: Record<string, ConstraintSystemSummary>,
