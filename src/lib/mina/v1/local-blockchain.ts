@@ -1,42 +1,42 @@
-import { SimpleLedger } from './transaction-logic/ledger.js';
-import { Ml } from '../../ml/conversion.js';
-import { transactionCommitments } from '../../../mina-signer/src/sign-zkapp-command.js';
 import { Ledger, Test, initializeBindings } from '../../../bindings.js';
-import { Field } from '../../provable/wrapped.js';
-import { UInt32, UInt64 } from '../../provable/int.js';
-import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
-import { Account } from './account.js';
-import { ZkappCommand, TokenId, Authorization, Actions } from './account-update.js';
-import { NetworkId } from '../../../mina-signer/src/types.js';
-import { TupleN } from '../../util/types.js';
 import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
+import { transactionCommitments } from '../../../mina-signer/src/sign-zkapp-command.js';
+import { NetworkId } from '../../../mina-signer/src/types.js';
+import { Ml } from '../../ml/conversion.js';
+import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
+import { Field } from '../../provable/wrapped.js';
+import { prettifyStacktrace } from '../../util/errors.js';
+import { TupleN } from '../../util/types.js';
+import { Actions, Authorization, TokenId, ZkappCommand } from './account-update.js';
+import { Account } from './account.js';
 import { invalidTransactionError } from './errors.js';
 import {
-  Transaction,
-  PendingTransaction,
-  createTransaction,
-  toTransactionPromise,
-  createIncludedTransaction,
-  createRejectedTransaction,
-  IncludedTransaction,
-  RejectedTransaction,
-  PendingTransactionStatus,
-  PendingTransactionPromise,
-  toPendingTransactionPromise,
-} from './transaction.js';
-import {
-  type FeePayerSpec,
   type ActionStates,
+  type FeePayerSpec,
   Mina,
   defaultNetworkConstants,
 } from './mina-instance.js';
+import { SimpleLedger } from './transaction-logic/ledger.js';
 import {
-  reportGetAccountError,
   defaultNetworkState,
-  verifyTransactionLimits,
+  reportGetAccountError,
   verifyAccountUpdate,
+  verifyTransactionLimits,
 } from './transaction-validation.js';
-import { prettifyStacktrace } from '../../util/errors.js';
+import {
+  IncludedTransaction,
+  PendingTransaction,
+  PendingTransactionPromise,
+  PendingTransactionStatus,
+  RejectedTransaction,
+  Transaction,
+  createIncludedTransaction,
+  createRejectedTransaction,
+  createTransaction,
+  toPendingTransactionPromise,
+  toTransactionPromise,
+} from './transaction.js';
 
 export { LocalBlockchain, TestPublicKey };
 
@@ -60,6 +60,8 @@ namespace TestPublicKey {
     return TestPublicKey(PrivateKey.fromBase58(base58));
   }
 }
+
+export type LocalBlockchain = Awaited<ReturnType<typeof LocalBlockchain>>
 
 /**
  * A mock Mina blockchain running locally and useful for testing.
