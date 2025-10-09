@@ -16,15 +16,19 @@ import { verifierIndexConversion } from './bindings/conversion-verifier-index.js
 import { oraclesConversion } from './bindings/conversion-oracles.js';
 import { jsEnvironment } from './bindings/env.js';
 import { srs } from './bindings/srs.js';
-// native
+import { bindingsNapi } from './bindings-napi.js';
+
+export { getRustConversion, RustConversion, Wasm, createNativeRustConversion };
+
+
+/* TODO: Uncomment in phase 2 of conversion layer 
 import { conversionCore as conversionCoreNative } from './native/conversion-core.js';
 import { fieldsFromRustFlat as fieldsFromRustFlatNative, fieldsToRustFlat as fieldsToRustFlatNative } from './native/conversion-base.js';
 import { proofConversion as proofConversionNative } from './native/conversion-proof.js';
 import { verifierIndexConversion as verifierIndexConversionNative } from './native/conversion-verifier-index.js';
 import { oraclesConversion as oraclesConversionNative } from './native/conversion-oracles.js';
-import { srs as srsNative } from './native/srs.js';
 
-export { getRustConversion, type RustConversion, type NativeConversion, type Wasm };
+export { getRustConversion, type RustConversion, type NativeConversion, type Wasm };*/
 
 const tsBindings = {
   jsEnvironment,
@@ -38,16 +42,59 @@ const tsBindings = {
   ...FpVectorBindings,
   ...FqVectorBindings,
   rustConversion: createRustConversion,
+  nativeRustConversion: createNativeRustConversion,
+  /* TODO: Uncomment in phase 2 of conversion layer   
   srs: (wasm: Wasm) => {
     const bundle = getConversionBundle(wasm);
     return bundle.srsFactory(wasm, bundle.conversion);
-  },
+  },*/
+  srs: (wasm: Wasm) => srs(wasm, getRustConversion(wasm)),
 };
 
 // this is put in a global variable so that mina/src/lib/crypto/kimchi_bindings/js/bindings.js finds it
 (globalThis as any).__snarkyTsBindings = tsBindings;
 
 type Wasm = typeof wasmNamespace;
+
+type RustConversion = ReturnType<typeof buildWasmConversion>;
+
+function getRustConversion(wasm: Wasm): RustConversion {
+  return createRustConversion(wasm);
+}
+
+function createRustConversion(wasm: Wasm) {
+  return buildWasmConversion(wasm);
+}
+
+function buildWasmConversion(wasm: Wasm) {
+  let core = conversionCore(wasm);
+  let verifierIndex = verifierIndexConversion(wasm, core);
+  let oracles = oraclesConversion(wasm);
+  let proof = proofConversion(wasm, core);
+
+  return {
+    fp: { ...core.fp, ...verifierIndex.fp, ...oracles.fp, ...proof.fp },
+    fq: { ...core.fq, ...verifierIndex.fq, ...oracles.fq, ...proof.fq },
+    fieldsToRustFlat,
+    fieldsFromRustFlat,
+    wireToRust: core.wireToRust,
+    mapMlArrayToRustVector: core.mapMlArrayToRustVector,
+  };
+}
+
+function createNativeRustConversion(napi: any) {
+  return bindingsNapi(napi);
+}
+
+/* TODO: Uncomment in phase 2 of conversion layer   
+
+function shouldUseNativeConversion(wasm: Wasm): boolean {
+  const marker = (wasm as any).__kimchi_use_native;
+  const globalMarker =
+    typeof globalThis !== 'undefined' &&
+    (globalThis as any).__kimchi_use_native;
+  return Boolean(marker || globalMarker);
+}
 
 function createRustConversion(wasm: Wasm): RustConversion {
   return shouldUseNativeConversion(wasm)
@@ -60,7 +107,7 @@ function createWasmConversion(wasm: Wasm) {
   const verifierIndex = verifierIndexConversion(wasm, core);
   const oracles = oraclesConversion(wasm);
   const proof = proofConversion(wasm, core);
-
+  
   return {
     fp: { ...core.fp, ...verifierIndex.fp, ...oracles.fp, ...proof.fp },
     fq: { ...core.fq, ...verifierIndex.fq, ...oracles.fq, ...proof.fq },
@@ -74,10 +121,6 @@ function createWasmConversion(wasm: Wasm) {
 type WasmConversion = ReturnType<typeof createWasmConversion>;
 type NativeConversion = ReturnType<typeof createNativeConversion>;
 type RustConversion = WasmConversion | NativeConversion;
-
-function getRustConversion(wasm: Wasm): RustConversion {
-  return createRustConversion(wasm);
-}
 
 function createNativeConversion(wasm: Wasm) {
   const core = conversionCoreNative(wasm);
@@ -95,14 +138,6 @@ function createNativeConversion(wasm: Wasm) {
   };
 }
 
-function shouldUseNativeConversion(wasm: Wasm): boolean {
-  const marker = (wasm as any).__kimchi_use_native;
-  const globalMarker =
-    typeof globalThis !== 'undefined' &&
-    (globalThis as any).__kimchi_use_native;
-  return Boolean(marker || globalMarker);
-}
-
 type ConversionBundle =
   | { conversion: WasmConversion; srsFactory: typeof srs }
   | { conversion: NativeConversion; srsFactory: typeof srsNative };
@@ -113,3 +148,4 @@ function getConversionBundle(wasm: Wasm): ConversionBundle {
   }
   return { conversion: createWasmConversion(wasm), srsFactory: srs };
 }
+*/
