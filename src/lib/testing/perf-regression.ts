@@ -172,7 +172,9 @@ function createPerformanceSession(
         return;
       }
 
-      // Read existing JSON (assumed to exist & non-empty by your workflow)
+      // Load the baseline JSON used for both DUMP and CHECK modes.
+      // - In DUMP mode: merge new data with existing entries so multiple methods remain grouped.
+      // - In CHECK mode: compare current results against stored baselines.
       const raw = fs.readFileSync(FILE_PATH, 'utf8');
       const perfRegressionJson: Record<string, PerfRegressionEntry> = JSON.parse(raw);
 
@@ -222,6 +224,7 @@ function createPerformanceSession(
           'Please provide the method name you are proving (pass it to start(..., methodName)).'
         );
       }
+
       if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
         throw new Error(
           `The method "${methodName}" does not exist in the analyzed constraint systems for "${programName}". ` +
