@@ -12,6 +12,7 @@
  */
 
 import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
+import minimist from 'minimist';
 import fs from 'fs';
 import path from 'path';
 
@@ -40,10 +41,29 @@ type PerfStack = {
   methodName?: string; // required for prove; optional for compile
 };
 
-const FILE_PATH = path.join(process.cwd(), './tests/perf-regression/perf-regression.json');
-const DUMP = flag('--dump');
-const CHECK = flag('--check');
-const SILENT = flag('--silent');
+const argv = minimist(process.argv.slice(2), {
+  boolean: ['dump', 'check', 'silent'],
+  string: ['file'],
+  alias: { f: 'file' },
+});
+
+const DUMP = Boolean(argv.dump);
+const CHECK = Boolean(argv.check);
+const SILENT = Boolean(argv.silent);
+
+const FILE_PATH = path.isAbsolute(argv.file ?? '')
+  ? argv.file
+  : path.join(
+      process.cwd(),
+      argv.file ? argv.file : './tests/perf-regression/perf-regression.json'
+    );
+
+// Create directory & file if missing (only on dump)
+if (DUMP) {
+  const dir = path.dirname(FILE_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(FILE_PATH)) fs.writeFileSync(FILE_PATH, '{}', 'utf8');
+}
 
 // Stops the process after the N-th end() call, if STOP_AFTER env is set.
 // If STOP_AFTER is not set or invalid, the script runs through normally.
@@ -52,7 +72,7 @@ const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
   : undefined;
 
 /**
- * Create a new performance tracking session for a contract.
+ * Create a new performance tracking session for a program.
  *
  * @param programName Name of the program (key in perf-regression.json)
  * @param methodsSummary Optional methods analysis (required for prove checks)
@@ -262,10 +282,6 @@ const Performance = {
 };
 
 // HELPERS
-
-function flag(name: string) {
-  return process.argv.includes(name);
-}
 
 /**
  * Compare a measured time/digest against stored baselines.
