@@ -1,12 +1,13 @@
 import assert from 'node:assert';
-import { diverse, Bytes128 } from './diverse-zk-program.js';
+import { verify } from 'o1js';
 import { Performance } from '../../src/lib/testing/perf-regression.js';
+import { Bytes128, diverse } from './diverse-zk-program.js';
 
 const cs = await diverse.analyzeMethods();
 const perfDiverse = Performance.create(diverse.name, cs);
 
 perfDiverse.start('compile');
-await diverse.compile();
+const { verificationKey } = await diverse.compile();
 perfDiverse.end();
 
 perfDiverse.start('prove', 'sha3');
@@ -17,4 +18,4 @@ perfDiverse.start('prove', 'recursive');
 let { proof: proof2 } = await diverse.recursive(proof1);
 perfDiverse.end();
 
-assert(await diverse.verify(proof2), 'verifies');
+assert(await verify(proof2, verificationKey), 'verifies');
