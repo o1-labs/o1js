@@ -17,8 +17,6 @@ import path from 'path';
 
 export { Performance, PerfRegressionEntry };
 
-type MethodsSummary = Record<string, ConstraintSystemSummary>;
-
 type MethodsInfo = Record<
   string,
   {
@@ -38,7 +36,7 @@ type PerfStack = {
   start: number;
   label?: 'compile' | 'prove' | string;
   programName?: string;
-  methodsSummary?: MethodsSummary;
+  methodsSummary?: Record<string, ConstraintSystemSummary>;
   methodName?: string; // required for prove; optional for compile
 };
 
@@ -59,14 +57,17 @@ const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
  * @param methodsSummary Optional methods analysis (required for prove checks)
  * @returns An object with `start()` and `end()` methods
  */
-function createPerformanceSession(programName?: string, methodsSummary?: MethodsSummary) {
+function createPerformanceSession(
+  programName?: string,
+  methodsSummary?: Record<string, ConstraintSystemSummary>
+) {
   const perfStack: PerfStack[] = [];
-  let __endCounter = 0;
+  let endCounter = 0;
 
   function maybeStop() {
-    if (typeof STOP_AFTER === 'number' && STOP_AFTER > 0) {
-      __endCounter++;
-      if (__endCounter >= STOP_AFTER) {
+    if (STOP_AFTER && STOP_AFTER > 0) {
+      endCounter++;
+      if (endCounter >= STOP_AFTER) {
         process.exit(0);
       }
     }
@@ -103,11 +104,10 @@ function createPerformanceSession(programName?: string, methodsSummary?: Methods
       const time = (performance.now() - start) / 1000;
 
       // Base logging — show contract.method for prove
-      if (label === 'prove' && programName && methodName) {
-        console.log(`${label} ${programName}.${methodName}... ${time.toFixed(3)} sec`);
-      } else if (label) {
-        console.log(`${label} ${programName ?? ''}... ${time.toFixed(3)} sec`);
-      }
+      if (label)
+        console.log(
+          `${label} ${programName ?? ''}${label === 'prove' && methodName ? '.' + methodName : ''}... ${time.toFixed(3)} sec`
+        );
 
       // If neither --dump nor --check, just log and honor STOP_AFTER
       if (!DUMP && !CHECK) {
@@ -237,7 +237,7 @@ const Performance = {
    * @param methodsSummary Optional analysis of ZkProgram methods, required when
    *   measuring prove performance.
    */
-  create(programName?: string, methodsSummary?: MethodsSummary) {
+  create(programName?: string, methodsSummary?: Record<string, ConstraintSystemSummary>) {
     return createPerformanceSession(programName, methodsSummary);
   },
 };
