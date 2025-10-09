@@ -16,19 +16,19 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
-import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
-import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
 import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
-import {
-  GroupCS,
-  BitwiseCS,
-  HashCS,
-  BasicCS,
-  CryptoCS,
-} from '../vk-regression/plain-constraint-system.js';
-import { tic, toc } from '../../src/lib/util/tic-toc.js';
+import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
+import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
+import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { PerfRegressionEntry } from '../../src/lib/testing/perf-regression.js';
+import { tic, toc } from '../../src/lib/util/tic-toc.js';
+import {
+  BasicCS,
+  BitwiseCS,
+  CryptoCS,
+  GroupCS,
+  HashCS,
+} from '../vk-regression/plain-constraint-system.js';
 
 // toggle to override caches
 const forceRecompile = false;

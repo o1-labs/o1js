@@ -1,5 +1,5 @@
-import { Bytes12, SHA256Program } from './sha256.js';
 import { Performance } from '../../../lib/testing/perf-regression.js';
+import { Bytes12, SHA256Program } from './sha256.js';
 
 const cs = await SHA256Program.analyzeMethods();
 const perfSha256 = Performance.create(SHA256Program.name, cs);

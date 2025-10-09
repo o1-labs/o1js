@@ -1,6 +1,6 @@
-import { Secp256k1, Ecdsa, keccakAndEcdsa, ecdsa, ecdsaEthers, Bytes32 } from './ecdsa.js';
 import assert from 'assert';
 import { Performance } from '../../../lib/testing/perf-regression.js';
+import { Bytes32, Ecdsa, Secp256k1, ecdsa, ecdsaEthers, keccakAndEcdsa } from './ecdsa.js';
 
 // create an example ecdsa signature
 

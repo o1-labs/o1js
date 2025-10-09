@@ -1,7 +1,7 @@
 import { ZkProgram } from 'o1js';
-import { Bigint2048, rsaVerify65537 } from './rsa.js';
-import { sha256Bigint, generateRsaParams, rsaSign } from './utils.js';
 import { Performance } from '../../../lib/testing/perf-regression.js';
+import { Bigint2048, rsaVerify65537 } from './rsa.js';
+import { generateRsaParams, rsaSign, sha256Bigint } from './utils.js';
 
 let rsaZkProgram = ZkProgram({
   name: 'rsa-verify',

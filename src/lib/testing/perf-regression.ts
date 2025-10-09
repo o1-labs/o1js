@@ -9,15 +9,24 @@
  *
  * For regression testing of constraint systems (CS) and zkApps,
  * see {@link tests/perf-regression/perf-regression.ts}.
+ *
+ * @note
+ * Command-line arguments:
+ * - `--dump` (alias `-d`): dump performance data into the baseline file.
+ * - `--check` (alias `-c`): check performance against the existing baseline.
+ * - `--file` (alias `-f`): specify a custom JSON path (default: `./tests/perf-regression/perf-regression.json`).
+ * - `--silent`: suppress all console output.
+ *
+ * These flags are mutually exclusive for modes (`--dump` and `--check` cannot be used together).
+ * When neither is provided, the script runs in log-only mode.
  */
 
-import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
 import fs from 'fs';
+import minimist from 'minimist';
 import path from 'path';
+import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
 
-export { Performance, PerfRegressionEntry };
-
-type MethodsSummary = Record<string, ConstraintSystemSummary>;
+export { PerfRegressionEntry, Performance };
 
 type MethodsInfo = Record<
   string,
@@ -38,13 +47,43 @@ type PerfStack = {
   start: number;
   label?: 'compile' | 'prove' | string;
   programName?: string;
-  methodsSummary?: MethodsSummary;
+  methodsSummary?: Record<string, ConstraintSystemSummary>;
   methodName?: string; // required for prove; optional for compile
 };
 
-const FILE_PATH = path.join(process.cwd(), './tests/perf-regression/perf-regression.json');
-const DUMP = flag('--dump');
-const CHECK = flag('--check');
+const argv = minimist(process.argv.slice(2), {
+  boolean: ['dump', 'check', 'silent'],
+  string: ['file'],
+  alias: {
+    f: 'file',
+    d: 'dump',
+    c: 'check',
+  },
+});
+
+const DUMP = Boolean(argv.dump);
+const CHECK = Boolean(argv.check);
+const SILENT = Boolean(argv.silent);
+
+// Cannot use both dump and check
+if (DUMP && CHECK) {
+  console.error('Error: You cannot use both --dump and --check at the same time!');
+  process.exit(1);
+}
+
+const FILE_PATH = path.isAbsolute(argv.file ?? '')
+  ? argv.file
+  : path.join(
+      process.cwd(),
+      argv.file ? argv.file : './tests/perf-regression/perf-regression.json'
+    );
+
+// Create directory & file if missing (only on dump)
+if (DUMP) {
+  const dir = path.dirname(FILE_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(FILE_PATH)) fs.writeFileSync(FILE_PATH, '{}', 'utf8');
+}
 
 // Stops the process after the N-th end() call, if STOP_AFTER env is set.
 // If STOP_AFTER is not set or invalid, the script runs through normally.
@@ -53,20 +92,28 @@ const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
   : undefined;
 
 /**
- * Create a new performance tracking session for a contract.
+ * Create a new performance tracking session for a program.
  *
  * @param programName Name of the program (key in perf-regression.json)
  * @param methodsSummary Optional methods analysis (required for prove checks)
+ * @param log Optional boolean (default: true). If `--silent` is passed via CLI,
+ *            it overrides this and disables all logs.
  * @returns An object with `start()` and `end()` methods
  */
-function createPerfSession(programName?: string, methodsSummary?: MethodsSummary) {
+function createPerformanceSession(
+  programName?: string,
+  methodsSummary?: Record<string, ConstraintSystemSummary>,
+  log = true
+) {
   const perfStack: PerfStack[] = [];
-  let __endCounter = 0;
+  let endCounter = 0;
+
+  const shouldLog = SILENT ? false : log;
 
   function maybeStop() {
-    if (typeof STOP_AFTER === 'number' && STOP_AFTER > 0) {
-      __endCounter++;
-      if (__endCounter >= STOP_AFTER) {
+    if (STOP_AFTER && STOP_AFTER > 0) {
+      endCounter++;
+      if (endCounter >= STOP_AFTER) {
         process.exit(0);
       }
     }
@@ -91,7 +138,8 @@ function createPerfSession(programName?: string, methodsSummary?: MethodsSummary
 
     /**
      * End the most recent measurement and:
-     * - Log results to console
+     * - Logs results to the console by default. This can be disabled by setting `log` to `false`
+     *   when creating the session, or by passing the `--silent` flag when running the file.
      * - Dump into baseline JSON (if `--dump`)
      * - Check against baseline (if `--check`)
      */
@@ -102,14 +150,17 @@ function createPerfSession(programName?: string, methodsSummary?: MethodsSummary
 
       const time = (performance.now() - start) / 1000;
 
-      // Base logging — show contract.method for prove
-      if (label === 'prove' && programName && methodName) {
-        console.log(`${label} ${programName}.${methodName}... ${time.toFixed(3)} sec`);
-      } else if (label) {
-        console.log(`${label} ${programName ?? ''}... ${time.toFixed(3)} sec`);
+      // Base logging — only if log is enabled
+      //              — shows contract.method for prove
+      if (shouldLog && label) {
+        console.log(
+          `${label} ${programName ?? ''}${
+            label === 'prove' && methodName ? '.' + methodName : ''
+          }... ${time.toFixed(3)} sec`
+        );
       }
 
-      // If neither --dump nor --check, just log and honor STOP_AFTER
+      // If neither --dump nor --check, just optionally log and honor STOP_AFTER
       if (!DUMP && !CHECK) {
         maybeStop();
         return;
@@ -121,7 +172,9 @@ function createPerfSession(programName?: string, methodsSummary?: MethodsSummary
         return;
       }
 
-      // Read existing JSON (assumed to exist & non-empty by your workflow)
+      // Load the baseline JSON used for both DUMP and CHECK modes.
+      // - In DUMP mode: merge new data with existing entries so multiple methods remain grouped.
+      // - In CHECK mode: compare current results against stored baselines.
       const raw = fs.readFileSync(FILE_PATH, 'utf8');
       const perfRegressionJson: Record<string, PerfRegressionEntry> = JSON.parse(raw);
 
@@ -140,7 +193,7 @@ function createPerfSession(programName?: string, methodsSummary?: MethodsSummary
           return;
         }
 
-        // DUMP: update only contract-level compileTime (does not touch methods)
+        // DUMP: update only contract-level compileTime
         if (DUMP) {
           const prev = perfRegressionJson[programName];
           const merged: PerfRegressionEntry = prev
@@ -171,6 +224,7 @@ function createPerfSession(programName?: string, methodsSummary?: MethodsSummary
           'Please provide the method name you are proving (pass it to start(..., methodName)).'
         );
       }
+
       if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
         throw new Error(
           `The method "${methodName}" does not exist in the analyzed constraint systems for "${programName}". ` +
@@ -236,17 +290,21 @@ const Performance = {
    *     timestamps for arbitrary phases.
    * @param methodsSummary Optional analysis of ZkProgram methods, required when
    *   measuring prove performance.
-   */
-  create(programName?: string, methodsSummary?: MethodsSummary) {
-    return createPerfSession(programName, methodsSummary);
+   * @param log Optional boolean flag (default: `true`).
+   *   - When set to `false`, disables all console output for both general labels
+   *     and compile/prove phase logs.
+   *   - When the `--silent` flag is provided, it overrides this setting and disables
+   *     all logging regardless of the `log` value.   */
+  create(
+    programName?: string,
+    methodsSummary?: Record<string, ConstraintSystemSummary>,
+    log?: boolean
+  ) {
+    return createPerformanceSession(programName, methodsSummary, log);
   },
 };
 
 // HELPERS
-
-function flag(name: string) {
-  return process.argv.includes(name);
-}
 
 /**
  * Compare a measured time/digest against stored baselines.

@@ -1,14 +1,12 @@
-import { Field } from '../provable/field.js';
+import { spawn } from 'child_process';
+import { basename, dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { wasm } from '../../bindings.js';
 import { Cache } from '../proof-system/cache.js';
 import { ZkProgram } from '../proof-system/zkprogram.js';
-import { Spec, fieldWithRng } from '../testing/equivalent.js';
-import { Random } from '../testing/property.js';
+import { Field } from '../provable/field.js';
 import { assert } from '../provable/gadgets/common.js';
 import { Gadgets } from '../provable/gadgets/gadgets.js';
-import { wasm } from '../../bindings.js';
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join, basename } from 'path';
 
 // Path resolution for subprocess execution
 const __filename = fileURLToPath(import.meta.url);
@@ -21,10 +19,6 @@ function getMemory() {
     js: process.memoryUsage().heapTotal / (1024 * 1024),
   };
 }
-
-let uint = (n: number | bigint): Spec<bigint, Field> => {
-  return fieldWithRng(Random.bignat((1n << BigInt(n)) - 1n));
-};
 
 // Dummy circuit
 let LazyMode = ZkProgram({
@@ -82,7 +76,11 @@ function runSubprocess(lazyMode: boolean): Promise<void> {
     });
     child.on('exit', (code) => {
       console.log(`(Parent) Process lazyMode=${lazyMode} exited with code ${code}`);
-      code === 0 ? resolve() : reject(new Error(`Test failed for lazyMode=${lazyMode}`));
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Test failed for lazyMode=${lazyMode}`));
+      }
     });
   });
 }

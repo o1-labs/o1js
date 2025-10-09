@@ -16,10 +16,14 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/114acff...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3453d1e53...HEAD)
+
+## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
 ### Added
 
+- Added a new internal framework for testing proving and compilation time
+  regression. https://github.com/o1-labs/o1js/pull/2451
 - Internal o1js and protocol constants, hashes and prefixes are now exported via
   the `Core´ namespace. https://github.com/o1-labs/o1js/pull/2421
 - Support for string type input to `Transaction.fromJSON`
@@ -32,6 +36,9 @@ This project adheres to
 - Fixed a verification key regression that was caused by incorrectly enabling a
   proof system feature that wasn't needed.
   https://github.com/o1-labs/o1js/pull/2449
+- Fixed an edge case where not all the artefacts needed for the cache were
+  stored properly, resulting in them being re-computed after loading the cache.
+  https://github.com/o1-labs/o1js/pull/2460
 
 ### Deprecated
 
@@ -39,7 +46,7 @@ This project adheres to
   favor of the `RuntimeTable` class API
   https://github.com/o1-labs/o1js/pull/2402
 
-## [2.9.0](https://github.com/o1-labs/o1js/compare/4b1dccdd...114acff) - 2025-09-02
+## [2.9.0](https://github.com/o1-labs/o1js/compare/70bca22...2265adc) - 2025-09-02
 
 ### Added
 
