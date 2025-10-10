@@ -4,4 +4,4 @@ set -e
 
 "$(dirname "$0")"/build-o1js-node-artifacts.sh
 
-npm run dev
+npm run build:dev

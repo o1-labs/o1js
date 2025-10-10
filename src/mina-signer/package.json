@@ -8,7 +8,7 @@
     "build:cjs": "./build-cjs.sh",
     "build:web": "./build-web.sh",
     "test": "for f in ./**/*.test.ts; do NODE_OPTIONS=--experimental-vm-modules npx jest $f || exit 1; done",
-    "prepublishOnly": "npx rimraf ./dist && npm run build && npm run build:cjs && npm run build:web"
+    "prepublish:full": "npx rimraf ./dist && npm run build && npm run build:cjs && npm run build:web"
   },
   "keywords": [
     "mina",

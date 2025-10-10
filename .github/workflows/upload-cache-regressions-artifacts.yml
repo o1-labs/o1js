@@ -1,0 +1,21 @@
+name: Upload Cache Regressions Artifacts
+on:
+  workflow_dispatch:
+
+jobs:
+  upload-artifacts:
+    name: Upload Cache Regressions Artifacts
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository with submodules
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Build
+      uses: ./.github/actions/build
+    - uses: 'google-github-actions/auth@v3'
+      name: Setup gcloud authentication
+      with:
+        credentials_json: '${{ secrets.GCP_O1JS_CI_BUCKET_SERVICE_ACCOUNT_KEY }}'
+    - name: Generate artifacts and upload to GS
+      run: ./scripts/tests/dump-cache-regressions.sh
