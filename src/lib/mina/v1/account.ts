@@ -9,6 +9,7 @@ import { customTypes, TypeMap } from '../../../bindings/mina-transaction/gen/v1/
 import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
 import { ProvableExtended } from '../../provable/types/struct.js';
 import { FetchedAccount } from './graphql.js';
+import { emptyReceiptChainHash } from '../../provable/crypto/poseidon.js';
 
 export { Account, PartialAccount };
 export { newAccount, parseFetchedAccount, fillPartialAccount };
@@ -21,6 +22,12 @@ function newAccount(accountId: { publicKey: PublicKey; tokenId?: Field }): Accou
   account.publicKey = accountId.publicKey;
   account.tokenId = accountId.tokenId ?? Types.TokenId.empty();
   account.permissions = Permissions.initial();
+  // set delegate to public key by default (matches OCaml behavior)
+  account.delegate = accountId.publicKey;
+  // initialize with legacy empty receipt chain hash
+  // OCaml computes: Random_oracle.Legacy.(salt "CodaReceiptEmpty" |> digest)
+  // this value matches OCaml's Receipt.Chain_hash.empty
+  account.receiptChainHash = Field('4836908137238259756355130884394587673375183996506461139740622663058947052555');
   return account;
 }
 
