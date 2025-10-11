@@ -38,6 +38,7 @@
     "README.md"
   ],
   "dependencies": {
+    "@noble/hashes": "^1.3.2",
     "blakejs": "^1.2.1"
   },
   "devDependencies": {
