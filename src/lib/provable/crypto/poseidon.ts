@@ -271,7 +271,10 @@ class TokenSymbol extends Struct(TokenSymbolPure) {
 }
 
 function emptyReceiptChainHash() {
-  return emptyHashWithPrefix('CodaReceiptEmpty');
+  // OCaml uses legacy poseidon: Random_oracle.Legacy.(salt "CodaReceiptEmpty" |> digest)
+  // returns a different value than Poseidon w/ emptyHashWithPrefix
+  // Using the correct legacy value to match OCaml's Receipt.Chain_hash.empty
+  return Field('4836908137238259756355130884394587673375183996506461139740622663058947052555');
 }
 
 function isConstant(fields: Field[]) {
