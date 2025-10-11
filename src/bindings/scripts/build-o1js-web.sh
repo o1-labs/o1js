@@ -2,6 +2,11 @@
 
 set -e
 
+if ! command -v wasm-opt >/dev/null 2>&1; then
+  echo "wasm-opt is required but not found" >&2
+  exit 1
+fi
+
 MINA_PATH="src/mina"
 DUNE_PATH="src/bindings/ocaml/jsoo_exports"
 BUILD_PATH="_build/default/$DUNE_PATH"

@@ -5,7 +5,7 @@
 ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 pushd "$ROOT"
 # Update the submodules
-git submodule sync && git submodule update --init --recursive
+git submodule sync && git submodule update --init --recursive --depth 1
 # Add the flake registry entry
 nix registry add o1js "git+file://$ROOT?submodules=1"
 # update mina input to local submodule

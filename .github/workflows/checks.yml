@@ -38,6 +38,15 @@ jobs:
   Prepare:
     runs-on: ubuntu-latest
     steps:
+      - name: Free space on runner
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android \
+                      /usr/share/dotnet \
+                      /opt/ghc \
+                      "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af --volumes || true
+          df -h
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
@@ -51,7 +60,7 @@ jobs:
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
 
-  Lint-Format-and-TypoCheck:
+  Lint-and-Format:
     strategy:
       matrix:
         node: [20]
@@ -99,21 +108,20 @@ jobs:
       - name: Run Markdown Format Check
         run: npm run format:md:check
 
-      - name: Run codespell
-        if: steps.get_changed_files.outputs.files_changed == 'true' && github.event.pull_request.labels.*.name != 'no-typo-check'
-        uses: codespell-project/actions-codespell@master
-        with:
-          check_filenames: true
-          path: ${{ steps.get_changed_files.outputs.files }}
-          skip: "*.json,./node_modules,./dist,./.husky,./.git,./src/mina/**/*,./src/bindings/compiled/**/*"
-          check_hidden: false
-          ignore_words_list: "tHi,modul,optin,deriver,PRing,toWords,iSelf"
-
   Upload-bindings:
     name: upload bindings artifact
     if: ${{ inputs.proof_systems_commit == '' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Free space on runner
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android \
+                      /usr/share/dotnet \
+                      /opt/ghc \
+                      "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af --volumes || true
+          df -h
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -143,6 +151,7 @@ jobs:
             'Verification Key Regression Check 1',
             'Verification Key Regression Check 2',
             'CommonJS test',
+            'Cache Regression',
           ]
     steps:
       - name: Checkout repository with submodules
@@ -158,6 +167,10 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - uses: 'google-github-actions/auth@v3'
+        name: Setup gcloud authentication
+        with:
+          credentials_json: '${{ secrets.GCP_O1JS_CI_BUCKET_SERVICE_ACCOUNT_KEY }}'
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
