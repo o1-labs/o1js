@@ -12,6 +12,7 @@ ROOT_DIR="$(get_repo_root)"
 DIST_DIR="$ROOT_DIR/dist"
 COMPILED_DIR="$ROOT_DIR/src/bindings/compiled"
 JSOO_DIR="_build/default/src/bindings/ocaml/jsoo_exports"
+PROOF_SYSTEMS_DIR="_build/default/src/mina/src/lib/crypto/proof-systems"
 CRYPTO_CONSTANTS="$ROOT_DIR/src/bindings/crypto/constants.ts"
 GEN_CONST_DIR="$ROOT_DIR/src/bindings/mina-transaction/gen"
 
@@ -44,6 +45,15 @@ if [ -d "$JSOO_DIR" ]; then
   info "Removing compiled artifact files from $JSOO_DIR..."
   run_cmd rimraf "$JSOO_DIR"
   ok "Compiled jsoo artifact files removed"
+else
+  warn "Compiled directory not found, skipping"
+fi
+
+bold "Cleaning compiled Mina proof systems artifacts"
+if [ -d "$PROOF_SYSTEMS_DIR" ]; then
+  info "Removing compiled artifact files from $PROOF_SYSTEMS_DIR..."
+  run_cmd rimraf "$PROOF_SYSTEMS_DIR"
+  ok "Compiled Mina proof systems artifact files removed"
 else
   warn "Compiled directory not found, skipping"
 fi
