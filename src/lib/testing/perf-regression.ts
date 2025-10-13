@@ -172,18 +172,32 @@ function createPerformanceSession(
 
         if (DUMP) {
           if (label === 'prove') {
-            dumpProve(perfRegressionJson, programName, methodName!, info, time);
+            dumpMethodTime(perfRegressionJson, programName, methodName!, info, time, 'prove');
           } else {
-            dumpVerify(perfRegressionJson, programName, methodName!, info, time);
+            dumpMethodTime(perfRegressionJson, programName, methodName!, info, time, 'verify');
           }
           return;
         }
 
         if (CHECK) {
           if (label === 'prove') {
-            checkProve(perfRegressionJson, programName, methodName!, info.digest, time);
+            checkMethodTime(
+              perfRegressionJson,
+              programName,
+              methodName!,
+              info.digest,
+              time,
+              'prove'
+            );
           } else {
-            checkVerify(perfRegressionJson, programName, methodName!, info.digest, time);
+            checkMethodTime(
+              perfRegressionJson,
+              programName,
+              methodName!,
+              info.digest,
+              time,
+              'verify'
+            );
           }
           return;
         }
@@ -235,48 +249,26 @@ function dumpCompile(
   fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
 }
 
-function dumpProve(
+function dumpMethodTime(
   perfRegressionJson: Record<string, PerfRegressionEntry>,
   programName: string,
   methodName: string,
   info: ConstraintSystemSummary,
-  time: number
+  time: number,
+  label: 'prove' | 'verify'
 ) {
   const prev = perfRegressionJson[programName];
   const merged: PerfRegressionEntry = prev
     ? { ...prev, methods: { ...prev.methods } }
     : { methods: {} };
 
-  merged.methods[methodName] = {
-    rows: info.rows,
-    digest: info.digest,
-    // keep any existing verifyTime if present
-    verifyTime: merged.methods[methodName]?.verifyTime,
-    proveTime: time,
-  };
-
-  perfRegressionJson[programName] = merged;
-  fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
-}
-
-function dumpVerify(
-  perfRegressionJson: Record<string, PerfRegressionEntry>,
-  programName: string,
-  methodName: string,
-  info: ConstraintSystemSummary,
-  time: number
-) {
-  const prev = perfRegressionJson[programName];
-  const merged: PerfRegressionEntry = prev
-    ? { ...prev, methods: { ...prev.methods } }
-    : { methods: {} };
+  const prevMethod = merged.methods[methodName] ?? {};
 
   merged.methods[methodName] = {
     rows: info.rows,
     digest: info.digest,
-    // keep any existing proveTime if present
-    proveTime: merged.methods[methodName]?.proveTime,
-    verifyTime: time,
+    proveTime: label === 'prove' ? time : prevMethod.proveTime,
+    verifyTime: label === 'verify' ? time : prevMethod.verifyTime,
   };
 
   perfRegressionJson[programName] = merged;
@@ -298,34 +290,18 @@ function checkCompile(
   });
 }
 
-function checkProve(
+function checkMethodTime(
   perfRegressionJson: Record<string, PerfRegressionEntry>,
   programName: string,
   methodName: string,
   digest: string,
-  actualTime: number
+  actualTime: number,
+  label: 'prove' | 'verify'
 ) {
   checkAgainstBaseline({
     perfRegressionJson,
     programName,
-    label: 'prove',
-    methodName,
-    digest,
-    actualTime,
-  });
-}
-
-function checkVerify(
-  perfRegressionJson: Record<string, PerfRegressionEntry>,
-  programName: string,
-  methodName: string,
-  digest: string,
-  actualTime: number
-) {
-  checkAgainstBaseline({
-    perfRegressionJson,
-    programName,
-    label: 'verify',
+    label,
     methodName,
     digest,
     actualTime,
@@ -423,7 +399,7 @@ function checkAgainstBaseline(params: {
   }
 
   const expected = label === 'prove' ? baseMethod.proveTime : baseMethod.verifyTime;
-  const labelPretty = label === 'prove' ? 'Prove' : 'Verify';
+  const labelPretty = label.charAt(0).toUpperCase();
   if (expected == null) {
     throw new Error(
       `No baseline ${label}Time for ${programName}.${methodName}. Run --dump (${label}) to set it.`
