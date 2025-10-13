@@ -1,4 +1,4 @@
-import { Field, Provable, Gadgets, ZkProgram } from 'o1js';
+import { Field, Gadgets, Provable, ZkProgram } from 'o1js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
 let cs = await Provable.constraintSystem(() => {
@@ -69,14 +69,26 @@ console.log('\nproving..');
 perfBitwise.start('prove', 'rot');
 let { proof: rotProof } = await BitwiseProver.rot();
 perfBitwise.end();
-if (!(await BitwiseProver.verify(rotProof))) throw Error('rot: Invalid proof');
+
+perfBitwise.start('verify', 'rot');
+const isValidRot = await BitwiseProver.verify(rotProof);
+perfBitwise.end();
+if (!isValidRot) throw Error('rot: Invalid proof');
 
 perfBitwise.start('prove', 'xor');
 let { proof: xorProof } = await BitwiseProver.xor();
 perfBitwise.end();
-if (!(await BitwiseProver.verify(xorProof))) throw Error('xor: Invalid proof');
+
+perfBitwise.start('verify', 'xor');
+const isValidXor = await BitwiseProver.verify(xorProof);
+perfBitwise.end();
+if (!isValidXor) throw Error('xor: Invalid proof');
 
 perfBitwise.start('prove', 'and');
 let { proof: andProof } = await BitwiseProver.and();
 perfBitwise.end();
-if (!(await BitwiseProver.verify(andProof))) throw Error('and: Invalid proof');
+
+perfBitwise.start('verify', 'and');
+const isValidAnd = await BitwiseProver.verify(andProof);
+perfBitwise.end();
+if (!isValidAnd) throw Error('and: Invalid proof');

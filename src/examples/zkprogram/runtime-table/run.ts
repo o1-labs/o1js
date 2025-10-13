@@ -1,6 +1,6 @@
 import { Field, verify } from 'o1js';
-import { PayrollRuntimeTableZkProgram } from './payroll.js';
 import { Performance } from '../../../lib/testing/perf-regression.js';
+import { PayrollRuntimeTableZkProgram } from './payroll.js';
 
 const cs = await PayrollRuntimeTableZkProgram.analyzeMethods();
 const perfPayroll = Performance.create(PayrollRuntimeTableZkProgram.name, cs);
@@ -26,4 +26,6 @@ let { proof } = await PayrollRuntimeTableZkProgram.verifyPayroll(
 );
 perfPayroll.end();
 
-verify(proof, verificationKey);
+perfPayroll.start('verify', 'verifyPayroll');
+await verify(proof, verificationKey);
+perfPayroll.end();

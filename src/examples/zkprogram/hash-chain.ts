@@ -50,6 +50,7 @@ let hashChainRecursive = Experimental.Recursive(hashChain);
 
 const cs = await hashChain.analyzeMethods();
 const perfHashChain = Performance.create(hashChain.name, cs);
+
 perfHashChain.start('compile');
 await hashChain.compile();
 perfHashChain.end();
@@ -61,7 +62,10 @@ perfHashChain.start('prove', 'chain');
 let { proof } = await hashChain.chain({ x, n });
 perfHashChain.end();
 
-assert(await hashChain.verify(proof), 'Proof invalid');
+perfHashChain.start('verify', 'chain');
+const isValid = await hashChain.verify(proof);
+perfHashChain.end();
+assert(isValid, 'Proof invalid');
 
 // check that the output is correct
 let z = Array.from({ length: n }, () => 0).reduce((y) => Poseidon.hash([y]), x);

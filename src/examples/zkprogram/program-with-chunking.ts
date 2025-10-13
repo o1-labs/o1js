@@ -1,4 +1,4 @@
-import { Field, Cache, Gadgets, ZkProgram } from 'o1js';
+import { Cache, Field, Gadgets, ZkProgram } from 'o1js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
 let MyProgram = ZkProgram({
@@ -36,6 +36,8 @@ perf.start('prove', 'baseCase');
 let { proof } = await MyProgram.baseCase(Field(0));
 perf.end();
 
-console.log('verify...');
+perf.start('verify', 'baseCase');
 let ok = await MyProgram.verify(proof);
+perf.end();
+
 console.log('ok?', ok);

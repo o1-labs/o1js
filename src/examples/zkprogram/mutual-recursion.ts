@@ -1,4 +1,4 @@
-import { ZkProgram, Field, DynamicProof, Proof, VerificationKey, Undefined, verify } from 'o1js';
+import { DynamicProof, Field, Proof, Undefined, VerificationKey, ZkProgram, verify } from 'o1js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
 /**
@@ -72,14 +72,18 @@ perfAdd.start('prove', 'performAddition');
 const { proof: baseCase } = await add.performAddition(Field(5), dummyProof, multiplyVk);
 perfAdd.end();
 
+perfAdd.start('verify', 'performAddition');
 const validBaseCase = await verify(baseCase, addVk);
+perfAdd.end();
 console.log('ok?', validBaseCase);
 
 perfMultiply.start('prove', 'performMultiplication');
 const { proof: multiply1 } = await multiply.performMultiplication(Field(3), baseCase);
 perfMultiply.end();
 
+perfMultiply.start('verify', 'performMultiplication');
 const validMultiplication = await verify(multiply1, multiplyVk);
+perfMultiply.end();
 console.log('ok?', validMultiplication);
 
 console.log('Proving second (recursive) addition');

@@ -72,8 +72,8 @@ perfBig.start('prove', 'combinedHash');
 const { proof: proofBig } = await BigProgram.combinedHash(proofSmall.proof);
 perfBig.end();
 
-console.time('verify big');
+perfBig.start('verify', 'combinedHash');
 await verify(proofBig, verificationKeyBig);
-console.timeEnd('verify big');
+perfBig.end();
 
 console.log('Final Digest: ', proofBig.publicOutput.toHex());

@@ -1,12 +1,12 @@
 import { Field, MerkleTree, verify } from 'o1js';
-import {
-  sideloadedProgram,
-  mainProgram,
-  SideloadedProgramProof,
-  MerkleTreeWitness,
-  MainProgramState,
-} from './dynamic-keys-merkletree.js';
 import { Performance } from '../../../lib/testing/perf-regression.js';
+import {
+  MainProgramState,
+  MerkleTreeWitness,
+  SideloadedProgramProof,
+  mainProgram,
+  sideloadedProgram,
+} from './dynamic-keys-merkletree.js';
 
 const csSide = await sideloadedProgram.analyzeMethods();
 const csMain = await mainProgram.analyzeMethods();
@@ -56,7 +56,9 @@ const { proof: proof2 } = await mainProgram.validateUsingTree(
 );
 perfMain.end();
 
+perfMain.start('verify', 'validateUsingTree');
 const validProof2 = await verify(proof2, mainVk);
+perfMain.end();
 console.log('ok?', validProof2);
 
 console.log('\nProving different method of child program');
