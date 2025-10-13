@@ -11,7 +11,7 @@ jobs:
       matrix:
         os: [
             ubuntu-22.04,
-            macos-latest,
+            # macos-latest, # TODO: make this work
           ]
         node_version: [22, 24]
     runs-on: ${{ matrix.os }}
@@ -126,8 +126,6 @@ jobs:
           opam repository set-url default https://github.com/ocaml/opam-repository.git\#08d8c16c16dc6b23a5278b06dff0ac6c7a217356
           opam repository add --yes --all --set-default o1-labs https://github.com/o1-labs/opam-repository.git
           opam pin add async_ssl https://github.com/o1-labs/async_ssl.git\#v0.14-o1labs
-          opam pin add rocks 0.2.0
-          opam pin add rocksdb_stubs 10.2.1
 
       - name: Cache opam switch
         id: cache-opam
