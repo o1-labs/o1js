@@ -16,7 +16,9 @@ perfSha256.start('prove', 'sha256');
 let { proof } = await SHA256Program.sha256(preimage);
 perfSha256.end();
 
+perfSha256.start('verify', 'sha256');
 let isValid = await SHA256Program.verify(proof);
+perfSha256.end();
 
 console.log('digest:', proof.publicOutput.toHex());
 
