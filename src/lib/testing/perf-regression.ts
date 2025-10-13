@@ -156,83 +156,53 @@ function createPerformanceSession(
       const perfRegressionJson: Record<string, PerfRegressionEntry> = JSON.parse(raw);
 
       if (label === 'compile') {
-        // CHECK: validate against baseline (no writes)
-        if (CHECK) {
-          checkAgainstBaseline({
-            perfRegressionJson,
-            programName,
-            label: 'compile', // compile checks don't use method/digest; pass empty strings
-            methodName: '',
-            digest: '',
-            actualTime: time,
-          });
+        // DUMP: update only contract-level compileTime
+        if (DUMP) {
+          dumpCompile(perfRegressionJson, programName, time);
           return;
         }
 
-        // DUMP: update only contract-level compileTime
-        if (DUMP) {
-          const prev = perfRegressionJson[programName];
-          const merged: PerfRegressionEntry = prev
-            ? { ...prev, compileTime: time }
-            : { compileTime: time, methods: {} };
-
-          perfRegressionJson[programName] = merged;
-          fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+        // CHECK: validate against baseline (no writes)
+        if (CHECK) {
+          checkCompile(perfRegressionJson, programName, time);
           return;
         }
       }
 
       if (label === 'prove') {
-        // For prove we need the analyzed methods and a valid methodName
-        if (!cs) return;
+        // Require analyzed methods summary when proving
+        if (!cs) {
+          throw new Error(
+            'methodsSummary is required for "prove". Pass it to Performance.create(programName, methodsSummary).'
+          );
+        }
 
-        const csMethodNames = Object.keys(cs);
-        if (csMethodNames.length === 0) return;
-
+        // Require the specific method name
         if (!methodName) {
           throw new Error(
-            'Please provide the method name you are proving (pass it to start(..., methodName)).'
+            'Please provide the method name you are proving (start("prove", methodName)).'
           );
         }
 
-        if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
+        // Look up the method; error if missing (also covers empty methodsSummary)
+        const info = cs[methodName as keyof typeof cs];
+        if (!info) {
+          const available = Object.keys(cs);
           throw new Error(
             `The method "${methodName}" does not exist in the analyzed constraint system for "${programName}". ` +
-              `Available: ${csMethodNames.join(', ')}`
+              `Available: ${available.length ? available.join(', ') : '(none)'}`
           );
-        }
-
-        const info = cs[methodName];
-        if (!info) return;
-
-        // CHECK: validate only, no writes
-        if (CHECK) {
-          checkAgainstBaseline({
-            perfRegressionJson,
-            programName,
-            label: 'prove',
-            methodName,
-            digest: info.digest,
-            actualTime: time,
-          });
-          return;
         }
 
         // DUMP: update per-method rows/digest and proveTime; leave compileTime untouched
         if (DUMP) {
-          const prev = perfRegressionJson[programName];
-          const merged: PerfRegressionEntry = prev
-            ? { ...prev, methods: { ...prev.methods } }
-            : { methods: {} };
+          dumpProve(perfRegressionJson, programName, methodName, info, time);
+          return;
+        }
 
-          merged.methods[methodName] = {
-            rows: info.rows,
-            digest: info.digest,
-            proveTime: time,
-          };
-
-          perfRegressionJson[programName] = merged;
-          fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+        // CHECK: validate only, no writes
+        if (CHECK) {
+          checkProve(perfRegressionJson, programName, methodName, info.digest, time);
           return;
         }
       }
@@ -269,6 +239,74 @@ const Performance = {
 };
 
 // HELPERS
+
+function dumpCompile(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  time: number
+) {
+  const prev = perfRegressionJson[programName];
+  const merged: PerfRegressionEntry = prev
+    ? { ...prev, compileTime: time }
+    : { compileTime: time, methods: {} };
+
+  perfRegressionJson[programName] = merged;
+  fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+}
+
+function dumpProve(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  methodName: string,
+  info: ConstraintSystemSummary,
+  time: number
+) {
+  const prev = perfRegressionJson[programName];
+  const merged: PerfRegressionEntry = prev
+    ? { ...prev, methods: { ...prev.methods } }
+    : { methods: {} };
+
+  merged.methods[methodName] = {
+    rows: info.rows,
+    digest: info.digest,
+    proveTime: time,
+  };
+
+  perfRegressionJson[programName] = merged;
+  fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+}
+
+function checkCompile(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  actualTime: number
+) {
+  checkAgainstBaseline({
+    perfRegressionJson,
+    programName,
+    label: 'compile', // compile checks don't use method/digest; pass empty strings
+    methodName: '',
+    digest: '',
+    actualTime,
+  });
+}
+
+function checkProve(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  methodName: string,
+  digest: string,
+  actualTime: number
+) {
+  checkAgainstBaseline({
+    perfRegressionJson,
+    programName,
+    label: 'prove',
+    methodName,
+    digest,
+    actualTime,
+  });
+}
 
 /**
  * Compare a measured time/digest against stored baselines.
