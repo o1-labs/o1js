@@ -41,6 +41,6 @@ perfRsa.start('prove', 'verifyRsa65537');
 let { proof } = await rsaZkProgram.verifyRsa65537(message, signature, modulus);
 perfRsa.end();
 
-console.time('verify');
+perfRsa.start('verify', 'verifyRsa65537');
 await rsaZkProgram.verify(proof);
-console.timeEnd('verify');
+perfRsa.end();

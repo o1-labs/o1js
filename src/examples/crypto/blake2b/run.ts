@@ -15,7 +15,9 @@ perfBlake2b.start('prove', 'blake2b');
 let { proof } = await BLAKE2BProgram.blake2b(preimage);
 perfBlake2b.end();
 
+perfBlake2b.start('verify', 'blake2b');
 let isValid = await BLAKE2BProgram.verify(proof);
+perfBlake2b.end();
 
 console.log('digest:', proof.publicOutput.toHex());
 

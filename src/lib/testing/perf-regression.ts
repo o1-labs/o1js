@@ -1,7 +1,7 @@
 /**
  * Regression testing framework for individual ZkProgram examples.
  *
- * Stores and compares metadata such as compile & proving times.
+ * Stores and compares metadata such as compile, proving, and verifying times.
  * Can run in two modes:
  * - **Dump**: write baseline results into
  *   {@link tests/perf-regression/perf-regression.json}
@@ -34,6 +34,7 @@ type MethodsInfo = Record<
     rows: number;
     digest: string;
     proveTime?: number;
+    verifyTime?: number;
   }
 >;
 
@@ -45,10 +46,10 @@ type PerfRegressionEntry = {
 
 type PerfStack = {
   start: number;
-  label?: 'compile' | 'prove' | string;
+  label?: 'compile' | 'prove' | 'verify' | string;
   programName?: string;
   methodsSummary?: Record<string, ConstraintSystemSummary>;
-  methodName?: string; // required for prove; optional for compile
+  methodName?: string; // required for prove/verify; optional for compile
 };
 
 const argv = minimist(process.argv.slice(2), {
@@ -72,10 +73,10 @@ if (DUMP && CHECK) {
 }
 
 const FILE_PATH = path.isAbsolute(argv.file ?? '')
-  ? argv.file
+  ? (argv.file as string)
   : path.join(
       process.cwd(),
-      argv.file ? argv.file : './tests/perf-regression/perf-regression.json'
+      argv.file ? (argv.file as string) : './tests/perf-regression/perf-regression.json'
     );
 
 // Create directory & file if missing (only on dump)
@@ -85,17 +86,11 @@ if (DUMP) {
   if (!fs.existsSync(FILE_PATH)) fs.writeFileSync(FILE_PATH, '{}', 'utf8');
 }
 
-// Stops the process after the N-th end() call, if STOP_AFTER env is set.
-// If STOP_AFTER is not set or invalid, the script runs through normally.
-const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
-  ? Number(process.env.STOP_AFTER)
-  : undefined;
-
 /**
  * Create a new performance tracking session for a program.
  *
  * @param programName Name of the program (key in perf-regression.json)
- * @param methodsSummary Optional methods analysis (required for prove checks)
+ * @param methodsSummary Optional methods analysis (required for prove/verify checks)
  * @param log Optional boolean (default: true). If `--silent` is passed via CLI,
  *            it overrides this and disables all logs.
  * @returns An object with `start()` and `end()` methods
@@ -106,27 +101,16 @@ function createPerformanceSession(
   log = true
 ) {
   const perfStack: PerfStack[] = [];
-  let endCounter = 0;
-
   const shouldLog = SILENT ? false : log;
-
-  function maybeStop() {
-    if (STOP_AFTER && STOP_AFTER > 0) {
-      endCounter++;
-      if (endCounter >= STOP_AFTER) {
-        process.exit(0);
-      }
-    }
-  }
 
   return {
     /**
      * Start measuring performance for a given phase.
      *
-     * @param label The phase label: `'compile' | 'prove' | string`
-     * @param methodName Method name (required for `prove`)
+     * @param label The phase label: `'compile' | 'prove' | 'verify' | string`
+     * @param methodName Method name (required for `prove` and `verify`)
      */
-    start(label?: 'compile' | 'prove' | string, methodName?: string) {
+    start(label?: 'compile' | 'prove' | 'verify' | string, methodName?: string) {
       perfStack.push({
         label,
         start: performance.now(),
@@ -151,128 +135,59 @@ function createPerformanceSession(
       const time = (performance.now() - start) / 1000;
 
       // Base logging — only if log is enabled
-      //              — shows contract.method for prove
+      //              — shows contract.method for prove/verify
       if (shouldLog && label) {
         console.log(
           `${label} ${programName ?? ''}${
-            label === 'prove' && methodName ? '.' + methodName : ''
+            (label === 'prove' || label === 'verify') && methodName ? '.' + methodName : ''
           }... ${time.toFixed(3)} sec`
         );
       }
 
-      // If neither --dump nor --check, just optionally log and honor STOP_AFTER
-      if (!DUMP && !CHECK) {
-        maybeStop();
-        return;
-      }
+      // If neither --dump nor --check, we’re done.
+      if (!DUMP && !CHECK) return;
 
-      // Only act for compile/prove with required context
-      if (!programName || (label !== 'compile' && label !== 'prove')) {
-        maybeStop();
-        return;
-      }
+      // Only act for compile/prove/verify with required context
+      if (!programName || (label !== 'compile' && label !== 'prove' && label !== 'verify')) return;
 
       // Load the baseline JSON used for both DUMP and CHECK modes.
-      // - In DUMP mode: merge new data with existing entries so multiple methods remain grouped.
-      // - In CHECK mode: compare current results against stored baselines.
       const raw = fs.readFileSync(FILE_PATH, 'utf8');
       const perfRegressionJson: Record<string, PerfRegressionEntry> = JSON.parse(raw);
 
+      // --- compile ---
       if (label === 'compile') {
-        // CHECK: validate against baseline (no writes)
-        if (CHECK) {
-          checkAgainstBaseline({
-            perfRegressionJson,
-            programName,
-            label: 'compile', // compile checks don't use method/digest; pass empty strings
-            methodName: '',
-            digest: '',
-            actualTime: time,
-          });
-          maybeStop();
-          return;
-        }
-
-        // DUMP: update only contract-level compileTime
         if (DUMP) {
-          const prev = perfRegressionJson[programName];
-          const merged: PerfRegressionEntry = prev
-            ? { ...prev, compileTime: time }
-            : { compileTime: time, methods: {} };
-
-          perfRegressionJson[programName] = merged;
-          fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
-          maybeStop();
+          dumpCompile(perfRegressionJson, programName, time);
+          return;
+        }
+        if (CHECK) {
+          checkCompile(perfRegressionJson, programName, time);
           return;
         }
       }
 
-      // For prove we need the analyzed methods and a valid methodName
-      if (!cs) {
-        maybeStop();
-        return;
+      // --- prove / verify (shared validation + separate actions) ---
+      if (label === 'prove' || label === 'verify') {
+        const info = validateMethodContext(label, cs, methodName, programName);
+
+        if (DUMP) {
+          if (label === 'prove') {
+            dumpProve(perfRegressionJson, programName, methodName!, info, time);
+          } else {
+            dumpVerify(perfRegressionJson, programName, methodName!, info, time);
+          }
+          return;
+        }
+
+        if (CHECK) {
+          if (label === 'prove') {
+            checkProve(perfRegressionJson, programName, methodName!, info.digest, time);
+          } else {
+            checkVerify(perfRegressionJson, programName, methodName!, info.digest, time);
+          }
+          return;
+        }
       }
-
-      const csMethodNames = Object.keys(cs);
-      if (csMethodNames.length === 0) {
-        maybeStop();
-        return;
-      }
-
-      if (!methodName) {
-        throw new Error(
-          'Please provide the method name you are proving (pass it to start(..., methodName)).'
-        );
-      }
-
-      if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
-        throw new Error(
-          `The method "${methodName}" does not exist in the analyzed constraint systems for "${programName}". ` +
-            `Available: ${csMethodNames.join(', ')}`
-        );
-      }
-
-      const info = cs[methodName];
-      if (!info) {
-        maybeStop();
-        return;
-      }
-
-      // CHECK: validate only, no writes
-      if (CHECK) {
-        checkAgainstBaseline({
-          perfRegressionJson,
-          programName,
-          label: 'prove',
-          methodName,
-          digest: info.digest,
-          actualTime: time,
-        });
-        maybeStop();
-        return;
-      }
-
-      // DUMP: update per-method rows/digest and proveTime; leave compileTime untouched
-      if (DUMP) {
-        const prev = perfRegressionJson[programName];
-        const merged: PerfRegressionEntry = prev
-          ? { ...prev, methods: { ...prev.methods } }
-          : { methods: {} };
-
-        merged.methods[methodName] = {
-          rows: info.rows,
-          digest: info.digest,
-          proveTime: time,
-        };
-
-        perfRegressionJson[programName] = merged;
-        fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
-        maybeStop();
-        return;
-      }
-
-      // Fallback
-      maybeStop();
     },
   };
 }
@@ -282,19 +197,19 @@ const Performance = {
    * Initialize a new performance session.
    *
    * @param programName Optional identifier for the program or label.
-   *   - When provided with a ZkProgram name and its `methodsSummary`, the session
-   *     benchmarks compile and prove phases, storing or checking results against
+   *   - With a ZkProgram name and its `methodsSummary`, the session benchmarks
+   *     compile, prove, and verify phases, storing or checking results against
    *     `perf-regression.json`.
-   *   - When used without a ZkProgram, `programName` acts as a freeform label and
-   *     the session can be used like `console.time` / `console.timeEnd` to log
-   *     timestamps for arbitrary phases.
+   *   - Without a ZkProgram, `programName` acts as a freeform label and the session
+   *     can be used like `console.time` / `console.timeEnd` to log timestamps.
    * @param methodsSummary Optional analysis of ZkProgram methods, required when
-   *   measuring prove performance.
+   *   measuring prove/verify performance.
    * @param log Optional boolean flag (default: `true`).
    *   - When set to `false`, disables all console output for both general labels
-   *     and compile/prove phase logs.
+   *     and compile/prove/verify phase logs.
    *   - When the `--silent` flag is provided, it overrides this setting and disables
-   *     all logging regardless of the `log` value.   */
+   *     all logging regardless of the `log` value.
+   */
   create(
     programName?: string,
     methodsSummary?: Record<string, ConstraintSystemSummary>,
@@ -304,7 +219,147 @@ const Performance = {
   },
 };
 
-// HELPERS
+/// HELPERS (dump/check)
+
+function dumpCompile(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  time: number
+) {
+  const prev = perfRegressionJson[programName];
+  const merged: PerfRegressionEntry = prev
+    ? { ...prev, compileTime: time }
+    : { compileTime: time, methods: {} };
+
+  perfRegressionJson[programName] = merged;
+  fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+}
+
+function dumpProve(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  methodName: string,
+  info: ConstraintSystemSummary,
+  time: number
+) {
+  const prev = perfRegressionJson[programName];
+  const merged: PerfRegressionEntry = prev
+    ? { ...prev, methods: { ...prev.methods } }
+    : { methods: {} };
+
+  merged.methods[methodName] = {
+    rows: info.rows,
+    digest: info.digest,
+    // keep any existing verifyTime if present
+    verifyTime: merged.methods[methodName]?.verifyTime,
+    proveTime: time,
+  };
+
+  perfRegressionJson[programName] = merged;
+  fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+}
+
+function dumpVerify(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  methodName: string,
+  info: ConstraintSystemSummary,
+  time: number
+) {
+  const prev = perfRegressionJson[programName];
+  const merged: PerfRegressionEntry = prev
+    ? { ...prev, methods: { ...prev.methods } }
+    : { methods: {} };
+
+  merged.methods[methodName] = {
+    rows: info.rows,
+    digest: info.digest,
+    // keep any existing proveTime if present
+    proveTime: merged.methods[methodName]?.proveTime,
+    verifyTime: time,
+  };
+
+  perfRegressionJson[programName] = merged;
+  fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+}
+
+function checkCompile(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  actualTime: number
+) {
+  checkAgainstBaseline({
+    perfRegressionJson,
+    programName,
+    label: 'compile',
+    methodName: '',
+    digest: '',
+    actualTime,
+  });
+}
+
+function checkProve(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  methodName: string,
+  digest: string,
+  actualTime: number
+) {
+  checkAgainstBaseline({
+    perfRegressionJson,
+    programName,
+    label: 'prove',
+    methodName,
+    digest,
+    actualTime,
+  });
+}
+
+function checkVerify(
+  perfRegressionJson: Record<string, PerfRegressionEntry>,
+  programName: string,
+  methodName: string,
+  digest: string,
+  actualTime: number
+) {
+  checkAgainstBaseline({
+    perfRegressionJson,
+    programName,
+    label: 'verify',
+    methodName,
+    digest,
+    actualTime,
+  });
+}
+
+// -------------------------
+// HELPERS (validation + baselines)
+// -------------------------
+
+function validateMethodContext(
+  label: string,
+  cs: Record<string, ConstraintSystemSummary> | undefined,
+  methodName: string | undefined,
+  programName?: string
+): ConstraintSystemSummary {
+  if (!cs || typeof cs !== 'object') {
+    throw new Error(
+      `methodsSummary is required for this label: ${label}. Pass it to Performance.create(programName, methodsSummary).`
+    );
+  }
+  if (!methodName) {
+    throw new Error(`Please provide the method name (start(${label}, methodName)).`);
+  }
+  const info = cs[methodName];
+  if (!info) {
+    const available = Object.keys(cs);
+    throw new Error(
+      `The method "${methodName}" does not exist in the analyzed constraint system for "${programName}". ` +
+        `Available: ${available.length ? available.join(', ') : '(none)'}`
+    );
+  }
+  return info;
+}
 
 /**
  * Compare a measured time/digest against stored baselines.
@@ -313,7 +368,7 @@ const Performance = {
 function checkAgainstBaseline(params: {
   perfRegressionJson: Record<string, PerfRegressionEntry>;
   programName: string;
-  label: 'compile' | 'prove';
+  label: 'compile' | 'prove' | 'verify';
   methodName: string;
   digest: string;
   actualTime: number;
@@ -325,11 +380,11 @@ function checkAgainstBaseline(params: {
     throw new Error(`No baseline for "${programName}". Seed it with --dump first.`);
   }
 
-  // tolerances (same as other file)
+  // tolerances
   const compileTol = 1.05; // 5%
   const compileTiny = 1.08; // for near-zero baselines
-  const proveTolDefault = 1.1; // 10%
-  const proveTolSmall = 1.25; // 25% for very small times (<0.2s)
+  const timeTolDefault = 1.1; // 10% for prove/verify
+  const timeTolSmall = 1.25; // 25% for very small times (<0.2s)
 
   if (label === 'compile') {
     const expected = baseline.compileTime;
@@ -352,11 +407,11 @@ function checkAgainstBaseline(params: {
     return;
   }
 
-  // prove checks
+  // prove/verify checks
   const baseMethod = baseline.methods?.[methodName];
   if (!baseMethod) {
     throw new Error(
-      `No baseline method entry for ${programName}.${methodName}. Run --dump (prove) to add it.`
+      `No baseline method entry for ${programName}.${methodName}. Run --dump (${label}) to add it.`
     );
   }
   if (baseMethod.digest !== digest) {
@@ -366,19 +421,21 @@ function checkAgainstBaseline(params: {
         `  Expected: ${baseMethod.digest}\n`
     );
   }
-  const expected = baseMethod.proveTime;
+
+  const expected = label === 'prove' ? baseMethod.proveTime : baseMethod.verifyTime;
+  const labelPretty = label === 'prove' ? 'Prove' : 'Verify';
   if (expected == null) {
     throw new Error(
-      `No baseline proveTime for ${programName}.${methodName}. Run --dump (prove) to set it.`
+      `No baseline ${label}Time for ${programName}.${methodName}. Run --dump (${label}) to set it.`
     );
   }
-  const tol = expected < 0.2 ? proveTolSmall : proveTolDefault;
+  const tol = expected < 0.2 ? timeTolSmall : timeTolDefault;
   const allowedPct = (tol - 1) * 100;
 
   if (actualTime > expected * tol) {
     const regressionPct = ((actualTime - expected) / expected) * 100;
     throw new Error(
-      `Prove regression for ${programName}.${methodName}\n` +
+      `${labelPretty} regression for ${programName}.${methodName}\n` +
         `  Actual:   ${actualTime.toFixed(3)}s\n` +
         `  Regression: +${regressionPct.toFixed(2)}% (allowed +${allowedPct.toFixed(0)}%)`
     );
