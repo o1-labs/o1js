@@ -85,12 +85,6 @@ if (DUMP) {
   if (!fs.existsSync(FILE_PATH)) fs.writeFileSync(FILE_PATH, '{}', 'utf8');
 }
 
-// Stops the process after the N-th end() call, if STOP_AFTER env is set.
-// If STOP_AFTER is not set or invalid, the script runs through normally.
-const STOP_AFTER = Number.isFinite(Number(process.env.STOP_AFTER ?? ''))
-  ? Number(process.env.STOP_AFTER)
-  : undefined;
-
 /**
  * Create a new performance tracking session for a program.
  *
@@ -106,18 +100,7 @@ function createPerformanceSession(
   log = true
 ) {
   const perfStack: PerfStack[] = [];
-  let endCounter = 0;
-
   const shouldLog = SILENT ? false : log;
-
-  function maybeStop() {
-    if (STOP_AFTER && STOP_AFTER > 0) {
-      endCounter++;
-      if (endCounter >= STOP_AFTER) {
-        process.exit(0);
-      }
-    }
-  }
 
   return {
     /**
@@ -160,17 +143,11 @@ function createPerformanceSession(
         );
       }
 
-      // If neither --dump nor --check, just optionally log and honor STOP_AFTER
-      if (!DUMP && !CHECK) {
-        maybeStop();
-        return;
-      }
+      // If neither --dump nor --check, just optionally log
+      if (!DUMP && !CHECK) return;
 
       // Only act for compile/prove with required context
-      if (!programName || (label !== 'compile' && label !== 'prove')) {
-        maybeStop();
-        return;
-      }
+      if (!programName || (label !== 'compile' && label !== 'prove')) return;
 
       // Load the baseline JSON used for both DUMP and CHECK modes.
       // - In DUMP mode: merge new data with existing entries so multiple methods remain grouped.
@@ -189,7 +166,6 @@ function createPerformanceSession(
             digest: '',
             actualTime: time,
           });
-          maybeStop();
           return;
         }
 
@@ -202,77 +178,64 @@ function createPerformanceSession(
 
           perfRegressionJson[programName] = merged;
           fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
-          maybeStop();
           return;
         }
       }
 
-      // For prove we need the analyzed methods and a valid methodName
-      if (!cs) {
-        maybeStop();
-        return;
+      if (label === 'prove') {
+        // For prove we need the analyzed methods and a valid methodName
+        if (!cs) return;
+
+        const csMethodNames = Object.keys(cs);
+        if (csMethodNames.length === 0) return;
+
+        if (!methodName) {
+          throw new Error(
+            'Please provide the method name you are proving (pass it to start(..., methodName)).'
+          );
+        }
+
+        if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
+          throw new Error(
+            `The method "${methodName}" does not exist in the analyzed constraint system for "${programName}". ` +
+              `Available: ${csMethodNames.join(', ')}`
+          );
+        }
+
+        const info = cs[methodName];
+        if (!info) return;
+
+        // CHECK: validate only, no writes
+        if (CHECK) {
+          checkAgainstBaseline({
+            perfRegressionJson,
+            programName,
+            label: 'prove',
+            methodName,
+            digest: info.digest,
+            actualTime: time,
+          });
+          return;
+        }
+
+        // DUMP: update per-method rows/digest and proveTime; leave compileTime untouched
+        if (DUMP) {
+          const prev = perfRegressionJson[programName];
+          const merged: PerfRegressionEntry = prev
+            ? { ...prev, methods: { ...prev.methods } }
+            : { methods: {} };
+
+          merged.methods[methodName] = {
+            rows: info.rows,
+            digest: info.digest,
+            proveTime: time,
+          };
+
+          perfRegressionJson[programName] = merged;
+          fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
+          return;
+        }
       }
-
-      const csMethodNames = Object.keys(cs);
-      if (csMethodNames.length === 0) {
-        maybeStop();
-        return;
-      }
-
-      if (!methodName) {
-        throw new Error(
-          'Please provide the method name you are proving (pass it to start(..., methodName)).'
-        );
-      }
-
-      if (!Object.prototype.hasOwnProperty.call(cs, methodName)) {
-        throw new Error(
-          `The method "${methodName}" does not exist in the analyzed constraint systems for "${programName}". ` +
-            `Available: ${csMethodNames.join(', ')}`
-        );
-      }
-
-      const info = cs[methodName];
-      if (!info) {
-        maybeStop();
-        return;
-      }
-
-      // CHECK: validate only, no writes
-      if (CHECK) {
-        checkAgainstBaseline({
-          perfRegressionJson,
-          programName,
-          label: 'prove',
-          methodName,
-          digest: info.digest,
-          actualTime: time,
-        });
-        maybeStop();
-        return;
-      }
-
-      // DUMP: update per-method rows/digest and proveTime; leave compileTime untouched
-      if (DUMP) {
-        const prev = perfRegressionJson[programName];
-        const merged: PerfRegressionEntry = prev
-          ? { ...prev, methods: { ...prev.methods } }
-          : { methods: {} };
-
-        merged.methods[methodName] = {
-          rows: info.rows,
-          digest: info.digest,
-          proveTime: time,
-        };
-
-        perfRegressionJson[programName] = merged;
-        fs.writeFileSync(FILE_PATH, JSON.stringify(perfRegressionJson, null, 2));
-        maybeStop();
-        return;
-      }
-
-      // Fallback
-      maybeStop();
     },
   };
 }
@@ -294,7 +257,8 @@ const Performance = {
    *   - When set to `false`, disables all console output for both general labels
    *     and compile/prove phase logs.
    *   - When the `--silent` flag is provided, it overrides this setting and disables
-   *     all logging regardless of the `log` value.   */
+   *     all logging regardless of the `log` value.
+   */
   create(
     programName?: string,
     methodsSummary?: Record<string, ConstraintSystemSummary>,
