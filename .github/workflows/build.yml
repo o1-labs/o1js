@@ -10,10 +10,10 @@ jobs:
     strategy:
       matrix:
         os: [
-            # ubuntu-22.04,
+            ubuntu-22.04,
             macos-latest,
           ]
-        node_version: [20, 22]
+        node_version: [22, 24]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Repository
@@ -45,7 +45,25 @@ jobs:
             wasm-pack \
             wasm-tools \
             wabt \
-            bash
+            bash \
+            boost \
+            cmake \
+            gmp   \
+            gpatch \
+            jemalloc \
+            libomp
+
+      - name: Debug env
+        if: runner.os == 'macOS'
+        run: env
+      
+      - name: Setup MacOS env
+        if: runner.os == 'macOS'
+        run: |
+          echo "CFLAGS=-I/opt/homebrew/include/" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=\"$(brew --prefix libpq)/lib/pkgconfig:$PKG_CONFIG_PATH\"" >> $GITHUB_ENV
+          echo "/opt/homebrew/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
+          echo "LDFLAGS=\"-L/opt/homebrew/lib/\"" >> $GITHUB_ENV
 
       - name: Debug env
         if: runner.os == 'macOS'
@@ -107,6 +125,9 @@ jobs:
           set -Eeuxo pipefail
           opam repository set-url default https://github.com/ocaml/opam-repository.git\#08d8c16c16dc6b23a5278b06dff0ac6c7a217356
           opam repository add --yes --all --set-default o1-labs https://github.com/o1-labs/opam-repository.git
+          opam pin add async_ssl https://github.com/o1-labs/async_ssl.git\#v0.14-o1labs
+          opam pin add rocks 0.2.0
+          opam pin add rocksdb_stubs 10.2.1
 
       - name: Cache opam switch
         id: cache-opam
@@ -121,15 +142,7 @@ jobs:
           set -Eeuxo pipefail
 
           pushd src/mina
-          opam switch import opam.export
-
-      - name: Debug opam switch
-        if: steps.cache-opam.outputs.cache-hit == 'true'
-        run: |
-          set -Eeuxo pipefail
-          eval $(opam env)
-          opam switch
-          which dune
+          opam switch import --assume-depexts opam.export
 
       - name: Setup rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
