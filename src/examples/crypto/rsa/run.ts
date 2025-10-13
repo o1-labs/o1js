@@ -1,6 +1,7 @@
 import { ZkProgram } from 'o1js';
+import { Performance } from '../../../lib/testing/perf-regression.js';
 import { Bigint2048, rsaVerify65537 } from './rsa.js';
-import { sha256Bigint, generateRsaParams, rsaSign } from './utils.js';
+import { generateRsaParams, rsaSign, sha256Bigint } from './utils.js';
 
 let rsaZkProgram = ZkProgram({
   name: 'rsa-verify',
@@ -16,14 +17,17 @@ let rsaZkProgram = ZkProgram({
   },
 });
 
-let { verifyRsa65537 } = await rsaZkProgram.analyzeMethods();
+let cs = await rsaZkProgram.analyzeMethods();
 
-console.log(verifyRsa65537.summary());
+console.log(cs.verifyRsa65537.summary());
 
-console.time('compile');
 const forceRecompileEnabled = false;
+
+const perfRsa = Performance.create(rsaZkProgram.name, cs);
+
+perfRsa.start('compile');
 await rsaZkProgram.compile({ forceRecompile: forceRecompileEnabled });
-console.timeEnd('compile');
+perfRsa.end();
 
 console.time('generate RSA parameters and inputs (2048 bits)');
 const input = await sha256Bigint('How are you!');
@@ -33,10 +37,10 @@ const signature = Bigint2048.from(rsaSign(input, params.d, params.n));
 const modulus = Bigint2048.from(params.n);
 console.timeEnd('generate RSA parameters and inputs (2048 bits)');
 
-console.time('prove');
+perfRsa.start('prove', 'verifyRsa65537');
 let { proof } = await rsaZkProgram.verifyRsa65537(message, signature, modulus);
-console.timeEnd('prove');
+perfRsa.end();
 
-console.time('verify');
+perfRsa.start('verify', 'verifyRsa65537');
 await rsaZkProgram.verify(proof);
-console.timeEnd('verify');
+perfRsa.end();
