@@ -79,6 +79,11 @@ jobs:
     runs-on: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
+      - name: Restore repository
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
