@@ -1,66 +1,67 @@
-import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
 import {
   Base64ProofString,
   Base64VerificationKeyString,
+  Gate,
+  Pickles,
   Snarky,
   initializeBindings,
   withThreadPool,
 } from '../../bindings.js';
-import { Pickles, Gate } from '../../bindings.js';
-import { Field } from '../provable/wrapped.js';
-import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
-import { InferProvableType } from '../provable/types/provable-derivers.js';
-import { Provable } from '../provable/provable.js';
-import { assert, prettifyStacktracePromise } from '../util/errors.js';
+import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
+import { prefixes } from '../../bindings/crypto/constants.js';
+import { prefixToField } from '../../bindings/lib/binable.js';
+import { EmptyUndefined, EmptyVoid } from '../../bindings/lib/generic.js';
+import { From, InferValue } from '../../bindings/lib/provable-generic.js';
+import { MlArray, MlBool, MlPair, MlResult } from '../ml/base.js';
+import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
+import { FieldConst, FieldVar } from '../provable/core/fieldvar.js';
 import { ConstraintSystemSummary, snarkContext } from '../provable/core/provable-context.js';
 import { hashConstant } from '../provable/crypto/poseidon.js';
-import { MlArray, MlBool, MlResult, MlPair } from '../ml/base.js';
-import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
-import { FieldVar, FieldConst } from '../provable/core/fieldvar.js';
-import { Cache, readCache, writeCache } from './cache.js';
-import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
-import { setSrsCache, unsetSrsCache } from '../../bindings/crypto/bindings/srs.js';
+import { Provable } from '../provable/provable.js';
+import { InferProvableType } from '../provable/types/provable-derivers.js';
 import { ProvableType, ToProvable } from '../provable/types/provable-intf.js';
-import { prefixToField } from '../../bindings/lib/binable.js';
-import { prefixes } from '../../bindings/crypto/constants.js';
-import { Subclass, Tuple } from '../util/types.js';
+import { FlexibleProvable, InferProvable, ProvablePureExtended } from '../provable/types/struct.js';
+import { emptyWitness } from '../provable/types/util.js';
+import { Field } from '../provable/wrapped.js';
+import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { assert, prettifyStacktracePromise } from '../util/errors.js';
+import { Get, Subclass, Tuple } from '../util/types.js';
+import { Cache, readCache, writeCache } from './cache.js';
+import { featureFlagsFromGates, featureFlagsToMlOption } from './feature-flags.js';
 import {
-  dummyProof,
   DynamicProof,
-  extractProofs,
-  extractProofTypes,
   Proof,
   ProofBase,
   ProofClass,
   ProofValue,
+  dummyProof,
+  extractProofTypes,
+  extractProofs,
 } from './proof.js';
-import { featureFlagsFromGates, featureFlagsToMlOption } from './feature-flags.js';
-import { emptyWitness } from '../provable/types/util.js';
-import { From, InferValue } from '../../bindings/lib/provable-generic.js';
-import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
-import { mapObject, mapToObject, zip } from '../util/arrays.js';
+import { decodeProverKey, encodeProverKey, parseHeader } from './prover-keys.js';
 import { VerificationKey } from './verification-key.js';
+import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 
 // public API
-export { SelfProof, JsonProof, ZkProgram, verify, Empty, Undefined, Void, Method };
+export { Empty, JsonProof, Method, SelfProof, Undefined, Void, ZkProgram, verify };
 
 // internal API
 export {
   CompiledTag,
-  sortMethodArguments,
   MethodInterface,
   MethodReturnType,
-  picklesRuleFromFunction,
-  compileProgram,
-  analyzeMethod,
-  Prover,
-  dummyBase64Proof,
-  computeMaxProofsVerified,
-  RegularProver,
-  TupleToInstances,
   PrivateInput,
   Proof,
+  Prover,
+  RegularProver,
+  TupleToInstances,
+  analyzeMethod,
+  compileProgram,
+  computeMaxProofsVerified,
+  dummyBase64Proof,
   inCircuitVkHash,
+  picklesRuleFromFunction,
+  sortMethodArguments,
 };
 
 type Undefined = undefined;
@@ -225,7 +226,7 @@ type InferMethodType<Config extends ConfigBaseType> = {
  */
 function ZkProgram<
   Config extends ConfigBaseType,
-  _ extends unknown = unknown // weird hack that makes methods infer correctly when their inputs are not annotated
+  _ extends unknown = unknown, // weird hack that makes methods infer correctly when their inputs are not annotated
 >(
   config: Config & {
     name: string;
@@ -245,6 +246,7 @@ function ZkProgram<
     proofsEnabled?: boolean;
     withRuntimeTables?: boolean;
     numChunks?: number;
+    lazyMode?: boolean;
   }) => Promise<{
     verificationKey: { data: string; hash: Field };
   }>;
@@ -257,13 +259,19 @@ function ZkProgram<
   digest: () => Promise<string>;
   /**
    * Analyze the constraint system created by each method in the program.
+   * Every method is executed in a circuit, and the constraints are analyzed.
    *
    * @returns A summary of this ZkProgram, keyed by the method name, with a value of the {@link MethodAnalysis} for that method
    */
   analyzeMethods: () => Promise<{
     [I in keyof Config['methods']]: MethodAnalysis;
   }>;
-
+  /**
+   * Analyze the constraint system created by a single method in the program without analyzing any other methods and executing them.
+   *
+   * @returns A summary of this method, with a value of the {@link MethodAnalysis} for that method
+   */
+  analyzeSingleMethod<K extends keyof Config['methods']>(methodName: K): Promise<MethodAnalysis>;
   publicInputType: ProvableOrUndefined<Get<Config, 'publicInput'>>;
   publicOutputType: ProvableOrVoid<Get<Config, 'publicOutput'>>;
   privateInputTypes: InferPrivateInput<Config>;
@@ -350,6 +358,14 @@ function ZkProgram<
     };
   }
 
+  async function analyzeSingleMethod<K extends keyof Methods>(
+    methodName: K
+  ): Promise<MethodAnalysis> {
+    let methodIntf = methodIntfs[methodKeys.indexOf(methodName)];
+    let methodImpl = methodFunctions[methodKeys.indexOf(methodName)];
+    return await analyzeMethod(publicInputType, methodIntf, methodImpl);
+  }
+
   let compileOutput:
     | {
         provers: Pickles.Prover[];
@@ -368,6 +384,7 @@ function ZkProgram<
     forceRecompile = false,
     proofsEnabled = undefined as boolean | undefined,
     withRuntimeTables = false,
+    lazyMode = false,
   } = {}) {
     doProving = proofsEnabled ?? doProving;
 
@@ -391,6 +408,7 @@ function ZkProgram<
         numChunks: config.numChunks,
         state: programState,
         withRuntimeTables,
+        lazyMode,
       });
 
       compileOutput = { provers, verify, maxProofsVerified };
@@ -546,7 +564,9 @@ function ZkProgram<
       compile,
       verify,
       digest,
+
       analyzeMethods,
+      analyzeSingleMethod,
 
       publicInputType: publicInputType as ProvableOrUndefined<Get<Config, 'publicInput'>>,
       publicOutputType: publicOutputType as ProvableOrVoid<Get<Config, 'publicOutput'>>,
@@ -584,7 +604,7 @@ type ZkProgram<
         auxiliaryOutput?: ProvableType;
       };
     };
-  }
+  },
 > = ReturnType<typeof ZkProgram<Config>>;
 
 /**
@@ -696,6 +716,7 @@ async function compileProgram({
   numChunks,
   state,
   withRuntimeTables,
+  lazyMode,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -710,6 +731,7 @@ async function compileProgram({
   numChunks?: number;
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
+  lazyMode?: boolean;
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -766,6 +788,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
           storable: picklesCache,
           overrideWrapDomain,
           numChunks: numChunks ?? 1,
+          lazyMode: lazyMode ?? false,
         });
         let { getVerificationKey, provers, verify, tag } = result;
         CompiledTag.store(proofSystemTag, tag);
@@ -1037,7 +1060,7 @@ function toFieldAndAuxConsts<T>(type: Provable<T>, value: T) {
 
 ZkProgram.Proof = function <
   PublicInputType extends FlexibleProvable<any>,
-  PublicOutputType extends FlexibleProvable<any>
+  PublicOutputType extends FlexibleProvable<any>,
 >(program: {
   name: string;
   publicInputType: PublicInputType;
@@ -1089,11 +1112,12 @@ function Prover<ProverData>() {
 
 // helper types
 
-type Infer<T> = T extends Subclass<typeof ProofBase>
-  ? InstanceType<T>
-  : T extends ProvableType
-  ? InferProvableType<T>
-  : never;
+type Infer<T> =
+  T extends Subclass<typeof ProofBase>
+    ? InstanceType<T>
+    : T extends ProvableType
+      ? InferProvableType<T>
+      : never;
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
@@ -1111,13 +1135,13 @@ type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
         auxiliaryOutput: AuxiliaryOutput;
       }
   : AuxiliaryOutput extends undefined
-  ? {
-      publicOutput: PublicOutput;
-    }
-  : {
-      publicOutput: PublicOutput;
-      auxiliaryOutput: AuxiliaryOutput;
-    };
+    ? {
+        publicOutput: PublicOutput;
+      }
+    : {
+        publicOutput: PublicOutput;
+        auxiliaryOutput: AuxiliaryOutput;
+      };
 
 type Method<
   PublicInput,
@@ -1125,7 +1149,7 @@ type Method<
   MethodSignature extends {
     privateInputs: Tuple<PrivateInput>;
     auxiliaryOutput?: ProvableType;
-  }
+  },
 > = PublicInput extends undefined
   ? {
       method(
@@ -1154,7 +1178,7 @@ type RegularProver<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput
+  AuxiliaryOutput,
 > = (
   publicInput: From<PublicInputType>,
   ...args: TupleFrom<Args>
@@ -1168,7 +1192,7 @@ type Prover<
   PublicInputType,
   PublicOutput,
   Args extends Tuple<PrivateInput>,
-  AuxiliaryOutput
+  AuxiliaryOutput,
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<{
       proof: Proof<PublicInput, PublicOutput>;
@@ -1188,17 +1212,8 @@ type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : A extends ProvableType
-  ? InferProvable<A>
-  : InferProvable<A> | undefined;
+    ? InferProvable<A>
+    : InferProvable<A> | undefined;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;
-
-/**
- * helper to get property type from an object, in place of `T[Key]`
- *
- * assume `T extends { Key?: Something }`.
- * if we use `Get<T, Key>` instead of `T[Key]`, we allow `T` to be inferred _without_ the `Key` key,
- * and thus retain the precise type of `T` during inference
- */
-type Get<T, Key extends string> = T extends { [K in Key]: infer _Value } ? _Value : undefined;

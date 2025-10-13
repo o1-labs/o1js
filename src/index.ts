@@ -1,3 +1,6 @@
+/**
+ * Include in this file all the exports that should be part of the public API.
+ */
 export { TupleN } from './lib/util/types.js';
 export type { ProvablePure } from './lib/provable/types/provable-intf.js';
 export { Ledger, initializeBindings } from './bindings.js';
@@ -40,11 +43,17 @@ export { UInt32, UInt64, Int64, Sign, UInt8 } from './lib/provable/int.js';
 export { Bytes, FlexibleBytes } from './lib/provable/wrapped-classes.js';
 export { Packed, Hashed } from './lib/provable/packed.js';
 export { Gadgets } from './lib/provable/gadgets/gadgets.js';
+export { RuntimeTable } from './lib/provable/gadgets/runtime-table.js';
 export { Types } from './bindings/mina-transaction/v1/types.js';
 export { DynamicArray } from './lib/provable/dynamic-array.js';
 
 export { MerkleList, MerkleListIterator } from './lib/provable/merkle-list.js';
-import { IndexedMerkleMap, IndexedMerkleMapBase } from './lib/provable/merkle-tree-indexed.js';
+import {
+  IndexedMerkleMap as IndexedMerkleMap_,
+  IndexedMerkleMapBase,
+} from './lib/provable/merkle-tree-indexed.js';
+export let IndexedMerkleMap = IndexedMerkleMap_;
+export type IndexedMerkleMap = IndexedMerkleMapBase;
 export { Option } from './lib/provable/option.js';
 
 export * as Mina from './lib/mina/v1/mina.js';
@@ -123,6 +132,7 @@ import {
   ProvableBigInt as ProvableBigInt_,
   createProvableBigInt as createProvableBigInt_,
 } from './lib/provable/bigint.js';
+import { ZkFunction as ZkFunction_ } from './lib/proof-system/zkfunction.js';
 export { Experimental };
 
 import * as V2_ from './lib/mina/v2/index.js';
@@ -130,7 +140,6 @@ import { Field } from './lib/provable/wrapped.js';
 
 const Experimental_ = {
   memoizeWitness,
-  IndexedMerkleMap,
   V2: V2_,
 };
 
@@ -167,9 +176,7 @@ namespace Experimental {
   export let ProvableBigInt = ProvableBigInt_;
   export let createProvableBigInt = createProvableBigInt_;
 
-  // indexed merkle map
-  export let IndexedMerkleMap = Experimental_.IndexedMerkleMap;
-  export type IndexedMerkleMap = IndexedMerkleMapBase;
+  export let ZkFunction = ZkFunction_;
 
   // offchain state
   export let OffchainState = OffchainState_.OffchainState;

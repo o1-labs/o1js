@@ -134,7 +134,7 @@ const Sign = pseudoClass(
 
 function pseudoClass<
   F extends (...args: any) => any,
-  M
+  M,
   // M extends Provable<ReturnType<F>>
 >(constructor: F, module: M) {
   return Object.assign<F, M>(constructor, module);

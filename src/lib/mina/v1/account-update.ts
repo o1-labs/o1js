@@ -1763,7 +1763,35 @@ const ZkappCommand = {
       ...transaction.accountUpdates.map((a) => a.toPretty()),
     ];
   },
-  fromJSON(json: Types.Json.ZkappCommand): ZkappCommand {
+  parse(json: string): ZkappCommand {
+    let parsedJson: Types.Json.ZkappCommand;
+    try {
+      parsedJson = JSON.parse(json) as Types.Json.ZkappCommand;
+    } catch (error) {
+      throw new Error(
+        `Failed to parse ZkappCommand from JSON string: ${
+          error instanceof Error ? error.message : 'Invalid JSON'
+        }`
+      );
+    }
+
+    try {
+      return this.fromJSON(parsedJson);
+    } catch (error) {
+      throw new Error(
+        `Failed to construct ZkappCommand from parsed JSON: ${
+          error instanceof Error ? error.message : 'Invalid ZkappCommand structure'
+        }`
+      );
+    }
+  },
+  fromJSON(json: Types.Json.ZkappCommand | string): ZkappCommand {
+    // If it's a string, parse it and return
+    if (typeof json === 'string') {
+      return this.parse(json);
+    }
+
+    // Handle the Types.Json.ZkappCommand case
     let { feePayer } = Types.ZkappCommand.fromJSON({
       feePayer: json.feePayer,
       accountUpdates: [],

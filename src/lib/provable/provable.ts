@@ -450,7 +450,7 @@ function switch_<T, A extends FlexibleProvableType<T>>(
 
 function assertEqualIf<
   A extends ProvableType<any>,
-  T extends InferProvableType<A> = InferProvableType<A>
+  T extends InferProvableType<A> = InferProvableType<A>,
 >(enabled: Bool, type: A, x: T, y: T) {
   // if the condition is disabled, we check the trivial identity x === x instead
   let xOrY = ifExplicit<T>(enabled, type, y, x);

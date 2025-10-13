@@ -36,18 +36,14 @@ test(Random.field, (field) => {
   let result = Field.fromBytes(bytes);
   expect(result).toEqual(field);
 });
-test.negative(Random.field.invalid, (field) =>
-  Field.fromBytes(Field.toBytes(field))
-);
+test.negative(Random.field.invalid, (field) => Field.fromBytes(Field.toBytes(field)));
 
 test(Random.scalar, (scalar) => {
   let bytes = Scalar.toBytes(scalar);
   let result = Scalar.fromBytes(bytes);
   expect(result).toEqual(scalar);
 });
-test.negative(Random.scalar.invalid, (scalar) =>
-  Scalar.fromBytes(Scalar.toBytes(scalar))
-);
+test.negative(Random.scalar.invalid, (scalar) => Scalar.fromBytes(Scalar.toBytes(scalar)));
 
 // public key
 
@@ -109,10 +105,10 @@ let randomAccountBalance: Random<AccountBalance> = Random.record({
   address: Random.publicKey,
   balance: Random.uint64,
 });
-let AccountBalance: Binable<AccountBalance> = record(
-  { address: PublicKey, balance: UInt64 },
-  ['address', 'balance']
-);
+let AccountBalance: Binable<AccountBalance> = record({ address: PublicKey, balance: UInt64 }, [
+  'address',
+  'balance',
+]);
 
 test(randomAccountBalance, (accountBalance) => {
   let bytes = AccountBalance.toBytes(accountBalance);
