@@ -9,7 +9,7 @@ source ./scripts/lib/ux.sh
 ./run ./src/tests/cache/simple-regression.ts --bundle --mode check --tarball ./tests/test-artifacts/cache/simple-regression.tar.gz
 
 # This pin is generated in ./dump-cache-regressions.sh
-ARTIFACT_PIN=2025-10-14T13:59:51-04:00
+ARTIFACT_PIN=2025-10-14T14:08:25-04:00
 
 WORKDIR=tests/test-artifacts/cache/
 mkdir -p $WORKDIR
@@ -24,5 +24,6 @@ WORKDIR=tests/test-artifacts/cache/$ARTIFACT_PIN
 ./run ./src/tests/cache/complex-regression.ts --bundle --mode check --tarball $WORKDIR/complex-regression.tar.gz
 ./run ./src/tests/cache/rsa-regression.ts --bundle --keep --mode check --tarball $WORKDIR/rsa-regression.tar.gz
 ./run ./src/tests/cache/sideloading-regression.ts --bundle --keep --mode check --tarball $WORKDIR/sideloading-regression.tar.gz
+./run ./src/tests/cache/runtime-table-regression.ts --bundle --keep --mode check --tarball $WORKDIR/runtime-table-regression.tar.gz
 
 echo "Artifacts checked successfully!"
