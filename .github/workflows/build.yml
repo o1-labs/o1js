@@ -54,22 +54,6 @@ jobs:
             jemalloc \
             libomp
 
-      - name: Debug env
-        if: runner.os == 'macOS'
-        run: env
-      
-      - name: Setup MacOS env
-        if: runner.os == 'macOS'
-        run: |
-          echo "CFLAGS=-I/opt/homebrew/include/" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=\"$(brew --prefix libpq)/lib/pkgconfig:$PKG_CONFIG_PATH\"" >> $GITHUB_ENV
-          echo "/opt/homebrew/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
-          echo "LDFLAGS=\"-L/opt/homebrew/lib/\"" >> $GITHUB_ENV
-
-      - name: Debug env
-        if: runner.os == 'macOS'
-        run: env
-
       - name: apt, apt
         if: runner.os == 'Linux'
         run: |
@@ -137,6 +121,8 @@ jobs:
 
       - name: Setup opam switch
         if: steps.cache-opam.outputs.cache-hit != 'true'
+        env:
+          CFLAGS: -I/opt/homebrew/include/
         run: |
           set -Eeuxo pipefail
 
