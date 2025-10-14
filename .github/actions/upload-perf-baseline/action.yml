@@ -1,0 +1,35 @@
+name: Upload Perf Baseline (optional)
+description: Upload perf-regression.json only when PERF_MODE is --dump.
+inputs:
+  perf_mode:
+    description: "--dump or --check"
+    required: true
+  path:
+    description: "Path to perf baseline JSON"
+    required: false
+    default: tests/perf-regression/perf-regression.json
+  name:
+    description: "Artifact name"
+    required: false
+    default: perf-regression-json
+  retention-days:
+    description: "Artifact retention (days)"
+    required: false
+    default: "30"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Skip unless in dump mode
+      if: inputs.perf_mode != '--dump'
+      shell: bash
+      run: echo "Not in --dump mode; skipping upload."
+
+    - name: Upload baseline
+      if: inputs.perf_mode == '--dump'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: error
+        retention-days: ${{ inputs.retention-days }}

@@ -53,6 +53,12 @@ case $TEST_TYPE in
   echo "Cache Regression"
   ./scripts/tests/check-cache-regressions.sh
   ;;
+  
+"Performance Regression")
+  echo "Running Performance Regression Check"
+  PERF_MODE="${PERF_MODE:---check}"
+  ./tests/perf-regression/perf-regression.sh "$PERF_MODE"
+  ;;
 *)
   echo "ERROR: Invalid environment variable, not clear what tests to run! $CI_NODE_INDEX"
   exit 1

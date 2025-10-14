@@ -152,6 +152,7 @@ jobs:
             'Verification Key Regression Check 2',
             'CommonJS test',
             'Cache Regression',
+            'Performance Regression',
           ]
     steps:
       - name: Checkout repository with submodules
@@ -176,7 +177,18 @@ jobs:
       - name: Execute tests
         env:
           TEST_TYPE: ${{ matrix.test_type }}
+          PERF_MODE: ${{ contains(github.event.pull_request.labels.*.name, 'dump-performance') && '--dump' || '--check' }}
         run: sh run-ci-tests.sh
+      - name: Upload performance regressions baseline
+        if: >
+          matrix.test_type == 'Performance Regression' &&
+          contains(github.event.pull_request.labels.*.name, 'dump-performance')
+        uses: ./.github/actions/upload-perf-baseline
+        with:
+          perf_mode: ${{ contains(github.event.pull_request.labels.*.name, 'dump-performance') && '--dump' || '--check' }}
+          path: tests/perf-regression/perf-regression.json
+          name: perf-regression-json
+          retention-days: 30
       - name: Add to job summary
         if: always()
         run: |
