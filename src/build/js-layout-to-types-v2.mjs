@@ -2,8 +2,6 @@
 
 import assert from 'node:assert';
 import fs from 'node:fs/promises';
-import prettier from 'prettier';
-import prettierRc from '../../.prettierrc.cjs';
 
 const leafTypes = {
   number: 'number',
@@ -341,13 +339,8 @@ for (const typeName of depOrderTypeNames) {
 out += `\
   \ const Types: {[key: string]: BindingsType<any>} = {${Object.keys(jsTypes).join(', ')}};\n`;
 
-const prettyOut = prettier.format(out, {
-  parser: 'typescript',
-  ...prettierRc,
-});
-
 if (outputFilepath !== null) {
-  await fs.writeFile(outputFilepath, prettyOut);
+  await fs.writeFile(outputFilepath, out);
 } else {
-  console.log(prettyOut);
+  console.log(out);
 }

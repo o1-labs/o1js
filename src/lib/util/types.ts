@@ -1,6 +1,6 @@
 import { assert } from './errors.js';
 
-export { AnyFunction, Tuple, TupleN, AnyTuple, TupleMap, Subclass };
+export { AnyFunction, Tuple, TupleN, AnyTuple, TupleMap, Subclass, Get };
 
 type AnyFunction = (...args: any) => any;
 
@@ -54,3 +54,12 @@ type Subclass<Class extends new (...args: any) => any> = (new (
 ) => InstanceType<Class>) & {
   [K in keyof Class]: Class[K];
 } & { prototype: InstanceType<Class> };
+
+/**
+ * helper to get property type from an object, in place of `T[Key]`
+ *
+ * assume `T extends { Key?: Something }`.
+ * if we use `Get<T, Key>` instead of `T[Key]`, we allow `T` to be inferred _without_ the `Key` key,
+ * and thus retain the precise type of `T` during inference
+ */
+type Get<T, Key extends string> = T extends { [K in Key]: infer _Value } ? _Value : undefined;

@@ -71,7 +71,7 @@ function IndexedMerkleMap(height: number): typeof IndexedMerkleMapBase {
 }
 
 const provableBase = {
-  root: Field,
+  _internalRoot: Field,
   length: Field,
   data: Unconstrained.withEmpty({
     nodes: [] as (bigint | undefined)[][],
@@ -81,7 +81,7 @@ const provableBase = {
 
 class IndexedMerkleMapBase {
   // data defining the provable interface of a tree
-  root: Field;
+  _internalRoot: Field;
   length: Field; // length of the leaves array
 
   // static data defining constraints
@@ -102,6 +102,14 @@ class IndexedMerkleMapBase {
     readonly sortedLeaves: StoredLeaf[];
   }>;
 
+  /**
+   * Public getter for the root(commitment) that combines the internal root of the indexed merkle tree and length.
+   * This provides protection against a attack vector mentioned in https://github.com/o1-labs/o1js/pull/2114#issuecomment-2948339955
+   */
+  get root(): Field {
+    return Poseidon.hash([this._internalRoot, this.length]);
+  }
+
   // we'd like to do `abstract static provable` here but that's not supported
   static provable: Provable<IndexedMerkleMapBase, InferValue<typeof provableBase>> =
     undefined as any;
@@ -120,7 +128,7 @@ class IndexedMerkleMapBase {
     let firstLeaf = IndexedMerkleMapBase._firstLeaf;
     let firstNode = Leaf.hashNode(firstLeaf).toBigInt();
     let root = Nodes.setLeaf(nodes, 0, firstNode);
-    this.root = Field(root);
+    this._internalRoot = Field(root);
     this.length = Field(1);
 
     this.data = Unconstrained.from({ nodes, sortedLeaves: [firstLeaf] });
@@ -142,7 +150,7 @@ class IndexedMerkleMapBase {
    */
   clone() {
     let cloned = new (this.constructor as typeof IndexedMerkleMapBase)();
-    cloned.root = this.root;
+    cloned._internalRoot = this._internalRoot;
     cloned.length = this.length;
     cloned.data.updateAsProver(() => {
       let { nodes, sortedLeaves } = this.data.get();
@@ -171,7 +179,7 @@ class IndexedMerkleMapBase {
   overwriteIf(condition: Bool | boolean, other: IndexedMerkleMapBase) {
     condition = Bool(condition);
 
-    this.root = Provable.if(condition, other.root, this.root);
+    this._internalRoot = Provable.if(condition, other._internalRoot, this._internalRoot);
     this.length = Provable.if(condition, other.length, this.length);
     this.data.updateAsProver(() =>
       Bool(condition).toBoolean() ? other.clone().data.get() : this.data.get()
@@ -201,7 +209,7 @@ class IndexedMerkleMapBase {
 
     // update low node
     let newLow = { ...low, nextKey: key };
-    this.root = this._proveUpdate(newLow, lowPath);
+    this._internalRoot = this._proveUpdate(newLow, lowPath);
     this._setLeafUnconstrained(true, newLow);
 
     // create new leaf to append
@@ -213,7 +221,7 @@ class IndexedMerkleMapBase {
 
     // prove empty slot in the tree, and insert our leaf
     let path = this._proveEmpty(indexBits);
-    this.root = this._proveUpdate(leaf, path);
+    this._internalRoot = this._proveUpdate(leaf, path);
     this.length = this.length.add(1);
     this._setLeafUnconstrained(false, leaf);
   }
@@ -238,7 +246,7 @@ class IndexedMerkleMapBase {
 
     // update leaf
     let newSelf = { ...self, value };
-    this.root = this._proveUpdate(newSelf, path);
+    this._internalRoot = this._proveUpdate(newSelf, path);
     this._setLeafUnconstrained(true, newSelf);
 
     return self.value;
@@ -275,7 +283,7 @@ class IndexedMerkleMapBase {
 
     // update low node, or leave it as is
     let newLow = { ...low, nextKey: key };
-    this.root = this._proveUpdate(newLow, lowPath);
+    this._internalRoot = this._proveUpdate(newLow, lowPath);
     this._setLeafUnconstrained(true, newLow);
 
     // prove inclusion of this leaf if it exists
@@ -288,7 +296,7 @@ class IndexedMerkleMapBase {
       value,
       nextKey: Provable.if(keyExists, self.nextKey, low.nextKey),
     });
-    this.root = this._proveUpdate(newLeaf, path);
+    this._internalRoot = this._proveUpdate(newLeaf, path);
     this.length = Provable.if(keyExists, this.length, this.length.add(1));
     this._setLeafUnconstrained(keyExists, newLeaf);
 
@@ -403,7 +411,7 @@ class IndexedMerkleMapBase {
     let node = Leaf.hashNode(leaf);
     // here, we don't care at which index the leaf is included, so we pass it in as unconstrained
     let { root, path } = this._computeRoot(node, leaf.index);
-    root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+    root.assertEquals(this._internalRoot, message ?? 'Leaf is not included in the tree');
 
     return path;
   }
@@ -416,7 +424,7 @@ class IndexedMerkleMapBase {
     // here, we don't care at which index the leaf is included, so we pass it in as unconstrained
     let { root } = this._computeRoot(node, leaf.index);
     assert(
-      condition.implies(root.equals(this.root)),
+      condition.implies(root.equals(this._internalRoot)),
       message ?? 'Leaf is not included in the tree'
     );
   }
@@ -429,7 +437,7 @@ class IndexedMerkleMapBase {
   _proveEmpty(index: Bool[]) {
     let node = Field(0n);
     let { root, path } = this._computeRoot(node, index);
-    root.assertEquals(this.root, 'Leaf is not empty');
+    root.assertEquals(this._internalRoot, 'Leaf is not empty');
 
     return path;
   }
@@ -442,7 +450,7 @@ class IndexedMerkleMapBase {
   _proveInclusionOrEmpty(condition: Bool, index: Bool[], leaf: BaseLeaf, message?: string) {
     let node = Provable.if(condition, Leaf.hashNode(leaf), Field(0n));
     let { root, path } = this._computeRoot(node, index);
-    root.assertEquals(this.root, message ?? 'Leaf is not included in the tree');
+    root.assertEquals(this._internalRoot, message ?? 'Leaf is not included in the tree');
 
     return path;
   }

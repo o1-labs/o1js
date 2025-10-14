@@ -1,12 +1,12 @@
-import { InferProvable } from '../provable/types/struct.js';
+import { From } from '../../bindings/lib/provable-generic.js';
+import { Bool } from '../provable/bool.js';
 import { Provable } from '../provable/provable.js';
 import { ProvableType } from '../provable/types/provable-intf.js';
+import { InferProvable } from '../provable/types/struct.js';
+import { mapObject, mapToObject, zip } from '../util/arrays.js';
 import { Tuple } from '../util/types.js';
 import { Proof } from './proof.js';
-import { mapObject, mapToObject, zip } from '../util/arrays.js';
 import { Undefined, Void } from './zkprogram.js';
-import { Bool } from '../provable/bool.js';
-import { From } from '../../bindings/lib/provable-generic.js';
 
 export { Recursive };
 
@@ -15,7 +15,7 @@ function Recursive<
   PublicOutputType extends Provable<any>,
   PrivateInputs extends {
     [Key in string]: Tuple<ProvableType>;
-  }
+  },
 >(
   zkprogram: {
     name: string;
@@ -69,7 +69,7 @@ function Recursive<
 
   let methodKeys: MethodKey[] = Object.keys(methods);
 
-  let regularRecursiveProvers = mapToObject(methodKeys, (key, i) => {
+  let regularRecursiveProvers = mapToObject(methodKeys, (key) => {
     return async function proveRecursively_(
       conditionAndConfig: Bool | { condition: Bool; domainLog2?: number },
       publicInput: PublicInput,
@@ -163,7 +163,7 @@ type RecursiveProver<
   PublicInput,
   PublicInputType,
   PublicOutput,
-  Args extends Tuple<ProvableType>
+  Args extends Tuple<ProvableType>,
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<PublicOutput>
   : (publicInput: From<PublicInputType>, ...args: TupleFrom<Args>) => Promise<PublicOutput>;
@@ -172,7 +172,7 @@ type ConditionalRecursiveProver<
   PublicInput,
   PublicInputType,
   PublicOutput,
-  Args extends Tuple<ProvableType>
+  Args extends Tuple<ProvableType>,
 > = PublicInput extends undefined
   ? (
       condition: Bool | { condition: Bool; domainLog2?: number },

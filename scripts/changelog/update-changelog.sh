@@ -12,13 +12,14 @@
 # 5. Updates the CHANGELOG.md file:
 #    - Adds a new entry for the upcoming release using the incremented version number and the current date.
 #    - Updates the link for the [Unreleased] section to point from the current commit to HEAD.
+#    - Checks the compare URL for the newest versions to match the commit hashes of the corresponding releases.
 #
 # Usage:
 # It should be run in the root directory of the repository where the CHANGELOG.md is located.
 # Ensure that you have the necessary permissions to commit and push changes to the repository.
 
 # Step 1: Capture the latest version
-latest_version=$(grep -oP '\[\K[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md | head -1)
+latest_version=$(grep -o '\[\K[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md | head -1)
 echo "Latest version: $latest_version"
 
 # Step 2: Bump the patch version
@@ -35,5 +36,18 @@ echo "Current commit: $current_commit"
 current_date=$(date +%Y-%m-%d)
 echo "Current date: $current_date"
 
-# Step 5: Update the CHANGELOG
-sed -i "s/\[Unreleased\](.*\.\.\.HEAD)/\[Unreleased\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$current_commit...HEAD)\n\n## \[$new_version\](https:\/\/github.com\/o1-labs\/o1js\/compare\/1ad7333e9e...$current_commit) - $current_date/" CHANGELOG.md
+# Step 5: Extract the second SHA from the compare URL of the latest version
+previous_commit=$(grep -m 1 -o '\[.*?\]\(https://github.com/o1-labs/o1js/compare/[a-f0-9]+\.\.\.\K[a-f0-9]+(?=\))' CHANGELOG.md)
+echo "Previous commit: $previous_commit"
+
+# Step 6: Update the CHANGELOG
+sed -i "s/\[Unreleased\](.*\.\.\.HEAD)/\[Unreleased\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$current_commit...HEAD)\n\n## \[$new_version\](https:\/\/github.com\/o1-labs\/o1js\/compare\/$previous_commit...$current_commit) - $current_date/" CHANGELOG.md
+
+# Step 7: Auto-fix compare URLs for all past versions, if -r is set
+while getopts "r" opt; do
+  case $opt in
+    r)
+      node scripts/changelog/fix-changelog-links.cjs
+      ;;
+  esac
+done

@@ -1,4 +1,4 @@
-import { Bool, Group, Scalar, Provable } from 'o1js';
+import { Bool, Group, Provable, Scalar } from 'o1js';
 
 describe('group', () => {
   let g = Group({ x: -1, y: 2 });
@@ -359,7 +359,7 @@ describe('group', () => {
     });
 
     it('sub', () => {
-      let y = Provable.witness(Group, () => g).assertEquals(Provable.witness(Group, () => g));
+      Provable.witness(Group, () => g).assertEquals(Provable.witness(Group, () => g));
       g.assertEquals(g);
     });
   });
