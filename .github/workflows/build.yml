@@ -11,9 +11,10 @@ jobs:
       matrix:
         os: [
             ubuntu-22.04,
-            # macos-latest, # TODO: make this work
+            macos-latest,
           ]
         node_version: [22, 24]
+      fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Repository
