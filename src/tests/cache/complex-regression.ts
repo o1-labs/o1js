@@ -1,11 +1,11 @@
-import minimist from "minimist";
-import assert from "node:assert";
-import { Field, Provable, Struct, UInt64, Unconstrained, ZkProgram } from "o1js";
-import { CacheHarness } from "./harness.js";
+import minimist from 'minimist';
+import assert from 'node:assert';
+import { Field, Provable, Struct, UInt64, Unconstrained, ZkProgram } from 'o1js';
+import { CacheHarness } from './harness.js';
 
-const { mode, tarball } = minimist(process.argv.slice(2))
+const { mode, tarball } = minimist(process.argv.slice(2));
 
-const harness = await CacheHarness({ mode, tarball })
+const harness = await CacheHarness({ mode, tarball });
 
 const RealProgram = ZkProgram({
   name: 'real',
@@ -22,8 +22,8 @@ const RealProgram = ZkProgram({
   },
 });
 
-class RealProof extends RealProgram.Proof { }
-class Nested extends Struct({ inner: RealProof }) { }
+class RealProof extends RealProgram.Proof {}
+class Nested extends Struct({ inner: RealProof }) {}
 
 const RecursiveProgram = ZkProgram({
   name: 'recursive',
@@ -59,32 +59,32 @@ const RecursiveProgram = ZkProgram({
   },
 });
 
-const { verificationKey: realVk } = await RealProgram.compile({ cache: harness.cache })
-harness.check(realVk, "realVk");
-const { verificationKey: vk } = await RecursiveProgram.compile({ cache: harness.cache })
-harness.check(vk, "vk");
+const { verificationKey: realVk } = await RealProgram.compile({ cache: harness.cache });
+harness.check(realVk, 'realVk');
+const { verificationKey: vk } = await RecursiveProgram.compile({ cache: harness.cache });
+harness.check(vk, 'vk');
 const { proof: realProof } = await RealProgram.make(35);
 {
-  const ok = await harness.verify(realProof, "realVk");
-  assert.equal(ok, true, "expected real proof to verify with realVk")
+  const ok = await harness.verify(realProof, 'realVk');
+  assert.equal(ok, true, 'expected real proof to verify with realVk');
 }
 const { proof: recursiveProof } = await RecursiveProgram.verifyReal(realProof);
 
 {
-  const ok = await harness.verify(recursiveProof, "vk");
-  assert.equal(ok, true, "expected recursive proof to verify with vk");
+  const ok = await harness.verify(recursiveProof, 'vk');
+  assert.equal(ok, true, 'expected recursive proof to verify with vk');
 }
 
-const { proof: nestedProof } = await RecursiveProgram.verifyNested(0, { inner: realProof })
+const { proof: nestedProof } = await RecursiveProgram.verifyNested(0, { inner: realProof });
 {
-  const ok = await harness.verify(nestedProof, "vk");
-  assert.equal(ok, true, "expected nested proof to verify with vk")
+  const ok = await harness.verify(nestedProof, 'vk');
+  assert.equal(ok, true, 'expected nested proof to verify with vk');
 }
-const { proof: internalProof } = await RecursiveProgram.verifyInternal(undefined)
+const { proof: internalProof } = await RecursiveProgram.verifyInternal(undefined);
 
 {
-  const ok = await harness.verify(internalProof, "vk");
-  assert.equal(ok, true, "expected internal proof to verify with vk");
+  const ok = await harness.verify(internalProof, 'vk');
+  assert.equal(ok, true, 'expected internal proof to verify with vk');
 }
 
-await harness.finish()
+await harness.finish();
