@@ -13,6 +13,14 @@ jobs:
         with:
           changelog: CHANGELOG.md
 
+  Pkg-pr-new:
+    # Only run this job when the pull request contains the pkg‑pr‑release label.
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'pkg-pr-release')
+    runs-on: ubuntu-latest
+    steps:
+      - name: release-pkg-pr-version
+        uses: ./.github/actions/release-pkg-pr-version
+
   Check-npm-deps:
     name: Check npmDepsHash is correct
     runs-on: ubuntu-latest
