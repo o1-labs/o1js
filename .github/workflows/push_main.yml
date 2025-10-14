@@ -96,7 +96,7 @@ jobs:
       - name: Build o1js
         run: |
           npm ci
-          npm run prepublishOnly
+          npm run prepublish:full
 
       - name: Publish to NPM if version has changed
         id: publish
