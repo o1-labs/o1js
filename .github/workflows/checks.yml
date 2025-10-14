@@ -33,6 +33,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   Prepare:
@@ -174,6 +175,81 @@ jobs:
           credentials_json: '${{ secrets.GCP_O1JS_CI_BUCKET_SERVICE_ACCOUNT_KEY }}'
       - name: Prepare for tests
         run: touch profiling.md
+      - name: Find a prior run that actually has perf baseline
+        id: find-baseline
+        if: >
+          matrix.test_type == 'Performance Regression' && !contains(github.event.pull_request.labels.*.name, 'dump-performance')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_REPO: ${{ inputs.target_repo || github.repository }}
+          WORKFLOW_NAME: ${{ github.workflow }}   # display name, e.g. "Checks"
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          ARTIFACT_NAME: perf-regression-json
+        run: |
+          set -euo pipefail
+
+          echo "Looking for completed prior runs of '$WORKFLOW_NAME' on '$BRANCH' in $TARGET_REPO with artifact '$ARTIFACT_NAME'"
+
+          # List recent COMPLETED runs (don't require 'success' to survive matrix failures)
+          RUN_IDS=$(gh run list \
+            --repo "$TARGET_REPO" \
+            --workflow "$WORKFLOW_NAME" \
+            --json databaseId,headBranch,status,conclusion \
+            --limit 40 \
+            --jq "[.[] | select(.status==\"completed\" and .headBranch==\"$BRANCH\") | .databaseId] | .[]" \
+            || true)
+
+          if [[ -z "${RUN_IDS:-}" ]]; then
+            echo "No completed runs found on this branch in $TARGET_REPO."
+            echo "Seed a baseline once (add 'dump-performance' label) or relax branch to 'main' later."
+            exit 1
+          fi
+
+          # Pick the first run that actually has the artifact and it's not expired
+          FOUND=""
+          for RID in $RUN_IDS; do
+            HAS=$(gh api repos/"$TARGET_REPO"/actions/runs/"$RID"/artifacts \
+              --jq ".artifacts | map(select(.name==\"$ARTIFACT_NAME\" and .expired==false)) | length")
+            echo "Run $RID has $HAS matching artifact(s)."
+            if [[ "$HAS" -gt 0 ]]; then
+              FOUND="$RID"
+              break
+            fi
+          done
+
+          if [[ -z "${FOUND:-}" ]]; then
+            echo "No prior completed run on '$BRANCH' has artifact '$ARTIFACT_NAME'."
+            echo "Seed a baseline once (add 'dump-performance' label) so check mode can download it."
+            exit 1
+          fi
+
+          echo "run_id=$FOUND" >> "$GITHUB_OUTPUT"
+          echo "Found suitable run id: $FOUND"
+      - name: Download baseline artifact from that run
+        if: >
+          matrix.test_type == 'Performance Regression' && !contains(github.event.pull_request.labels.*.name, 'dump-performance')
+        uses: actions/download-artifact@v4
+        with:
+          name: perf-regression-json
+          run-id: ${{ steps.find-baseline.outputs.run_id }}
+          path: tests/perf-regression
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Normalize baseline path for the script
+        if: >
+          matrix.test_type == 'Performance Regression' &&!contains(github.event.pull_request.labels.*.name, 'dump-performance')
+        run: |
+          set -euo pipefail 
+          FILE="$(find tests/perf-regression -name 'perf-regression.json' -print -quit || true)"
+          if [[ -z "${FILE:-}" ]]; then
+            echo "ERROR: perf-regression.json not found inside downloaded artifact."
+            echo "Listing:"
+            ls -R tests/perf-regression || true
+            exit 1
+          fi
+          if [[ "$FILE" != "tests/perf-regression/perf-regression.json" ]]; then
+            mv -f "$FILE" tests/perf-regression/perf-regression.json
+          fi
+          echo "Baseline ready at tests/perf-regression/perf-regression.json"
       - name: Execute tests
         env:
           TEST_TYPE: ${{ matrix.test_type }}
