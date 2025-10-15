@@ -26,7 +26,7 @@ import minimist from 'minimist';
 import path from 'path';
 import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
 
-export { PerfRegressionEntry, Performance };
+export { PerfRegressionEntry, Performance, logPerf };
 
 type MethodsInfo = Record<
   string,
@@ -358,9 +358,11 @@ function checkAgainstBaseline(params: {
 
   // tolerances
   const compileTol = 1.05; // 5%
-  const compileTiny = 1.08; // for near-zero baselines
+  const compileTiny = 1.08; // for near-zero baselines (< 5e-5s)
   const timeTolDefault = 1.1; // 10% for prove/verify
   const timeTolSmall = 1.25; // 25% for very small times (<0.2s)
+
+  const labelPretty = label[0].toUpperCase() + label.slice(1);
 
   if (label === 'compile') {
     const expected = baseline.compileTime;
@@ -369,15 +371,21 @@ function checkAgainstBaseline(params: {
         `No baseline compileTime for "${programName}". Run --dump (compile) to set it.`
       );
     }
+
     const tol = expected < 5e-5 ? compileTiny : compileTol;
     const allowedPct = (tol - 1) * 100;
+    const regressionPct = expected === 0 ? 0 : ((actualTime - expected) / expected) * 100;
+    const failed = actualTime > expected * tol;
 
-    if (actualTime > expected * tol) {
-      const regressionPct = ((actualTime - expected) / expected) * 100;
+    // colorized perf log
+    logPerf(programName, label, expected, actualTime, regressionPct, allowedPct, failed);
+
+    if (failed) {
       throw new Error(
         `Compile regression for ${programName}\n` +
-          `  Actual:   ${actualTime.toFixed(6)}s\n` +
-          `  Regression: +${regressionPct.toFixed(2)}% (allowed +${allowedPct.toFixed(0)}%)`
+          `  Actual:     ${actualTime.toFixed(6)}s\n` +
+          `  Baseline:   ${expected.toFixed(6)}s\n` +
+          `  Regression: +${Number.isFinite(regressionPct) ? regressionPct.toFixed(2) : '∞'}% (allowed +${allowedPct.toFixed(0)}%)`
       );
     }
     return;
@@ -390,6 +398,7 @@ function checkAgainstBaseline(params: {
       `No baseline method entry for ${programName}.${methodName}. Run --dump (${label}) to add it.`
     );
   }
+
   if (baseMethod.digest !== digest) {
     throw new Error(
       `Digest mismatch for ${programName}.${methodName}\n` +
@@ -399,21 +408,65 @@ function checkAgainstBaseline(params: {
   }
 
   const expected = label === 'prove' ? baseMethod.proveTime : baseMethod.verifyTime;
-  const labelPretty = label.charAt(0).toUpperCase();
   if (expected == null) {
     throw new Error(
       `No baseline ${label}Time for ${programName}.${methodName}. Run --dump (${label}) to set it.`
     );
   }
+
   const tol = expected < 0.2 ? timeTolSmall : timeTolDefault;
   const allowedPct = (tol - 1) * 100;
+  const regressionPct = expected === 0 ? 0 : ((actualTime - expected) / expected) * 100;
+  const failed = actualTime > expected * tol;
 
-  if (actualTime > expected * tol) {
-    const regressionPct = ((actualTime - expected) / expected) * 100;
+  logPerf(
+    `${programName}.${methodName}`,
+    label,
+    expected,
+    actualTime,
+    regressionPct,
+    allowedPct,
+    failed
+  );
+
+  if (failed) {
     throw new Error(
       `${labelPretty} regression for ${programName}.${methodName}\n` +
-        `  Actual:   ${actualTime.toFixed(3)}s\n` +
-        `  Regression: +${regressionPct.toFixed(2)}% (allowed +${allowedPct.toFixed(0)}%)`
+        `  Actual:     ${actualTime.toFixed(3)}s\n` +
+        `  Baseline:   ${expected.toFixed(3)}s\n` +
+        `  Regression: +${Number.isFinite(regressionPct) ? regressionPct.toFixed(2) : '∞'}% (allowed +${allowedPct.toFixed(0)}%)`
     );
   }
+}
+
+function logPerf(
+  scope: string,
+  label: string,
+  expected: number,
+  actual: number,
+  regressionPct: number,
+  allowedPct: number,
+  failed: boolean
+) {
+  const COLORS = {
+    reset: '\x1b[0m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    cyan: '\x1b[36m',
+  };
+
+  let color: string;
+  if (failed) color = COLORS.red;
+  else if (regressionPct > 0) color = COLORS.yellow;
+  else color = COLORS.green;
+
+  console.log(
+    `${COLORS.cyan}[Perf][${scope}]${COLORS.reset} ${label}: ` +
+      `baseline=${expected.toFixed(6)}s, actual=${actual.toFixed(6)}s, ` +
+      `${color}regression=${regressionPct >= 0 ? '+' : ''}${
+        Number.isFinite(regressionPct) ? regressionPct.toFixed(2) : '∞'
+      }%${COLORS.reset} ` +
+      `(allowed +${allowedPct.toFixed(0)}%)`
+  );
 }
