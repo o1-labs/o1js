@@ -3,7 +3,7 @@ on:
   pull_request:
   workflow_dispatch:
 env:
-  OCAML_VERSION: 4.14.0
+  OCAML_VERSION: 4.14.2
 jobs:
   build:
     name: '[${{ matrix.os }}] Build (Node.JS ${{ matrix.node_version }})'
@@ -11,7 +11,7 @@ jobs:
       matrix:
         os: [
             ubuntu-22.04,
-            macos-latest,
+            macos-15,
           ]
         node_version: [22, 24]
       fail-fast: false
@@ -105,13 +105,6 @@ jobs:
         with:
           ocaml-compiler: ${{ env.OCAML_VERSION }}
 
-      - name: Pin opam dependencies
-        run: |
-          set -Eeuxo pipefail
-          opam repository set-url default https://github.com/ocaml/opam-repository.git\#08d8c16c16dc6b23a5278b06dff0ac6c7a217356
-          opam repository add --yes --all --set-default o1-labs https://github.com/o1-labs/opam-repository.git
-          opam pin add async_ssl https://github.com/o1-labs/async_ssl.git\#v0.14-o1labs
-
       - name: Cache opam switch
         id: cache-opam
         uses: actions/cache@v4
@@ -125,7 +118,9 @@ jobs:
           CFLAGS: -I/opt/homebrew/include/
         run: |
           set -Eeuxo pipefail
-
+          opam repository set-url default https://github.com/ocaml/opam-repository.git\#08d8c16c16dc6b23a5278b06dff0ac6c7a217356
+          opam repository add --yes --all --set-default o1-labs https://github.com/o1-labs/opam-repository.git
+          opam pin add --no-action async_ssl https://github.com/o1-labs/async_ssl.git\#v0.14-o1labs
           pushd src/mina
           opam switch import --assume-depexts opam.export
 
