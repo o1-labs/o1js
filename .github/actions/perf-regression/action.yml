@@ -1,0 +1,199 @@
+name: Perf Regression (dump/check)
+description: Dump or check perf baseline; auto mode via label; find/download prior baseline; run tests; upload on dump.
+
+inputs:
+  mode:
+    description: "'dump' | 'check' | 'auto' (auto uses live PR labels)"
+    required: false
+    default: auto
+  label_name:
+    description: "Label that triggers dump when present (auto mode)"
+    required: false
+    default: dump-performance
+
+  artifact_name:
+    description: "Artifact name used to store the baseline"
+    required: false
+    default: perf-regression-json
+  baseline_path:
+    description: "Path for the baseline JSON in the workspace"
+    required: false
+    default: tests/perf-regression/perf-regression.json
+
+  # NOTE: defaults here must be literals; leave empty and resolve at runtime
+  workflow_name:
+    description: "Workflow display name to search runs for"
+    required: false
+    default: ""
+  branch:
+    description: "Branch to search prior runs on"
+    required: false
+    default: ""
+  target_repo:
+    description: "owner/repo to search in"
+    required: false
+    default: ""
+
+  run_command:
+    description: "Shell command to run perf tests (reads PERF_MODE env)"
+    required: false
+    default: sh run-ci-tests.sh
+
+runs:
+  using: "composite"
+  steps:
+    - name: Echo inputs
+      shell: bash
+      run: |
+        echo "mode=${{ inputs.mode }}"
+        echo "label_name=${{ inputs.label_name }}"
+        echo "artifact_name=${{ inputs.artifact_name }}"
+        echo "baseline_path=${{ inputs.baseline_path }}"
+        echo "workflow_name=${{ inputs.workflow_name }}"
+        echo "branch=${{ inputs.branch }}"
+        echo "target_repo=${{ inputs.target_repo }}"
+        echo "run_command=${{ inputs.run_command }}"
+
+    # Resolve workflow/repo/branch defaults using runtime contexts (allowed in steps)
+    - name: Resolve defaults
+      shell: bash
+      env:
+        IN_WORKFLOW: ${{ inputs.workflow_name }}
+        IN_BRANCH: ${{ inputs.branch }}
+        IN_REPO: ${{ inputs.target_repo }}
+        WF_CTX: ${{ github.workflow }}
+        HEAD_REF: ${{ github.head_ref }}
+        REF_NAME: ${{ github.ref_name }}
+        REPO_CTX: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+        WF_NAME="${IN_WORKFLOW:-}"
+        [[ -z "$WF_NAME" ]] && WF_NAME="${WF_CTX}"
+
+        BRANCH="${IN_BRANCH:-}"
+        if [[ -z "$BRANCH" ]]; then
+          if [[ -n "${HEAD_REF}" ]]; then BRANCH="${HEAD_REF}"; else BRANCH="${REF_NAME}"; fi
+        fi
+
+        REPO="${IN_REPO:-}"
+        [[ -z "$REPO" ]] && REPO="${REPO_CTX}"
+
+        echo "WF_NAME=$WF_NAME" >> "$GITHUB_ENV"
+        echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
+        echo "TARGET_REPO=$REPO" >> "$GITHUB_ENV"
+        echo "Resolved: WF_NAME=$WF_NAME BRANCH=$BRANCH TARGET_REPO=$REPO"
+
+    - name: Resolve PERF_MODE
+      id: resolve-mode
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        LABEL_NAME: ${{ inputs.label_name }}
+        GH_TOKEN: ${{ github.token }}
+        EVENT_NAME: ${{ github.event_name }}
+        OWNER_REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        set -euo pipefail
+        MODE="${MODE:-auto}"
+        if [[ "$MODE" == "dump" ]]; then
+          PERF_MODE="--dump"
+        elif [[ "$MODE" == "check" ]]; then
+          PERF_MODE="--check"
+        else
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            LABELS=$(gh api "repos/$OWNER_REPO/issues/$PR_NUMBER/labels" --jq '.[].name' | tr '\n' ' ')
+            if echo "$LABELS" | grep -q -w "$LABEL_NAME"; then
+              PERF_MODE="--dump"
+            else
+              PERF_MODE="--check"
+            fi
+          else
+            PERF_MODE="--check"
+          fi
+        fi
+        echo "PERF_MODE=$PERF_MODE" | tee -a "$GITHUB_ENV"
+        echo "perf_mode=$PERF_MODE" >> "$GITHUB_OUTPUT"
+
+    # Only in check mode: find previous run with artifact and download it
+    - name: Find prior run with baseline
+      id: find-baseline
+      if: ${{ steps.resolve-mode.outputs.perf_mode == '--check' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TARGET_REPO: ${{ env.TARGET_REPO }}
+        WORKFLOW_NAME: ${{ env.WF_NAME }}
+        BRANCH: ${{ env.BRANCH }}
+        ARTIFACT_NAME: ${{ inputs.artifact_name }}
+      run: |
+        set -euo pipefail
+        echo "Searching $TARGET_REPO / '$WORKFLOW_NAME' / branch '$BRANCH' for artifact '$ARTIFACT_NAME'"
+        RUN_IDS=$(gh run list \
+          --repo "$TARGET_REPO" \
+          --workflow "$WORKFLOW_NAME" \
+          --json databaseId,headBranch,status,conclusion \
+          --limit 50 \
+          --jq "[.[] | select(.status==\"completed\" and .headBranch==\"$BRANCH\") | .databaseId] | .[]" \
+          || true)
+
+        if [[ -z "${RUN_IDS:-}" ]]; then
+          echo "No completed runs found on branch '$BRANCH' in $TARGET_REPO."
+          exit 1
+        fi
+
+        FOUND=""
+        for RID in $RUN_IDS; do
+          HAS=$(gh api "repos/$TARGET_REPO/actions/runs/$RID/artifacts" \
+            --jq ".artifacts | map(select(.name==\"$ARTIFACT_NAME\" and .expired==false)) | length")
+          echo "Run $RID has $HAS matching artifact(s)"
+          if [[ "$HAS" -gt 0 ]]; then FOUND="$RID"; break; fi
+        done
+
+        if [[ -z "${FOUND:-}" ]]; then
+          echo "No prior completed run on '$BRANCH' has artifact '$ARTIFACT_NAME'. Seed a baseline once."
+          exit 1
+        fi
+
+        echo "run_id=$FOUND" >> "$GITHUB_OUTPUT"
+
+    - name: Download baseline
+      if: ${{ steps.resolve-mode.outputs.perf_mode == '--check' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        run-id: ${{ steps.find-baseline.outputs.run_id }}
+        path: tests/perf-regression
+        github-token: ${{ github.token }}
+
+    - name: Normalize baseline path
+      if: ${{ steps.resolve-mode.outputs.perf_mode == '--check' }}
+      shell: bash
+      env:
+        DEST: ${{ inputs.baseline_path }}
+      run: |
+        set -euo pipefail
+        FILE="$(find tests/perf-regression -name 'perf-regression.json' -print -quit || true)"
+        if [[ -z "${FILE:-}" ]]; then
+          echo "ERROR: perf-regression.json not found inside downloaded artifact."
+          ls -R tests/perf-regression || true
+          exit 1
+        fi
+        mkdir -p "$(dirname "$DEST")"
+        if [[ "$FILE" != "$DEST" ]]; then mv -f "$FILE" "$DEST"; fi
+        echo "Baseline ready at $DEST"
+
+    - name: Run perf tests
+      shell: bash
+      env:
+        PERF_MODE: ${{ env.PERF_MODE }}
+      run: ${{ inputs.run_command }}
+
+    - name: Upload baseline (dump mode only)
+      if: ${{ steps.resolve-mode.outputs.perf_mode == '--dump' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.baseline_path }}
+        if-no-files-found: error
+        retention-days: 30
