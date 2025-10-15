@@ -5,6 +5,14 @@ export { bindingsNapi };
 function bindingsNapi(napi: any) {
   return {
     fp: {
+      lookupTablesToRust([, ...tables]: any) {
+        // TODO: this needs to be tested with actual lookup tables
+        return tables;
+      },
+      runtimeTableCfgsToRust([, ...cfgs]: any) {
+        // TOODO: this needs to be tested with actual runtime table cfgs
+        return cfgs;
+      },
       vectorToRust: (fields: any) => {
         // console.log('values going in ', fields);
         let res = fieldsToRustFlat(fields);
@@ -14,6 +22,14 @@ function bindingsNapi(napi: any) {
       vectorFromRust: fieldsFromRustFlat,
     },
     fq: {
+      lookupTablesToRust([, ...tables]: any) {
+        // TODO: this needs to be tested with actual lookup tables
+        return tables;
+      },
+      runtimeTableCfgsToRust([, ...cfgs]: any) {
+        // TOODO: this needs to be tested with actual runtime table cfgs
+        return cfgs;
+      },
       vectorToRust: (fields: any) => {
         // console.log('values going in ', fields);
         let res = fieldsToRustFlat(fields);
