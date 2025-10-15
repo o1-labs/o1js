@@ -180,8 +180,7 @@ jobs:
         env:
           TEST_TYPE: ${{ matrix.test_type }}
         run: sh run-ci-tests.sh
-
-      - name: Perf regression (dump/check)
+      - name: Performance Regression (dump or check)
         if: matrix.test_type == 'Performance Regression'
         uses: ./.github/actions/perf-regression
         env:
