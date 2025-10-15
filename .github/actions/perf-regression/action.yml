@@ -1,9 +1,9 @@
 name: Performance Regression (Dump or Check)
-description: Runs performance regression tests in dump or check mode. Auto mode determines the mode based on the PR label.
+description: Runs performance regression tests in dump or check mode. Auto mode decides via PR label on PRs, and via merged PR labels on push to main.
 
 inputs:
   mode:
-    description: "'dump' | 'check' | 'auto' (auto uses the PR label)"
+    description: "'dump' | 'check' | 'auto' (auto uses labels)"
     required: false
     default: auto
   label_name:
@@ -21,15 +21,15 @@ inputs:
     default: tests/perf-regression/perf-regression.json
 
   workflow_name:
-    description: "Workflow name to search for prior runs"
+    description: "Workflow name to search when locating prior runs (defaults to current)"
     required: false
     default: ""
   branch:
-    description: "Branch to search prior runs on"
+    description: "Branch to search prior runs on (defaults to main)"
     required: false
-    default: ""
+    default: "main"
   target_repo:
-    description: "owner/repo to search in"
+    description: "owner/repo to search in (defaults to current)"
     required: false
     default: ""
 
@@ -48,22 +48,20 @@ runs:
         IN_BRANCH: ${{ inputs.branch }}
         IN_REPO: ${{ inputs.target_repo }}
         WF_CTX: ${{ github.workflow }}
-        HEAD_REF: ${{ github.head_ref }}
-        REF_NAME: ${{ github.ref_name }}
         REPO_CTX: ${{ github.repository }}
       run: |
         set -euo pipefail
         WF_NAME="${IN_WORKFLOW:-$WF_CTX}"
-        BRANCH="${IN_BRANCH:-${HEAD_REF:-$REF_NAME}}"
+        BRANCH="${IN_BRANCH}"   # default is "main" unless caller overrides
         REPO="${IN_REPO:-$REPO_CTX}"
 
         echo "WF_NAME=$WF_NAME" >> "$GITHUB_ENV"
         echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
         echo "TARGET_REPO=$REPO" >> "$GITHUB_ENV"
-        echo "Resolved context:"
-        echo "  Workflow: $WF_NAME"
-        echo "  Branch: $BRANCH"
-        echo "  Repository: $REPO"
+
+        echo "Using workflow: $WF_NAME"
+        echo "Searching performance baselines on branch: $BRANCH"
+        echo "Target repository: $REPO"
 
     - name: Determine dump or check mode
       id: resolve-mode
@@ -75,28 +73,52 @@ runs:
         EVENT_NAME: ${{ github.event_name }}
         OWNER_REPO: ${{ github.repository }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+        GIT_REF: ${{ github.ref }}
+        GIT_SHA: ${{ github.sha }}
       run: |
         set -euo pipefail
+
+        decide_from_pr_labels () {
+          local repo="$1" pr="$2" label="$3"
+          local labels
+          labels=$(gh api "repos/$repo/issues/$pr/labels" --jq '.[].name' | tr '\n' ' ')
+          if echo "$labels" | grep -q -w "$label"; then
+            echo "--dump"
+          else
+            echo "--check"
+          fi
+        }
+
+        decide_from_merged_pr_labels () {
+          local repo="$1" sha="$2" label="$3"
+          local prs should_dump=0
+          prs=$(gh api "repos/$repo/commits/$sha/pulls" --jq '.[].number' || true)
+          for n in $prs; do
+            local ls
+            ls=$(gh api "repos/$repo/issues/$n/labels" --jq '.[].name' | tr '\n' ' ')
+            if echo "$ls" | grep -q -w "$label"; then
+              should_dump=1; break
+            fi
+          done
+          if [[ $should_dump -eq 1 ]]; then echo "--dump"; else echo "--check"; fi
+        }
+
         MODE="${MODE:-auto}"
+        REASON=""
+
         if [[ "$MODE" == "dump" ]]; then
-          PERF_MODE="--dump"
-          REASON="explicit input"
+          PERF_MODE="--dump"; REASON="explicit input"
         elif [[ "$MODE" == "check" ]]; then
-          PERF_MODE="--check"
-          REASON="explicit input"
+          PERF_MODE="--check"; REASON="explicit input"
         else
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            LABELS=$(gh api "repos/$OWNER_REPO/issues/$PR_NUMBER/labels" --jq '.[].name' | tr '\n' ' ')
-            if echo "$LABELS" | grep -q -w "$LABEL_NAME"; then
-              PERF_MODE="--dump"
-              REASON="label $LABEL_NAME present"
-            else
-              PERF_MODE="--check"
-              REASON="label $LABEL_NAME absent"
-            fi
+            PERF_MODE="$(decide_from_pr_labels "$OWNER_REPO" "$PR_NUMBER" "$LABEL_NAME")"
+            REASON="PR label check"
+          elif [[ "$EVENT_NAME" == "push" && "$GIT_REF" == "refs/heads/main" ]]; then
+            PERF_MODE="$(decide_from_merged_pr_labels "$OWNER_REPO" "$GIT_SHA" "$LABEL_NAME")"
+            REASON="merged PR label check"
           else
-            PERF_MODE="--check"
-            REASON="non-PR event"
+            PERF_MODE="--check"; REASON="default for non-PR, non-main push"
           fi
         fi
 
@@ -104,7 +126,7 @@ runs:
         echo "perf_mode=$PERF_MODE" >> "$GITHUB_OUTPUT"
         echo "Mode: $PERF_MODE ($REASON)"
 
-    - name: Find prior run with performance baseline artifact
+    - name: Find prior run with performance baseline artifact (from target branch)
       id: find-baseline
       if: ${{ steps.resolve-mode.outputs.perf_mode == '--check' }}
       shell: bash
@@ -116,7 +138,8 @@ runs:
         ARTIFACT_NAME: ${{ inputs.artifact_name }}
       run: |
         set -euo pipefail
-        echo "Searching $TARGET_REPO (workflow: $WORKFLOW_NAME, branch: $BRANCH) for artifact $ARTIFACT_NAME..."
+        echo "Searching $TARGET_REPO (workflow: $WORKFLOW_NAME, branch: $BRANCH) for artifact $ARTIFACT_NAME"
+
         RUN_IDS=$(gh run list \
           --repo "$TARGET_REPO" \
           --workflow "$WORKFLOW_NAME" \
@@ -134,17 +157,17 @@ runs:
         for RID in $RUN_IDS; do
           HAS=$(gh api "repos/$TARGET_REPO/actions/runs/$RID/artifacts" \
             --jq ".artifacts | map(select(.name==\"$ARTIFACT_NAME\" and .expired==false)) | length")
-          echo "Run $RID → $HAS artifact(s)"
+          echo "Run $RID has $HAS matching artifact(s)"
           if [[ "$HAS" -gt 0 ]]; then FOUND="$RID"; break; fi
         done
 
         if [[ -z "${FOUND:-}" ]]; then
-          echo "No suitable run with artifact $ARTIFACT_NAME found."
+          echo "No suitable run with artifact $ARTIFACT_NAME found on $BRANCH."
           exit 1
         fi
 
         echo "run_id=$FOUND" >> "$GITHUB_OUTPUT"
-        echo "Found performance baseline in run: $FOUND"
+        echo "Using performance baseline from run: $FOUND"
 
     - name: Download performance baseline artifact
       if: ${{ steps.resolve-mode.outputs.perf_mode == '--check' }}
@@ -164,7 +187,7 @@ runs:
         set -euo pipefail
         FILE="$(find tests/perf-regression -name 'perf-regression.json' -print -quit || true)"
         if [[ -z "${FILE:-}" ]]; then
-          echo "ERROR: perf-regression.json not found."
+          echo "ERROR: perf-regression.json not found in downloaded artifact."
           ls -R tests/perf-regression || true
           exit 1
         fi

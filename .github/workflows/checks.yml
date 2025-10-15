@@ -191,7 +191,7 @@ jobs:
           artifact_name: perf-regression-json
           baseline_path: tests/perf-regression/perf-regression.json
           workflow_name: ${{ github.workflow }}
-          branch: ${{ github.head_ref || github.ref_name }}
+          branch: main               
           target_repo: ${{ inputs.target_repo || github.repository }}
           run_command: sh run-ci-tests.sh
       - name: Add to job summary
