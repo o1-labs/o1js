@@ -45,7 +45,7 @@
     "snarky-run": "src/build/run.js"
   },
   "engines": {
-    "node": ">=18.14.0"
+    "node": ">=22.19.5"
   },
   "scripts": {
     "build:dev": "./scripts/build/build-dev.sh",
@@ -63,8 +63,8 @@
     "prepublish:full": "./scripts/prepublish/prepublish-full.sh",
     "regression:dump-vks": "./scripts/tests/dump-vks.sh",
     "regression:check-vks": "./scripts/tests/check-vks.sh",
-    "format": "prettier --write --ignore-unknown",
-    "format:check": "prettier --check --ignore-unknown",
+    "format": "prettier --write --ignore-unknown --no-error-on-unmatched-pattern",
+    "format:check": "prettier --check --ignore-unknown --no-error-on-unmatched-pattern",
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
     "format:md:check": "prettier --config .prettierrc.md.cjs --check '**/*.md'",
     "clean": "./scripts/clean/clean.sh",

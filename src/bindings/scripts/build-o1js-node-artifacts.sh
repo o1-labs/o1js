@@ -56,7 +56,7 @@ run_cmd dune b "${KIMCHI_BINDINGS}"/js/node_js
 ok "Kimchi bindings built"
 
 info "Building JSOO artifacts for o1js"
-run_cmd dune b "${DUNE_PATH}"/o1js_node.bc.js
+run_cmd dune b --debug-dependency-path "${DUNE_PATH}"/o1js_node.bc.js
 ok "JSOO artifacts built"
 
 info "Checking for updated source map..."

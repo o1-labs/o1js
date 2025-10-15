@@ -63,7 +63,7 @@ jobs:
   Lint-and-Format:
     strategy:
       matrix:
-        node: [20]
+        node: [22]
     if: github.event.pull_request.labels.*.name != 'skip-lint'
     runs-on: ubuntu-latest
 
@@ -277,8 +277,7 @@ jobs:
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          # TODO matrixing this requires changing branch protection rules
+          node-version: 22
 
       - name: Restore npm cache
         uses: actions/cache@v4
