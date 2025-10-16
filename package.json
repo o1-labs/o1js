@@ -70,6 +70,7 @@
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
     "format:md:check": "prettier --config .prettierrc.md.cjs --check '**/*.md'",
     "clean": "./scripts/clean/clean.sh",
+    "clean:artifacts": "./scripts/clean/clean-artifacts.sh",
     "clean:all": "./scripts/clean/clean-all.sh",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
