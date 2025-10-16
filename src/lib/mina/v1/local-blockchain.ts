@@ -1,7 +1,8 @@
 import { SimpleLedger } from './transaction-logic/ledger.js';
 import { Ml } from '../../ml/conversion.js';
 import { transactionCommitments } from '../../../mina-signer/src/sign-zkapp-command.js';
-import { Ledger, Test, initializeBindings } from '../../../bindings.js';
+import { Test, initializeBindings } from '../../../bindings.js';
+import { Ledger } from './local-ledger.js';
 import { Field } from '../../provable/wrapped.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
@@ -176,7 +177,7 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
         let status: PendingTransactionStatus = 'pending';
         const errors: string[] = [];
         try {
-          ledger.applyJsonTransaction(
+          await ledger.applyJsonTransaction(
             JSON.stringify(zkappCommandJson),
             defaultNetworkConstants.accountCreationFee.toString(),
             JSON.stringify(networkState)
@@ -308,8 +309,8 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
         });
       });
     },
-    applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(
+    async applyJsonTransaction(json: string) {
+      return await ledger.applyJsonTransaction(
         json,
         defaultNetworkConstants.accountCreationFee.toString(),
         JSON.stringify(networkState)
