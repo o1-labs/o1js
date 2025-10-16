@@ -42,7 +42,7 @@ jobs:
             libsodium \
             lmdb \
             pkgconf \
-            postgresql@14 \
+            postgresql@15 \
             wasm-pack \
             wasm-tools \
             wabt \
@@ -53,6 +53,7 @@ jobs:
             gpatch \
             jemalloc \
             libomp
+          brew link postgresql@15
 
       - name: apt, apt
         if: runner.os == 'Linux'
