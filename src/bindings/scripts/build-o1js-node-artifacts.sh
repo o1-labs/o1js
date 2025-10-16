@@ -68,12 +68,6 @@ else
   info "No new source map created"
 fi
 
-info "Formatting generated transaction layout definitions..."
-run_cmd npx prettier --write \
-  src/bindings/crypto/constants.ts \
-  src/bindings/mina-transaction/gen/**/*.ts
-ok "TypeScript definitions formatted"
-
 info "Cleaning up Mina config files..."
 run_cmd rm -rf "src/config"
 run_cmd rm "src/config.mlh"
