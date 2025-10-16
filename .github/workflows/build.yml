@@ -119,11 +119,11 @@ jobs:
           set -Eeuxo pipefail
 
           if [[ "${{ runner.os }}" == "macOS" ]]; then
-            CFLAGS="-I/opt/homebrew/include/"
-            CPPFLAGS="-I/opt/homebrew/include/"
-            C_INCLUDE_PATH="-I/opt/homebrew/include/"
-            LDFLAGS="-L/opt/homebrew/lib/"
-            PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig"
+            export CFLAGS="-I/opt/homebrew/include/"
+            export CPPFLAGS="-I/opt/homebrew/include/"
+            export C_INCLUDE_PATH="-I/opt/homebrew/include/"
+            export LDFLAGS="-L/opt/homebrew/lib/"
+            export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig"
 
             env
           fi
