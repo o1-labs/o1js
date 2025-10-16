@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Also remove _build/default/src/bindings/ocaml/jsoo_exports
-
 # shared libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/ux.sh"
@@ -11,10 +9,12 @@ source "$SCRIPT_DIR/../lib/ux.sh"
 ROOT_DIR="$(get_repo_root)"
 DIST_DIR="$ROOT_DIR/dist"
 COMPILED_DIR="$ROOT_DIR/src/bindings/compiled"
-JSOO_DIR="_build/default/src/bindings/ocaml/jsoo_exports"
-PROOF_SYSTEMS_DIR="_build/default/src/mina/src/lib/crypto/proof-systems"
-CRYPTO_CONSTANTS="$ROOT_DIR/src/bindings/crypto/constants.ts"
-GEN_CONST_DIR="$ROOT_DIR/src/bindings/mina-transaction/gen"
+JSOO_DIR="$ROOT_DIR/_build/default/src/bindings/ocaml/jsoo_exports"
+KIMCHI_BINDINGS_NODE="$ROOT_DIR/_build/default/src/mina/src/lib/crypto/kimchi_bindings/js/node_js"
+KIMCHI_BINDINGS_WEB="$ROOT_DIR/_build/default/src/mina/src/lib/crypto/kimchi_bindings/js/web"
+PROOF_SYSTEMS_DIR="$ROOT_DIR/_build/default/src/mina/src/lib/crypto/proof-systems"
+CRYPTO_CONSTANTS="$ROOT_DIR/_build/default/src/bindings/crypto/constants.ts"
+MINA_TRANSACTION_GEN="$ROOT_DIR/_build/default/src/bindings/mina-transaction/gen"
 
 # setup
 setup_script "${BASH_SOURCE[0]}" "Clean build artifacts"
@@ -31,7 +31,7 @@ else
   warn "dist directory not found, skipping"
 fi
 
-bold "Cleaning bindings compiled OCaml/Rust/WebAssembly artifacts"
+bold "Cleaning compiled bindings"
 if [ -d "$COMPILED_DIR" ]; then
   info "Removing compiled artifact files from $COMPILED_DIR..."
   run_cmd rimraf "$COMPILED_DIR"
@@ -49,6 +49,24 @@ else
   warn "Compiled directory not found, skipping"
 fi
 
+bold "Cleaning compiled Kimchi bindings node artifacts"
+if [ -d "$KIMCHI_BINDINGS_NODE" ]; then
+  info "Removing compiled artifact files from $KIMCHI_BINDINGS_NODE..."
+  run_cmd rimraf "$KIMCHI_BINDINGS_NODE"
+  ok "Compiled Kimchi bindings node artifact files removed"
+else
+  warn "Compiled directory not found, skipping"
+fi
+
+bold "Cleaning compiled Kimchi bindings web artifacts"
+if [ -d "$KIMCHI_BINDINGS_WEB" ]; then
+  info "Removing compiled artifact files from $KIMCHI_BINDINGS_WEB..."
+  run_cmd rimraf "$KIMCHI_BINDINGS_WEB"
+  ok "Compiled Kimchi bindings web artifact files removed"
+else
+  warn "Compiled directory not found, skipping"
+fi
+
 bold "Cleaning compiled Mina proof systems artifacts"
 if [ -d "$PROOF_SYSTEMS_DIR" ]; then
   info "Removing compiled artifact files from $PROOF_SYSTEMS_DIR..."
@@ -58,22 +76,22 @@ else
   warn "Compiled directory not found, skipping"
 fi
 
-bold "Cleaning bindings generated crypto constants"
+bold "Cleaning compiled bindings crypto constants"
 if [ -f "$CRYPTO_CONSTANTS" ]; then
   info "Removing $CRYPTO_CONSTANTS"
   run_cmd rimraf "$CRYPTO_CONSTANTS"
-  ok "bindings/crypto/constants.ts removed"
+  ok "_build/default/src/bindings/crypto/constants.ts removed"
 else
-  warn "bindings/crypto/constants.ts not found, skipping"
+  warn "_build/default/src/bindings/crypto/constants.ts not found, skipping"
 fi
 
-bold "Cleaning Mina auto-generated transaction definitions"
-if [ -d "$GEN_CONST_DIR" ]; then
-  info "Removing generated files in $GEN_CONST_DIR"
-  find "$GEN_CONST_DIR" -type f \( -name '*.ts' -o -name '*.js' \) -exec rm -f {} \;
-  ok "Mina auto-generated transaction definitions removed"
+bold "Cleaning compiled Mina transaction layout TS definitions"
+if [ -d "$MINA_TRANSACTION_GEN" ]; then
+  info "Removing compiled files in $MINA_TRANSACTION_GEN"
+  run_cmd rimraf "$MINA_TRANSACTION_GEN";
+  ok "Mina transaction layout TS definitions removed"
 else
-  warn "bindings/mina-transaction/gen directory not found, skipping"
+  warn "Compiled directory not found, skipping"
 fi
 
 success "Build artifacts cleanup complete"
