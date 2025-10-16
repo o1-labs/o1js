@@ -1,4 +1,5 @@
 import { Bytes, Field, Hash, Poseidon, UInt8, ZkProgram, verify } from 'o1js';
+import { Performance } from '../../lib/testing/perf-regression.js';
 
 const SmallProgram = ZkProgram({
   name: 'small-program',
@@ -52,24 +53,27 @@ console.log('small program rows: ', csSmall.poseidonHash.rows);
 const csBig = await BigProgram.analyzeMethods();
 console.log('big program rows: ', csBig.combinedHash.rows, '\n');
 
-console.time('compile small');
+const perfSmall = Performance.create(SmallProgram.name, csSmall);
+const perfBig = Performance.create(BigProgram.name, csBig);
+
+perfSmall.start('compile');
 await SmallProgram.compile();
-console.timeEnd('compile small');
+perfSmall.end();
 
-console.time('compile big');
+perfBig.start('compile');
 const { verificationKey: verificationKeyBig } = await BigProgram.compile();
-console.timeEnd('compile big');
+perfBig.end();
 
-console.time('prove small');
+perfSmall.start('prove', 'poseidonHash');
 const proofSmall = await SmallProgram.poseidonHash(Field.random());
-console.timeEnd('prove small');
+perfSmall.end();
 
-console.time('prove big');
+perfBig.start('prove', 'combinedHash');
 const { proof: proofBig } = await BigProgram.combinedHash(proofSmall.proof);
-console.timeEnd('prove big');
+perfBig.end();
 
-console.time('verify big');
+perfBig.start('verify', 'combinedHash');
 await verify(proofBig, verificationKeyBig);
-console.timeEnd('verify big');
+perfBig.end();
 
 console.log('Final Digest: ', proofBig.publicOutput.toHex());

@@ -20,6 +20,11 @@ This project adheres to
 
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
+### Internal
+
+- Added a new internal framework for testing compilation, proving, and
+  verification time regression. https://github.com/o1-labs/o1js/pull/2451
+
 ### Added
 
 - Internal o1js and protocol constants, hashes and prefixes are now exported via
