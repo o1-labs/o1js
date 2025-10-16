@@ -4,7 +4,16 @@
   // language - current active spelling language
   "language": "en",
   // words - list of words to be always considered correct
-  "words": ["tarides", "nixbuild", "stefanzweifel", "ACMRT", "Oxlint"],
+  "words": [
+    "ACMRT",
+    "arkworks",
+    "caml",
+    "coeffs",
+    "Napi",
+    "nixbuild",
+    "Oxlint",
+    "tarides"
+  ],
   // flagWords - list of words to be always considered incorrect
   // This is useful for offensive words and common spelling errors.
   // For example "hte" should be "the"
