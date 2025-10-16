@@ -74,6 +74,8 @@ jobs:
   Pkg-pr-new:
     runs-on: [ubuntu-latest]
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: release-pkg-pr-version
         uses: ./.github/actions/release-pkg-pr-version
 
@@ -129,4 +131,3 @@ jobs:
           generateReleaseNotes: true
           name: Release ${{ steps.publish.outputs.version }}
           skipIfReleaseExists: true
-
