@@ -1,5 +1,6 @@
-import { Secp256k1, Ecdsa, keccakAndEcdsa, ecdsa, ecdsaEthers, Bytes32 } from './ecdsa.js';
 import assert from 'assert';
+import { Performance } from '../../../lib/testing/perf-regression.js';
+import { Bytes32, Ecdsa, Secp256k1, ecdsa, ecdsaEthers, keccakAndEcdsa } from './ecdsa.js';
 
 // create an example ecdsa signature
 
@@ -24,16 +25,22 @@ console.log(cs.verifyEcdsa.summary());
 
 // compile and prove
 
-console.time('keccak + ecdsa verify (compile)');
+const perfKeccakEcdsa = Performance.create(keccakAndEcdsa.name, cs);
+perfKeccakEcdsa.start('compile');
 await keccakAndEcdsa.compile();
-console.timeEnd('keccak + ecdsa verify (compile)');
+perfKeccakEcdsa.end();
 
-console.time('keccak + ecdsa verify (prove)');
+perfKeccakEcdsa.start('prove', 'verifyEcdsa');
 let { proof } = await keccakAndEcdsa.verifyEcdsa(message, signature, publicKey);
-console.timeEnd('keccak + ecdsa verify (prove)');
+perfKeccakEcdsa.end();
 
 proof.publicOutput.assertTrue('signature verifies');
-assert(await keccakAndEcdsa.verify(proof), 'proof verifies');
+
+perfKeccakEcdsa.start('verify', 'verifyEcdsa');
+const isValid = await keccakAndEcdsa.verify(proof);
+perfKeccakEcdsa.end();
+
+assert(isValid, 'proof verifies');
 
 // Hardcoded ethers.js signature and inputs for verification in o1js
 
@@ -62,13 +69,19 @@ console.timeEnd('ethers verify only (build constraint system)');
 console.log(csEcdsaEthers.verifyEthers.summary());
 
 // compile and prove
-console.time('ecdsa / ethers verify (compile)');
+const perfEcdsaEthers = Performance.create(ecdsaEthers.name, csEcdsaEthers);
+perfEcdsaEthers.start('compile');
 await ecdsaEthers.compile();
-console.timeEnd('ecdsa / ethers verify (compile)');
+perfEcdsaEthers.end();
 
-console.time('ecdsa / ethers verify (prove)');
+perfEcdsaEthers.start('prove', 'verifyEthers');
 let { proof: proofE } = await ecdsaEthers.verifyEthers(msgBytes, signatureE, publicKeyE);
-console.timeEnd('ecdsa / ethers verify (prove)');
+perfEcdsaEthers.end();
 
 proofE.publicOutput.assertTrue('signature verifies');
-assert(await ecdsaEthers.verify(proofE), 'proof verifies');
+
+perfEcdsaEthers.start('verify', 'verifyEthers');
+const isValidE = await ecdsaEthers.verify(proofE);
+perfEcdsaEthers.end();
+
+assert(isValidE, 'proof verifies');

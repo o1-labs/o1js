@@ -42,7 +42,7 @@ function updateApplyState<T>(
   }
 }
 
-// TODO: make this function checked-friednly, and move this function into the Int64 type directly
+// TODO: make this function checked-friendly, and move this function into the Int64 type directly
 function tryAddInt64(a: Int64, b: Int64): Int64 | null {
   if (a.sgn.equals(b.sgn).toBoolean() && a.magnitude.lessThan(b.magnitude).toBoolean()) return null;
 

@@ -1,10 +1,10 @@
 import esbuild from 'esbuild';
 import fse, { move } from 'fs-extra';
-import { readFile, writeFile, unlink } from 'node:fs/promises';
+import glob from 'glob';
+import { exec } from 'node:child_process';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { exec } from 'node:child_process';
-import glob from 'glob';
 
 export { buildWeb };
 
@@ -177,36 +177,6 @@ function srcStringPlugin() {
         return {
           contents: await readFile(path, 'utf8'),
           loader: 'text',
-        };
-      });
-    },
-  };
-}
-
-function deferExecutionPlugin() {
-  return {
-    name: 'defer-execution-plugin',
-    setup(build) {
-      build.onResolve({ filter: /^defer:/ }, async ({ path: importPath, resolveDir }) => {
-        let absPath = path.resolve(resolveDir, importPath.replace('defer:', ''));
-        return {
-          path: absPath,
-          namespace: 'defer-execution',
-        };
-      });
-
-      build.onLoad({ filter: /.*/, namespace: 'defer-execution' }, async ({ path }) => {
-        let code = await readFile(path, 'utf8');
-        // replace direct eval, because esbuild refuses to bundle it
-        // code = code.replace(/eval\(/g, '(0, eval)(');
-        code = code.replace(/function\(\)\s*\{\s*return this\s*\}\(\)/g, 'window');
-        code = code.replace(/function\(\)\s*\{\s*return this;\s*\}\(\)/g, 'window');
-        let deferedCode = `
-          let require = () => {};
-          export default () => {\n${code}\n};`;
-        return {
-          contents: deferedCode,
-          loader: 'js',
         };
       });
     },

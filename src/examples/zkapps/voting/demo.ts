@@ -182,7 +182,7 @@ console.log('2 events?? ', (await contracts.candidateContract.reducer.fetchActio
 
 /*
   we only emitted sequence events,
-  so the merkel roots of both membership contract should still be the initial ones
+  so the merkle roots of both membership contract should still be the initial ones
   because the committed state should only change after publish has been invoked
   */
 

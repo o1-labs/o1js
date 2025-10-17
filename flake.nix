@@ -237,6 +237,7 @@
               root = ./.;
               fileset = unions [
                 ./src/mina
+                ./scripts
                 ./src/bindings/scripts
                 ./src/bindings/js
                 ./src/bindings/crypto
@@ -281,6 +282,7 @@
           patchPhase = ''
             patchShebangs ./src/bindings/scripts/
             patchShebangs ./src/bindings/crypto/test-vectors/
+            patchShebangs ./scripts/
           '';
           buildPhase =
             ''

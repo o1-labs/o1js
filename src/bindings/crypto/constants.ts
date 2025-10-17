@@ -1,13 +1,13 @@
 // @gen this file is generated from `bindings/ocaml/o1js_constants.ml` - don't edit it directly
 export {
-  prefixes,
-  prefixHashes,
-  prefixHashesLegacy,
-  versionBytes,
-  protocolVersions,
+  mocks,
   poseidonParamsKimchiFp,
   poseidonParamsLegacyFp,
-  mocks,
+  prefixHashes,
+  prefixHashesLegacy,
+  prefixes,
+  protocolVersions,
+  versionBytes,
 };
 
 let prefixes = {

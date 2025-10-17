@@ -21,10 +21,6 @@ info "Ensuring bindings are available..."
 run_cmd npm run check:bindings
 ok "Bindings ready"
 
-info "Copying binding artifacts..."
-run_cmd node src/build/copy-artifacts.js
-ok "Artifacts copied"
-
 info "Cleaning node dist directory..."
 run_cmd rimraf "$DIST_NODE_DIR"
 ok "Node dist directory cleaned"
@@ -34,7 +30,9 @@ run_cmd tsc -p tsconfig.node.json
 ok "TypeScript compilation finished"
 
 info "Copying compiled output to dist..."
-run_cmd node src/build/copy-to-dist.js
+mkdir -p dist/node/bindings/compiled/node_bindings/
+cp -r src/bindings/compiled/node_bindings/* dist/node/bindings/compiled/node_bindings/
+cp src/bindings.d.ts dist/node/
 ok "Copied compiled output"
 
 info "Building production node bundle..."

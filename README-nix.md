@@ -122,11 +122,11 @@ help with this.
 
 Nix has a garbage collector that **is not used by default** after every run.
 Instead, artifacts get accumulated in your disk unless configured otherwise.
-This is why we recomend `auto-optimise-store = true` (you will be prompted to
+This is why we recommend `auto-optimise-store = true` (you will be prompted to
 accept this). You can also run `nix-store --optimize` retroactively.
 
 If you still need to free up space you can run `nix-store --gc`, unfortunately
-this can slow down futurue nix builds by forcing you to rebuild dependencies.
+this can slow down future nix builds by forcing you to rebuild dependencies.
 This can be mitigated with [direnv](https://github.com/direnv/direnv) and
 [nix-direnv](https://github.com/nix-community/nix-direnv) which can create
 garbage collector roots, keeping one gc-root to the latest build of the dev
@@ -143,7 +143,7 @@ reject these the first time you use nix in this repo. You can also use
 `max-jobs = auto` For some reason the default is `1`.
 
 `auto-optimize-store = true;` When building slightly different versions of the
-same repo your nix store can fill up with coppies of the same files. This saves
+same repo your nix store can fill up with copies of the same files. This saves
 space by replacing them with symlinks.
 
 `substituters = ...` `trusted-public-keys = ...` These make sure you are using
@@ -212,12 +212,12 @@ The rust compiler and/or Wasm-pack might not be correctly setup in the Nix
 shell.
 
 ```console
-Error: wasm32-unknown-unknown target not found in sysroot:  "/nix/store/w30zw23kmgks77d870i502a3185hjycv-rust"
+Error: wasm32-unknown-unknown target not found in sysroot:  "/nix/store/<sha>-rust"
 
-Used rustc from the following path: "/nix/store/wcm8caqd6g7bcbddpyxan1jzj3apkmxy-rustup-1.26.0/bin/rustc"
+Used rustc from the following path: "/nix/store/<sha>-rustup-1.26.0/bin/rustc"
 It looks like Rustup is not being used. For non-Rustup setups, the wasm32-unknown-unknown target needs to be installed manually. See https://rustwasm.github.io/wasm-pack/book/prerequisites/non-rustup-setups.html on how to do this.
 
-Caused by: wasm32-unknown-unknown target not found in sysroot: "/nix/store/w30zw23kmgks77d870i502a3185hjycv-rust"
+Caused by: wasm32-unknown-unknown target not found in sysroot: "/nix/store/<sha>-rust"
 ```
 
 #### Fix
@@ -225,8 +225,8 @@ Caused by: wasm32-unknown-unknown target not found in sysroot: "/nix/store/w30zw
 This is caused because the Rust compiler in Nix does not have access to the
 corresponding `wasm32-unknown-unknown` target. Let `{RUSTDIR}` be the directory
 of the Rust location inside Nix, as shown in the error code; e.g.
-`/nix/store/wcm8caqd6g7bcbddpyxan1jzj3apkmxy-rustup-1.26.0/bin`, then you can
-check the version of the compiler used by typing:
+`/nix/store/<sha>-rustup-1.26.0/bin`, then you can check the version of the
+compiler used by typing:
 
 ```bash
 {RUSTDIR}/rustc --version
@@ -269,8 +269,8 @@ Finally, the `wasm32-unknown-unknown` folder must be moved into the
 `./lib/rustlib/` directory in the sysroot like so:
 
 Let `{SYSROOT}` be the directory of the Rust in Nix shown in the error code;
-e.g. `/nix/store/w30zw23kmgks77d870i502a3185hjycv-rust`, then the Wasm target
-can be automatically installed downloading it from
+e.g. `/nix/store/<sha>-rust`, then the Wasm target can be automatically
+installed downloading it from
 
 ```bash
 mv rust-std-1.82.0-wasm32-unknown-unknown/rust-std-wasm32-unknown-unknown/lib/rustlib/wasm32-unknown-unknown {SYSROOT}/lib/rustlib/wasm32-unknown-unknown/
@@ -279,7 +279,7 @@ mv rust-std-1.82.0-wasm32-unknown-unknown/rust-std-wasm32-unknown-unknown/lib/ru
 ### Cargo not found
 
 ```console
-error: "/nix/store/w30zw23kmgks77d870i502a3185hjycv-rust/lib/rustlib/src/rust/Cargo.lock"
+error: "/nix/store/<sha>-rust/lib/rustlib/src/rust/Cargo.lock"
        does not exist, unable to build with the standard library, try:
                    rustup component add rust-src --toolchain nix
 ```
