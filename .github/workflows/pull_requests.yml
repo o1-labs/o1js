@@ -51,7 +51,7 @@ jobs:
           file_pattern: "npmDepsHash"
 
 
-  Lint-Format-and-TypoCheck:
+  Lint-Format-and-Typo-Check:
     if: github.event.pull_request.labels.*.name != 'skip-lint'
     runs-on: ubuntu-latest
 
