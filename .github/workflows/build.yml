@@ -123,9 +123,7 @@ jobs:
             export CPPFLAGS="-I/opt/homebrew/include/"
             export C_INCLUDE_PATH="-I/opt/homebrew/include/"
             export LDFLAGS="-L/opt/homebrew/lib/"
-            export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig"
-
-            env
+            export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig:$(brew --prefix libsodium)/lib/pkgconfig"
           fi
 
           opam repository set-url default https://github.com/ocaml/opam-repository.git\#08d8c16c16dc6b23a5278b06dff0ac6c7a217356
