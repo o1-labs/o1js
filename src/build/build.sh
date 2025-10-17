@@ -49,12 +49,6 @@ ensure_bindings() {
   fi
 }
 
-copy_artifacts() {
-  bold "[2/5] Copying artifacts to dist"
-  node "$ROOT_DIR/src/build/copy-artifacts.js"
-  ok "Artifacts copied."
-}
-
 clean_dist_node() {
   bold "[3/5] Cleaning dist/node"
   if command -v npx >/dev/null 2>&1; then
@@ -80,7 +74,6 @@ build_node() {
 # ---------- main ----------
 bold "Starting build"
 ensure_bindings         # use check:bindings first(non-fatal on error), then fallback to build:bindings-node(fatal on error)
-copy_artifacts          # fatal on error
 clean_dist_node         # fatal on error
 build_dev               # fatal on error
 build_node              # fatal on error

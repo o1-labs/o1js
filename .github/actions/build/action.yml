@@ -1,9 +1,6 @@
 name: Build o1js
 description: 'All of the building steps for o1js'
 
-permissions:
-  contents: write
-
 inputs:
   proof_systems_commit:
     description: 'proof_systems commit to use'
