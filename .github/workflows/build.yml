@@ -121,7 +121,7 @@ jobs:
           if [[ "${{ runner.os }}" == "macOS" ]]; then
             export CFLAGS="-I/opt/homebrew/include/"
             export CPPFLAGS="-I/opt/homebrew/include/"
-            export C_INCLUDE_PATH="-I/opt/homebrew/include/"
+            export C_INCLUDE_PATH="/opt/homebrew/include/"
             export LDFLAGS="-L/opt/homebrew/lib/"
             export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig:$(brew --prefix libsodium)/lib/pkgconfig"
           fi
