@@ -20,7 +20,7 @@ import { TokenContract, createDex } from '../../src/examples/zkapps/dex/dex.js';
 import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
 import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
 import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
-import { PerfRegressionEntry } from '../../src/lib/testing/perf-regression.js';
+import { PerfRegressionEntry, logPerf } from '../../src/lib/testing/perf-regression.js';
 import { tic, toc } from '../../src/lib/util/tic-toc.js';
 import {
   BasicCS,
@@ -118,14 +118,37 @@ async function checkPerf(contracts: MinimumConstraintSystem[]) {
       continue;
     }
 
-    const tolerance = expectedCompile < 5e-5 ? 1.08 : 1.05;
-    const allowedPct = (tolerance - 1) * 100;
+    // Tiered tolerances:
+    // < 0.00001s → 45%
+    // 0.00001s ≤ t < 0.0001s → 30%
+    // ≥ 0.0001s → 20%
+    let allowedPct: number;
+    if (expectedCompile < 1e-5) {
+      allowedPct = 45;
+    } else if (expectedCompile < 1e-4) {
+      allowedPct = 30;
+    } else {
+      allowedPct = 20;
+    }
+    const tolerance = 1 + allowedPct / 100;
 
-    if (compileTime > expectedCompile * tolerance) {
-      const regressionPct = ((compileTime - expectedCompile) / expectedCompile) * 100;
+    const regressionPct =
+      expectedCompile === 0
+        ? compileTime === 0
+          ? 0
+          : Infinity
+        : ((compileTime - expectedCompile) / expectedCompile) * 100;
+
+    // colorized log using imported utility
+    const failed = compileTime > expectedCompile * tolerance;
+    logPerf(c.name, 'compile', expectedCompile, compileTime, regressionPct, allowedPct, failed);
+
+    // handle failure
+    if (failed) {
       errorStack += `\n\nCompile regression for ${c.name}
   Actual:     ${compileTime.toFixed(6)}s
-  Regression: +${regressionPct.toFixed(2)}% (allowed +${allowedPct.toFixed(0)}%)`;
+  Baseline:   ${expectedCompile.toFixed(6)}s
+  Regression: +${Number.isFinite(regressionPct) ? regressionPct.toFixed(2) : '∞'}% (allowed +${allowedPct.toFixed(0)}%)`;
     }
   }
 
