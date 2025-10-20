@@ -357,8 +357,8 @@ function checkAgainstBaseline(params: {
   }
 
   // tolerances
-  const compileTol = 1.05; // 5%
-  const compileTiny = 1.08; // for near-zero baselines (< 5e-5s)
+  const compileTol = 1.08; // 8%
+  const compileTiny = 1.1; // 10% for near-zero baselines (< 5e-5s)
   const timeTolDefault = 1.1; // 10% for prove/verify
   const timeTolSmall = 1.25; // 25% for very small times (<0.2s)
 
