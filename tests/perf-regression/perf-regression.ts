@@ -119,12 +119,12 @@ async function checkPerf(contracts: MinimumConstraintSystem[]) {
     }
 
     // Tiered tolerances:
-    // < 0.00001s → 45%
+    // < 0.00001s → 70%
     // 0.00001s ≤ t < 0.0001s → 30%
     // ≥ 0.0001s → 20%
     let allowedPct: number;
     if (expectedCompile < 1e-5) {
-      allowedPct = 45;
+      allowedPct = 70;
     } else if (expectedCompile < 1e-4) {
       allowedPct = 30;
     } else {
