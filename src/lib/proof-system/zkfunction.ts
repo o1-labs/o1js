@@ -1,23 +1,22 @@
-import { Snarky, initializeBindings } from '../../bindings.js';
+import { Snarky, initializeBindings, withThreadPool } from '../../bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
-import { withThreadPool } from '../../bindings.js';
-import { Provable } from '../provable/provable.js';
 import {
-  snarkContext,
+  ConstraintSystemSummary,
   gatesFromJson,
-  summarizeGates,
   printGates,
+  snarkContext,
+  summarizeGates,
 } from '../provable/core/provable-context.js';
-import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
+import { Provable } from '../provable/provable.js';
+import { InferProvable, provablePure } from '../provable/types/provable-derivers.js';
 import { ProvableTypePure } from '../provable/types/provable-intf.js';
-import { provablePure, InferProvable } from '../provable/types/provable-derivers.js';
-import { ConstraintSystemSummary } from '../provable/core/provable-context.js';
-import { Tuple, Get } from '../util/types.js';
-import { TupleToInstances } from './zkprogram.js';
 import { Field } from '../provable/wrapped.js';
+import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
+import { Get, Tuple } from '../util/types.js';
+import { TupleToInstances } from './zkprogram.js';
 
 // external API
-export { ZkFunction, KimchiProof, KimchiVerificationKey };
+export { KimchiProof, KimchiVerificationKey, ZkFunction };
 
 type PublicInput<Config extends ZkFunctionConfig> = InferProvable<Get<Config, 'publicInputType'>>;
 type PrivateInputs<Config extends ZkFunctionConfig> = TupleToInstances<Config['privateInputTypes']>;
@@ -31,7 +30,7 @@ type ZkFunctionConfig = {
 
 type MainType<
   PublicInput,
-  PrivateInputs extends Tuple<ProvableTypePure>
+  PrivateInputs extends Tuple<ProvableTypePure>,
 > = PublicInput extends undefined
   ? (...args: TupleToInstances<PrivateInputs>) => void
   : (publicInput: InferProvable<PublicInput>, ...args: TupleToInstances<PrivateInputs>) => void;
@@ -41,12 +40,10 @@ type InferMainType<Config extends ZkFunctionConfig> = MainType<
   Config['privateInputTypes']
 >;
 
-type ProveMethodType<Config extends ZkFunctionConfig> = Get<
-  Config,
-  'publicInputType'
-> extends undefined
-  ? (...args: PrivateInputs<Config>) => Promise<KimchiProof>
-  : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<KimchiProof>;
+type ProveMethodType<Config extends ZkFunctionConfig> =
+  Get<Config, 'publicInputType'> extends undefined
+    ? (...args: PrivateInputs<Config>) => Promise<KimchiProof>
+    : (publicInput: PublicInput<Config>, ...args: PrivateInputs<Config>) => Promise<KimchiProof>;
 
 function ZkFunction<Config extends ZkFunctionConfig>(
   config: Config & {
@@ -193,6 +190,10 @@ class KimchiProof {
   constructor(value: Snarky.Proof, publicInputFields: Field[]) {
     this.value = value;
     this.publicInputFields = publicInputFields;
+  }
+
+  toJSON(): string {
+    return Snarky.circuit.proofToJson(this.value);
   }
 
   /**

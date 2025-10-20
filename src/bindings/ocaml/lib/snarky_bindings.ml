@@ -400,6 +400,25 @@ module Circuit = struct
           ~primary:public_inputs )
       (Main.of_js main) public_input
 
+  let proof_to_json (proof_with_public : Backend.Proof.with_public_evals) =
+    let json =
+      `Assoc
+        [ ("proof", Backend.Proof.to_yojson proof_with_public.proof)
+        ; ( "publicEvals"
+          , match proof_with_public.public_evals with
+            | None ->
+                `Null
+            | Some (l, r) ->
+                `List
+                  [ `List
+                      (List.map ~f:Backend.Field.to_yojson (Array.to_list l))
+                  ; `List
+                      (List.map ~f:Backend.Field.to_yojson (Array.to_list r))
+                  ] )
+        ]
+    in
+    Yojson.Safe.to_string json |> Js.string |> Util.json_parse
+
   let verify public_input proof vk =
     let public_input_vec = Backend.Field.Vector.create () in
     Array.iter public_input ~f:(fun x ->
@@ -581,6 +600,8 @@ let snarky =
         method prove = Circuit.prove
 
         method verify = Circuit.verify
+
+        method proofToJson = Circuit.proof_to_json
 
         val keypair =
           object%js
