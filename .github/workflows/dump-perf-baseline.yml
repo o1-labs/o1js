@@ -8,15 +8,45 @@ jobs:
   dump_and_commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (current branch)
+        uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref_name }}
           submodules: recursive
-      - name: build
+      - name: Build
         uses: ./.github/actions/build
       - name: Performance Regression (dump)
-        uses: ./.github/actions/perf-regression
         env:
           TEST_TYPE: Performance Regression
-        with:
-          mode: dump
+          PERF_MODE: --dump
+        run: |
+          set -euo pipefail
+          sh run-ci-tests.sh
+      - name: Commit and push baseline to current branch
+        shell: bash
+        env:
+          BASELINE_PATH: tests/perf-regression/perf-regression.json
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f "$BASELINE_PATH" ]]; then
+            echo "ERROR: baseline not found at $BASELINE_PATH"
+            exit 1
+          fi
+
+          # Configure git identity
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Commit only if baseline changed
+          if git diff --quiet -- "$BASELINE_PATH"; then
+            echo "No changes in $BASELINE_PATH; nothing to commit."
+            exit 0
+          fi
+
+          git add "$BASELINE_PATH"
+          git commit -m "ci(perf): update baseline $BASELINE_PATH"
+          # Push back to the same branch this workflow was dispatched on
+          git push origin HEAD:"$BRANCH_NAME"
+          echo "Baseline committed and pushed to branch: $BRANCH_NAME"
