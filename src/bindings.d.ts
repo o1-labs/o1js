@@ -406,6 +406,8 @@ declare const Snarky: {
       verificationKey: Snarky.VerificationKey
     ): boolean;
 
+    proofToJson(proof: Snarky.Proof): string;
+
     keypair: {
       getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
       /**

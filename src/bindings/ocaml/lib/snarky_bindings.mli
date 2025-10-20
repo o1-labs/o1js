@@ -273,7 +273,9 @@ val snarky :
                 Kimchi_types.poly_comm )
               Kimchi_types.VerifierIndex.verifier_index
            -> bool Js.t )
-          Js.meth >
+          Js.meth 
+      ; proofToJson :
+          (Backend.Proof.with_public_evals -> Js.js_string Js.t) Js.meth >
       Js.t
       Js.readonly_prop >
   Js.t
