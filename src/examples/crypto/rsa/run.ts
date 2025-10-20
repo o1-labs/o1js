@@ -1,21 +1,7 @@
-import { ZkProgram } from 'o1js';
 import { Performance } from '../../../lib/testing/perf-regression.js';
-import { Bigint2048, rsaVerify65537 } from './rsa.js';
+import { rsaZkProgram } from './program.js';
+import { Bigint2048 } from './rsa.js';
 import { generateRsaParams, rsaSign, sha256Bigint } from './utils.js';
-
-let rsaZkProgram = ZkProgram({
-  name: 'rsa-verify',
-
-  methods: {
-    verifyRsa65537: {
-      privateInputs: [Bigint2048, Bigint2048, Bigint2048],
-
-      async method(message: Bigint2048, signature: Bigint2048, modulus: Bigint2048) {
-        rsaVerify65537(message, signature, modulus);
-      },
-    },
-  },
-});
 
 let cs = await rsaZkProgram.analyzeMethods();
 
