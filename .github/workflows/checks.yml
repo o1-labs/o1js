@@ -33,7 +33,6 @@ concurrency:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   Prepare:
@@ -176,24 +175,9 @@ jobs:
       - name: Prepare for tests
         run: touch profiling.md
       - name: Execute tests
-        if: matrix.test_type != 'Performance Regression'
         env:
           TEST_TYPE: ${{ matrix.test_type }}
         run: sh run-ci-tests.sh
-      - name: Performance Regression (dump or check)
-        if: matrix.test_type == 'Performance Regression'
-        uses: ./.github/actions/perf-regression
-        env:
-          TEST_TYPE: Performance Regression
-        with:
-          mode: auto
-          label_name: dump-performance
-          artifact_name: perf-regression-json
-          baseline_path: tests/perf-regression/perf-regression.json
-          workflow_name: ${{ github.workflow }}
-          branch: main               
-          target_repo: ${{ inputs.target_repo || github.repository }}
-          run_command: sh run-ci-tests.sh
       - name: Add to job summary
         if: always()
         run: |
