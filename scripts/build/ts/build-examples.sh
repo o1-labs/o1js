@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # logging lib
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/ux.sh"
+source ./scripts/lib/ux.sh
 setup_script "${BASH_SOURCE[0]}" "Examples build"
 
 # main steps

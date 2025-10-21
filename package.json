@@ -55,7 +55,7 @@
     "build:bindings-remote": "./scripts/build/build-bindings-remote.sh",
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
     "build:web": "./scripts/build/ts/build-web.sh",
-    "build:examples": "./scripts/build/build-examples.sh",
+    "build:examples": "./scripts/build/ts/build-examples.sh",
     "check:bindings": "./scripts/build/check-for-bindings.sh",
     "build:wasm": "npm run build:wasm:web && npm run build:wasm:node",
     "build:wasm:web": "./scripts/build/wasm/build-web.sh",
