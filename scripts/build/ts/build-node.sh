@@ -7,12 +7,11 @@
 set -Eeuo pipefail
 
 # ---------- paths ----------
-# script is inside src/build/, so repo root is two levels up
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 BINDINGS_CHECK_PATH="${BINDINGS_CHECK_PATH:-$ROOT_DIR/src/bindings/compiled}"  # presence gate
 
 # ---------- shared libraries ----------
-source "$ROOT_DIR/scripts/lib/ux.sh"
+source ./scripts/lib/ux.sh
 setup_script "${BASH_SOURCE[0]}" "Build"
 
 # ---------- steps ----------
