@@ -49,7 +49,7 @@
   },
   "scripts": {
     "build:dev": "./scripts/build/ts/build-dev.sh",
-    "build": "./src/build/build.sh",
+    "build": "./scripts/build/ts/build-node.sh",
     "build:bindings-node": "./src/bindings/scripts/build-o1js-node.sh",
     "build:bindings-all": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:bindings-remote": "./scripts/build/build-bindings-remote.sh",
