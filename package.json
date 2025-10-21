@@ -54,7 +54,7 @@
     "build:bindings-all": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:bindings-remote": "./scripts/build/build-bindings-remote.sh",
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
-    "build:web": "./scripts/build/build-web.sh",
+    "build:web": "./scripts/build/ts/build-web.sh",
     "build:examples": "./scripts/build/build-examples.sh",
     "check:bindings": "./scripts/build/check-for-bindings.sh",
     "build:wasm": "npm run build:wasm:web && npm run build:wasm:node",
