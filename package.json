@@ -56,6 +56,7 @@
     "build:bindings-all": "./src/bindings/scripts/update-o1js-bindings.sh",
     "build:bindings-remote": "./scripts/build/build-bindings-remote.sh",
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
+    "build:bindings-transaction-layout": "./src/bindings/scripts/build-transaction-layout.sh",
     "check:bindings": "./scripts/build/check-for-bindings.sh",
     "build:wasm": "npm run build:wasm:web && npm run build:wasm:node",
     "build:wasm:web": "./scripts/build/wasm/build-web.sh",
