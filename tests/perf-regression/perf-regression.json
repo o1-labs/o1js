@@ -72,7 +72,7 @@
         "rows": 1,
         "digest": "2a840c03f4e37242a8056a4aa536358c",
         "proveTime": 28.83372576500001,
-        "verifyTime": 1.8026225459999987
+        "verifyTime": 2.112310
       }
     }
   },
@@ -215,12 +215,12 @@
   },
   "Basic": {
     "digest": "Basic",
-    "compileTime": 0.000008105000000796282,
+    "compileTime": 0.000012105000000796282,
     "methods": {}
   },
   "Crypto": {
     "digest": "Crypto",
-    "compileTime": 0.000006472000008216128,
+    "compileTime": 0.000010472000008216128,
     "methods": {}
   }
 }

@@ -71,6 +71,7 @@
     "regression:check-vks": "./scripts/tests/check-vks.sh",
     "regression:dump-perf": "./tests/perf-regression/perf-regression.sh --dump",
     "regression:check-perf": "./tests/perf-regression/perf-regression.sh --check",
+    "regression:ci:dump-perf": "./tests/perf-regression/dump-perf-ci.sh",
     "format": "prettier --write --ignore-unknown",
     "format:check": "prettier --check --ignore-unknown",
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
