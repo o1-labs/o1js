@@ -33,6 +33,7 @@ ok "Mina config files copied"
 
 npm run build:wasm:node
 npm run build:jsoo:node
+npm run build:native:node
 
 info "Building transaction layout TypeScript definitions..."
 run_cmd dune b src/bindings/mina-transaction/gen/v1/js-layout.ts \
