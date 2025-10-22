@@ -56,6 +56,7 @@
     "build:bindings-download": "./src/bindings/scripts/download-bindings.sh",
     "build:web": "./scripts/build/build-web.sh",
     "build:examples": "./scripts/build/build-examples.sh",
+    "build:bindings-native": "./src/bindings/scripts/build-napi-artifacts.sh",
     "check:bindings": "./scripts/build/check-for-bindings.sh",
     "build:docs": "typedoc",
     "prepublish:web": "./scripts/prepublish/prepublish-web.sh",
@@ -120,8 +121,10 @@
     "cachedir": "^2.4.0",
     "js-sha256": "^0.9.0",
     "libsodium-wrappers-sumo": "^0.7.15",
+    "plonk-napi": "file:./src/bindings/native",
     "reflect-metadata": "^0.1.13",
     "stacktrace-js": "^2.0.2",
     "tslib": "^2.3.0"
-  }
+  },
+  "napi": {}
 }

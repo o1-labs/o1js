@@ -1,0 +1,7 @@
+{
+  "name": "plonk-napi",
+  "version": "dev",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "type": "module"
+}
