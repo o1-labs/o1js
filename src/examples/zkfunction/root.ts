@@ -1,4 +1,4 @@
-import { Field, Experimental, Gadgets } from 'o1js';
+import { Experimental, Field, Gadgets } from 'o1js';
 const { ZkFunction } = Experimental;
 
 /**
@@ -33,3 +33,11 @@ let ok = await main.verify(proof, verificationKey);
 console.timeEnd('verify...');
 
 console.log('ok?', ok);
+
+function proofRoundTrip(proof: Experimental.KimchiProof): Experimental.KimchiProof {
+  let json = proof.toJSON();
+  return Experimental.KimchiProof.prototype.fromJSON(json);
+}
+
+let proof2 = proofRoundTrip(proof);
+console.log('proof round trip ok?', await main.verify(proof2, verificationKey));
