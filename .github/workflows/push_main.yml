@@ -72,37 +72,12 @@ jobs:
 
 
   Pkg-pr-new:
-    strategy:
-      matrix:
-        node: [20]
-
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.JS ${{ matrix.node }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-      - name: build
-        uses: ./.github/actions/build
-      - name: Build o1js and mina-signer
-        run: |
-          npm run prepublish:full
-          cd src/mina-signer
-          npm ci
-          npm run prepublish:full
-      - name: Publish o1js and mina-signer on pkg-pr-new
-        run: npx pkg-pr-new publish ./ ./src/mina-signer # Enable `--compact` once published to NPM with `repository` in package.json
-
-        # TODO is this redundant with the last step?
-      - name: Publish to NPM if version has changed
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          package: './src/mina-signer/package.json'
-          strategy: upgrade
-        env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: release-pkg-pr-version
+        uses: ./.github/actions/release-pkg-pr-version
 
   Release-on-NPM:
     if: github.ref == 'refs/heads/main'
@@ -156,4 +131,3 @@ jobs:
           generateReleaseNotes: true
           name: Release ${{ steps.publish.outputs.version }}
           skipIfReleaseExists: true
-

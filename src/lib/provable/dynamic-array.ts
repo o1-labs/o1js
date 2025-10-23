@@ -393,7 +393,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    * To grow the capacity along with the actual length, you can use:
    *
    * ```ts
-   * array = array.growCapacityhBy(1);
+   * array = array.growCapacityBy(1);
    * array.push(value);
    * ```
    *
