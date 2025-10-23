@@ -182,6 +182,8 @@ namespace Experimental {
   export let createProvableBigInt = createProvableBigInt_;
 
   export let ZkFunction = ZkFunction_;
+  export type KimchiProof = KimchiProof_;
+  export type KimchiVerificationKey = KimchiVerificationKey_;
   export let KimchiProof = KimchiProof_;
   export let KimchiVerificationKey = KimchiVerificationKey_;
 
