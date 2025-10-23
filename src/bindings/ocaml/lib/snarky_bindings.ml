@@ -419,53 +419,39 @@ module Circuit = struct
     in
     Yojson.Safe.to_string json |> Base64.encode_exn |> Js.string
 
-  let proof_of_base64 (encoded : Js.js_string Js.t) : Backend.Proof.with_public_evals =
-    let encoded = Js.to_string encoded in
-    let json_string =
-      match Base64.decode encoded with
-      | Ok decoded -> decoded
-      | Error (`Msg err) -> failwithf "Failed to decode proof base64: %s" err ()
-    in
+  let proof_of_base64 (encoded : Js.js_string Js.t) :
+      Backend.Proof.with_public_evals =
+    let open Yojson.Safe.Util in
     let json =
-      try Yojson.Safe.from_string json_string
-      with Yojson.Json_error err ->
-        failwithf "Failed to parse proof JSON: %s" err ()
+      Yojson.Safe.from_string (Base64.decode_exn (Js.to_string encoded))
     in
-    let assoc =
-      match json with
-      | `Assoc assoc -> assoc
-      | _ -> failwith "Decoded proof must be a JSON object"
-    in
-    let lookup_field name =
-      match List.Assoc.find ~equal:String.equal assoc name with
-      | Some v -> v
-      | None -> failwithf "Decoded proof missing \"%s\" field" name ()
-    in
-    let proof_json = lookup_field "proof" in
     let proof =
-      match Backend.Proof.of_yojson proof_json with
-      | Ok proof -> proof
-      | Error err -> failwithf "Failed to decode proof payload: %s" err ()
+      match Backend.Proof.of_yojson (member "proof" json) with
+      | Ok proof ->
+          proof
+      | Error err ->
+          failwithf "Failed to decode proof payload: %s" err ()
+    in
+    let parse_public_eval json =
+      to_list json
+      |> List.map ~f:(fun field_json ->
+             match Backend.Field.of_yojson field_json with
+             | Ok field ->
+                 field
+             | Error err ->
+                 failwithf "Failed to decode public eval: %s" err () )
+      |> Array.of_list
     in
     let public_evals =
-      match List.Assoc.find ~equal:String.equal assoc "publicEvals" with
-      | None | Some `Null -> None
-      | Some (`List [ `List left; `List right ]) ->
-          let parse_side side values =
-            values
-            |> List.map ~f:(fun value ->
-                   match Backend.Field.of_yojson value with
-                   | Ok field -> field
-                   | Error err ->
-                       failwithf
-                         "Failed to decode public evaluations (%s side): %s"
-                         side err () )
-            |> Array.of_list
-          in
-          Some (parse_side "left" left, parse_side "right" right)
-      | Some other ->
+      match member "publicEvals" json with
+      | `Null ->
+          None
+      | `List [ xs; ys ] ->
+          Some (parse_public_eval xs, parse_public_eval ys)
+      | other ->
           failwithf "Unexpected JSON for publicEvals: %s"
-            (Yojson.Safe.to_string other) ()
+            (Yojson.Safe.to_string other)
+            ()
     in
     Backend.Proof.{ proof; public_evals }
 
