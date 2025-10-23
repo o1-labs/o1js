@@ -129,6 +129,8 @@ import * as OffchainState_ from './lib/mina/v1/actions/offchain-state.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
 import {
   KimchiJsonProof as KimchiJsonProof_,
+  KimchiProof as KimchiProof_,
+  KimchiVerificationKey as KimchiVerificationKey_,
   ZkFunction as ZkFunction_,
 } from './lib/proof-system/zkfunction.js';
 import {
@@ -180,6 +182,8 @@ namespace Experimental {
   export let createProvableBigInt = createProvableBigInt_;
 
   export let ZkFunction = ZkFunction_;
+  export let KimchiProof = KimchiProof_;
+  export let KimchiVerificationKey = KimchiVerificationKey_;
 
   export type KimchiJsonProof = KimchiJsonProof_;
 
