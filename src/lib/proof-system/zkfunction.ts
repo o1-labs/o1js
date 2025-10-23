@@ -16,7 +16,7 @@ import { Get, Tuple } from '../util/types.js';
 import { TupleToInstances } from './zkprogram.js';
 
 // external API
-export { KimchiProof, KimchiVerificationKey, ZkFunction };
+export { KimchiJsonProof, KimchiProof, KimchiVerificationKey, ZkFunction };
 
 type PublicInput<Config extends ZkFunctionConfig> = InferProvable<Get<Config, 'publicInputType'>>;
 type PrivateInputs<Config extends ZkFunctionConfig> = TupleToInstances<Config['privateInputTypes']>;
