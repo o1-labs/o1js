@@ -733,7 +733,7 @@ super.init();
    *   this.x.set(Field(1));
    *  }
    *
-   *  // Use custom method to initialize dyamic values
+   *  // Use custom method to initialize dynamic values
    *  @method async initialize(x: Field) {
    *    // This method may only be called once, immediately after deployment
    *    this.account.provedState.getAndRequireEquals().assertFalse();

@@ -72,7 +72,7 @@ success() {
     printf "\033[1;32m%s%s\033[0m\n" "$SCRIPT_PREFIX" "$*"
 }
 
-# runs a command with a prefixed outut
+# runs a command with a prefixed output
 run_with_prefix() {
     if should_show_commands; then
         "$@" 2>&1 | while IFS= read -r line; do
