@@ -73,6 +73,7 @@ declare namespace Snarky {
   type Keypair = unknown;
   type VerificationKey = unknown;
   type Proof = unknown;
+  type ProofWithEvals = unknown;
 }
 
 /**
@@ -409,6 +410,10 @@ declare const Snarky: {
     proofToJBase64(proof: Snarky.Proof): string;
 
     proofOfBase64(encoded: string): Snarky.Proof;
+
+    proofToBackendProofEvals(publicInput: MlArray<FieldConst>, proof: Snarky.Proof): Snarky.ProofWithEvals;
+
+    proofOfBackendProofEvals(proof: Snarky.ProofWithEvals): Snarky.Proof;
 
     keypair: {
       getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;
