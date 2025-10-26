@@ -1,4 +1,5 @@
-import { Snarky, initializeBindings, withThreadPool } from '../../bindings.js';
+import { Pickles, Snarky, initializeBindings, wasm, withThreadPool } from '../../bindings.js';
+import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import {
   ConstraintSystemSummary,
@@ -11,6 +12,7 @@ import { Provable } from '../provable/provable.js';
 import { InferProvable, provablePure } from '../provable/types/provable-derivers.js';
 import { ProvableTypePure } from '../provable/types/provable-intf.js';
 import { Field } from '../provable/wrapped.js';
+import { fromBase64, toBase64 } from '../util/base64.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
 import { Get, Tuple } from '../util/types.js';
 import { TupleToInstances } from './zkprogram.js';
@@ -178,8 +180,8 @@ function ZkFunction<Config extends ZkFunctionConfig>(
  * Serializable representation of a Kimchi proof, useful for caching compiled proofs.
  */
 type KimchiJsonProof = {
-  /** Array of string, where each string is a `Field` in the publicInput of this proof */
-  publicInput: string[];
+  /** Array of string, where each string is a `Field` in the publicInputFields of this proof */
+  publicInputFields: string[];
   /** The proof itself, encoded as a Base64 string */
   proof: string;
 };
@@ -203,16 +205,24 @@ class KimchiProof {
   }
 
   toJSON(): KimchiJsonProof {
+    const ocamlProofWithEvals: any = Snarky.circuit.proofToBackendProofEvals(
+      MlFieldConstArray.to(this.publicInputFields),
+      this.value
+    );
+
     return {
-      proof: Snarky.circuit.proofToJBase64(this.value),
-      publicInput: this.publicInputFields.map((f) => f.toString()),
+      proof: getRustConversion(wasm).fp.proofToRust(ocamlProofWithEvals).serialize(),
+      publicInputFields: this.publicInputFields.map((f) => f.toString()),
     };
   }
 
-  fromJSON(json: KimchiJsonProof): KimchiProof {
-    const proof = Snarky.circuit.proofOfBase64(json.proof);
-    const publicInputFields = json.publicInput.map((s) => Field(s));
-    return new KimchiProof(proof, publicInputFields);
+  static fromJSON(json: KimchiJsonProof): KimchiProof {
+    const wasmProof = wasm.WasmFpProverProof.deserialize(json.proof);
+    const ocamlProof = Snarky.circuit.proofOfBackendProofEvals(
+      getRustConversion(wasm).fp.proofFromRust(wasmProof)
+    );
+    const publicInputFields = json.publicInputFields.map((s) => Field(s));
+    return new KimchiProof(ocamlProof, publicInputFields);
   }
 
   /**
@@ -242,6 +252,20 @@ class KimchiVerificationKey {
 
   constructor(value: Snarky.VerificationKey) {
     this.value = value;
+  }
+
+  toString(): string {
+    const rustVerifierIndex = getRustConversion(wasm).fp.verifierIndexToRust(this.value as any);
+    return toBase64(wasm.caml_pasta_fp_plonk_verifier_index_serialize(rustVerifierIndex));
+  }
+
+  static fromString(s: string): KimchiVerificationKey {
+    const rustVk = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(
+      Pickles.loadSrsFp(),
+      fromBase64(s)
+    );
+    const vk = getRustConversion(wasm).fp.verifierIndexFromRust(rustVk);
+    return new KimchiVerificationKey(vk as Snarky.VerificationKey);
   }
 }
 

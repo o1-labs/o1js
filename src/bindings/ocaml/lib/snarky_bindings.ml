@@ -461,6 +461,12 @@ module Circuit = struct
         Backend.Field.Vector.emplace_back public_input_vec x ) ;
     Backend.Proof.verify proof vk public_input_vec |> Js.bool
 
+  let proof_to_backend_proof_evals xs (t : Backend.Proof.with_public_evals) =
+    Backend.Proof.to_backend_with_public_evals' [] xs t
+
+  let proof_of_backend_proof_evals t =
+    Backend.Proof.of_backend_with_public_evals t
+
   module Keypair = struct
     let get_vk t = Impl.Keypair.vk t
 
@@ -640,6 +646,10 @@ let snarky =
         method proofToJBase64 = Circuit.proof_to_base64
 
         method proofOfBase64 = Circuit.proof_of_base64
+
+        method proofToBackendProofEvals = Circuit.proof_to_backend_proof_evals
+
+        method proofOfBackendProofEvals = Circuit.proof_of_backend_proof_evals
 
         val keypair =
           object%js
