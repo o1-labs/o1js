@@ -205,24 +205,29 @@ class KimchiProof {
   }
 
   toJSON(): KimchiJsonProof {
-    const ocamlProofWithEvals: any = Snarky.circuit.proofToBackendProofEvals(
+    const proofWithEvalsMl: any = Snarky.circuit.proofToBackendProofEvals(
       MlFieldConstArray.to(this.publicInputFields),
       this.value
     );
 
+    const rustConversion = getRustConversion(wasm);
+    const rustProof = rustConversion.fp.proofToRust(proofWithEvalsMl);
     return {
-      proof: getRustConversion(wasm).fp.proofToRust(ocamlProofWithEvals).serialize(),
+      proof: rustProof.serialize(),
       publicInputFields: this.publicInputFields.map((f) => f.toString()),
     };
   }
 
   static fromJSON(json: KimchiJsonProof): KimchiProof {
-    const wasmProof = wasm.WasmFpProverProof.deserialize(json.proof);
-    const ocamlProof = Snarky.circuit.proofOfBackendProofEvals(
-      getRustConversion(wasm).fp.proofFromRust(wasmProof)
+    const rustProof = wasm.WasmFpProverProof.deserialize(json.proof);
+
+    const rustConversion = getRustConversion(wasm);
+
+    const proofWithEvalsMl = Snarky.circuit.proofOfBackendProofEvals(
+      rustConversion.fp.proofFromRust(rustProof)
     );
     const publicInputFields = json.publicInputFields.map((s) => Field(s));
-    return new KimchiProof(ocamlProof, publicInputFields);
+    return new KimchiProof(proofWithEvalsMl, publicInputFields);
   }
 
   /**
@@ -255,17 +260,24 @@ class KimchiVerificationKey {
   }
 
   toString(): string {
-    const rustVerifierIndex = getRustConversion(wasm).fp.verifierIndexToRust(this.value as any);
-    return toBase64(wasm.caml_pasta_fp_plonk_verifier_index_serialize(rustVerifierIndex));
+    const rustConversion = getRustConversion(wasm);
+    const rustVerifierIndex = rustConversion.fp.verifierIndexToRust(this.value as any);
+    const verifierIndexBase64 =
+      wasm.caml_pasta_fp_plonk_verifier_index_serialize(rustVerifierIndex);
+    return toBase64(verifierIndexBase64);
   }
 
   static fromString(s: string): KimchiVerificationKey {
-    const rustVk = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(
-      Pickles.loadSrsFp(),
+    const srsFp = Pickles.loadSrsFp();
+    const rustVerifierIndex = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(
+      srsFp,
       fromBase64(s)
     );
-    const vk = getRustConversion(wasm).fp.verifierIndexFromRust(rustVk);
-    return new KimchiVerificationKey(vk as Snarky.VerificationKey);
+
+    const rustConversion = getRustConversion(wasm);
+
+    const verifierIndexMl: unknown = rustConversion.fp.verifierIndexFromRust(rustVerifierIndex);
+    return new KimchiVerificationKey(verifierIndexMl);
   }
 }
 
