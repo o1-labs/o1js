@@ -209,7 +209,6 @@ class KimchiProof {
       MlFieldConstArray.to(this.publicInputFields),
       this.value
     );
-
     const rustConversion = getRustConversion(wasm);
     const rustProof = rustConversion.fp.proofToRust(proofWithEvalsMl);
     return {
@@ -220,9 +219,7 @@ class KimchiProof {
 
   static fromJSON(json: KimchiJsonProof): KimchiProof {
     const rustProof = wasm.WasmFpProverProof.deserialize(json.proof);
-
     const rustConversion = getRustConversion(wasm);
-
     const proofWithEvalsMl = Snarky.circuit.proofFromBackendProofEvals(
       rustConversion.fp.proofFromRust(rustProof)
     );
@@ -273,9 +270,7 @@ class KimchiVerificationKey {
       srsFp,
       fromBase64(s)
     );
-
     const rustConversion = getRustConversion(wasm);
-
     const verifierIndexMl: unknown = rustConversion.fp.verifierIndexFromRust(rustVerifierIndex);
     return new KimchiVerificationKey(verifierIndexMl);
   }
