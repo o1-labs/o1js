@@ -1,3 +1,4 @@
+import { writeFileSync } from 'fs';
 import { Experimental, Field, Gadgets } from 'o1js';
 const { ZkFunction } = Experimental;
 
@@ -39,6 +40,14 @@ ok = await proof.verify(verificationKeyRoundTrip(verificationKey));
 
 console.log('verification key round trip ok?', ok);
 
+console.log('writing proof to file...');
+writeFileSync('zkfunction-proof.json', JSON.stringify(proofRoundTrip(proof).toJSON(), null, 2));
+
+console.log('writing verification key to file...');
+writeFileSync(
+  'zkfunction-verification-key.data',
+  verificationKeyRoundTrip(verificationKey).toString()
+);
 function proofRoundTrip(proof: Experimental.KimchiProof): Experimental.KimchiProof {
   let json = proof.toJSON();
   console.log('proof json:', {
