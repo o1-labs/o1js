@@ -407,13 +407,10 @@ declare const Snarky: {
       verificationKey: Snarky.VerificationKey
     ): boolean;
 
-    proofToJBase64(proof: Snarky.Proof): string;
-
-    proofOfBase64(encoded: string): Snarky.Proof;
 
     proofToBackendProofEvals(publicInput: MlArray<FieldConst>, proof: Snarky.Proof): Snarky.ProofWithEvals;
 
-    proofOfBackendProofEvals(proof: Snarky.ProofWithEvals): Snarky.Proof;
+    proofFromBackendProofEvals(proof: Snarky.ProofWithEvals): Snarky.Proof;
 
     keypair: {
       getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;

@@ -400,61 +400,6 @@ module Circuit = struct
           ~primary:public_inputs )
       (Main.of_js main) public_input
 
-  let proof_to_base64 (proof_with_public : Backend.Proof.with_public_evals) =
-    let json =
-      `Assoc
-        [ ("proof", Backend.Proof.to_yojson proof_with_public.proof)
-        ; ( "publicEvals"
-          , match proof_with_public.public_evals with
-            | None ->
-                `Null
-            | Some (l, r) ->
-                `List
-                  [ `List
-                      (List.map ~f:Backend.Field.to_yojson (Array.to_list l))
-                  ; `List
-                      (List.map ~f:Backend.Field.to_yojson (Array.to_list r))
-                  ] )
-        ]
-    in
-    Yojson.Safe.to_string json |> Base64.encode_exn |> Js.string
-
-  let proof_of_base64 (encoded : Js.js_string Js.t) :
-      Backend.Proof.with_public_evals =
-    let open Yojson.Safe.Util in
-    let json =
-      Yojson.Safe.from_string (Base64.decode_exn (Js.to_string encoded))
-    in
-    let proof =
-      match Backend.Proof.of_yojson (member "proof" json) with
-      | Ok proof ->
-          proof
-      | Error err ->
-          failwithf "Failed to decode proof payload: %s" err ()
-    in
-    let parse_public_eval json =
-      to_list json
-      |> List.map ~f:(fun field_json ->
-             match Backend.Field.of_yojson field_json with
-             | Ok field ->
-                 field
-             | Error err ->
-                 failwithf "Failed to decode public eval: %s" err () )
-      |> Array.of_list
-    in
-    let public_evals =
-      match member "publicEvals" json with
-      | `Null ->
-          None
-      | `List [ xs; ys ] ->
-          Some (parse_public_eval xs, parse_public_eval ys)
-      | other ->
-          failwithf "Unexpected JSON for publicEvals: %s"
-            (Yojson.Safe.to_string other)
-            ()
-    in
-    Backend.Proof.{ proof; public_evals }
-
   let verify public_input proof vk =
     let public_input_vec = Backend.Field.Vector.create () in
     Array.iter public_input ~f:(fun x ->
@@ -464,7 +409,7 @@ module Circuit = struct
   let proof_to_backend_proof_evals xs (t : Backend.Proof.with_public_evals) =
     Backend.Proof.to_backend_with_public_evals' [] xs t
 
-  let proof_of_backend_proof_evals t =
+  let proof_from_backend_proof_evals t =
     Backend.Proof.of_backend_with_public_evals t
 
   module Keypair = struct
@@ -643,13 +588,10 @@ let snarky =
 
         method verify = Circuit.verify
 
-        method proofToJBase64 = Circuit.proof_to_base64
-
-        method proofOfBase64 = Circuit.proof_of_base64
-
         method proofToBackendProofEvals = Circuit.proof_to_backend_proof_evals
 
-        method proofOfBackendProofEvals = Circuit.proof_of_backend_proof_evals
+        method proofFromBackendProofEvals =
+          Circuit.proof_from_backend_proof_evals
 
         val keypair =
           object%js
