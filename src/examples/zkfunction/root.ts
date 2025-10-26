@@ -18,26 +18,40 @@ const main = ZkFunction({
   },
 });
 
-console.time('compile...');
+/* console.time('compile...'); */
 const { verificationKey } = await main.compile();
-console.timeEnd('compile...');
-
-console.time('prove...');
 const x = Field(8);
 const y = Field(2);
 const proof = await main.prove(x, y);
-console.timeEnd('prove...');
 
-console.time('verify...');
 let ok = await main.verify(proof, verificationKey);
-console.timeEnd('verify...');
 
 console.log('ok?', ok);
 
+console.log('testing round trips');
+
+ok = await proofRoundTrip(proof).verify(verificationKey);
+console.log('proof round trip ok?', ok);
+
+console.log('verification key round trip...');
+
+ok = await proof.verify(verificationKeyRoundTrip(verificationKey));
+
+console.log('verification key round trip ok?', ok);
+
 function proofRoundTrip(proof: Experimental.KimchiProof): Experimental.KimchiProof {
   let json = proof.toJSON();
-  return Experimental.KimchiProof.prototype.fromJSON(json);
+  console.log('proof json:', {
+    proof: json.proof.slice(0, 10),
+    publicInputFields: json.publicInputFields,
+  });
+  return Experimental.KimchiProof.fromJSON(json);
 }
 
-let proof2 = proofRoundTrip(proof);
-console.log('proof round trip ok?', await main.verify(proof2, verificationKey));
+function verificationKeyRoundTrip(
+  vk: Experimental.KimchiVerificationKey
+): Experimental.KimchiVerificationKey {
+  let json = vk.toString();
+  console.log('vk string:', json.slice(0, 10));
+  return Experimental.KimchiVerificationKey.fromString(json);
+}
