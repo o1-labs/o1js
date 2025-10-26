@@ -223,7 +223,7 @@ class KimchiProof {
 
     const rustConversion = getRustConversion(wasm);
 
-    const proofWithEvalsMl = Snarky.circuit.proofOfBackendProofEvals(
+    const proofWithEvalsMl = Snarky.circuit.proofFromBackendProofEvals(
       rustConversion.fp.proofFromRust(rustProof)
     );
     const publicInputFields = json.publicInputFields.map((s) => Field(s));
