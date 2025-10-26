@@ -274,13 +274,9 @@ val snarky :
               Kimchi_types.VerifierIndex.verifier_index
            -> bool Js.t )
           Js.meth 
-      ; proofToJBase64 :
-          (Backend.Proof.with_public_evals -> Js.js_string Js.t) Js.meth
-      ; proofOfBase64 :
-          (Js.js_string Js.t -> Backend.Proof.with_public_evals) Js.meth 
       ; proofToBackendProofEvals :
           (field array -> Backend.Proof.with_public_evals -> Backend.Proof.Backend.with_public_evals) Js.meth
-       ; proofOfBackendProofEvals : (Backend.Proof.Backend.with_public_evals -> Backend.Proof.with_public_evals) Js.meth >
+       ; proofFromBackendProofEvals : (Backend.Proof.Backend.with_public_evals -> Backend.Proof.with_public_evals) Js.meth >
       Js.t
       Js.readonly_prop >
   Js.t
