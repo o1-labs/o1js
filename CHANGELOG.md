@@ -16,7 +16,9 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/3453d1e53...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/0cdd6e1df...HEAD)
+
+## [..1](https://github.com/o1-labs/o1js/compare/...0cdd6e1df) - 2025-10-27
 
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
