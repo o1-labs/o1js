@@ -134,5 +134,8 @@
     "reflect-metadata": "^0.1.13",
     "stacktrace-js": "^2.0.2",
     "tslib": "^2.3.0"
+  },
+  "optionalDependencies": {
+    "@o1labs/o1js-darwin-arm64": "file:./native/o1js-darwin-arm64/"
   }
 }
