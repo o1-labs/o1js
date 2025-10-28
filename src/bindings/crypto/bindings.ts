@@ -16,8 +16,19 @@ import { verifierIndexConversion } from './bindings/conversion-verifier-index.js
 import { oraclesConversion } from './bindings/conversion-oracles.js';
 import { jsEnvironment } from './bindings/env.js';
 import { srs } from './bindings/srs.js';
+import { bindingsNapi } from './bindings-napi.js';
 
-export { getRustConversion, RustConversion, Wasm };
+export { getRustConversion, RustConversion, Wasm, createNativeRustConversion };
+
+
+/* TODO: Uncomment in phase 2 of conversion layer 
+import { conversionCore as conversionCoreNative } from './native/conversion-core.js';
+import { fieldsFromRustFlat as fieldsFromRustFlatNative, fieldsToRustFlat as fieldsToRustFlatNative } from './native/conversion-base.js';
+import { proofConversion as proofConversionNative } from './native/conversion-proof.js';
+import { verifierIndexConversion as verifierIndexConversionNative } from './native/conversion-verifier-index.js';
+import { oraclesConversion as oraclesConversionNative } from './native/conversion-oracles.js';
+
+export { getRustConversion, type RustConversion, type NativeConversion, type Wasm };*/
 
 const tsBindings = {
   jsEnvironment,
@@ -31,6 +42,12 @@ const tsBindings = {
   ...FpVectorBindings,
   ...FqVectorBindings,
   rustConversion: createRustConversion,
+  nativeRustConversion: createNativeRustConversion,
+  /* TODO: Uncomment in phase 2 of conversion layer   
+  srs: (wasm: Wasm) => {
+    const bundle = getConversionBundle(wasm);
+    return bundle.srsFactory(wasm, bundle.conversion);
+  },*/
   srs: (wasm: Wasm) => srs(wasm, getRustConversion(wasm)),
 };
 
@@ -39,7 +56,17 @@ const tsBindings = {
 
 type Wasm = typeof wasmNamespace;
 
+type RustConversion = ReturnType<typeof buildWasmConversion>;
+
+function getRustConversion(wasm: Wasm): RustConversion {
+  return createRustConversion(wasm);
+}
+
 function createRustConversion(wasm: Wasm) {
+  return buildWasmConversion(wasm);
+}
+
+function buildWasmConversion(wasm: Wasm) {
   let core = conversionCore(wasm);
   let verifierIndex = verifierIndexConversion(wasm, core);
   let oracles = oraclesConversion(wasm);
@@ -55,10 +82,68 @@ function createRustConversion(wasm: Wasm) {
   };
 }
 
-type RustConversion = ReturnType<typeof createRustConversion>;
-
-let rustConversion: RustConversion | undefined;
-
-function getRustConversion(wasm: Wasm) {
-  return rustConversion ?? (rustConversion = createRustConversion(wasm));
+function createNativeRustConversion(napi: any) {
+  return bindingsNapi(napi);
 }
+
+/* TODO: Uncomment in phase 2 of conversion layer   
+
+function shouldUseNativeConversion(wasm: Wasm): boolean {
+  const marker = (wasm as any).__kimchi_use_native;
+  const globalMarker =
+    typeof globalThis !== 'undefined' &&
+    (globalThis as any).__kimchi_use_native;
+  return Boolean(marker || globalMarker);
+}
+
+function createRustConversion(wasm: Wasm): RustConversion {
+  return shouldUseNativeConversion(wasm)
+    ? createNativeConversion(wasm)
+    : createWasmConversion(wasm);
+}
+
+function createWasmConversion(wasm: Wasm) {
+  const core = conversionCore(wasm);
+  const verifierIndex = verifierIndexConversion(wasm, core);
+  const oracles = oraclesConversion(wasm);
+  const proof = proofConversion(wasm, core);
+  
+  return {
+    fp: { ...core.fp, ...verifierIndex.fp, ...oracles.fp, ...proof.fp },
+    fq: { ...core.fq, ...verifierIndex.fq, ...oracles.fq, ...proof.fq },
+    fieldsToRustFlat,
+    fieldsFromRustFlat,
+    wireToRust: core.wireToRust,
+    mapMlArrayToRustVector: core.mapMlArrayToRustVector,
+  };
+}
+
+type RustConversion = ReturnType<typeof buildConversion>;
+
+function createNativeConversion(wasm: Wasm) {
+  const core = conversionCoreNative(wasm);
+  const verifierIndex = verifierIndexConversionNative(wasm, core);
+  const oracles = oraclesConversionNative(wasm);
+  const proof = proofConversionNative(wasm, core);
+
+  return {
+    fp: { ...core.fp, ...verifierIndex.fp, ...oracles.fp, ...proof.fp },
+    fq: { ...core.fq, ...verifierIndex.fq, ...oracles.fq, ...proof.fq },
+    fieldsToRustFlatNative,
+    fieldsFromRustFlatNative,
+    wireToRust: core.wireToRust,
+    mapMlArrayToRustVector: core.mapMlArrayToRustVector,
+  };
+}
+
+type ConversionBundle =
+  | { conversion: WasmConversion; srsFactory: typeof srs }
+  | { conversion: NativeConversion; srsFactory: typeof srsNative };
+
+function getConversionBundle(wasm: Wasm): ConversionBundle {
+  if (shouldUseNativeConversion(wasm)) {
+    return { conversion: createNativeConversion(wasm), srsFactory: srsNative };
+  }
+  return { conversion: createWasmConversion(wasm), srsFactory: srs };
+}
+*/

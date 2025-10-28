@@ -64,6 +64,7 @@
     "build:jsoo": "npm run build:jsoo:web && npm run build:jsoo:node",
     "build:jsoo:web": "./scripts/build/jsoo/build-web.sh",
     "build:jsoo:node": "./scripts/build/jsoo/build-node.sh",
+    "build:native:node": "./scripts/build/native/build-node.sh",
     "build:docs": "typedoc",
     "prepublish:web": "./scripts/prepublish/prepublish-web.sh",
     "prepublish:node": "./scripts/prepublish/prepublish-node.sh",

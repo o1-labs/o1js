@@ -33,6 +33,7 @@ ok "Mina config files copied"
 
 npm run build:wasm:node
 npm run build:jsoo:node
+npm run build:native:node
 
 npm run build:bindings-transaction-layout
 
