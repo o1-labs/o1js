@@ -12,7 +12,6 @@ import { Provable } from '../provable/provable.js';
 import { InferProvable, provablePure } from '../provable/types/provable-derivers.js';
 import { ProvableTypePure } from '../provable/types/provable-intf.js';
 import { Field } from '../provable/wrapped.js';
-import { fromBase64, toBase64 } from '../util/base64.js';
 import { prettifyStacktrace, prettifyStacktracePromise } from '../util/errors.js';
 import { Get, Tuple } from '../util/types.js';
 import { TupleToInstances } from './zkprogram.js';
@@ -261,14 +260,14 @@ class KimchiVerificationKey {
     const rustVerifierIndex = rustConversion.fp.verifierIndexToRust(this.value as any);
     const verifierIndexBase64 =
       wasm.caml_pasta_fp_plonk_verifier_index_serialize(rustVerifierIndex);
-    return toBase64(verifierIndexBase64);
+    return Buffer.from(verifierIndexBase64, 'utf8').toString('base64');
   }
 
-  static fromString(s: string): KimchiVerificationKey {
+  static fromString(base64: string): KimchiVerificationKey {
     const srsFp = Pickles.loadSrsFp();
     const rustVerifierIndex = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(
       srsFp,
-      fromBase64(s)
+      Buffer.from(base64, 'base64').toString('utf8')
     );
     const rustConversion = getRustConversion(wasm);
     const verifierIndexMl: unknown = rustConversion.fp.verifierIndexFromRust(rustVerifierIndex);
