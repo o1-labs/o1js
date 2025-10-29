@@ -7,8 +7,7 @@ setup_script "native-node-build" "native node build"
 
 NODE_PLATFORM=$(node -e 'console.log(process.platform)')
 NODE_ARCH=$(node -e 'console.log(process.arch)')
-TARGET_SLUG=o1js-$NODE_PLATFORM-$NODE_ARCH
-VERSION=1.0.0
+TARGET_SLUG=$NODE_PLATFORM-$NODE_ARCH
 
 info "building bindings for $TARGET_SLUG"
 
@@ -26,8 +25,8 @@ info "creating package for $TARGET_SLUG bindings..."
 
 cat > $BINDINGS_PATH/package.json <<EOF
 {
-  "name": "@o1labs/$TARGET_SLUG",
-  "version": "$VERSION",
+  "name": "@o1js/native-$TARGET_SLUG",
+  "version": "dev",
   "author": "O(1) Labs",
   "os": [
     "$NODE_PLATFORM"
