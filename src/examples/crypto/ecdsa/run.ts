@@ -34,13 +34,13 @@ perfKeccakEcdsa.start('prove', 'verifyEcdsa');
 let { proof } = await keccakAndEcdsa.verifyEcdsa(message, signature, publicKey);
 perfKeccakEcdsa.end();
 
-proof.publicOutput.assertTrue('signature verifies');
+proof.publicOutput.assertTrue('signature verification failed!');
 
 perfKeccakEcdsa.start('verify', 'verifyEcdsa');
 const isValid = await keccakAndEcdsa.verify(proof);
 perfKeccakEcdsa.end();
 
-assert(isValid, 'proof verifies');
+assert(isValid, 'proof verification failed!');
 
 // Hardcoded ethers.js signature and inputs for verification in o1js
 
@@ -78,10 +78,10 @@ perfEcdsaEthers.start('prove', 'verifyEthers');
 let { proof: proofE } = await ecdsaEthers.verifyEthers(msgBytes, signatureE, publicKeyE);
 perfEcdsaEthers.end();
 
-proofE.publicOutput.assertTrue('signature verifies');
+proofE.publicOutput.assertTrue('signature verification failed!');
 
 perfEcdsaEthers.start('verify', 'verifyEthers');
 const isValidE = await ecdsaEthers.verify(proofE);
 perfEcdsaEthers.end();
 
-assert(isValidE, 'proof verifies');
+assert(isValidE, 'proof verification failed!');

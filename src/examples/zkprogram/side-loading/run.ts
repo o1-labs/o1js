@@ -59,7 +59,8 @@ perfMain.end();
 perfMain.start('verify', 'validateUsingTree');
 const validProof2 = await verify(proof2, mainVk);
 perfMain.end();
-console.log('ok?', validProof2);
+console.log('isValid2? ', validProof2);
+if (!validProof2) throw new Error('proof verification failed!');
 
 console.log('\nProving different method of child program');
 perfSide.start('prove', 'assertAndAdd');
@@ -76,4 +77,5 @@ const { proof: proof3 } = await mainProgram.validateUsingTree(
 );
 
 const validProof3 = await verify(proof3, mainVk);
-console.log('ok?', validProof3);
+console.log('isValid3? ', validProof3);
+if (!validProof3) throw new Error('proof verification failed!');

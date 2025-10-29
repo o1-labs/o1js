@@ -1,4 +1,4 @@
-import { Poseidon, Field, Experimental } from 'o1js';
+import { Experimental, Field, Poseidon } from 'o1js';
 const { ZkFunction } = Experimental;
 
 /**
@@ -26,7 +26,7 @@ console.log('prove...');
 const pi = await main.prove(hash, preimage);
 
 console.log('verify...');
-let ok = await main.verify(pi, verificationKey);
-console.log('ok?', ok);
+let isValid = await main.verify(pi, verificationKey);
+console.log('isValid?', isValid);
 
-if (!ok) throw Error('verification failed');
+if (!isValid) throw Error('verification failed!');
