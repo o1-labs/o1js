@@ -28,7 +28,8 @@ const { proof: proofBig } = await BigProgram.combinedHash(proofSmall.proof);
 perfBig.end();
 
 perfBig.start('verify', 'combinedHash');
-await verify(proofBig, verificationKeyBig);
+let isValid = await verify(proofBig, verificationKeyBig);
 perfBig.end();
 
+if (!isValid) throw new Error('proof verification failed!');
 console.log('Final Digest: ', proofBig.publicOutput.toHex());
