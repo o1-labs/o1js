@@ -1,4 +1,4 @@
-import { Field, Experimental, Gadgets } from 'o1js';
+import { Experimental, Field, Gadgets } from 'o1js';
 const { ZkFunction } = Experimental;
 
 /**
@@ -29,7 +29,8 @@ const proof = await main.prove(x, y);
 console.timeEnd('prove...');
 
 console.time('verify...');
-let ok = await main.verify(proof, verificationKey);
+let isValid = await main.verify(proof, verificationKey);
 console.timeEnd('verify...');
 
-console.log('ok?', ok);
+console.log('isValid?', isValid);
+if (!isValid) throw Error('verification failed!');

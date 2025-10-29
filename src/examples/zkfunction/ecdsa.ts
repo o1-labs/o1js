@@ -1,7 +1,7 @@
-import { Experimental, Crypto, createForeignCurve, Bytes, assert, createEcdsa } from 'o1js';
+import { Bytes, Crypto, Experimental, createEcdsa, createForeignCurve } from 'o1js';
 const { ZkFunction } = Experimental;
 
-export { Secp256k1, Ecdsa, Bytes32, reserves };
+export { Bytes32, Ecdsa, Secp256k1, reserves };
 
 class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class Ecdsa extends createEcdsa(Secp256k1) {}
@@ -12,7 +12,7 @@ const reserves = ZkFunction({
   publicInputType: Bytes32,
   privateInputTypes: [Ecdsa, Secp256k1],
   main: (message: Bytes32, signature: Ecdsa, publicKey: Secp256k1) => {
-    assert(signature.verify(message, publicKey));
+    signature.verify(message, publicKey).assertTrue();
   },
 });
 
@@ -31,5 +31,6 @@ console.timeEnd('prove');
 
 console.time('verify');
 let isValid = await reserves.verify(proof, verificationKey);
-assert(isValid, 'verifies');
 console.timeEnd('verify');
+
+if (!isValid) throw Error('verification failed!');
