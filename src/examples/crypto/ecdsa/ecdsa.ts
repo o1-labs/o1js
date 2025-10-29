@@ -1,6 +1,6 @@
-import { ZkProgram, Crypto, createEcdsa, createForeignCurve, Bool, Bytes, Hash } from 'o1js';
+import { Bool, Bytes, Crypto, Hash, ZkProgram, createEcdsa, createForeignCurve } from 'o1js';
 
-export { keccakAndEcdsa, ecdsa, Secp256k1, Ecdsa, Bytes32, ecdsaEthers };
+export { Bytes32, Ecdsa, Secp256k1, ecdsa, ecdsaEthers, keccakAndEcdsa };
 
 class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class Scalar extends Secp256k1.Scalar {}
