@@ -93,7 +93,9 @@
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report",
     "update-changelog": "./scripts/changelog/update-changelog.sh",
-    "prepare": "husky"
+    "prepare": "husky",
+    "publish": "./scripts/publish/publish.sh",
+    "publish:native": "./scripts/publish/publish-native.sh"
   },
   "author": "O(1) Labs",
   "devDependencies": {
