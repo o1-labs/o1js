@@ -1,4 +1,4 @@
-import { Experimental, Field, Gadgets } from 'o1js';
+import { assert, Experimental, Field, Gadgets } from 'o1js';
 const { ZkFunction } = Experimental;
 
 /**
@@ -18,26 +18,33 @@ const main = ZkFunction({
   },
 });
 
-/* console.time('compile...'); */
+console.time('compile...');
 const { verificationKey } = await main.compile();
+console.timeEnd('compile...');
+
 const x = Field(8);
 const y = Field(2);
+
+console.time('prove...');
 const proof = await main.prove(x, y);
+console.timeEnd('prove...');
 
+console.time('verify...');
 let ok = await main.verify(proof, verificationKey);
+console.timeEnd('verify...');
 
-console.log('ok?', ok);
+assert(ok, 'proof should verify');
 
 console.log('testing round trips');
 
 ok = await proofRoundTrip(proof).verify(verificationKey);
-console.log('proof round trip ok?', ok);
+assert(ok, 'proof should verify');
 
 console.log('verification key round trip...');
 
 ok = await proof.verify(verificationKeyRoundTrip(verificationKey));
 
-console.log('verification key round trip ok?', ok);
+assert(ok, 'proof should verify');
 
 function proofRoundTrip(proof: Experimental.KimchiProof): Experimental.KimchiProof {
   let json = proof.toJSON();
