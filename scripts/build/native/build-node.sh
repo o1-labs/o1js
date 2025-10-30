@@ -26,7 +26,7 @@ info "creating package for $TARGET_SLUG bindings..."
 cat > $BINDINGS_PATH/package.json <<EOF
 {
   "name": "@o1js/native-$TARGET_SLUG",
-  "version": "dev",
+  "version": "0.0.0",
   "author": "O(1) Labs",
   "os": [
     "$NODE_PLATFORM"

@@ -140,9 +140,9 @@
     "tslib": "^2.3.0"
   },
   "optionalDependencies": {
-    "@o1js/native-darwin-arm64": "file:./native/o1js-darwin-arm64",
-    "@o1js/native-darwin-x64": "file:./native/o1js-darwin-x64",
-    "@o1js/native-linux-arm64": "file:./native/o1js-linux-arm64",
-    "@o1js/native-win32-x64": "file:./native/o1js-win32-x64"
+    "@o1js/native-darwin-arm64": "file:native/darwin-arm64",
+    "@o1js/native-darwin-x64": "file:./native/darwin-x64",
+    "@o1js/native-linux-arm64": "file:./native/linux-arm64",
+    "@o1js/native-win32-x64": "file:./native/win32-x64"
   }
 }
