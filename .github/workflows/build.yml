@@ -1,0 +1,163 @@
+name: Build
+on:
+  pull_request:
+  workflow_dispatch:
+env:
+  OCAML_VERSION: 4.14.2
+jobs:
+  build:
+    name: '[${{ matrix.os }}] Build (Node.JS ${{ matrix.node_version }})'
+    strategy:
+      matrix:
+        os: [
+            ubuntu-latest,
+            macos-latest,
+          ]
+        node_version: [22, 24]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Homebrew
+        if: runner.os == 'macOS'
+        uses: Homebrew/actions/setup-homebrew@f4b81a54c655301a8039231c1ae08f89714fe245
+
+      - name: Install Homebrew dependencies
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install \
+            capnp \
+            binaryen \
+            bzip2 \
+            gnu-sed \
+            libffi \
+            libpq \
+            libsodium \
+            lmdb \
+            pkgconf \
+            postgresql@15 \
+            wasm-pack \
+            wasm-tools \
+            wabt \
+            bash \
+            boost \
+            cmake \
+            gmp   \
+            gpatch \
+            jemalloc \
+            libomp
+
+          brew link postgresql@15 
+
+      - name: Install apt dependencies
+        if: runner.os == 'Linux'
+        run: |
+          set -Eeuxo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt update
+          sudo apt install --no-install-recommends --yes \
+            libboost-dev \
+            libboost-program-options-dev \
+            libbz2-dev \
+            libcap-dev \
+            libffi-dev \
+            libgflags-dev \
+            libgmp-dev \
+            libgmp3-dev \
+            libjemalloc-dev \
+            liblmdb-dev \
+            liblmdb0 \
+            libpq-dev \
+            libsodium-dev \
+            libssl-dev \
+            build-essential \
+            ca-certificates \
+            capnproto \
+            cmake \
+            curl \
+            file \
+            git \
+            git-lfs \
+            m4 \
+            pkg-config \
+            rsync \
+            sudo \
+            unzip \
+            binaryen \
+            zlib1g-dev
+
+      - name: Setup Node.JS ${{ matrix.node_version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node_version }}
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Set-up OCaml ${{ env.OCAML_VERSION }}
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_VERSION }}
+
+      - name: Cache opam switch
+        id: cache-opam
+        uses: actions/cache@v4
+        with:
+          path: ./_opam/
+          key: ${{ runner.os }}-${{ env.OCAML_VERSION }}-${{ hashFiles('./src/mina/opam.export') }}
+
+      - name: Setup opam switch
+        if: steps.cache-opam.outputs.cache-hit != 'true'
+        run: |
+          set -Eeuxo pipefail
+
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            export CFLAGS="-I/opt/homebrew/include/"
+            export CPPFLAGS="-I/opt/homebrew/include/"
+            export C_INCLUDE_PATH="/opt/homebrew/include/"
+            export LDFLAGS="-L/opt/homebrew/lib/"
+            export PKG_CONFIG_PATH="$(brew --prefix libpq)/lib/pkgconfig:$(brew --prefix libsodium)/lib/pkgconfig"
+          fi
+
+          opam repository set-url default https://github.com/ocaml/opam-repository.git\#08d8c16c16dc6b23a5278b06dff0ac6c7a217356
+          opam repository add --yes --all --set-default o1-labs https://github.com/o1-labs/opam-repository.git
+          opam pin add --no-action async_ssl https://github.com/o1-labs/async_ssl.git\#v0.14-o1labs
+          pushd src/mina
+          opam switch import --debug --assume-depexts opam.export
+
+      - name: Setup rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2024-09-05
+          targets: wasm32-unknown-unknown
+          components: rust-src
+
+      - name: Setup go
+        uses: nicholasngai/actions-setup-go@f107e23d356886ae65af3bd7f30d8f6c56801c23
+        with:
+          go-version: 1.18.10
+
+      - name: Build bindings
+        run: |
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            export RUST_TARGET_FEATURE_OPTIMISATIONS=omit
+            export PATH="$(brew --prefix gnu-sed)/libexec/gnubin:$PATH"
+          fi
+
+          eval $(opam env)
+          npm run build:bindings-all
+
+      - name: Build
+        run: npm run build
+
+      - name: Run simple test
+        env:
+          TEST_TYPE: 'Simple integration tests'
+        run: ./run-ci-tests.sh
+        timeout-minutes: 60
