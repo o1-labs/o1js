@@ -16,7 +16,8 @@ import { verifierIndexConversion } from './bindings/conversion-verifier-index.js
 import { oraclesConversion } from './bindings/conversion-oracles.js';
 import { jsEnvironment } from './bindings/env.js';
 import { srs } from './bindings/srs.js';
-import { bindingsNapi } from './bindings-napi.js';
+import { napiConversionCore } from './napi-conversion-core.js';
+import { napiProofConversion } from './napi-conversion-proof.js';
 
 export { getRustConversion, RustConversion, Wasm, createNativeRustConversion };
 
@@ -83,7 +84,12 @@ function buildWasmConversion(wasm: Wasm) {
 }
 
 function createNativeRustConversion(napi: any) {
-  return bindingsNapi(napi);
+  let core = napiConversionCore(napi);
+  let proof = napiProofConversion(napi, core);
+  return {
+    fp: { ...core.fp, ...proof.fp },
+    fq: { ...core.fq, ...proof.fq },
+  }
 }
 
 /* TODO: Uncomment in phase 2 of conversion layer   
