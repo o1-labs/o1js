@@ -70,7 +70,10 @@
   (flags +toplevel.js +dynlink.js --pretty --source-map)
   (link_flags --source-map)
   (javascript_files overrides.js))
- (libraries o1js_bindings.lib bindings_js.node_backend)
+ (libraries
+  o1js_bindings.lib
+  bindings_js.node_backend
+  bindings_js.native_backend)
  (link_deps node_js_plonk_wasm.js node_js_plonk_wasm_bg.wasm)
  (instrumentation
   (backend bisect_ppx))
