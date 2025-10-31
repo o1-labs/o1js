@@ -142,6 +142,7 @@
     "minascan",
     "modul",
     "Muls",
+    "napi",
     "Nexts",
     "nixbuild",
     "nixfmt",
