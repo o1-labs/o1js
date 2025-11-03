@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Description:
+#   Regenerates the TypeScript binding constants and Mina transaction layout
+#   definitions used by o1js. This script:
+#     - Removes previously compiled files:
+#         - `_build/default/src/bindings/crypto/constants.ts`
+#         - `_build/default/src/bindings/mina-transaction/gen/`
+#     - Rebuilds the constants and transaction layout TypeScript definitions
+#       from the OCaml/Dune sources:
+#         - `src/bindings/mina-transaction/gen/v1/js-layout.ts`
+#         - `src/bindings/mina-transaction/gen/v2/js-layout.ts`
+#         - `src/bindings/crypto/constants.ts`
+#     - Formats all generated TypeScript files using `prettier` for consistency.
+#
+# Note:
+#   - This script ensures TypeScript bindings reflect the latest Mina protocol constants
+#     and transaction layout definitions used internally by o1js.
+#
+# Usage:
+#   npm run build:bindings-transaction-layout
+
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 CRYPTO_CONSTANTS="$ROOT_DIR/_build/default/src/bindings/crypto/constants.ts"
