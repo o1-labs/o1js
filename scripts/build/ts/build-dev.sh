@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Description:
+#   Builds the o1js TypeScript project for development. This script:
+#     - Compiles the TypeScript source files and outputs the compiled JavaScript to the `dist/` directory.
+#     - Copies prebuilt Node bindings from `src/bindings/compiled/node_bindings/`
+#       into `dist/node/bindings/compiled/node_bindings/`.
+#     - Copies the top-level TypeScript declaration file (`src/bindings.d.ts`)
+#       to `dist/node/` for type support.
+#
+# Notes:
+#   - Expects node bindings to be prebuilt(compiled by earlier build steps).
+#
+# Usage:
+#   npm run build:dev
+
+
 # shared ux library
 source ./scripts/lib/ux.sh
 

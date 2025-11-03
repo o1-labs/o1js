@@ -46,8 +46,8 @@ npm run build
 
 This command downloads the artifacts from github if they are missing and
 compiles the TypeScript source files, making them ready for use. The compiled
-OCaml and WebAssembly artifacts are cached for each commit where ci is run.These
-artifacts are stored under `src/bindings/compiled` and
+OCaml and WebAssembly artifacts are cached for each commit where CI is run.
+These artifacts are stored under `src/bindings/compiled` and
 `src/bindings/mina-transaction/gen` and contain the artifacts needed for both
 nodejs and web builds. These files only have to be regenerated if there are
 changes to the OCaml or Rust source files.
@@ -59,27 +59,27 @@ Unfortunately you generally won't be able to run
 won't have been built for them, so make sure to run it on main before you start
 making changes. In a fresh git repo `npm run build` also works.
 
-Keep in mind that merging a newer version of o1js may include Ocaml and rust
+Keep in mind that merging a newer version of o1js may include OCaml and Rust
 changes so you may need to redownload the artifacts. When this happens, as long
-as you aren't making changes to the Ocaml and rust yourself, you can run
+as you aren't making changes to the OCaml and Rust yourself, you can run
 `REV=<commit you just merged> npm run build:bindings-download`, this will
 download the bindings for the commit you merged which should be the same as the
 ones you need.
 
 ### Internal contributors
 
-If you have an open pr `npm run build:bindings-download` should work on any
-commit where ci has run or is running. If ci is still running it uses
+If you have an open PR `npm run build:bindings-download` should work on any
+commit where CI has run or is running. If CI is still running it uses
 `gh run watch` to show you the progress.
 
-If your pr has a merge conflict, in which case CI will not run on each new
-commit, or you just don't have a pr you may can run
+If your PR has a merge conflict, in which case CI will not run on each new
+commit, or you just don't have a PR you may can run
 `npm run build:bindings-remote`. This will trigger our self-hosted runner to
 build the bindings for your commit and download them once it finishes.
 
 ## Building with nix
 
-Much like the mina repo, we use the nix registry to conveniently handle git
+Much like the Mina repo, we use the nix registry to conveniently handle git
 submodules. You can enter the devshell with `./pin.sh` and
 `nix develop o1js#default` or by using direnv with the `.envrc` provided. This
 devshell provides all the dependencies required for npm scripts including
@@ -88,9 +88,10 @@ devshell provides all the dependencies required for npm scripts including
 ## Building Bindings
 
 To regenerate the OCaml and WebAssembly artifacts, you can do so within the o1js
-repo. The [bindings](https://github.com/o1-labs/o1js-bindings) and
-[Mina](https://github.com/MinaProtocol/mina) repos are both submodules of o1js
-so you can build them from within the o1js repo.
+repo. The [Mina](https://github.com/MinaProtocol/mina) repo is a submodule of
+o1js, and [proof-systems](https://github.com/o1-labs/proof-systems) is a
+submodule of [Mina](https://github.com/MinaProtocol/mina), so you can build them
+recursively from within the o1js repo.
 
 o1js depends on OCaml code that is transpiled to JavaScript using
 [Js_of_ocaml](https://github.com/ocsigen/js_of_ocaml) and Rust code that is
@@ -115,15 +116,33 @@ you can build the bindings:
 npm run build:bindings-all
 ```
 
-This command builds the OCaml and Rust artifacts and copies them to the
-`src/bindings/compiled` directory.
+This command builds the OCaml and Rust Node & Web artifacts and copies them to
+the `src/bindings/compiled` directory.
+
+You can also build only the OCaml and Rust Node bindings for local development
+by running:
+
+```sh
+npm run build:bindings-node
+```
 
 ### Build Scripts
 
 The root build script which kicks off the build process is under
 `src/bindings/scripts/update-o1js-bindings.sh`. This script is responsible for
-building the Node.js and web artifacts for o1js, and places them under
+building the Node.js and Web artifacts for o1js, and places them under
 `src/bindings/compiled`, to be used by o1js.
+
+However, when first setting up your o1js development environment, simply run npm
+run:
+
+```sh
+npm run build
+```
+
+This command generates the Node bindings and compiles the project to JavaScript,
+allowing you to run both the existing examples and any new files as described
+[here](./src/examples/README.md).
 
 ### OCaml Bindings
 
@@ -134,12 +153,19 @@ natively. The OCaml bindings are located under `src/bindings`. See the
 for more information.
 
 To compile the OCaml code, a build tool called Dune is used. Dune is a build
-system for OCaml projects, and is used in addition with Js_of_ocaml to compile
-the OCaml code to JavaScript. The dune file that is responsible for compiling
-the OCaml code is located under `src/bindings/ocaml/dune`. There are two build
-targets: `o1js_node` and `o1js_web`, which compile the Mina dependencies as well
-as link the wasm artifacts to build the Node.js and web artifacts, respectively.
-The output file is `o1js_node.bc.js`, which is used by o1js.
+system for OCaml projects, and is used in addition with Js_of_ocaml (JSOO) to
+compile the OCaml code to JavaScript. The dune file that is responsible for
+compiling the OCaml code is located under `src/bindings/ocaml/dune`. There are
+two build targets: `o1js_node` and `o1js_web`, which compile the Mina
+dependencies as well as link the wasm artifacts to build the Node.js and Web
+artifacts, respectively. The output file is `o1js_node.bc.js`, which is used by
+o1js.
+
+For internal development and debugging, you can manually build the JSOO bindings
+for Node and Web using npm run `build:jsoo:node` and `npm run build:jsoo:web`,
+respectively. However, for typical local development, running the standard build
+commands automatically generates these bindings as part of the overall build
+process.
 
 ### WebAssembly Bindings
 
@@ -162,6 +188,12 @@ For the Wasm build, the output files are:
 - `plonk_wasm.js`: JavaScript file that wraps the Wasm code for use in Node.js.
 - `plonk_wasm.d.ts`: TypeScript definition file for plonk_wasm.js.
 
+Similarly, for internal development and debugging, you can manually build the
+WASM bindings for Node and Web using `npm run build:wasm:node` and
+`npm run build:wasm:web`, respectively. For typical local development, however,
+running the standard build commands automatically generates these bindings as
+part of the overall build process.
+
 ### Generated Constant Types
 
 In addition to building the OCaml and Rust code, the build script also generates
@@ -176,7 +208,14 @@ files.
 o1js uses these types to ensure that the constants used in the protocol are
 consistent with the OCaml source files.
 
-### Bindings check in ci
+This process is already performed as part of the bindings build, but you can
+regenerate the constant types separately by running:
+
+```sh
+npm run build:bindings-transaction-layout
+```
+
+### Bindings check in CI
 
 If the bindings check fails in CI it will upload a patch you can use to update
 the bindings without having to rebuild locally. This can also be helpful when
@@ -188,9 +227,9 @@ To use this patch:
 - Go to the `patch-upload` job and expand the logs for `Upload patch`
 - Download the file linked in the last line of the logs ie.
   `Artifact download URL: https://github.com/o1-labs/o1js/actions/runs/12401083741/artifacts/2339952965`
-- unzip it
-- navigate to `src/bindings`
-- run `git apply path/to/bindings.patch`
+- Unzip it
+- Navigate to `src/bindings`
+- Run `git apply path/to/bindings.patch`
 
 ## Development
 
@@ -260,7 +299,79 @@ to comply with the style:
   for all diffed files. Enable it by running `git config husky.optin true`
 
 > [!NOTE] You can opt-out of linting in a PR by tagging it with skip-lint, in
-> case the linting script is legitimately blocking an important PR
+> case the linting script is legitimately blocking an important PR.
+
+### Build Guide
+
+To build the **o1js** project, simply run:
+
+```sh
+npm run build
+```
+
+This command builds the **Node bindings** and compiles the project’s TypeScript
+sources into JavaScript.
+
+If you want to build **o1js** for both **Node** and **Web**, run:
+
+```sh
+npm run build:bindings-all
+```
+
+This script builds the bindings for **both** environments and compiles the
+project to JavaScript for Node and Web as well.
+
+These are the two main build scripts.  
+For more fine-grained local development and debugging, you can use the following
+targeted scripts.
+
+---
+
+#### TypeScript Build Scripts
+
+| Command                  | Description                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `npm run build:dev`      | Builds the TypeScript source files and outputs the compiled JavaScript to the `dist/` directory.             |
+| `npm run build`          | Builds the full project for Node.js, ensuring all bindings are present and compiling the code to JavaScript. |
+| `npm run build:web`      | Builds the project for Web (browser) usage, only generating a browser-compatible bundle.                     |
+| `npm run build:examples` | Compiles the example files located under `src/examples/`.                                                    |
+
+---
+
+#### Bindings Build Scripts
+
+| Command                                     | Description                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `npm run build:bindings-node`               | Builds the OCaml and Rust Node bindings used by o1js.                                      |
+| `npm run build:bindings-transaction-layout` | Regenerates the TypeScript constant and transaction layout definitions from OCaml sources. |
+| `npm run build:wasm`                        | Builds all WebAssembly (WASM) bindings for both Node and Web.                              |
+| `npm run build:wasm:node`                   | Builds the Kimchi WASM bindings for Node.js.                                               |
+| `npm run build:wasm:web`                    | Builds and optimizes the Kimchi WASM bindings for Web browsers.                            |
+| `npm run build:jsoo`                        | Builds all Js_of_OCaml (JSOO) bindings for both Node and Web.                              |
+| `npm run build:jsoo:node`                   | Builds the Js_of_OCaml Node bindings.                                                      |
+| `npm run build:jsoo:web`                    | Builds the Js_of_OCaml Web bindings.                                                       |
+
+**Additional Utilities:**
+
+| Command                           | Description                                                          |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `npm run check:bindings`          | Checks for existing prebuilt bindings (downloads them if available). |
+| `npm run build:bindings-download` | Downloads prebuilt bindings directly from the CI artifacts.          |
+| `npm run build:bindings-remote`   | Builds bindings remotely or in a containerized CI environment.       |
+
+---
+
+#### Clean Scripts
+
+You can also clean generated artifacts using the following scripts:
+
+| Command                   | Description                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `npm run clean`           | Removes build outputs such as `dist/` and Node bindings artifacts.                                     |
+| `npm run clean:all`       | Removes Node build artifacts generated by the o1js build process as well as test-related output files. |
+| `npm run clean:artifacts` | Removes compiled bindings and intermediate artifacts from OCaml, Kimchi, and proof-systems builds.     |
+
+---
 
 ### Running Tests
 
