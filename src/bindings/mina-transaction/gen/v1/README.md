@@ -20,4 +20,4 @@ let deriver obj =
 To consume a custom deriver and add custom behavior,
 `transaction-leaves-bigint.ts` and `transaction-leaves.ts` must be changed.
 
-To regenerate them, run `npm run build:update-bindings` from o1js.
+To regenerate them, run `npm run build:bindings-all` from o1js.
