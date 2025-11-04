@@ -50,8 +50,12 @@ assert(ok, 'verification should always return true when proofs are disabled');
 console.log('\nTesting KimchiProof.dummy() static method...');
 const dummyProof = await Experimental.KimchiProof.dummy([Field(0), Field(1)]);
 assert(dummyProof !== undefined, 'dummy proof should be created');
-assert(dummyProof.publicInputFields.length === 2, 'dummy proof should have correct public input fields');
+assert(
+  dummyProof.publicInputFields.length === 2,
+  'dummy proof should have correct public input fields'
+);
 
 console.log('\nAll tests passed! ✅');
-console.log('Dummy proofs allow faster testing of ZkFunction logic without waiting for proof generation.');
-
+console.log(
+  'Dummy proofs allow faster testing of ZkFunction logic without waiting for proof generation.'
+);
