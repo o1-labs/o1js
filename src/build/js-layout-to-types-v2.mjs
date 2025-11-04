@@ -160,7 +160,7 @@ function analyzeTypeDependencies(layout) {
   const ranks = {};
 
   function assignRank(name, visited) {
-    if (visited.has(name)) throw new Error('ecnountered a dependency loop');
+    if (visited.has(name)) throw new Error('encountered a dependency loop');
 
     if (deps[name].size > 0) {
       visited.add(name);

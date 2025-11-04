@@ -1,4 +1,4 @@
-import { fieldsFromRustFlat, fieldsToRustFlat } from './bindings/conversion-base.js';
+import { fieldFromRust, fieldsFromRustFlat, fieldsToRustFlat } from './bindings/conversion-base.js';
 import { Gate, Wire } from './bindings/kimchi-types.js';
 import { mapTuple } from './bindings/util.js';
 
@@ -8,10 +8,7 @@ function bindingsNapi(napi: any) {
   return {
     fp: {
       vectorToRust: (fields: any) => {
-        //console.log('values going in ', fields);
-        let res = fieldsToRustFlat(fields);
-        //console.log('values going out ', res);
-        return res;
+        return fieldsToRustFlat(fields);
       },
       vectorFromRust: fieldsFromRustFlat,
       wireToRust([, row, col]: Wire) {
@@ -35,19 +32,19 @@ function bindingsNapi(napi: any) {
           coeffs: Array.from(fieldsToRustFlat(coeffs)),
         };
       },
+      shiftsFromRust(s: any) {
+        let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6].map((x) => Uint8Array.from(x));
+        let shifted = [0, ...shifts.map(fieldFromRust)];
+        return shifted;
+      },
     },
     fq: {
       vectorToRust: (fields: any) => {
-        //console.log('values going in ', fields);
-        let res = fieldsToRustFlat(fields);
-        //console.log('values going out ', res);
-        return res;
+        return fieldsToRustFlat(fields);
       },
       vectorFromRust: (fieldBytes: any) => {
-        //console.log('values going in ', fieldBytes);
-        let res = fieldsFromRustFlat(fieldBytes);
-        //console.log('values going out ', res);
-        return res;
+        return fieldsFromRustFlat(fieldBytes);
+
       },
       wireToRust([, row, col]: Wire) {
         return { row, col };
@@ -69,6 +66,11 @@ function bindingsNapi(napi: any) {
           wires: nativeWires,
           coeffs: Array.from(fieldsToRustFlat(coeffs)),
         };
+      },
+      shiftsFromRust(s: any) {
+        let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6].map((x) => Uint8Array.from(x));
+        let shifted = [0, ...shifts.map(fieldFromRust)];
+        return shifted;
       },
     },
   };
