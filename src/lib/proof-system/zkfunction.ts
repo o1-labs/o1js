@@ -368,7 +368,6 @@ class KimchiVerificationKey {
     const verifierIndexMl: unknown = rustConversion.fp.verifierIndexFromRust(rustVerifierIndex);
     return new KimchiVerificationKey(verifierIndexMl);
   }
-
 }
 
 function mainFromCircuitData<Config extends ZkFunctionConfig>(
