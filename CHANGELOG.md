@@ -18,6 +18,18 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3453d1e53...HEAD)
 
+### Added
+
+- Add `KimchiProof.toJSON()` and `KimchiProof.fromJSON()`
+  https://github.com/o1-labs/o1js/pull/2594
+- Add `KimchiVerificationKey.toString()` and
+  `KimchiVerificationKey.fromString()` https://github.com/o1-labs/o1js/pull/2594
+
+### Internal
+
+- Change cache harness to only allow writes when `dump` mode is active.
+  https://github.com/o1-labs/o1js/pull/2599
+
 ### Fixed
 
 - Updated `VerificationKey.toJSON()` to include the verification key hash for

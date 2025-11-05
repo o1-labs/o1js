@@ -152,6 +152,7 @@ jobs:
             'Verification Key Regression Check 2',
             'CommonJS test',
             'Cache Regression',
+            'Performance Regression',
           ]
     steps:
       - name: Checkout repository with submodules

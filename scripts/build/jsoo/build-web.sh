@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Description:
+#   Builds the Js_of_OCaml (JSOO) Web bindings for o1js. This script:
+#     - Compiles the OCaml `jsoo_exports` target using Dune via Js_of_OCaml,
+#       producing the `o1js_web.bc.js` JavaScript output for browser environments.
+#     - Copies the generated artifact to `src/bindings/compiled/web_bindings/`
+#       for inclusion in the o1js web distribution (after getting copied again later to dist/web/).
+#     - Transforms OCaml-style exceptions into standard JavaScript `Error` objects
+#       to improve debugging and runtime compatibility.
+#     - Minifies the resulting JavaScript using `esbuild` for smaller bundle size.
+#
+# Usage:
+#   npm run build:jsoo:web
+
+
 source ./scripts/lib/ux.sh
 
 JSOO_PATH=./src/bindings/ocaml/jsoo_exports/
