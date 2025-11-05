@@ -13,8 +13,6 @@ type NapiAffine = napiNamespace.WasmGVesta | napiNamespace.WasmGPallas;
 type NapiPolyComm = { unshifted: unknown; shifted?: NapiAffine | undefined };
 type PolyCommCtor = new (unshifted: unknown, shifted?: NapiAffine | undefined) => NapiPolyComm;
 
-//const FIELD_BYTE_LENGTH = fieldToRust([0, 0n]).length;
-
 type NapiClasses = {
   CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;
   makeAffine: () => NapiAffine;

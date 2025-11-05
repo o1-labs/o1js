@@ -176,7 +176,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
       }
 
       // edge case for when we have a writeable cache and the basis was already stored on the srs
-      // but we didn't store it in the cache seperately yet
+      // but we didn't store it in the cache separately yet
       if (commitment && cache && cache.canWrite) {
         let header = cacheHeaderLagrange(f, domainSize);
         let didRead = readCacheLazy(

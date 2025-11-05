@@ -1,6 +1,6 @@
-import { Bytes, Field, Hash, Poseidon, UInt8, ZkProgram, verify } from 'o1js';
+import { Bytes, Field, Hash, Poseidon, UInt8, ZkProgram } from 'o1js';
 
-const SmallProgram = ZkProgram({
+export const SmallProgram = ZkProgram({
   name: 'small-program',
   publicOutput: Field,
 
@@ -19,7 +19,7 @@ const SmallProgram = ZkProgram({
 class PoseidonProof extends SmallProgram.Proof {}
 class Bytes32 extends Bytes(32) {}
 
-const BigProgram = ZkProgram({
+export const BigProgram = ZkProgram({
   name: 'big-program',
   publicOutput: Bytes32,
 
@@ -45,31 +45,3 @@ const BigProgram = ZkProgram({
     },
   },
 });
-
-const csSmall = await SmallProgram.analyzeMethods();
-console.log('small program rows: ', csSmall.poseidonHash.rows);
-
-const csBig = await BigProgram.analyzeMethods();
-console.log('big program rows: ', csBig.combinedHash.rows, '\n');
-
-console.time('compile small');
-await SmallProgram.compile();
-console.timeEnd('compile small');
-
-console.time('compile big');
-const { verificationKey: verificationKeyBig } = await BigProgram.compile();
-console.timeEnd('compile big');
-
-console.time('prove small');
-const proofSmall = await SmallProgram.poseidonHash(Field.random());
-console.timeEnd('prove small');
-
-console.time('prove big');
-const { proof: proofBig } = await BigProgram.combinedHash(proofSmall.proof);
-console.timeEnd('prove big');
-
-console.time('verify big');
-await verify(proofBig, verificationKeyBig);
-console.timeEnd('verify big');
-
-console.log('Final Digest: ', proofBig.publicOutput.toHex());
