@@ -30,6 +30,10 @@ This project adheres to
 - Change cache harness to only allow writes when `dump` mode is active.
   https://github.com/o1-labs/o1js/pull/2599
 
+### Fixed
+
+- https://github.com/o1-labs/o1js/pull/2622
+
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
 ### Internal
