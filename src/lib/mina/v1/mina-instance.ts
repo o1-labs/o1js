@@ -63,7 +63,7 @@ type ActionStates = {
 type NetworkConstants = {
   genesisTimestamp: UInt64;
   /**
-   * Duration of 1 slot in millisecondw
+   * Duration of 1 slot in milliseconds
    */
   slotTime: UInt64;
   accountCreationFee: UInt64;

@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { fieldFromRust, fieldToRust, fieldsFromRustFlat, fieldsToRustFlat } from './bindings/conversion-base.js';
 import { Gate, OrInfinity, PolyComm, Wire, Field } from './bindings/kimchi-types.js';
 import { MlArray } from '../../lib/ml/base.js';
@@ -10,8 +9,6 @@ export { bindingsNapi };
 type NapiAffine = napiNamespace.WasmGVesta | napiNamespace.WasmGPallas;
 type NapiPolyComm = { unshifted: unknown; shifted?: NapiAffine | undefined };
 type PolyCommCtor = new (unshifted: unknown, shifted?: NapiAffine | undefined) => NapiPolyComm;
-
-//const FIELD_BYTE_LENGTH = fieldToRust([0, 0n]).length;
 
 type NapiClasses = {
   CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;

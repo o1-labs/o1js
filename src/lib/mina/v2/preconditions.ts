@@ -10,7 +10,7 @@ import { Field } from '../../provable/field.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
 import { HashInput } from '../../provable/types/provable-derivers.js';
-// TODO: pull last remanants of old transaction leavs into v2 bindings
+// TODO: pull last remanants of old transaction leaves into v2 bindings
 import { Actions } from '../../../bindings/mina-transaction/v1/transaction-leaves.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/v2/js-layout.js';
 import { ZkappConstants } from '../v1/constants.js';
