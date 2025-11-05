@@ -1,9 +1,14 @@
-import { Buffer } from 'node:buffer';
-import { fieldFromRust, fieldToRust, fieldsFromRustFlat, fieldsToRustFlat } from './bindings/conversion-base.js';
-import { Gate, OrInfinity, PolyComm, Wire, Field } from './bindings/kimchi-types.js';
 import { MlArray } from '../../lib/ml/base.js';
-import { mapTuple } from './bindings/util.js';
 import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
+import {
+  fieldFromRust,
+  fieldToRust,
+  fieldsFromRustFlat,
+  fieldsToRustFlat,
+} from './bindings/conversion-base.js';
+import { mapFromUintArray } from './bindings/conversion-core.js';
+import { Field, Gate, LookupTable, OrInfinity, PolyComm, Wire } from './bindings/kimchi-types.js';
+import { mapTuple } from './bindings/util.js';
 
 export { bindingsNapi };
 
@@ -17,7 +22,7 @@ type NapiClasses = {
   CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;
   makeAffine: () => NapiAffine;
   PolyComm: napiNamespace.WasmFpPolyComm | napiNamespace.WasmFqPolyComm;
-}
+};
 
 function bindingsNapi(napi: any) {
   const fpCore = conversionCorePerField({
@@ -37,24 +42,30 @@ function bindingsNapi(napi: any) {
     wireToRust([, row, col]: Wire) {
       return { row, col };
     },
+    lookupTablesToRust([, ...tables]: MlArray<LookupTable>) {
+      return tables;
+    },
+    runtimeTableCfgsToRust([, ...tables]: MlArray<Uint8Array>) {
+      return tables.map((table) => Array.from(table));
+    },
     gateToRust(gate: Gate): any {
-        const [, typ, [, ...wires], coeffs] = gate;
-        const mapped = mapTuple(wires, (wire) => this.wireToRust(wire));
-        const nativeWires = {
-          w0: mapped[0],
-          w1: mapped[1],
-          w2: mapped[2],
-          w3: mapped[3],
-          w4: mapped[4],
-          w5: mapped[5],
-          w6: mapped[6],
-        } as const;
-        return {
-          typ,
-          wires: nativeWires,
-          coeffs: Array.from(fieldsToRustFlat(coeffs)),
-        };
-      },
+      const [, typ, [, ...wires], coeffs] = gate;
+      const mapped = mapTuple(wires, (wire) => this.wireToRust(wire));
+      const nativeWires = {
+        w0: mapped[0],
+        w1: mapped[1],
+        w2: mapped[2],
+        w3: mapped[3],
+        w4: mapped[4],
+        w5: mapped[5],
+        w6: mapped[6],
+      } as const;
+      return {
+        typ,
+        wires: nativeWires,
+        coeffs: Array.from(fieldsToRustFlat(coeffs)),
+      };
+    },
   };
 
   return {
@@ -82,16 +93,24 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
   };
   const affineFromRust = (pt: NapiAffine): OrInfinity => {
     if (pt.infinity) return 0;
+    console.log('pt', pt);
+    console.log('pt.x', pt.x);
+    console.log('pt.y', pt.y);
+
     const xField = fieldFromRust(pt.x);
     const yField = fieldFromRust(pt.y);
     return [0, [0, xField, yField]];
-  };  
+  };
 
   const pointToRust = (point: OrInfinity): NapiAffine => affineToRust(point);
   const pointFromRust = (point: NapiAffine): OrInfinity => affineFromRust(point);
 
-  const pointsToRust = ([, ...points]: MlArray<OrInfinity>): NapiAffine[] => points.map(affineToRust);
-  const pointsFromRust = (points: NapiAffine[]): MlArray<OrInfinity> => [0, ...points.map(affineFromRust)];
+  const pointsToRust = ([, ...points]: MlArray<OrInfinity>): NapiAffine[] =>
+    points.map(affineToRust);
+  const pointsFromRust = (points: NapiAffine[]): MlArray<OrInfinity> => [
+    0,
+    ...points.map(affineFromRust),
+  ];
 
   const polyCommToRust = (polyComm: PolyComm): NapiPolyComm => {
     const [, camlElems] = polyComm;
@@ -100,9 +119,21 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return new PolyCommClass(unshifted as unknown, undefined);
   };
 
-  const polyCommFromRust = (polyComm: NapiPolyComm): PolyComm => {
+  /*   const polyCommFromRust = (polyComm: NapiPolyComm): PolyComm => {
+    console.log('polyComm', polyComm);
     const rustUnshifted = asArrayLike<NapiAffine>(polyComm.unshifted, 'polyComm.unshifted');
+    console.log('rustUnshifted', rustUnshifted);
     const mlUnshifted = rustUnshifted.map(affineFromRust);
+    return [0, [0, ...mlUnshifted]];
+  }; */
+  const polyCommFromRust = (polyComm: any): any => {
+    let rustUnshifted = polyComm.unshifted;
+    console.log('rustUnshifted', rustUnshifted);
+    let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
+      console.log('ptr', ptr);
+      /*       return affineFromRust(wrap(ptr, CommitmentCurve));
+       */
+    });
     return [0, [0, ...mlUnshifted]];
   };
 
