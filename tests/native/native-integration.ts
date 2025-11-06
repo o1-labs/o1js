@@ -1,4 +1,4 @@
-import native from '@o1js/native-darwin-arm64';
+import native from '../../src/native/native';
 import { Field, ZkProgram, verify } from 'o1js';
 
 let MyProgram = ZkProgram({
