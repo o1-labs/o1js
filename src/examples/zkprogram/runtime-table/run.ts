@@ -27,5 +27,7 @@ let { proof } = await PayrollRuntimeTableZkProgram.verifyPayroll(
 perfPayroll.end();
 
 perfPayroll.start('verify', 'verifyPayroll');
-await verify(proof, verificationKey);
+let isValid = await verify(proof, verificationKey);
 perfPayroll.end();
+
+if (!isValid) throw new Error('proof verification failed!');

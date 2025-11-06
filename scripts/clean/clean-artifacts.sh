@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Description:
+#   Deep-clean o1js build artifacts produced across multiple toolchains. This script
+#   removes compiled JS outputs, compiled node/web bindings, and intermediate outputs created
+#   by OCaml/Dune, Rust/WASM, and the Mina proof-systems build.
+#
+# Usage:
+#   npm run clean:artifacts
+
+
 # shared libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/ux.sh"

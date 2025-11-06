@@ -1,14 +1,4 @@
-import {
-  SelfProof,
-  Field,
-  ZkProgram,
-  verify,
-  Proof,
-  JsonProof,
-  Provable,
-  Empty,
-  Cache,
-} from 'o1js';
+import { Field, ZkProgram } from 'o1js';
 
 let MyProgram = ZkProgram({
   name: 'example-without-proving',

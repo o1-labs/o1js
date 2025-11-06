@@ -28,5 +28,7 @@ let { proof } = await rsaZkProgram.verifyRsa65537(message, signature, modulus);
 perfRsa.end();
 
 perfRsa.start('verify', 'verifyRsa65537');
-await rsaZkProgram.verify(proof);
+let isValid = await rsaZkProgram.verify(proof);
 perfRsa.end();
+
+if (!isValid) throw Error('proof verification failed!');

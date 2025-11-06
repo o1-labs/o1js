@@ -1,4 +1,4 @@
-import { Field, Experimental, Gadgets } from 'o1js';
+import { assert, Experimental, Field, Gadgets } from 'o1js';
 const { ZkFunction } = Experimental;
 
 /**
@@ -22,9 +22,10 @@ console.time('compile...');
 const { verificationKey } = await main.compile();
 console.timeEnd('compile...');
 
-console.time('prove...');
 const x = Field(8);
 const y = Field(2);
+
+console.time('prove...');
 const proof = await main.prove(x, y);
 console.timeEnd('prove...');
 
@@ -32,4 +33,32 @@ console.time('verify...');
 let ok = await main.verify(proof, verificationKey);
 console.timeEnd('verify...');
 
-console.log('ok?', ok);
+assert(ok, 'proof should verify');
+
+console.log('testing round trips');
+
+ok = await proofRoundTrip(proof).verify(verificationKey);
+assert(ok, 'proof should verify');
+
+console.log('verification key round trip...');
+
+ok = await proof.verify(verificationKeyRoundTrip(verificationKey));
+
+assert(ok, 'proof should verify');
+
+function proofRoundTrip(proof: Experimental.KimchiProof): Experimental.KimchiProof {
+  let json = proof.toJSON();
+  console.log('proof json:', {
+    proof: json.proof.slice(0, 10),
+    publicInputFields: json.publicInputFields,
+  });
+  return Experimental.KimchiProof.fromJSON(json);
+}
+
+function verificationKeyRoundTrip(
+  vk: Experimental.KimchiVerificationKey
+): Experimental.KimchiVerificationKey {
+  let json = vk.toString();
+  console.log('vk string:', json.slice(0, 10));
+  return Experimental.KimchiVerificationKey.fromString(json);
+}
