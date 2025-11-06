@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -Eeuxo pipefail
+set -Eeuo pipefail
 
 source ./scripts/lib/ux.sh
 setup_script "npm-publish-native" "NPM publish native"
@@ -9,8 +9,10 @@ NODE_ARCH=$(node -e 'console.log(process.arch)')
 TARGET_SLUG=$NODE_PLATFORM-$NODE_ARCH
 BINDINGS_PATH=./native/$TARGET_SLUG
 
-./run ./scripts/publish/publish-native.ts --bundle --write --native-version=0.0.2 $BINDINGS_PATH
+./run ./scripts/prepublish/native/prepublish-native-package.ts \
+  --bundle \
+  --write \
+  $BINDINGS_PATH \
+  ./
 
-pushd $BINDINGS_PATH
-npm publish --access public
-popd
+cat $BINDINGS_PATH/package.json

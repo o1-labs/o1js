@@ -16,7 +16,7 @@ result
 # precompiled bindings
 src/bindings/compiled
 .bindings_download
-native/
+/native
 
 # rust-analyzer
 target/
