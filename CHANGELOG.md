@@ -24,6 +24,11 @@ This project adheres to
   https://github.com/o1-labs/o1js/pull/2594
 - Add `KimchiVerificationKey.toString()` and
   `KimchiVerificationKey.fromString()` https://github.com/o1-labs/o1js/pull/2594
+- Add optional property `cacheDirectory` to `Cache` to retrieve the directory of the cache. https://github.com/o1-labs/o1js/pull/2624 
+
+### Fixed
+
+- Fixed an edge case where the cache could not be generated and read properly. https://github.com/o1-labs/o1js/pull/2624
 
 ### Internal
 
