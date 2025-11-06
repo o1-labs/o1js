@@ -36,6 +36,7 @@ This project adheres to
   https://github.com/o1-labs/o1js/pull/2599
 - Improved the internal o1js build system, adding native macOS ARM support and strengthening build integrity.
 - Added a framework to test for cache regressions in circuit compilation artefacts across versions.
+- Updated proof-systems submodule to a newer upstream commit. https://github.com/o1-labs/o1js/pull/2624
 
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
