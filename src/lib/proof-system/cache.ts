@@ -50,6 +50,10 @@ type Cache = {
    * but could just be a cache miss, or file system permissions incompatible with writing data.
    */
   debug?: boolean;
+  /**
+   * The directory where cache files are stored. Only applicable for file system caches.
+   */
+  cacheDirectory?: string;
 };
 
 const cacheHeaderVersion = 1;
@@ -185,6 +189,7 @@ const FileSystem = (cacheDirectory: string, debug?: boolean): Cache => ({
   },
   canWrite: jsEnvironment === 'node',
   debug,
+  cacheDirectory,
 });
 
 const FileSystemDefault = FileSystem(cacheDir('o1js'));
