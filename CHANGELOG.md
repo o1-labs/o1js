@@ -28,7 +28,9 @@ This project adheres to
 
 ### Fixed
 
-- Fixed an edge case where the cache could not be generated and read properly. https://github.com/o1-labs/o1js/pull/2624
+- Fixed an edge case that prevented the cache from being generated and read correctly. https://github.com/o1-labs/o1js/pull/2624
+  - If you previously encountered issues when reading from the cache and generating proofs from these artefacts, it is recommended to regenerate the cache once.
+  - Caches that have not caused any issues are unaffected by this change and can continue to be used without regeneration.
 
 ### Internal
 
