@@ -4,22 +4,22 @@
  * It gets imported as the first thing in ../../bindings.js so that the global variable is ready by the time JSOO code gets executed.
  */
 import type * as wasmNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
-import { fieldsFromRustFlat, fieldsToRustFlat } from './bindings/conversion-base.js';
-import { proofConversion } from './bindings/conversion-proof.js';
-import { conversionCore } from './bindings/conversion-core.js';
-import { verifierIndexConversion } from './bindings/conversion-verifier-index.js';
-import { oraclesConversion } from './bindings/conversion-oracles.js';
-import { jsEnvironment } from './bindings/env.js';
-import { srs } from './bindings/srs.js';
-import { napiConversionCore } from './napi-conversion-core.js';
-import { napiProofConversion } from './napi-conversion-proof.js';
 import { prefixHashes, prefixHashesLegacy } from '../crypto/constants.js';
 import { Bigint256Bindings } from './bindings/bigint256.js';
+import { fieldsFromRustFlat, fieldsToRustFlat } from './bindings/conversion-base.js';
+import { conversionCore } from './bindings/conversion-core.js';
+import { oraclesConversion } from './bindings/conversion-oracles.js';
+import { proofConversion } from './bindings/conversion-proof.js';
+import { verifierIndexConversion } from './bindings/conversion-verifier-index.js';
 import { PallasBindings, VestaBindings } from './bindings/curve.js';
+import { jsEnvironment } from './bindings/env.js';
 import { FpBindings, FqBindings } from './bindings/field.js';
+import { srs } from './bindings/srs.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
+import { napiConversionCore } from './napi-conversion-core.js';
+import { napiProofConversion } from './napi-conversion-proof.js';
 
-export { createNativeRustConversion, getRustConversion, RustConversion, Wasm };
+export { RustConversion, Wasm, createNativeRustConversion, getRustConversion };
 
 /* TODO: Uncomment in phase 2 of conversion layer 
 import { conversionCore as conversionCoreNative } from './native/conversion-core.js';
@@ -88,7 +88,7 @@ function createNativeRustConversion(napi: any) {
   return {
     fp: { ...core.fp, ...proof.fp },
     fq: { ...core.fq, ...proof.fq },
-  }
+  };
 }
 
 /* TODO: Uncomment in phase 2 of conversion layer   
