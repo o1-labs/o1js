@@ -1,0 +1,70 @@
+name: Native
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-native-packages:
+    name: Publish
+    strategy:
+      matrix:
+        os: [
+          macos-latest,
+          macos-15-intel,
+          ubuntu-latest,
+          ubuntu-22.04-arm,
+          # windows-latest,
+        ]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # required for npm publish --provenance
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 4.14.2
+      - uses: actions/cache@v4
+        id: cache-opam
+        with:
+          path: ./_opam/
+          key: ${{ runner.OS }}-${{ runner.arch }}-opam-${{ hashFiles('./scripts/prepublish/native/prepublish-native-package.opam') }}
+      - name: opam install
+        if: ${{ steps.cache-opam.outputs.cache-hit != 'true' }}
+        run: |
+          opam install \
+            --deps-only \
+            -y \
+            ./scripts/prepublish/native/prepublish-native-package.opam
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2024-09-05
+          targets: wasm32-unknown-unknown
+          components: rust-src
+      
+      - name: Build native package
+        run: |
+          set -Eeuxo pipefail
+          eval $(opam env)
+          npm run build:native
+        
+      - name: Prepare native package
+        run: |
+          set -Eeuxo pipefail
+          npm run native:prepublish
+
+      - name: Publish native package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -Eeuxo pipefail
+
+          npm run native:publish
