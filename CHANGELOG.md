@@ -24,21 +24,29 @@ This project adheres to
   https://github.com/o1-labs/o1js/pull/2594
 - Add `KimchiVerificationKey.toString()` and
   `KimchiVerificationKey.fromString()` https://github.com/o1-labs/o1js/pull/2594
-- Add optional property `cacheDirectory` to `Cache` to retrieve the directory of the cache. https://github.com/o1-labs/o1js/pull/2624 
+- Add optional property `cacheDirectory` to `Cache` to retrieve the directory of
+  the cache. https://github.com/o1-labs/o1js/pull/2624
 
 ### Fixed
 
-- Fixed an edge case that prevented the cache from being generated and read correctly. https://github.com/o1-labs/o1js/pull/2624
-  - If you previously encountered issues when reading from the cache and generating proofs from these artefacts, it is recommended to regenerate the cache once.
-  - Caches that have not caused any issues are unaffected by this change and can continue to be used without regeneration.
+- Fixed an edge case that prevented the cache from being generated and read
+  correctly. https://github.com/o1-labs/o1js/pull/2624
+  - If you previously encountered issues when reading from the cache and
+    generating proofs from these artefacts, it is recommended to regenerate the
+    cache once.
+  - Caches that have not caused any issues are unaffected by this change and can
+    continue to be used without regeneration.
 
 ### Internal
 
 - Change cache harness to only allow writes when `dump` mode is active.
   https://github.com/o1-labs/o1js/pull/2599
-- Improved the internal o1js build system, adding native macOS ARM support and strengthening build integrity.
-- Added a framework to test for cache regressions in circuit compilation artefacts across versions.
-- Updated proof-systems submodule to a newer upstream commit. https://github.com/o1-labs/o1js/pull/2624
+- Improved the internal o1js build system, adding native macOS ARM support and
+  strengthening build integrity.
+- Added a framework to test for cache regressions in circuit compilation
+  artefacts across versions.
+- Updated proof-systems submodule to a newer upstream commit.
+  https://github.com/o1-labs/o1js/pull/2624
 
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
