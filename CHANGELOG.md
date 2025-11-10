@@ -38,7 +38,6 @@ This project adheres to
 - Added a framework to test for cache regressions in circuit compilation
   artefacts across versions.
 
-
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 
 ### Internal
