@@ -6,15 +6,15 @@
  */
 import assert from 'assert';
 import {
-  createForeignField,
   AlmostForeignField,
   CanonicalForeignField,
+  Provable,
   Scalar,
   SmartContract,
-  method,
-  Provable,
-  state,
   State,
+  createForeignField,
+  method,
+  state,
 } from 'o1js';
 
 // Let's create a small finite field: F_17

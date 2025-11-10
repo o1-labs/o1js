@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Description:
+#   Builds the o1js project for Node.js usage. This script:
+#     - Ensures that the Node bindings are available:
+#         1. Checks for precompiled bindings locally.
+#         2. Attempts to download CI-built bindings via `npm run check:bindings` if missing.
+#         3. Falls back to building bindings locally via `npm run build:bindings-node` if necessary.
+#     - Cleans the `dist/node` directory to ensure a fresh build output.
+#     - Runs the development TypeScript build (`npm run build:dev`) to produce compiled JS in `dist/`.
+#     - Builds the final Node bundle via `src/build/build-node.js`.
+#
+# Usage:
+#   npm run build
+
+
 # shared libraries
 source ./scripts/lib/ux.sh
 

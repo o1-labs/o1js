@@ -1,4 +1,4 @@
-import { SelfProof, Field, ZkProgram } from 'o1js';
+import { Field, SelfProof, ZkProgram } from 'o1js';
 
 export const RecursiveProgram = ZkProgram({
   name: 'recursive-program',
