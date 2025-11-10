@@ -147,6 +147,6 @@
     "@o1js/native-win32-x64": "file:./native/win32-x64"
   },
   "o1js-internal": {
-    "native-version": "0.0.1-dev.3"
+    "native-version": "0.0.1-dev.4"
   }
 }
