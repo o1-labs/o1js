@@ -1,5 +1,5 @@
-import native from '@o1js/native-darwin-arm64';
 import assert from 'node:assert';
+import native from '../../src/native/native';
 
 console.log(native);
 
