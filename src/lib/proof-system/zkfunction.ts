@@ -1,4 +1,5 @@
-import { Pickles, Snarky, initializeBindings, withThreadPool } from '../../bindings.js';
+import { getRustConversion } from '../../bindings/crypto/bindings.js';
+import { Pickles, Snarky, initializeBindings, wasm, withThreadPool } from '../../bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import {
   ConstraintSystemSummary,
@@ -202,7 +203,7 @@ class KimchiProof {
     this.publicInputFields = publicInputFields;
   }
 
-/*   toJSON(): KimchiJsonProof {
+  toJSON(): KimchiJsonProof {
     const proofWithEvalsMl: any = Snarky.circuit.proofToBackendProofEvals(
       MlFieldConstArray.to(this.publicInputFields),
       this.value
@@ -213,17 +214,18 @@ class KimchiProof {
       proof: rustProof.serialize(),
       publicInputFields: this.publicInputFields.map((f) => f.toString()),
     };
-  } */
+  } 
 
-/*   static fromJSON(json: KimchiJsonProof): KimchiProof {
-    const rustProof = wasm.WasmFpProverProof.deserialize(json.proof);
+  static fromJSON(json: KimchiJsonProof): KimchiProof {
+    const bytes = Uint8Array.from(Buffer.from(json.proof, 'base64'));
+    const rustProof = wasm.WasmFpProverProof.deserialize(bytes);
     const rustConversion = getRustConversion(wasm);
     const proofWithEvalsMl = Snarky.circuit.proofFromBackendProofEvals(
       rustConversion.fp.proofFromRust(rustProof)
     );
     const publicInputFields = json.publicInputFields.map((s) => Field(s));
     return new KimchiProof(proofWithEvalsMl, publicInputFields);
-  } */
+  } 
  
   /**
    * Verifies this proof using the provided verification key.
@@ -254,7 +256,7 @@ class KimchiVerificationKey {
     this.value = value;
   }
  
-/*   toString(): string {
+  toString(): string {
     const rustConversion = getRustConversion(wasm);
     const rustVerifierIndex = rustConversion.fp.verifierIndexToRust(this.value as any);
     const verifierIndexBase64 =
@@ -271,7 +273,7 @@ class KimchiVerificationKey {
     const rustConversion = getRustConversion(wasm);
     const verifierIndexMl: unknown = rustConversion.fp.verifierIndexFromRust(rustVerifierIndex);
     return new KimchiVerificationKey(verifierIndexMl);
-  }  */
+  } 
 }
 
 function mainFromCircuitData<Config extends ZkFunctionConfig>(

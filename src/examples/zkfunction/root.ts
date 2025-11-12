@@ -37,7 +37,7 @@ assert(ok, 'proof should verify');
 
 console.log('testing round trips');
 
-/* 
+
 ok = await proofRoundTrip(proof).verify(verificationKey);
 assert(ok, 'proof should verify');
 
@@ -63,4 +63,4 @@ function verificationKeyRoundTrip(
   console.log('vk string:', json.slice(0, 10));
   return Experimental.KimchiVerificationKey.fromString(json);
 }
- */
+ 
