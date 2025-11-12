@@ -41,7 +41,6 @@ console.log('testing round trips');
 ok = await proofRoundTrip(proof).verify(verificationKey);
 assert(ok, 'proof should verify');
 
-
 console.log('verification key round trip...');
 
 ok = await proof.verify(verificationKeyRoundTrip(verificationKey));
