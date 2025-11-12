@@ -203,7 +203,7 @@ class KimchiProof {
     this.publicInputFields = publicInputFields;
   }
 
-  toJSON(): KimchiJsonProof {
+/*   toJSON(): KimchiJsonProof {
     const proofWithEvalsMl: any = Snarky.circuit.proofToBackendProofEvals(
       MlFieldConstArray.to(this.publicInputFields),
       this.value
@@ -214,9 +214,9 @@ class KimchiProof {
       proof: rustProof.serialize(),
       publicInputFields: this.publicInputFields.map((f) => f.toString()),
     };
-  }
+  } */
 
-  static fromJSON(json: KimchiJsonProof): KimchiProof {
+/*   static fromJSON(json: KimchiJsonProof): KimchiProof {
     const rustProof = wasm.WasmFpProverProof.deserialize(json.proof);
     const rustConversion = getRustConversion(wasm);
     const proofWithEvalsMl = Snarky.circuit.proofFromBackendProofEvals(
@@ -225,7 +225,7 @@ class KimchiProof {
     const publicInputFields = json.publicInputFields.map((s) => Field(s));
     return new KimchiProof(proofWithEvalsMl, publicInputFields);
   }
-
+ */
   /**
    * Verifies this proof using the provided verification key.
    * @param verificationKey The key to verify against.
@@ -254,7 +254,7 @@ class KimchiVerificationKey {
   constructor(value: Snarky.VerificationKey) {
     this.value = value;
   }
-
+/* 
   toString(): string {
     const rustConversion = getRustConversion(wasm);
     const rustVerifierIndex = rustConversion.fp.verifierIndexToRust(this.value as any);
@@ -272,7 +272,7 @@ class KimchiVerificationKey {
     const rustConversion = getRustConversion(wasm);
     const verifierIndexMl: unknown = rustConversion.fp.verifierIndexFromRust(rustVerifierIndex);
     return new KimchiVerificationKey(verifierIndexMl);
-  }
+  } */
 }
 
 function mainFromCircuitData<Config extends ZkFunctionConfig>(
