@@ -1,4 +1,4 @@
-import { Pickles, Snarky, initializeBindings, wasm, withThreadPool } from '../../bindings.js';
+import { Pickles, Snarky, initializeBindings, withThreadPool } from '../../bindings.js';
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { MlFieldArray, MlFieldConstArray } from '../ml/fields.js';
 import {
