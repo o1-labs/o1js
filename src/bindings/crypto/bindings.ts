@@ -49,6 +49,7 @@ const tsBindings = {
     return bundle.srsFactory(wasm, bundle.conversion);
   },*/
   srs: (wasm: Wasm) => srs(wasm, getRustConversion(wasm)),
+  srsNative: (napi: Wasm) => srs(napi, createNativeRustConversion(napi) as any),
 };
 
 // this is put in a global variable so that mina/src/lib/crypto/kimchi_bindings/js/bindings.js finds it
