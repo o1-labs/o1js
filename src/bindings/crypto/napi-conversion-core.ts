@@ -10,11 +10,11 @@ import { mapFromUintArray } from './bindings/conversion-core.js';
 import { Field, Gate, LookupTable, OrInfinity, PolyComm, Wire } from './bindings/kimchi-types.js';
 import { mapTuple } from './bindings/util.js';
 
-export { napiConversionCore, ConversionCore, ConversionCores };
+export { ConversionCore, ConversionCores, napiConversionCore };
 
 type ConversionCore = ReturnType<typeof conversionCorePerField>;
 type ConversionCores = ReturnType<typeof napiConversionCore>;
-  
+
 type NapiAffine = napiNamespace.WasmGVesta | napiNamespace.WasmGPallas;
 type NapiPolyComm = { unshifted: unknown; shifted?: NapiAffine | undefined };
 type PolyCommCtor = new (unshifted: unknown, shifted?: NapiAffine | undefined) => NapiPolyComm;
@@ -71,7 +71,13 @@ function napiConversionCore(napi: any) {
 
   return {
     fp: { ...fpCore },
-    fq: { ...fqCore },
+    fq: {
+      ...fqCore,
+      shiftsFromRust: (s: any) => {
+        let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
+        return [0, ...shifts.map(fieldFromRust)];
+      },
+    },
     ...shared,
   };
 }
@@ -126,7 +132,8 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
       wireFromRust(w5),
       wireFromRust(w6),
     ];
-    const coeffBytes = gate.coeffs instanceof Uint8Array ? gate.coeffs : Uint8Array.from(gate.coeffs);
+    const coeffBytes =
+      gate.coeffs instanceof Uint8Array ? gate.coeffs : Uint8Array.from(gate.coeffs);
     const coeffs = fieldsFromRustFlat(coeffBytes);
     return [0, gate.typ, wiresTuple, coeffs];
   };
