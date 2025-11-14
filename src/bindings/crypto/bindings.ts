@@ -14,6 +14,7 @@ import { verifierIndexConversion } from './bindings/conversion-verifier-index.js
 import { PallasBindings, VestaBindings } from './bindings/curve.js';
 import { jsEnvironment } from './bindings/env.js';
 import { FpBindings, FqBindings } from './bindings/field.js';
+import { napiOraclesConversion } from './bindings/napi-conversion-oracles.js';
 import { srs } from './bindings/srs.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
 import { napiConversionCore } from './napi-conversion-core.js';
@@ -85,9 +86,10 @@ function buildWasmConversion(wasm: Wasm) {
 function createNativeRustConversion(napi: any) {
   let core = napiConversionCore(napi);
   let proof = napiProofConversion(napi, core);
+  let oracles = napiOraclesConversion(napi);
   return {
-    fp: { ...core.fp, ...proof.fp },
-    fq: { ...core.fq, ...proof.fq },
+    fp: { ...core.fp, ...proof.fp, ...oracles.fp },
+    fq: { ...core.fq, ...proof.fq, ...oracles.fq },
   };
 }
 
