@@ -104,6 +104,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   let maybeLagrangeCommitment = (srs: WasmSrs, domain_size: number, i: number) => {
     try {
       console.log(3);
+      console.log('srs', srs);
       return wasm[`caml_${f}_srs_maybe_lagrange_commitment`](srs, domain_size, i);
     } catch (error) {
       console.error(`Error in SRS maybe lagrange commitment for field ${f}`);
