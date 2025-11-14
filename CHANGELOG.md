@@ -18,6 +18,16 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/c2e51a84...HEAD)
 
+### Fixed
+
+- Fixed an edge case that prevented the cache from being generated and read
+  correctly. https://github.com/o1-labs/o1js/pull/2627
+  - If you previously encountered issues when reading from the cache and
+    generating proofs from these artefacts, it is recommended to regenerate the
+    cache once.
+  - Caches that have not caused any issues are unaffected by this change and can
+    continue to be used without regeneration.
+
 ## [2.11.0](https://github.com/o1-labs/o1js/compare/3453d1e53...c2e51a84) - 2025-11-10
 
 ### Added
