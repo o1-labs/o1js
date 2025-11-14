@@ -63,6 +63,7 @@ This project adheres to
   https://github.com/o1-labs/o1js/pull/2436
 - Improved the runtime table API with a `RuntimeTable` class with better
   readability https://github.com/o1-labs/o1js/pull/2402
+- Internal `Mina.LocalBlockchain` type exported via `Mina`. https://github.com/o1-labs/o1js/pull/2538
 
 ### Fixed
 

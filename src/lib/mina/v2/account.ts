@@ -1,16 +1,17 @@
-import { Permissions } from './permissions.js';
-import { StateDefinition, StateLayout, StateValues } from './state.js';
+import { TokenSymbol } from '../../../lib/provable/crypto/poseidon.js';
 import { VerificationKey } from '../../proof-system/verification-key.js';
 import { Bool } from '../../provable/bool.js';
-import { Field } from '../../provable/field.js';
-import { UInt64, UInt32 } from '../../provable/int.js';
-import { Provable } from '../../provable/provable.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
+import { Field } from '../../provable/field.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
+import { Provable } from '../../provable/provable.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
-import { TokenSymbol } from '../../../lib/provable/crypto/poseidon.js';
+import { Account as AccountV1 } from '../v1/account.js';
 import { TokenId, ZkappUri } from './core.js';
+import { Permissions } from './permissions.js';
+import { GenericStateValues, StateDefinition, StateLayout, StateValues } from './state.js';
 
-export { AccountId, AccountTiming, AccountIdSet, Account, AccountIdMap };
+export { Account, AccountId, AccountIdMap, AccountIdSet, AccountTiming };
 
 function accountIdKeys(accountId: AccountId): {
   publicKey: string;
@@ -267,239 +268,6 @@ class Account<State extends StateLayout = 'GenericState'> {
     };
   }
 
-  /*
-    checkAndApplyFeePayment(
-      feePayment: ZkappFeePayment
-    ):
-      | { status: 'Applied'; updatedAccount: Account<State> }
-      | { status: 'Failed'; errors: Error[] } {
-      const errors: Error[] = [];
-  
-      if (this.accountId.tokenId.equals(TokenId.MINA).not().toBoolean())
-        errors.push(new Error('cannot pay zkapp fee with a non-mina account'));
-  
-      if (this.accountId.publicKey.equals(feePayment.publicKey).not().toBoolean())
-        errors.push(
-          new Error('fee payment public key does not match account public key')
-        );
-  
-      if (this.nonce.equals(feePayment.nonce).not().toBoolean())
-        errors.push(new Error('invalid account nonce'));
-  
-      if (this.balance.lessThan(feePayment.fee).toBoolean())
-        errors.push(
-          new Error(
-            'account does not have enough balance to pay the required fee'
-          )
-        );
-  
-      // TODO: validWhile (probably checked elsewhere)
-  
-      if (errors.length === 0) {
-        const updatedAccount = new Account(this.State, false, {
-          ...this,
-          balance: this.balance.sub(feePayment.fee),
-          nonce: this.nonce.add(UInt32.one),
-        });
-        return { status: 'Applied', updatedAccount };
-      } else {
-        return { status: 'Failed', errors };
-      }
-    }
-  
-    // TODO: replay checks (probably live on the AccountUpdate itself, but needs to be called near this)
-    checkAndApplyUpdate<Event, Action>(
-      update: AccountUpdate<State, Event, Action>
-    ):
-      | { status: 'Applied'; updatedAccount: Account<State> }
-      | { status: 'Failed'; errors: Error[] } {
-      const errors: Error[] = [];
-  
-      if (this.accountId.equals(update.accountId).not().toBoolean())
-        errors.push(
-          new Error(
-            'account id in account update does not match actual account id'
-          )
-        );
-  
-      // TODO: check verificationKeyHash
-      // TODO: check mayUseToken (somewhere, maybe not here)
-  
-      // CHECK PRECONDITIONS
-  
-      function preconditionError(
-        preconditionName: string,
-        constraint: { toStringHuman(): string },
-        value: unknown
-      ): Error {
-        return new Error(
-          `${preconditionName} precondition failed: ${value} does not satisfy "${constraint.toStringHuman()}"`
-        );
-      }
-  
-      // WARNING: failing to specify the type parameter on this function exhibits unsound behavior
-      //          (thanks typescript)
-      function checkPrecondition<T>(
-        preconditionName: string,
-        constraint: { isSatisfied(x: T): Bool; toStringHuman(): string },
-        value: T
-      ): void {
-        if (constraint.isSatisfied(value).not().toBoolean())
-          errors.push(preconditionError(preconditionName, constraint, value));
-      }
-  
-      checkPrecondition<UInt64>(
-        'balance',
-        update.preconditions.account.balance,
-        this.balance
-      );
-      checkPrecondition<UInt32>(
-        'nonce',
-        update.preconditions.account.nonce,
-        this.nonce
-      );
-      checkPrecondition<Field>(
-        'receiptChainHash',
-        update.preconditions.account.receiptChainHash,
-        this.receiptChainHash
-      );
-      if (this.delegate !== null)
-        checkPrecondition<PublicKey>(
-          'delegate',
-          update.preconditions.account.delegate,
-          this.delegate
-        );
-      checkPrecondition<Bool>(
-        'isProven',
-        update.preconditions.account.isProven,
-        this.zkapp.isProven
-      );
-  
-      StateValues.checkPreconditions(
-        this.State,
-        this.zkapp.state,
-        update.preconditions.account.state
-      );
-  
-      const actionState = this.zkapp?.actionState ?? [];
-      const actionStateSatisfied = Bool.anyTrue(
-        actionState.map((s) =>
-          update.preconditions.account.actionState.isSatisfied(s)
-        )
-      );
-      if (actionStateSatisfied.not().toBoolean())
-        errors.push(
-          preconditionError(
-            'actionState',
-            update.preconditions.account.actionState,
-            actionState
-          )
-        );
-  
-      // TODO: updates.preconditions.account.isNew
-  
-      // TODO: network (probably checked elsewhere)
-      // TODO: validWhile (probably checked elsewhere)
-  
-      // CHECK PERMISSIONS
-  
-      function checkPermission(
-        permissionName: string,
-        requiredAuthLevel: AuthorizationLevel,
-        actionIsPerformed: boolean
-      ): void {
-        if(actionIsPerformed && !requiredAuthLevel.isSatisfied(update.authorizationKind))
-          errors.push(new Error(
-            `${permissionName} permission was violated: account update has authorization kind ${update.authorizationKind.identifier()}, but required auth level is ${requiredAuthLevel.identifier()}`
-          ));
-      }
-  
-      checkPermission('access', this.permissions.access, true);
-      checkPermission('send', this.permissions.send, update.balanceChange.isNegative().toBoolean());
-      checkPermission('receive', this.permissions.receive, update.balanceChange.isPositive().toBoolean());
-      checkPermission('incrementNonce', this.permissions.incrementNonce, update.incrementNonce.toBoolean());
-      checkPermission('setDelegate', this.permissions.setDelegate, update.delegateUpdate.set.toBoolean());
-      checkPermission('setPermissions', this.permissions.setPermissions, update.permissionsUpdate.set.toBoolean());
-      checkPermission('setVerificationKey', this.permissions.setVerificationKey.auth, update.verificationKeyUpdate.set.toBoolean());
-      checkPermission('setZkappUri', this.permissions.setZkappUri, update.zkappUriUpdate.set.toBoolean());
-      checkPermission('setTokenSymbol', this.permissions.setTokenSymbol, update.tokenSymbolUpdate.set.toBoolean());
-      checkPermission('setVotingFor', this.permissions.setVotingFor, update.votingForUpdate.set.toBoolean());
-      checkPermission('setTiming', this.permissions.setTiming, update.timingUpdate.set.toBoolean());
-      checkPermission('editActionState', this.permissions.editActionState, update.pushActions.data.length > 0);
-      checkPermission('editState', this.permissions.editState, StateUpdates.anyValuesAreSet(update.stateUpdates).toBoolean());
-  
-      // APPLY UPDATES
-  
-      // TODO: account for implicitAccountCreationFee here
-      let updatedBalance: UInt64 = this.balance;
-      // TODO: why is Int64 not comparable?
-      // if(update.balanceChange.lessThan(Int64.create(this.balance, Sign.minusOne)).toBoolean())
-      if (
-        update.balanceChange.isNegative().toBoolean() &&
-        update.balanceChange.magnitude.greaterThan(this.balance).toBoolean()
-      ) {
-        errors.push(
-          new Error(
-            `insufficient balance for balanceChange (balance = ${this.balance}, balanceChange = -${update.balanceChange.magnitude})`
-          )
-        );
-      } else {
-        // TODO: check for overflows?
-        const isPos = update.balanceChange.isPositive().toBoolean();
-        const amount = update.balanceChange.magnitude;
-        updatedBalance = isPos
-          ? this.balance.add(amount)
-          : this.balance.sub(amount);
-      }
-  
-      // TODO: pushEvents
-      // TODO: pushActions
-  
-      if (errors.length === 0) {
-        function applyUpdate<T>(update: Update<T>, value: T): T {
-          return update.set.toBoolean() ? update.value : value;
-        }
-  
-        const allStateUpdated = Bool.allTrue(
-          StateUpdates.toFieldUpdates(this.State, update.stateUpdates).map(
-            (update) => update.set
-          )
-        );
-  
-        const updatedAccount = new Account(this.State, false, {
-          ...this,
-          balance: updatedBalance,
-          tokenSymbol: applyUpdate(update.tokenSymbolUpdate, this.tokenSymbol),
-          nonce: update.incrementNonce.toBoolean()
-            ? this.nonce.add(UInt32.one)
-            : this.nonce,
-          delegate: applyUpdate(update.delegateUpdate, this.delegate),
-          votingFor: applyUpdate(update.votingForUpdate, this.votingFor),
-          timing: applyUpdate(update.timingUpdate, this.timing),
-          permissions: applyUpdate(update.permissionsUpdate, this.permissions),
-          zkapp: {
-            state: StateValues.applyUpdates(
-              this.State,
-              this.zkapp.state,
-              update.stateUpdates
-            ),
-            verificationKey: applyUpdate(
-              update.verificationKeyUpdate,
-              this.zkapp.verificationKey
-            ),
-            // actionState: TODO,
-            isProven: this.zkapp.isProven.or(allStateUpdated),
-            zkappUri: applyUpdate(update.zkappUriUpdate, this.zkapp.zkappUri),
-          },
-        });
-  
-        return { status: 'Applied', updatedAccount };
-      } else {
-        return { status: 'Failed', errors };
-      }
-    }
-    */
-
   toGeneric(): Account {
     return new Account<'GenericState'>('GenericState', this.isNew, {
       ...this,
@@ -518,7 +286,7 @@ class Account<State extends StateLayout = 'GenericState'> {
       ...account,
       zkapp: {
         ...account.zkapp,
-        state: StateValues.fromGeneric(account.zkapp.state, State),
+        state: StateValues.fromGeneric(account.zkapp?.state ?? {}, State),
       },
     });
   }
@@ -535,5 +303,104 @@ class Account<State extends StateLayout = 'GenericState'> {
       timing: AccountTiming.empty(),
       permissions: Permissions.defaults(),
     });
+  }
+
+  static fromV1(account: AccountV1): Account<'GenericState'> {
+    const {
+      publicKey,
+      tokenId: tokenIdValue,
+      tokenSymbol: tokenSymbolValue,
+      delegate: delegateValue,
+      timing: timingValue,
+      permissions: permissionsValue,
+      zkapp: zkappValue,
+      ...rest
+    } = account;
+
+    const tokenId = new TokenId(tokenIdValue);
+    const accountId = new AccountId(publicKey, tokenId);
+    const tokenSymbol = new TokenSymbol(tokenSymbolValue);
+    const delegate = delegateValue ?? null;
+    const timing = new AccountTiming(timingValue);
+    const permissions = Permissions.fromInternalRepr(permissionsValue);
+
+    const zkapp = (() => {
+      if (!zkappValue) {
+        return undefined;
+      }
+
+      const {
+        appState,
+        verificationKey: verificationKeyValue,
+        provedState,
+        zkappUri: zkAppUriValue,
+        ...rest
+      } = zkappValue;
+      if (!verificationKeyValue) {
+        return undefined;
+      }
+
+      const verificationKey = new VerificationKey(verificationKeyValue);
+      const state = new GenericStateValues(appState);
+      const zkappUri = new ZkappUri(zkAppUriValue);
+
+      return {
+        state,
+        verificationKey,
+        zkappUri,
+        isProven: provedState,
+        ...rest,
+      };
+    })();
+
+    return new Account<'GenericState'>('GenericState', false, {
+      accountId,
+      tokenSymbol,
+      delegate,
+      timing,
+      permissions,
+      zkapp,
+      ...rest,
+    });
+  }
+
+  toV1(): AccountV1 {
+    const { accountId, tokenSymbol, delegate, zkapp: zkappValue, timing, ...rest } = this;
+
+    const zkapp = (() => {
+      if (!zkappValue) {
+        return undefined;
+      }
+
+      const { state, verificationKey, zkappUri, isProven, ...rest } = zkappValue;
+      try {
+        return {
+          appState: state.values,
+          verificationKey: {
+            data: verificationKey.data,
+            hash: verificationKey.hash,
+          },
+          zkappUri: zkappUri.data,
+          provedState: isProven,
+          zkappVersion: UInt32.empty(),
+          lastActionSlot: UInt32.empty(),
+          ...rest,
+        };
+      } catch(e) {
+        console.error(e);
+        console.log(state);
+        throw e
+      }
+    })();
+
+    return {
+      publicKey: accountId.publicKey,
+      tokenId: accountId.tokenId.value,
+      tokenSymbol: tokenSymbol.symbol,
+      timing: { isTimed: Bool.empty(), ...timing },
+      delegate: delegate ?? undefined,
+      zkapp: zkapp,
+      ...rest,
+    };
   }
 }

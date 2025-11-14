@@ -1,16 +1,15 @@
-import { Ledger, Test, initializeBindings } from '../../../bindings.js';
-import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
+import { Test, initializeBindings } from '../../../bindings.js';
+import { TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
 import { transactionCommitments } from '../../../mina-signer/src/sign-zkapp-command.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
-import { Ml } from '../../ml/conversion.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
 import { Field } from '../../provable/wrapped.js';
-import { prettifyStacktrace } from '../../util/errors.js';
 import { TupleN } from '../../util/types.js';
 import { Actions, Authorization, TokenId, ZkappCommand } from './account-update.js';
 import { Account } from './account.js';
 import { invalidTransactionError } from './errors.js';
+import { LocalLedger } from './ledger/ledger.js';
 import {
   Mina,
   defaultNetworkConstants,
@@ -71,16 +70,8 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
   const slotTime = 3 * 60 * 1000;
   const startTime = Date.now();
   const genesisTimestamp = UInt64.from(startTime);
-  const ledger = Ledger.create();
+  const ledger = LocalLedger.create();
   let networkState = defaultNetworkState();
-
-  function addAccount(publicKey: PublicKey, balance: string) {
-    try {
-      ledger.addAccount(Ml.fromPublicKey(publicKey), balance);
-    } catch (error) {
-      throw prettifyStacktrace(error);
-    }
-  }
 
   let testAccounts = [] as never as TupleN<TestPublicKey, 10>;
 
@@ -88,7 +79,7 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
     let MINA = 10n ** 9n;
     const largeValue = 1000n * MINA;
     const testAccount = TestPublicKey.random();
-    addAccount(testAccount, largeValue.toString());
+    ledger.addAccount(testAccount, largeValue.toString());
     testAccounts.push(testAccount);
   }
 
@@ -109,14 +100,14 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
       return UInt32.from(Math.ceil((new Date().valueOf() - startTime) / slotTime));
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
-      return !!ledger.getAccount(Ml.fromPublicKey(publicKey), Ml.constFromField(tokenId));
+      return !!ledger.getAccount(publicKey, tokenId);
     },
     getAccount(publicKey: PublicKey, tokenId: Field = TokenId.default): Account {
-      let accountJson = ledger.getAccount(Ml.fromPublicKey(publicKey), Ml.constFromField(tokenId));
-      if (accountJson === undefined) {
+      const account = ledger.getAccount(publicKey, tokenId);
+      if (account === undefined) {
         throw new Error(reportGetAccountError(publicKey.toBase58(), TokenId.toBase58(tokenId)));
       }
-      return Types.Account.fromJSON(accountJson);
+      return account;
     },
     getNetworkState() {
       return networkState;
@@ -137,7 +128,7 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
         for (const update of txn.transaction.accountUpdates) {
           let authIsProof = !!update.authorization.proof;
           let kindIsProof = update.body.authorizationKind.isProved.toBoolean();
-          // checks and edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
+          // checks an edge case where a proof is expected, but the developer forgot to invoke await tx.prove()
           // this resulted in an assertion OCaml error, which didn't contain any useful information
           if (kindIsProof && !authIsProof) {
             throw Error(
@@ -149,12 +140,8 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
 
           // the first time we encounter an account, use it from the persistent ledger
           if (account === undefined) {
-            let accountJson = ledger.getAccount(
-              Ml.fromPublicKey(update.body.publicKey),
-              Ml.constFromField(update.body.tokenId)
-            );
-            if (accountJson !== undefined) {
-              let storedAccount = Account.fromJSON(accountJson);
+            let storedAccount = ledger.getAccount(update.body.publicKey, update.body.tokenId);
+            if (storedAccount !== undefined) {
               simpleLedger.store(storedAccount);
               account = storedAccount;
             }
@@ -178,10 +165,10 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
         let status: PendingTransactionStatus = 'pending';
         const errors: string[] = [];
         try {
-          ledger.applyJsonTransaction(
-            JSON.stringify(zkappCommandJson),
-            defaultNetworkConstants.accountCreationFee.toString(),
-            JSON.stringify(networkState)
+          ledger.applyTransaction(
+            txn.transaction,
+            defaultNetworkConstants.accountCreationFee,
+            networkState
           );
         } catch (err: any) {
           status = 'rejected';
@@ -310,13 +297,6 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
         });
       });
     },
-    applyJsonTransaction(json: string) {
-      return ledger.applyJsonTransaction(
-        json,
-        defaultNetworkConstants.accountCreationFee.toString(),
-        JSON.stringify(networkState)
-      );
-    },
     async fetchEvents(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       // Return events in reverse chronological order (latest events at the beginning)
       const reversedEvents = (
@@ -363,7 +343,7 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
       }
       return currentActions.slice(startIndex, endIndex);
     },
-    addAccount,
+    addAccount: ledger.addAccount.bind(ledger),
     /**
      * An array of 10 test accounts that have been pre-filled with
      * 30000000000 units of currency.

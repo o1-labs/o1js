@@ -63,7 +63,7 @@ try {
   await txn.prove();
   await txn.sign([feePayer1.key]).send();
 } catch (err: any) {
-  handleError(err, 'Account_delegate_precondition_unsatisfied');
+  handleError(err, 'delegate precondition');
 }
 
 if (!correctlyFails) {

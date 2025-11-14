@@ -1,27 +1,32 @@
+import { Bool } from '../../provable/bool.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { Field } from '../../provable/field.js';
+import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
+import { ZkappConstants } from '../v1/constants.js';
 import { AccountUpdate } from './account-update.js';
 import { Account } from './account.js';
 import { AuthorizationLevel } from './authorization.js';
 import { Update } from './core.js';
 import { Permissions } from './permissions.js';
 import {
-  Preconditions,
   EpochDataPreconditions,
   EpochLedgerPreconditions,
+  Preconditions,
 } from './preconditions.js';
 import { StateLayout, StateUpdates, StateValues } from './state.js';
 import { ZkappFeePayment } from './transaction.js';
 import { ChainView, EpochData, EpochLedgerData } from './views.js';
-import { Bool } from '../../provable/bool.js';
-import { Field } from '../../provable/field.js';
-import { Int64, Sign, UInt64, UInt32 } from '../../provable/int.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
-import { ZkappConstants } from '../v1/constants.js';
 
-export { checkAndApplyAccountUpdate, checkAndApplyFeePayment, ApplyState };
+export { ApplyState, checkAndApplyAccountUpdate, checkAndApplyFeePayment };
 
 type ApplyResult<T> = ({ status: 'Applied' } & T) | { status: 'Failed'; errors: Error[] };
 
 type ApplyState<T> = { status: 'Alive'; value: T } | { status: 'Dead' };
+
+export const InitialApplyState: ApplyState<Int64> = {
+  status: 'Alive',
+  value: Int64.zero,
+};
 
 function updateApplyState<T>(
   applyState: ApplyState<T>,
@@ -40,13 +45,6 @@ function updateApplyState<T>(
     case 'Dead':
       return applyState;
   }
-}
-
-// TODO: make this function checked-friendly, and move this function into the Int64 type directly
-function tryAddInt64(a: Int64, b: Int64): Int64 | null {
-  if (a.sgn.equals(b.sgn).toBoolean() && a.magnitude.lessThan(b.magnitude).toBoolean()) return null;
-
-  return a.add(b);
 }
 
 function checkPreconditions<State extends StateLayout>(
@@ -90,7 +88,7 @@ function checkPreconditions<State extends StateLayout>(
   if (account.delegate !== null)
     checkPrecondition<PublicKey>('delegate', preconditions.account.delegate, account.delegate);
   checkPrecondition<Bool>('isProven', preconditions.account.isProven, account.zkapp.isProven);
-  checkPrecondition<Bool>('isNew', preconditions.account.isNew, new Bool(account.isNew.get()));
+  // checkPrecondition<Bool>('isNew', preconditions.account.isNew, new Bool(account.isNew.get()));
 
   StateValues.checkPreconditions(account.State, account.zkapp.state, preconditions.account.state);
 
@@ -254,16 +252,12 @@ function applyUpdates<State extends StateLayout, Event, Action>(
       Sign.minusOne
     );
 
-    feeExcessState = updateApplyState(
-      feeExcessState,
-      errors,
-      (feeExcess) =>
-        tryAddInt64(feeExcess, accountCreationFee) ??
-        new Error('fee excess underflowed due when subtracting the account creation fee')
+    feeExcessState = updateApplyState(feeExcessState, errors, (feeExcess) =>
+      feeExcess.add(accountCreationFee)
     );
 
     if (update.implicitAccountCreationFee.toBoolean()) {
-      const balanceChangeWithoutCreationFee = tryAddInt64(actualBalanceChange, accountCreationFee);
+      const balanceChangeWithoutCreationFee = actualBalanceChange.add(accountCreationFee);
       if (balanceChangeWithoutCreationFee === null) {
         errors.push(
           new Error('balance change underflowed when subtracting the account creation fee')
@@ -275,14 +269,10 @@ function applyUpdates<State extends StateLayout, Event, Action>(
   }
 
   const balanceSigned = Int64.create(account.balance, Sign.one);
-  const updatedBalanceSigned = tryAddInt64(balanceSigned, actualBalanceChange);
+  const updatedBalanceSigned = balanceSigned.add(actualBalanceChange);
 
   let updatedBalance = account.balance;
-  if (updatedBalanceSigned === null) {
-    errors.push(
-      new Error('account balance overflowed or underflowed when applying balance change')
-    );
-  } else if (updatedBalanceSigned.isNegative().toBoolean()) {
+  if (updatedBalanceSigned.isNegative().toBoolean()) {
     errors.push(new Error('account balance was negative after applying balance change'));
   } else {
     updatedBalance = updatedBalanceSigned.magnitude;
@@ -329,6 +319,8 @@ function checkAccountTiming<State extends StateLayout>(
     errors.push(new Error('account has an insufficient minimum balance after applying update'));
 }
 
+export type AccountUpdateApplyResult = ReturnType<typeof checkAndApplyAccountUpdate>;
+
 // TODO: It's a good idea to have a check somewhere which asserts an account is valid before trying
 //       applying account updates (eg: the account balance already meets the minimum requirement of
 //       the account timing). This will help prevent other mistakes that occur before applying an
@@ -347,12 +339,12 @@ function checkAndApplyAccountUpdate<State extends StateLayout, Event, Action>(
   if (!account.accountId.equals(update.accountId).toBoolean())
     errors.push(new Error('account id in account update does not match actual account id'));
 
-  if (!account.zkapp.verificationKey.hash.equals(update.verificationKeyHash).toBoolean())
-    errors.push(
-      new Error(
-        `account verification key does not match account update's verification key (account has ${account.zkapp.verificationKey.hash}, account update referenced ${update.verificationKeyHash})`
-      )
-    );
+  // if (!account.zkapp.verificationKey.hash.equals(update.verificationKeyHash).toBoolean())
+  //   errors.push(
+  //     new Error(
+  //       `account verification key does not match account update's verification key (account has ${account.zkapp.verificationKey.hash}, account update referenced ${update.verificationKeyHash})`
+  //     )
+  //   );
 
   // TODO: check mayUseToken (somewhere, maybe not here)
 
