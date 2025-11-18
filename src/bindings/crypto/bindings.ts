@@ -15,11 +15,13 @@ import { PallasBindings, VestaBindings } from './bindings/curve.js';
 import { jsEnvironment } from './bindings/env.js';
 import { FpBindings, FqBindings } from './bindings/field.js';
 import { srs } from './bindings/srs.js';
+import { srs as napiSrs } from './napi-srs.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
 import { napiConversionCore } from './napi-conversion-core.js';
 import { napiProofConversion } from './napi-conversion-proof.js';
+import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 
-export { RustConversion, Wasm, createNativeRustConversion, getRustConversion };
+export { RustConversion, Wasm, Napi, createNativeRustConversion, getRustConversion };
 
 /* TODO: Uncomment in phase 2 of conversion layer 
 import { conversionCore as conversionCoreNative } from './native/conversion-core.js';
@@ -49,13 +51,14 @@ const tsBindings = {
     return bundle.srsFactory(wasm, bundle.conversion);
   },*/
   srs: (wasm: Wasm) => srs(wasm, getRustConversion(wasm)),
-  srsNative: (napi: Wasm) => srs(napi, createNativeRustConversion(napi) as any),
+  srsNative: (napi: Napi) => napiSrs(napi, createNativeRustConversion(napi) as any),
 };
 
 // this is put in a global variable so that mina/src/lib/crypto/kimchi_bindings/js/bindings.js finds it
 (globalThis as any).__snarkyTsBindings = tsBindings;
 
 type Wasm = typeof wasmNamespace;
+type Napi = typeof napiNamespace;
 
 type RustConversion = ReturnType<typeof buildWasmConversion>;
 
