@@ -84,7 +84,7 @@ let jsLayout = {
                         optionType: 'flaggedOption',
                         inner: { type: 'Field' },
                       },
-                      staticLength: 8,
+                      staticLength: 32,
                     },
                     delegate: {
                       type: 'option',
@@ -623,7 +623,7 @@ let jsLayout = {
                             optionType: 'flaggedOption',
                             inner: { type: 'Field' },
                           },
-                          staticLength: 8,
+                          staticLength: 32,
                         },
                         actionState: {
                           type: 'option',
@@ -799,7 +799,7 @@ let jsLayout = {
               appState: {
                 type: 'array',
                 inner: { type: 'option', optionType: 'flaggedOption', inner: { type: 'Field' } },
-                staticLength: 8,
+                staticLength: 32,
               },
               delegate: {
                 type: 'option',
@@ -1320,7 +1320,7 @@ let jsLayout = {
                       optionType: 'flaggedOption',
                       inner: { type: 'Field' },
                     },
-                    staticLength: 8,
+                    staticLength: 32,
                   },
                   actionState: {
                     type: 'option',
@@ -1573,7 +1573,7 @@ let jsLayout = {
             'zkappUri',
           ],
           entries: {
-            appState: { type: 'array', inner: { type: 'Field' }, staticLength: 8 },
+            appState: { type: 'array', inner: { type: 'Field' }, staticLength: 32 },
             verificationKey: {
               type: 'option',
               optionType: 'orUndefined',
