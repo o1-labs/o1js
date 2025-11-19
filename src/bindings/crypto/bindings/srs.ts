@@ -71,20 +71,117 @@ function srs(wasm: Wasm, conversion: RustConversion) {
 
 function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   // note: these functions are properly typed, thanks to TS template literal types
-  let createSrs = (s: number) => wasm[`caml_${f}_srs_create_parallel`](s);
-  let getSrs = wasm[`caml_${f}_srs_get`];
-  let setSrs = wasm[`caml_${f}_srs_set`];
+  let createSrs = (size: number) => {
+    try {
+      console.log(0);
+      return wasm[`caml_${f}_srs_create_parallel`](size);
+    } catch (error) {
+      console.error(`Error in SRS get for field ${f}`);
+      throw error;
+    }
+  };
+  let getSrs = (srs: WasmSrs) => {
+    try {
+      console.log(1);
+      let v = wasm[`caml_${f}_srs_get`](srs);
+      console.log(2);
+      return v;
+    } catch (error) {
+      console.error(`Error in SRS get for field ${f}`);
+      throw error;
+    }
+  };
+  let setSrs = (bytes: any) => {
+    try {
+      console.log(2);
+      return wasm[`caml_${f}_srs_set`](bytes);
+    } catch (error) {
+      console.error(`Error in SRS set for field ${f} args ${bytes}`);
+      throw error;
+    }
+  };
 
-  let maybeLagrangeCommitment = wasm[`caml_${f}_srs_maybe_lagrange_commitment`];
-  let lagrangeCommitment = (srs: WasmFpSrs, domain_size: number, i: number) =>
-    wasm[`caml_${f}_srs_lagrange_commitment`](srs, domain_size, i);
-  let lagrangeCommitmentsWholeDomainPtr = (srs: WasmSrs, domain_size: number) =>
-    wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](srs, domain_size);
-  let setLagrangeBasis = wasm[`caml_${f}_srs_set_lagrange_basis`];
-  let getLagrangeBasis = (srs: WasmSrs, n: number) =>
-    wasm[`caml_${f}_srs_get_lagrange_basis`](srs, n);
-  let getCommitmentsWholeDomainByPtr =
-    wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_read_from_ptr`];
+  let maybeLagrangeCommitment = (srs: WasmSrs, domain_size: number, i: number) => {
+    try {
+      console.log(3);
+      console.log('srs', srs);
+      let bytes = (wasm as any)[`caml_${f}_srs_to_bytes_external`](srs);
+      console.log('bytes', bytes);
+      let wasmSrs = undefined;
+      if (f === 'fp') wasmSrs = wasm.WasmFpSrs.deserialize(bytes);
+      else wasmSrs = wasm.WasmFqSrs.deserialize(bytes);
+      let s = wasm[`caml_${f}_srs_maybe_lagrange_commitment`](wasmSrs, domain_size, i);
+      console.log('S', s);
+      return s;
+    } catch (error) {
+      console.error(`Error in SRS maybe lagrange commitment for field ${f}`);
+      throw error;
+    }
+  };
+  let lagrangeCommitment = (srs: WasmSrs, domain_size: number, i: number) => {
+    try {
+      console.log(4);
+      console.log('srs', srs);
+      let bytes = (wasm as any)[`caml_${f}_srs_to_bytes_external`](srs);
+      console.log('bytes', bytes);
+      let wasmSrs = undefined;
+      if (f === 'fp') wasmSrs = wasm.WasmFpSrs.deserialize(bytes);
+      else wasmSrs = wasm.WasmFqSrs.deserialize(bytes);
+      return wasm[`caml_${f}_srs_lagrange_commitment`](wasmSrs, domain_size, i);
+    } catch (error) {
+      console.error(`Error in SRS lagrange commitment for field ${f}`);
+      throw error;
+    }
+  };
+  let lagrangeCommitmentsWholeDomainPtr = (srs: WasmSrs, domain_size: number) => {
+    try {
+      console.log(5);
+      console.log('srs', srs);
+      let bytes = (wasm as any)[`caml_${f}_srs_to_bytes_external`](srs);
+      console.log('bytes', bytes);
+      let wasmSrs = undefined;
+      if (f === 'fp') wasmSrs = wasm.WasmFpSrs.deserialize(bytes);
+      else wasmSrs = wasm.WasmFqSrs.deserialize(bytes);
+      return wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](wasmSrs, domain_size);
+    } catch (error) {
+      console.error(`Error in SRS lagrange commitments whole domain ptr for field ${f}`);
+      throw error;
+    }
+  };
+  let setLagrangeBasis = (srs: WasmSrs, domain_size: number, input: any) => {
+    try {
+      console.log(6);
+      return wasm[`caml_${f}_srs_set_lagrange_basis`](srs, domain_size, input);
+    } catch (error) {
+      console.error(`Error in SRS set lagrange basis for field ${f}`);
+      throw error;
+    }
+  };
+  let getLagrangeBasis = (srs: WasmSrs, n: number) => {
+    try {
+      console.log(7);
+      console.log('srs', srs);
+      let bytes = (wasm as any)[`caml_${f}_srs_to_bytes_external`](srs);
+      console.log('bytes', bytes);
+      let wasmSrs = undefined;
+      if (f === 'fp') wasmSrs = wasm.WasmFpSrs.deserialize(bytes);
+      else wasmSrs = wasm.WasmFqSrs.deserialize(bytes);
+      return wasm[`caml_${f}_srs_get_lagrange_basis`](wasmSrs, n);
+    } catch (error) {
+      console.error(`Error in SRS get lagrange basis for field ${f}`);
+      throw error;
+    }
+  };
+  let getCommitmentsWholeDomainByPtr = (ptr: number) => {
+    try {
+      console.log(8);
+      return wasm[`caml_${f}_srs_lagrange_commitments_whole_domain_read_from_ptr`](ptr);
+    } catch (error) {
+      console.error(`Error in SRS get commitments whole domain by ptr for field ${f}`);
+      throw error;
+    }
+  };
+
   return {
     /**
      * returns existing stored SRS or falls back to creating a new one
@@ -95,11 +192,14 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
       if (srs === undefined) {
         if (cache === undefined) {
           // if there is no cache, create SRS in memory
+          console.log('Creating SRS without cache');
           srs = createSrs(size);
+          console.log('SRS created without cache:', srs);
         } else {
           let header = cacheHeaderSrs(f, size);
 
           // try to read SRS from cache / recompute and write if not found
+          console.log('Reading SRS from cache');
           srs = readCache(cache, header, (bytes) => {
             // TODO: this takes a bit too long, about 300ms for 2^16
             // `pointsToRust` is the clear bottleneck
@@ -108,13 +208,17 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
             let wasmSrs = conversion[f].pointsToRust(mlSrs);
             return setSrs(wasmSrs);
           });
-
+          console.log('SRS read from cache:', srs);
           if (srs === undefined) {
             // not in cache
+            console.log(1);
             srs = createSrs(size);
+            console.log('Writing SRS to cache', srs);
 
             if (cache.canWrite) {
+              console.log(2);
               let wasmSrs = getSrs(srs);
+              console.log(3);
               let mlSrs = conversion[f].pointsFromRust(wasmSrs);
               let jsonSrs = MlArray.mapFrom(mlSrs, OrInfinity.toJSON);
               let bytes = new TextEncoder().encode(JSON.stringify(jsonSrs));
@@ -123,11 +227,13 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
             }
           }
         }
-
+        console.log('Storing SRS in memory');
         srsStore[f][size] = srs;
+        console.log('SRS stored in memory:', srs);
       }
 
       // TODO should we call freeOnFinalize() and expose a function to clean the SRS cache?
+      console.trace('Returning SRS:', srs);
       return srsStore[f][size];
     },
 
@@ -135,6 +241,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
      * returns ith Lagrange basis commitment for a given domain size
      */
     lagrangeCommitment(srs: WasmSrs, domainSize: number, i: number): PolyComm {
+      console.log('lagrangeCommitment');
       // happy, fast case: if basis is already stored on the srs, return the ith commitment
       let commitment = maybeLagrangeCommitment(srs, domainSize, i);
 
@@ -160,7 +267,9 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
               // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
               // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
               let wasmComms = getLagrangeBasis(srs, domainSize);
+              console.log('wasmComms', wasmComms);
               let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+              console.log('mlComms', mlComms);
               let comms = polyCommsToJSON(mlComms);
               let bytes = new TextEncoder().encode(JSON.stringify(comms));
               writeCache(cache, header, bytes);
@@ -208,6 +317,8 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
      * Returns the Lagrange basis commitments for the whole domain
      */
     lagrangeCommitmentsWholeDomain(srs: WasmSrs, domainSize: number) {
+      console.log('lagrangeCommitmentsWholeDomain');
+
       // instead of getting the entire commitment directly (which works for nodejs/servers), we get a pointer to the commitment
       // and then read the commitment from the pointer
       // this is because the web worker implementation currently does not support returning UintXArray's directly
@@ -224,6 +335,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
      * adds Lagrange basis for a given domain size
      */
     addLagrangeBasis(srs: WasmSrs, logSize: number) {
+      console.log('addLagrangeBasis');
       // this ensures that basis is stored on the srs, no need to duplicate caching logic
       this.lagrangeCommitment(srs, 1 << logSize, 0);
     },
@@ -269,4 +381,14 @@ function readCacheLazy(
     CacheReadRegister.set(header.uniqueId, true);
     return true;
   });
+}
+function runInTryCatch<T extends (...args: any[]) => any>(fn: T): T {
+  return function (...args: Parameters<T>): ReturnType<T> {
+    try {
+      return fn(...args);
+    } catch (e) {
+      console.error(`Error in SRS function ${fn.name} with args:`, args);
+      throw e;
+    }
+  } as T;
 }

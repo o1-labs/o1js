@@ -5,18 +5,18 @@
  *
  * The inputs are `SnarkKeyHeader` and `SnarkKey`, which are OCaml tagged enums defined in pickles_bindings.ml
  */
+import { Pickles, wasm } from '../../bindings.js';
 import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
-import { Pickles, wasm } from '../../bindings.js';
-import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
+import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from './cache.js';
 import type { MethodInterface } from './zkprogram.js';
 
-export { parseHeader, encodeProverKey, decodeProverKey, SnarkKeyHeader, SnarkKey };
+export { SnarkKey, SnarkKeyHeader, decodeProverKey, encodeProverKey, parseHeader };
 export type { MlWrapVerificationKey };
 
 // there are 4 types of snark keys in Pickles which we all handle at once
@@ -94,7 +94,9 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
   switch (value[0]) {
     case KeyType.StepProvingKey: {
       let index = value[1][1];
-      let encoded = wasm.caml_pasta_fp_plonk_index_encode(index);
+      let encoded = wasm.caml_pasta_fp_plonk_index_encode(
+        (wasm as any).prover_index_fp_from_bytes(index.serialize())
+      );
       return encoded;
     }
     case KeyType.StepVerificationKey: {
@@ -106,7 +108,9 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     }
     case KeyType.WrapProvingKey: {
       let index = value[1][1];
-      let encoded = wasm.caml_pasta_fq_plonk_index_encode(index);
+      let encoded = wasm.caml_pasta_fq_plonk_index_encode(
+        (wasm as any).prover_index_fq_from_bytes(index.serialize())
+      );
       return encoded;
     }
     case KeyType.WrapVerificationKey: {

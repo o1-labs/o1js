@@ -1,3 +1,5 @@
+import { MlArray } from '../../../lib/ml/base.js';
+import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpGate,
   WasmFpPolyComm,
@@ -6,10 +8,6 @@ import type {
   WasmGPallas,
   WasmGVesta,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { OrInfinity, Gate, PolyComm, Wire } from './kimchi-types.js';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { MlArray } from '../../../lib/ml/base.js';
-import { mapTuple } from './util.js';
 import {
   WasmAffine,
   affineFromRust,
@@ -17,16 +15,18 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
 } from './conversion-base.js';
+import { Gate, OrInfinity, PolyComm, Wire } from './kimchi-types.js';
+import { mapTuple } from './util.js';
 
 export {
   ConversionCore,
   ConversionCores,
   conversionCore,
   freeOnFinalize,
-  wrap,
-  unwrap,
   mapFromUintArray,
   mapToUint32Array,
+  unwrap,
+  wrap,
 };
 
 // basic conversion functions for each field
@@ -116,7 +116,9 @@ function conversionCorePerField(
       return new PolyComm(rustUnshifted, rustShifted);
     },
     polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
+      console.log('polyComm', polyComm);
       let rustUnshifted = polyComm.unshifted;
+      console.log('polyCommFromRust', rustUnshifted);
       let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
         return affineFromRust(wrap(ptr, CommitmentCurve));
       });
@@ -174,6 +176,7 @@ function freeOnFinalize<T extends Freeable>(instance: T) {
 }
 
 function mapFromUintArray<T>(array: Uint32Array | Uint8Array, map: (i: number) => T) {
+  console.log('array', array);
   let n = array.length;
   let result: T[] = Array(n);
   for (let i = 0; i < n; i++) {
