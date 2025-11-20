@@ -1,6 +1,8 @@
 import assert from 'node:assert';
 import native from '../../src/native/native';
 
+// run with `./run tests/native/native.ts --bundle`
+
 console.log(native);
 
 assert(native.getNativeCalls() == 0n, 'native module starts with no calls');
