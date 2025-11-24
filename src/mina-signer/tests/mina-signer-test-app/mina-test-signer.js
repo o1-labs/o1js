@@ -9,7 +9,7 @@
  *  - Submit the signed payload to a Mina daemon and verify it reached the pool
  *
  * Usage:
- *    node test-signer.js --private-key <key> --recipient <address> [--url <graphql_url>] [--nonce <nonce>]
+ *    node mina-test-signer.js --private-key <key> --recipient <address> [--url <graphql_url>] [--nonce <nonce>]
  */
 import { Command } from 'commander';
 import { GraphQLClient } from './graphql-client.js';
