@@ -70,15 +70,13 @@ function napiConversionCore(napi: any) {
   };
 
   return {
-    fp: { ...fpCore },
+    fp: {
+      ...fpCore,
+    },
     fq: {
       ...fqCore,
-      shiftsFromRust: (s: any) => {
-        let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
-        return [0, ...shifts.map(fieldFromRust)];
-      },
-    },
-    ...shared,
+  },
+  ...shared,
   };
 }
 

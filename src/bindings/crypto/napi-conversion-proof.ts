@@ -192,8 +192,6 @@ function proofConversionPerField(
     }
     return new LookupTable(id, wasmData);
   }
-  
-  
 
   return {
     proofToRust([, public_evals, proof]: ProofWithPublic): NapiProverProof {

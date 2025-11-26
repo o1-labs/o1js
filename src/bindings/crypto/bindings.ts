@@ -20,6 +20,7 @@ import { srs as napiSrs } from './napi-srs.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
 import { napiConversionCore } from './napi-conversion-core.js';
 import { napiProofConversion } from './napi-conversion-proof.js';
+import { napiVerifierIndexConversion } from './napi-conversion-verifier-index.js';
 import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 
 export { RustConversion, Wasm, Napi, createNativeRustConversion, getRustConversion };
@@ -90,10 +91,11 @@ function buildWasmConversion(wasm: Wasm) {
 function createNativeRustConversion(napi: any) {
   let core = napiConversionCore(napi);
   let proof = napiProofConversion(napi, core);
+  let verif = napiVerifierIndexConversion(napi, core);
   let oracles = napiOraclesConversion(napi);
   return {
-    fp: { ...core.fp, ...proof.fp, ...oracles.fp },
-    fq: { ...core.fq, ...proof.fq, ...oracles.fq },
+    fp: { ...core.fp, ...proof.fp, ...verif.fp, ...oracles.fp },
+    fq: { ...core.fq, ...proof.fq, ...verif.fq, ...oracles.fq },
   };
 }
 
