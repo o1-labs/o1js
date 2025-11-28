@@ -54,6 +54,31 @@ class Sponge {
   }
 }
 
+/**
+ * Applies the full Poseidon permutation to the provided state.
+ *
+ * @warning Internally, this pads inputs with trailing zeros to reach an even 
+ * length (a multiple of the rate which is 2). This means that inputs that only 
+ * differ in trailing zeros will collide (they produce an identical output); 
+ * therefore, it MUST only be used with fixed-length inputs. In-circuit, padded 
+ * input messages lead to another circuit and hence different verification key, 
+ * so this cannot be exploited to tamper proofs (a proof for the padded input 
+ * cannot be verified with the keys for the circuit encoding hashes of unpadded 
+ * input lengths). If you need to hash variable-length inputs, or are in doubt, 
+ * instead of `Poseidon.hash()` please use `Poseidon.hashAnyLength()`, which 
+ * includes the length of your message as part of the hash input to prevent 
+ * collisions. 
+ *
+ * @example
+ * ```ts
+ * const state = [Field.one()];
+ * const padded = [...state, Field.zero()];
+ *
+ * poseidonBlockCipher(params, state);
+ * poseidonBlockCipher(params, padded);
+ * assert(FieldVector.equals(state, padded));
+ * ```
+ */
 const Poseidon = {
   hash(input: Field[]) {
     if (isConstant(input)) {
@@ -75,6 +100,11 @@ const Poseidon = {
   hashWithPrefix(prefix: string, input: Field[]) {
     let init = Poseidon.update(Poseidon.initialState(), [prefixToField(prefix)]);
     return Poseidon.update(init, input)[0];
+  },
+  
+  hashAnyLength(input: Field[]) {
+    let len = Field(input.length);
+    return Poseidon.hash([...input, len]);
   },
 
   initialState(): [Field, Field, Field] {
