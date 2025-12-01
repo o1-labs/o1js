@@ -130,7 +130,7 @@ const AccountPrecondition: BindingsType.Object<AccountPrecondition> = new Bindin
     receiptChainHash: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
     delegate: new BindingsType.Option.Flagged(new BindingsType.Leaf.PublicKey()),
     state: new BindingsType.Array({
-      staticLength: 8,
+      staticLength: 32,
       inner: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
     }),
     actionState: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
@@ -291,7 +291,7 @@ const ZkappAccount: BindingsType.Object<ZkappAccount> = new BindingsType.Object(
   ],
   entries: {
     appState: new BindingsType.Array({
-      staticLength: 8,
+      staticLength: 32,
       inner: new BindingsType.Leaf.Field(),
     }),
     verificationKey: new BindingsType.Option.OrUndefined<{ data: string; hash: Field }>(
@@ -352,7 +352,7 @@ const AccountUpdateModification: BindingsType.Object<AccountUpdateModification> 
     ],
     entries: {
       appState: new BindingsType.Array({
-        staticLength: 8,
+        staticLength: 32,
         inner: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
       }),
       delegate: new BindingsType.Option.Flagged(new BindingsType.Leaf.PublicKey()),

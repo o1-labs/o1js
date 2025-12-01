@@ -1,35 +1,35 @@
 /**
  * This module holds the global Mina instance and its interface.
  */
+import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
+import { verifyAccountUpdateSignature } from '../../../mina-signer/src/sign-zkapp-command.js';
+import type { NetworkId } from '../../../mina-signer/src/types.js';
+import { VerificationKey } from '../../proof-system/verification-key.js';
+import { JsonProof, verify } from '../../proof-system/zkprogram.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { assert } from '../../provable/gadgets/common.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
+import { cloneCircuitValue } from '../../provable/types/struct.js';
+import { Field } from '../../provable/wrapped.js';
 import {
-  ZkappCommand,
-  TokenId,
-  Events,
-  ZkappPublicInput,
   AccountUpdate,
+  Events,
+  TokenId,
+  ZkappCommand,
+  ZkappPublicInput,
   dummySignature,
 } from './account-update.js';
-import { Field } from '../../provable/wrapped.js';
-import { UInt64, UInt32 } from '../../provable/int.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
-import { JsonProof, verify } from '../../proof-system/zkprogram.js';
-import { verifyAccountUpdateSignature } from '../../../mina-signer/src/sign-zkapp-command.js';
-import { TransactionCost, TransactionLimits } from './constants.js';
-import { cloneCircuitValue } from '../../provable/types/struct.js';
-import { assert } from '../../provable/gadgets/common.js';
-import { Types, TypesBigint } from '../../../bindings/mina-transaction/v1/types.js';
-import type { NetworkId } from '../../../mina-signer/src/types.js';
 import type { Account } from './account.js';
+import { TransactionLimits } from './constants.js';
 import type { NetworkValue } from './precondition.js';
-import { VerificationKey } from '../../proof-system/verification-key.js';
 
 export {
-  reportGetAccountError,
   defaultNetworkState,
-  verifyTransactionLimits,
-  getTotalTimeRequired,
-  verifyAccountUpdate,
   filterGroups,
+  getEvents as getTotalTimeRequired,
+  reportGetAccountError,
+  verifyAccountUpdate,
+  verifyTransactionLimits
 };
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -60,23 +60,18 @@ function defaultNetworkState(): NetworkValue {
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-  let { totalTimeRequired, eventElements, authTypes } = getTotalTimeRequired(accountUpdates);
+  let { eventElements } = getEvents(accountUpdates);
+  const segments = accountUpdates.length;
 
-  let isWithinCostLimit = totalTimeRequired < TransactionCost.COST_LIMIT;
+  let isWithinSegmentLimit = segments <= TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION;
 
   let isWithinEventsLimit = eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
   let isWithinActionsLimit = eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
 
   let error = '';
 
-  if (!isWithinCostLimit) {
-    // TODO: we should add a link to the docs explaining the reasoning behind it once we have such an explainer
-    error += `Error: The transaction is too expensive, try reducing the number of AccountUpdates that are attached to the transaction.
-Each transaction needs to be processed by the snark workers on the network.
-Certain layouts of AccountUpdates require more proving time than others, and therefore are too expensive.
-
-${JSON.stringify(authTypes)}
-\n\n`;
+  if (!isWithinSegmentLimit) {
+    error += `Error: the transaction contains too many segments. Try reducing the number of accountUpdates attached to the transaction. The maximum number of updates per transaction is ${TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION}`;
   }
 
   if (!isWithinEventsLimit) {
@@ -90,7 +85,7 @@ ${JSON.stringify(authTypes)}
   if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
 
-function getTotalTimeRequired(accountUpdates: AccountUpdate[]) {
+function getEvents(accountUpdates: AccountUpdate[]) {
   let eventElements = { events: 0, actions: 0 };
 
   let authKinds = accountUpdates.map((update) => {
@@ -111,21 +106,7 @@ function getTotalTimeRequired(accountUpdates: AccountUpdate[]) {
   });
   let authTypes = filterGroups(authKinds);
 
-  /*
-  np := proof
-  n2 := signedPair
-  n1 := signedSingle
-
-  formula used to calculate how expensive a zkapp transaction is
-
-  10.26*np + 10.08*n2 + 9.14*n1 < 69.45
-  */
-  let totalTimeRequired =
-    TransactionCost.PROOF_COST * authTypes.proof +
-    TransactionCost.SIGNED_PAIR_COST * authTypes.signedPair +
-    TransactionCost.SIGNED_SINGLE_COST * authTypes.signedSingle;
-  // returns totalTimeRequired and additional data used by verifyTransactionLimits
-  return { totalTimeRequired, eventElements, authTypes };
+  return { eventElements, authTypes };
 }
 
 function countEventElements({ data }: Events) {
