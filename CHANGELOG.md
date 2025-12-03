@@ -18,6 +18,12 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/c2e51a84...HEAD)
 
+### Removed
+
+- `Transaction.setFeePerSnarkCost` has been removed, since "snark cost" has been
+  removed in `mina`, replaced with `MAX_ZKAPP_SEGMENT_PER_TRANSACTION`,
+  simplifying calculations. Instead, use `setFee`.
+
 ### Fixed
 
 - Fixed an edge case that prevented the cache from being generated and read
