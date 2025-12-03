@@ -180,21 +180,12 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return new PolyCommClass(unshifted as unknown, undefined);
   };
 
-  /*   const polyCommFromRust = (polyComm: NapiPolyComm): PolyComm => {
+  const polyCommFromRust = (polyComm: any): any => {
+    if (polyComm == null) return undefined;
     console.log('polyComm', polyComm);
     const rustUnshifted = asArrayLike<NapiAffine>(polyComm.unshifted, 'polyComm.unshifted');
     console.log('rustUnshifted', rustUnshifted);
     const mlUnshifted = rustUnshifted.map(affineFromRust);
-    return [0, [0, ...mlUnshifted]];
-  }; */
-  const polyCommFromRust = (polyComm: any): any => {
-    let rustUnshifted = polyComm.unshifted;
-    console.log('rustUnshifted', rustUnshifted);
-    let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
-      console.log('ptr', ptr);
-      /*       return affineFromRust(wrap(ptr, CommitmentCurve));
-       */
-    });
     return [0, [0, ...mlUnshifted]];
   };
 
