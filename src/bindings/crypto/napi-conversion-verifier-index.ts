@@ -1,5 +1,5 @@
 import { MlArray, MlBool, MlOption } from '../../lib/ml/base.js';
-import type * as wasmNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
+import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpDomain,
   WasmFpLookupSelectors,
@@ -22,17 +22,16 @@ import { Lookup, LookupInfo, LookupSelectors } from './bindings/lookup.js';
 
 export { napiVerifierIndexConversion };
 
-type wasm = typeof wasmNamespace;
+type napi = typeof napiNamespace;
 
-type WasmDomain = WasmFpDomain | WasmFqDomain;
-type WasmVerificationEvals = WasmFpPlonkVerificationEvals | WasmFqPlonkVerificationEvals;
-type WasmShifts = WasmFpShifts | WasmFqShifts;
-type WasmVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
+type NapiDomain = WasmFpDomain | WasmFqDomain;
+type NapiVerificationEvals = WasmFpPlonkVerificationEvals | WasmFqPlonkVerificationEvals;
+type NapiShifts = WasmFpShifts | WasmFqShifts;
+type NapiVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
+type NapiLookupVerifierIndex = WasmFpLookupVerifierIndex | WasmFqLookupVerifierIndex;
+type NapiLookupSelector = WasmFpLookupSelectors | WasmFqLookupSelectors;
 
-type WasmLookupVerifierIndex = WasmFpLookupVerifierIndex | WasmFqLookupVerifierIndex;
-type WasmLookupSelector = WasmFpLookupSelectors | WasmFqLookupSelectors;
-
-type WasmClasses = {
+type NapiClasses = {
   Domain: typeof WasmFpDomain | typeof WasmFqDomain;
   VerificationEvals: typeof WasmFpPlonkVerificationEvals | typeof WasmFqPlonkVerificationEvals;
   Shifts: typeof WasmFpShifts | typeof WasmFqShifts;
@@ -63,7 +62,7 @@ function napiVerifierIndexConversion(napi: any, core: ConversionCores) {
 }
 
 function verifierIndexConversionPerField(
-  wasm: wasm,
+  napi: any,
   core: ConversionCore,
   {
     Domain,
@@ -72,18 +71,16 @@ function verifierIndexConversionPerField(
     VerifierIndex,
     LookupVerifierIndex,
     LookupSelector,
-  }: WasmClasses
+  }: NapiClasses
 ) {
-  function domainToRust([, logSizeOfGroup, groupGen]: Domain): WasmDomain {
+  function domainToRust([, logSizeOfGroup, groupGen]: Domain): NapiDomain {
     return new Domain(logSizeOfGroup, fieldToRust(groupGen));
   }
-  function domainFromRust(domain: WasmDomain): Domain {
-    let logSizeOfGroup = domain.log_size_of_group;
-    let groupGen = fieldFromRust(domain.group_gen);
-    return [0, logSizeOfGroup, groupGen];
+  function domainFromRust(domain: NapiDomain): Domain {
+    return [0, domain.log_size_of_group, fieldFromRust(domain.group_gen)];
   }
 
-  function verificationEvalsToRust(evals: VerificationEvals): WasmVerificationEvals {
+  function verificationEvalsToRust(evals: VerificationEvals): NapiVerificationEvals {
     let sigmaComm = core.polyCommsToRust(evals[1]);
     let coefficientsComm = core.polyCommsToRust(evals[2]);
     let genericComm = core.polyCommToRust(evals[3]);
@@ -115,9 +112,7 @@ function verifierIndexConversionPerField(
       rotComm as any
     );
   }
-  function verificationEvalsFromRust(evals: WasmVerificationEvals): VerificationEvals {
-    console.log('evals', evals.coefficients_comm);
-
+  function verificationEvalsFromRust(evals: NapiVerificationEvals): VerificationEvals {
     let mlEvals: VerificationEvals = [
       0,
       core.polyCommsFromRust(evals.sigma_comm),
@@ -138,7 +133,7 @@ function verifierIndexConversionPerField(
     return mlEvals;
   }
 
-  function lookupVerifierIndexToRust(lookup: Lookup<PolyComm>): WasmLookupVerifierIndex {
+  function lookupVerifierIndexToRust(lookup: Lookup<PolyComm>): NapiLookupVerifierIndex {
     let [
       ,
       joint_lookup_used,
@@ -157,7 +152,7 @@ function verifierIndexConversionPerField(
       MlOption.mapFrom(runtime_tables_selector, core.polyCommToRust) as any
     );
   }
-  function lookupVerifierIndexFromRust(lookup: WasmLookupVerifierIndex): Lookup<PolyComm> {
+  function lookupVerifierIndexFromRust(lookup: NapiLookupVerifierIndex): Lookup<PolyComm> {
     let mlLookup: Lookup<PolyComm> = [
       0,
       MlBool(lookup.joint_lookup_used),
@@ -176,7 +171,7 @@ function verifierIndexConversionPerField(
     xor,
     range_check,
     ffmul,
-  ]: LookupSelectors<PolyComm>): WasmLookupSelector {
+  ]: LookupSelectors<PolyComm>): NapiLookupSelector {
     return new LookupSelector(
       MlOption.mapFrom(xor, core.polyCommToRust) as any,
       MlOption.mapFrom(lookup, core.polyCommToRust) as any,
@@ -184,7 +179,7 @@ function verifierIndexConversionPerField(
       MlOption.mapFrom(ffmul, core.polyCommToRust) as any
     );
   }
-  function lookupSelectorsFromRust(selector: WasmLookupSelector): LookupSelectors<PolyComm> {
+  function lookupSelectorsFromRust(selector: NapiLookupSelector): LookupSelectors<PolyComm> {
     let lookup = MlOption.mapTo(selector.lookup, core.polyCommFromRust);
     let xor = MlOption.mapTo(selector.xor, core.polyCommFromRust);
     let range_check = MlOption.mapTo(selector.range_check, core.polyCommFromRust);
@@ -195,18 +190,18 @@ function verifierIndexConversionPerField(
   function lookupInfoToRust([, maxPerRow, maxJointSize, features]: LookupInfo): WasmLookupInfo {
     let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
     let [, xor, lookup, range_check, foreign_field_mul] = patterns;
-    let wasmPatterns = new wasm.LookupPatterns(
+    let napiPatterns = new napi.LookupPatterns(
       MlBool.from(xor),
       MlBool.from(lookup),
       MlBool.from(range_check),
       MlBool.from(foreign_field_mul)
     );
-    let wasmFeatures = new wasm.LookupFeatures(
-      wasmPatterns,
+    let napiFeatures = new napi.LookupFeatures(
+      napiPatterns,
       MlBool.from(joint_lookup_used),
       MlBool.from(uses_runtime_tables)
     );
-    return new wasm.LookupInfo(maxPerRow, maxJointSize, wasmFeatures);
+    return new napi.LookupInfo(maxPerRow, maxJointSize, napiFeatures);
   }
   function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
     let features = info.features;
@@ -232,16 +227,16 @@ function verifierIndexConversionPerField(
   }
 
   let self = {
-    shiftsToRust([, ...shifts]: MlArray<Field>): WasmShifts {
+    shiftsToRust([, ...shifts]: MlArray<Field>): NapiShifts {
       let s = shifts.map((s) => fieldToRust(s));
       return new Shifts(s[0], s[1], s[2], s[3], s[4], s[5], s[6]);
     },
-    shiftsFromRust(s: WasmShifts): MlArray<Field> {
+    shiftsFromRust(s: NapiShifts): MlArray<Field> {
       let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
       return [0, ...shifts.map(fieldFromRust)];
     },
 
-    verifierIndexToRust(vk: VerifierIndex): WasmVerifierIndex {
+    verifierIndexToRust(vk: VerifierIndex): NapiVerifierIndex {
       let domain = domainToRust(vk[1]);
       let maxPolySize = vk[2];
       let nPublic = vk[3];
@@ -263,7 +258,8 @@ function verifierIndexConversionPerField(
         zkRows
       );
     },
-    verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
+    verifierIndexFromRust(vk: NapiVerifierIndex): VerifierIndex {
+      console.log('vk from rust', vk);
       let mlVk: VerifierIndex = [
         0,
         domainFromRust(vk.domain),
