@@ -10,7 +10,8 @@ import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
-import { getRustConversion } from '../../bindings/crypto/bindings.js';
+// TODO: include conversion bundle to decide between wasm and napi conversion
+import { createNativeRustConversion, getRustConversion } from '../../bindings/crypto/bindings.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from './cache.js';
@@ -95,13 +96,13 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     case KeyType.StepProvingKey: {
       let index = value[1][1];
       let encoded = wasm.caml_pasta_fp_plonk_index_encode(
-        (wasm as any).prover_index_fp_from_bytes(index.serialize())
+        (wasm as any).prover_index_fp_deserialize((wasm as any).prover_index_fp_serialize(index))
       );
       return encoded;
     }
     case KeyType.StepVerificationKey: {
       let vkMl = value[1];
-      const rustConversion = getRustConversion(wasm);
+      const rustConversion = createNativeRustConversion(wasm);
       let vkWasm = rustConversion.fp.verifierIndexToRust(vkMl);
       let string = wasm.caml_pasta_fp_plonk_verifier_index_serialize(vkWasm);
       return new TextEncoder().encode(string);
@@ -109,7 +110,7 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     case KeyType.WrapProvingKey: {
       let index = value[1][1];
       let encoded = wasm.caml_pasta_fq_plonk_index_encode(
-        (wasm as any).prover_index_fq_from_bytes(index.serialize())
+        (wasm as any).prover_index_fq_deserialize((wasm as any).prover_index_fq_serialize(index))
       );
       return encoded;
     }
@@ -139,7 +140,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
       let srs = Pickles.loadSrsFp();
       let string = new TextDecoder().decode(bytes);
       let vkWasm = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(srs, string);
-      const rustConversion = getRustConversion(wasm);
+      const rustConversion = createNativeRustConversion(wasm);
       let vkMl = rustConversion.fp.verifierIndexFromRust(vkWasm);
       return [KeyType.StepVerificationKey, vkMl];
     }
