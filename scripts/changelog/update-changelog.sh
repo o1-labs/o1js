@@ -17,9 +17,11 @@
 # Usage:
 # It should be run in the root directory of the repository where the CHANGELOG.md is located.
 # Ensure that you have the necessary permissions to commit and push changes to the repository.
+# FAQ:
+# If you're on macOS, you need to `brew install grep` for compatibility
 
 # Step 1: Capture the latest version
-latest_version=$(grep -o '\[\K[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md | head -1)
+latest_version=$(grep -oP '\[\K[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md | head -1)
 echo "Latest version: $latest_version"
 
 # Step 2: Bump the patch version
@@ -37,7 +39,7 @@ current_date=$(date +%Y-%m-%d)
 echo "Current date: $current_date"
 
 # Step 5: Extract the second SHA from the compare URL of the latest version
-previous_commit=$(grep -m 1 -o '\[.*?\]\(https://github.com/o1-labs/o1js/compare/[a-f0-9]+\.\.\.\K[a-f0-9]+(?=\))' CHANGELOG.md)
+previous_commit=$(grep -m 1 -oP '\[.*?\]\(https://github.com/o1-labs/o1js/compare/[a-f0-9]+\.\.\.\K[a-f0-9]+(?=\))' CHANGELOG.md)
 echo "Previous commit: $previous_commit"
 
 # Step 6: Update the CHANGELOG
