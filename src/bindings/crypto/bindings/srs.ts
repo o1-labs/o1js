@@ -104,7 +104,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
   let maybeLagrangeCommitment = (srs: WasmSrs, domain_size: number, i: number) => {
     try {
       console.log(3);
-      console.log('srs', srs);
+      console.log('srs wasm', srs);
       let bytes = (wasm as any)[`caml_${f}_srs_to_bytes_external`](srs);
       console.log('bytes', bytes);
       let wasmSrs = undefined;

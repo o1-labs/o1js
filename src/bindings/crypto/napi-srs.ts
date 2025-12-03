@@ -103,7 +103,18 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
 
   let maybeLagrangeCommitment = (srs: NapiSrs, domain_size: number, i: number) => {
     try {
-      return napi[`caml_${f}_srs_maybe_lagrange_commitment`](srs, domain_size, i);
+      console.log(3);
+      console.log('srs napi', srs);
+      
+      /*let bytes = (napi as any)[`caml_${f}_srs_to_bytes`](srs);
+      console.log('bytes', bytes);
+      let wasmSrs = undefined;
+      if (f === 'fp') wasmSrs = (napi as any)[`caml_${f}_srs_from_bytes`](bytes);
+      else wasmSrs = (napi as any)[`caml_fq_srs_from_bytes`](bytes);
+      */
+      let s = napi[`caml_${f}_srs_maybe_lagrange_commitment`](srs, domain_size, i);
+      console.log('S', s);
+      return s;
     } catch (error) {
       console.error(`Error in SRS maybe lagrange commitment for field ${f}`);
       throw error;
@@ -197,7 +208,8 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
       // happy, fast case: if basis is already stored on the srs, return the ith commitment
       let commitment = maybeLagrangeCommitment(srs, domainSize, i);
 
-      if (commitment === undefined) {
+      if (commitment === undefined || commitment === null) {
+        console.log("comm was undefined");
         if (cache === undefined) {
           // if there is no cache, recompute and store basis in memory
           commitment = lagrangeCommitment(srs, domainSize, i);
@@ -235,6 +247,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
           commitment = c;
         }
       }
+      console.log("commitment was not undefined");
 
       // edge case for when we have a writeable cache and the basis was already stored on the srs
       // but we didn't store it in the cache separately yet
