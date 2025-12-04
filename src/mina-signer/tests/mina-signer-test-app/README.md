@@ -1,7 +1,7 @@
 # Test Signer CLI
 
 Command-line helper for drafting, signing, and broadcasting Mina payments via
-the public GraphQL API. It wraps the `mina-signer` library so you can submit
+the public GraphQL API. It wraps the `mina-test-signer` library so you can submit
 transactions without wiring up a full wallet or SDK.
 
 ## Getting Started
@@ -23,18 +23,6 @@ The optional `graphql_url` flag lets you override the default target defined in
    validation.
 4. `config.js` centralises network defaults and usage messaging.
 
-- `mina-test-signer.js` – CLI entry point orchestrating validation, signing,
-  submission, and pool verification.
-- `payment-service.js` – Thin wrapper around `mina-signer` with sensible
-  defaults for MINA amounts and fees.
-- `graphql-client.js` – Minimal fetch-based GraphQL transport for sending
-  payments and querying pooled commands.
-- `utils.js` – GraphQL stringification helpers plus basic CLI argument
-  validation/parsing.
-- `config.js` – Configuration constants and usage text surfaced by the CLI.
-- `key/` – Sample key material for experimentation; do not use in production
-  environments.
-
 Check the console output for a transaction id; you can re-run the pool check or
 the `getPooledUserCommands` helper to confirm inclusion. Provide a `nonce`
 argument when you need to synchronise with on-chain account state manually. The
@@ -55,5 +43,3 @@ For clarity, private key is in output format of:
 
 - Treat private keys in plain text with care. Prefer environment variables or a
   secure secrets manager for real deployments.
-- The example keys under `key/` are for local testing only; they are publicly
-  known and should never hold funds.
