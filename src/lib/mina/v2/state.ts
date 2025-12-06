@@ -11,25 +11,25 @@
 
 // TODO: there is a lot of duplication here on the generic representation that we can reduce
 
-import { Empty, Eq, ProvableInstance, Update } from './core.js';
-import { Precondition } from './preconditions.js';
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
 import { Provable } from '../../provable/provable.js';
 import { Unconstrained } from '../../provable/types/unconstrained.js';
 import { ZkappConstants } from '../v1/constants.js';
+import { Empty, Eq, ProvableInstance, Update } from './core.js';
+import { Precondition } from './preconditions.js';
 
 export {
-  StateValues,
   GenericStatePreconditions,
-  StatePreconditions,
-  StateDefinition,
-  StateUpdates,
-  StateLayout,
   GenericStateUpdates,
-  StateMask,
-  StateReader,
   State,
+  StateDefinition,
+  StateLayout,
+  StateMask,
+  StatePreconditions,
+  StateReader,
+  StateUpdates,
+  StateValues
 };
 
 const { MAX_ZKAPP_STATE_FIELDS } = ZkappConstants;
@@ -53,16 +53,6 @@ const CustomStateLayout = {
     const entriesOut = entriesIn.map(([key, T]) => [key, f(key, T as StateIn[typeof key])]);
     return Object.fromEntries(entriesOut);
   },
-
-  // mapToArray<State extends CustomStateLayout, Out>(
-  //   Layout: State,
-  //   f: (key: keyof State, value: State[typeof key]) => Out
-  // ): Out[] {
-  //   const out: Out[] = [];
-  //   const keys = Object.keys(Layout) as (keyof State)[];
-  //   keys.forEach((key) => out.push(f(key, Layout[key])));
-  //   return out;
-  // }
 };
 
 type StateDefinition<State extends StateLayout> = State extends 'GenericState'
@@ -608,7 +598,7 @@ class StateFieldsArray<T> {
   }
 }
 
-class GenericStateValues extends StateFieldsArray<Field> {
+export class GenericStateValues extends StateFieldsArray<Field> {
   constructor(values: Field[]) {
     super(values, Field.empty);
   }
