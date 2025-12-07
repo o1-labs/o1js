@@ -6,9 +6,8 @@ on:
       - completed
     branches:
       - main
-      - v1
-      - v2
-      - v3
+      - develop
+      - develop-3.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
