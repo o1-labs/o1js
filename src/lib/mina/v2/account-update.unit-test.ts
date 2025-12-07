@@ -1,15 +1,8 @@
-import { AccountUpdate, Authorized, GenericData } from './account-update.js';
-import { AccountId, AccountTiming } from './account.js';
-import { AccountUpdateAuthorizationKind } from './authorization.js';
-import { TokenId, Update } from './core.js';
-import { Precondition } from './preconditions.js';
-import { GenericStatePreconditions, GenericStateUpdates } from './state.js';
-import { AccountUpdate as V1AccountUpdateImpl } from '../v1/account-update.js';
-import { VerificationKey } from '../../proof-system/verification-key.js';
-import { Bool } from '../../provable/bool.js';
-import { Field } from '../../provable/field.js';
-import { UInt32, UInt64, Int64, Sign } from '../../provable/int.js';
-import { PrivateKey } from '../../provable/crypto/signature.js';
+import { expect } from 'expect';
+import { jsLayout as layoutV1 } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
+import * as ValuesV1 from '../../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import * as JsonV1 from '../../../bindings/mina-transaction/gen/v1/transaction-json.js';
+import * as TypesV1 from '../../../bindings/mina-transaction/gen/v1/transaction.js';
 import {
   Actions as V1Actions,
   Events as V1Events,
@@ -17,26 +10,33 @@ import {
   TokenSymbol as V1TokenSymbol,
   ZkappUri as V1ZkappUri,
 } from '../../../bindings/mina-transaction/v1/transaction-leaves.js';
-import * as TypesV1 from '../../../bindings/mina-transaction/gen/v1/transaction.js';
-import * as ValuesV1 from '../../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
-import * as JsonV1 from '../../../bindings/mina-transaction/gen/v1/transaction-json.js';
-import { jsLayout as layoutV1 } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
-import { expect } from 'expect';
+import { VerificationKey } from '../../proof-system/verification-key.js';
+import { Bool } from '../../provable/bool.js';
+import { PrivateKey } from '../../provable/crypto/signature.js';
+import { Field } from '../../provable/field.js';
+import { Int64, Sign, UInt32, UInt64 } from '../../provable/int.js';
+import { AccountUpdate as V1AccountUpdateImpl } from '../v1/account-update.js';
+import { AccountUpdate, Authorized, GenericData } from './account-update.js';
+import { AccountId, AccountTiming } from './account.js';
+import { AccountUpdateAuthorizationKind } from './authorization.js';
+import { TokenId, Update } from './core.js';
+import { Precondition } from './preconditions.js';
+import { GenericStatePreconditions, GenericStateUpdates } from './state.js';
 
+import {
+  Signature,
+  signFieldElement,
+  zkAppBodyPrefix,
+} from '../../../mina-signer/src/signature.js';
 import { ZkappConstants } from '../v1/constants.js';
 import {
   testV1V2ClassEquivalence,
   testV1V2ValueEquivalence,
   testV2Encoding,
 } from './test/utils.js';
-import {
-  Signature,
-  signFieldElement,
-  zkAppBodyPrefix,
-} from '../../../mina-signer/src/signature.js';
 
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
-import { packToFields, hashWithPrefix } from '../../../lib/provable/crypto/poseidon.js';
+import { hashWithPrefix, packToFields } from '../../../lib/provable/crypto/poseidon.js';
 
 function testHashEquality(v1: TypesV1.AccountUpdate, v2: Authorized) {
   expect(TypesV1.AccountUpdate.toInput(v1)).toEqual(v2.toInput());
@@ -401,7 +401,9 @@ const v2AccountUpdate: Authorized = new Authorized(
     pushEvents: events,
     pushActions: actions,
     setState: new GenericStateUpdates(
-      new Array(ZkappConstants.MAX_ZKAPP_STATE_FIELDS).fill(Update.set(new Field(8)))
+      new Array(ZkappConstants.MAX_ZKAPP_STATE_FIELDS).fill(
+        Update.set(new Field(ZkappConstants.MAX_ZKAPP_STATE_FIELDS))
+      )
     ),
     setDelegate: publicKey,
     setVerificationKey: verificationKey,
