@@ -106,7 +106,11 @@ function getEvents(accountUpdates: AccountUpdate[]) {
   });
   let authTypes = filterGroups(authKinds);
 
-  return { eventElements, authTypes, totalAccountUpdates: accountUpdates.length };
+  return {
+    eventElements,
+    authTypes,
+    totalAccountUpdates: accountUpdates.length,
+  };
 }
 
 function countEventElements({ data }: Events) {
