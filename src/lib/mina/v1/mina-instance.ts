@@ -7,7 +7,6 @@ import { UInt32, UInt64 } from '../../provable/int.js';
 import { Field } from '../../provable/wrapped.js';
 import type { EventActionFilterOptions } from '././../../mina/v1/graphql.js';
 import type { Account } from './account.js';
-import { ZkappConstants } from './constants.js';
 import type * as Fetch from './fetch.js';
 import type { NetworkValue } from './precondition.js';
 import type { PendingTransactionPromise, Transaction, TransactionPromise } from './transaction.js';
@@ -17,7 +16,6 @@ export {
   FeePayerSpec,
   Mina,
   NetworkConstants,
-  ZkappStateLength,
   activeInstance,
   currentSlot,
   defaultNetworkConstants,
@@ -40,8 +38,6 @@ const defaultNetworkConstants: NetworkConstants = {
   slotTime: UInt64.from(3 * 60 * 1000),
   accountCreationFee: UInt64.from(defaultAccountCreationFee),
 };
-
-const ZkappStateLength = ZkappConstants.MAX_ZKAPP_STATE_FIELDS;
 
 /**
  * Allows you to specify information about the fee payer account and the transaction.

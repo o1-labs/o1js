@@ -54,8 +54,8 @@ import {
   zkAppProver,
 } from './account-update.js';
 import { Reducer, getReducer } from './actions/reducer.js';
+import { ZkappConstants } from './constants.js';
 import type { EventActionFilterOptions } from './graphql.js';
-import { ZkappStateLength } from './mina-instance.js';
 import * as Mina from './mina.js';
 import { assertPreconditionInvariants, cleanPreconditionsCache } from './precondition.js';
 import { SmartContractBase } from './smart-contract-base.js';
@@ -771,7 +771,7 @@ super.init();
     let accountUpdate = this.self;
 
     // set all state fields to 0
-    for (let i = 0; i < ZkappStateLength; i++) {
+    for (let i = 0; i < ZkappConstants.MAX_ZKAPP_STATE_FIELDS; i++) {
       AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
     }
 
