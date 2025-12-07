@@ -35,6 +35,7 @@ import {
   testV2Encoding,
 } from './test/utils.js';
 
+import { protocolVersions } from '../../../bindings/crypto/constants.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { hashWithPrefix, packToFields } from '../../../lib/provable/crypto/poseidon.js';
 
@@ -273,7 +274,7 @@ const v1AccountUpdate: TypesV1.AccountUpdate = {
     update: {
       appState: new Array(ZkappConstants.MAX_ZKAPP_STATE_FIELDS).fill({
         isSome: new Bool(true),
-        value: new Field(8),
+        value: new Field(32),
       }),
       delegate: { isSome: new Bool(true), value: publicKey },
       verificationKey: {
@@ -291,7 +292,7 @@ const v1AccountUpdate: TypesV1.AccountUpdate = {
           setPermissions: V1Auth.Proof,
           setVerificationKey: {
             auth: V1Auth.Signature,
-            txnVersion: new UInt32(3),
+            txnVersion: new UInt32(protocolVersions.txnVersion),
           },
           setZkappUri: V1Auth.Signature,
           editActionState: V1Auth.Proof,
