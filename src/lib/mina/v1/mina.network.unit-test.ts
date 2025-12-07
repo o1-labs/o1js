@@ -1,6 +1,7 @@
-import { UInt64, Mina, AccountUpdate, PublicKey, Field, TokenId, PrivateKey } from 'o1js';
-import { describe, it, before, beforeEach, afterEach } from 'node:test';
 import { expect } from 'expect';
+import { afterEach, before, beforeEach, describe, it } from 'node:test';
+import { AccountUpdate, Field, Mina, PrivateKey, PublicKey, TokenId, UInt64 } from 'o1js';
+import { TransactionLimits } from './constants.js';
 
 const defaultNetwork = Mina.Network({
   networkId: 'testnet',
@@ -69,7 +70,11 @@ describe('Test default network', () => {
 
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
-      for (let index = 0; index < 12; index++) {
+      for (
+        let index = 0;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index++
+      ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
@@ -114,7 +119,11 @@ describe('Test enforced network', () => {
 
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
-      for (let index = 0; index < 12; index++) {
+      for (
+        let index = 0;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index++
+      ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
@@ -159,7 +168,11 @@ describe('Test unlimited network', () => {
 
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
-      for (let index = 0; index < 12; index++) {
+      for (
+        let index = 0;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index++
+      ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
@@ -252,7 +265,11 @@ describe('Test network with headers', () => {
 
   it('More than limit account update', async () => {
     let txn = await Mina.transaction(async () => {
-      for (let index = 0; index < 12; index++) {
+      for (
+        let index = 0;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index++
+      ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
         accountUpdateBob.account.balance.requireEquals(UInt64.zero);
         accountUpdateBob.balance.addInPlace(UInt64.one);
