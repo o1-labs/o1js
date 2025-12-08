@@ -15,13 +15,13 @@ import { verifierIndexConversion } from './bindings/conversion-verifier-index.js
 import { PallasBindings, VestaBindings } from './bindings/curve.js';
 import { jsEnvironment } from './bindings/env.js';
 import { FpBindings, FqBindings } from './bindings/field.js';
-import { napiOraclesConversion } from './bindings/napi-conversion-oracles.js';
-import { srs } from './bindings/srs.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
+import { srs } from './bindings/srs.js';
+import { srs as napiSrs } from './napi-srs.js';
 import { napiConversionCore } from './napi-conversion-core.js';
 import { napiProofConversion } from './napi-conversion-proof.js';
 import { napiVerifierIndexConversion } from './napi-conversion-verifier-index.js';
-import { srs as napiSrs } from './napi-srs.js';
+import { napiOraclesConversion } from './bindings/napi-conversion-oracles.js';
 
 export { Napi, RustConversion, Wasm, createNativeRustConversion, getRustConversion };
 

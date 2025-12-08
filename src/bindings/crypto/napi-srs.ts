@@ -105,7 +105,6 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     try {
       console.log(3);
       console.log('srs napi', srs);
-
       /*let bytes = (napi as any)[`caml_${f}_srs_to_bytes`](srs);
       console.log('bytes', bytes);
       let wasmSrs = undefined;

@@ -23,8 +23,8 @@ import {
   VerificationEvals,
   VerifierIndex,
 } from './bindings/kimchi-types.js';
-import { Lookup, LookupInfo, LookupSelectors } from './bindings/lookup.js';
 import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
+import { Lookup, LookupInfo, LookupSelectors } from './bindings/lookup.js';
 
 export { napiVerifierIndexConversion };
 
