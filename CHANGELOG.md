@@ -18,6 +18,11 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/c2e51a84...HEAD)
 
+### Added
+
+- Added a new mastermind example to test the added number of account states
+  following Mesa Hardfork upgrades. https://github.com/o1-labs/o1js/pull/2680
+
 ### Changed
 
 - `Transaction.setFeePerSnarkCost` has been removed, since "snark cost" has been
