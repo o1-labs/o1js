@@ -261,7 +261,7 @@ async function LocalBlockchain({ proofsEnabled = true, enforceTransactionLimits 
           errors,
           transaction: txn.transaction,
           setFee: txn.setFee,
-          setFeePerSnarkCost: txn.setFeePerSnarkCost,
+          setFeePerAccountUpdate: txn.setFeePerAccountUpdate,
           hash,
           toJSON: txn.toJSON,
           toPretty: txn.toPretty,
