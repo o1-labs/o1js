@@ -143,7 +143,7 @@ type Transaction<Proven extends boolean, Signed extends boolean> = TransactionCo
   /**
    * setFeePerAccountUpdate behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
-  setFeePerAccountUpdate(newFeePerSnarkCost: number): TransactionPromise<Proven, false>;
+  setFeePerAccountUpdate(newFeePerAccountUpdate: number): TransactionPromise<Proven, false>;
 } & (Proven extends false
     ? {
         /**
@@ -280,9 +280,9 @@ type PendingTransaction = Pick<TransactionCommon, 'transaction' | 'toJSON' | 'to
    */
   setFee(newFee: UInt64): TransactionPromise<boolean, false>;
   /**
-   * setFeePerAccountUpdate is the same as {@link Transaction.setFeePerAccountUpdate(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
+   * setFeePerAccountUpdate is the same as {@link Transaction.setFeePerAccountUpdate(newFeePerAccountUpdate)} but for a {@link PendingTransaction}.
    */
-  setFeePerAccountUpdate(newFeePerSnarkCost: number): TransactionPromise<boolean, false>;
+  setFeePerAccountUpdate(newFeePerAccountUpdate: number): TransactionPromise<boolean, false>;
 };
 
 /**
@@ -559,9 +559,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       }
       return pendingTransaction;
     },
-    setFeePerAccountUpdate(newFeePerSnarkCost: number) {
+    setFeePerAccountUpdate(newFeePerAccountUpdate: number) {
       let { totalAccountUpdates } = getTotalTimeRequired(transaction.accountUpdates);
-      return this.setFee(new UInt64(Math.round(totalAccountUpdates * newFeePerSnarkCost)));
+      return this.setFee(new UInt64(Math.round(totalAccountUpdates * newFeePerAccountUpdate)));
     },
     setFee(newFee: UInt64) {
       return toTransactionPromise(async () => {
