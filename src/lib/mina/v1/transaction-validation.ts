@@ -29,7 +29,7 @@ export {
   getEvents as getTotalTimeRequired,
   reportGetAccountError,
   verifyAccountUpdate,
-  verifyTransactionLimits
+  verifyTransactionLimits,
 };
 
 function reportGetAccountError(publicKey: string, tokenId: string) {
@@ -106,7 +106,11 @@ function getEvents(accountUpdates: AccountUpdate[]) {
   });
   let authTypes = filterGroups(authKinds);
 
-  return { eventElements, authTypes };
+  return {
+    eventElements,
+    authTypes,
+    totalAccountUpdates: accountUpdates.length,
+  };
 }
 
 function countEventElements({ data }: Events) {
