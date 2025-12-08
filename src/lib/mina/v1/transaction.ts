@@ -141,9 +141,9 @@ type Transaction<Proven extends boolean, Signed extends boolean> = TransactionCo
    */
   setFee(newFee: UInt64): TransactionPromise<Proven, false>;
   /**
-   * setFeePerSnarkCost behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
+   * setFeePerAccountUpdate behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<Proven, false>;
+  setFeePerAccountUpdate(newFeePerSnarkCost: number): TransactionPromise<Proven, false>;
 } & (Proven extends false
     ? {
         /**
@@ -280,9 +280,9 @@ type PendingTransaction = Pick<TransactionCommon, 'transaction' | 'toJSON' | 'to
    */
   setFee(newFee: UInt64): TransactionPromise<boolean, false>;
   /**
-   * setFeePerSnarkCost is the same as {@link Transaction.setFeePerSnarkCost(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
+   * setFeePerAccountUpdate is the same as {@link Transaction.setFeePerAccountUpdate(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<boolean, false>;
+  setFeePerAccountUpdate(newFeePerSnarkCost: number): TransactionPromise<boolean, false>;
 };
 
 /**
@@ -559,7 +559,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       }
       return pendingTransaction;
     },
-    setFeePerSnarkCost(newFeePerSnarkCost: number) {
+    setFeePerAccountUpdate(newFeePerSnarkCost: number) {
       let { totalAccountUpdates } = getTotalTimeRequired(transaction.accountUpdates);
       return this.setFee(new UInt64(Math.round(totalAccountUpdates * newFeePerSnarkCost)));
     },
