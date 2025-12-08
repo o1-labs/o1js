@@ -80,7 +80,7 @@ function verifierIndexConversionPerField(
   function domainFromRust(domain: WasmDomain): Domain {
     let logSizeOfGroup = domain.log_size_of_group;
     let groupGen = fieldFromRust(domain.group_gen);
-    // domain.free();
+    domain.free();
     return [0, logSizeOfGroup, groupGen];
   }
 
