@@ -15,7 +15,7 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
 } from './conversion-base.js';
-import { Gate, OrInfinity, PolyComm, Wire } from './kimchi-types.js';
+import { Gate, OrInfinity, Wire } from './kimchi-types.js';
 import { mapTuple } from './util.js';
 
 export {
@@ -109,26 +109,26 @@ function conversionCorePerField(
       return [0, ...arr];
     },
 
-    polyCommToRust(polyComm: PolyComm): WasmPolyComm {
+    polyCommToRust(polyComm: any): WasmPolyComm {
       let [, camlElems] = polyComm;
       let rustShifted = undefined;
       let rustUnshifted = self.pointsToRust(camlElems);
       return new PolyComm(rustUnshifted, rustShifted);
     },
-    polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
-      console.log('polyComm', polyComm);
+    polyCommFromRust(polyComm: WasmPolyComm): any {
+      console.log('polyComm old', polyComm);
       let rustUnshifted = polyComm.unshifted;
-      console.log('polyCommFromRust', rustUnshifted);
+      console.log('rustUnshifted', rustUnshifted);
       let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
         return affineFromRust(wrap(ptr, CommitmentCurve));
       });
       return [0, [0, ...mlUnshifted]];
     },
 
-    polyCommsToRust([, ...comms]: MlArray<PolyComm>): Uint32Array {
+    polyCommsToRust([, ...comms]: MlArray<any>): Uint32Array {
       return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
     },
-    polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyComm> {
+    polyCommsFromRust(rustComms: Uint32Array): MlArray<any> {
       let comms = mapFromUintArray(rustComms, (ptr) => self.polyCommFromRust(wrap(ptr, PolyComm)));
       return [0, ...comms];
     },
