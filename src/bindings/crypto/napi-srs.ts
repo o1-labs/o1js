@@ -8,7 +8,7 @@ import {
 } from '../../lib/proof-system/cache.js';
 import { assert } from '../../lib/util/errors.js';
 import { type WasmFpSrs, type WasmFqSrs } from '../compiled/node_bindings/plonk_wasm.cjs';
-import type { RustConversion, Napi } from './bindings.js';
+import type { Napi, RustConversion } from './bindings.js';
 import { OrInfinity, OrInfinityJson } from './bindings/curve.js';
 import { PolyComm } from './bindings/kimchi-types.js';
 
@@ -62,7 +62,7 @@ function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
   );
 }
 
-function srs(napi: Napi , conversion: RustConversion) {
+function srs(napi: Napi, conversion: RustConversion) {
   return {
     fp: srsPerField('fp', napi, conversion),
     fq: srsPerField('fq', napi, conversion),
@@ -105,7 +105,6 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     try {
       console.log(3);
       console.log('srs napi', srs);
-      
       /*let bytes = (napi as any)[`caml_${f}_srs_to_bytes`](srs);
       console.log('bytes', bytes);
       let wasmSrs = undefined;
@@ -209,7 +208,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
       let commitment = maybeLagrangeCommitment(srs, domainSize, i);
 
       if (commitment === undefined || commitment === null) {
-        console.log("comm was undefined");
+        console.log('comm was undefined');
         if (cache === undefined) {
           // if there is no cache, recompute and store basis in memory
           commitment = lagrangeCommitment(srs, domainSize, i);
@@ -247,7 +246,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
           commitment = c;
         }
       }
-      console.log("commitment was not undefined");
+      console.log('commitment was not undefined');
 
       // edge case for when we have a writeable cache and the basis was already stored on the srs
       // but we didn't store it in the cache separately yet
@@ -284,7 +283,10 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     lagrangeCommitmentsWholeDomain(srs: NapiSrs, domainSize: number) {
       console.log('lagrangeCommitmentsWholeDomain');
       try {
-        let napiComms = napi[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](srs, domainSize);
+        let napiComms = napi[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](
+          srs,
+          domainSize
+        );
         let mlComms = conversion[f].polyCommsFromRust(napiComms as any);
         return mlComms;
       } catch (error) {

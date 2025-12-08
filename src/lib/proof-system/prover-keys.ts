@@ -11,7 +11,7 @@ import {
   WasmPastaFqPlonkIndex,
 } from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
 // TODO: include conversion bundle to decide between wasm and napi conversion
-import { createNativeRustConversion, getRustConversion } from '../../bindings/crypto/bindings.js';
+import { createNativeRustConversion } from '../../bindings/crypto/bindings.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from './cache.js';

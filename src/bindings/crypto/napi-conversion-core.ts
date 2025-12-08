@@ -6,7 +6,6 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
 } from './bindings/conversion-base.js';
-import { mapFromUintArray } from './bindings/conversion-core.js';
 import { Field, Gate, LookupTable, OrInfinity, PolyComm, Wire } from './bindings/kimchi-types.js';
 import { mapTuple } from './bindings/util.js';
 
@@ -75,8 +74,8 @@ function napiConversionCore(napi: any) {
     },
     fq: {
       ...fqCore,
-  },
-  ...shared,
+    },
+    ...shared,
   };
 }
 
@@ -154,9 +153,9 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
   };
   const affineFromRust = (pt: NapiAffine): OrInfinity => {
     if (pt.infinity) return 0;
-    console.log('pt', pt);
-    console.log('pt.x', pt.x);
-    console.log('pt.y', pt.y);
+    // console.log('pt', pt);
+    // console.log('pt.x', pt.x);
+    // console.log('pt.y', pt.y);
 
     const xField = fieldFromRust(pt.x);
     const yField = fieldFromRust(pt.y);
@@ -182,9 +181,9 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
 
   const polyCommFromRust = (polyComm: any): any => {
     if (polyComm == null) return undefined;
-    console.log('polyComm', polyComm);
+    // console.log('polyComm', polyComm);
     const rustUnshifted = asArrayLike<NapiAffine>(polyComm.unshifted, 'polyComm.unshifted');
-    console.log('rustUnshifted', rustUnshifted);
+    // console.log('rustUnshifted', rustUnshifted);
     const mlUnshifted = rustUnshifted.map(affineFromRust);
     return [0, [0, ...mlUnshifted]];
   };

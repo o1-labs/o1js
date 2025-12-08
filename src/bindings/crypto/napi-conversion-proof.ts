@@ -1,54 +1,55 @@
+import { MlArray, MlOption, MlTuple } from '../../lib/ml/base.js';
+import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import type {
-  WasmPastaFpLookupTable,
+  WasmFpLookupCommitments,
+  WasmFpOpeningProof,
+  WasmFpProverCommitments,
+  WasmFpProverProof,
   WasmFpRuntimeTable,
+  WasmFqLookupCommitments,
+  WasmFqOpeningProof,
+  WasmFqProverCommitments,
+  WasmFqProverProof,
+  WasmFqRuntimeTable,
+  WasmPastaFpLookupTable,
   WasmPastaFpRuntimeTableCfg,
   WasmPastaFqLookupTable,
-  WasmFqRuntimeTable,
   WasmPastaFqRuntimeTableCfg,
   WasmVecVecFp,
   WasmVecVecFq,
-  WasmFpProverCommitments, 
-  WasmFqProverCommitments,
-  WasmFpOpeningProof,
-  WasmFqOpeningProof,
-  WasmFpProverProof,
-  WasmFqProverProof,
-  WasmFpLookupCommitments,
-  WasmFqLookupCommitments,
 } from '../compiled/node_bindings/plonk_wasm.cjs';
-import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
-import type {
-  RuntimeTable,
-  RuntimeTableCfg,
-  LookupTable,
-  ProofWithPublic,
-  ProverProof,
-  LookupCommitments,
-  PolyComm, PointEvaluations, ProofEvaluations,
-  RecursionChallenge,
-  ProverCommitments,
-  OpeningProof,
-  OrInfinity,
-} from './bindings/kimchi-types.js';
-import { MlArray, MlTuple, MlOption} from '../../lib/ml/base.js';
 import {
-  fieldsToRustFlat,
+  fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
-  fieldFromRust,
+  fieldsToRustFlat,
 } from './bindings/conversion-base.js';
-import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
 import type { Field } from './bindings/field.js';
+import type {
+  LookupCommitments,
+  LookupTable,
+  OpeningProof,
+  OrInfinity,
+  PointEvaluations,
+  PolyComm,
+  ProofEvaluations,
+  ProofWithPublic,
+  ProverCommitments,
+  ProverProof,
+  RecursionChallenge,
+  RuntimeTable,
+  RuntimeTableCfg,
+} from './bindings/kimchi-types.js';
+import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
 
 export { napiProofConversion };
-  
+
 const fieldToRust_ = (x: Field) => fieldToRust(x);
 const proofEvaluationsToRust = mapProofEvaluations(fieldToRust_);
 const proofEvaluationsFromRust = mapProofEvaluations(fieldFromRust);
 const pointEvalsOptionToRust = mapPointEvalsOption(fieldToRust_);
 const pointEvalsOptionFromRust = mapPointEvalsOption(fieldFromRust);
 
-  
 type NapiProofEvaluations = [
   0,
   MlOption<PointEvaluations<Uint8Array>>,
@@ -129,7 +130,7 @@ function proofConversionPerField(
     commitments.free();
     return [0, wComm as MlTuple<PolyComm, 15>, zComm, tComm, lookup];
   }
-  
+
   function lookupCommitmentsToRust(lookup: LookupCommitments): NapiLookupCommitments {
     let sorted = core.polyCommsToRust(lookup[1]);
     let aggreg = core.polyCommToRust(lookup[2]);
@@ -143,7 +144,7 @@ function proofConversionPerField(
     lookup.free();
     return [0, sorted, aggreg, runtime];
   }
-  
+
   function openingProofToRust(proof: OpeningProof): NapiOpeningProof {
     let [_, [, ...lr], delta, z1, z2, sg] = proof;
     // We pass l and r as separate vectors over the FFI
@@ -175,8 +176,9 @@ function proofConversionPerField(
     proof.free();
     return [0, [0, ...lr], delta, z1, z2, sg];
   }
-  
+
   function runtimeTableToRust([, id, data]: RuntimeTable): NapiRuntimeTable {
+    console.log('runtime table');
     return new RuntimeTable(id, core.vectorToRust(data));
   }
 
@@ -251,7 +253,7 @@ function proofConversionPerField(
       ];
       return [0, publicEvals, proof];
     },
-    
+
     runtimeTablesToRust([, ...tables]: MlArray<RuntimeTable>): NapiRuntimeTable[] {
       return tables.map(runtimeTableToRust);
     },

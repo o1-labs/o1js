@@ -1,24 +1,24 @@
-import { Field } from './field.js';
-import { bigintToBytes32, bytesToBigint32 } from '../bigint-helpers.js';
+import type { MlArray } from '../../../lib/ml/base.js';
 import type {
   WasmGPallas,
   WasmGVesta,
   WasmPallasGProjective,
   WasmVestaGProjective,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import type { MlArray } from '../../../lib/ml/base.js';
-import { OrInfinity, Infinity } from './curve.js';
+import { bigintToBytes32, bytesToBigint32 } from '../bigint-helpers.js';
+import { Infinity, OrInfinity } from './curve.js';
+import { Field } from './field.js';
 
 export {
-  fieldToRust,
-  fieldFromRust,
-  fieldsToRustFlat,
-  fieldsFromRustFlat,
-  maybeFieldToRust,
-  affineToRust,
-  affineFromRust,
   WasmAffine,
   WasmProjective,
+  affineFromRust,
+  affineToRust,
+  fieldFromRust,
+  fieldToRust,
+  fieldsFromRustFlat,
+  fieldsToRustFlat,
+  maybeFieldToRust,
 };
 
 // TODO: Hardcoding this is a little brittle

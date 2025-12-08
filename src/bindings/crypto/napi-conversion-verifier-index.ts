@@ -16,8 +16,14 @@ import type {
   LookupInfo as WasmLookupInfo,
 } from '../compiled/node_bindings/plonk_wasm.cjs';
 import { fieldFromRust, fieldToRust } from './bindings/conversion-base.js';
+import {
+  Domain,
+  Field,
+  PolyComm,
+  VerificationEvals,
+  VerifierIndex,
+} from './bindings/kimchi-types.js';
 import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
-import { Domain, Field, PolyComm, VerificationEvals, VerifierIndex } from './bindings/kimchi-types.js';
 import { Lookup, LookupInfo, LookupSelectors } from './bindings/lookup.js';
 
 export { napiVerifierIndexConversion };
@@ -153,6 +159,7 @@ function verifierIndexConversionPerField(
     );
   }
   function lookupVerifierIndexFromRust(lookup: NapiLookupVerifierIndex): Lookup<PolyComm> {
+    console.log('lookup: ', lookup);
     let mlLookup: Lookup<PolyComm> = [
       0,
       MlBool(lookup.joint_lookup_used),
@@ -259,7 +266,7 @@ function verifierIndexConversionPerField(
       );
     },
     verifierIndexFromRust(vk: NapiVerifierIndex): VerifierIndex {
-      console.log('vk from rust', vk);
+      console.log('vk lookup index from rust', vk.lookup_index);
       let mlVk: VerifierIndex = [
         0,
         domainFromRust(vk.domain),
