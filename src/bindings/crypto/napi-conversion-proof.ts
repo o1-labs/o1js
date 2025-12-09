@@ -241,7 +241,6 @@ function proofConversionPerField(
         let scalars = fieldsFromRustFlat(prevChallengeScalars.get(i));
         return [0, scalars, comms];
       });
-      wasmProof.free();
       let proof: ProverProof = [
         0,
         commitments,
