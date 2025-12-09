@@ -1,46 +1,46 @@
+import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
+import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpLookupCommitments,
-  WasmPastaFpLookupTable,
   WasmFpOpeningProof,
   WasmFpProverCommitments,
   WasmFpProverProof,
   WasmFpRuntimeTable,
-  WasmPastaFpRuntimeTableCfg,
   WasmFqLookupCommitments,
   WasmFqOpeningProof,
   WasmFqProverCommitments,
-  WasmPastaFqLookupTable,
   WasmFqProverProof,
   WasmFqRuntimeTable,
+  WasmPastaFpLookupTable,
+  WasmPastaFpRuntimeTableCfg,
+  WasmPastaFqLookupTable,
   WasmPastaFqRuntimeTableCfg,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+import {
+  fieldFromRust,
+  fieldToRust,
+  fieldsFromRustFlat,
+  fieldsToRustFlat,
+} from './conversion-base.js';
+import { ConversionCore, ConversionCores, mapToUint32Array, unwrap } from './conversion-core.js';
 import type {
+  Field,
+  LookupCommitments,
+  LookupTable,
+  OpeningProof,
   OrInfinity,
   PointEvaluations,
   PolyComm,
-  ProverProof,
-  ProofWithPublic,
   ProofEvaluations,
+  ProofWithPublic,
   ProverCommitments,
-  OpeningProof,
+  ProverProof,
   RecursionChallenge,
-  LookupCommitments,
   RuntimeTable,
   RuntimeTableCfg,
-  LookupTable,
-  Field,
 } from './kimchi-types.js';
-import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
-import {
-  fieldToRust,
-  fieldFromRust,
-  fieldsToRustFlat,
-  fieldsFromRustFlat,
-} from './conversion-base.js';
-import { ConversionCore, ConversionCores, mapToUint32Array, unwrap } from './conversion-core.js';
 
 export { proofConversion };
 
@@ -178,6 +178,7 @@ function proofConversionPerField(
   }
 
   function runtimeTableToRust([, id, data]: RuntimeTable): WasmRuntimeTable {
+    console.log('old runtime table to rust!');
     return new RuntimeTable(id, core.vectorToRust(data));
   }
 
