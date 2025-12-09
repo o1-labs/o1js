@@ -3,6 +3,7 @@
  * It is exposed to JSOO by populating a global variable with an object.
  * It gets imported as the first thing in ../../bindings.js so that the global variable is ready by the time JSOO code gets executed.
  */
+import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import type * as wasmNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import { prefixHashes, prefixHashesLegacy } from '../crypto/constants.js';
 import { Bigint256Bindings } from './bindings/bigint256.js';
@@ -14,12 +15,15 @@ import { verifierIndexConversion } from './bindings/conversion-verifier-index.js
 import { PallasBindings, VestaBindings } from './bindings/curve.js';
 import { jsEnvironment } from './bindings/env.js';
 import { FpBindings, FqBindings } from './bindings/field.js';
-import { srs } from './bindings/srs.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
+import { srs } from './bindings/srs.js';
+import { srs as napiSrs } from './napi-srs.js';
 import { napiConversionCore } from './napi-conversion-core.js';
 import { napiProofConversion } from './napi-conversion-proof.js';
+import { napiVerifierIndexConversion } from './napi-conversion-verifier-index.js';
+import { napiOraclesConversion } from './bindings/napi-conversion-oracles.js';
 
-export { RustConversion, Wasm, createNativeRustConversion, getRustConversion };
+export { Napi, RustConversion, Wasm, createNativeRustConversion, getRustConversion };
 
 /* TODO: Uncomment in phase 2 of conversion layer 
 import { conversionCore as conversionCoreNative } from './native/conversion-core.js';
@@ -49,13 +53,14 @@ const tsBindings = {
     return bundle.srsFactory(wasm, bundle.conversion);
   },*/
   srs: (wasm: Wasm) => srs(wasm, getRustConversion(wasm)),
-  srsNative: (napi: Wasm) => srs(napi, createNativeRustConversion(napi) as any),
+  srsNative: (napi: Napi) => napiSrs(napi, createNativeRustConversion(napi) as any),
 };
 
 // this is put in a global variable so that mina/src/lib/crypto/kimchi_bindings/js/bindings.js finds it
 (globalThis as any).__snarkyTsBindings = tsBindings;
 
 type Wasm = typeof wasmNamespace;
+type Napi = typeof napiNamespace;
 
 type RustConversion = ReturnType<typeof buildWasmConversion>;
 
@@ -86,9 +91,11 @@ function buildWasmConversion(wasm: Wasm) {
 function createNativeRustConversion(napi: any) {
   let core = napiConversionCore(napi);
   let proof = napiProofConversion(napi, core);
+  let verif = napiVerifierIndexConversion(napi, core);
+  let oracles = napiOraclesConversion(napi);
   return {
-    fp: { ...core.fp, ...proof.fp },
-    fq: { ...core.fq, ...proof.fq },
+    fp: { ...core.fp, ...proof.fp, ...verif.fp, ...oracles.fp },
+    fq: { ...core.fq, ...proof.fq, ...verif.fq, ...oracles.fq },
   };
 }
 

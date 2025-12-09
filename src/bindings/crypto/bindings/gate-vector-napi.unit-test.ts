@@ -6,9 +6,11 @@ import type { Field, Gate, Wire } from './kimchi-types.js';
 const require = createRequire(import.meta.url);
 
 function loadNative() {
+  const slug = `${process.platform}-${process.arch}`;
   const candidates = [
-    '../../compiled/_node_bindings/plonk_napi.node',
+    `../../../../../native/${slug}/plonk_napi.node`,
     '../../compiled/node_bindings/plonk_napi.node',
+    '../../compiled/_node_bindings/plonk_napi.node',
   ];
   for (const path of candidates) {
     try {
@@ -22,6 +24,21 @@ function loadNative() {
 }
 
 const native: any = loadNative();
+
+const gateVectorCreate =
+  native.caml_pasta_fp_plonk_gate_vector_create ?? native.camlPastaFpPlonkGateVectorCreate;
+const gateVectorLen =
+  native.caml_pasta_fp_plonk_gate_vector_len ?? native.camlPastaFpPlonkGateVectorLen;
+const gateVectorAdd =
+  native.caml_pasta_fp_plonk_gate_vector_add ?? native.camlPastaFpPlonkGateVectorAdd;
+const gateVectorGet =
+  native.caml_pasta_fp_plonk_gate_vector_get ?? native.camlPastaFpPlonkGateVectorGet;
+const gateVectorWrap =
+  native.caml_pasta_fp_plonk_gate_vector_wrap ?? native.camlPastaFpPlonkGateVectorWrap;
+const gateVectorDigest =
+  native.caml_pasta_fp_plonk_gate_vector_digest ?? native.camlPastaFpPlonkGateVectorDigest;
+const circuitSerialize =
+  native.caml_pasta_fp_plonk_circuit_serialize ?? native.camlPastaFpPlonkCircuitSerialize;
 
 const { fp } = napiConversionCore(native);
 
@@ -44,24 +61,24 @@ const sampleGate: Gate = [
   [0, zeroField, zeroField, zeroField, zeroField, zeroField, zeroField, zeroField],
 ];
 
-const vector = native.camlPastaFpPlonkGateVectorCreate();
-expect(native.camlPastaFpPlonkGateVectorLen(vector)).toBe(0);
+const vector = gateVectorCreate();
+expect(gateVectorLen(vector)).toBe(0);
 
-native.camlPastaFpPlonkGateVectorAdd(vector, fp.gateToRust(sampleGate));
-expect(native.camlPastaFpPlonkGateVectorLen(vector)).toBe(1);
+gateVectorAdd(vector, fp.gateToRust(sampleGate));
+expect(gateVectorLen(vector)).toBe(1);
 
-const gate0 = native.camlPastaFpPlonkGateVectorGet(vector, 0);
+const gate0 = gateVectorGet(vector, 0);
 expect(gate0.typ).toBe(sampleGate[1]);
 
 const rustTarget = fp.wireToRust(mlWire(0, 0));
 const rustHead = fp.wireToRust(mlWire(1, 2));
-native.camlPastaFpPlonkGateVectorWrap(vector, rustTarget, rustHead);
-const wrapped = native.camlPastaFpPlonkGateVectorGet(vector, 0);
+gateVectorWrap(vector, rustTarget, rustHead);
+const wrapped = gateVectorGet(vector, 0);
 expect(wrapped.wires.w0).toEqual({ row: 1, col: 2 });
 
-native.camlPastaFpPlonkGateVectorDigest(0, vector);
-native.camlPastaFpPlonkCircuitSerialize(0, vector);
+gateVectorDigest(0, vector);
+circuitSerialize(0, vector);
 
-console.log('{}', native.camlPastaFpPlonkGateVectorDigest(0, vector));
+console.log('{}', gateVectorDigest(0, vector));
 
 console.log('gate vector napi bindings (fp) are working ✔️');
