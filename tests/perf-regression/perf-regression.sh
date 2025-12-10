@@ -22,5 +22,5 @@ MODE=$1
 ./run src/examples/zkprogram/runtime-table/run.ts --bundle "$MODE"
 ./run src/examples/zkprogram/small-big/run.ts --bundle "$MODE"
 
-# Run CS + zkApps performance regression tests
+# Run zkApps + CS performance regression tests
 ./run tests/perf-regression/perf-regression.ts --bundle "$MODE"

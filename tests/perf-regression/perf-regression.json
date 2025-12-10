@@ -72,7 +72,7 @@
         "rows": 1,
         "digest": "2a840c03f4e37242a8056a4aa536358c",
         "proveTime": 28.83372576500001,
-        "verifyTime": 2.112310
+        "verifyTime": 2.11231
       }
     }
   },
@@ -174,27 +174,27 @@
     }
   },
   "Voting_": {
-    "digest": "2d12b9235eac7fe8188447969463455160abb01ddd682efdd4147fe28fc8c608",
+    "digest": "3e9d12f7ba0d0cf88fb46d1342283cc9ad52df1b319373ca45b5206e2c6c7613",
     "compileTime": 38.209853993,
     "methods": {}
   },
   "Membership_": {
-    "digest": "2dcddd890f32e12d56469f8e1cf25706d9b7c83f12342ade821aff42f18f53e9",
+    "digest": "22ba41a10934cb1c22d578a53d2119546e297f74c62cbe71fd9701107ca479f",
     "compileTime": 11.693168089999999,
     "methods": {}
   },
   "HelloWorld": {
-    "digest": "309ebdd97930d6c753207d62c84147fe540f62d1623a1251f1d0b4f5f8bd400d",
+    "digest": "20e2f574f6f7b84a60bdaa3144a771d05ef9fd7fce97ce2d33268c2b84563bfa",
     "compileTime": 6.7330193199999995,
     "methods": {}
   },
   "TokenContract": {
-    "digest": "37ad5c458b0b9f5a44650d16fe16200b3fafff89af0c3b4d0ad57eda5df05d54",
+    "digest": "24e4970719219554e59b3cfb556e2154461a901b013ea7fc76011b3a8c1069",
     "compileTime": 10.845228322999995,
     "methods": {}
   },
   "Dex": {
-    "digest": "fee88991bcc3331978a787642273ee02cbfc738949c6daad38c3bab65a8e81e",
+    "digest": "2c89e730fc5fbdb95ddf567c70d84741d5febd3336e28d3cf270e25fc31f9cfc",
     "compileTime": 21.480353653000012,
     "methods": {}
   },
