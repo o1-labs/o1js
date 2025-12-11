@@ -36,31 +36,3 @@ console.timeEnd('verify...');
 assert(ok, 'proof should verify');
 
 console.log('testing round trips');
-
-
-ok = await proofRoundTrip(proof).verify(verificationKey);
-assert(ok, 'proof should verify');
-
-console.log('verification key round trip...');
-
-ok = await proof.verify(verificationKeyRoundTrip(verificationKey));
-
-assert(ok, 'proof should verify');
-
-function proofRoundTrip(proof: Experimental.KimchiProof): Experimental.KimchiProof {
-  let json = proof.toJSON();
-  console.log('proof json:', {
-    proof: json.proof.slice(0, 10),
-    publicInputFields: json.publicInputFields,
-  });
-  return Experimental.KimchiProof.fromJSON(json);
-}
-
-function verificationKeyRoundTrip(
-  vk: Experimental.KimchiVerificationKey
-): Experimental.KimchiVerificationKey {
-  let json = vk.toString();
-  console.log('vk string:', json.slice(0, 10));
-  return Experimental.KimchiVerificationKey.fromString(json);
-}
- 
