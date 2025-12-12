@@ -117,8 +117,6 @@ function verifierIndexConversionPerField(
     );
   }
   function verificationEvalsFromRust(evals: WasmVerificationEvals): VerificationEvals {
-    console.log('evals', evals.coefficients_comm);
-
     let mlEvals: VerificationEvals = [
       0,
       core.polyCommsFromRust(evals.sigma_comm),

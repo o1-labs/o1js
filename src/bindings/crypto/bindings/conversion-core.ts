@@ -116,9 +116,9 @@ function conversionCorePerField(
       return new PolyComm(rustUnshifted, rustShifted);
     },
     polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
-      console.log('polyComm', polyComm);
+      console.log('polyComm old', polyComm);
       let rustUnshifted = polyComm.unshifted;
-      console.log('polyCommFromRust', rustUnshifted);
+      console.log('rustUnshifted', rustUnshifted);
       let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
         return affineFromRust(wrap(ptr, CommitmentCurve));
       });
