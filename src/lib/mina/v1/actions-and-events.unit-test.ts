@@ -119,6 +119,18 @@ await describe('table-based testing of actions and events', async () => {
       nEventFields: 1,
       nUpdates: 1,
     },
+    {
+      nEvents: 1024,
+      nEventFields: 1,
+      nActionDispatches: 1,
+      nUpdates: 1,
+    },
+    {
+      nEvents: 1024,
+      nEventFields: 1,
+      nActionDispatches: 1024,
+      nUpdates: 1,
+    },
   ];
 
   for (const test of tests) {
@@ -168,12 +180,6 @@ await describe('table-based testing of actions and events', async () => {
       nEventFields: 0,
       nActionDispatches: 513,
       nUpdates: 2,
-    },
-    {
-      nEvents: 1024,
-      nEventFields: 1,
-      nActionDispatches: 1,
-      nUpdates: 1,
     },
   ];
 
