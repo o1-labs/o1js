@@ -127,7 +127,6 @@ function proofConversionPerField(
     let zComm = core.polyCommFromRust(commitments.z_comm);
     let tComm = core.polyCommFromRust(commitments.t_comm);
     let lookup = MlOption.mapTo(commitments.lookup, lookupCommitmentsFromRust);
-    commitments.free();
     return [0, wComm as MlTuple<PolyComm, 15>, zComm, tComm, lookup];
   }
 
@@ -141,7 +140,6 @@ function proofConversionPerField(
     let sorted = core.polyCommsFromRust(lookup.sorted);
     let aggreg = core.polyCommFromRust(lookup.aggreg);
     let runtime = MlOption.mapTo(lookup.runtime, core.polyCommFromRust);
-    lookup.free();
     return [0, sorted, aggreg, runtime];
   }
 
@@ -173,7 +171,6 @@ function proofConversionPerField(
     let z1 = fieldFromRust(proof.z1);
     let z2 = fieldFromRust(proof.z2);
     let sg = core.pointFromRust(proof.sg);
-    proof.free();
     return [0, [0, ...lr], delta, z1, z2, sg];
   }
 
