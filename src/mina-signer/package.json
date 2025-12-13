@@ -38,10 +38,10 @@
     "README.md"
   ],
   "dependencies": {
-    "@types/libsodium-wrappers-sumo": "=0.7.8",
     "blakejs": "^1.2.1",
+    "hash-wasm": "^4.12.0",
     "js-sha256": "^0.9.0",
-    "libsodium-wrappers-sumo": "=0.7.15"
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "pkg-pr-new": "^0.0.9"
