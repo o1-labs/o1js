@@ -27,3 +27,7 @@ console.log('verifying');
 let ok = await verify(result.proof, verificationKey);
 console.log('ok', ok);
 if (!ok) throw new Error('proof verification failed!');
+
+/**
+ * 1
+ */
