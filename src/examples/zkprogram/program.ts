@@ -29,5 +29,5 @@ console.log('ok', ok);
 if (!ok) throw new Error('proof verification failed!');
 
 /**
- * 3
+ * 4
  */
