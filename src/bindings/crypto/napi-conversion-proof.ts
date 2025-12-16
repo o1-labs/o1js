@@ -222,18 +222,25 @@ function proofConversionPerField(
         prevChallengeComms as any
       );
     },
-    proofFromRust(wasmProof: NapiProverProof): ProofWithPublic {
-      let commitments = commitmentsFromRust(wasmProof.commitments);
-      let openingProof = openingProofFromRust(wasmProof.proof);
+    proofFromRust(wasmProof: any): ProofWithPublic {
+      // If we received the full prover proof (with commitments field), use it directly.
+      // Otherwise fall back to an older wrapper shape `{ proof, public_input }`.
+      const innerProof =
+        wasmProof && wasmProof.commitments ? wasmProof : wasmProof.proof ?? wasmProof;
+
+      let commitments = commitmentsFromRust(innerProof.commitments);
+      let openingProof = openingProofFromRust(innerProof.proof);
       // TODO typed as `any` in wasm-bindgen, this is the correct type
-      let [, wasmPublicEvals, ...wasmEvals]: NapiProofEvaluations = wasmProof.evals;
+      let [, wasmPublicEvals, ...wasmEvals]: NapiProofEvaluations = innerProof.evals;
       let publicEvals = pointEvalsOptionFromRust(wasmPublicEvals);
       let evals = proofEvaluationsFromRust([0, ...wasmEvals]);
 
-      let ftEval1 = fieldFromRust(wasmProof.ft_eval1);
-      let public_ = fieldsFromRustFlat(wasmProof.public_);
-      let prevChallengeScalars = wasmProof.prev_challenges_scalars;
-      let [, ...prevChallengeComms] = core.polyCommsFromRust(wasmProof.prev_challenges_comms);
+      let ftEval1 = fieldFromRust(innerProof.ft_eval1);
+      let public_ = fieldsFromRustFlat(innerProof.public_);
+      let prevChallengeScalars = innerProof.prev_challenges_scalars;
+      let [, ...prevChallengeComms] = core.polyCommsFromRust(
+        innerProof.prev_challenges_comms
+      );
       let prevChallenges = prevChallengeComms.map<RecursionChallenge>((comms, i) => {
         let scalars = fieldsFromRustFlat(prevChallengeScalars.get(i));
         return [0, scalars, comms];
