@@ -127,7 +127,11 @@ function proofConversionPerField(
     let wComm = core.polyCommsFromRust(commitments.w_comm);
     let zComm = core.polyCommFromRust(commitments.z_comm);
     let tComm = core.polyCommFromRust(commitments.t_comm);
-    let lookup = MlOption.mapTo(commitments.lookup, lookupCommitmentsFromRust);
+    // Normalize optional lookup to an MlOption; mapTo expects a value or undefined.
+    let lookup = MlOption.mapTo(
+      commitments.lookup ?? undefined,
+      (lk) => lookupCommitmentsFromRust(lk)!
+    );
     return [0, wComm as MlTuple<PolyComm, 15>, zComm, tComm, lookup];
   }
 
