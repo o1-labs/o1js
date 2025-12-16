@@ -123,6 +123,7 @@ function proofConversionPerField(
     return new ProverCommitments(wComm as any, zComm as any, tComm as any, lookup as any);
   }
   function commitmentsFromRust(commitments: NapiProverCommitments): ProverCommitments {
+    console.log('commitments from rust', commitments);
     let wComm = core.polyCommsFromRust(commitments.w_comm);
     let zComm = core.polyCommFromRust(commitments.z_comm);
     let tComm = core.polyCommFromRust(commitments.t_comm);
@@ -136,7 +137,10 @@ function proofConversionPerField(
     let runtime = MlOption.mapFrom(lookup[3], core.polyCommToRust);
     return new LookupCommitments(sorted as any, aggreg as any, runtime as any);
   }
-  function lookupCommitmentsFromRust(lookup: NapiLookupCommitments): LookupCommitments {
+  function lookupCommitmentsFromRust(
+    lookup: NapiLookupCommitments | null | undefined
+  ): LookupCommitments | undefined {
+    if (lookup == null) return undefined;
     let sorted = core.polyCommsFromRust(lookup.sorted);
     let aggreg = core.polyCommFromRust(lookup.aggreg);
     let runtime = MlOption.mapTo(lookup.runtime, core.polyCommFromRust);
