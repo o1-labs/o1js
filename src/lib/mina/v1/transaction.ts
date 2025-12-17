@@ -1,47 +1,46 @@
-import {
-  ZkappCommand,
-  AccountUpdate,
-  ZkappPublicInput,
-  AccountUpdateLayout,
-  FeePayerUnsigned,
-  addMissingSignatures,
-  TokenId,
-  addMissingProofs,
-} from './account-update.js';
-import { Field } from '../../provable/wrapped.js';
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
+import { Proof } from '../../proof-system/proof.js';
+import { Empty } from '../../proof-system/zkprogram.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
-import { Empty } from '../../proof-system/zkprogram.js';
-import { Proof } from '../../proof-system/proof.js';
-import { currentTransaction } from './transaction-context.js';
 import { Provable } from '../../provable/provable.js';
-import { assertPreconditionInvariants } from './precondition.js';
-import { Account } from './account.js';
-import { type FeePayerSpec, activeInstance } from './mina-instance.js';
-import * as Fetch from './fetch.js';
-import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
-import { type FetchMode } from './transaction-context.js';
+import { Field } from '../../provable/wrapped.js';
 import { assertPromise } from '../../util/assert.js';
-import { Types } from '../../../bindings/mina-transaction/v1/types.js';
-import { getTotalTimeRequired } from './transaction-validation.js';
+import {
+  AccountUpdate,
+  AccountUpdateLayout,
+  FeePayerUnsigned,
+  TokenId,
+  ZkappCommand,
+  ZkappPublicInput,
+  addMissingProofs,
+  addMissingSignatures,
+} from './account-update.js';
+import { Account } from './account.js';
+import * as Fetch from './fetch.js';
+import { sendZkappQuery, type SendZkAppResponse } from './graphql.js';
+import { activeInstance, type FeePayerSpec } from './mina-instance.js';
+import { assertPreconditionInvariants } from './precondition.js';
+import { currentTransaction, type FetchMode } from './transaction-context.js';
+import { getSegmentsAndEvents } from './transaction-validation.js';
 
 export {
   Transaction,
-  type TransactionPromise,
-  type PendingTransaction,
+  createIncludedTransaction,
+  createRejectedTransaction,
+  createTransaction,
+  getAccount,
+  newTransaction,
+  sendTransaction,
+  toPendingTransactionPromise,
+  toTransactionPromise,
+  transaction,
   type IncludedTransaction,
-  type RejectedTransaction,
+  type PendingTransaction,
   type PendingTransactionPromise,
   type PendingTransactionStatus,
-  createTransaction,
-  toTransactionPromise,
-  toPendingTransactionPromise,
-  sendTransaction,
-  newTransaction,
-  getAccount,
-  transaction,
-  createRejectedTransaction,
-  createIncludedTransaction,
+  type RejectedTransaction,
+  type TransactionPromise,
 };
 
 type TransactionCommon = {
@@ -142,9 +141,9 @@ type Transaction<Proven extends boolean, Signed extends boolean> = TransactionCo
    */
   setFee(newFee: UInt64): TransactionPromise<Proven, false>;
   /**
-   * setFeePerSnarkCost behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
+   * setFeePerAccountUpdate behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getSegmentsAndEvents}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<Proven, false>;
+  setFeePerAccountUpdate(newFeePerAccountUpdate: number): TransactionPromise<Proven, false>;
 } & (Proven extends false
     ? {
         /**
@@ -281,9 +280,9 @@ type PendingTransaction = Pick<TransactionCommon, 'transaction' | 'toJSON' | 'to
    */
   setFee(newFee: UInt64): TransactionPromise<boolean, false>;
   /**
-   * setFeePerSnarkCost is the same as {@link Transaction.setFeePerSnarkCost(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
+   * setFeePerAccountUpdate is the same as {@link Transaction.setFeePerAccountUpdate(newFeePerAccountUpdate)} but for a {@link PendingTransaction}.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<boolean, false>;
+  setFeePerAccountUpdate(newFeePerAccountUpdate: number): TransactionPromise<boolean, false>;
 };
 
 /**
@@ -560,9 +559,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       }
       return pendingTransaction;
     },
-    setFeePerSnarkCost(newFeePerSnarkCost: number) {
-      let { totalTimeRequired } = getTotalTimeRequired(transaction.accountUpdates);
-      return this.setFee(new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost)));
+    setFeePerAccountUpdate(newFeePerAccountUpdate: number) {
+      let { totalAccountUpdates } = getSegmentsAndEvents(transaction.accountUpdates);
+      return this.setFee(new UInt64(Math.round(totalAccountUpdates * newFeePerAccountUpdate)));
     },
     setFee(newFee: UInt64) {
       return toTransactionPromise(async () => {

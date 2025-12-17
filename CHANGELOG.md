@@ -20,6 +20,12 @@ This project adheres to
 
 ## [2.12.0](https://github.com/o1-labs/o1js/compare/c2e51a84...34caaedc9) - 2025-12-03
 
+### Changed
+
+- `Transaction.setFeePerSnarkCost` has been removed, since "snark cost" has been
+  removed in `mina`, replaced with `MAX_ZKAPP_SEGMENT_PER_TRANSACTION`,
+  simplifying calculations. Instead, use `setFeePerAccountUpdate`.
+
 ### Fixed
 
 - Fixed an edge case that prevented the cache from being generated and read
@@ -49,6 +55,11 @@ This project adheres to
   strengthening build integrity.
 - Added a framework to test for cache regressions in circuit compilation
   artefacts across versions.
+
+### Fixed
+
+- Updated `VerificationKey.toJSON()` to include the verification key hash for
+  compliant encoding. https://github.com/o1-labs/o1js/pull/2332
 
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 

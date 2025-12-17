@@ -63,7 +63,7 @@ jobs:
   Lint-and-Format:
     strategy:
       matrix:
-        node: [20]
+        node: [22]
     if: github.event.pull_request.labels.*.name != 'skip-lint'
     runs-on: ubuntu-latest
 
@@ -278,8 +278,7 @@ jobs:
       - name: Setup Node.JS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          # TODO matrixing this requires changing branch protection rules
+          node-version: 22
 
       - name: Restore npm cache
         uses: actions/cache@v4
@@ -320,7 +319,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
-    if: github.event.pull_request.base.ref != 'develop' 
+    if: github.event.pull_request.base.ref == 'develop' 
     services:
       mina-local-network:
         image: o1labs/mina-local-network:master-latest-lightnet
@@ -356,7 +355,7 @@ jobs:
     needs: [Prepare]
     timeout-minutes: 45
     runs-on: ubuntu-latest
-    if: github.event.pull_request.base.ref != 'develop' 
+    if: github.event.pull_request.base.ref == 'main' 
     services:
       mina-local-network:
         image: o1labs/mina-local-network:compatible-latest-lightnet
@@ -423,3 +422,38 @@ jobs:
         uses: ./.github/actions/live-tests-shared
         with:
           mina-branch-name: develop
+  mesa:
+    needs: [Prepare]
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref == 'develop-3.0'
+    services:
+      mina-local-network:
+        image: o1labs/mina-local-network:mesa-latest-lightnet
+        env:
+          NETWORK_TYPE: 'single-node'
+          PROOF_LEVEL: 'none'
+        ports:
+          - 3085:3085
+          - 5432:5432
+          - 8080:8080
+          - 8181:8181
+          - 8282:8282
+        volumes:
+          - /tmp:/root/logs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: build
+        uses: ./.github/actions/build
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Use shared steps for live testing jobs
+        uses: ./.github/actions/live-tests-shared
+        with:
+          mina-branch-name: mesa

@@ -501,7 +501,7 @@ let versionBytes = {
   transactionHash: 29,
   signedCommandV1: 19,
 };
-let protocolVersions = { txnVersion: 3 };
+let protocolVersions = { txnVersion: 4 };
 let poseidonParamsKimchiFp = {
   mds: [
     [

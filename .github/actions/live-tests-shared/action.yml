@@ -16,7 +16,7 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
     - name: Build o1js and execute tests
       env:
         USE_CUSTOM_LOCAL_NETWORK: 'true'
