@@ -22,7 +22,7 @@ import { sendZkappQuery, type SendZkAppResponse } from './graphql.js';
 import { activeInstance, type FeePayerSpec } from './mina-instance.js';
 import { assertPreconditionInvariants } from './precondition.js';
 import { currentTransaction, type FetchMode } from './transaction-context.js';
-import { getTotalTimeRequired } from './transaction-validation.js';
+import { getSegmentsAndEvents } from './transaction-validation.js';
 
 export {
   Transaction,
@@ -141,7 +141,7 @@ type Transaction<Proven extends boolean, Signed extends boolean> = TransactionCo
    */
   setFee(newFee: UInt64): TransactionPromise<Proven, false>;
   /**
-   * setFeePerAccountUpdate behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
+   * setFeePerAccountUpdate behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getSegmentsAndEvents}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
   setFeePerAccountUpdate(newFeePerAccountUpdate: number): TransactionPromise<Proven, false>;
 } & (Proven extends false
@@ -560,7 +560,7 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       return pendingTransaction;
     },
     setFeePerAccountUpdate(newFeePerAccountUpdate: number) {
-      let { totalAccountUpdates } = getTotalTimeRequired(transaction.accountUpdates);
+      let { totalAccountUpdates } = getSegmentsAndEvents(transaction.accountUpdates);
       return this.setFee(new UInt64(Math.round(totalAccountUpdates * newFeePerAccountUpdate)));
     },
     setFee(newFee: UInt64) {
