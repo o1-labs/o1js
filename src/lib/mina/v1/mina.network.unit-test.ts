@@ -72,7 +72,7 @@ describe('Test default network', () => {
     let txn = await Mina.transaction(async () => {
       for (
         let index = 0;
-        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION * 2;
         index++
       ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
@@ -121,7 +121,7 @@ describe('Test enforced network', () => {
     let txn = await Mina.transaction(async () => {
       for (
         let index = 0;
-        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION * 2;
         index++
       ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
@@ -170,7 +170,7 @@ describe('Test unlimited network', () => {
     let txn = await Mina.transaction(async () => {
       for (
         let index = 0;
-        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION * 2;
         index++
       ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
@@ -267,7 +267,7 @@ describe('Test network with headers', () => {
     let txn = await Mina.transaction(async () => {
       for (
         let index = 0;
-        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1;
+        index < TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION * 2;
         index++
       ) {
         const accountUpdateBob = AccountUpdate.create(bobAccount, Field.from(index));
