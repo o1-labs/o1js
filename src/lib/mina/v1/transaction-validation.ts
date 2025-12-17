@@ -26,7 +26,7 @@ import type { NetworkValue } from './precondition.js';
 export {
   defaultNetworkState,
   filterGroups,
-  getEvents as getTotalTimeRequired,
+  getSegmentsAndEvents,
   reportGetAccountError,
   verifyAccountUpdate,
   verifyTransactionLimits,
@@ -60,10 +60,20 @@ function defaultNetworkState(): NetworkValue {
 }
 
 function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
-  let { eventElements } = getEvents(accountUpdates);
-  const segments = accountUpdates.length;
+  let { eventElements, segments } = getSegmentsAndEvents(accountUpdates);
 
-  let isWithinSegmentLimit = segments <= TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION;
+  /*
+  formula used to calculate how expensive a zkapp transaction is
+
+  np := proof
+  n2 := signedPair
+  n1 := signedSingle
+
+  np + n2 + n1 < 16
+  */
+  let totalSegments = segments.proof + segments.signedPair + segments.signedSingle;
+
+  let isWithinSegmentLimit = totalSegments <= TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION;
 
   let isWithinEventsLimit = eventElements.events <= TransactionLimits.MAX_EVENT_ELEMENTS;
   let isWithinActionsLimit = eventElements.actions <= TransactionLimits.MAX_ACTION_ELEMENTS;
@@ -71,7 +81,10 @@ function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
   let error = '';
 
   if (!isWithinSegmentLimit) {
-    error += `Error: the transaction contains too many segments. Try reducing the number of accountUpdates attached to the transaction. The maximum number of updates per transaction is ${TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION}`;
+    error += `Error: the transaction contains too many segments. Try reducing the number of accountUpdates attached to the transaction. The maximum number of segments per transaction is ${TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION}
+    , but your transaction requires ${totalSegments}.\n\n
+    The number of segments is calculated based on the authorizations required by each account update in the transaction.
+    See https://github.com/MinaProtocol/MIPs/pull/30 for more details.\n\n`;
   }
 
   if (!isWithinEventsLimit) {
@@ -85,7 +98,7 @@ function verifyTransactionLimits({ accountUpdates }: ZkappCommand) {
   if (error) throw Error('Error during transaction sending:\n\n' + error);
 }
 
-function getEvents(accountUpdates: AccountUpdate[]) {
+function getSegmentsAndEvents(accountUpdates: AccountUpdate[]) {
   let eventElements = { events: 0, actions: 0 };
 
   let authKinds = accountUpdates.map((update) => {
@@ -104,9 +117,9 @@ function getEvents(accountUpdates: AccountUpdate[]) {
     isProved: false,
     verificationKeyHash: '',
   });
-  let authTypes = filterGroups(authKinds);
+  let segments = filterGroups(authKinds);
 
-  return { eventElements, authTypes, totalAccountUpdates: accountUpdates.length };
+  return { eventElements, segments, totalAccountUpdates: accountUpdates.length };
 }
 
 function countEventElements({ data }: Events) {
