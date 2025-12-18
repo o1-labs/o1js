@@ -42,7 +42,7 @@ runs:
         path: |
           src/bindings/compiled
           src/bindings/mina-transaction/gen
-        key: bindings-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}
+        key: bindings-${{ runner.OS }}-${{ runner.arch}}-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}
     - name: Build the o1js bindings
       if: ${{ steps.bindings-cache.outputs.cache-hit != 'true' }}
       shell: bash
@@ -58,7 +58,7 @@ runs:
           ~/.npm
           node_modules
           dist
-        key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
+        key: ${{ runner.OS }}-${{ runner.arch }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
     - name: Build examples
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
