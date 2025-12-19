@@ -1,10 +1,10 @@
-import plonkWasm from '../../../web_bindings/plonk_wasm.js';
-import { workerSpec } from './worker-spec.js';
-import { srcFromFunctionModule, inlineWorker, waitForMessage } from './worker-helpers.js';
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
+import plonkWasm from '../../../web_bindings/plonk_wasm.js';
+import { inlineWorker, srcFromFunctionModule, waitForMessage } from './worker-helpers.js';
+import { workerSpec } from './worker-spec.js';
 
-export { initializeBindings, withThreadPool, wasm };
+export { initializeBindings, wasm, withThreadPool };
 
 let wasm;
 
@@ -173,13 +173,13 @@ function allocateWasmMemoryForUserAgent(userAgent) {
   const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent);
   if (isIOSDevice) {
     return new WebAssembly.Memory({
-      initial: 19,
+      initial: 20,
       maximum: 16384, // 1 GiB
       shared: true,
     });
   } else {
     return new WebAssembly.Memory({
-      initial: 19,
+      initial: 20,
       maximum: 65536, // 4 GiB
       shared: true,
     });
