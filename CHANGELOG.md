@@ -18,6 +18,11 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/34caaedc9...HEAD)
 
+### Added
+
+- Added a function `Mina.Transaction.hash(json)` to generate the hash of a JSON
+  Transaction. https://github.com/o1-labs/o1js/pull/2704
+
 ## [2.12.0](https://github.com/o1-labs/o1js/compare/c2e51a84...34caaedc9) - 2025-12-03
 
 ### Fixed
