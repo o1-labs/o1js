@@ -20,7 +20,7 @@ This project adheres to
 
 ### Added
 
-- Added support for `Field` type for the index in runtime table lookups. 
+- Added support for `Field` type for the index in runtime table lookups.
   https://github.com/o1-labs/o1js/pull/2706
 
 ## [2.12.0](https://github.com/o1-labs/o1js/compare/c2e51a84...34caaedc9) - 2025-12-03
