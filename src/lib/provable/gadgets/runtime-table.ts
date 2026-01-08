@@ -9,7 +9,7 @@ import { Field } from "../field.js";
 import { Gates } from "../gates.js";
 
 export {
-  RuntimeTable,
+    RuntimeTable,
 };
 
 /**
@@ -107,12 +107,12 @@ class RuntimeTable {
     /**
      * Pending pairs to be checked on the runtime table.
      */
-    pairs: Array<[bigint, Field]> = [];
+    pairs: Array<[Field, Field]> = [];
 
     constructor(id: number, indices: bigint[]) {
         // check that id is not 0 or 1, as those are reserved values
         assert(id !== 0 && id !== 1, "Runtime table id must be different than 0 and 1");
- 
+
         // check that all the indices are unique
         let uniqueIndices = new Set(indices);
         assert(uniqueIndices.size === indices.length, "Runtime table indices must be unique");
@@ -133,16 +133,20 @@ class RuntimeTable {
      * the runtime table.
      *
      * @param pairs Array of pairs [index, value] to insert into the runtime table.
+     * Each index can be a `bigint` or a `Field`.
      */
-    insert(pairs: [bigint, Field][]) {
+    insert(pairs: [bigint | Field, Field][]) {
         for (let i = 0; i < pairs.length; i += 3) {
             const chunk = pairs.slice(i, i + 3);
             const [idx0, value0] = chunk[0];
             const [idx1, value1] = chunk[1] || [idx0, value0];
             const [idx2, value2] = chunk[2] || [idx0, value0];
 
-            assert(this.indices.has(idx0) && this.indices.has(idx1) && this.indices.has(idx2),
-                `Indices must be part of the runtime table with id ${this.id}`);
+            // Early fails (off-circuit) when indices are bigints and not part of the table 
+            if (typeof idx0 === "bigint" && typeof idx1 === "bigint" && typeof idx2 === "bigint") {
+                assert(this.indices.has(idx0) && this.indices.has(idx1) && this.indices.has(idx2),
+                    `Indices must be part of the runtime table with id ${this.id}`);
+            }
 
             Gates.lookup(Field.from(this.id), Field.from(idx0), value0, Field.from(idx1), value1, Field.from(idx2), value2);
         }
@@ -159,14 +163,14 @@ class RuntimeTable {
      * @param idx The index of the key to check.
      * @param value The value to check.
      */
-    lookup(idx: bigint, value: Field) {
+    lookup(idx: bigint | Field, value: Field) {
         if (this.pairs.length == 2) {
             let [idx0, value0] = this.pairs[0];
             let [idx1, value1] = this.pairs[1];
             Gates.lookup(Field.from(this.id), Field.from(idx0), value0, Field.from(idx1), value1, Field.from(idx), value);
             this.pairs = [];
         } else {
-            this.pairs.push([idx, value]);
+            this.pairs.push([Field.from(idx), value]);
         }
     }
 
