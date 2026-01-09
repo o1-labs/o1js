@@ -80,6 +80,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
       throw error;
     }
   };
+
   let getSrs = (srs: NapiSrs) => {
     try {
       console.log(1);
@@ -89,6 +90,14 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     } catch (error) {
       console.error(`Error in SRS get for field ${f}`);
       throw error;
+    }
+  };
+  let isEmptySrs = (srs: NapiSrs) => {
+    try {
+      let points = getSrs(srs);
+      return points == null || points.length <= 1;
+    } catch {
+      return true;
     }
   };
   let setSrs = (bytes: any) => {
@@ -151,7 +160,13 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     create(size: number): NapiSrs {
       let srs = srsStore[f][size] satisfies NapiSrs as NapiSrs | undefined;
 
+      if (srs !== undefined && isEmptySrs(srs)) {
+        delete srsStore[f][size];
+        srs = undefined;
+      }
+
       if (srs === undefined) {
+        console.log("SRS not in memory, creating or reading from cache");
         if (cache === undefined) {
           // if there is no cache, create SRS in memory
           console.log('Creating SRS without cache');
@@ -168,7 +183,9 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
             let jsonSrs: OrInfinityJson[] = JSON.parse(new TextDecoder().decode(bytes));
             let mlSrs = MlArray.mapTo(jsonSrs, OrInfinity.fromJSON);
             let wasmSrs = conversion[f].pointsToRust(mlSrs);
-            return setSrs(wasmSrs);
+            let candidate = setSrs(wasmSrs);
+            if (isEmptySrs(candidate)) return undefined;
+            return candidate;
           });
           console.log('SRS read from cache:', srs);
           if (srs === undefined) {
@@ -229,6 +246,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
             if (cache.canWrite) {
               // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
               // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
+              console.log('before napiComms');
               let napiComms = getLagrangeBasis(srs, domainSize);
               console.log('napiComms', napiComms);
               let mlComms = conversion[f].polyCommsFromRust(napiComms);
@@ -283,10 +301,14 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     lagrangeCommitmentsWholeDomain(srs: NapiSrs, domainSize: number) {
       console.log('lagrangeCommitmentsWholeDomain');
       try {
+        console.log('srs', srs);
+        console.log('domainSize', domainSize);
+        console.log('native?', (napi as any).native, typeof (napi as any)[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`]);
         let napiComms = napi[`caml_${f}_srs_lagrange_commitments_whole_domain_ptr`](
           srs,
           domainSize
         );
+        console.log('napiComms', napiComms);
         let mlComms = conversion[f].polyCommsFromRust(napiComms as any);
         return mlComms;
       } catch (error) {
