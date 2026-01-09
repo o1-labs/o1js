@@ -135,6 +135,12 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return [0, gate.typ, wiresTuple, coeffs];
   };
 
+  const toNodeBuffer = (bytes: Uint8Array): Uint8Array => {
+    const maybeBuffer = (globalThis as unknown as { Buffer?: { from: (b: Uint8Array) => Uint8Array } })
+      .Buffer;
+    return typeof maybeBuffer?.from === 'function' ? maybeBuffer.from(bytes) : bytes;
+  };
+
   const affineToRust = (pt: OrInfinity): NapiAffine => {
     function isFinitePoint(point: OrInfinity): point is [0, [0, Field, Field]] {
       return Array.isArray(point);
@@ -143,11 +149,13 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     if (!isFinitePoint(pt)) {
       res.infinity = true;
     } else {
-      const tmpBytes = new Uint8Array(32);
       const [, pair] = pt;
       const [, x, y] = pair;
-      res.x = fieldToRust(x, tmpBytes);
-      res.y = fieldToRust(y, tmpBytes);
+      // `WasmGVesta` / `WasmGPallas` are `#[napi(object)]` (plain JS objects), so assigning the
+      // same backing buffer to both `x` and `y` corrupts the point. Always use distinct byte
+      // arrays for each coordinate.
+      res.x = toNodeBuffer(fieldToRust(x));
+      res.y = toNodeBuffer(fieldToRust(y));
     }
     return res;
   };
@@ -192,6 +200,9 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     comms.map(polyCommToRust);
 
   const polyCommsFromRust = (rustComms: unknown): MlArray<PolyComm> => {
+    if (rustComms == null) {
+      throw Error('polyCommsFromRust: expected array-like native values');
+    }
     const comms = asArrayLike<NapiPolyComm>(rustComms, 'polyCommsFromRust');
     return [0, ...comms.map(polyCommFromRust)];
   };

@@ -52,6 +52,7 @@ const tsBindings = {
     const bundle = getConversionBundle(wasm);
     return bundle.srsFactory(wasm, bundle.conversion);
   },*/
+  // Prefer native SRS pipeline when native bindings are loaded; otherwise fall back to wasm.
   srs: (wasm: Wasm) => srs(wasm, getRustConversion(wasm)),
   srsNative: (napi: Napi) => napiSrs(napi, createNativeRustConversion(napi) as any),
 };
@@ -96,6 +97,12 @@ function createNativeRustConversion(napi: any) {
   return {
     fp: { ...core.fp, ...proof.fp, ...verif.fp, ...oracles.fp },
     fq: { ...core.fq, ...proof.fq, ...verif.fq, ...oracles.fq },
+    mapMlArrayToRustVector<TMl, TRust>(
+      [, ...array]: [0, ...TMl[]],
+      map: (x: TMl) => TRust
+    ): TRust[] {
+      return array.map(map);
+    },
   };
 }
 
