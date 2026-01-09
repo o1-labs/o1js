@@ -74,8 +74,9 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiClasses) {
     let jointCombinerChal = ro.joint_combiner_chal;
     let jointCombiner = ro.joint_combiner;
     let jointCombinerOption = MlOption<[0, ScalarChallenge, Field]>(
-      jointCombinerChal &&
-        jointCombiner && [0, [0, fieldFromRust(jointCombinerChal)], fieldFromRust(jointCombiner)]
+      jointCombinerChal != null && jointCombiner != null
+        ? [0, [0, fieldFromRust(jointCombinerChal)], fieldFromRust(jointCombiner)]
+        : undefined
     );
     let mlRo: RandomOracles = [
       0,
