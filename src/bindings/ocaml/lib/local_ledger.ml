@@ -272,6 +272,17 @@ let apply_json_transaction l (tx_json : Js.js_string Js.t)
     (Js.to_string account_creation_fee)
     network_state
 
+(* let migrate account_json =
+  let account =
+    Mina_base.Account.of_json @@ Yojson.Safe.from_string @@ Js.to_string
+      account_json
+  in
+  let migrated_account =
+    Mina_base.Account.Hardfork.migrate_from_berkeley account
+  in
+  account_to_json migrated_account *)
+
+
 let method_ class_ (name : string) (f : _ Js.t -> _) =
   let prototype = Js.Unsafe.get class_ (Js.string "prototype") in
   Js.Unsafe.set prototype (Js.string name) (Js.wrap_meth_callback f)
@@ -282,7 +293,9 @@ let () =
   in
   let method_ name (f : ledger_class Js.t -> _) = method_ ledger_class name f in
   static_method "create" create ;
+(*   static_methd "migrateAccount" migrate ; *)
 
   method_ "getAccount" get_account ;
   method_ "addAccount" add_account ;
   method_ "applyJsonTransaction" apply_json_transaction
+  
