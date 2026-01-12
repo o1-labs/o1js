@@ -1,5 +1,8 @@
 import { expect } from 'expect';
+import { AccountUpdate, Bool, PrivateKey } from '../../../index.js';
+import { TransactionLimits } from './constants.js';
 import { filterGroups } from './mina.js';
+import { getSegmentsAndEvents, verifyTransactionLimits } from './transaction-validation.js';
 
 let S = { isProved: false, isSigned: true };
 let N = { isProved: false, isSigned: false };
@@ -195,3 +198,136 @@ expect(filterGroups([S, S])).toEqual({
     signedSingle: 0,
   });
 }
+const testAddress = PrivateKey.random().toPublicKey();
+
+function createAccountUpdateWithAuth(authKind: 'signed' | 'none' | 'proof'): AccountUpdate {
+  const accountUpdate = AccountUpdate.default(testAddress);
+
+  switch (authKind) {
+    case 'signed':
+      accountUpdate.body.authorizationKind.isSigned = Bool(true);
+      accountUpdate.body.authorizationKind.isProved = Bool(false);
+      break;
+    case 'none':
+      accountUpdate.body.authorizationKind.isSigned = Bool(false);
+      accountUpdate.body.authorizationKind.isProved = Bool(false);
+      break;
+    case 'proof':
+      accountUpdate.body.authorizationKind.isSigned = Bool(false);
+      accountUpdate.body.authorizationKind.isProved = Bool(true);
+      break;
+  }
+
+  return accountUpdate;
+}
+
+{
+  // 15 proof AUs -> should result in 16 segments (with fee payer)
+  const proofAUs = Array.from({ length: 15 }, () => createAccountUpdateWithAuth('proof'));
+
+  const { segments } = getSegmentsAndEvents(proofAUs);
+
+  expect(segments).toEqual({
+    proof: 15,
+    signedPair: 0,
+    signedSingle: 1, // fee payer
+  });
+}
+
+type TestZkappCommand = Parameters<typeof verifyTransactionLimits>[0];
+
+{
+  const accountUpdates = Array.from({ length: 15 }, () => createAccountUpdateWithAuth('proof'));
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).not.toThrow();
+}
+
+{
+  const accountUpdates = Array.from({ length: 16 }, () => createAccountUpdateWithAuth('proof'));
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).toThrow(
+    /too many segments/
+  );
+}
+
+{
+  const accountUpdates = Array.from({ length: 31 }, () => createAccountUpdateWithAuth('signed'));
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).not.toThrow();
+}
+
+{
+  const accountUpdates = Array.from({ length: 32 }, () => createAccountUpdateWithAuth('signed'));
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).toThrow(
+    /too many segments/
+  );
+}
+
+{
+  const accountUpdates = Array.from({ length: 31 }, () => createAccountUpdateWithAuth('none'));
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).not.toThrow();
+}
+
+{
+  const accountUpdates = [
+    ...Array.from({ length: 15 }, () => createAccountUpdateWithAuth('signed')),
+    ...Array.from({ length: 16 }, () => createAccountUpdateWithAuth('none')),
+  ];
+
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).not.toThrow();
+}
+
+{
+  const accountUpdates: AccountUpdate[] = [];
+  for (let i = 0; i < 7; i++) {
+    accountUpdates.push(createAccountUpdateWithAuth('signed'));
+    accountUpdates.push(createAccountUpdateWithAuth('signed'));
+    accountUpdates.push(createAccountUpdateWithAuth('proof'));
+  }
+
+  accountUpdates.push(createAccountUpdateWithAuth('signed'));
+  accountUpdates.push(createAccountUpdateWithAuth('signed'));
+
+  const { segments } = getSegmentsAndEvents(accountUpdates);
+  const totalSegments = segments.proof + segments.signedPair + segments.signedSingle;
+  expect(totalSegments).toBe(TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION);
+
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).not.toThrow();
+}
+
+{
+  const accountUpdates: AccountUpdate[] = [];
+  for (let i = 0; i < 7; i++) {
+    accountUpdates.push(createAccountUpdateWithAuth('signed'));
+    accountUpdates.push(createAccountUpdateWithAuth('signed'));
+    accountUpdates.push(createAccountUpdateWithAuth('proof'));
+  }
+  accountUpdates.push(createAccountUpdateWithAuth('signed'));
+  accountUpdates.push(createAccountUpdateWithAuth('signed'));
+  accountUpdates.push(createAccountUpdateWithAuth('proof')); // One more proof
+
+  const { segments } = getSegmentsAndEvents(accountUpdates);
+  const totalSegments = segments.proof + segments.signedPair + segments.signedSingle;
+  expect(totalSegments).toBe(TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION + 1);
+
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).toThrow(
+    /too many segments/
+  );
+}
+
+{
+  const accountUpdates: AccountUpdate[] = [createAccountUpdateWithAuth('signed')];
+  for (let i = 0; i < 7; i++) {
+    accountUpdates.push(createAccountUpdateWithAuth('proof'));
+    accountUpdates.push(createAccountUpdateWithAuth('signed'));
+  }
+
+  const { segments } = getSegmentsAndEvents(accountUpdates);
+  expect(segments).toEqual({
+    proof: 7,
+    signedPair: 1,
+    signedSingle: 7,
+  });
+  expect(segments.proof + segments.signedPair + segments.signedSingle).toBe(15);
+
+  expect(() => verifyTransactionLimits({ accountUpdates } as TestZkappCommand)).not.toThrow();
+}
+
+console.log('All Mesa hardfork transaction limit tests passed!');
