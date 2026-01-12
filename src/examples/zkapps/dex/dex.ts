@@ -1,6 +1,7 @@
 import {
-  Account,
   AccountUpdate,
+  AccountUpdateForest,
+  TokenContract as BaseTokenContract,
   Bool,
   Mina,
   PrivateKey,
@@ -14,8 +15,6 @@ import {
   UInt64,
   method,
   state,
-  TokenContract as BaseTokenContract,
-  AccountUpdateForest,
 } from 'o1js';
 
 export { TokenContract, addresses, createDex, keys, randomAccounts, tokenIds };
@@ -93,7 +92,7 @@ function createDex({ lockedLiquiditySlots }: { lockedLiquiditySlots?: number } =
         userUpdate.account.timing.set({
           initialMinimumBalance: amountLocked,
           cliffAmount: amountLocked,
-          cliffTime: UInt32.from(lockedLiquiditySlots),
+          cliffTime: UInt32.from(lockedLiquiditySlots), // Note that the cliff time must start at the current slot
           vestingIncrement: UInt64.zero,
           vestingPeriod: UInt32.one,
         });
