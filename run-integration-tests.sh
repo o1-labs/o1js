@@ -9,3 +9,4 @@ set -e
 ./run src/examples/zkapps/dex/run.ts --bundle
 ./run src/examples/zkapps/dex/happy-path-with-actions.ts --bundle
 ./run src/examples/zkapps/dex/upgradability.ts --bundle
+./run src/examples/zkapps/big-state-zkapp.ts --bundle
