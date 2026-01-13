@@ -185,12 +185,12 @@ function verifierIndexConversionPerField(
     range_check,
     ffmul,
   ]: LookupSelectors<PolyComm>): NapiLookupSelector {
-    return new LookupSelector(
-      MlOption.mapFrom(xor, core.polyCommToRust) as any,
-      MlOption.mapFrom(lookup, core.polyCommToRust) as any,
-      MlOption.mapFrom(range_check, core.polyCommToRust) as any,
-      MlOption.mapFrom(ffmul, core.polyCommToRust) as any
-    );
+    return {
+      xor: MlOption.mapFrom(xor, core.polyCommToRust) as any,
+      lookup: MlOption.mapFrom(lookup, core.polyCommToRust) as any,
+      range_check: MlOption.mapFrom(range_check, core.polyCommToRust) as any,
+      ffmul: MlOption.mapFrom(ffmul, core.polyCommToRust) as any,
+    } as any;
   }
   function lookupSelectorsFromRust(selector: NapiLookupSelector): LookupSelectors<PolyComm> {
     const getField = (camel: string, snake: string) =>
