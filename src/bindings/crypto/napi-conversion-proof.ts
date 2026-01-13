@@ -147,7 +147,7 @@ function proofConversionPerField(
     if (lookup == null) return undefined;
     let sorted = core.polyCommsFromRust(lookup.sorted);
     let aggreg = core.polyCommFromRust(lookup.aggreg);
-    let runtime = MlOption.mapTo(lookup.runtime, core.polyCommFromRust);
+    let runtime = MlOption.mapTo(lookup.runtime ?? undefined, core.polyCommFromRust);
     return [0, sorted, aggreg, runtime];
   }
 
