@@ -272,6 +272,27 @@ let apply_json_transaction l (tx_json : Js.js_string Js.t)
     (Js.to_string account_creation_fee)
     network_state
 
+let migrate (hardfork_slot : int) (account_json : string) =
+  let hardfork_slot =
+    Mina_numbers.Global_slot_since_genesis.of_int hardfork_slot
+  in
+  let account_berkeley =
+    match
+      Mina_base.Account.of_yojson @@ Yojson.Safe.from_string account_json
+    with
+    | Ok account ->
+        account
+    | Error err ->
+        Util.raise_error
+          ("Failed to parse berkeley account json to mesa account: " ^ err)
+  in
+  let migrated_account =
+    Mina_base.Account.Hardfork.migrate_from_berkeley ~hardfork_slot
+      account_berkeley
+  in
+  Mina_base.Account.Hardfork.to_yojson migrated_account
+  |> Yojson.Safe.to_string |> Js.string |> Util.json_parse
+
 let method_ class_ (name : string) (f : _ Js.t -> _) =
   let prototype = Js.Unsafe.get class_ (Js.string "prototype") in
   Js.Unsafe.set prototype (Js.string name) (Js.wrap_meth_callback f)
@@ -282,7 +303,7 @@ let () =
   in
   let method_ name (f : ledger_class Js.t -> _) = method_ ledger_class name f in
   static_method "create" create ;
-
+  static_method "migrateAccount" migrate ;
   method_ "getAccount" get_account ;
   method_ "addAccount" add_account ;
   method_ "applyJsonTransaction" apply_json_transaction
