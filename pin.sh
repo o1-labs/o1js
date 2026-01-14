@@ -8,6 +8,7 @@ pushd "$ROOT"
 git submodule sync && git submodule update --init --recursive --depth 1
 # Add the flake registry entry
 nix registry add o1js "git+file://$ROOT?submodules=1"
-# update mina input to match local submodule commit
-nix flake lock --update-input mina
+# update mina input to local submodule
+# --override-input seems redundant but fixes a caching issue with local paths
+nix flake update mina --override-input mina 'path:src/mina' --flake '.?submodules=1'
 popd
