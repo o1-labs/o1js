@@ -272,6 +272,7 @@
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
           JUST_BINDINGS = true;
+          DUNE_PROFILE = "dev";
           buildInputs = (with pkgs;
             [
               rustupWrapper
