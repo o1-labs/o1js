@@ -96,6 +96,7 @@ export {
   addCachedAccount,
   checkZkappTransaction,
   fetchAccount,
+  fetchCurrentSlot,
   fetchEvents,
   fetchLastBlock,
   fetchTransactionStatus,
