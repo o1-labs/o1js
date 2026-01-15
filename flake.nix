@@ -205,7 +205,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2025-12-11 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
+                if [ "$1" = run ] && { [ "$2" = nightly-2025-12-11 ] || [[ "$2" =~ 1.92-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
