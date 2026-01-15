@@ -101,8 +101,8 @@ const MlOption = Object.assign(
       if (option === 0) return undefined;
       return map(option[1]);
     },
-    mapTo<T, S>(option: T | undefined, map: (t: T) => S): MlOption<S> {
-      if (option === undefined) return 0;
+    mapTo<T, S>(option: T | undefined | null, map: (t: T) => S): MlOption<S> {
+      if (option === undefined || option === null) return 0;
       return [0, map(option)];
     },
     isNone(option: MlOption<unknown>): option is 0 {
@@ -128,8 +128,8 @@ const MlResult = {
  */
 type MlTuple<T, N extends number> = N extends N
   ? number extends N
-    ? [0, ...T[]] // N is not typed as a constant => fall back to array
-    : [0, ...TupleRec<T, N, []>]
+  ? [0, ...T[]] // N is not typed as a constant => fall back to array
+  : [0, ...TupleRec<T, N, []>]
   : never;
 
 type TupleRec<T, N extends number, R extends unknown[]> = R['length'] extends N

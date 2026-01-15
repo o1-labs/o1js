@@ -96,6 +96,12 @@ function createNativeRustConversion(napi: any) {
   return {
     fp: { ...core.fp, ...proof.fp, ...verif.fp, ...oracles.fp },
     fq: { ...core.fq, ...proof.fq, ...verif.fq, ...oracles.fq },
+    mapMlArrayToRustVector<TMl, TRust>(
+      [, ...array]: [0, ...TMl[]],
+      map: (x: TMl) => TRust
+    ): TRust[] {
+      return array.map(map);
+    },
   };
 }
 
