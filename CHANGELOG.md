@@ -20,6 +20,8 @@ This project adheres to
 
 ### Added
 
+- Export `fetchCurrentSlot` publicly as the supported way to query the current
+  slot from a remote blockchain. https://github.com/o1-labs/o1js/pull/2736
 - Added a function `Mina.Transaction.hash(json)` to generate the hash of a JSON
   Transaction. https://github.com/o1-labs/o1js/pull/2704
 
