@@ -104,7 +104,7 @@
             {
               channel = "nightly";
               date = "2025-12-11";
-              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
+              sha256 = "sha256-Z8PetnKGSZjqRtodJ20XqBoTe2qNG0RaklrVW7AQ3JE=";
             }).rust.override
             {
               targets = [
