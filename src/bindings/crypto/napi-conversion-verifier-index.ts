@@ -165,7 +165,6 @@ function verifierIndexConversionPerField(
     } as any;
   }
   function lookupVerifierIndexFromRust(lookup: NapiLookupVerifierIndex): Lookup<PolyComm> {
-    console.log('lookup: ', lookup);
     let mlLookup: Lookup<PolyComm> = [
       0,
       MlBool(lookup.joint_lookup_used),
@@ -280,7 +279,6 @@ function verifierIndexConversionPerField(
       } as any;
     },
     verifierIndexFromRust(vk: NapiVerifierIndex): VerifierIndex {
-      console.log('vk from rust', vk);
       let mlVk: VerifierIndex = [
         0,
         domainFromRust(vk.domain),

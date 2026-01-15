@@ -123,7 +123,6 @@ function proofConversionPerField(
     return new ProverCommitments(wComm as any, zComm as any, tComm as any, lookup as any);
   }
   function commitmentsFromRust(commitments: NapiProverCommitments): ProverCommitments {
-    console.log('commitments from rust', commitments);
     let wComm = core.polyCommsFromRust(commitments.w_comm);
     let zComm = core.polyCommFromRust(commitments.z_comm);
     let tComm = core.polyCommFromRust(commitments.t_comm);
@@ -183,7 +182,6 @@ function proofConversionPerField(
   }
 
   function runtimeTableToRust([, id, data]: RuntimeTable): NapiRuntimeTable {
-    console.log('runtime table');
     return new RuntimeTable(id, core.vectorToRust(data));
   }
 
@@ -342,7 +340,7 @@ function proofConversionPerField(
       } catch (err) {
         const w0 = (evalsActual as any)?.w?.[0];
         const z = (evalsActual as any)?.z;
-        console.error('napi-conversion-proof: ProverProof ctor failed', {
+        console.error('napi-conversion-proof: ProverProof constructor failed', {
           err,
           evalsKeys: Object.keys(evalsActual ?? {}),
           wIsArray: Array.isArray((evalsActual as any)?.w),
@@ -362,16 +360,13 @@ function proofConversionPerField(
     proofFromRust(wasmProof: any): ProofWithPublic {
       // If we received the full prover proof (with commitments field), use it directly.
       // Otherwise fall back to an older wrapper shape `{ proof, public_input }`.
-      console.log('wasmProof', wasmProof);
       const innerProof =
         wasmProof && wasmProof.commitments ? wasmProof : wasmProof.proof ?? wasmProof;
-      console.log('innerProof', innerProof);
       let commitments = commitmentsFromRust(innerProof.commitments);
       let openingProof = openingProofFromRust(innerProof.proof);
       // NAPI returns `evals` as an object with getters; convert it into the OCaml tuple shape
       // expected by `proofEvaluationsFromRust`.
       const evalsSource: any = innerProof.evals;
-      console.log('evalsSource', evalsSource);
       // Avoid `getNapi`/`requireNapi` helpers; access fields directly.
       const toArray = (value: any): any[] => (value == null ? [] : Array.from(value));
       const toPointEvals = (pe: any) => {
@@ -410,7 +405,7 @@ function proofConversionPerField(
         toPointEvals((evalsSource as any).emul_selector ?? (evalsSource as any).emulSelector),
         toPointEvals(
           (evalsSource as any).endomul_scalar_selector ??
-            (evalsSource as any).endomulScalarSelector
+          (evalsSource as any).endomulScalarSelector
         ),
         toMlOption(
           (evalsSource as any).range_check0_selector ?? (evalsSource as any).rangeCheck0Selector,
@@ -422,12 +417,12 @@ function proofConversionPerField(
         ),
         toMlOption(
           (evalsSource as any).foreign_field_add_selector ??
-            (evalsSource as any).foreignFieldAddSelector,
+          (evalsSource as any).foreignFieldAddSelector,
           toPointEvals
         ),
         toMlOption(
           (evalsSource as any).foreign_field_mul_selector ??
-            (evalsSource as any).foreignFieldMulSelector,
+          (evalsSource as any).foreignFieldMulSelector,
           toPointEvals
         ),
         toMlOption((evalsSource as any).xor_selector ?? (evalsSource as any).xorSelector, toPointEvals),
@@ -449,7 +444,7 @@ function proofConversionPerField(
         ),
         toMlOption(
           (evalsSource as any).runtime_lookup_table_selector ??
-            (evalsSource as any).runtimeLookupTableSelector,
+          (evalsSource as any).runtimeLookupTableSelector,
           toPointEvals
         ),
         toMlOption(
@@ -458,17 +453,17 @@ function proofConversionPerField(
         ),
         toMlOption(
           (evalsSource as any).lookup_gate_lookup_selector ??
-            (evalsSource as any).lookupGateLookupSelector,
+          (evalsSource as any).lookupGateLookupSelector,
           toPointEvals
         ),
         toMlOption(
           (evalsSource as any).range_check_lookup_selector ??
-            (evalsSource as any).rangeCheckLookupSelector,
+          (evalsSource as any).rangeCheckLookupSelector,
           toPointEvals
         ),
         toMlOption(
           (evalsSource as any).foreign_field_mul_lookup_selector ??
-            (evalsSource as any).foreignFieldMulLookupSelector,
+          (evalsSource as any).foreignFieldMulLookupSelector,
           toPointEvals
         ),
       ];
