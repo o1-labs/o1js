@@ -56,39 +56,65 @@ function ZkFunction<Config extends ZkFunctionConfig>(
 
   type Keypair = Snarky.Keypair;
   let _keypair: Keypair | undefined;
+  let _proofsEnabled = true;
 
   return {
     /**
      * Generates and stores a proving key and a verification key for this circuit(ZkFunction).
      *
+     * @param options Optional configuration object.
+     * @param options.proofsEnabled If `false`, proofs will be disabled and dummy proofs will be generated instead. Defaults to `true`.
      * @returns The generated verification key.
      *
      * @example
      * ```ts
      * const { verificationKey } = await zkf.compile();
+     * // or with proofs disabled:
+     * const { verificationKey } = await zkf.compile({ proofsEnabled: false });
      * ```
      * @warning Must be called before `prove` or `analyzeMethod`.
      */
-    async compile() {
-      const main = mainFromCircuitData(config);
-      const publicInputSize = publicInputType.sizeInFields();
-      const lazyMode = config.lazyMode ?? false;
-      await initializeBindings();
-      _keypair = await prettifyStacktracePromise(
-        withThreadPool(async () => {
-          return Snarky.circuit.compile(main, publicInputSize, lazyMode);
-        })
-      );
-      const verificationKey = new KimchiVerificationKey(
-        Snarky.circuit.keypair.getVerificationKey(_keypair)
-      );
-      return { verificationKey };
+    async compile(options?: { proofsEnabled?: boolean }) {
+      _proofsEnabled = options?.proofsEnabled ?? true;
+
+      if (_proofsEnabled) {
+        const main = mainFromCircuitData(config);
+        const publicInputSize = publicInputType.sizeInFields();
+        const lazyMode = config.lazyMode ?? false;
+        await initializeBindings();
+        _keypair = await prettifyStacktracePromise(
+          withThreadPool(async () => {
+            return Snarky.circuit.compile(main, publicInputSize, lazyMode);
+          })
+        );
+        const verificationKey = new KimchiVerificationKey(
+          Snarky.circuit.keypair.getVerificationKey(_keypair)
+        );
+        return { verificationKey };
+      } else {
+        // When proofs are disabled, create a minimal circuit to get a verification key
+        // This ensures the API remains consistent
+        await initializeBindings();
+        const minimalMain: Snarky.Main = () => {
+          // Empty circuit - just for getting a verification key
+        };
+        const publicInputSize = publicInputType.sizeInFields();
+        const tempKeypair = await prettifyStacktracePromise(
+          withThreadPool(async () => {
+            return Snarky.circuit.compile(minimalMain, publicInputSize, false);
+          })
+        );
+        const verificationKey = new KimchiVerificationKey(
+          Snarky.circuit.keypair.getVerificationKey(tempKeypair)
+        );
+        return { verificationKey };
+      }
     },
 
     /**
      * Returns a low-level JSON representation of the constraint system (gates)
      *
-     * @throws If compile() has not been called yet.
+     * @throws If compile() has not been called yet or if proofs are disabled.
      *
      * @example
      * ```ts
@@ -98,7 +124,11 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * ```
      */
     analyzeMethod(): Omit<ConstraintSystemSummary, 'digest'> {
-      if (!_keypair) throw new Error('Cannot find prover artifacts. Please call compile() first!');
+      if (!_proofsEnabled || !_keypair) {
+        throw new Error(
+          'Cannot analyze method when proofs are disabled. Please call compile() with proofsEnabled: true first!'
+        );
+      }
       try {
         let { gates, publicInputSize } = gatesFromJson(
           Snarky.circuit.keypair.getConstraintSystemJSON(_keypair)
@@ -124,7 +154,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      *
      * @param publicInput The public input to the circuit if it exists.
      * @param privateInputs The private inputs to the circuit.
-     * @returns The generated proof.
+     * @returns The generated proof. If `proofsEnabled` is `false`, returns a dummy proof.
      *
      * @throws If `compile` has not been called.
      *
@@ -135,12 +165,43 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * ```
      */
     async prove(...args: Parameters<ProveMethodType<Config>>) {
-      if (!_keypair) throw new Error('Cannot find prover artifacts. Please call compile() first!');
-
       const publicInput = hasPublicInput ? args[0] : undefined;
       const privateInputs = (hasPublicInput ? args.slice(1) : args) as PrivateInputs<Config>;
-      const publicInputSize = publicInputType.sizeInFields();
       const publicInputFields = publicInputType.toFields(publicInput);
+
+      if (!_proofsEnabled) {
+        // When proofs are disabled, execute the circuit logic to ensure it works,
+        // but return a dummy proof instead of generating a real one
+        const main = mainFromCircuitData(config, privateInputs);
+        await initializeBindings();
+        // Execute the circuit to validate the logic without generating a proof
+        // We compile and run the circuit to ensure the logic is correct
+        await withThreadPool(async () => {
+          const publicInputSize = publicInputType.sizeInFields();
+          // Compile the circuit to validate the logic
+          const tempKeypair = await Snarky.circuit.compile(
+            main,
+            publicInputSize,
+            config.lazyMode ?? false
+          );
+          // Generate a proof to validate the circuit runs correctly
+          // This ensures the circuit logic is valid even when proofs are disabled
+          Snarky.circuit.prove(
+            main,
+            publicInputSize,
+            MlFieldConstArray.to(publicInputFields),
+            tempKeypair
+          );
+        });
+        // Return a dummy proof
+        return await KimchiProof.dummy(publicInputFields);
+      }
+
+      if (!_keypair) {
+        throw new Error('Cannot find prover artifacts. Please call compile() first!');
+      }
+
+      const publicInputSize = publicInputType.sizeInFields();
       const main = mainFromCircuitData(config, privateInputs);
       await initializeBindings();
       return withThreadPool(async () => {
@@ -160,7 +221,7 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * @param proof The proof to verify.
      * @param verificationKey The key to verify against.
      *
-     * @returns `true` if the proof is valid, otherwise `false`.
+     * @returns `true` if the proof is valid, otherwise `false`. If `proofsEnabled` is `false`, always returns `true`.
      *
      * @example
      * ```ts
@@ -170,6 +231,9 @@ function ZkFunction<Config extends ZkFunctionConfig>(
      * ```
      */
     async verify(proof: KimchiProof, verificationKey: KimchiVerificationKey) {
+      if (!_proofsEnabled) {
+        return Promise.resolve(true);
+      }
       return await proof.verify(verificationKey);
     },
   };
@@ -243,6 +307,37 @@ class KimchiProof {
         )
       )
     );
+  }
+
+  /**
+   * Creates a dummy proof with the given public input fields.
+   * This is useful for testing the logic of a ZkFunction without generating a real proof.
+   *
+   * @param publicInputFields The public input fields for the dummy proof.
+   * @returns A promise that resolves to a dummy KimchiProof.
+   *
+   * @example
+   * ```ts
+   * const dummyProof = await KimchiProof.dummy([Field(0), Field(1)]);
+   * ```
+   */
+  static async dummy(publicInputFields: Field[]): Promise<KimchiProof> {
+    await initializeBindings();
+    // Create a minimal circuit that does nothing to generate a dummy proof
+    const minimalMain: Snarky.Main = (publicInputFields: MlFieldArray) => {
+      // Empty circuit - just validates the public input structure
+    };
+    const publicInputSize = publicInputFields.length;
+    return withThreadPool(async () => {
+      const keypair = await Snarky.circuit.compile(minimalMain, publicInputSize, false);
+      const proof = Snarky.circuit.prove(
+        minimalMain,
+        publicInputSize,
+        MlFieldConstArray.to(publicInputFields),
+        keypair
+      );
+      return new KimchiProof(proof, publicInputFields);
+    });
   }
 }
 
