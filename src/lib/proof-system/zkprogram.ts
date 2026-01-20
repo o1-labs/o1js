@@ -909,6 +909,7 @@ function picklesRuleFromFunction(
         result = (await func(...finalArgs)) as any;
       } else {
         let input = fromFieldVars(publicInputType, publicInput, auxInputData);
+        publicInputType.check(input);
         result = (await func(input, ...finalArgs)) as any;
       }
       proofs = ZkProgramContext.getDeclaredProofs();
