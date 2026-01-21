@@ -1,19 +1,19 @@
-import { MlOption } from '../../../lib/ml/base.js';
-import type * as napiNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { MlOption } from '../../lib/ml/base.js';
+import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpOracles,
   WasmFpRandomOracles,
   WasmFqOracles,
   WasmFqRandomOracles,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+} from '../compiled/node_bindings/plonk_wasm.cjs';
 import {
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
   maybeFieldToRust,
-} from './conversion-base.js';
-import { Field, Oracles, RandomOracles, ScalarChallenge } from './kimchi-types.js';
+} from './bindings/conversion-base.js';
+import { Field, Oracles, RandomOracles, ScalarChallenge } from './bindings/kimchi-types.js';
 
 export { napiOraclesConversion };
 
