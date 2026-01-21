@@ -6,7 +6,7 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
 } from './bindings/conversion-base.js';
-import { Field, Gate, LookupTable, OrInfinity, PolyComm, Wire } from './bindings/kimchi-types.js';
+import { Field, Gate, OrInfinity, PolyComm, Wire } from './bindings/kimchi-types.js';
 import { mapTuple } from './bindings/util.js';
 
 export { ConversionCore, ConversionCores, napiConversionCore };
@@ -24,6 +24,14 @@ type NapiClasses = {
   PolyComm: napiNamespace.WasmFpPolyComm | napiNamespace.WasmFqPolyComm;
 };
 
+function wireToRust([, row, col]: Wire) {
+  return { row, col };
+}
+
+function wireFromRust({ row, col }: { row: number; col: number }): Wire {
+  return [0, row, col];
+}
+
 function napiConversionCore(napi: any) {
   const fpCore = conversionCorePerField({
     CommitmentCurve: napi.WasmGVesta,
@@ -36,38 +44,6 @@ function napiConversionCore(napi: any) {
     PolyComm: napi.WasmFqPolyComm,
   });
 
-  const shared = {
-    vectorToRust: (fields: any) => fieldsToRustFlat(fields),
-    vectorFromRust: fieldsFromRustFlat,
-    wireToRust([, row, col]: Wire) {
-      return { row, col };
-    },
-    lookupTablesToRust([, ...tables]: MlArray<LookupTable>) {
-      return tables;
-    },
-    runtimeTableCfgsToRust([, ...tables]: MlArray<Uint8Array>) {
-      return tables.map((table) => Array.from(table));
-    },
-    gateToRust(gate: Gate): any {
-      const [, typ, [, ...wires], coeffs] = gate;
-      const mapped = mapTuple(wires, (wire) => this.wireToRust(wire));
-      const nativeWires = {
-        w0: mapped[0],
-        w1: mapped[1],
-        w2: mapped[2],
-        w3: mapped[3],
-        w4: mapped[4],
-        w5: mapped[5],
-        w6: mapped[6],
-      } as const;
-      return {
-        typ,
-        wires: nativeWires,
-        coeffs: Array.from(fieldsToRustFlat(coeffs)),
-      };
-    },
-  };
-
   return {
     fp: {
       ...fpCore,
@@ -75,16 +51,16 @@ function napiConversionCore(napi: any) {
     fq: {
       ...fqCore,
     },
-    ...shared,
+    wireToRust,
+    mapMlArrayToRustVector<TMl, TRust>([, ...array]: [0, ...TMl[]], map: (x: TMl) => TRust) {
+      return array.map(map);
+    },
   };
 }
 
 function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
   const vectorToRust = (fields: MlArray<Field>) => fieldsToRustFlat(fields);
   const vectorFromRust = fieldsFromRustFlat;
-
-  const wireToRust = ([, row, col]: Wire) => ({ row, col });
-  const wireFromRust = ({ row, col }: { row: number; col: number }): Wire => [0, row, col];
 
   const gateToRust = (gate: Gate) => {
     const [, typ, [, ...wires], coeffs] = gate;
@@ -202,7 +178,7 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return [0, ...comms.map(polyCommFromRust)];
   };
 
-  return {
+  const self = {
     vectorToRust,
     vectorFromRust,
     wireToRust,
@@ -219,6 +195,8 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     polyCommsToRust,
     polyCommsFromRust,
   };
+
+  return self;
 }
 
 function asArrayLike<T>(value: unknown, context: string): T[] {
