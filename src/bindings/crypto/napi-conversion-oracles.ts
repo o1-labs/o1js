@@ -1,19 +1,19 @@
-import { MlOption } from '../../../lib/ml/base.js';
-import type * as napiNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { MlOption } from '../../lib/ml/base.js';
+import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpOracles,
   WasmFpRandomOracles,
   WasmFqOracles,
   WasmFqRandomOracles,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+} from '../compiled/node_bindings/plonk_wasm.cjs';
 import {
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
   maybeFieldToRust,
-} from './conversion-base.js';
-import { Field, Oracles, RandomOracles, ScalarChallenge } from './kimchi-types.js';
+} from './bindings/conversion-base.js';
+import { Field, Oracles, RandomOracles, ScalarChallenge } from './bindings/kimchi-types.js';
 
 export { napiOraclesConversion };
 
@@ -74,8 +74,9 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiClasses) {
     let jointCombinerChal = ro.joint_combiner_chal;
     let jointCombiner = ro.joint_combiner;
     let jointCombinerOption = MlOption<[0, ScalarChallenge, Field]>(
-      jointCombinerChal &&
-        jointCombiner && [0, [0, fieldFromRust(jointCombinerChal)], fieldFromRust(jointCombiner)]
+      jointCombinerChal != null && jointCombiner != null
+        ? [0, [0, fieldFromRust(jointCombinerChal)], fieldFromRust(jointCombiner)]
+        : undefined
     );
     let mlRo: RandomOracles = [
       0,
