@@ -116,9 +116,7 @@ function conversionCorePerField(
       return new PolyComm(rustUnshifted, rustShifted);
     },
     polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
-      console.log('polyComm old', polyComm);
       let rustUnshifted = polyComm.unshifted;
-      console.log('rustUnshifted', rustUnshifted);
       let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
         return affineFromRust(wrap(ptr, CommitmentCurve));
       });
@@ -176,7 +174,6 @@ function freeOnFinalize<T extends Freeable>(instance: T) {
 }
 
 function mapFromUintArray<T>(array: Uint32Array | Uint8Array, map: (i: number) => T) {
-  console.log('array', array);
   let n = array.length;
   let result: T[] = Array(n);
   for (let i = 0; i < n; i++) {
