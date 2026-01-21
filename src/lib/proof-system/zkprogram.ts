@@ -221,7 +221,17 @@ type InferMethodType<Config extends ConfigBaseType> = {
  * });
  * ```
  *
- * @param config The configuration of the program, describing the type of the public input and public output, as well as defining the methods which can be executed provably.
+ * @param config The configuration of the program, describing the type of the public input and
+ *   public output, as well as defining the methods which can be executed provably.
+ * @param config.numChunks Optional number of chunks to split each method's circuit into. Use a
+ *   value greater than 1 (1 < numChunks <= 4) if a method exceeds the single-circuit row limit
+ *   of 2^16; default is 1. Up to 8 chunks are supported if the degree of the constraints of the 
+ *   underlying circuit is low enough (e.g. generic gates) so the wrap domain can still be 2.
+ * @param config.overrideWrapDomain Optional override for the wrap circuit domain (0 | 1 | 2).
+ *   Defaults to a value derived from the maximum proofs verified; set only if you need to force
+ *   a specific domain for chunking. In general, uses 0 if no chunking, 1 for 2 chunks, and 2 for
+ *   4 chunks. When otherwise needed, the logs guide you through the right choice. If the constraints 
+ *   are simple enough (e.g. generic gates), 8 chunks may also use domain 2. 
  * @returns an object that can be used to compile, prove, and verify the program.
  */
 function ZkProgram<
@@ -288,14 +298,14 @@ function ZkProgram<
   proofsEnabled: boolean;
   setProofsEnabled(proofsEnabled: boolean): void;
 } & {
-  [I in keyof Config['methods']]: Prover<
-    InferProvableOrUndefined<Get<Config, 'publicInput'>>,
-    ProvableOrUndefined<Get<Config, 'publicInput'>>,
-    InferProvableOrVoid<Get<Config, 'publicOutput'>>,
-    InferPrivateInput<Config>[I],
-    InferProvableOrUndefined<InferAuxiliaryOutputs<Config>[I]>
-  >;
-} {
+    [I in keyof Config['methods']]: Prover<
+      InferProvableOrUndefined<Get<Config, 'publicInput'>>,
+      ProvableOrUndefined<Get<Config, 'publicInput'>>,
+      InferProvableOrVoid<Get<Config, 'publicOutput'>>,
+      InferPrivateInput<Config>[I],
+      InferProvableOrUndefined<InferAuxiliaryOutputs<Config>[I]>
+    >;
+  } {
   type PublicInputType = ProvableOrUndefined<Get<Config, 'publicInput'>>;
   type PublicInput = InferProvableOrUndefined<Get<Config, 'publicInput'>>;
   type PublicOutput = InferProvableOrVoid<Get<Config, 'publicOutput'>>;
@@ -368,13 +378,13 @@ function ZkProgram<
 
   let compileOutput:
     | {
-        provers: Pickles.Prover[];
-        maxProofsVerified: 0 | 1 | 2;
-        verify: (
-          statement: Pickles.Statement<FieldConst>,
-          proof: Pickles.Proof
-        ) => Promise<boolean>;
-      }
+      provers: Pickles.Prover[];
+      maxProofsVerified: 0 | 1 | 2;
+      verify: (
+        statement: Pickles.Statement<FieldConst>,
+        proof: Pickles.Proof
+      ) => Promise<boolean>;
+    }
     | undefined;
 
   const programState = createProgramState();
@@ -462,7 +472,7 @@ function ZkProgram<
       if (compileOutput === undefined) {
         throw Error(
           `Cannot prove execution of program.${String(key)}(), no prover found. ` +
-            `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
+          `Try calling \`await program.compile()\` first, this will cache provers in the background.\nIf you compiled your zkProgram with proofs disabled (\`proofsEnabled = false\`), you have to compile it with proofs enabled first.`
         );
       }
       let picklesProver = compileOutput.provers[i];
@@ -634,7 +644,7 @@ type ZkProgram<
  * });
  * ```
  */
-class SelfProof<PublicInput, PublicOutput> extends Proof<PublicInput, PublicOutput> {}
+class SelfProof<PublicInput, PublicOutput> extends Proof<PublicInput, PublicOutput> { }
 
 function sortMethodArguments(
   programName: string,
@@ -664,7 +674,7 @@ function sortMethodArguments(
     if (proof === ProofBase || proof === Proof || proof === DynamicProof) {
       throw Error(
         `You cannot use the \`${proof.name}\` class directly. Instead, define a subclass:\n` +
-          `class MyProof extends ${proof.name}<PublicInput, PublicOutput> { ... }`
+        `class MyProof extends ${proof.name}<PublicInput, PublicOutput> { ... }`
       );
     }
   });
@@ -673,7 +683,7 @@ function sortMethodArguments(
   if (numberOfProofs > 2) {
     throw Error(
       `${programName}.${methodName}() has more than two proof arguments, which is not supported.\n` +
-        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+      `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
   return { methodName, args, auxiliaryType };
@@ -988,7 +998,7 @@ function picklesRuleFromFunction(
   if (verifiedProofs.length > 2) {
     throw Error(
       `${proofSystemTag.name}.${methodName}() has more than two proof arguments, which is not supported.\n` +
-        `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
+      `Suggestion: You can merge more than two proofs by merging two at a time in a binary tree.`
     );
   }
   let proofsToVerify = verifiedProofs.map((Proof) => {
@@ -1015,7 +1025,7 @@ function picklesRuleFromFunction(
       if (compiledTag === undefined) {
         throw Error(
           `${proofSystemTag.name}.compile() depends on ${tag.name}, but we cannot find compilation output for ${tag.name}.\n` +
-            `Try to run ${tag.name}.compile() first.`
+          `Try to run ${tag.name}.compile() first.`
         );
       }
       return { isSelf: false, tag: compiledTag };
@@ -1114,10 +1124,10 @@ function Prover<ProverData>() {
 
 type Infer<T> =
   T extends Subclass<typeof ProofBase>
-    ? InstanceType<T>
-    : T extends ProvableType
-      ? InferProvableType<T>
-      : never;
+  ? InstanceType<T>
+  : T extends ProvableType
+  ? InferProvableType<T>
+  : never;
 
 type TupleToInstances<T> = {
   [I in keyof T]: Infer<T[I]>;
@@ -1130,18 +1140,18 @@ type PrivateInput = ProvableType | Subclass<typeof ProofBase>;
 
 type MethodReturnType<PublicOutput, AuxiliaryOutput> = PublicOutput extends void
   ? AuxiliaryOutput extends undefined
-    ? void
-    : {
-        auxiliaryOutput: AuxiliaryOutput;
-      }
+  ? void
+  : {
+    auxiliaryOutput: AuxiliaryOutput;
+  }
   : AuxiliaryOutput extends undefined
-    ? {
-        publicOutput: PublicOutput;
-      }
-    : {
-        publicOutput: PublicOutput;
-        auxiliaryOutput: AuxiliaryOutput;
-      };
+  ? {
+    publicOutput: PublicOutput;
+  }
+  : {
+    publicOutput: PublicOutput;
+    auxiliaryOutput: AuxiliaryOutput;
+  };
 
 type Method<
   PublicInput,
@@ -1152,26 +1162,26 @@ type Method<
   },
 > = PublicInput extends undefined
   ? {
-      method(
-        ...args: TupleToInstances<MethodSignature['privateInputs']>
-      ): Promise<
-        MethodReturnType<
-          PublicOutput,
-          InferProvableOrUndefined<Get<MethodSignature, 'auxiliaryOutput'>>
-        >
-      >;
-    }
+    method(
+      ...args: TupleToInstances<MethodSignature['privateInputs']>
+    ): Promise<
+      MethodReturnType<
+        PublicOutput,
+        InferProvableOrUndefined<Get<MethodSignature, 'auxiliaryOutput'>>
+      >
+    >;
+  }
   : {
-      method(
-        publicInput: PublicInput,
-        ...args: TupleToInstances<MethodSignature['privateInputs']>
-      ): Promise<
-        MethodReturnType<
-          PublicOutput,
-          InferProvableOrUndefined<Get<MethodSignature, 'auxiliaryOutput'>>
-        >
-      >;
-    };
+    method(
+      publicInput: PublicInput,
+      ...args: TupleToInstances<MethodSignature['privateInputs']>
+    ): Promise<
+      MethodReturnType<
+        PublicOutput,
+        InferProvableOrUndefined<Get<MethodSignature, 'auxiliaryOutput'>>
+      >
+    >;
+  };
 
 type RegularProver<
   PublicInput,
@@ -1195,16 +1205,16 @@ type Prover<
   AuxiliaryOutput,
 > = PublicInput extends undefined
   ? (...args: TupleFrom<Args>) => Promise<{
-      proof: Proof<PublicInput, PublicOutput>;
-      auxiliaryOutput: AuxiliaryOutput;
-    }>
+    proof: Proof<PublicInput, PublicOutput>;
+    auxiliaryOutput: AuxiliaryOutput;
+  }>
   : (
-      publicInput: From<PublicInputType>,
-      ...args: TupleFrom<Args>
-    ) => Promise<{
-      proof: Proof<PublicInput, PublicOutput>;
-      auxiliaryOutput: AuxiliaryOutput;
-    }>;
+    publicInput: From<PublicInputType>,
+    ...args: TupleFrom<Args>
+  ) => Promise<{
+    proof: Proof<PublicInput, PublicOutput>;
+    auxiliaryOutput: AuxiliaryOutput;
+  }>;
 
 type ProvableOrUndefined<A> = A extends undefined ? typeof Undefined : ToProvable<A>;
 type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
@@ -1212,8 +1222,8 @@ type ProvableOrVoid<A> = A extends undefined ? typeof Void : ToProvable<A>;
 type InferProvableOrUndefined<A> = A extends undefined
   ? undefined
   : A extends ProvableType
-    ? InferProvable<A>
-    : InferProvable<A> | undefined;
+  ? InferProvable<A>
+  : InferProvable<A> | undefined;
 type InferProvableOrVoid<A> = A extends undefined ? void : InferProvable<A>;
 
 type UnwrapPromise<P> = P extends Promise<infer T> ? T : never;

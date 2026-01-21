@@ -161,9 +161,6 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
   };
   const affineFromRust = (pt: NapiAffine): OrInfinity => {
     if (pt.infinity) return 0;
-    // console.log('pt', pt);
-    // console.log('pt.x', pt.x);
-    // console.log('pt.y', pt.y);
 
     const xField = fieldFromRust(pt.x);
     const yField = fieldFromRust(pt.y);
@@ -189,9 +186,7 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
 
   const polyCommFromRust = (polyComm: any): any => {
     if (polyComm == null) return undefined;
-    // console.log('polyComm', polyComm);
     const rustUnshifted = asArrayLike<NapiAffine>(polyComm.unshifted, 'polyComm.unshifted');
-    // console.log('rustUnshifted', rustUnshifted);
     const mlUnshifted = rustUnshifted.map(affineFromRust);
     return [0, [0, ...mlUnshifted]];
   };
