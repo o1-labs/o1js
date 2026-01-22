@@ -7,8 +7,7 @@
     "mina-test-signer": "mina-test-signer.js"
   },
   "scripts": {
-    "start": "node mina-test-signer.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node mina-test-signer.js"
   },
   "author": "o1-labs",
   "license": "ISC",
