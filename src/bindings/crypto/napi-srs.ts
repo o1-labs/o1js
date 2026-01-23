@@ -24,6 +24,10 @@ function empty(): SrsStore {
 
 const srsStore = { fp: empty(), fq: empty() };
 
+type NapiAffine = ReturnType<RustConversion<'napi'>['fp']['pointToRust']>;
+type NapiPolyComm = ReturnType<RustConversion<'napi'>['fp']['polyCommToRust']>;
+type NapiPolyComms = ReturnType<RustConversion<'napi'>['fp']['polyCommsToRust']>;
+
 const CacheReadRegister = new Map<string, boolean>();
 
 let cache: Cache | undefined;
@@ -62,14 +66,14 @@ function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
   );
 }
 
-function srs(napi: Napi, conversion: RustConversion) {
+function srs(napi: Napi, conversion: RustConversion<'napi'>) {
   return {
     fp: srsPerField('fp', napi, conversion),
     fq: srsPerField('fq', napi, conversion),
   };
 }
 
-function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
+function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'napi'>) {
   // note: these functions are properly typed, thanks to TS template literal types
   let createSrs = (size: number) => {
     try {
@@ -80,10 +84,10 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     }
   };
 
-  let getSrs = (srs: NapiSrs) => {
+  let getSrs = (srs: NapiSrs): NapiAffine[] => {
     try {
-      let v = napi[`caml_${f}_srs_get`](srs);
-      return v;
+      let fn = napi[`caml_${f}_srs_get`] as unknown as (value: NapiSrs) => NapiAffine[];
+      return fn(srs);
     } catch (error) {
       console.error(`Error in SRS get for field ${f}`);
       throw error;
@@ -97,43 +101,70 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
       return true;
     }
   };
-  let setSrs = (bytes: any) => {
+  let setSrs = (points: NapiAffine[]) => {
     try {
-      return napi[`caml_${f}_srs_set`](bytes);
+      let fn = napi[`caml_${f}_srs_set`] as unknown as (value: NapiAffine[]) => NapiSrs;
+      return fn(points);
     } catch (error) {
-      console.error(`Error in SRS set for field ${f} args ${bytes}`);
+      console.error(`Error in SRS set for field ${f} args ${points}`);
       throw error;
     }
   };
 
-  let maybeLagrangeCommitment = (srs: NapiSrs, domain_size: number, i: number) => {
+  let maybeLagrangeCommitment = (
+    srs: NapiSrs,
+    domain_size: number,
+    i: number
+  ): NapiPolyComm | undefined | null => {
     try {
-      let s = napi[`caml_${f}_srs_maybe_lagrange_commitment`](srs, domain_size, i);
-      return s;
+      let fn = napi[`caml_${f}_srs_maybe_lagrange_commitment`] as unknown as (
+        srsValue: NapiSrs,
+        domainSizeValue: number,
+        index: number
+      ) => NapiPolyComm | undefined | null;
+      return fn(srs, domain_size, i);
     } catch (error) {
       console.error(`Error in SRS maybe lagrange commitment for field ${f}`);
       throw error;
     }
   };
-  let lagrangeCommitment = (srs: NapiSrs, domain_size: number, i: number) => {
+  let lagrangeCommitment = (
+    srs: NapiSrs,
+    domain_size: number,
+    i: number
+  ): NapiPolyComm => {
     try {
-      return napi[`caml_${f}_srs_lagrange_commitment`](srs, domain_size, i);
+      let fn = napi[`caml_${f}_srs_lagrange_commitment`] as unknown as (
+        srsValue: NapiSrs,
+        domainSizeValue: number,
+        index: number
+      ) => NapiPolyComm;
+      return fn(srs, domain_size, i);
     } catch (error) {
       console.error(`Error in SRS lagrange commitment for field ${f}`);
       throw error;
     }
   };
-  let setLagrangeBasis = (srs: NapiSrs, domain_size: number, input: any) => {
+  let setLagrangeBasis = (srs: NapiSrs, domain_size: number, input: NapiPolyComms) => {
     try {
-      return napi[`caml_${f}_srs_set_lagrange_basis`](srs, domain_size, input);
+      let fn = napi[`caml_${f}_srs_set_lagrange_basis`] as unknown as (
+        srsValue: NapiSrs,
+        domainSizeValue: number,
+        comms: NapiPolyComms
+      ) => void;
+      return fn(srs, domain_size, input);
     } catch (error) {
       console.error(`Error in SRS set lagrange basis for field ${f}`);
       throw error;
     }
   };
-  let getLagrangeBasis = (srs: NapiSrs, n: number) => {
+  let getLagrangeBasis = (srs: NapiSrs, n: number): NapiPolyComms => {
     try {
-      return napi[`caml_${f}_srs_get_lagrange_basis`](srs, n);
+      let fn = napi[`caml_${f}_srs_get_lagrange_basis`] as unknown as (
+        srsValue: NapiSrs,
+        nValue: number
+      ) => NapiPolyComms;
+      return fn(srs, n);
     } catch (error) {
       console.error(`Error in SRS get lagrange basis for field ${f}`);
       throw error;
@@ -314,11 +345,11 @@ function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
 function readCacheLazy(
   cache: Cache,
   header: CacheHeader,
-  conversion: RustConversion,
+  conversion: RustConversion<'napi'>,
   f: 'fp' | 'fq',
   srs: NapiSrs,
   domainSize: number,
-  setLagrangeBasis: (srs: NapiSrs, domainSize: number, comms: Uint32Array) => void
+  setLagrangeBasis: (srs: NapiSrs, domainSize: number, comms: NapiPolyComms) => void
 ) {
   if (CacheReadRegister.get(header.uniqueId) === true) return true;
   return readCache(cache, header, (bytes) => {

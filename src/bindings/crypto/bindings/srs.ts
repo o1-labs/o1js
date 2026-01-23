@@ -62,14 +62,14 @@ function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
   );
 }
 
-function srs(wasm: Wasm, conversion: RustConversion) {
+function srs(wasm: Wasm, conversion: RustConversion<'wasm'>) {
   return {
     fp: srsPerField('fp', wasm, conversion),
     fq: srsPerField('fq', wasm, conversion),
   };
 }
 
-function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
+function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'wasm'>) {
   // note: these functions are properly typed, thanks to TS template literal types
   let createSrs = (s: number) => wasm[`caml_${f}_srs_create_parallel`](s);
   let getSrs = wasm[`caml_${f}_srs_get`];
@@ -268,7 +268,7 @@ function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
 function readCacheLazy(
   cache: Cache,
   header: CacheHeader,
-  conversion: RustConversion,
+  conversion: RustConversion<'wasm'>,
   f: 'fp' | 'fq',
   srs: WasmSrs,
   domainSize: number,
