@@ -98,6 +98,7 @@ export {
   fetchAccount,
   fetchEvents,
   fetchLastBlock,
+  fetchTimedAccountInfo,
   fetchTransactionStatus,
   Lightnet,
   sendZkapp,
