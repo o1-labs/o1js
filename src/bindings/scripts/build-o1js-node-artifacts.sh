@@ -25,20 +25,9 @@ else
     ok "Dependencies already installed"
 fi
 
-info "Setting up Mina configuration files..."
-run_cmd dune b "${MINA_PATH}"/src/config.mlh
-run_cmd cp "${MINA_PATH}"/src/config.mlh "src"
-run_cmd cp -r "${MINA_PATH}"/src/config "src/config"
-ok "Mina config files copied"
-
 npm run build:wasm:node
 npm run build:jsoo:node
 
 npm run build:bindings-transaction-layout
-
-info "Cleaning up Mina config files..."
-run_cmd rm -rf "src/config"
-run_cmd rm "src/config.mlh"
-ok "Config files cleaned up"
 
 success "Node bindings artifacts build complete"
