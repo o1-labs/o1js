@@ -7,6 +7,7 @@
 import { assert } from '../../util/assert.js';
 import { Field } from "../field.js";
 import { Gates } from "../gates.js";
+import { Provable } from '../provable.js';
 
 export {
     RuntimeTable,
@@ -147,6 +148,16 @@ class RuntimeTable {
                 assert(this.indices.has(idx0) && this.indices.has(idx1) && this.indices.has(idx2),
                     `Indices must be part of the runtime table with id ${this.id}`);
             }
+
+            Provable.asProver(() => {
+                // Fails as prover when witness indices are not part of the table
+                // before waiting for the full proof generation step
+                const fIdx0 = Field.from(idx0);
+                const fIdx1 = Field.from(idx1);
+                const fIdx2 = Field.from(idx2);
+                assert(this.indices.has(fIdx0.toBigInt()) && this.indices.has(fIdx1.toBigInt()) && this.indices.has(fIdx2.toBigInt()),
+                    `Indices must be part of the runtime table with id ${this.id}`);
+            });
 
             Gates.lookup(Field.from(this.id), Field.from(idx0), value0, Field.from(idx1), value1, Field.from(idx2), value2);
         }
