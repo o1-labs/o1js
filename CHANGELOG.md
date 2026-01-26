@@ -18,6 +18,12 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/34caaedc9...HEAD)
 
+### Changed
+
+- Added an optional `network: NetworkId` parameter to `Signature.verify` and
+  `Signature.create` to account for different network prefixes and nonces.
+  https://github.com/o1-labs/o1js/pull/2744
+
 ### Added
 
 - Added a function `Mina.Transaction.hash(json)` to generate the hash of a JSON
