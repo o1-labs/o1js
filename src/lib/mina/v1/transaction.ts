@@ -1,47 +1,47 @@
-import {
-  ZkappCommand,
-  AccountUpdate,
-  ZkappPublicInput,
-  AccountUpdateLayout,
-  FeePayerUnsigned,
-  addMissingSignatures,
-  TokenId,
-  addMissingProofs,
-} from './account-update.js';
-import { Field } from '../../provable/wrapped.js';
+import { Test } from '../../../bindings.js';
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
+import { Proof } from '../../proof-system/proof.js';
+import { Empty } from '../../proof-system/zkprogram.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
-import { Empty } from '../../proof-system/zkprogram.js';
-import { Proof } from '../../proof-system/proof.js';
-import { currentTransaction } from './transaction-context.js';
 import { Provable } from '../../provable/provable.js';
-import { assertPreconditionInvariants } from './precondition.js';
-import { Account } from './account.js';
-import { type FeePayerSpec, activeInstance } from './mina-instance.js';
-import * as Fetch from './fetch.js';
-import { type SendZkAppResponse, sendZkappQuery } from './graphql.js';
-import { type FetchMode } from './transaction-context.js';
+import { Field } from '../../provable/wrapped.js';
 import { assertPromise } from '../../util/assert.js';
-import { Types } from '../../../bindings/mina-transaction/v1/types.js';
+import {
+  AccountUpdate,
+  AccountUpdateLayout,
+  FeePayerUnsigned,
+  TokenId,
+  ZkappCommand,
+  ZkappPublicInput,
+  addMissingProofs,
+  addMissingSignatures,
+} from './account-update.js';
+import { Account } from './account.js';
+import * as Fetch from './fetch.js';
+import { sendZkappQuery, type SendZkAppResponse } from './graphql.js';
+import { activeInstance, type FeePayerSpec } from './mina-instance.js';
+import { assertPreconditionInvariants } from './precondition.js';
+import { currentTransaction, type FetchMode } from './transaction-context.js';
 import { getTotalTimeRequired } from './transaction-validation.js';
 
 export {
   Transaction,
-  type TransactionPromise,
-  type PendingTransaction,
+  createIncludedTransaction,
+  createRejectedTransaction,
+  createTransaction,
+  getAccount,
+  newTransaction,
+  sendTransaction,
+  toPendingTransactionPromise,
+  toTransactionPromise,
+  transaction,
   type IncludedTransaction,
-  type RejectedTransaction,
+  type PendingTransaction,
   type PendingTransactionPromise,
   type PendingTransactionStatus,
-  createTransaction,
-  toTransactionPromise,
-  toPendingTransactionPromise,
-  sendTransaction,
-  newTransaction,
-  getAccount,
-  transaction,
-  createRejectedTransaction,
-  createIncludedTransaction,
+  type RejectedTransaction,
+  type TransactionPromise,
 };
 
 type TransactionCommon = {
@@ -102,6 +102,19 @@ namespace Transaction {
   export function fromJSON(json: Types.Json.ZkappCommand | string): Transaction<false, false> {
     let transaction = ZkappCommand.fromJSON(json);
     return newTransaction(transaction, activeInstance.proofsEnabled);
+  }
+
+  /**
+   * Computes the hash of a transaction represented as a JSON object or JSON string.
+   * This hash serves as a unique identifier for the transaction and is essential for tracking
+   * and verifying transactions on the Mina blockchain.
+   */
+  export async function hash(json: Types.Json.ZkappCommand | string): Promise<string> {
+    let mlTest = await Test();
+    const hash = mlTest.transactionHash.hashZkAppCommand(
+      JSON.stringify(ZkappCommand.toJSON(ZkappCommand.fromJSON(json)))
+    );
+    return hash;
   }
 }
 
