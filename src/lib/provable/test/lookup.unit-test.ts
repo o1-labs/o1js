@@ -50,7 +50,7 @@ let uint = (n: number | bigint): Spec<bigint, Field> => {
   );
 }
 
-// Old API runtime table tests using constant indices
+// Unit test with constant indices using the deprecated API for runtime tables
 {
   let RuntimeTable = ZkProgram({
     name: 'runtime-table',
