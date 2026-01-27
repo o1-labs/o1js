@@ -20,6 +20,9 @@ This project adheres to
 
 ### Added
 
+- Added `fetchTimedAccountInfo()` to retrieve detailed balance information for
+  time-locked accounts, including liquid and locked balances based on the
+  vesting schedule. https://github.com/o1-labs/o1js/pull/2742
 - Added a function `Mina.Transaction.hash(json)` to generate the hash of a JSON
   Transaction. https://github.com/o1-labs/o1js/pull/2704
 
