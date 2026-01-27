@@ -3,7 +3,7 @@
  * It is exposed to JSOO by populating a global variable with an object.
  * It gets imported as the first thing in ../../bindings.js so that the global variable is ready by the time JSOO code gets executed.
  */
-import type * as rustNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
+import type * as rustNamespace from '../compiled/node_bindings/kimchi_wasm.cjs';
 import { prefixHashes, prefixHashesLegacy } from '../crypto/constants.js';
 import { Bigint256Bindings } from './bindings/bigint256.js';
 import { fieldsFromRustFlat, fieldsToRustFlat } from './bindings/conversion-base.js';

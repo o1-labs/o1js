@@ -7,7 +7,7 @@ import {
   type CacheHeader,
 } from '../../lib/proof-system/cache.js';
 import { assert } from '../../lib/util/errors.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../compiled/node_bindings/plonk_wasm.cjs';
+import { type WasmFpSrs, type WasmFqSrs } from '../compiled/node_bindings/kimchi_wasm.cjs';
 import type { Napi, RustConversion } from './bindings.js';
 import { OrInfinity, OrInfinityJson } from './bindings/curve.js';
 import { PolyComm } from './bindings/kimchi-types.js';

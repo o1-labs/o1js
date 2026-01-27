@@ -1,5 +1,5 @@
 import type { Wasm, RustConversion } from '../bindings.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import { PolyComm } from './kimchi-types.js';
 import {
   type CacheHeader,

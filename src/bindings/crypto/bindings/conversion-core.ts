@@ -1,5 +1,5 @@
 import { MlArray } from '../../../lib/ml/base.js';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type * as wasmNamespace from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import type {
   WasmFpGate,
   WasmFpPolyComm,
@@ -7,7 +7,7 @@ import type {
   WasmFqPolyComm,
   WasmGPallas,
   WasmGVesta,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+} from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import {
   WasmAffine,
   affineFromRust,

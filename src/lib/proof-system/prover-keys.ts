@@ -9,7 +9,7 @@ import { Pickles, wasm } from '../../bindings.js';
 import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
-} from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
+} from '../../bindings/compiled/node_bindings/kimchi_wasm.cjs';
 // TODO: include conversion bundle to decide between wasm and napi conversion
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';

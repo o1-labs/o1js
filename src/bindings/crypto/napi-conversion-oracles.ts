@@ -1,11 +1,11 @@
 import { MlOption } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
+import type * as napiNamespace from '../compiled/node_bindings/kimchi_wasm.cjs';
 import type {
   WasmFpOracles,
   WasmFpRandomOracles,
   WasmFqOracles,
   WasmFqRandomOracles,
-} from '../compiled/node_bindings/plonk_wasm.cjs';
+} from '../compiled/node_bindings/kimchi_wasm.cjs';
 import {
   fieldFromRust,
   fieldToRust,

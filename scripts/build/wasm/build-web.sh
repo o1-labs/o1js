@@ -22,10 +22,10 @@ mkdir -p $BINDINGS_PATH
 info "building Kimchi bindings for web..."
 
 TARGETS=(\
-  plonk_wasm_bg.wasm \
-  plonk_wasm_bg.wasm.d.ts \
-  plonk_wasm.js \
-  plonk_wasm.d.ts\
+  kimchi_wasm_bg.wasm \
+  kimchi_wasm_bg.wasm.d.ts \
+  kimchi_wasm.js \
+  kimchi_wasm.d.ts\
 )
 dune build ${TARGETS[@]/#/$KIMCHI_PATH/}
 
@@ -40,9 +40,9 @@ run_cmd wasm-opt \
   --detect-features \
   --enable-mutable-globals \
   -O4 \
-  -o $BINDINGS_PATH/plonk_wasm_bg.wasm.opt \
-  $BINDINGS_PATH/plonk_wasm_bg.wasm
-run_cmd mv $BINDINGS_PATH/plonk_wasm_bg.wasm.opt $BINDINGS_PATH/plonk_wasm_bg.wasm
+  -o $BINDINGS_PATH/kimchi_wasm_bg.wasm.opt \
+  $BINDINGS_PATH/kimchi_wasm_bg.wasm
+run_cmd mv $BINDINGS_PATH/kimchi_wasm_bg.wasm.opt $BINDINGS_PATH/kimchi_wasm_bg.wasm
 
 ok "wasm optimized"
 

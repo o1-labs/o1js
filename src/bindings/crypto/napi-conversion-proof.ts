@@ -1,5 +1,5 @@
 import { MlArray, MlOption, MlTuple } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
+import type * as napiNamespace from '../compiled/node_bindings/kimchi_wasm.cjs';
 import type {
   WasmFpLookupCommitments,
   WasmFpOpeningProof,
@@ -17,7 +17,7 @@ import type {
   WasmPastaFqRuntimeTableCfg,
   WasmVecVecFp,
   WasmVecVecFq,
-} from '../compiled/node_bindings/plonk_wasm.cjs';
+} from '../compiled/node_bindings/kimchi_wasm.cjs';
 import {
   fieldFromRust,
   fieldToRust,
