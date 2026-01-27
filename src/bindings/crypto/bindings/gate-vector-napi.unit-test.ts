@@ -8,9 +8,9 @@ const require = createRequire(import.meta.url);
 function loadNative() {
   const slug = `${process.platform}-${process.arch}`;
   const candidates = [
-    `../../../../../native/${slug}/plonk_napi.node`,
-    '../../compiled/node_bindings/plonk_napi.node',
-    '../../compiled/_node_bindings/plonk_napi.node',
+    `../../../../../native/${slug}/kimchi_napi.node`,
+    '../../compiled/node_bindings/kimchi_napi.node',
+    '../../compiled/_node_bindings/kimchi_napi.node',
   ];
   for (const path of candidates) {
     try {
@@ -20,7 +20,7 @@ function loadNative() {
       if ((err as any).code !== 'MODULE_NOT_FOUND') throw err;
     }
   }
-  throw new Error('plonk_napi.node not found in compiled bindings');
+  throw new Error('kimchi_napi.node not found in compiled bindings');
 }
 
 const native: any = loadNative();
