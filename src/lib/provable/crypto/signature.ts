@@ -1,17 +1,18 @@
-import { Field, Bool, Group, Scalar } from '../wrapped.js';
-import { AnyConstructor } from '../types/struct.js';
-import { hashWithPrefix } from './poseidon.js';
-import {
-  deriveNonce,
-  Signature as SignatureBigint,
-  signaturePrefix,
-} from '../../../mina-signer/src/signature.js';
+import { NetworkId } from '../../../mina-signer/mina-signer.js';
 import {
   PrivateKey as PrivateKeyBigint,
   PublicKey as PublicKeyBigint,
 } from '../../../mina-signer/src/curve-bigint.js';
+import {
+  Signature as SignatureBigint,
+  deriveNonce,
+  signaturePrefix,
+} from '../../../mina-signer/src/signature.js';
 import { toConstantField } from '../field.js';
 import { CircuitValue, prop } from '../types/circuit-value.js';
+import { AnyConstructor } from '../types/struct.js';
+import { Bool, Field, Group, Scalar } from '../wrapped.js';
+import { hashWithPrefix } from './poseidon.js';
 
 // external API
 export { PrivateKey, PublicKey, Signature };
@@ -257,9 +258,10 @@ class Signature extends CircuitValue {
 
   /**
    * Signs a message using a {@link PrivateKey}.
+   * Optionally specify the Mina network via `network` parameter to use a different signature prefix.
    * @returns a {@link Signature}
    */
-  static create(privKey: PrivateKey, msg: Field[]): Signature {
+  static create(privKey: PrivateKey, msg: Field[], network: NetworkId = 'devnet'): Signature {
     let publicKey = PublicKey.fromPrivateKey(privKey).toGroup();
     let d = privKey.s;
 
@@ -271,13 +273,13 @@ class Signature extends CircuitValue {
         { fields: msg.map((f) => f.toBigInt()) },
         { x: publicKey.x.toBigInt(), y: publicKey.y.toBigInt() },
         d.toBigInt(),
-        'devnet'
+        network
       )
     );
 
     let { x: r, y: ry } = Group.generator.scale(kPrime);
     let k = ry.isOdd().toBoolean() ? kPrime.neg() : kPrime;
-    let h = hashWithPrefix(signaturePrefix('devnet'), msg.concat([publicKey.x, publicKey.y, r]));
+    let h = hashWithPrefix(signaturePrefix(network), msg.concat([publicKey.x, publicKey.y, r]));
     let e = Scalar.fromField(h);
     let s = e.mul(d).add(k);
     return new Signature(r, s);
@@ -285,15 +287,16 @@ class Signature extends CircuitValue {
 
   /**
    * Verifies the {@link Signature} using a message and the corresponding {@link PublicKey}.
+   * Optionally specify the Mina network via `network` parameter to use a different signature prefix.
    * @returns a {@link Bool}
    */
-  verify(publicKey: PublicKey, msg: Field[]): Bool {
+  verify(publicKey: PublicKey, msg: Field[], network: NetworkId = 'devnet'): Bool {
     let point = publicKey.toGroup();
 
     // we chose an arbitrary prefix for the signature
     // there's no consequences in practice and the signatures can be used with any network
     // if there needs to be a custom nonce, include it in the message itself
-    let h = hashWithPrefix(signaturePrefix('devnet'), msg.concat([point.x, point.y, this.r]));
+    let h = hashWithPrefix(signaturePrefix(network), msg.concat([point.x, point.y, this.r]));
 
     let r = point.scale(h).neg().add(Group.generator.scale(this.s));
     return r.x.equals(this.r).and(r.y.isEven());
