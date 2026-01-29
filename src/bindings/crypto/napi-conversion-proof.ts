@@ -65,12 +65,10 @@ type NapiProofEvaluations = [
   ...RemoveLeadingZero<ProofEvaluations<Uint8Array>>,
 ];
 
-type napi = typeof napiNamespace;
+type Napi = typeof napiNamespace;
 
-type NapiProverCommitments = WasmFpProverCommitments | WasmFqProverCommitments;
 type NapiOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
 type NapiProverProof = WasmFpProverProof | WasmFqProverProof;
-type NapiLookupCommitments = WasmFpLookupCommitments | WasmFqLookupCommitments;
 type NapiRuntimeTable = WasmFpRuntimeTable | WasmFqRuntimeTable;
 type NapiRuntimeTableCfg = WasmPastaFpRuntimeTableCfg | WasmPastaFqRuntimeTableCfg;
 type NapiLookupTable = WasmPastaFpLookupTable | WasmPastaFqLookupTable;
@@ -80,6 +78,19 @@ type NapiPoint = ReturnType<ConversionCore['pointToRust']>;
 type NapiPoints = ReturnType<ConversionCore['pointsToRust']>;
 type NapiPolyComm = ReturnType<ConversionCore['polyCommToRust']>;
 type NapiPolyComms = ReturnType<ConversionCore['polyCommsToRust']>;
+
+type NapiLookupCommitments = {
+  sorted: NapiPolyComms;
+  aggreg: NapiPolyComm;
+  runtime?: NapiPolyComm | undefined;
+};
+
+type NapiProverCommitments = {
+  w_comm: NapiPolyComms;
+  z_comm: NapiPolyComm;
+  t_comm: NapiPolyComm;
+  lookup?: NapiLookupCommitments | undefined;
+};
 
 type NapiClasses = {
   ProverCommitments: typeof WasmFpProverCommitments | typeof WasmFqProverCommitments;
@@ -92,7 +103,7 @@ type NapiClasses = {
   LookupTable: typeof WasmPastaFpLookupTable | typeof WasmPastaFqLookupTable;
 };
 
-function napiProofConversion(napi: napi, core: ConversionCores) {
+function napiProofConversion(napi: Napi, core: ConversionCores) {
   return {
     fp: proofConversionPerField(core.fp, {
       ProverCommitments: napi.WasmFpProverCommitments,

@@ -14,6 +14,7 @@ export { ConversionCore, ConversionCores, napiConversionCore };
 type ConversionCore = ReturnType<typeof conversionCorePerField>;
 type ConversionCores = ReturnType<typeof napiConversionCore>;
 
+type Napi = typeof napiNamespace;
 type NapiAffine = napiNamespace.WasmGVesta | napiNamespace.WasmGPallas;
 type NapiPolyComm = { unshifted: unknown; shifted?: NapiAffine | undefined };
 type PolyCommCtor = new (unshifted: unknown, shifted?: NapiAffine | undefined) => NapiPolyComm;
@@ -21,7 +22,7 @@ type PolyCommCtor = new (unshifted: unknown, shifted?: NapiAffine | undefined) =
 type NapiClasses = {
   CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;
   makeAffine: () => NapiAffine;
-  PolyComm: napiNamespace.WasmFpPolyComm | napiNamespace.WasmFqPolyComm;
+  PolyComm: typeof napiNamespace.WasmFpPolyComm | typeof napiNamespace.WasmFqPolyComm;
 };
 
 function wireToRust([, row, col]: Wire) {
@@ -32,7 +33,7 @@ function wireFromRust({ row, col }: { row: number; col: number }): Wire {
   return [0, row, col];
 }
 
-function napiConversionCore(napi: any) {
+function napiConversionCore(napi: Napi) {
   const fpCore = conversionCorePerField({
     CommitmentCurve: napi.WasmGVesta,
     makeAffine: napi.caml_vesta_affine_one,
@@ -111,12 +112,6 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return [0, gate.typ, wiresTuple, coeffs];
   };
 
-  const toNodeBuffer = (bytes: Uint8Array): Uint8Array => {
-    const maybeBuffer = (globalThis as unknown as { Buffer?: { from: (b: Uint8Array) => Uint8Array } })
-      .Buffer;
-    return typeof maybeBuffer?.from === 'function' ? maybeBuffer.from(bytes) : bytes;
-  };
-
   const affineToRust = (pt: OrInfinity): NapiAffine => {
     function isFinitePoint(point: OrInfinity): point is [0, [0, Field, Field]] {
       return Array.isArray(point);
@@ -130,8 +125,8 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
       // `WasmGVesta` / `WasmGPallas` are `#[napi(object)]` (plain JS objects), so assigning the
       // same backing buffer to both `x` and `y` corrupts the point. Always use distinct byte
       // arrays for each coordinate.
-      res.x = toNodeBuffer(fieldToRust(x));
-      res.y = toNodeBuffer(fieldToRust(y));
+      res.x = fieldToRust(x);
+      res.y = fieldToRust(y);
     }
     return res;
   };
@@ -160,8 +155,7 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return new PolyCommClass(unshifted as unknown, undefined);
   };
 
-  const polyCommFromRust = (polyComm: any): any => {
-    if (polyComm == null) return undefined;
+  const polyCommFromRust = (polyComm: NapiPolyComm): PolyComm => {
     const rustUnshifted = asArrayLike<NapiAffine>(polyComm.unshifted, 'polyComm.unshifted');
     const mlUnshifted = rustUnshifted.map(affineFromRust);
     return [0, [0, ...mlUnshifted]];

@@ -292,6 +292,9 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nap
           writeCache(cache, header, bytes);
         }
       }
+      if (commitment == null) {
+        throw Error('lagrangeCommitment: missing commitment');
+      }
       return conversion[f].polyCommFromRust(commitment);
     },
 

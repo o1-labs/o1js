@@ -17,7 +17,7 @@ import { Field, Oracles, RandomOracles, ScalarChallenge } from './bindings/kimch
 
 export { napiOraclesConversion };
 
-type napi = typeof napiNamespace;
+type Napi = typeof napiNamespace;
 
 type NapiRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
 type NapiOracles = WasmFpOracles | WasmFqOracles;
@@ -27,7 +27,7 @@ type NapiClasses = {
   Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
 };
 
-function napiOraclesConversion(napi: napi) {
+function napiOraclesConversion(napi: Napi) {
   return {
     fp: oraclesConversionPerField({
       RandomOracles: napi.WasmFpRandomOracles,

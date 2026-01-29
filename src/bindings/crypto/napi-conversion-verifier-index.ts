@@ -28,7 +28,7 @@ import { Lookup, LookupInfo, LookupSelectors } from './bindings/lookup.js';
 
 export { napiVerifierIndexConversion };
 
-type napi = typeof napiNamespace;
+type Napi = typeof napiNamespace;
 
 type NapiDomainObject = { log_size_of_group: number; group_gen: Uint8Array };
 type NapiDomain = WasmFpDomain | WasmFqDomain | NapiDomainObject;
@@ -47,9 +47,9 @@ type NapiClasses = {
   LookupSelector: typeof WasmFpLookupSelectors | typeof WasmFqLookupSelectors;
 };
 
-function napiVerifierIndexConversion(napi: any, core: ConversionCores) {
+function napiVerifierIndexConversion(napi: Napi, core: ConversionCores) {
   return {
-    fp: verifierIndexConversionPerField(napi, core.fp, {
+    fp: verifierIndexConversionPerField(core.fp, {
       Domain: napi.WasmFpDomain,
       VerificationEvals: napi.WasmFpPlonkVerificationEvals,
       Shifts: napi.WasmFpShifts,
@@ -57,7 +57,7 @@ function napiVerifierIndexConversion(napi: any, core: ConversionCores) {
       LookupVerifierIndex: napi.WasmFpLookupVerifierIndex,
       LookupSelector: napi.WasmFpLookupSelectors,
     }),
-    fq: verifierIndexConversionPerField(napi, core.fq, {
+    fq: verifierIndexConversionPerField(core.fq, {
       Domain: napi.WasmFqDomain,
       VerificationEvals: napi.WasmFqPlonkVerificationEvals,
       Shifts: napi.WasmFqShifts,
@@ -69,7 +69,6 @@ function napiVerifierIndexConversion(napi: any, core: ConversionCores) {
 }
 
 function verifierIndexConversionPerField(
-  napi: any,
   core: ConversionCore,
   {
     Domain,
