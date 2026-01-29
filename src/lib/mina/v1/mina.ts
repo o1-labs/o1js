@@ -195,7 +195,8 @@ function Network(
     currentSlot() {
       throw Error(
         'currentSlot() is not available for remote blockchains.\n' +
-          'To query the current slot, import `fetchCurrentSlot` from o1js and call it with your GraphQL endpoint (and optional headers).'
+          'To query the current slot, import `fetchCurrentSlot` from o1js and call it with your GraphQL endpoint.\n' +
+          'You can fetch the global slot since genesis (default) or the epoch-relative slot by passing \'epoch\' as the second parameter.'
       );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
