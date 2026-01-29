@@ -99,6 +99,7 @@ export {
   fetchCurrentSlot,
   fetchEvents,
   fetchLastBlock,
+  fetchTimedAccountInfo,
   fetchTransactionStatus,
   Lightnet,
   sendZkapp,
