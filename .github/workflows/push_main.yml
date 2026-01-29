@@ -83,6 +83,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 180
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # Required for OIDC trusted publishing
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -93,7 +96,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24' # Node 24 includes npm 11.5+ required for OIDC
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Build o1js
         run: |
@@ -102,12 +106,9 @@ jobs:
 
       - name: Publish to NPM if version has changed
         id: publish
-        uses: JS-DevTools/npm-publish@v3
+        uses: JS-DevTools/npm-publish@v4
         with:
-          token: ${{ secrets.NPM_TOKEN }}
           strategy: upgrade
-        env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Configure Git
         run: |

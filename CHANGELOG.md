@@ -25,6 +25,8 @@ This project adheres to
   vesting schedule. https://github.com/o1-labs/o1js/pull/2742
 - Added a function `Mina.Transaction.hash(json)` to generate the hash of a JSON
   Transaction. https://github.com/o1-labs/o1js/pull/2704
+- Added support for `Field` type for the index in runtime table lookups.
+  https://github.com/o1-labs/o1js/pull/2706
 
 ## [2.12.0](https://github.com/o1-labs/o1js/compare/c2e51a84...34caaedc9) - 2025-12-03
 
