@@ -32,11 +32,70 @@ type Napi = typeof napiNamespace;
 
 type NapiDomainObject = { log_size_of_group: number; group_gen: Uint8Array };
 type NapiDomain = WasmFpDomain | WasmFqDomain | NapiDomainObject;
+type NapiPolyComm = ReturnType<ConversionCore['polyCommToRust']>;
+type NapiPolyComms = ReturnType<ConversionCore['polyCommsToRust']>;
 type NapiVerificationEvals = WasmFpPlonkVerificationEvals | WasmFqPlonkVerificationEvals;
 type NapiShifts = WasmFpShifts | WasmFqShifts;
 type NapiVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
 type NapiLookupVerifierIndex = WasmFpLookupVerifierIndex | WasmFqLookupVerifierIndex;
-type NapiLookupSelector = WasmFpLookupSelectors | WasmFqLookupSelectors;
+type NapiLookupSelector = NapiLookupSelectorShape;
+
+type NapiVerificationEvalsShape = {
+  sigma_comm: NapiPolyComms;
+  coefficients_comm: NapiPolyComms;
+  generic_comm: NapiPolyComm;
+  psm_comm: NapiPolyComm;
+  complete_add_comm: NapiPolyComm;
+  mul_comm: NapiPolyComm;
+  emul_comm: NapiPolyComm;
+  endomul_scalar_comm: NapiPolyComm;
+  xor_comm?: NapiPolyComm | undefined;
+  range_check0_comm?: NapiPolyComm | undefined;
+  range_check1_comm?: NapiPolyComm | undefined;
+  foreign_field_add_comm?: NapiPolyComm | undefined;
+  foreign_field_mul_comm?: NapiPolyComm | undefined;
+  rot_comm?: NapiPolyComm | undefined;
+};
+
+type NapiLookupSelectorShape = {
+  lookup?: NapiPolyComm | undefined;
+  xor?: NapiPolyComm | undefined;
+  range_check?: NapiPolyComm | undefined;
+  rangeCheck?: NapiPolyComm | undefined;
+  ffmul?: NapiPolyComm | undefined;
+};
+
+type NapiLookupVerifierIndexShape = {
+  joint_lookup_used: boolean;
+  lookup_table: NapiPolyComms;
+  lookup_selectors: NapiLookupSelectorShape;
+  table_ids?: NapiPolyComm | undefined;
+  lookup_info: WasmLookupInfo;
+  runtime_tables_selector?: NapiPolyComm | undefined;
+};
+
+type NapiShiftsShape = {
+  s0: Uint8Array;
+  s1: Uint8Array;
+  s2: Uint8Array;
+  s3: Uint8Array;
+  s4: Uint8Array;
+  s5: Uint8Array;
+  s6: Uint8Array;
+};
+
+type NapiVerifierIndexShape = {
+  domain: NapiDomain;
+  max_poly_size: number;
+  public_: number;
+  prev_challenges: number;
+  srs: WasmFpPlonkVerifierIndex['srs'] | WasmFqPlonkVerifierIndex['srs'];
+  evals: NapiVerificationEvals;
+  shifts: NapiShifts;
+  lookup_index?: NapiLookupVerifierIndex;
+  zk_rows: number;
+};
+
 
 type NapiClasses = {
   Domain: typeof WasmFpDomain | typeof WasmFqDomain;
@@ -106,22 +165,23 @@ function verifierIndexConversionPerField(
     let foreignFieldAddComm = MlOption.mapFrom(evals[12], core.polyCommToRust);
     let foreignFieldMulComm = MlOption.mapFrom(evals[13], core.polyCommToRust);
     let rotComm = MlOption.mapFrom(evals[14], core.polyCommToRust);
-    return {
-      sigma_comm: sigmaComm as any,
-      coefficients_comm: coefficientsComm as any,
-      generic_comm: genericComm as any,
-      psm_comm: psmComm as any,
-      complete_add_comm: completeAddComm as any,
-      mul_comm: mulComm as any,
-      emul_comm: emulComm as any,
-      endomul_scalar_comm: endomulScalarComm as any,
-      xor_comm: xorComm as any,
-      range_check0_comm: rangeCheck0Comm as any,
-      range_check1_comm: rangeCheck1Comm as any,
-      foreign_field_add_comm: foreignFieldAddComm as any,
-      foreign_field_mul_comm: foreignFieldMulComm as any,
-      rot_comm: rotComm as any,
-    } as any;
+    const evalsObj: NapiVerificationEvalsShape = {
+      sigma_comm: sigmaComm,
+      coefficients_comm: coefficientsComm,
+      generic_comm: genericComm,
+      psm_comm: psmComm,
+      complete_add_comm: completeAddComm,
+      mul_comm: mulComm,
+      emul_comm: emulComm,
+      endomul_scalar_comm: endomulScalarComm,
+      xor_comm: xorComm,
+      range_check0_comm: rangeCheck0Comm,
+      range_check1_comm: rangeCheck1Comm,
+      foreign_field_add_comm: foreignFieldAddComm,
+      foreign_field_mul_comm: foreignFieldMulComm,
+      rot_comm: rotComm,
+    };
+    return evalsObj as unknown as NapiVerificationEvals;
   }
   function verificationEvalsFromRust(evals: NapiVerificationEvals): VerificationEvals {
     let mlEvals: VerificationEvals = [
@@ -154,14 +214,15 @@ function verifierIndexConversionPerField(
       lookup_info,
       runtime_tables_selector,
     ] = lookup;
-    return {
+    const lookupObj: NapiLookupVerifierIndexShape = {
       joint_lookup_used: MlBool.from(joint_lookup_used),
-      lookup_table: core.polyCommsToRust(lookup_table) as any,
-      lookup_selectors: lookupSelectorsToRust(selectors),
-      table_ids: MlOption.mapFrom(table_ids, core.polyCommToRust) as any,
+      lookup_table: core.polyCommsToRust(lookup_table),
+      lookup_selectors: lookupSelectorsToRust(selectors) as NapiLookupSelectorShape,
+      table_ids: MlOption.mapFrom(table_ids, core.polyCommToRust),
       lookup_info: lookupInfoToRust(lookup_info),
-      runtime_tables_selector: MlOption.mapFrom(runtime_tables_selector, core.polyCommToRust) as any,
-    } as any;
+      runtime_tables_selector: MlOption.mapFrom(runtime_tables_selector, core.polyCommToRust),
+    };
+    return lookupObj as unknown as NapiLookupVerifierIndex;
   }
   function lookupVerifierIndexFromRust(lookup: NapiLookupVerifierIndex): Lookup<PolyComm> {
     let mlLookup: Lookup<PolyComm> = [
@@ -183,20 +244,20 @@ function verifierIndexConversionPerField(
     range_check,
     ffmul,
   ]: LookupSelectors<PolyComm>): NapiLookupSelector {
-    return {
-      xor: MlOption.mapFrom(xor, core.polyCommToRust) as any,
-      lookup: MlOption.mapFrom(lookup, core.polyCommToRust) as any,
-      range_check: MlOption.mapFrom(range_check, core.polyCommToRust) as any,
-      ffmul: MlOption.mapFrom(ffmul, core.polyCommToRust) as any,
-    } as any;
+    const selectorObj: NapiLookupSelectorShape = {
+      xor: MlOption.mapFrom(xor, core.polyCommToRust),
+      lookup: MlOption.mapFrom(lookup, core.polyCommToRust),
+      range_check: MlOption.mapFrom(range_check, core.polyCommToRust),
+      ffmul: MlOption.mapFrom(ffmul, core.polyCommToRust),
+    };
+    return selectorObj;
   }
   function lookupSelectorsFromRust(selector: NapiLookupSelector): LookupSelectors<PolyComm> {
-    const getField = (camel: string, snake: string) =>
-      (selector as any)[camel] ?? (selector as any)[snake];
-    let lookup = MlOption.mapTo(getField('lookup', 'lookup'), core.polyCommFromRust);
-    let xor = MlOption.mapTo(getField('xor', 'xor'), core.polyCommFromRust);
-    let range_check = MlOption.mapTo(getField('rangeCheck', 'range_check'), core.polyCommFromRust);
-    let ffmul = MlOption.mapTo(getField('ffmul', 'ffmul'), core.polyCommFromRust);
+    const sel = selector as NapiLookupSelectorShape;
+    let lookup = MlOption.mapTo(sel.lookup, core.polyCommFromRust);
+    let xor = MlOption.mapTo(sel.xor, core.polyCommFromRust);
+    let range_check = MlOption.mapTo(sel.range_check, core.polyCommFromRust);
+    let ffmul = MlOption.mapTo(sel.ffmul, core.polyCommFromRust);
     return [0, lookup, xor, range_check, ffmul];
   }
 
@@ -216,7 +277,7 @@ function verifierIndexConversionPerField(
         joint_lookup_used: MlBool.from(joint_lookup_used),
         uses_runtime_tables: MlBool.from(uses_runtime_tables),
       },
-    } as any;
+    } as WasmLookupInfo;
   }
   function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
     let features = info.features;
@@ -244,7 +305,16 @@ function verifierIndexConversionPerField(
   let self = {
     shiftsToRust([, ...shifts]: MlArray<Field>): NapiShifts {
       let s = shifts.map((s) => fieldToRust(s));
-      return { s0: s[0], s1: s[1], s2: s[2], s3: s[3], s4: s[4], s5: s[5], s6: s[6] } as any;
+      const shiftsObj: NapiShiftsShape = {
+        s0: s[0],
+        s1: s[1],
+        s2: s[2],
+        s3: s[3],
+        s4: s[4],
+        s5: s[5],
+        s6: s[6],
+      };
+      return shiftsObj as NapiShifts;
     },
     shiftsFromRust(s: NapiShifts): MlArray<Field> {
       let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
@@ -261,34 +331,32 @@ function verifierIndexConversionPerField(
       let shifts = self.shiftsToRust(vk[7]);
       let lookupIndex = MlOption.mapFrom(vk[8], lookupVerifierIndexToRust);
       let zkRows = vk[9];
-      return {
+      const vkObj = {
         domain,
         max_poly_size: maxPolySize,
-        public: nPublic,
         public_: nPublic,
-        prevChallenges,
         prev_challenges: prevChallenges,
         srs,
         evals,
         shifts,
-        lookup_index: lookupIndex as any,
-        lookupIndex: lookupIndex as any,
-        zkRows,
+        lookup_index: lookupIndex as NapiLookupVerifierIndex | undefined,
         zk_rows: zkRows,
-      } as any;
+      };
+      return vkObj as unknown as NapiVerifierIndex;
     },
     verifierIndexFromRust(vk: NapiVerifierIndex): VerifierIndex {
+      const vkFields = vk as unknown as NapiVerifierIndexShape;
       let mlVk: VerifierIndex = [
         0,
-        domainFromRust(vk.domain),
-        vk.max_poly_size,
-        (vk as any).public_,
-        (vk as any).prev_challenges,
-        vk.srs,
-        verificationEvalsFromRust(vk.evals),
-        self.shiftsFromRust(vk.shifts),
-        MlOption.mapTo((vk as any).lookup_index, lookupVerifierIndexFromRust),
-        (vk as any).zk_rows,
+        domainFromRust(vkFields.domain),
+        vkFields.max_poly_size,
+        vkFields.public_,
+        vkFields.prev_challenges,
+        vkFields.srs,
+        verificationEvalsFromRust(vkFields.evals),
+        self.shiftsFromRust(vkFields.shifts),
+        MlOption.mapTo(vkFields.lookup_index, lookupVerifierIndexFromRust),
+        vkFields.zk_rows,
       ];
       return mlVk;
     },

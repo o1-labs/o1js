@@ -59,12 +59,6 @@ const proofEvaluationsFromRust = mapProofEvaluations(fieldFromRust);
 const pointEvalsOptionToRust = mapPointEvalsOption(fieldToRust_);
 const pointEvalsOptionFromRust = mapPointEvalsOption(fieldFromRust);
 
-type NapiProofEvaluations = [
-  0,
-  MlOption<PointEvaluations<Uint8Array>>,
-  ...RemoveLeadingZero<ProofEvaluations<Uint8Array>>,
-];
-
 type Napi = typeof napiNamespace;
 
 type NapiOpeningProof = {
@@ -668,7 +662,3 @@ function mapProofEvaluations<Field1, Field2>(map: (x: Field1) => Field2) {
     ];
   };
 }
-
-// helper
-
-type RemoveLeadingZero<T extends [0, ...any]> = T extends [0, ...infer U] ? U : never;
