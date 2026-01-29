@@ -50,12 +50,12 @@ type Napi = Rust;
 type BackendKind = 'wasm' | 'napi';
 
 // Whether or not native backend is in use
+function getKimchiBackend(rust: Rust): 'native' | 'wasm' | undefined {
+  return (rust as any).__kimchi_backend ?? (globalThis as any)?.__kimchi_backend;
+}
+
 function shouldUseNativeConversion(rust: Rust): boolean {
-  const marker = (rust as any).__kimchi_use_native;
-  const globalMarker =
-    typeof globalThis !== 'undefined' &&
-    (globalThis as any).__kimchi_use_native;
-  return Boolean(marker || globalMarker);
+  return getKimchiBackend(rust) === 'native';
 }
 
 type WasmConversion = ReturnType<typeof buildWasmRustConversion>;
