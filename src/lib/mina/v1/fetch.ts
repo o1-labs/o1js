@@ -19,6 +19,7 @@ import {
   type ActionQueryResponse,
   type ActionsQueryInputs,
   type CurrentSlotResponse,
+  type DepthOptions,
   type EventQueryResponse,
   type EventsQueryInputs,
   type FetchedAccountResponse,
@@ -28,6 +29,7 @@ import {
   type LastBlockQueryFailureCheckResponse,
   type LastBlockQueryResponse,
   type SendZkAppResponse,
+  type TransactionDepthInfo,
   type TransactionStatus,
   type TransactionStatusQueryResponse,
 } from './graphql.js';
@@ -46,6 +48,7 @@ export {
   fetchLastBlock,
   fetchMissingData,
   fetchTimedAccountInfo,
+  fetchTransactionDepth,
   fetchTransactionStatus,
   getCachedAccount,
   getCachedActions,
@@ -593,6 +596,7 @@ async function checkZkappTransaction(transactionHash: string, blockLength = 20) 
   for (let block of bestChainBlocks.bestChain) {
     for (let zkappCommand of block.transactions.zkappCommands) {
       if (zkappCommand.hash === transactionHash) {
+        const blockHeight = parseInt(block.protocolState.consensusState.blockHeight, 10);
         if (zkappCommand.failureReason !== null) {
           let failureReason = zkappCommand.failureReason.reverse().map((failure) => {
             return [failure.failures.map((failureItem) => failureItem)];
@@ -600,11 +604,13 @@ async function checkZkappTransaction(transactionHash: string, blockLength = 20) 
           return {
             success: false,
             failureReason,
+            blockHeight,
           };
         } else {
           return {
             success: true,
             failureReason: null,
+            blockHeight,
           };
         }
       }
@@ -613,7 +619,87 @@ async function checkZkappTransaction(transactionHash: string, blockLength = 20) 
   return {
     success: false,
     failureReason: null,
+    blockHeight: undefined,
   };
+}
+
+/**
+ * Default finality threshold of 15 blocks provides 99.9% confidence.
+ * @see https://docs.minaprotocol.com/mina-protocol/lifecycle-of-a-payment
+ */
+const DEFAULT_FINALITY_THRESHOLD = 15;
+
+/**
+ * Fetches the depth (confirmation count) of a transaction in the blockchain.
+ * Depth represents how many blocks have been built on top of the block containing the transaction.
+ *
+ * @param transactionHash - The hash of the transaction to check
+ * @param options - Optional configuration for the depth query
+ * @param options.blockLength - Number of blocks to search for the transaction (default: 20)
+ * @param options.finalityThreshold - Number of blocks required for finality (default: 15, which provides 99.9% confidence)
+ * @returns TransactionDepthInfo if the transaction is found and successful, null otherwise
+ *
+ * @example
+ * ```ts
+ * // Check depth of a transaction
+ * const depthInfo = await fetchTransactionDepth('5JuKp...');
+ * if (depthInfo) {
+ *   console.log(`Depth: ${depthInfo.depth}, Finalized: ${depthInfo.isFinalized}`);
+ * }
+ *
+ * // Use custom finality threshold
+ * const depthInfo = await fetchTransactionDepth('5JuKp...', { finalityThreshold: 10 });
+ * ```
+ *
+ * @see https://docs.minaprotocol.com/mina-protocol/lifecycle-of-a-payment
+ */
+async function fetchTransactionDepth(
+  transactionHash: string,
+  options?: DepthOptions
+): Promise<TransactionDepthInfo | null> {
+  const blockLength = options?.blockLength ?? 20;
+  const finalityThreshold = options?.finalityThreshold ?? DEFAULT_FINALITY_THRESHOLD;
+
+  let bestChainBlocks = await fetchLatestBlockZkappStatus(blockLength);
+
+  if (bestChainBlocks.bestChain.length === 0) {
+    return null;
+  }
+
+  // The first block in bestChain is the current tip
+  const currentBlockHeight = parseInt(
+    bestChainBlocks.bestChain[0].protocolState.consensusState.blockHeight,
+    10
+  );
+
+  // Search through blocks for the transaction
+  for (let block of bestChainBlocks.bestChain) {
+    for (let zkappCommand of block.transactions.zkappCommands) {
+      if (zkappCommand.hash === transactionHash) {
+        // Transaction found - if it has failures, it's not validly included
+        if (zkappCommand.failureReason !== null) {
+          return null;
+        }
+
+        const inclusionBlockHeight = parseInt(
+          block.protocolState.consensusState.blockHeight,
+          10
+        );
+        // Depth should never be negative (safeguard against edge cases)
+        const depth = Math.max(0, currentBlockHeight - inclusionBlockHeight);
+
+        return {
+          depth,
+          inclusionBlockHeight,
+          currentBlockHeight,
+          isFinalized: depth >= finalityThreshold,
+          finalityThreshold,
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 function parseFetchedBlock({
