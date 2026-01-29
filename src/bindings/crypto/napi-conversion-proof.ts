@@ -67,8 +67,24 @@ type NapiProofEvaluations = [
 
 type Napi = typeof napiNamespace;
 
-type NapiOpeningProof = WasmFpOpeningProof | WasmFqOpeningProof;
-type NapiProverProof = WasmFpProverProof | WasmFqProverProof;
+type NapiOpeningProof = {
+  lr_0: ArrayLike<NapiPoint>;
+  lr_1: ArrayLike<NapiPoint>;
+  delta: NapiPoint;
+  z1: Uint8Array;
+  z2: Uint8Array;
+  sg: NapiPoint;
+};
+
+type NapiProverProof = {
+  commitments: NapiProverCommitments;
+  proof: NapiOpeningProof;
+  evals: unknown;
+  ft_eval1: Uint8Array;
+  public_: Uint8Array;
+  prev_challenges_scalars: NapiVecVec;
+  prev_challenges_comms: ArrayLike<NapiPolyComm>;
+};
 type NapiRuntimeTable = WasmFpRuntimeTable | WasmFqRuntimeTable;
 type NapiRuntimeTableCfg = WasmPastaFpRuntimeTableCfg | WasmPastaFqRuntimeTableCfg;
 type NapiLookupTable = WasmPastaFpLookupTable | WasmPastaFqLookupTable;
@@ -224,7 +240,7 @@ function proofConversionPerField(
       core.pointToRust(sg)
     );
   }
-  function openingProofFromRust(proof: any): OpeningProof {
+  function openingProofFromRust(proof: NapiOpeningProof): OpeningProof {
     let [, ...l] = core.pointsFromRust(proof.lr_0);
     let [, ...r] = core.pointsFromRust(proof.lr_1);
     let n = l.length;
@@ -417,16 +433,17 @@ function proofConversionPerField(
         throw err;
       }
     },
-    proofFromRust(wasmProof: any): ProofWithPublic {
+    proofFromRust(
+      napiProof: NapiProverProof
+    ): ProofWithPublic {
       // If we received the full prover proof (with commitments field), use it directly.
       // Otherwise fall back to an older wrapper shape `{ proof, public_input }`.
-      const innerProof =
-        wasmProof && wasmProof.commitments ? wasmProof : wasmProof.proof ?? wasmProof;
-      let commitments = commitmentsFromRust(innerProof.commitments);
-      let openingProof = openingProofFromRust(innerProof.proof);
+
+      let commitments = commitmentsFromRust(napiProof.commitments);
+      let openingProof = openingProofFromRust(napiProof.proof);
       // NAPI returns `evals` as an object with getters; convert it into the OCaml tuple shape
       // expected by `proofEvaluationsFromRust`.
-      const evalsSource = innerProof.evals as Record<string, unknown>;
+      const evalsSource = napiProof.evals as Record<string, unknown>;
       // Avoid `getNapi`/`requireNapi` helpers; access fields directly.
       const toPointEvals = (pe: unknown): PointEvaluations<Uint8Array> => {
         const zeta = MlArray.to(arrayFrom<Uint8Array>(readNapiProp(pe, 'zeta', 'zeta_')));
@@ -537,11 +554,11 @@ function proofConversionPerField(
 
       const evals = proofEvaluationsFromRust(evalsBytes);
 
-      let ftEval1 = fieldFromRust(innerProof.ft_eval1);
-      let public_ = fieldsFromRustFlat(innerProof.public_);
-      let prevChallengeScalars = innerProof.prev_challenges_scalars;
+      let ftEval1 = fieldFromRust(napiProof.ft_eval1);
+      let public_ = fieldsFromRustFlat(napiProof.public_);
+      let prevChallengeScalars = napiProof.prev_challenges_scalars;
       let [, ...prevChallengeComms] = core.polyCommsFromRust(
-        innerProof.prev_challenges_comms
+        napiProof.prev_challenges_comms
       );
       let prevChallenges = prevChallengeComms.map<RecursionChallenge>((comms, i) => {
         let scalars = fieldsFromRustFlat(prevChallengeScalars.get(i));

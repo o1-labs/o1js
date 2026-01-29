@@ -143,9 +143,9 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
 
   const pointsToRust = ([, ...points]: MlArray<OrInfinity>): NapiAffine[] =>
     points.map(affineToRust);
-  const pointsFromRust = (points: NapiAffine[]): MlArray<OrInfinity> => [
+  const pointsFromRust = (points: ArrayLike<NapiAffine>): MlArray<OrInfinity> => [
     0,
-    ...points.map(affineFromRust),
+    ...Array.from(points, affineFromRust),
   ];
 
   const polyCommToRust = (polyComm: PolyComm): NapiPolyComm => {
