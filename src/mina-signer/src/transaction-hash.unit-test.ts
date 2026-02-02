@@ -1,4 +1,19 @@
+import { expect } from 'expect';
 import { Test } from '../../bindings.js';
+import { versionBytes } from '../../bindings/crypto/constants.js';
+import { test } from '../../lib/testing/property.js';
+import { PublicKey } from './curve-bigint.js';
+import { Memo } from './memo.js';
+import { RandomTransaction } from './random-transaction.js';
+import {
+  commonFromJson,
+  CommonJson,
+  delegationFromJson,
+  DelegationJson,
+  paymentFromJson,
+  PaymentJson,
+} from './sign-legacy.js';
+import { Signature, SignatureJson } from './signature.js';
 import {
   Common,
   hashPayment,
@@ -9,21 +24,6 @@ import {
   userCommandToEnum,
   userCommandToV1,
 } from './transaction-hash.js';
-import {
-  PaymentJson,
-  commonFromJson,
-  paymentFromJson,
-  CommonJson,
-  DelegationJson,
-  delegationFromJson,
-} from './sign-legacy.js';
-import { Signature, SignatureJson } from './signature.js';
-import { PublicKey } from './curve-bigint.js';
-import { Memo } from './memo.js';
-import { expect } from 'expect';
-import { versionBytes } from '../../bindings/crypto/constants.js';
-import { test } from '../../lib/testing/property.js';
-import { RandomTransaction } from './random-transaction.js';
 
 let mlTest = await Test();
 
@@ -56,7 +56,7 @@ test(RandomTransaction.signedPayment, RandomTransaction.signedDelegation, (payme
 
   // payment hash
   let digest0 = mlTest.transactionHash.hashPayment(ocamlPayment);
-  let digest1 = hashPayment(payment, { berkeley: true });
+  let digest1 = hashPayment(payment, { legacy: false });
   expect(digest1).toEqual(digest0);
 
   // delegation serialization
@@ -78,7 +78,7 @@ test(RandomTransaction.signedPayment, RandomTransaction.signedDelegation, (payme
 
   // delegation hash
   digest0 = mlTest.transactionHash.hashPayment(ocamlDelegation);
-  digest1 = hashStakeDelegation(delegation, { berkeley: true });
+  digest1 = hashStakeDelegation(delegation, { legacy: false });
   expect(digest1).toEqual(digest0);
 
   // payment v1 serialization
@@ -126,8 +126,8 @@ test(RandomTransaction.signedPayment, RandomTransaction.signedDelegation, (payme
 
 test.negative(RandomTransaction.signedPayment.invalid!, (payment) => hashPayment(payment));
 test.negative(RandomTransaction.signedPayment.invalid!, (payment) => {
-  hashPayment(payment, { berkeley: true });
-  // for "berkeley" hashing, it's fine if the signature is invalid because it's not part of the hash
+  hashPayment(payment, { legacy: false });
+  // for non-legacy hashing, it's fine if the signature is invalid because it's not part of the hash
   // => make invalid signatures fail independently
   Signature.fromJSON(payment.signature);
 });
@@ -135,8 +135,8 @@ test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) =>
   hashStakeDelegation(delegation)
 );
 test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) => {
-  hashStakeDelegation(delegation, { berkeley: true });
-  // for "berkeley" hashing, it's fine if the signature is invalid because it's not part of the hash
+  hashStakeDelegation(delegation, { legacy: false });
+  // for non-legacy hashing, it's fine if the signature is invalid because it's not part of the hash
   // => make invalid signatures fail independently
   Signature.fromJSON(delegation.signature);
 });

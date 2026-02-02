@@ -1,51 +1,62 @@
-import { Bool, Field, UInt32, UInt64 } from './field-bigint.js';
+import { blake2b } from 'blakejs';
+import { versionBytes } from '../../bindings/crypto/constants.js';
 import {
   Binable,
   BinableString,
-  BinableUint64,
   BinableUint32,
+  BinableUint64,
   defineBinable,
   enumWithArgument,
   record,
   stringToBytes,
   withVersionNumber,
 } from '../../bindings/lib/binable.js';
+import { base58, withBase58 } from '../../lib/util/base58.js';
+import { PublicKey, Scalar } from './curve-bigint.js';
+import { Bool, Field, UInt32, UInt64 } from './field-bigint.js';
 import {
   Common,
   Delegation,
+  DelegationJson,
   Payment,
+  PaymentJson,
   UserCommand,
   UserCommandEnum,
-  PaymentJson,
-  DelegationJson,
   delegationFromJson,
   paymentFromJson,
 } from './sign-legacy.js';
-import { PublicKey, Scalar } from './curve-bigint.js';
 import { Signature, SignatureJson } from './signature.js';
-import { blake2b } from 'blakejs';
-import { base58, withBase58 } from '../../lib/util/base58.js';
-import { versionBytes } from '../../bindings/crypto/constants.js';
 
 export {
-  hashPayment,
-  hashStakeDelegation,
+  Common,
+  HashBase58,
+  Signed,
   SignedCommand,
   SignedCommandV1,
-  Common,
+  SignedLegacy,
+  hashPayment,
+  hashStakeDelegation,
   userCommandToEnum,
   userCommandToV1,
-  Signed,
-  SignedLegacy,
-  HashBase58,
 };
 
 type Signed<T> = { data: T; signature: string };
 type SignedLegacy<T> = { data: T; signature: SignatureJson };
 const dummySignature: Signature = { r: Field(1), s: Scalar(1) };
 
-function hashPayment(signed: SignedLegacy<PaymentJson>, { berkeley = false } = {}) {
-  if (!berkeley) return hashPaymentV1(signed);
+/**
+ * Compute the hash of a signed payment transaction.
+ *
+ * @param signed The signed payment to hash
+ * @param options.legacy If true (default), uses V1 legacy hashing which includes the signature
+ * in the hash. If false, uses the current hashing format which excludes the signature.
+ *
+ * **Breaking change:** The `berkeley` option has been removed and replaced with `legacy`.
+ * - Old: `hashPayment(signed, { berkeley: true })` (use current hash)
+ * - New: `hashPayment(signed, { legacy: false })` (use current hash)
+ */
+function hashPayment(signed: SignedLegacy<PaymentJson>, { legacy = true } = {}) {
+  if (legacy) return hashPaymentV1(signed);
   let payload = userCommandToEnum(paymentFromJson(signed.data));
   return hashSignedCommand({
     signer: PublicKey.fromBase58(signed.data.common.feePayer),
@@ -54,8 +65,19 @@ function hashPayment(signed: SignedLegacy<PaymentJson>, { berkeley = false } = {
   });
 }
 
-function hashStakeDelegation(signed: SignedLegacy<DelegationJson>, { berkeley = false } = {}) {
-  if (!berkeley) return hashStakeDelegationV1(signed);
+/**
+ * Compute the hash of a signed stake delegation transaction.
+ *
+ * @param signed The signed delegation to hash
+ * @param options.legacy If true (default), uses V1 legacy hashing which includes the signature
+ * in the hash. If false, uses the current hashing format which excludes the signature.
+ *
+ * **Breaking change:** The `berkeley` option has been removed and replaced with `legacy`.
+ * - Old: `hashStakeDelegation(signed, { berkeley: true })`
+ * - New: `hashStakeDelegation(signed, { legacy: false })`
+ */
+function hashStakeDelegation(signed: SignedLegacy<DelegationJson>, { legacy = true } = {}) {
+  if (legacy) return hashStakeDelegationV1(signed);
   let payload = userCommandToEnum(delegationFromJson(signed.data));
   return hashSignedCommand({
     signer: PublicKey.fromBase58(signed.data.common.feePayer),
