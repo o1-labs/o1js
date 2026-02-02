@@ -18,6 +18,12 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/34caaedc9...HEAD)
 
+### Deprecated
+
+- The `berkeley` option on `hashPayment()` and `hashStakeDelegation()` in
+  mina-signer has been removed in favor of `legacy`.
+  https://github.com/o1-labs/o1js/pull/2751
+
 ### Added
 
 - Added `fetchTimedAccountInfo()` to retrieve detailed balance information for
