@@ -11,7 +11,7 @@ const transactionFee = 100_000_000;
 const network = Mina.Network({
   mina: useCustomLocalNetwork
     ? 'http://localhost:8080/graphql'
-    : 'https://proxy.berkeley.minaexplorer.com/graphql',
+    : 'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql',
   lightnetAccountManager: 'http://localhost:8181',
 });
 Mina.setActiveInstance(network);

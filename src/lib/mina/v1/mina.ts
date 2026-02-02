@@ -1,90 +1,90 @@
 import { Test } from '../../../bindings.js';
-import { Field } from '../../provable/wrapped.js';
-import { UInt64 } from '../../provable/int.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
-import { TokenId, Authorization } from './account-update.js';
-import * as Fetch from './fetch.js';
-import { humanizeErrors, invalidTransactionError } from './errors.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
-import { Account } from './account.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { UInt64 } from '../../provable/int.js';
+import { Field } from '../../provable/wrapped.js';
+import { Authorization, TokenId } from './account-update.js';
+import { Account } from './account.js';
+import { humanizeErrors, invalidTransactionError } from './errors.js';
+import * as Fetch from './fetch.js';
+import { type EventActionFilterOptions } from './graphql.js';
+import { LocalBlockchain, TestPublicKey } from './local-blockchain.js';
+import {
+  Mina,
+  activeInstance,
+  currentSlot,
+  defaultNetworkConstants,
+  fetchActions,
+  fetchEvents,
+  getAccount,
+  getActions,
+  getBalance,
+  getNetworkConstants,
+  getNetworkId,
+  getNetworkState,
+  getProofsEnabled,
+  hasAccount,
+  setActiveInstance,
+  type ActionStates,
+  type FeePayerSpec,
+  type NetworkConstants,
+} from './mina-instance.js';
 import { currentTransaction } from './transaction-context.js';
 import {
-  type FeePayerSpec,
-  type ActionStates,
-  type NetworkConstants,
-  activeInstance,
-  setActiveInstance,
-  Mina,
-  defaultNetworkConstants,
-  currentSlot,
-  getAccount,
-  hasAccount,
-  getBalance,
-  getNetworkId,
-  getNetworkConstants,
-  getNetworkState,
-  fetchEvents,
-  fetchActions,
-  getActions,
-  getProofsEnabled,
-} from './mina-instance.js';
-import { type EventActionFilterOptions } from './graphql.js';
-import {
-  Transaction,
-  type PendingTransaction,
-  type IncludedTransaction,
-  type RejectedTransaction,
-  type PendingTransactionStatus,
-  type PendingTransactionPromise,
-  createTransaction,
-  toTransactionPromise,
-  transaction,
-  createRejectedTransaction,
-  createIncludedTransaction,
-  toPendingTransactionPromise,
-} from './transaction.js';
-import {
-  reportGetAccountError,
-  verifyTransactionLimits,
   defaultNetworkState,
   filterGroups,
+  reportGetAccountError,
+  verifyTransactionLimits,
 } from './transaction-validation.js';
-import { LocalBlockchain, TestPublicKey } from './local-blockchain.js';
+import {
+  Transaction,
+  createIncludedTransaction,
+  createRejectedTransaction,
+  createTransaction,
+  toPendingTransactionPromise,
+  toTransactionPromise,
+  transaction,
+  type IncludedTransaction,
+  type PendingTransaction,
+  type PendingTransactionPromise,
+  type PendingTransactionStatus,
+  type RejectedTransaction,
+} from './transaction.js';
 
 export {
+  ActionStates,
+  FeePayerSpec,
   LocalBlockchain,
   Network,
-  currentTransaction,
-  Transaction,
-  type PendingTransaction,
-  type IncludedTransaction,
-  type RejectedTransaction,
-  type PendingTransactionStatus,
-  type PendingTransactionPromise,
   TestPublicKey,
+  Transaction,
   activeInstance,
-  setActiveInstance,
-  transaction,
-  sender,
   currentSlot,
-  getAccount,
-  hasAccount,
-  getBalance,
-  getNetworkId,
-  getNetworkConstants,
-  getNetworkState,
-  fetchEvents,
-  fetchActions,
-  getActions,
-  FeePayerSpec,
-  ActionStates,
+  currentTransaction,
   faucet,
-  waitForFunding,
-  getProofsEnabled,
+  fetchActions,
+  fetchEvents,
   // for internal testing only
   filterGroups,
+  getAccount,
+  getActions,
+  getBalance,
+  getNetworkConstants,
+  getNetworkId,
+  getNetworkState,
+  getProofsEnabled,
+  hasAccount,
+  sender,
+  setActiveInstance,
+  transaction,
+  waitForFunding,
+  type IncludedTransaction,
   type NetworkConstants,
+  type PendingTransaction,
+  type PendingTransactionPromise,
+  type PendingTransactionStatus,
+  type RejectedTransaction,
 };
 
 // patch active instance so that we can still create basic transactions without giving Mina network details
@@ -292,8 +292,8 @@ function Network(
         };
 
         // default is 45 attempts * 20s each = 15min
-        // the block time on berkeley is currently longer than the average 3-4min, so its better to target a higher block time
-        // fetching an update every 20s is more than enough with a current block time of 3min
+        // the block time on mesa is currently longer than the average 1.5-3min, so its better to target a higher block time
+        // fetching an update every 20s is more than enough with a current block time of 1.5 min
         const poll = async (
           maxAttempts: number = 45,
           interval: number = 20000
@@ -463,7 +463,7 @@ async function waitForFunding(address: string, headers?: HeadersInit): Promise<v
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
  */
-async function faucet(pub: PublicKey, network: string = 'devnet', headers?: HeadersInit) {
+async function faucet(pub: PublicKey, network: string = 'mesa', headers?: HeadersInit) {
   let address = pub.toBase58();
   let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
     method: 'POST',

@@ -13,14 +13,14 @@ import {
 import { VotingApp, VotingAppParams } from './factory.js';
 import { Member, MyMerkleWitness } from './member.js';
 import { OffchainStorage } from './off-chain-storage.js';
-import { ParticipantPreconditions, ElectionPreconditions } from './preconditions.js';
+import { ElectionPreconditions, ParticipantPreconditions } from './preconditions.js';
 import { getResults, vote } from './voting-lib.js';
 
-const Berkeley = Mina.Network({
-  mina: 'https://api.minascan.io/node/devnet/v1/graphql',
-  archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
+const Mesa = Mina.Network({
+  mina: 'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql',
+  archive: 'http://mesa-archive-node-api.gcp.o1test.net',
 });
-Mina.setActiveInstance(Berkeley);
+Mina.setActiveInstance(Mesa);
 
 let feePayerKey = PrivateKey.random();
 let feePayerAddress = feePayerKey.toPublicKey();
