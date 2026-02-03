@@ -53,6 +53,6 @@ const paymentCommand = await new ZkappCommand({
 
 let response = await sendZkapp(
   JSON.stringify(paymentCommand.toJSON()),
-  'https://api.minascan.io/node/devnet/v1/graphql'
+  'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql'
 );
 console.log('response', JSON.stringify(response, null, 2));

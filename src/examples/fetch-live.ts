@@ -42,12 +42,12 @@ async function checkActualNetworkConstantsFetching() {
 function configureMinaNetwork() {
   const minaGraphQlEndpoint = useCustomLocalNetwork
     ? 'http://localhost:8080/graphql'
-    : 'https://api.minascan.io/node/devnet/v1/graphql';
+    : 'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql';
   return Mina.Network({
     mina: minaGraphQlEndpoint,
     archive: useCustomLocalNetwork
       ? 'http://localhost:8282'
-      : 'https://api.minascan.io/archive/devnet/v1/graphql',
+      : 'http://mesa-archive-node-api.gcp.o1test.net',
     lightnetAccountManager: 'http://localhost:8181',
   });
 }

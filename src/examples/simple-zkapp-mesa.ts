@@ -1,5 +1,5 @@
 /**
- * This is an example for interacting with the Berkeley QANet, directly from o1js.
+ * This is an example for interacting with the Mesa QANet, directly from o1js.
  *
  * At a high level, it does the following:
  * -) try fetching the account corresponding to the `zkappAddress` from chain
@@ -8,15 +8,15 @@
  */
 
 import {
+  AccountUpdate,
   Field,
-  state,
-  State,
-  method,
+  Mina,
   PrivateKey,
   SmartContract,
-  Mina,
-  AccountUpdate,
+  State,
   fetchAccount,
+  method,
+  state,
 } from 'o1js';
 
 // a very simple SmartContract
@@ -36,8 +36,8 @@ class SimpleZkapp extends SmartContract {
 }
 
 // you can use this with any spec-compliant graphql endpoint
-let Berkeley = Mina.Network('https://proxy.berkeley.minaexplorer.com/graphql');
-Mina.setActiveInstance(Berkeley);
+let Mesa = Mina.Network('https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql');
+Mina.setActiveInstance(Mesa);
 
 // to use this test, change this private key to an account which has enough MINA to pay fees
 let feePayerKey = PrivateKey.fromBase58('EKEQc95PPQZnMY9d9p1vq1MWLeDJKtvKj4V75UDG3rjnf32BerWD');
@@ -48,7 +48,7 @@ let { nonce, balance } = response.account;
 console.log(`Using fee payer account with nonce ${nonce}, balance ${balance}`);
 
 // this used to be an actual zkapp that was deployed and updated with this script:
-// https://berkeley.minaexplorer.com/wallet/B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan
+// https://mesa.minaexplorer.com/wallet/B62qpRzFVjd56FiHnNfxokVbcHMQLT119My1FEdSq8ss7KomLiSZcan
 // replace this with a new zkapp key if you want to deploy another zkapp
 // and please never expose actual private keys in public code repositories like this!
 let zkappKey = PrivateKey.fromBase58('EKFQZG2RuLMYyDsC9RGE5Y8gQGefkbUUUyEhFbgRRMHGgoF9eKpY');

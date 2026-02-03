@@ -14,10 +14,10 @@ console.log();
 const network = Mina.Network({
   mina: useCustomLocalNetwork
     ? 'http://localhost:8080/graphql'
-    : 'https://berkeley.minascan.io/graphql',
+    : 'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql',
   archive: useCustomLocalNetwork
     ? 'http://localhost:8282'
-    : 'https://api.minascan.io/archive/berkeley/v1/graphql',
+    : 'http://mesa-archive-node-api.gcp.o1test.net',
   lightnetAccountManager: 'http://localhost:8181',
 });
 Mina.setActiveInstance(network);
@@ -280,7 +280,7 @@ function logPendingTransaction(pendingTx: Mina.PendingTransaction) {
         ? `file://${os.homedir()}/.cache/zkapp-cli/lightnet/explorer/<version>/index.html?target=transaction&hash=${
             pendingTx.hash
           }`
-        : `https://minascan.io/berkeley/tx/${pendingTx.hash}?type=zk-tx`)
+        : `https://mesa.minaexplorer.com/transaction/${pendingTx.hash}`)
   );
 }
 
