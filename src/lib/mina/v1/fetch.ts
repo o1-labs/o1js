@@ -525,6 +525,13 @@ function accountCacheKey(publicKey: PublicKey, tokenId: Field, graphqlEndpoint: 
 
 /**
  * Fetches the last block on the Mina network.
+ *
+ * This returns comprehensive network state information including the global slot
+ * since genesis (`globalSlotSinceGenesis`), blockchain length, ledger hashes,
+ * currency supply, and epoch data.
+ *
+ * For a lightweight query that only fetches slot information, use `fetchCurrentSlot()`,
+ * which can return either the global slot since genesis or the slot within the current epoch.
  */
 async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint, headers?: HeadersInit) {
   let [resp, error] = await makeGraphqlRequest<LastBlockQueryResponse>(
@@ -549,14 +556,36 @@ async function fetchLastBlock(graphqlEndpoint = networkConfig.minaEndpoint, head
 
 /**
  * Fetches the current slot number of the Mina network.
+ *
+ * By default, returns the global slot since genesis (the cumulative count of all slots
+ * since the network launched). This matches `fetchLastBlock().globalSlotSinceGenesis`.
+ *
+ * Alternatively, you can fetch the slot within the current epoch by passing `slotType: 'epoch'`.
+ * The epoch slot resets to 0 at each epoch boundary (approximately every 14 days) and
+ * ranges from 0 to ~7,139.
+ *
  * @param graphqlEndpoint GraphQL endpoint to fetch from
- * @param headers optional headers to pass to the fetch request
- * @returns The current slot number
+ * @param slotType Type of slot to fetch: 'global' (default) for slot since genesis, or 'epoch' for slot within current epoch
+ * @param headers Optional headers to pass to the fetch request
+ * @returns The slot number (either global or epoch-relative based on slotType)
+ *
+ * @example
+ * ```ts
+ * // Fetch global slot (default)
+ * const globalSlot = await fetchCurrentSlot('https://api.minascan.io/node/devnet/v1/graphql');
+ *
+ * // Fetch epoch-relative slot
+ * const epochSlot = await fetchCurrentSlot(
+ *   'https://api.minascan.io/node/devnet/v1/graphql',
+ *   'epoch'
+ * );
+ * ```
  */
 async function fetchCurrentSlot(
   graphqlEndpoint = networkConfig.minaEndpoint,
+  slotType: 'global' | 'epoch' = 'global',
   headers?: HeadersInit
-) {
+): Promise<number> {
   let [resp, error] = await makeGraphqlRequest<CurrentSlotResponse>(
     currentSlotQuery,
     graphqlEndpoint,
@@ -568,7 +597,9 @@ async function fetchCurrentSlot(
   if (!bestChain || bestChain.length === 0) {
     throw Error('Failed to fetch the current slot. The response data is undefined.');
   }
-  return bestChain[0].protocolState.consensusState.slot;
+
+  const consensusState = bestChain[0].protocolState.consensusState;
+  return slotType === 'epoch' ? consensusState.slot : consensusState.slotSinceGenesis;
 }
 
 async function fetchLatestBlockZkappStatus(

@@ -1,39 +1,39 @@
+import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { UInt32 } from '../../provable/int.js';
 import { TokenId, type ZkappCommand } from './account-update.js';
 import type { ActionStatesStringified } from './fetch.js';
-import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 
 export {
-  type EpochData,
-  type LastBlockQueryResponse,
-  type GenesisConstantsResponse,
-  type FailureReasonResponse,
-  type LastBlockQueryFailureCheckResponse,
-  type FetchedAction,
-  type FetchedBlock,
-  type TransactionStatus,
-  type TransactionStatusQueryResponse,
-  type EventsQueryInputs,
-  type EventQueryResponse,
-  type ActionsQueryInputs,
-  type ActionQueryResponse,
-  type EventActionFilterOptions,
-  type SendZkAppResponse,
-  type FetchedAccount,
-  type FetchedAccountResponse,
-  type CurrentSlotResponse,
-  type TransactionDepthInfo,
-  type DepthOptions,
-  getEventsQuery,
-  getActionsQuery,
-  sendZkappQuery,
-  transactionStatusQuery,
-  lastBlockQueryFailureCheck,
   accountQuery,
   currentSlotQuery,
   genesisConstantsQuery,
+  getActionsQuery,
+  getEventsQuery,
   lastBlockQuery,
+  lastBlockQueryFailureCheck,
   removeJsonQuotes,
+  sendZkappQuery,
+  transactionStatusQuery,
+  type ActionQueryResponse,
+  type ActionsQueryInputs,
+  type CurrentSlotResponse,
+  type DepthOptions,
+  type EpochData,
+  type EventActionFilterOptions,
+  type EventQueryResponse,
+  type EventsQueryInputs,
+  type FailureReasonResponse,
+  type FetchedAccount,
+  type FetchedAccountResponse,
+  type FetchedAction,
+  type FetchedBlock,
+  type GenesisConstantsResponse,
+  type LastBlockQueryFailureCheckResponse,
+  type LastBlockQueryResponse,
+  type SendZkAppResponse,
+  type TransactionDepthInfo,
+  type TransactionStatus,
+  type TransactionStatusQueryResponse,
 };
 
 // removes the quotes on JSON keys
@@ -234,6 +234,7 @@ type CurrentSlotResponse = {
     protocolState: {
       consensusState: {
         slot: number;
+        slotSinceGenesis: number;
       };
     };
   }>;
@@ -582,6 +583,7 @@ const currentSlotQuery = `{
       protocolState {
         consensusState {
           slot
+          slotSinceGenesis
         }
       }
     }
