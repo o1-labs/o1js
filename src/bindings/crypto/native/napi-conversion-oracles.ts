@@ -1,31 +1,17 @@
-import { MlOption } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/kimchi_wasm.cjs';
-import type {
-  WasmFpOracles,
-  WasmFpRandomOracles,
-  WasmFqOracles,
-  WasmFqRandomOracles,
-} from '../compiled/node_bindings/kimchi_wasm.cjs';
+import { MlOption } from '../../../lib/ml/base.js';
 import {
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
   maybeFieldToRust,
-} from './bindings/conversion-base.js';
-import { Field, Oracles, RandomOracles, ScalarChallenge } from './bindings/kimchi-types.js';
+} from '../bindings/conversion-base.js';
+import { Field, Oracles, RandomOracles, ScalarChallenge } from '../bindings/kimchi-types.js';
+import type { Napi, NapiOracles, NapiOraclesClasses, NapiRandomOracles } from './napi-types.js';
 
 export { napiOraclesConversion };
 
-type Napi = typeof napiNamespace;
-
-type NapiRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
-type NapiOracles = WasmFpOracles | WasmFqOracles;
-
-type NapiClasses = {
-  RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
-  Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
-};
+type NapiClasses = NapiOraclesClasses;
 
 function napiOraclesConversion(napi: Napi) {
   return {

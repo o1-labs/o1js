@@ -1,29 +1,26 @@
-import { MlArray } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/kimchi_wasm.cjs';
+import { MlArray } from '../../../lib/ml/base.js';
 import {
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
-} from './bindings/conversion-base.js';
-import { Field, Gate, OrInfinity, PolyComm, Wire } from './bindings/kimchi-types.js';
-import { mapTuple } from './bindings/util.js';
+} from '../bindings/conversion-base.js';
+import { Field, Gate, OrInfinity, PolyComm, Wire } from '../bindings/kimchi-types.js';
+import { mapTuple } from '../bindings/util.js';
+import type {
+  Napi,
+  NapiAffine,
+  NapiPolyComm,
+  NapiCoreClasses,
+  PolyCommCtor,
+} from './napi-types.js';
 
 export { ConversionCore, ConversionCores, napiConversionCore };
 
 type ConversionCore = ReturnType<typeof conversionCorePerField>;
 type ConversionCores = ReturnType<typeof napiConversionCore>;
 
-type Napi = typeof napiNamespace;
-type NapiAffine = napiNamespace.WasmGVesta | napiNamespace.WasmGPallas;
-type NapiPolyComm = { unshifted: unknown; shifted?: NapiAffine | undefined };
-type PolyCommCtor = new (unshifted: unknown, shifted?: NapiAffine | undefined) => NapiPolyComm;
-
-type NapiClasses = {
-  CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;
-  makeAffine: () => NapiAffine;
-  PolyComm: typeof napiNamespace.WasmFpPolyComm | typeof napiNamespace.WasmFqPolyComm;
-};
+type NapiClasses = NapiCoreClasses;
 
 function wireToRust([, row, col]: Wire) {
   return { row, col };

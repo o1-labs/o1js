@@ -1,30 +1,11 @@
-import { MlArray, MlOption, MlTuple } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/kimchi_wasm.cjs';
-import type {
-  WasmFpLookupCommitments,
-  WasmFpOpeningProof,
-  WasmFpProverCommitments,
-  WasmFpProverProof,
-  WasmFpRuntimeTable,
-  WasmFqLookupCommitments,
-  WasmFqOpeningProof,
-  WasmFqProverCommitments,
-  WasmFqProverProof,
-  WasmFqRuntimeTable,
-  WasmPastaFpLookupTable,
-  WasmPastaFpRuntimeTableCfg,
-  WasmPastaFqLookupTable,
-  WasmPastaFqRuntimeTableCfg,
-  WasmVecVecFp,
-  WasmVecVecFq,
-} from '../compiled/node_bindings/kimchi_wasm.cjs';
+import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
 import {
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
-} from './bindings/conversion-base.js';
-import type { Field } from './bindings/field.js';
+} from '../bindings/conversion-base.js';
+import type { Field } from '../bindings/field.js';
 import type {
   LookupCommitments,
   LookupTable,
@@ -39,79 +20,43 @@ import type {
   RecursionChallenge,
   RuntimeTable,
   RuntimeTableCfg,
-} from './bindings/kimchi-types.js';
+} from '../bindings/kimchi-types.js';
 import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
 import {
   arrayFrom,
   castCtor,
   readNapiProp,
   type Ctor,
-  type NapiPointEvaluationsObject,
-  type NapiPointEvaluationsObjectOption,
-  type NapiProofEvaluationsObject,
 } from './napi-ffi.js';
+import type {
+  Napi,
+  NapiLookupCommitments,
+  NapiOpeningProof,
+  NapiPoint,
+  NapiPointEvaluationsObject,
+  NapiPointEvaluationsObjectOption,
+  NapiPoints,
+  NapiPolyComm,
+  NapiPolyComms,
+  NapiProofClasses,
+  NapiProverCommitments,
+  NapiProverProof,
+  NapiProofEvaluationsObject,
+  NapiRuntimeTable,
+  NapiRuntimeTableCfg,
+  NapiLookupTable,
+  NapiVecVec,
+} from './napi-types.js';
 
 export { napiProofConversion };
+
+type NapiClasses = NapiProofClasses;
 
 const fieldToRust_ = (x: Field) => fieldToRust(x);
 const proofEvaluationsToRust = mapProofEvaluations(fieldToRust_);
 const proofEvaluationsFromRust = mapProofEvaluations(fieldFromRust);
 const pointEvalsOptionToRust = mapPointEvalsOption(fieldToRust_);
 const pointEvalsOptionFromRust = mapPointEvalsOption(fieldFromRust);
-
-type Napi = typeof napiNamespace;
-
-type NapiOpeningProof = {
-  lr_0: ArrayLike<NapiPoint>;
-  lr_1: ArrayLike<NapiPoint>;
-  delta: NapiPoint;
-  z1: Uint8Array;
-  z2: Uint8Array;
-  sg: NapiPoint;
-};
-
-type NapiProverProof = {
-  commitments: NapiProverCommitments;
-  proof: NapiOpeningProof;
-  evals: unknown;
-  ft_eval1: Uint8Array;
-  public_: Uint8Array;
-  prev_challenges_scalars: NapiVecVec;
-  prev_challenges_comms: ArrayLike<NapiPolyComm>;
-};
-type NapiRuntimeTable = WasmFpRuntimeTable | WasmFqRuntimeTable;
-type NapiRuntimeTableCfg = WasmPastaFpRuntimeTableCfg | WasmPastaFqRuntimeTableCfg;
-type NapiLookupTable = WasmPastaFpLookupTable | WasmPastaFqLookupTable;
-type NapiVecVec = WasmVecVecFp | WasmVecVecFq;
-
-type NapiPoint = ReturnType<ConversionCore['pointToRust']>;
-type NapiPoints = ReturnType<ConversionCore['pointsToRust']>;
-type NapiPolyComm = ReturnType<ConversionCore['polyCommToRust']>;
-type NapiPolyComms = ReturnType<ConversionCore['polyCommsToRust']>;
-
-type NapiLookupCommitments = {
-  sorted: NapiPolyComms;
-  aggreg: NapiPolyComm;
-  runtime?: NapiPolyComm | undefined;
-};
-
-type NapiProverCommitments = {
-  w_comm: NapiPolyComms;
-  z_comm: NapiPolyComm;
-  t_comm: NapiPolyComm;
-  lookup?: NapiLookupCommitments | undefined;
-};
-
-type NapiClasses = {
-  ProverCommitments: typeof WasmFpProverCommitments | typeof WasmFqProverCommitments;
-  OpeningProof: typeof WasmFpOpeningProof | typeof WasmFqOpeningProof;
-  VecVec: typeof WasmVecVecFp | typeof WasmVecVecFq;
-  ProverProof: typeof WasmFpProverProof | typeof WasmFqProverProof;
-  LookupCommitments: typeof WasmFpLookupCommitments | typeof WasmFqLookupCommitments;
-  RuntimeTable: typeof WasmFpRuntimeTable | typeof WasmFqRuntimeTable;
-  RuntimeTableCfg: typeof WasmPastaFpRuntimeTableCfg | typeof WasmPastaFqRuntimeTableCfg;
-  LookupTable: typeof WasmPastaFpLookupTable | typeof WasmPastaFqLookupTable;
-};
 
 function napiProofConversion(napi: Napi, core: ConversionCores) {
   return {
@@ -278,13 +223,9 @@ function proofConversionPerField(
         pe: PointEvaluations<Uint8Array>
       ): NapiPointEvaluationsObject => {
         const [, zeta, zeta_omega] = pe;
-        const zetaOmega = MlArray.from(zeta_omega);
         return {
           zeta: MlArray.from(zeta),
-          // napi-rs `#[napi(object)]` usually exposes `zeta_omega` as `zetaOmega`, but
-          // accept both spellings to be robust across versions/bindings.
-          zetaOmega,
-          zeta_omega: zetaOmega,
+          zetaOmega: MlArray.from(zeta_omega),
         };
       };
 
@@ -338,52 +279,29 @@ function proofConversionPerField(
         s: MlTuple.mapFrom(s, pointEvalsTupleToObject),
         coefficients: MlTuple.mapFrom(coefficients, pointEvalsTupleToObject),
 
-        // Include both camelCase and snake_case keys so `#[napi(object)]` decoding works
-        // regardless of whether the binding expects renaming.
         genericSelector: pointEvalsTupleToObject(genericSelector),
-        generic_selector: pointEvalsTupleToObject(genericSelector),
         poseidonSelector: pointEvalsTupleToObject(poseidonSelector),
-        poseidon_selector: pointEvalsTupleToObject(poseidonSelector),
         completeAddSelector: pointEvalsTupleToObject(completeAddSelector),
-        complete_add_selector: pointEvalsTupleToObject(completeAddSelector),
         mulSelector: pointEvalsTupleToObject(mulSelector),
-        mul_selector: pointEvalsTupleToObject(mulSelector),
         emulSelector: pointEvalsTupleToObject(emulSelector),
-        emul_selector: pointEvalsTupleToObject(emulSelector),
         endomulScalarSelector: pointEvalsTupleToObject(endomulScalarSelector),
-        endomul_scalar_selector: pointEvalsTupleToObject(endomulScalarSelector),
 
         rangeCheck0Selector: optionPointEvalsToObject(rangeCheck0Selector),
-        range_check0_selector: optionPointEvalsToObject(rangeCheck0Selector),
         rangeCheck1Selector: optionPointEvalsToObject(rangeCheck1Selector),
-        range_check1_selector: optionPointEvalsToObject(rangeCheck1Selector),
         foreignFieldAddSelector: optionPointEvalsToObject(foreignFieldAddSelector),
-        foreign_field_add_selector: optionPointEvalsToObject(foreignFieldAddSelector),
         foreignFieldMulSelector: optionPointEvalsToObject(foreignFieldMulSelector),
-        foreign_field_mul_selector: optionPointEvalsToObject(foreignFieldMulSelector),
         xorSelector: optionPointEvalsToObject(xorSelector),
-        xor_selector: optionPointEvalsToObject(xorSelector),
         rotSelector: optionPointEvalsToObject(rotSelector),
-        rot_selector: optionPointEvalsToObject(rotSelector),
 
         lookupAggregation: optionPointEvalsToObject(lookupAggregation),
-        lookup_aggregation: optionPointEvalsToObject(lookupAggregation),
         lookupTable: optionPointEvalsToObject(lookupTable),
-        lookup_table: optionPointEvalsToObject(lookupTable),
         lookupSorted: lookupSortedObjs,
-        lookup_sorted: lookupSortedObjs,
         runtimeLookupTable: optionPointEvalsToObject(runtimeLookupTable),
-        runtime_lookup_table: optionPointEvalsToObject(runtimeLookupTable),
         runtimeLookupTableSelector: optionPointEvalsToObject(runtimeLookupTableSelector),
-        runtime_lookup_table_selector: optionPointEvalsToObject(runtimeLookupTableSelector),
         xorLookupSelector: optionPointEvalsToObject(xorLookupSelector),
-        xor_lookup_selector: optionPointEvalsToObject(xorLookupSelector),
         lookupGateLookupSelector: optionPointEvalsToObject(lookupGateLookupSelector),
-        lookup_gate_lookup_selector: optionPointEvalsToObject(lookupGateLookupSelector),
         rangeCheckLookupSelector: optionPointEvalsToObject(rangeCheckLookupSelector),
-        range_check_lookup_selector: optionPointEvalsToObject(rangeCheckLookupSelector),
         foreignFieldMulLookupSelector: optionPointEvalsToObject(foreignFieldMulLookupSelector),
-        foreign_field_mul_lookup_selector: optionPointEvalsToObject(foreignFieldMulLookupSelector),
       };
 
       let ftEval1 = fieldToRust(proof[4]);
@@ -440,12 +358,8 @@ function proofConversionPerField(
       const evalsSource = napiProof.evals as Record<string, unknown>;
       // Avoid `getNapi`/`requireNapi` helpers; access fields directly.
       const toPointEvals = (pe: unknown): PointEvaluations<Uint8Array> => {
-        const zeta = MlArray.to(arrayFrom<Uint8Array>(readNapiProp(pe, 'zeta', 'zeta_')));
-        const zetaOmega = MlArray.to(
-          arrayFrom<Uint8Array>(
-            readNapiProp(pe, 'zeta_omega', 'zetaOmega', 'zetaomega')
-          )
-        );
+        const zeta = MlArray.to(arrayFrom<Uint8Array>(readNapiProp(pe, 'zeta')));
+        const zetaOmega = MlArray.to(arrayFrom<Uint8Array>(readNapiProp(pe, 'zetaOmega')));
         return [0, zeta, zetaOmega];
       };
       const toMlOption = (value: unknown, f: (x: unknown) => PointEvaluations<Uint8Array>) =>
@@ -473,77 +387,35 @@ function proofConversionPerField(
         z,
         s,
         coefficients,
-        toPointEvals(readNapiProp(evalsSource, 'generic_selector', 'genericSelector')),
-        toPointEvals(readNapiProp(evalsSource, 'poseidon_selector', 'poseidonSelector')),
-        toPointEvals(
-          readNapiProp(evalsSource, 'complete_add_selector', 'completeAddSelector')
-        ),
-        toPointEvals(readNapiProp(evalsSource, 'mul_selector', 'mulSelector')),
-        toPointEvals(readNapiProp(evalsSource, 'emul_selector', 'emulSelector')),
-        toPointEvals(
-          readNapiProp(evalsSource, 'endomul_scalar_selector', 'endomulScalarSelector')
-        ),
-        toMlOption(
-          readNapiProp(evalsSource, 'range_check0_selector', 'rangeCheck0Selector'),
-          toPointEvals
-        ),
-        toMlOption(
-          readNapiProp(evalsSource, 'range_check1_selector', 'rangeCheck1Selector'),
-          toPointEvals
-        ),
-        toMlOption(
-          readNapiProp(evalsSource, 'foreign_field_add_selector', 'foreignFieldAddSelector'),
-          toPointEvals
-        ),
-        toMlOption(
-          readNapiProp(evalsSource, 'foreign_field_mul_selector', 'foreignFieldMulSelector'),
-          toPointEvals
-        ),
-        toMlOption(readNapiProp(evalsSource, 'xor_selector', 'xorSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'rot_selector', 'rotSelector'), toPointEvals),
-        toMlOption(
-          readNapiProp(evalsSource, 'lookup_aggregation', 'lookupAggregation'),
-          toPointEvals
-        ),
-        toMlOption(readNapiProp(evalsSource, 'lookup_table', 'lookupTable'), toPointEvals),
+        toPointEvals(readNapiProp(evalsSource, 'genericSelector')),
+        toPointEvals(readNapiProp(evalsSource, 'poseidonSelector')),
+        toPointEvals(readNapiProp(evalsSource, 'completeAddSelector')),
+        toPointEvals(readNapiProp(evalsSource, 'mulSelector')),
+        toPointEvals(readNapiProp(evalsSource, 'emulSelector')),
+        toPointEvals(readNapiProp(evalsSource, 'endomulScalarSelector')),
+        toMlOption(readNapiProp(evalsSource, 'rangeCheck0Selector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'rangeCheck1Selector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'foreignFieldAddSelector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'foreignFieldMulSelector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'xorSelector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'rotSelector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'lookupAggregation'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'lookupTable'), toPointEvals),
         [
           0,
-          ...arrayFrom(readNapiProp(evalsSource, 'lookup_sorted', 'lookupSorted')).map((x) =>
+          ...arrayFrom(readNapiProp(evalsSource, 'lookupSorted')).map((x) =>
             toMlOption(x, toPointEvals)
           ),
         ] as MlArray<MlOption<PointEvaluations<Uint8Array>>>,
+        toMlOption(readNapiProp(evalsSource, 'runtimeLookupTable'), toPointEvals),
         toMlOption(
-          readNapiProp(evalsSource, 'runtime_lookup_table', 'runtimeLookupTable'),
+          readNapiProp(evalsSource, 'runtimeLookupTableSelector'),
           toPointEvals
         ),
-        toMlOption(
-          readNapiProp(
-            evalsSource,
-            'runtime_lookup_table_selector',
-            'runtimeLookupTableSelector'
-          ),
-          toPointEvals
-        ),
-        toMlOption(
-          readNapiProp(evalsSource, 'xor_lookup_selector', 'xorLookupSelector'),
-          toPointEvals
-        ),
-        toMlOption(
-          readNapiProp(evalsSource, 'lookup_gate_lookup_selector', 'lookupGateLookupSelector'),
-          toPointEvals
-        ),
-        toMlOption(
-          readNapiProp(evalsSource, 'range_check_lookup_selector', 'rangeCheckLookupSelector'),
-          toPointEvals
-        ),
-        toMlOption(
-          readNapiProp(
-            evalsSource,
-            'foreign_field_mul_lookup_selector',
-            'foreignFieldMulLookupSelector'
-          ),
-          toPointEvals
-        ),
+        toMlOption(readNapiProp(evalsSource, 'xorLookupSelector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'lookupGateLookupSelector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'rangeCheckLookupSelector'), toPointEvals),
+        toMlOption(readNapiProp(evalsSource, 'foreignFieldMulLookupSelector'), toPointEvals),
       ];
 
       const evals = proofEvaluationsFromRust(evalsBytes);

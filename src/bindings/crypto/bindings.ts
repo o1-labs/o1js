@@ -16,11 +16,11 @@ import { jsEnvironment } from './bindings/env.js';
 import { FpBindings, FqBindings } from './bindings/field.js';
 import { FpVectorBindings, FqVectorBindings } from './bindings/vector.js';
 import { srs as wasmSrs } from './bindings/srs.js';
-import { srs as napiSrs } from './napi-srs.js';
-import { napiConversionCore } from './napi-conversion-core.js';
-import { napiProofConversion } from './napi-conversion-proof.js';
-import { napiVerifierIndexConversion } from './napi-conversion-verifier-index.js';
-import { napiOraclesConversion } from './napi-conversion-oracles.js';
+import { srs as napiSrs } from './native/napi-srs.js';
+import { napiConversionCore } from './native/napi-conversion-core.js';
+import { napiProofConversion } from './native/napi-conversion-proof.js';
+import { napiVerifierIndexConversion } from './native/napi-conversion-verifier-index.js';
+import { napiOraclesConversion } from './native/napi-conversion-oracles.js';
 
 export { Napi, Wasm, RustConversion, getRustConversion };
 

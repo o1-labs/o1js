@@ -1,6 +1,6 @@
 import { expect } from 'expect';
 import { createRequire } from 'node:module';
-import { napiConversionCore } from '../napi-conversion-core.js';
+import { napiConversionCore } from '../native/napi-conversion-core.js';
 import type { Field, Gate, Wire } from './kimchi-types.js';
 
 const require = createRequire(import.meta.url);

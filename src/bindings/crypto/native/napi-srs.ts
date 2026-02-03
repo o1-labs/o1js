@@ -1,16 +1,17 @@
-import { MlArray } from '../../lib/ml/base.js';
+import { MlArray } from '../../../lib/ml/base.js';
 import {
   readCache,
   withVersion,
   writeCache,
   type Cache,
   type CacheHeader,
-} from '../../lib/proof-system/cache.js';
-import { assert } from '../../lib/util/errors.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../compiled/node_bindings/kimchi_wasm.cjs';
-import type { Napi, RustConversion } from './bindings.js';
-import { OrInfinity, OrInfinityJson } from './bindings/curve.js';
-import { PolyComm } from './bindings/kimchi-types.js';
+} from '../../../lib/proof-system/cache.js';
+import { assert } from '../../../lib/util/errors.js';
+import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
+import type { RustConversion } from '../bindings.js';
+import type { Napi } from './napi-types.js';
+import { OrInfinity, OrInfinityJson } from '../bindings/curve.js';
+import { PolyComm } from '../bindings/kimchi-types.js';
 
 export { setSrsCache, srs, unsetSrsCache };
 
@@ -190,7 +191,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nap
           let header = cacheHeaderSrs(f, size);
 
           // try to read SRS from cache / recompute and write if not found
-          srs = readCache(cache, header, (bytes) => {
+          srs = readCache(cache, header, (bytes: Uint8Array) => {
             // TODO: this takes a bit too long, about 300ms for 2^16
             // `pointsToRust` is the clear bottleneck
             let jsonSrs: OrInfinityJson[] = JSON.parse(new TextDecoder().decode(bytes));
@@ -355,7 +356,7 @@ function readCacheLazy(
   setLagrangeBasis: (srs: NapiSrs, domainSize: number, comms: NapiPolyComms) => void
 ) {
   if (CacheReadRegister.get(header.uniqueId) === true) return true;
-  return readCache(cache, header, (bytes) => {
+  return readCache(cache, header, (bytes: Uint8Array) => {
     let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
     let mlComms = polyCommsFromJSON(comms);
     let napiComms = conversion[f].polyCommsToRust(mlComms);

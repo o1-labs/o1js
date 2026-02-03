@@ -1,110 +1,37 @@
-import { MlArray, MlBool, MlOption } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/kimchi_wasm.cjs';
-import type {
-  WasmFpDomain,
-  WasmFpLookupSelectors,
-  WasmFpLookupVerifierIndex,
-  WasmFpPlonkVerificationEvals,
-  WasmFpPlonkVerifierIndex,
-  WasmFpShifts,
-  WasmFqDomain,
-  WasmFqLookupSelectors,
-  WasmFqLookupVerifierIndex,
-  WasmFqPlonkVerificationEvals,
-  WasmFqPlonkVerifierIndex,
-  WasmFqShifts,
-  LookupInfo as WasmLookupInfo,
-} from '../compiled/node_bindings/kimchi_wasm.cjs';
-import { fieldFromRust, fieldToRust } from './bindings/conversion-base.js';
+import { MlArray, MlBool, MlOption } from '../../../lib/ml/base.js';
+import { fieldFromRust, fieldToRust } from '../bindings/conversion-base.js';
 import {
   Domain,
   Field,
   PolyComm,
   VerificationEvals,
   VerifierIndex,
-} from './bindings/kimchi-types.js';
+} from '../bindings/kimchi-types.js';
 import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
-import { Lookup, LookupInfo, LookupSelectors } from './bindings/lookup.js';
+import { Lookup, LookupInfo, LookupSelectors } from '../bindings/lookup.js';
+import type {
+  Napi,
+  NapiDomain,
+  NapiDomainObject,
+  NapiLookupSelector,
+  NapiLookupSelectorShape,
+  NapiLookupVerifierIndex,
+  NapiLookupVerifierIndexShape,
+  NapiPolyComm,
+  NapiPolyComms,
+  NapiShifts,
+  NapiShiftsShape,
+  NapiVerificationEvals,
+  NapiVerificationEvalsShape,
+  NapiVerifierIndex,
+  NapiVerifierIndexClasses,
+  NapiVerifierIndexShape,
+  WasmLookupInfo,
+} from './napi-types.js';
 
 export { napiVerifierIndexConversion };
 
-type Napi = typeof napiNamespace;
-
-type NapiDomainObject = { log_size_of_group: number; group_gen: Uint8Array };
-type NapiDomain = WasmFpDomain | WasmFqDomain | NapiDomainObject;
-type NapiPolyComm = ReturnType<ConversionCore['polyCommToRust']>;
-type NapiPolyComms = ReturnType<ConversionCore['polyCommsToRust']>;
-type NapiVerificationEvals = WasmFpPlonkVerificationEvals | WasmFqPlonkVerificationEvals;
-type NapiShifts = WasmFpShifts | WasmFqShifts;
-type NapiVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
-type NapiLookupVerifierIndex = WasmFpLookupVerifierIndex | WasmFqLookupVerifierIndex;
-type NapiLookupSelector = NapiLookupSelectorShape;
-
-type NapiVerificationEvalsShape = {
-  sigma_comm: NapiPolyComms;
-  coefficients_comm: NapiPolyComms;
-  generic_comm: NapiPolyComm;
-  psm_comm: NapiPolyComm;
-  complete_add_comm: NapiPolyComm;
-  mul_comm: NapiPolyComm;
-  emul_comm: NapiPolyComm;
-  endomul_scalar_comm: NapiPolyComm;
-  xor_comm?: NapiPolyComm | undefined;
-  range_check0_comm?: NapiPolyComm | undefined;
-  range_check1_comm?: NapiPolyComm | undefined;
-  foreign_field_add_comm?: NapiPolyComm | undefined;
-  foreign_field_mul_comm?: NapiPolyComm | undefined;
-  rot_comm?: NapiPolyComm | undefined;
-};
-
-type NapiLookupSelectorShape = {
-  lookup?: NapiPolyComm | undefined;
-  xor?: NapiPolyComm | undefined;
-  range_check?: NapiPolyComm | undefined;
-  rangeCheck?: NapiPolyComm | undefined;
-  ffmul?: NapiPolyComm | undefined;
-};
-
-type NapiLookupVerifierIndexShape = {
-  joint_lookup_used: boolean;
-  lookup_table: NapiPolyComms;
-  lookup_selectors: NapiLookupSelectorShape;
-  table_ids?: NapiPolyComm | undefined;
-  lookup_info: WasmLookupInfo;
-  runtime_tables_selector?: NapiPolyComm | undefined;
-};
-
-type NapiShiftsShape = {
-  s0: Uint8Array;
-  s1: Uint8Array;
-  s2: Uint8Array;
-  s3: Uint8Array;
-  s4: Uint8Array;
-  s5: Uint8Array;
-  s6: Uint8Array;
-};
-
-type NapiVerifierIndexShape = {
-  domain: NapiDomain;
-  max_poly_size: number;
-  public_: number;
-  prev_challenges: number;
-  srs: WasmFpPlonkVerifierIndex['srs'] | WasmFqPlonkVerifierIndex['srs'];
-  evals: NapiVerificationEvals;
-  shifts: NapiShifts;
-  lookup_index?: NapiLookupVerifierIndex;
-  zk_rows: number;
-};
-
-
-type NapiClasses = {
-  Domain: typeof WasmFpDomain | typeof WasmFqDomain;
-  VerificationEvals: typeof WasmFpPlonkVerificationEvals | typeof WasmFqPlonkVerificationEvals;
-  Shifts: typeof WasmFpShifts | typeof WasmFqShifts;
-  VerifierIndex: typeof WasmFpPlonkVerifierIndex | typeof WasmFqPlonkVerifierIndex;
-  LookupVerifierIndex: typeof WasmFpLookupVerifierIndex | typeof WasmFqLookupVerifierIndex;
-  LookupSelector: typeof WasmFpLookupSelectors | typeof WasmFqLookupSelectors;
-};
+type NapiClasses = NapiVerifierIndexClasses;
 
 function napiVerifierIndexConversion(napi: Napi, core: ConversionCores) {
   return {
