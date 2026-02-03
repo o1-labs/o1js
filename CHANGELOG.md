@@ -18,8 +18,18 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/34caaedc9...HEAD)
 
+### Changed
+
+- `Mina.currentSlot()` now works for remote blockchains using cached network
+  state, instead of throwing an error about missing implementation.
+  https://github.com/o1-labs/o1js/pull/2736
+
 ### Added
 
+- Export `fetchCurrentSlot` publicly as the supported way to query the current
+  slot from a remote blockchain. The function now returns the global slot since
+  genesis by default and can optionally return the epoch slot (previously the
+  default). https://github.com/o1-labs/o1js/pull/2736
 - Added `fetchTimedAccountInfo()` to retrieve detailed balance information for
   time-locked accounts, including liquid and locked balances based on the
   vesting schedule. https://github.com/o1-labs/o1js/pull/2742
