@@ -2,7 +2,7 @@ import { Test } from '../../../bindings.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-import { UInt64 } from '../../provable/int.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
 import { Field } from '../../provable/wrapped.js';
 import { Authorization, TokenId } from './account-update.js';
 import { Account } from './account.js';
@@ -192,10 +192,29 @@ function Network(
       }
       return defaultNetworkConstants;
     },
+    /**
+     * Returns the current slot number.
+     *
+     * For LocalBlockchain, this always works.
+     * For remote networks, requires cached network state populated by:
+     * - `Mina.transaction()` - automatically fetches and caches network state
+     * - `fetchLastBlock()` - but note this already returns `globalSlotSinceGenesis`, making `currentSlot()` redundant
+     *
+     * @throws {Error} If called on a remote network without cached data. Use `fetchCurrentSlot()` instead.
+     */
     currentSlot() {
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
+        return network?.globalSlotSinceGenesis ?? UInt32.from(0);
+      }
+      if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
+        if (network !== undefined) return network.globalSlotSinceGenesis;
+      }
       throw Error(
-        'currentSlot() is not available for remote blockchains.\n' +
-          'To query the current slot, import `fetchCurrentSlot` from o1js and call it with your GraphQL endpoint.\n' +
+        `currentSlot: Could not fetch current slot from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.\n` +
+          'To query the current slot outside of a transaction, import `fetchCurrentSlot` from o1js and call it with your GraphQL endpoint.\n' +
           "You can fetch the global slot since genesis (default) or the epoch-relative slot by passing 'epoch' as the second parameter."
       );
     },
@@ -223,8 +242,14 @@ function Network(
       );
     },
     /**
-     * You can call this when using a local Mina instance, but prefer calling it inside a
-     * `Mina.transaction(...)` callback to avoid an "outside of a transaction" error.
+     * Returns the current network state.
+     *
+     * For LocalBlockchain, this always works.
+     * For remote networks, requires cached network state populated by:
+     * - `Mina.transaction()` - automatically fetches and caches network state
+     * - `fetchLastBlock()` - explicitly fetches and caches network state
+     *
+     * @throws {Error} If called on a remote network without cached data.
      */
     getNetworkState() {
       if (currentTransaction()?.fetchMode === 'test') {
