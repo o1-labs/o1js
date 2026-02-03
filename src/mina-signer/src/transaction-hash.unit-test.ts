@@ -56,7 +56,7 @@ test(RandomTransaction.signedPayment, RandomTransaction.signedDelegation, (payme
 
   // payment hash
   let digest0 = mlTest.transactionHash.hashPayment(ocamlPayment);
-  let digest1 = hashPayment(payment, { legacy: false });
+  let digest1 = hashPayment(payment, { latest: true });
   expect(digest1).toEqual(digest0);
 
   // delegation serialization
@@ -78,7 +78,7 @@ test(RandomTransaction.signedPayment, RandomTransaction.signedDelegation, (payme
 
   // delegation hash
   digest0 = mlTest.transactionHash.hashPayment(ocamlDelegation);
-  digest1 = hashStakeDelegation(delegation, { legacy: false });
+  digest1 = hashStakeDelegation(delegation, { latest: true });
   expect(digest1).toEqual(digest0);
 
   // payment v1 serialization
@@ -126,7 +126,7 @@ test(RandomTransaction.signedPayment, RandomTransaction.signedDelegation, (payme
 
 test.negative(RandomTransaction.signedPayment.invalid!, (payment) => hashPayment(payment));
 test.negative(RandomTransaction.signedPayment.invalid!, (payment) => {
-  hashPayment(payment, { legacy: false });
+  hashPayment(payment, { latest: true });
   // for non-legacy hashing, it's fine if the signature is invalid because it's not part of the hash
   // => make invalid signatures fail independently
   Signature.fromJSON(payment.signature);
@@ -135,7 +135,7 @@ test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) =>
   hashStakeDelegation(delegation)
 );
 test.negative(RandomTransaction.signedDelegation.invalid!, (delegation) => {
-  hashStakeDelegation(delegation, { legacy: false });
+  hashStakeDelegation(delegation, { latest: true });
   // for non-legacy hashing, it's fine if the signature is invalid because it's not part of the hash
   // => make invalid signatures fail independently
   Signature.fromJSON(delegation.signature);

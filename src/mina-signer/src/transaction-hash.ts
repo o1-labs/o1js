@@ -48,15 +48,11 @@ const dummySignature: Signature = { r: Field(1), s: Scalar(1) };
  * Compute the hash of a signed payment transaction.
  *
  * @param signed The signed payment to hash
- * @param options.legacy If true (default), uses V1 legacy hashing which includes the signature
- * in the hash. If false, uses the current hashing format which excludes the signature.
- *
- * **Breaking change:** The `berkeley` option has been removed and replaced with `legacy`.
- * - Old: `hashPayment(signed, { berkeley: true })` (use current hash)
- * - New: `hashPayment(signed, { legacy: false })` (use current hash)
+ * @param options.latest If true, uses the latest hashing format which excludes the signature.
+ * If false (default), uses V1 legacy hashing which includes the signature in the hash.
  */
-function hashPayment(signed: SignedLegacy<PaymentJson>, { legacy = true } = {}) {
-  if (legacy) return hashPaymentV1(signed);
+function hashPayment(signed: SignedLegacy<PaymentJson>, { latest = false } = {}) {
+  if (!latest) return hashPaymentV1(signed);
   let payload = userCommandToEnum(paymentFromJson(signed.data));
   return hashSignedCommand({
     signer: PublicKey.fromBase58(signed.data.common.feePayer),
@@ -69,15 +65,11 @@ function hashPayment(signed: SignedLegacy<PaymentJson>, { legacy = true } = {}) 
  * Compute the hash of a signed stake delegation transaction.
  *
  * @param signed The signed delegation to hash
- * @param options.legacy If true (default), uses V1 legacy hashing which includes the signature
- * in the hash. If false, uses the current hashing format which excludes the signature.
- *
- * **Breaking change:** The `berkeley` option has been removed and replaced with `legacy`.
- * - Old: `hashStakeDelegation(signed, { berkeley: true })`
- * - New: `hashStakeDelegation(signed, { legacy: false })`
+ * @param options.latest If true, uses the latest hashing format which excludes the signature.
+ * If false (default), uses V1 legacy hashing which includes the signature in the hash.
  */
-function hashStakeDelegation(signed: SignedLegacy<DelegationJson>, { legacy = true } = {}) {
-  if (legacy) return hashStakeDelegationV1(signed);
+function hashStakeDelegation(signed: SignedLegacy<DelegationJson>, { latest = false } = {}) {
+  if (!latest) return hashStakeDelegationV1(signed);
   let payload = userCommandToEnum(delegationFromJson(signed.data));
   return hashSignedCommand({
     signer: PublicKey.fromBase58(signed.data.common.feePayer),

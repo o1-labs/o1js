@@ -332,16 +332,12 @@ class Client {
    * Compute the hash of a signed payment.
    *
    * @param signedPayment A signed payment transaction
-   * @param options.legacy If true (default), uses V1 legacy hashing. If false, uses current hashing format.
-   *
-   * **Breaking change:** The `berkeley` option has been replaced with `legacy` (inverted logic).
-   * Migrate by replacing `{ berkeley: true }` with `{ legacy: false }`.
-   *
+   * @param options.latest If true, uses the latest hashing format. If false (default), uses V1 legacy hashing.
    * @returns A transaction hash
    */
   hashPayment(
     { data, signature }: SignedLegacy<Json.Payment>,
-    options?: { legacy?: boolean }
+    options?: { latest?: boolean }
   ): string {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
     let amount = validNonNegative(data.amount);
@@ -361,16 +357,12 @@ class Client {
    * Compute the hash of a signed stake delegation.
    *
    * @param signedStakeDelegation A signed stake delegation
-   * @param options.legacy If true (default), uses V1 legacy hashing. If false, uses current hashing format.
-   *
-   * **Breaking change:** The `berkeley` option has been replaced with `legacy` (inverted logic).
-   * Migrate by replacing `{ berkeley: true }` with `{ legacy: false }`.
-   *
+   * @param options.latest If true, uses the latest hashing format. If false (default), uses V1 legacy hashing.
    * @returns A transaction hash
    */
   hashStakeDelegation(
     { data, signature }: SignedLegacy<Json.StakeDelegation>,
-    options?: { legacy?: boolean }
+    options?: { latest?: boolean }
   ): string {
     let { fee, to, from, nonce, validUntil, memo } = validCommon(data);
     return hashStakeDelegation(
