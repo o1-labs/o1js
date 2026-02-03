@@ -21,7 +21,7 @@ This project adheres to
 ### Deprecated
 
 - The `berkeley` option on `hashPayment()` and `hashStakeDelegation()` in
-  mina-signer has been removed in favor of `legacy`.
+  mina-signer has been removed in favor of `latest`.
   https://github.com/o1-labs/o1js/pull/2751
 
 ### Added
