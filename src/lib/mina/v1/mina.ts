@@ -463,7 +463,7 @@ async function waitForFunding(address: string, headers?: HeadersInit): Promise<v
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
  */
-async function faucet(pub: PublicKey, network: string = 'mesa', headers?: HeadersInit) {
+async function faucet(pub: PublicKey, network: string = 'devnet', headers?: HeadersInit) {
   let address = pub.toBase58();
   let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
     method: 'POST',
