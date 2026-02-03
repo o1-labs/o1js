@@ -779,8 +779,8 @@ function createIncludedTransaction(
     options?: WaitForFinalityOptions
   ): Promise<TransactionDepthInfo> => {
     const finalityThreshold = options?.finalityThreshold ?? 15;
-    const interval = options?.interval ?? 60000;
-    const maxAttempts = options?.maxAttempts ?? 30;
+    const interval = options?.interval ?? 120000;
+    const maxAttempts = options?.maxAttempts ?? 45;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const info = await safeGetDepth({ finalityThreshold });
