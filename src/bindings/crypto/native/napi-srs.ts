@@ -7,15 +7,12 @@ import {
   type CacheHeader,
 } from '../../../lib/proof-system/cache.js';
 import { assert } from '../../../lib/util/errors.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import type { RustConversion } from '../bindings.js';
-import type { Napi } from './napi-types.js';
+import type { Napi, NapiAffine, NapiPolyComm, NapiPolyComms, NapiSrs } from './napi-wrappers.js';
 import { OrInfinity, OrInfinityJson } from '../bindings/curve.js';
 import { PolyComm } from '../bindings/kimchi-types.js';
 
 export { setSrsCache, srs, unsetSrsCache };
-
-type NapiSrs = WasmFpSrs | WasmFqSrs;
 
 type SrsStore = Record<number, NapiSrs>;
 
@@ -24,10 +21,6 @@ function empty(): SrsStore {
 }
 
 const srsStore = { fp: empty(), fq: empty() };
-
-type NapiAffine = ReturnType<RustConversion<'napi'>['fp']['pointToRust']>;
-type NapiPolyComm = ReturnType<RustConversion<'napi'>['fp']['polyCommToRust']>;
-type NapiPolyComms = ReturnType<RustConversion<'napi'>['fp']['polyCommsToRust']>;
 
 const CacheReadRegister = new Map<string, boolean>();
 
@@ -217,9 +210,6 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nap
         }
         srsStore[f][size] = srs;
       }
-
-      // TODO should we call freeOnFinalize() and expose a function to clean the SRS cache?
-      //console.trace('Returning SRS:', srs);
       return srsStore[f][size];
     },
 
@@ -249,8 +239,6 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nap
           if (didRead !== true) {
             // not in cache
             if (cache.canWrite) {
-              // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
-              // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
               let napiComms = getLagrangeBasis(srs, domainSize);
               let mlComms = conversion[f].polyCommsFromRust(napiComms);
               let comms = polyCommsToJSON(mlComms);
@@ -365,14 +353,4 @@ function readCacheLazy(
     CacheReadRegister.set(header.uniqueId, true);
     return true;
   });
-}
-function runInTryCatch<T extends (...args: any[]) => any>(fn: T): T {
-  return function (...args: Parameters<T>): ReturnType<T> {
-    try {
-      return fn(...args);
-    } catch (e) {
-      console.error(`Error in SRS function ${fn.name} with args:`, args);
-      throw e;
-    }
-  } as T;
 }

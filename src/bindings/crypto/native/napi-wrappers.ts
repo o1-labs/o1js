@@ -1,38 +1,42 @@
 import type * as napiNamespace from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import type {
-  WasmFpDomain,
-  WasmFpLookupCommitments,
-  WasmFpLookupSelectors,
-  WasmFpLookupVerifierIndex,
-  WasmFpOpeningProof,
-  WasmFpOracles,
-  WasmFpPlonkVerificationEvals,
-  WasmFpPlonkVerifierIndex,
-  WasmFpProverCommitments,
-  WasmFpProverProof,
-  WasmFpRandomOracles,
-  WasmFpRuntimeTable,
-  WasmFpShifts,
-  WasmFqDomain,
-  WasmFqLookupCommitments,
-  WasmFqLookupSelectors,
-  WasmFqLookupVerifierIndex,
-  WasmFqOpeningProof,
-  WasmFqOracles,
-  WasmFqPlonkVerificationEvals,
-  WasmFqPlonkVerifierIndex,
-  WasmFqProverCommitments,
-  WasmFqProverProof,
-  WasmFqRandomOracles,
-  WasmFqRuntimeTable,
-  WasmFqShifts,
-  WasmPastaFpLookupTable,
-  WasmPastaFpRuntimeTableCfg,
-  WasmPastaFqLookupTable,
-  WasmPastaFqRuntimeTableCfg,
-  WasmVecVecFp,
-  WasmVecVecFq,
-  LookupInfo as WasmLookupInfo,
+  WasmFpDomain as NapiFpDomain,
+  WasmFpLookupCommitments as NapiFpLookupCommitments,
+  WasmFpLookupSelectors as NapiFpLookupSelectors,
+  WasmFpLookupVerifierIndex as NapiFpLookupVerifierIndex,
+  WasmFpOpeningProof as NapiFpOpeningProof,
+  WasmFpOracles as NapiFpOracles,
+  WasmFpPolyComm as NapiFpPolyComm,
+  WasmFpPlonkVerificationEvals as NapiFpPlonkVerificationEvals,
+  WasmFpPlonkVerifierIndex as NapiFpPlonkVerifierIndex,
+  WasmFpProverCommitments as NapiFpProverCommitments,
+  WasmFpProverProof as NapiFpProverProof,
+  WasmFpRandomOracles as NapiFpRandomOracles,
+  WasmFpRuntimeTable as NapiFpRuntimeTable,
+  WasmFpSrs as NapiFpSrs,
+  WasmFpShifts as NapiFpShifts,
+  WasmFqDomain as NapiFqDomain,
+  WasmFqLookupCommitments as NapiFqLookupCommitments,
+  WasmFqLookupSelectors as NapiFqLookupSelectors,
+  WasmFqLookupVerifierIndex as NapiFqLookupVerifierIndex,
+  WasmFqOpeningProof as NapiFqOpeningProof,
+  WasmFqOracles as NapiFqOracles,
+  WasmFqPolyComm as NapiFqPolyComm,
+  WasmFqPlonkVerificationEvals as NapiFqPlonkVerificationEvals,
+  WasmFqPlonkVerifierIndex as NapiFqPlonkVerifierIndex,
+  WasmFqProverCommitments as NapiFqProverCommitments,
+  WasmFqProverProof as NapiFqProverProof,
+  WasmFqRandomOracles as NapiFqRandomOracles,
+  WasmFqRuntimeTable as NapiFqRuntimeTable,
+  WasmFqSrs as NapiFqSrs,
+  WasmFqShifts as NapiFqShifts,
+  WasmPastaFpLookupTable as NapiPastaFpLookupTable,
+  WasmPastaFpRuntimeTableCfg as NapiPastaFpRuntimeTableCfg,
+  WasmPastaFqLookupTable as NapiPastaFqLookupTable,
+  WasmPastaFqRuntimeTableCfg as NapiPastaFqRuntimeTableCfg,
+  WasmVecVecFp as NapiVecVecFp,
+  WasmVecVecFq as NapiVecVecFq,
+  LookupInfo as NapiLookupInfo,
 } from '../../compiled/node_bindings/kimchi_wasm.cjs';
 
 export type Napi = typeof napiNamespace;
@@ -41,12 +45,14 @@ export type NapiAffine = napiNamespace.WasmGVesta | napiNamespace.WasmGPallas;
 export type NapiPoint = NapiAffine;
 export type NapiPoints = NapiAffine[];
 
-export type NapiPolyComm = { unshifted: unknown; shifted?: NapiAffine | undefined };
+export type NapiPolyComm = NapiFpPolyComm | NapiFqPolyComm;
 export type PolyCommCtor = new (
-  unshifted: unknown,
+  unshifted: ArrayLike<NapiAffine>,
   shifted?: NapiAffine | undefined
 ) => NapiPolyComm;
 export type NapiPolyComms = NapiPolyComm[];
+
+export type NapiSrs = NapiFpSrs | NapiFqSrs;
 
 export type NapiLookupCommitments = {
   sorted: NapiPolyComms;
@@ -109,42 +115,27 @@ export type NapiOpeningProof = {
 export type NapiProverProof = {
   commitments: NapiProverCommitments;
   proof: NapiOpeningProof;
-  evals: unknown;
+  evals: NapiProofEvaluationsObject;
   ft_eval1: Uint8Array;
   public_: Uint8Array;
   prev_challenges_scalars: NapiVecVec;
   prev_challenges_comms: ArrayLike<NapiPolyComm>;
 };
 
-export type NapiRuntimeTable = WasmFpRuntimeTable | WasmFqRuntimeTable;
-export type NapiRuntimeTableCfg = WasmPastaFpRuntimeTableCfg | WasmPastaFqRuntimeTableCfg;
-export type NapiLookupTable = WasmPastaFpLookupTable | WasmPastaFqLookupTable;
-export type NapiVecVec = WasmVecVecFp | WasmVecVecFq;
+export type NapiRuntimeTable = NapiFpRuntimeTable | NapiFqRuntimeTable;
+export type NapiRuntimeTableCfg = NapiPastaFpRuntimeTableCfg | NapiPastaFqRuntimeTableCfg;
+export type NapiLookupTable = NapiPastaFpLookupTable | NapiPastaFqLookupTable;
+export type NapiVecVec = NapiVecVecFp | NapiVecVecFq;
 
-export type NapiProofClasses = {
-  ProverCommitments: typeof WasmFpProverCommitments | typeof WasmFqProverCommitments;
-  OpeningProof: typeof WasmFpOpeningProof | typeof WasmFqOpeningProof;
-  VecVec: typeof WasmVecVecFp | typeof WasmVecVecFq;
-  ProverProof: typeof WasmFpProverProof | typeof WasmFqProverProof;
-  LookupCommitments: typeof WasmFpLookupCommitments | typeof WasmFqLookupCommitments;
-  RuntimeTable: typeof WasmFpRuntimeTable | typeof WasmFqRuntimeTable;
-  RuntimeTableCfg: typeof WasmPastaFpRuntimeTableCfg | typeof WasmPastaFqRuntimeTableCfg;
-  LookupTable: typeof WasmPastaFpLookupTable | typeof WasmPastaFqLookupTable;
-};
-
-export type NapiOracles = WasmFpOracles | WasmFqOracles;
-export type NapiRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
-export type NapiOraclesClasses = {
-  RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
-  Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
-};
+export type NapiOracles = NapiFpOracles | NapiFqOracles;
+export type NapiRandomOracles = NapiFpRandomOracles | NapiFqRandomOracles;
 
 export type NapiDomainObject = { log_size_of_group: number; group_gen: Uint8Array };
-export type NapiDomain = WasmFpDomain | WasmFqDomain | NapiDomainObject;
-export type NapiVerificationEvals = WasmFpPlonkVerificationEvals | WasmFqPlonkVerificationEvals;
-export type NapiShifts = WasmFpShifts | WasmFqShifts;
-export type NapiVerifierIndex = WasmFpPlonkVerifierIndex | WasmFqPlonkVerifierIndex;
-export type NapiLookupVerifierIndex = WasmFpLookupVerifierIndex | WasmFqLookupVerifierIndex;
+export type NapiDomain = NapiFpDomain | NapiFqDomain | NapiDomainObject;
+export type NapiVerificationEvals = NapiFpPlonkVerificationEvals | NapiFqPlonkVerificationEvals;
+export type NapiShifts = NapiFpShifts | NapiFqShifts;
+export type NapiVerifierIndex = NapiFpPlonkVerifierIndex | NapiFqPlonkVerifierIndex;
+export type NapiLookupVerifierIndex = NapiFpLookupVerifierIndex | NapiFqLookupVerifierIndex;
 
 export type NapiVerificationEvalsShape = {
   sigma_comm: NapiPolyComms;
@@ -173,17 +164,17 @@ export type NapiLookupSelectorShape = {
 
 export type NapiLookupSelector =
   | NapiLookupSelectorShape
-  | WasmFpLookupSelectors
-  | WasmFqLookupSelectors;
+  | NapiFpLookupSelectors
+  | NapiFqLookupSelectors;
 
-export type { WasmLookupInfo };
+export type { NapiLookupInfo };
 
 export type NapiLookupVerifierIndexShape = {
   joint_lookup_used: boolean;
   lookup_table: NapiPolyComms;
   lookup_selectors: NapiLookupSelectorShape;
   table_ids?: NapiPolyComm | undefined;
-  lookup_info: WasmLookupInfo;
+  lookup_info: NapiLookupInfo;
   runtime_tables_selector?: NapiPolyComm | undefined;
 };
 
@@ -202,24 +193,40 @@ export type NapiVerifierIndexShape = {
   max_poly_size: number;
   public_: number;
   prev_challenges: number;
-  srs: WasmFpPlonkVerifierIndex['srs'] | WasmFqPlonkVerifierIndex['srs'];
+  srs: NapiFpPlonkVerifierIndex['srs'] | NapiFqPlonkVerifierIndex['srs'];
   evals: NapiVerificationEvals;
   shifts: NapiShifts;
   lookup_index?: NapiLookupVerifierIndex;
   zk_rows: number;
 };
 
-export type NapiVerifierIndexClasses = {
-  Domain: typeof WasmFpDomain | typeof WasmFqDomain;
-  VerificationEvals: typeof WasmFpPlonkVerificationEvals | typeof WasmFqPlonkVerificationEvals;
-  Shifts: typeof WasmFpShifts | typeof WasmFqShifts;
-  VerifierIndex: typeof WasmFpPlonkVerifierIndex | typeof WasmFqPlonkVerifierIndex;
-  LookupVerifierIndex: typeof WasmFpLookupVerifierIndex | typeof WasmFqLookupVerifierIndex;
-  LookupSelector: typeof WasmFpLookupSelectors | typeof WasmFqLookupSelectors;
-};
-
 export type NapiCoreClasses = {
   CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;
   makeAffine: () => NapiAffine;
   PolyComm: typeof napiNamespace.WasmFpPolyComm | typeof napiNamespace.WasmFqPolyComm;
+};
+
+export type NapiProofClasses = {
+  ProverCommitments: typeof NapiFpProverCommitments | typeof NapiFqProverCommitments;
+  OpeningProof: typeof NapiFpOpeningProof | typeof NapiFqOpeningProof;
+  VecVec: typeof NapiVecVecFp | typeof NapiVecVecFq;
+  ProverProof: typeof NapiFpProverProof | typeof NapiFqProverProof;
+  LookupCommitments: typeof NapiFpLookupCommitments | typeof NapiFqLookupCommitments;
+  RuntimeTable: typeof NapiFpRuntimeTable | typeof NapiFqRuntimeTable;
+  RuntimeTableCfg: typeof NapiPastaFpRuntimeTableCfg | typeof NapiPastaFqRuntimeTableCfg;
+  LookupTable: typeof NapiPastaFpLookupTable | typeof NapiPastaFqLookupTable;
+};
+
+export type NapiVerifierIndexClasses = {
+  Domain: typeof NapiFpDomain | typeof NapiFqDomain;
+  VerificationEvals: typeof NapiFpPlonkVerificationEvals | typeof NapiFqPlonkVerificationEvals;
+  Shifts: typeof NapiFpShifts | typeof NapiFqShifts;
+  VerifierIndex: typeof NapiFpPlonkVerifierIndex | typeof NapiFqPlonkVerifierIndex;
+  LookupVerifierIndex: typeof NapiFpLookupVerifierIndex | typeof NapiFqLookupVerifierIndex;
+  LookupSelector: typeof NapiFpLookupSelectors | typeof NapiFqLookupSelectors;
+};
+
+export type NapiOraclesClasses = {
+  RandomOracles: typeof NapiFpRandomOracles | typeof NapiFqRandomOracles;
+  Oracles: typeof NapiFpOracles | typeof NapiFqOracles;
 };

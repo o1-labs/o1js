@@ -15,6 +15,7 @@ import type {
   NapiDomainObject,
   NapiLookupSelector,
   NapiLookupSelectorShape,
+  NapiLookupInfo,
   NapiLookupVerifierIndex,
   NapiLookupVerifierIndexShape,
   NapiPolyComm,
@@ -26,12 +27,9 @@ import type {
   NapiVerifierIndex,
   NapiVerifierIndexClasses,
   NapiVerifierIndexShape,
-  WasmLookupInfo,
-} from './napi-types.js';
+} from './napi-wrappers.js';
 
 export { napiVerifierIndexConversion };
-
-type NapiClasses = NapiVerifierIndexClasses;
 
 function napiVerifierIndexConversion(napi: Napi, core: ConversionCores) {
   return {
@@ -63,7 +61,7 @@ function verifierIndexConversionPerField(
     VerifierIndex,
     LookupVerifierIndex,
     LookupSelector,
-  }: NapiClasses
+  }: NapiVerifierIndexClasses
 ) {
   function domainToRust([, logSizeOfGroup, groupGen]: Domain): NapiDomain {
     // In the NAPI backend these types are `#[napi(object)]`, i.e. plain JS objects
@@ -188,7 +186,7 @@ function verifierIndexConversionPerField(
     return [0, lookup, xor, range_check, ffmul];
   }
 
-  function lookupInfoToRust([, maxPerRow, maxJointSize, features]: LookupInfo): WasmLookupInfo {
+  function lookupInfoToRust([, maxPerRow, maxJointSize, features]: LookupInfo): NapiLookupInfo {
     let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
     let [, xor, lookup, range_check, foreign_field_mul] = patterns;
     return {
@@ -204,9 +202,9 @@ function verifierIndexConversionPerField(
         joint_lookup_used: MlBool.from(joint_lookup_used),
         uses_runtime_tables: MlBool.from(uses_runtime_tables),
       },
-    } as WasmLookupInfo;
+    } as NapiLookupInfo;
   }
-  function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
+  function lookupInfoFromRust(info: NapiLookupInfo): LookupInfo {
     let features = info.features;
     let patterns = features.patterns;
     let mlInfo: LookupInfo = [

@@ -46,11 +46,9 @@ import type {
   NapiRuntimeTableCfg,
   NapiLookupTable,
   NapiVecVec,
-} from './napi-types.js';
+} from './napi-wrappers.js';
 
 export { napiProofConversion };
-
-type NapiClasses = NapiProofClasses;
 
 const fieldToRust_ = (x: Field) => fieldToRust(x);
 const proofEvaluationsToRust = mapProofEvaluations(fieldToRust_);
@@ -94,7 +92,7 @@ function proofConversionPerField(
     RuntimeTable,
     RuntimeTableCfg,
     LookupTable,
-  }: NapiClasses
+  }: NapiProofClasses
 ) {
   type NapiProverCommitmentsCtor = Ctor<
     [NapiPolyComms, NapiPolyComm, NapiPolyComm, NapiLookupCommitments | undefined],

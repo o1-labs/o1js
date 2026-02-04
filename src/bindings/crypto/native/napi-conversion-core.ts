@@ -13,14 +13,15 @@ import type {
   NapiPolyComm,
   NapiCoreClasses,
   PolyCommCtor,
-} from './napi-types.js';
+} from './napi-wrappers.js';
+import {
+  asArrayLike,
+} from './napi-ffi.js';
 
 export { ConversionCore, ConversionCores, napiConversionCore };
 
 type ConversionCore = ReturnType<typeof conversionCorePerField>;
 type ConversionCores = ReturnType<typeof napiConversionCore>;
-
-type NapiClasses = NapiCoreClasses;
 
 function wireToRust([, row, col]: Wire) {
   return { row, col };
@@ -56,7 +57,7 @@ function napiConversionCore(napi: Napi) {
   };
 }
 
-function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
+function conversionCorePerField({ makeAffine, PolyComm }: NapiCoreClasses) {
   const vectorToRust = (fields: MlArray<Field>) => fieldsToRustFlat(fields);
   const vectorFromRust = fieldsFromRustFlat;
 
@@ -149,7 +150,7 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     const [, camlElems] = polyComm;
     const unshifted = pointsToRust(camlElems);
     const PolyCommClass = PolyComm as unknown as PolyCommCtor;
-    return new PolyCommClass(unshifted as unknown, undefined);
+    return new PolyCommClass(unshifted, undefined);
   };
 
   const polyCommFromRust = (polyComm: NapiPolyComm): PolyComm => {
@@ -188,15 +189,4 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
   };
 
   return self;
-}
-
-function asArrayLike<T>(value: unknown, context: string): T[] {
-  if (value == null) return [];
-  if (Array.isArray(value)) return value as T[];
-  if (ArrayBuffer.isView(value)) return Array.from(value as unknown as ArrayLike<T>);
-  if (typeof value === 'object' && value !== null && 'length' in (value as { length: unknown })) {
-    const { length } = value as { length: unknown };
-    if (typeof length === 'number') return Array.from(value as ArrayLike<T>);
-  }
-  throw Error(`${context}: expected array-like native values`);
 }

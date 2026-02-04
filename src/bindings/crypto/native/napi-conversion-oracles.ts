@@ -7,11 +7,9 @@ import {
   maybeFieldToRust,
 } from '../bindings/conversion-base.js';
 import { Field, Oracles, RandomOracles, ScalarChallenge } from '../bindings/kimchi-types.js';
-import type { Napi, NapiOracles, NapiOraclesClasses, NapiRandomOracles } from './napi-types.js';
+import type { Napi, NapiOracles, NapiOraclesClasses, NapiRandomOracles } from './napi-wrappers.js';
 
 export { napiOraclesConversion };
-
-type NapiClasses = NapiOraclesClasses;
 
 function napiOraclesConversion(napi: Napi) {
   return {
@@ -26,7 +24,7 @@ function napiOraclesConversion(napi: Napi) {
   };
 }
 
-function oraclesConversionPerField({ RandomOracles, Oracles }: NapiClasses) {
+function oraclesConversionPerField({ RandomOracles, Oracles }: NapiOraclesClasses) {
   function randomOraclesToRust(ro: RandomOracles): NapiRandomOracles {
     let jointCombinerMl = MlOption.from(ro[1]);
     let jointCombinerChal = maybeFieldToRust(jointCombinerMl?.[1][1]);
