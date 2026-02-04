@@ -1,0 +1,20 @@
+{
+  "name": "mina-test-signer",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "mina-test-signer.js",
+  "bin": {
+    "mina-test-signer": "mina-test-signer.js"
+  },
+  "scripts": {
+    "start": "node mina-test-signer.js"
+  },
+  "author": "o1-labs",
+  "license": "ISC",
+  "description": "test app for mina-signer",
+  "dependencies": {
+    "commander": "^14.0.2",
+    "json-to-graphql-query": "^2.3.0",
+    "mina-signer": "../../../mina-signer"
+  }
+}
