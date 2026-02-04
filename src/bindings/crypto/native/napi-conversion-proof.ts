@@ -25,7 +25,6 @@ import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
 import {
   arrayFrom,
   castCtor,
-  readNapiProp,
   type Ctor,
 } from './napi-ffi.js';
 import type {
@@ -353,30 +352,43 @@ function proofConversionPerField(
       let openingProof = openingProofFromRust(napiProof.proof);
       // NAPI returns `evals` as an object with getters; convert it into the OCaml tuple shape
       // expected by `proofEvaluationsFromRust`.
-      const evalsSource = napiProof.evals as Record<string, unknown>;
-      // Avoid `getNapi`/`requireNapi` helpers; access fields directly.
-      const toPointEvals = (pe: unknown): PointEvaluations<Uint8Array> => {
-        const zeta = MlArray.to(arrayFrom<Uint8Array>(readNapiProp(pe, 'zeta')));
-        const zetaOmega = MlArray.to(arrayFrom<Uint8Array>(readNapiProp(pe, 'zetaOmega')));
+      const evalsSource = napiProof.evals as NapiProofEvaluationsObject | undefined;
+      const toPointEvals = (
+        pe?: NapiPointEvaluationsObject | null
+      ): PointEvaluations<Uint8Array> => {
+        const zeta = MlArray.to(arrayFrom<Uint8Array>(pe?.zeta));
+        const zetaOmega = MlArray.to(arrayFrom<Uint8Array>(pe?.zetaOmega));
         return [0, zeta, zetaOmega];
       };
-      const toMlOption = (value: unknown, f: (x: unknown) => PointEvaluations<Uint8Array>) =>
-        MlOption.mapTo(value ?? undefined, f);
+      const toMlOption = <T,>(
+        value: T | null | undefined,
+        f: (x: T) => PointEvaluations<Uint8Array>
+      ) => MlOption.mapTo(value ?? undefined, f);
 
-      const publicEvalsBytes = toMlOption(readNapiProp(evalsSource, 'public'), toPointEvals);
+      const publicEvalsBytes = toMlOption(evalsSource?.public, toPointEvals);
       const publicEvals = pointEvalsOptionFromRust(publicEvalsBytes);
 
-      const w = MlArray.to(arrayFrom(readNapiProp(evalsSource, 'w')).map(toPointEvals)) as MlTuple<
+      const w = MlArray.to(
+        arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.w).map(
+          toPointEvals
+        )
+      ) as MlTuple<
         PointEvaluations<Uint8Array>,
         15
       >;
-      const z = toPointEvals(readNapiProp(evalsSource, 'z'));
-      const s = MlArray.to(arrayFrom(readNapiProp(evalsSource, 's')).map(toPointEvals)) as MlTuple<
+      const z = toPointEvals(evalsSource?.z);
+      const s = MlArray.to(
+        arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.s).map(
+          toPointEvals
+        )
+      ) as MlTuple<
         PointEvaluations<Uint8Array>,
         6
       >;
       const coefficients = MlArray.to(
-        arrayFrom(readNapiProp(evalsSource, 'coefficients')).map(toPointEvals)
+        arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.coefficients).map(
+          toPointEvals
+        )
       ) as MlTuple<PointEvaluations<Uint8Array>, 15>;
 
       const evalsBytes: ProofEvaluations<Uint8Array> = [
@@ -385,35 +397,35 @@ function proofConversionPerField(
         z,
         s,
         coefficients,
-        toPointEvals(readNapiProp(evalsSource, 'genericSelector')),
-        toPointEvals(readNapiProp(evalsSource, 'poseidonSelector')),
-        toPointEvals(readNapiProp(evalsSource, 'completeAddSelector')),
-        toPointEvals(readNapiProp(evalsSource, 'mulSelector')),
-        toPointEvals(readNapiProp(evalsSource, 'emulSelector')),
-        toPointEvals(readNapiProp(evalsSource, 'endomulScalarSelector')),
-        toMlOption(readNapiProp(evalsSource, 'rangeCheck0Selector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'rangeCheck1Selector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'foreignFieldAddSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'foreignFieldMulSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'xorSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'rotSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'lookupAggregation'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'lookupTable'), toPointEvals),
+        toPointEvals(evalsSource?.genericSelector),
+        toPointEvals(evalsSource?.poseidonSelector),
+        toPointEvals(evalsSource?.completeAddSelector),
+        toPointEvals(evalsSource?.mulSelector),
+        toPointEvals(evalsSource?.emulSelector),
+        toPointEvals(evalsSource?.endomulScalarSelector),
+        toMlOption(evalsSource?.rangeCheck0Selector, toPointEvals),
+        toMlOption(evalsSource?.rangeCheck1Selector, toPointEvals),
+        toMlOption(evalsSource?.foreignFieldAddSelector, toPointEvals),
+        toMlOption(evalsSource?.foreignFieldMulSelector, toPointEvals),
+        toMlOption(evalsSource?.xorSelector, toPointEvals),
+        toMlOption(evalsSource?.rotSelector, toPointEvals),
+        toMlOption(evalsSource?.lookupAggregation, toPointEvals),
+        toMlOption(evalsSource?.lookupTable, toPointEvals),
         [
           0,
-          ...arrayFrom(readNapiProp(evalsSource, 'lookupSorted')).map((x) =>
-            toMlOption(x, toPointEvals)
-          ),
+          ...arrayFrom<NapiPointEvaluationsObject | null | undefined>(
+            evalsSource?.lookupSorted
+          ).map((x) => toMlOption(x, toPointEvals)),
         ] as MlArray<MlOption<PointEvaluations<Uint8Array>>>,
-        toMlOption(readNapiProp(evalsSource, 'runtimeLookupTable'), toPointEvals),
+        toMlOption(evalsSource?.runtimeLookupTable, toPointEvals),
         toMlOption(
-          readNapiProp(evalsSource, 'runtimeLookupTableSelector'),
+          evalsSource?.runtimeLookupTableSelector,
           toPointEvals
         ),
-        toMlOption(readNapiProp(evalsSource, 'xorLookupSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'lookupGateLookupSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'rangeCheckLookupSelector'), toPointEvals),
-        toMlOption(readNapiProp(evalsSource, 'foreignFieldMulLookupSelector'), toPointEvals),
+        toMlOption(evalsSource?.xorLookupSelector, toPointEvals),
+        toMlOption(evalsSource?.lookupGateLookupSelector, toPointEvals),
+        toMlOption(evalsSource?.rangeCheckLookupSelector, toPointEvals),
+        toMlOption(evalsSource?.foreignFieldMulLookupSelector, toPointEvals),
       ];
 
       const evals = proofEvaluationsFromRust(evalsBytes);
