@@ -280,6 +280,10 @@ This project adheres to
 - Fix `ZkProgram` public input/output types
   https://github.com/o1-labs/o1js/pull/1998
 
+### Fixed
+
+- Fixed mutation of input cipher text. https://github.com/o1-labs/o1js/pull/1981 [@maple3142](https://github.com/maple3142)
+
 ## [2.2.0](https://github.com/o1-labs/o1js/compare/e1bac02...b857516) - 2024-12-10
 
 ### Added

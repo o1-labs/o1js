@@ -23,13 +23,13 @@ function decrypt({ publicKey, cipherText }: CipherText, privateKey: PrivateKey) 
   const sharedSecret = publicKey.scale(privateKey.s);
   const sponge = new Poseidon.Sponge();
   sponge.absorb(sharedSecret.x);
-  const authenticationTag = cipherText.pop();
+  const authenticationTag = cipherText[cipherText.length - 1];
 
   // decryption
   const message = [];
-  for (let i = 0; i < cipherText.length; i++) {
+  for (let i = 0; i < cipherText.length - 1; i++) {
     // absorb frame tag
-    if (i === cipherText.length - 1) sponge.absorb(Field(1));
+    if (i === cipherText.length - 2) sponge.absorb(Field(1));
     else sponge.absorb(Field(0));
 
     const keyStream = sponge.squeeze();
