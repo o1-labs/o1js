@@ -312,35 +312,15 @@ function proofConversionPerField(
         prevChallengeCommsMl.push(comms);
       }
       let prevChallengeComms = core.polyCommsToRust(prevChallengeCommsMl);
-      try {
-        return new ProverProofCtor(
-          commitments,
-          openingProof,
-          evalsActual,
-          ftEval1,
-          public_,
-          prevChallengeScalars,
-          prevChallengeComms
-        );
-      } catch (err) {
-        const w0 = evalsActual?.w?.[0];
-        const z = evalsActual?.z;
-        console.error('napi-conversion-proof: ProverProof constructor failed', {
-          err,
-          evalsKeys: Object.keys(evalsActual ?? {}),
-          wIsArray: Array.isArray(evalsActual?.w),
-          wLen: evalsActual?.w?.length,
-          w0Keys: w0 ? Object.keys(w0) : undefined,
-          w0ZetaIsArray: Array.isArray(w0?.zeta),
-          w0ZetaOmegaIsArray: Array.isArray(w0?.zetaOmega),
-          zKeys: z ? Object.keys(z) : undefined,
-          zZetaIsArray: Array.isArray(z?.zeta),
-          zZetaOmegaIsArray: Array.isArray(z?.zetaOmega),
-          lookupSortedIsArray: Array.isArray(evalsActual?.lookupSorted),
-          lookupSortedLen: evalsActual?.lookupSorted?.length,
-        });
-        throw err;
-      }
+      return new ProverProofCtor(
+        commitments,
+        openingProof,
+        evalsActual,
+        ftEval1,
+        public_,
+        prevChallengeScalars,
+        prevChallengeComms
+      );
     },
     proofFromRust(
       napiProof: NapiProverProof
@@ -391,6 +371,14 @@ function proofConversionPerField(
         )
       ) as MlTuple<PointEvaluations<Uint8Array>, 15>;
 
+      const lookupSorted = MlArray.mapFrom(
+        [
+          0,
+          ...arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.lookupSorted),
+        ] as MlArray<NapiPointEvaluationsObject | null | undefined>,
+        (x) => toMlOption(x, toPointEvals)
+      ) as MlArray<MlOption<PointEvaluations<Uint8Array>>>;
+
       const evalsBytes: ProofEvaluations<Uint8Array> = [
         0,
         w,
@@ -411,12 +399,7 @@ function proofConversionPerField(
         toMlOption(evalsSource?.rotSelector, toPointEvals),
         toMlOption(evalsSource?.lookupAggregation, toPointEvals),
         toMlOption(evalsSource?.lookupTable, toPointEvals),
-        [
-          0,
-          ...arrayFrom<NapiPointEvaluationsObject | null | undefined>(
-            evalsSource?.lookupSorted
-          ).map((x) => toMlOption(x, toPointEvals)),
-        ] as MlArray<MlOption<PointEvaluations<Uint8Array>>>,
+        lookupSorted,
         toMlOption(evalsSource?.runtimeLookupTable, toPointEvals),
         toMlOption(
           evalsSource?.runtimeLookupTableSelector,
