@@ -65,11 +65,15 @@ const CustomStateLayout = {
   // }
 };
 
-type StateDefinition<State extends StateLayout> = State extends 'GenericState'
-  ? 'GenericState'
-  : { Layout: State } & Provable<{
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }>;
+type CustomStateDefinition<State extends CustomStateLayout> = {
+  Layout: State;
+} & Provable<{
+  [name in keyof State]: ProvableInstance<State[name]>;
+}>;
+type GenericStateDefinition = 'GenericState';
+type StateDefinition<State extends StateLayout> = State extends GenericStateDefinition
+  ? GenericStateDefinition
+  : CustomStateDefinition<Exclude<State, 'GenericState'>>;
 
 const StateDefinition = {
   split2<State extends StateLayout, Generic1, Custom1, Generic2, Custom2>(
@@ -147,63 +151,70 @@ const StateDefinition = {
   },
 };
 
-// TODO: allow for explicit ordering/mapping of state field indices
+type StateValue<Layout extends CustomStateLayout> = {
+  [K in keyof Layout]: ProvableInstance<Layout[K]>;
+};
 
-function State<State extends CustomStateLayout>(Layout: State): StateDefinition<State> {
-  // TODO: proxy provable definition out of Struct with helper
-  // class StateDef extends Struct(Layout) {}
-
-  // TODO: check sizeInFields
-  const sizeInFields = Object.values(Layout)
+/**
+ * Create a {@link Provable} from a {@link CustomStateLayout} layout.
+ */
+function createProvableFromLayout<State extends CustomStateLayout>(
+  layout: State
+): Provable<{ [K in keyof State]: ProvableInstance<State[K]> }> {
+  // TODO: Check sizeInFields
+  const sizeInFields = Object.values(layout)
     .map((T) => T.sizeInFields())
     .reduce((a, b) => a + b, 0);
 
   return {
-    Layout,
     sizeInFields(): number {
       return sizeInFields;
     },
-    toFields(x: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): Field[] {
-      const fields = [];
-      for (const key in Layout) {
-        fields.push(...Layout[key].toFields(x[key]));
+    toFields(x: StateValue<State>): Field[] {
+      const fields: Field[] = [];
+      for (const key in layout) {
+        fields.push(...layout[key].toFields(x[key]));
       }
       return fields;
     },
-    toAuxiliary(x?: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): any[] {
+    toAuxiliary(x?: StateValue<State>): any[] {
       const aux = [];
-      for (const key in Layout) {
-        aux.push(Layout[key].toAuxiliary(x !== undefined ? x[key] : undefined));
+      for (const key in layout) {
+        aux.push(layout[key].toAuxiliary(x !== undefined ? x[key] : undefined));
       }
       return aux;
     },
-    fromFields(
-      _fields: Field[],
-      _aux: any[]
-    ): { [name in keyof State]: ProvableInstance<State[name]> } {
+    fromFields(_fields: Field[], _aux: any[]): StateValue<State> {
       throw new Error('TODO');
     },
-    toValue(x: { [name in keyof State]: ProvableInstance<State[name]> }): {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    } {
+    toValue(x: StateValue<State>): StateValue<State> {
       return x;
     },
-    fromValue(x: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): { [name in keyof State]: ProvableInstance<State[name]> } {
+    fromValue(x: StateValue<State>): StateValue<State> {
       return x;
     },
-    check(_x: {
-      [name in keyof State]: ProvableInstance<State[name]>;
-    }): void {
+    check(_x: StateValue<State>): void {
       throw new Error('TODO');
     },
-  } as StateDefinition<State>;
-  // TODO: ^ get rid of the type-cast here (typescript's error message here is very unhelpful)
+  };
+}
+
+/**
+ * Helper function to define a valid {@link StateDefinition} when using a custom state layout.
+ *
+ * @note If using a {@link GenericStateDefinition} then the StateDefinition is always `GenericState`
+ * and there's not need to call this function to calculate it.
+ */
+// TODO: allow for explicit ordering/mapping of state field indices
+function State<State extends CustomStateLayout>(Layout: State): CustomStateDefinition<State> {
+  // TODO: proxy provable definition out of Struct with helper
+  // class StateDef extends Struct(Layout) {}
+  const provable = createProvableFromLayout(Layout);
+
+  return {
+    Layout,
+    ...provable,
+  };
 }
 
 type StatePreconditions<State extends StateLayout> = State extends 'GenericState'
