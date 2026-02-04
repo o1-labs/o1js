@@ -28,6 +28,11 @@ This project adheres to
 
 ### Added
 
+- Added transaction depth and finality API to determine canonical finality of
+  included L1 transactions. `IncludedTransaction` now exposes `getDepth()`,
+  `safeGetDepth()`, and `waitForFinality()` methods. A standalone
+  `fetchTransactionDepth()` function is also available for querying by
+  transaction hash. https://github.com/o1-labs/o1js/pull/2749
 - Export `fetchCurrentSlot` publicly as the supported way to query the current
   slot from a remote blockchain. The function now returns the global slot since
   genesis by default and can optionally return the epoch slot (previously the

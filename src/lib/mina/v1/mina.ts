@@ -303,7 +303,7 @@ function Network(
           try {
             res = await Fetch.checkZkappTransaction(transactionHash);
             if (res.success) {
-              return createIncludedTransaction(pendingTransaction);
+              return createIncludedTransaction(pendingTransaction, res.blockHeight);
             } else if (res.failureReason) {
               const error = invalidTransactionError(txn.transaction, res.failureReason, {
                 accountCreationFee: defaultNetworkConstants.accountCreationFee.toString(),
