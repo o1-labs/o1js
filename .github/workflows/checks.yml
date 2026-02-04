@@ -323,7 +323,7 @@ jobs:
     if: github.event.pull_request.base.ref != 'develop' 
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:master-latest-lightnet
+        image: o1labs/mina-local-network:master-latest-lightnet-experimental
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
@@ -359,7 +359,7 @@ jobs:
     if: github.event.pull_request.base.ref != 'develop' 
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:compatible-latest-lightnet
+        image: o1labs/mina-local-network:compatible-latest-lightnet-experimental
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
@@ -395,7 +395,7 @@ jobs:
     if: github.event.pull_request.base.ref == 'develop'
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:develop-latest-lightnet
+        image: o1labs/mina-local-network:develop-latest-lightnet-experimental
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
