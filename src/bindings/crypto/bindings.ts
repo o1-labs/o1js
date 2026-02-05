@@ -47,15 +47,12 @@ const tsBindings = {
 type Rust = typeof rustNamespace;
 type Wasm = Rust;
 type Napi = Rust;
-type BackendKind = 'wasm' | 'napi';
+type BackendKind = 'wasm' | 'native';
 
 // Whether or not native backend is in use
-function getKimchiBackend(rust: Rust): 'native' | 'wasm' | undefined {
-  return (rust as any).__kimchi_backend ?? (globalThis as any)?.__kimchi_backend;
-}
-
-function shouldUseNativeConversion(rust: Rust): boolean {
-  return getKimchiBackend(rust) === 'native';
+function getKimchiBackend(rust: Rust): BackendKind {
+  const backend = (rust as any).__kimchi_backend ?? (globalThis as any)?.__kimchi_backend;
+  return backend === 'native' ? 'native' : 'wasm';
 }
 
 type WasmConversion = ReturnType<typeof buildWasmRustConversion>;
@@ -66,9 +63,9 @@ type RustConversion<B extends BackendKind = BackendKind> = B extends 'wasm'
   : NapiConversion;
 
 function getRustConversion(rust: Rust): RustConversion {
-  return shouldUseNativeConversion(rust)
-    ? buildNapiRustConversion(rust)
-    : buildWasmRustConversion(rust);
+  return getKimchiBackend(rust) === 'wasm'
+    ? buildWasmRustConversion(rust)
+    : buildNapiRustConversion(rust);
 }
 
 function buildWasmRustConversion(wasm: Rust) {
@@ -111,10 +108,10 @@ type ConversionBundle<B extends BackendKind> = {
 };
 
 function getConversionBundle(rust: Rust): ConversionBundle<BackendKind> {
-  if (shouldUseNativeConversion(rust)) {
-    const conversion = buildNapiRustConversion(rust);
-    return { kind: 'napi', rust, conversion, srs: napiSrs(rust, conversion) };
+  if (getKimchiBackend(rust) === 'wasm') {
+    const conversion = buildWasmRustConversion(rust);
+    return { kind: 'wasm', rust, conversion, srs: wasmSrs(rust, conversion) };
   }
-  const conversion = buildWasmRustConversion(rust);
-  return { kind: 'wasm', rust, conversion, srs: wasmSrs(rust, conversion) };
+  const conversion = buildNapiRustConversion(rust);
+  return { kind: 'native', rust, conversion, srs: napiSrs(rust, conversion) };
 }
