@@ -1,20 +1,18 @@
-import { MlArray } from '../../lib/ml/base.js';
+import { MlArray } from '../../../lib/ml/base.js';
 import {
   readCache,
   withVersion,
   writeCache,
   type Cache,
   type CacheHeader,
-} from '../../lib/proof-system/cache.js';
-import { assert } from '../../lib/util/errors.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../compiled/node_bindings/plonk_wasm.cjs';
-import type { Napi, RustConversion } from './bindings.js';
-import { OrInfinity, OrInfinityJson } from './bindings/curve.js';
-import { PolyComm } from './bindings/kimchi-types.js';
+} from '../../../lib/proof-system/cache.js';
+import { assert } from '../../../lib/util/errors.js';
+import type { RustConversion } from '../bindings.js';
+import type { Napi, NapiAffine, NapiPolyComm, NapiPolyComms, NapiSrs } from './napi-wrappers.js';
+import { OrInfinity, OrInfinityJson } from '../bindings/curve.js';
+import { PolyComm } from '../bindings/kimchi-types.js';
 
 export { setSrsCache, srs, unsetSrsCache };
-
-type NapiSrs = WasmFpSrs | WasmFqSrs;
 
 type SrsStore = Record<number, NapiSrs>;
 
@@ -62,14 +60,14 @@ function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
   );
 }
 
-function srs(napi: Napi, conversion: RustConversion) {
+function srs(napi: Napi, conversion: RustConversion<'native'>) {
   return {
     fp: srsPerField('fp', napi, conversion),
     fq: srsPerField('fq', napi, conversion),
   };
 }
 
-function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
+function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'native'>) {
   // note: these functions are properly typed, thanks to TS template literal types
   let createSrs = (size: number) => {
     try {
@@ -80,10 +78,10 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
     }
   };
 
-  let getSrs = (srs: NapiSrs) => {
+  let getSrs = (srs: NapiSrs): NapiAffine[] => {
     try {
-      let v = napi[`caml_${f}_srs_get`](srs);
-      return v;
+      let fn = napi[`caml_${f}_srs_get`] as unknown as (value: NapiSrs) => NapiAffine[];
+      return fn(srs);
     } catch (error) {
       console.error(`Error in SRS get for field ${f}`);
       throw error;
@@ -97,43 +95,70 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
       return true;
     }
   };
-  let setSrs = (bytes: any) => {
+  let setSrs = (points: NapiAffine[]) => {
     try {
-      return napi[`caml_${f}_srs_set`](bytes);
+      let fn = napi[`caml_${f}_srs_set`] as unknown as (value: NapiAffine[]) => NapiSrs;
+      return fn(points);
     } catch (error) {
-      console.error(`Error in SRS set for field ${f} args ${bytes}`);
+      console.error(`Error in SRS set for field ${f} args ${points}`);
       throw error;
     }
   };
 
-  let maybeLagrangeCommitment = (srs: NapiSrs, domain_size: number, i: number) => {
+  let maybeLagrangeCommitment = (
+    srs: NapiSrs,
+    domain_size: number,
+    i: number
+  ): NapiPolyComm | undefined | null => {
     try {
-      let s = napi[`caml_${f}_srs_maybe_lagrange_commitment`](srs, domain_size, i);
-      return s;
+      let fn = napi[`caml_${f}_srs_maybe_lagrange_commitment`] as unknown as (
+        srsValue: NapiSrs,
+        domainSizeValue: number,
+        index: number
+      ) => NapiPolyComm | undefined | null;
+      return fn(srs, domain_size, i);
     } catch (error) {
       console.error(`Error in SRS maybe lagrange commitment for field ${f}`);
       throw error;
     }
   };
-  let lagrangeCommitment = (srs: NapiSrs, domain_size: number, i: number) => {
+  let lagrangeCommitment = (
+    srs: NapiSrs,
+    domain_size: number,
+    i: number
+  ): NapiPolyComm => {
     try {
-      return napi[`caml_${f}_srs_lagrange_commitment`](srs, domain_size, i);
+      let fn = napi[`caml_${f}_srs_lagrange_commitment`] as unknown as (
+        srsValue: NapiSrs,
+        domainSizeValue: number,
+        index: number
+      ) => NapiPolyComm;
+      return fn(srs, domain_size, i);
     } catch (error) {
       console.error(`Error in SRS lagrange commitment for field ${f}`);
       throw error;
     }
   };
-  let setLagrangeBasis = (srs: NapiSrs, domain_size: number, input: any) => {
+  let setLagrangeBasis = (srs: NapiSrs, domain_size: number, input: NapiPolyComms) => {
     try {
-      return napi[`caml_${f}_srs_set_lagrange_basis`](srs, domain_size, input);
+      let fn = napi[`caml_${f}_srs_set_lagrange_basis`] as unknown as (
+        srsValue: NapiSrs,
+        domainSizeValue: number,
+        comms: NapiPolyComms
+      ) => void;
+      return fn(srs, domain_size, input);
     } catch (error) {
       console.error(`Error in SRS set lagrange basis for field ${f}`);
       throw error;
     }
   };
-  let getLagrangeBasis = (srs: NapiSrs, n: number) => {
+  let getLagrangeBasis = (srs: NapiSrs, n: number): NapiPolyComms => {
     try {
-      return napi[`caml_${f}_srs_get_lagrange_basis`](srs, n);
+      let fn = napi[`caml_${f}_srs_get_lagrange_basis`] as unknown as (
+        srsValue: NapiSrs,
+        nValue: number
+      ) => NapiPolyComms;
+      return fn(srs, n);
     } catch (error) {
       console.error(`Error in SRS get lagrange basis for field ${f}`);
       throw error;
@@ -159,7 +184,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
           let header = cacheHeaderSrs(f, size);
 
           // try to read SRS from cache / recompute and write if not found
-          srs = readCache(cache, header, (bytes) => {
+          srs = readCache(cache, header, (bytes: Uint8Array) => {
             // TODO: this takes a bit too long, about 300ms for 2^16
             // `pointsToRust` is the clear bottleneck
             let jsonSrs: OrInfinityJson[] = JSON.parse(new TextDecoder().decode(bytes));
@@ -185,9 +210,6 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
         }
         srsStore[f][size] = srs;
       }
-
-      // TODO should we call freeOnFinalize() and expose a function to clean the SRS cache?
-      //console.trace('Returning SRS:', srs);
       return srsStore[f][size];
     },
 
@@ -217,8 +239,6 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
           if (didRead !== true) {
             // not in cache
             if (cache.canWrite) {
-              // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
-              // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
               let napiComms = getLagrangeBasis(srs, domainSize);
               let mlComms = conversion[f].polyCommsFromRust(napiComms);
               let comms = polyCommsToJSON(mlComms);
@@ -260,6 +280,9 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
 
           writeCache(cache, header, bytes);
         }
+      }
+      if (commitment == null) {
+        throw Error('lagrangeCommitment: missing commitment');
       }
       return conversion[f].polyCommFromRust(commitment);
     },
@@ -314,14 +337,14 @@ function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
 function readCacheLazy(
   cache: Cache,
   header: CacheHeader,
-  conversion: RustConversion,
+  conversion: RustConversion<'native'>,
   f: 'fp' | 'fq',
   srs: NapiSrs,
   domainSize: number,
-  setLagrangeBasis: (srs: NapiSrs, domainSize: number, comms: Uint32Array) => void
+  setLagrangeBasis: (srs: NapiSrs, domainSize: number, comms: NapiPolyComms) => void
 ) {
   if (CacheReadRegister.get(header.uniqueId) === true) return true;
-  return readCache(cache, header, (bytes) => {
+  return readCache(cache, header, (bytes: Uint8Array) => {
     let comms: PolyCommJson[] = JSON.parse(new TextDecoder().decode(bytes));
     let mlComms = polyCommsFromJSON(comms);
     let napiComms = conversion[f].polyCommsToRust(mlComms);
@@ -330,14 +353,4 @@ function readCacheLazy(
     CacheReadRegister.set(header.uniqueId, true);
     return true;
   });
-}
-function runInTryCatch<T extends (...args: any[]) => any>(fn: T): T {
-  return function (...args: Parameters<T>): ReturnType<T> {
-    try {
-      return fn(...args);
-    } catch (e) {
-      console.error(`Error in SRS function ${fn.name} with args:`, args);
-      throw e;
-    }
-  } as T;
 }

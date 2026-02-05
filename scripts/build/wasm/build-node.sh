@@ -16,10 +16,10 @@ mkdir -p $BINDINGS_PATH
 info "building Kimchi bindings for node..."
 
 TARGETS=(\
-  plonk_wasm_bg.wasm \
-  plonk_wasm_bg.wasm.d.ts \
-  plonk_wasm.js \
-  plonk_wasm.d.ts \
+  kimchi_wasm_bg.wasm \
+  kimchi_wasm_bg.wasm.d.ts \
+  kimchi_wasm.js \
+  kimchi_wasm.d.ts \
 )
 dune build ${TARGETS[@]/#/$KIMCHI_PATH/}
 
@@ -32,10 +32,10 @@ done
 
 info "moving some files to CommonJS format..."
 
-mv $BINDINGS_PATH/plonk_wasm.js $BINDINGS_PATH/plonk_wasm.cjs
-mv $BINDINGS_PATH/plonk_wasm.d.ts $BINDINGS_PATH/plonk_wasm.d.cts
+mv $BINDINGS_PATH/kimchi_wasm.js $BINDINGS_PATH/kimchi_wasm.cjs
+mv $BINDINGS_PATH/kimchi_wasm.d.ts $BINDINGS_PATH/kimchi_wasm.d.cts
 
 info "autofixing wasm bindings for Node.JS..."
-run_cmd node src/build/fix-wasm-bindings-node.js $BINDINGS_PATH/plonk_wasm.cjs
+run_cmd node src/build/fix-wasm-bindings-node.js $BINDINGS_PATH/kimchi_wasm.cjs
 
 success "WASM node build success!"

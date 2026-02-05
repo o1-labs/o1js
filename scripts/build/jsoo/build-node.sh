@@ -34,7 +34,7 @@ run_cmd mv -f $BINDINGS_PATH/o1js_node.bc.js $BINDINGS_PATH/o1js_node.bc.cjs
 ok "Node.js bindings copied"
 
 info "Updating WASM references in bindings..."
-run_cmd sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' $BINDINGS_PATH/o1js_node.bc.cjs
+run_cmd sed -i 's/kimchi_wasm.js/kimchi_wasm.cjs/' $BINDINGS_PATH/o1js_node.bc.cjs
 ok "WASM references updated"
 
 info "fixing JS bindings for better error handling..."

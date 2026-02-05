@@ -1,4 +1,4 @@
-import wasm from '../../../web_bindings/plonk_wasm.js';
+import wasm from '../../../web_bindings/kimchi_wasm.js';
 
 export {
   srcFromFunctionModule,

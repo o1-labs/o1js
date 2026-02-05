@@ -129,7 +129,7 @@ function makeO1jsExternal() {
 }
 
 function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
+  let isJsoo = /(bc.cjs|kimchi_wasm.cjs)$/;
   return {
     name: 'plugin-external',
     setup(build) {

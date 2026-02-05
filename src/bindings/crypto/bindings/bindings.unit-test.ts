@@ -36,7 +36,7 @@ import {
   WasmGVesta,
   WasmPallasGProjective,
   WasmVestaGProjective,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+} from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import { FiniteField, Fp, Fq } from '../finite-field.js';
 
 let number: ToSpec<number, number> = { back: id };

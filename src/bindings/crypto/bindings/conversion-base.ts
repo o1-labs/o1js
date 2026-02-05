@@ -4,7 +4,7 @@ import type {
   WasmGVesta,
   WasmPallasGProjective,
   WasmVestaGProjective,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+} from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import { bigintToBytes32, bytesToBigint32 } from '../bigint-helpers.js';
 import { Infinity, OrInfinity } from './curve.js';
 import { Field } from './field.js';

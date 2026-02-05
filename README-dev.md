@@ -156,11 +156,11 @@ against the Wasm backend.
 
 For the Wasm build, the output files are:
 
-- `plonk_wasm_bg.wasm`: The compiled WebAssembly binary.
-- `plonk_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types of
+- `kimchi_wasm_bg.wasm`: The compiled WebAssembly binary.
+- `kimchi_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types of
   .wasm or .js files.
-- `plonk_wasm.js`: JavaScript file that wraps the Wasm code for use in Node.js.
-- `plonk_wasm.d.ts`: TypeScript definition file for plonk_wasm.js.
+- `kimchi_wasm.js`: JavaScript file that wraps the Wasm code for use in Node.js.
+- `kimchi_wasm.d.ts`: TypeScript definition file for kimchi_wasm.js.
 
 ### Generated Constant Types
 

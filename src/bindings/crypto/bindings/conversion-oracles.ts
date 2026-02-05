@@ -3,8 +3,8 @@ import type {
   WasmFpRandomOracles,
   WasmFqOracles,
   WasmFqRandomOracles,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+} from '../../compiled/node_bindings/kimchi_wasm.cjs';
+import type * as wasmNamespace from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import { MlOption } from '../../../lib/ml/base.js';
 import { Field, Oracles, RandomOracles, ScalarChallenge } from './kimchi-types.js';
 import {

@@ -1,4 +1,4 @@
-import plonkWasm from '../../../web_bindings/plonk_wasm.js';
+import kimchiWasm from '../../../web_bindings/kimchi_wasm.js';
 import { workerSpec } from './worker-spec.js';
 import { srcFromFunctionModule, inlineWorker, waitForMessage } from './worker-helpers.js';
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
@@ -18,8 +18,8 @@ let workerPromise;
 let numWorkers = undefined;
 
 async function initializeBindings() {
-  wasm = plonkWasm();
-  globalThis.plonk_wasm = wasm;
+  wasm = kimchiWasm();
+  globalThis.kimchi_wasm = wasm;
   let init = wasm.default;
 
   const memory = allocateWasmMemoryForUserAgent(navigator.userAgent);
@@ -43,7 +43,7 @@ async function initializeBindings() {
     setTimeout(async () => {
       let worker = inlineWorker(srcFromFunctionModule(mainWorker));
       await workerCall(worker, 'start', { memory, module });
-      overrideBindings(globalThis.plonk_wasm, worker);
+      overrideBindings(globalThis.kimchi_wasm, worker);
       resolve(worker);
     }, 0);
   });
@@ -65,7 +65,7 @@ async function exitThreadPool() {
 const withThreadPool = WithThreadPool({ initThreadPool, exitThreadPool });
 
 async function mainWorker() {
-  const wasm = plonkWasm();
+  const wasm = kimchiWasm();
   let init = wasm.default;
 
   let spec = workerSpec(wasm);
@@ -116,12 +116,12 @@ async function mainWorker() {
   await init(module, memory);
   postMessage({ type: data.id });
 }
-mainWorker.deps = [plonkWasm, workerSpec, workerExport, onMessage, waitForMessage];
+mainWorker.deps = [kimchiWasm, workerSpec, workerExport, onMessage, waitForMessage];
 
-function overrideBindings(plonk_wasm, worker) {
-  let spec = workerSpec(plonk_wasm);
+function overrideBindings(kimchi_wasm, worker) {
+  let spec = workerSpec(kimchi_wasm);
   for (let key in spec) {
-    plonk_wasm[key] = (...args) => {
+    kimchi_wasm[key] = (...args) => {
       if (spec[key].disabled) throw Error(`Wasm method '${key}' is disabled on the web.`);
       let u32_ptr = wasm.create_zero_u32_ptr();
       worker.postMessage({

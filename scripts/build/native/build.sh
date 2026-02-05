@@ -42,7 +42,7 @@ cat > $BINDINGS_PATH/package.json <<EOF
     }
   },
   "files": [
-    "plonk_napi.node",
+    "kimchi_napi.node",
     "index.d.ts",
     "index.js"
   ],
@@ -61,11 +61,11 @@ To use this package, please refer to [o1js](https://www.npmjs.com/package/o1js)
 
 EOF
 
-echo "module.exports = require('./plonk_napi.node')" > $BINDINGS_PATH/index.js
+echo "module.exports = require('./kimchi_napi.node')" > $BINDINGS_PATH/index.js
 
 info "copying artifacts into the right place..."
-cp $BUILT_PATH/plonk_napi.node $BINDINGS_PATH/plonk_napi.node
-chmod 660 $BINDINGS_PATH/plonk_napi.node
+cp $BUILT_PATH/kimchi_napi.node $BINDINGS_PATH/kimchi_napi.node
+chmod 660 $BINDINGS_PATH/kimchi_napi.node
 cp $BUILT_PATH/index.d.ts $BINDINGS_PATH/index.d.ts
 chmod 660 $BINDINGS_PATH/index.d.ts
 

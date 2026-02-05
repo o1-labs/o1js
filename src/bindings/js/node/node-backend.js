@@ -2,12 +2,12 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
-import wasm_ from '../../compiled/node_bindings/plonk_wasm.cjs';
+import wasm_ from '../../compiled/node_bindings/kimchi_wasm.cjs';
 let url = import.meta.url;
 let filename = url !== undefined ? fileURLToPath(url) : __filename;
 
 /**
- * @type {import("../../compiled/node_bindings/plonk_wasm.cjs")}
+ * @type {import("../../compiled/node_bindings/kimchi_wasm.cjs")}
  */
 const wasm = wasm_;
 
