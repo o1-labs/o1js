@@ -26,6 +26,12 @@ This project adheres to
   state, instead of throwing an error about missing implementation.
   https://github.com/o1-labs/o1js/pull/2736
 
+### Changed
+
+- Added an optional `network: NetworkId` parameter to `Signature.verify` and
+  `Signature.create` to account for different network prefixes and nonces.
+  https://github.com/o1-labs/o1js/pull/2744
+
 ### Added
 
 - Added transaction depth and finality API to determine canonical finality of

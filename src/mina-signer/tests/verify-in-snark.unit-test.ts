@@ -1,15 +1,17 @@
-import { Field } from '../../lib/provable/wrapped.js';
-import { ZkProgram } from '../../lib/proof-system/zkprogram.js';
-import Client from '../mina-signer.js';
-import { PrivateKey, Signature } from '../../lib/provable/crypto/signature.js';
 import { expect } from 'expect';
+import { ZkProgram } from '../../lib/proof-system/zkprogram.js';
+import { PrivateKey, Signature } from '../../lib/provable/crypto/signature.js';
 import { Provable } from '../../lib/provable/provable.js';
+import { Field } from '../../lib/provable/wrapped.js';
+import Client, { NetworkId } from '../mina-signer.js';
+
+const network: NetworkId = 'mainnet';
 
 let fields = [10n, 20n, 30n, 340817401n, 2091283n, 1n, 0n];
 let privateKey = 'EKENaWFuAiqktsnWmxq8zaoR8bSgVdscsghJE5tV6hPoNm8qBKWM';
 
 // sign with mina-signer
-let client = new Client({ network: 'mainnet' });
+let client = new Client({ network });
 let signed = client.signFields(fields, privateKey);
 
 // verify with mina-signer
@@ -19,14 +21,14 @@ expect(ok).toEqual(true);
 // sign with o1js and check that we get the same signature
 let fieldsSnarky = fields.map(Field);
 let privateKeySnarky = PrivateKey.fromBase58(privateKey);
-let signatureSnarky = Signature.create(privateKeySnarky, fieldsSnarky);
+let signatureSnarky = Signature.create(privateKeySnarky, fieldsSnarky, network);
 expect(signatureSnarky.toBase58()).toEqual(signed.signature);
 
 // verify out-of-snark with o1js
 let publicKey = privateKeySnarky.toPublicKey();
 let signature = Signature.fromBase58(signed.signature);
 Provable.assertEqual(Signature, signature, signatureSnarky);
-signature.verify(publicKey, fieldsSnarky).assertTrue();
+signature.verify(publicKey, fieldsSnarky, network).assertTrue();
 
 // verify in-snark with o1js
 const Message = Provable.Array(Field, fields.length);
@@ -37,7 +39,7 @@ const MyProgram = ZkProgram({
     verifySignature: {
       privateInputs: [Signature, Message],
       async method(signature: Signature, message: Field[]) {
-        signature.verify(publicKey, message).assertTrue();
+        signature.verify(publicKey, message, network).assertTrue();
       },
     },
   },
