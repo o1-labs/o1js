@@ -7,6 +7,7 @@ import { assert, bitSlice, toVar, toVars } from './common.js';
 import { exists } from '../core/exists.js';
 import { createBool, createField } from '../core/field-constructor.js';
 import { TupleN } from '../../util/types.js';
+import { Provable } from '../provable.js';
 
 export {
   rangeCheck64,
@@ -19,6 +20,7 @@ export {
   rangeCheck16,
   rangeCheckLessThan16,
   rangeCheckLessThan64,
+  rangeCheck128Signed,
 };
 export { l, l2, l3, lMask, l2Mask };
 
@@ -365,4 +367,19 @@ function rangeCheckLessThan64(bits: number, x: Field) {
   // check that 2^(64 - bits)*x < 2^64, i.e. x < 2^bits
   let xM = x.mul(1 << (64 - bits)).seal();
   rangeCheck64(xM);
+}
+
+function rangeCheck128Signed(xSigned: Field) {
+  let x = xSigned.add(1n << 127n);
+
+  let [x0, x1] = Provable.witnessFields(2, () => {
+    const x0 = x.toBigInt() & ((1n << 64n) - 1n);
+    const x1 = x.toBigInt() >> 64n;
+    return [x0, x1];
+  });
+
+  rangeCheck64(x0);
+  rangeCheck64(x1);
+
+  x0.add(x1.mul(1n << 64n)).assertEquals(x);
 }
