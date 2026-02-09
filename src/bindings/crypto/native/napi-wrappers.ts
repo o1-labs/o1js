@@ -201,7 +201,6 @@ export type NapiVerifierIndexShape = {
 };
 
 export type NapiCoreClasses = {
-  CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;
   makeAffine: () => NapiAffine;
   PolyComm: typeof napiNamespace.WasmFpPolyComm | typeof napiNamespace.WasmFqPolyComm;
 };

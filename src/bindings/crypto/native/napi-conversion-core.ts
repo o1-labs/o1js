@@ -33,12 +33,10 @@ function wireFromRust({ row, col }: { row: number; col: number }): Wire {
 
 function napiConversionCore(napi: Napi) {
   const fpCore = conversionCorePerField({
-    CommitmentCurve: napi.WasmGVesta,
     makeAffine: napi.caml_vesta_affine_one,
     PolyComm: napi.WasmFpPolyComm,
   });
   const fqCore = conversionCorePerField({
-    CommitmentCurve: napi.WasmGPallas,
     makeAffine: napi.caml_pallas_affine_one,
     PolyComm: napi.WasmFqPolyComm,
   });
@@ -136,9 +134,6 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiCoreClasses) {
     return [0, [0, xField, yField]];
   };
 
-  const pointToRust = (point: OrInfinity): NapiAffine => affineToRust(point);
-  const pointFromRust = (point: NapiAffine): OrInfinity => affineFromRust(point);
-
   const pointsToRust = ([, ...points]: MlArray<OrInfinity>): NapiAffine[] =>
     points.map(affineToRust);
   const pointsFromRust = (points: ArrayLike<NapiAffine>): MlArray<OrInfinity> => [
@@ -178,8 +173,8 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiCoreClasses) {
     gateFromRust,
     affineToRust,
     affineFromRust,
-    pointToRust,
-    pointFromRust,
+    pointToRust: affineToRust,
+    pointFromRust: affineFromRust,
     pointsToRust,
     pointsFromRust,
     polyCommToRust,
