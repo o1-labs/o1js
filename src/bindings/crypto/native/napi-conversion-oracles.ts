@@ -76,8 +76,6 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiOraclesClasse
       [0, fieldFromRust(ro.v_chal)],
       [0, fieldFromRust(ro.u_chal)],
     ];
-    // TODO: do we not want to free?
-    // ro.free();
     return mlRo;
   }
 
@@ -100,8 +98,7 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiOraclesClasse
         fieldsFromRustFlat(oracles.opening_prechallenges),
         fieldFromRust(oracles.digest_before_evaluations),
       ];
-      // TODO: do we not want to free?
-      // oracles.free();
+
       return mlOracles;
     },
   };
