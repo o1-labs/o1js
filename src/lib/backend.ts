@@ -31,6 +31,7 @@ function setBackend(backend: Backend) {
     console.error(
       "No-op: `setBackend()`:The native backend is not available in the browser. Only 'wasm' is supported. Falling back to 'wasm' backend."
     );
+    (globalThis as any).__o1js_backend_preference = 'wasm';
   }
   (globalThis as any).__o1js_backend_preference = backend;
 }
