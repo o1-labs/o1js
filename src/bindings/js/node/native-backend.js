@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { WithThreadPool } from '../../../lib/proof-system/workers.js';
 
 const { platform, arch } = process;
@@ -5,9 +6,8 @@ const slug = `@o1js/native-${platform}-${arch}`;
 
 let wasm;
 try {
-  const { createRequire } = await import('node:module');
-  const require = createRequire(import.meta.url);
-  wasm = require(slug);
+  const require_ = createRequire(import.meta.url);
+  wasm = require_(slug);
 } catch (e) {
   throw new Error(
     `Native backend requested but '${slug}' is not installed.\n` +
