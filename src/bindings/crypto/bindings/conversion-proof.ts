@@ -177,7 +177,6 @@ function proofConversionPerField(
   }
 
   function runtimeTableToRust([, id, data]: RuntimeTable): WasmRuntimeTable {
-    console.log('old runtime table to rust!');
     return new RuntimeTable(id, core.vectorToRust(data));
   }
 
