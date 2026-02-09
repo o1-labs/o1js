@@ -26,6 +26,14 @@ const pkgJson = await readFile(packageJsonPath, 'utf8').then(JSON.parse);
 
 pkgJson.version = nativeVersion;
 
+// strip optionalDependencies
+// update versions to match the native version
+if (pkgJson.optionalDependencies) {
+  for (const dep of Object.keys(pkgJson.optionalDependencies)) {
+    pkgJson.optionalDependencies[dep] = nativeVersion;
+  }
+}
+
 if (write) {
   await writeFile(packageJsonPath, JSON.stringify(pkgJson, null, 2));
 } else {
