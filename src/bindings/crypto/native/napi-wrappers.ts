@@ -158,7 +158,6 @@ export type NapiLookupSelectorShape = {
   lookup?: NapiPolyComm | undefined;
   xor?: NapiPolyComm | undefined;
   range_check?: NapiPolyComm | undefined;
-  rangeCheck?: NapiPolyComm | undefined;
   ffmul?: NapiPolyComm | undefined;
 };
 
