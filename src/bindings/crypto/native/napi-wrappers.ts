@@ -6,37 +6,37 @@ import type {
   WasmFpLookupVerifierIndex as NapiFpLookupVerifierIndex,
   WasmFpOpeningProof as NapiFpOpeningProof,
   WasmFpOracles as NapiFpOracles,
-  WasmFpPolyComm as NapiFpPolyComm,
   WasmFpPlonkVerificationEvals as NapiFpPlonkVerificationEvals,
   WasmFpPlonkVerifierIndex as NapiFpPlonkVerifierIndex,
+  WasmFpPolyComm as NapiFpPolyComm,
   WasmFpProverCommitments as NapiFpProverCommitments,
   WasmFpProverProof as NapiFpProverProof,
   WasmFpRandomOracles as NapiFpRandomOracles,
   WasmFpRuntimeTable as NapiFpRuntimeTable,
-  WasmFpSrs as NapiFpSrs,
   WasmFpShifts as NapiFpShifts,
+  WasmFpSrs as NapiFpSrs,
   WasmFqDomain as NapiFqDomain,
   WasmFqLookupCommitments as NapiFqLookupCommitments,
   WasmFqLookupSelectors as NapiFqLookupSelectors,
   WasmFqLookupVerifierIndex as NapiFqLookupVerifierIndex,
   WasmFqOpeningProof as NapiFqOpeningProof,
   WasmFqOracles as NapiFqOracles,
-  WasmFqPolyComm as NapiFqPolyComm,
   WasmFqPlonkVerificationEvals as NapiFqPlonkVerificationEvals,
   WasmFqPlonkVerifierIndex as NapiFqPlonkVerifierIndex,
+  WasmFqPolyComm as NapiFqPolyComm,
   WasmFqProverCommitments as NapiFqProverCommitments,
   WasmFqProverProof as NapiFqProverProof,
   WasmFqRandomOracles as NapiFqRandomOracles,
   WasmFqRuntimeTable as NapiFqRuntimeTable,
-  WasmFqSrs as NapiFqSrs,
   WasmFqShifts as NapiFqShifts,
+  WasmFqSrs as NapiFqSrs,
+  LookupInfo as NapiLookupInfo,
   WasmPastaFpLookupTable as NapiPastaFpLookupTable,
   WasmPastaFpRuntimeTableCfg as NapiPastaFpRuntimeTableCfg,
   WasmPastaFqLookupTable as NapiPastaFqLookupTable,
   WasmPastaFqRuntimeTableCfg as NapiPastaFqRuntimeTableCfg,
   WasmVecVecFp as NapiVecVecFp,
   WasmVecVecFq as NapiVecVecFq,
-  LookupInfo as NapiLookupInfo,
 } from '../../compiled/node_bindings/kimchi_wasm.cjs';
 
 export type Napi = typeof napiNamespace;
@@ -194,9 +194,9 @@ export type NapiVerifierIndexShape = {
   public_: number;
   prev_challenges: number;
   srs: NapiFpPlonkVerifierIndex['srs'] | NapiFqPlonkVerifierIndex['srs'];
-  evals: NapiVerificationEvals;
-  shifts: NapiShifts;
-  lookup_index?: NapiLookupVerifierIndex;
+  evals: NapiVerificationEvalsShape;
+  shifts: NapiShiftsShape;
+  lookup_index?: NapiLookupVerifierIndexShape;
   zk_rows: number;
 };
 
