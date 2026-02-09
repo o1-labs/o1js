@@ -87,18 +87,14 @@ function affineFromRust<A extends WasmAffine>(pt: A): OrInfinity {
   }
 }
 
-const tmpBytes = new Uint8Array(32);
-
 function affineToRust<A extends WasmAffine>(pt: OrInfinity, makeAffine: () => A) {
   let res = makeAffine();
   if (pt === Infinity) {
     res.infinity = true;
   } else {
     let [, [, x, y]] = pt;
-    // we can use the same bytes here every time,
-    // because x and y setters copy the bytes into wasm memory
-    res.x = fieldToRust(x, tmpBytes);
-    res.y = fieldToRust(y, tmpBytes);
+    res.x = fieldToRust(x);
+    res.y = fieldToRust(y);
   }
   return res;
 }

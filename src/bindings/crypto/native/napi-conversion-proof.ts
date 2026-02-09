@@ -28,7 +28,7 @@ import type {
 } from '../bindings/kimchi-types.js';
 import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
 import {
-  arrayFrom,
+  asArrayLike,
   castCtor,
   type Ctor,
 } from './napi-ffi.js';
@@ -335,8 +335,8 @@ function proofConversionPerField(
       const toPointEvals = (
         pe?: NapiPointEvaluationsObject | null
       ): PointEvaluations<Uint8Array> => {
-        const zeta = MlArray.to(arrayFrom<Uint8Array>(pe?.zeta));
-        const zetaOmega = MlArray.to(arrayFrom<Uint8Array>(pe?.zetaOmega));
+        const zeta = MlArray.to(asArrayLike<Uint8Array>(pe?.zeta));
+        const zetaOmega = MlArray.to(asArrayLike<Uint8Array>(pe?.zetaOmega));
         return [0, zeta, zetaOmega];
       };
       const toMlOption = <T,>(
@@ -348,7 +348,7 @@ function proofConversionPerField(
       const publicEvals = pointEvalsOptionFromRust(publicEvalsBytes);
 
       const w = MlArray.to(
-        arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.w).map(
+        asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.w).map(
           toPointEvals
         )
       ) as MlTuple<
@@ -357,7 +357,7 @@ function proofConversionPerField(
       >;
       const z = toPointEvals(evalsSource?.z);
       const s = MlArray.to(
-        arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.s).map(
+        asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.s).map(
           toPointEvals
         )
       ) as MlTuple<
@@ -365,7 +365,7 @@ function proofConversionPerField(
         6
       >;
       const coefficients = MlArray.to(
-        arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.coefficients).map(
+        asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.coefficients).map(
           toPointEvals
         )
       ) as MlTuple<PointEvaluations<Uint8Array>, 15>;
@@ -373,7 +373,7 @@ function proofConversionPerField(
       const lookupSorted = MlArray.mapFrom(
         [
           0,
-          ...arrayFrom<NapiPointEvaluationsObject | null | undefined>(evalsSource?.lookupSorted),
+          ...asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.lookupSorted),
         ] as MlArray<NapiPointEvaluationsObject | null | undefined>,
         (x) => toMlOption(x, toPointEvals)
       ) as MlArray<MlOption<PointEvaluations<Uint8Array>>>;

@@ -7,13 +7,7 @@ export function castCtor<C>(value: unknown): C {
   return value as C;
 }
 
-export function arrayFrom<T>(value: unknown): T[] {
-  if (value == null) return [];
-  if (Array.isArray(value)) return value as T[];
-  return Array.from(value as ArrayLike<T>);
-}
-
-export function asArrayLike<T>(value: unknown, context: string): T[] {
+export function asArrayLike<T>(value: unknown, context = 'asArrayLike'): T[] {
   if (value == null) return [];
   if (Array.isArray(value)) return value as T[];
   if (ArrayBuffer.isView(value)) return Array.from(value as unknown as ArrayLike<T>);
