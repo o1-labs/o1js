@@ -28,6 +28,15 @@ enum KeyType {
   WrapVerificationKey,
 }
 
+function isWasmBackend(): boolean {
+  const backend = (wasm as any).__kimchi_backend ?? (globalThis as any)?.__kimchi_backend;
+  return backend !== 'native';
+}
+
+function kimchiBackendTag(): 'wasm' | 'native' {
+  return isWasmBackend() ? 'wasm' : 'native';
+}
+
 type SnarkKeyHeader =
   | [KeyType.StepProvingKey, MlStepProvingKeyHeader]
   | [KeyType.StepVerificationKey, MlStepVerificationKeyHeader]
@@ -49,14 +58,17 @@ function parseHeader(
   header: SnarkKeyHeader
 ): CacheHeader {
   let hash = Pickles.util.fromMlString(header[1][2][6]);
+  let backend = kimchiBackendTag();
   switch (header[0]) {
     case KeyType.StepProvingKey:
     case KeyType.StepVerificationKey: {
       let kind = snarkKeyStringKind[header[0]];
       let methodIndex = header[1][3];
       let methodName = methods[methodIndex].methodName;
-      let persistentId = sanitize(`${kind}-${programName}-${methodName}`);
-      let uniqueId = sanitize(`${kind}-${programName}-${methodIndex}-${methodName}-${hash}`);
+      let persistentId = sanitize(`${kind}-${backend}-${programName}-${methodName}`);
+      let uniqueId = sanitize(
+        `${kind}-${backend}-${programName}-${methodIndex}-${methodName}-${hash}`
+      );
       return {
         version: cacheHeaderVersion,
         uniqueId,
@@ -73,8 +85,8 @@ function parseHeader(
     case KeyType.WrapVerificationKey: {
       let kind = snarkKeyStringKind[header[0]];
       let dataType = snarkKeySerializationType[header[0]];
-      let persistentId = sanitize(`${kind}-${programName}`);
-      let uniqueId = sanitize(`${kind}-${programName}-${hash}`);
+      let persistentId = sanitize(`${kind}-${backend}-${programName}`);
+      let uniqueId = sanitize(`${kind}-${backend}-${programName}-${hash}`);
       return {
         version: cacheHeaderVersion,
         uniqueId,
@@ -95,10 +107,10 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
   switch (value[0]) {
     case KeyType.StepProvingKey: {
       let index = value[1][1];
-      let encoded = wasm.caml_pasta_fp_plonk_index_encode(
+      if (!isWasmBackend()) return (wasm as any).prover_index_fp_serialize(index);
+      return wasm.caml_pasta_fp_plonk_index_encode(
         (wasm as any).prover_index_fp_deserialize((wasm as any).prover_index_fp_serialize(index))
       );
-      return encoded;
     }
     case KeyType.StepVerificationKey: {
       let vkMl = value[1];
@@ -109,10 +121,10 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     }
     case KeyType.WrapProvingKey: {
       let index = value[1][1];
-      let encoded = wasm.caml_pasta_fq_plonk_index_encode(
+      if (!isWasmBackend()) return (wasm as any).prover_index_fq_serialize(index);
+      return wasm.caml_pasta_fq_plonk_index_encode(
         (wasm as any).prover_index_fq_deserialize((wasm as any).prover_index_fq_serialize(index))
       );
-      return encoded;
     }
     case KeyType.WrapVerificationKey: {
       let vk = value[1];
@@ -131,8 +143,9 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
 function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
   switch (header[0]) {
     case KeyType.StepProvingKey: {
-      let srs = Pickles.loadSrsFp();
-      let index = wasm.caml_pasta_fp_plonk_index_decode(bytes, srs);
+      let index = isWasmBackend()
+        ? wasm.caml_pasta_fp_plonk_index_decode(bytes, Pickles.loadSrsFp())
+        : (wasm as any).prover_index_fp_deserialize(bytes);
       let cs = header[1][4];
       return [KeyType.StepProvingKey, [0, index, cs]];
     }
@@ -145,8 +158,9 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
       return [KeyType.StepVerificationKey, vkMl];
     }
     case KeyType.WrapProvingKey: {
-      let srs = Pickles.loadSrsFq();
-      let index = wasm.caml_pasta_fq_plonk_index_decode(bytes, srs);
+      let index = isWasmBackend()
+        ? wasm.caml_pasta_fq_plonk_index_decode(bytes, Pickles.loadSrsFq())
+        : (wasm as any).prover_index_fq_deserialize(bytes);
       let cs = header[1][3];
       return [KeyType.WrapProvingKey, [0, index, cs]];
     }
