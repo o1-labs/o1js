@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "2.10.0-dev.5",
+  "version": "2.10.0-dev.6",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -68,6 +68,7 @@
     "prepublish:web": "./scripts/prepublish/prepublish-web.sh",
     "prepublish:node": "./scripts/prepublish/prepublish-node.sh",
     "prepublish:full": "./scripts/prepublish/prepublish-full.sh",
+    "prepublish:native": "./scripts/prepublish/prepublish-native.sh",
     "regression:dump-vks": "./scripts/tests/dump-vks.sh",
     "regression:check-vks": "./scripts/tests/check-vks.sh",
     "regression:dump-perf": "./tests/perf-regression/perf-regression.sh --dump",
@@ -139,12 +140,6 @@
     "reflect-metadata": "^0.1.13",
     "stacktrace-js": "^2.0.2",
     "tslib": "^2.3.0"
-  },
-  "optionalDependencies": {
-    "@o1js/native-darwin-arm64": "file:./native/darwin-arm64",
-    "@o1js/native-darwin-x64": "file:./native/darwin-x64",
-    "@o1js/native-linux-arm64": "file:./native/linux-arm64",
-    "@o1js/native-win32-x64": "file:./native/win32-x64"
   },
   "o1js-internal": {
     "native-version": "0.0.1-dev.5"
