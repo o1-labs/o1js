@@ -13,7 +13,7 @@ pushd $BINDINGS_PATH
   if npm view $PACKAGE_NAME@$VERSION >/dev/null 2>&1; then
     echo "$PACKAGE_NAME@$VERSION already exists. Skipping publish step."
   else
-    npm publish --provenance --access public --tag experimental
+    npm publish ${CI:+--provenance} --access public --tag experimental
   fi
 popd
 
@@ -26,6 +26,6 @@ pushd $META_PATH
   if npm view $META_PACKAGE_NAME@$META_VERSION >/dev/null 2>&1; then
     echo "$META_PACKAGE_NAME@$META_VERSION already exists. Skipping publish step."
   else
-    npm publish --provenance --access public --tag experimental
+    npm publish ${CI:+--provenance} --access public --tag experimental
   fi
 popd
