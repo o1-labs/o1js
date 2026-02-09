@@ -260,8 +260,8 @@
               ];
             });
           inherit (inputs.mina.devShells."${system}".default)
-            PLONK_WASM_NODEJS
-            PLONK_WASM_WEB
+            KIMCHI_WASM_NODEJS
+            KIMCHI_WASM_WEB
             KIMCHI_STUBS
             KIMCHI_STUBS_STATIC_LIB
             ;

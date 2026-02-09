@@ -1,72 +1,45 @@
-import { MlArray } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
+import { MlArray } from '../../../lib/ml/base.js';
 import {
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
-} from './bindings/conversion-base.js';
-import { Field, Gate, LookupTable, OrInfinity, PolyComm, Wire } from './bindings/kimchi-types.js';
-import { mapTuple } from './bindings/util.js';
+} from '../bindings/conversion-base.js';
+import { Field, Gate, OrInfinity, PolyComm, Wire } from '../bindings/kimchi-types.js';
+import { mapTuple } from '../bindings/util.js';
+import type {
+  Napi,
+  NapiAffine,
+  NapiPolyComm,
+  NapiCoreClasses,
+  PolyCommCtor,
+} from './napi-wrappers.js';
+import {
+  asArrayLike,
+} from './napi-ffi.js';
 
 export { ConversionCore, ConversionCores, napiConversionCore };
 
 type ConversionCore = ReturnType<typeof conversionCorePerField>;
 type ConversionCores = ReturnType<typeof napiConversionCore>;
 
-type NapiAffine = napiNamespace.WasmGVesta | napiNamespace.WasmGPallas;
-type NapiPolyComm = { unshifted: unknown; shifted?: NapiAffine | undefined };
-type PolyCommCtor = new (unshifted: unknown, shifted?: NapiAffine | undefined) => NapiPolyComm;
+function wireToRust([, row, col]: Wire) {
+  return { row, col };
+}
 
-type NapiClasses = {
-  CommitmentCurve: typeof napiNamespace.WasmGVesta | typeof napiNamespace.WasmGPallas;
-  makeAffine: () => NapiAffine;
-  PolyComm: napiNamespace.WasmFpPolyComm | napiNamespace.WasmFqPolyComm;
-};
+function wireFromRust({ row, col }: { row: number; col: number }): Wire {
+  return [0, row, col];
+}
 
-function napiConversionCore(napi: any) {
+function napiConversionCore(napi: Napi) {
   const fpCore = conversionCorePerField({
-    CommitmentCurve: napi.WasmGVesta,
     makeAffine: napi.caml_vesta_affine_one,
     PolyComm: napi.WasmFpPolyComm,
   });
   const fqCore = conversionCorePerField({
-    CommitmentCurve: napi.WasmGPallas,
     makeAffine: napi.caml_pallas_affine_one,
     PolyComm: napi.WasmFqPolyComm,
   });
-
-  const shared = {
-    vectorToRust: (fields: any) => fieldsToRustFlat(fields),
-    vectorFromRust: fieldsFromRustFlat,
-    wireToRust([, row, col]: Wire) {
-      return { row, col };
-    },
-    lookupTablesToRust([, ...tables]: MlArray<LookupTable>) {
-      return tables;
-    },
-    runtimeTableCfgsToRust([, ...tables]: MlArray<Uint8Array>) {
-      return tables.map((table) => Array.from(table));
-    },
-    gateToRust(gate: Gate): any {
-      const [, typ, [, ...wires], coeffs] = gate;
-      const mapped = mapTuple(wires, (wire) => this.wireToRust(wire));
-      const nativeWires = {
-        w0: mapped[0],
-        w1: mapped[1],
-        w2: mapped[2],
-        w3: mapped[3],
-        w4: mapped[4],
-        w5: mapped[5],
-        w6: mapped[6],
-      } as const;
-      return {
-        typ,
-        wires: nativeWires,
-        coeffs: Array.from(fieldsToRustFlat(coeffs)),
-      };
-    },
-  };
 
   return {
     fp: {
@@ -75,16 +48,16 @@ function napiConversionCore(napi: any) {
     fq: {
       ...fqCore,
     },
-    ...shared,
+    wireToRust,
+    mapMlArrayToRustVector<TMl, TRust>([, ...array]: [0, ...TMl[]], map: (x: TMl) => TRust) {
+      return array.map(map);
+    },
   };
 }
 
-function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
+function conversionCorePerField({ makeAffine, PolyComm }: NapiCoreClasses) {
   const vectorToRust = (fields: MlArray<Field>) => fieldsToRustFlat(fields);
   const vectorFromRust = fieldsFromRustFlat;
-
-  const wireToRust = ([, row, col]: Wire) => ({ row, col });
-  const wireFromRust = ({ row, col }: { row: number; col: number }): Wire => [0, row, col];
 
   const gateToRust = (gate: Gate) => {
     const [, typ, [, ...wires], coeffs] = gate;
@@ -135,12 +108,6 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return [0, gate.typ, wiresTuple, coeffs];
   };
 
-  const toNodeBuffer = (bytes: Uint8Array): Uint8Array => {
-    const maybeBuffer = (globalThis as unknown as { Buffer?: { from: (b: Uint8Array) => Uint8Array } })
-      .Buffer;
-    return typeof maybeBuffer?.from === 'function' ? maybeBuffer.from(bytes) : bytes;
-  };
-
   const affineToRust = (pt: OrInfinity): NapiAffine => {
     function isFinitePoint(point: OrInfinity): point is [0, [0, Field, Field]] {
       return Array.isArray(point);
@@ -154,8 +121,8 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
       // `WasmGVesta` / `WasmGPallas` are `#[napi(object)]` (plain JS objects), so assigning the
       // same backing buffer to both `x` and `y` corrupts the point. Always use distinct byte
       // arrays for each coordinate.
-      res.x = toNodeBuffer(fieldToRust(x));
-      res.y = toNodeBuffer(fieldToRust(y));
+      res.x = fieldToRust(x);
+      res.y = fieldToRust(y);
     }
     return res;
   };
@@ -167,25 +134,21 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return [0, [0, xField, yField]];
   };
 
-  const pointToRust = (point: OrInfinity): NapiAffine => affineToRust(point);
-  const pointFromRust = (point: NapiAffine): OrInfinity => affineFromRust(point);
-
   const pointsToRust = ([, ...points]: MlArray<OrInfinity>): NapiAffine[] =>
     points.map(affineToRust);
-  const pointsFromRust = (points: NapiAffine[]): MlArray<OrInfinity> => [
+  const pointsFromRust = (points: ArrayLike<NapiAffine>): MlArray<OrInfinity> => [
     0,
-    ...points.map(affineFromRust),
+    ...Array.from(points, affineFromRust),
   ];
 
   const polyCommToRust = (polyComm: PolyComm): NapiPolyComm => {
     const [, camlElems] = polyComm;
     const unshifted = pointsToRust(camlElems);
     const PolyCommClass = PolyComm as unknown as PolyCommCtor;
-    return new PolyCommClass(unshifted as unknown, undefined);
+    return new PolyCommClass(unshifted, undefined);
   };
 
-  const polyCommFromRust = (polyComm: any): any => {
-    if (polyComm == null) return undefined;
+  const polyCommFromRust = (polyComm: NapiPolyComm): PolyComm => {
     const rustUnshifted = asArrayLike<NapiAffine>(polyComm.unshifted, 'polyComm.unshifted');
     const mlUnshifted = rustUnshifted.map(affineFromRust);
     return [0, [0, ...mlUnshifted]];
@@ -202,7 +165,7 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     return [0, ...comms.map(polyCommFromRust)];
   };
 
-  return {
+  const self = {
     vectorToRust,
     vectorFromRust,
     wireToRust,
@@ -210,8 +173,8 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     gateFromRust,
     affineToRust,
     affineFromRust,
-    pointToRust,
-    pointFromRust,
+    pointToRust: affineToRust,
+    pointFromRust: affineFromRust,
     pointsToRust,
     pointsFromRust,
     polyCommToRust,
@@ -219,15 +182,6 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiClasses) {
     polyCommsToRust,
     polyCommsFromRust,
   };
-}
 
-function asArrayLike<T>(value: unknown, context: string): T[] {
-  if (value == null) return [];
-  if (Array.isArray(value)) return value as T[];
-  if (ArrayBuffer.isView(value)) return Array.from(value as unknown as ArrayLike<T>);
-  if (typeof value === 'object' && value !== null && 'length' in (value as { length: unknown })) {
-    const { length } = value as { length: unknown };
-    if (typeof length === 'number') return Array.from(value as ArrayLike<T>);
-  }
-  throw Error(`${context}: expected array-like native values`);
+  return self;
 }

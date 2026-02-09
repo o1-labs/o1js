@@ -1,33 +1,17 @@
-import { MlOption } from '../../lib/ml/base.js';
-import type * as napiNamespace from '../compiled/node_bindings/plonk_wasm.cjs';
-import type {
-  WasmFpOracles,
-  WasmFpRandomOracles,
-  WasmFqOracles,
-  WasmFqRandomOracles,
-} from '../compiled/node_bindings/plonk_wasm.cjs';
+import { MlOption } from '../../../lib/ml/base.js';
 import {
   fieldFromRust,
   fieldToRust,
   fieldsFromRustFlat,
   fieldsToRustFlat,
   maybeFieldToRust,
-} from './bindings/conversion-base.js';
-import { Field, Oracles, RandomOracles, ScalarChallenge } from './bindings/kimchi-types.js';
+} from '../bindings/conversion-base.js';
+import { Field, Oracles, RandomOracles, ScalarChallenge } from '../bindings/kimchi-types.js';
+import type { Napi, NapiOracles, NapiOraclesClasses, NapiRandomOracles } from './napi-wrappers.js';
 
 export { napiOraclesConversion };
 
-type napi = typeof napiNamespace;
-
-type NapiRandomOracles = WasmFpRandomOracles | WasmFqRandomOracles;
-type NapiOracles = WasmFpOracles | WasmFqOracles;
-
-type NapiClasses = {
-  RandomOracles: typeof WasmFpRandomOracles | typeof WasmFqRandomOracles;
-  Oracles: typeof WasmFpOracles | typeof WasmFqOracles;
-};
-
-function napiOraclesConversion(napi: napi) {
+function napiOraclesConversion(napi: Napi) {
   return {
     fp: oraclesConversionPerField({
       RandomOracles: napi.WasmFpRandomOracles,
@@ -40,7 +24,7 @@ function napiOraclesConversion(napi: napi) {
   };
 }
 
-function oraclesConversionPerField({ RandomOracles, Oracles }: NapiClasses) {
+function oraclesConversionPerField({ RandomOracles, Oracles }: NapiOraclesClasses) {
   function randomOraclesToRust(ro: RandomOracles): NapiRandomOracles {
     let jointCombinerMl = MlOption.from(ro[1]);
     let jointCombinerChal = maybeFieldToRust(jointCombinerMl?.[1][1]);
@@ -92,8 +76,6 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiClasses) {
       [0, fieldFromRust(ro.v_chal)],
       [0, fieldFromRust(ro.u_chal)],
     ];
-    // TODO: do we not want to free?
-    // ro.free();
     return mlRo;
   }
 
@@ -116,8 +98,7 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiClasses) {
         fieldsFromRustFlat(oracles.opening_prechallenges),
         fieldFromRust(oracles.digest_before_evaluations),
       ];
-      // TODO: do we not want to free?
-      // oracles.free();
+
       return mlOracles;
     },
   };

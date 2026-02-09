@@ -9,9 +9,9 @@ import { Pickles, wasm } from '../../bindings.js';
 import {
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
-} from '../../bindings/compiled/node_bindings/plonk_wasm.cjs';
+} from '../../bindings/compiled/node_bindings/kimchi_wasm.cjs';
 // TODO: include conversion bundle to decide between wasm and napi conversion
-import { createNativeRustConversion } from '../../bindings/crypto/bindings.js';
+import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
 import { MlString } from '../ml/base.js';
 import { CacheHeader, cacheHeaderVersion } from './cache.js';
@@ -102,7 +102,7 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     }
     case KeyType.StepVerificationKey: {
       let vkMl = value[1];
-      const rustConversion = createNativeRustConversion(wasm);
+      const rustConversion = getRustConversion(wasm);
       let vkWasm = rustConversion.fp.verifierIndexToRust(vkMl);
       let string = wasm.caml_pasta_fp_plonk_verifier_index_serialize(vkWasm);
       return new TextEncoder().encode(string);
@@ -140,7 +140,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
       let srs = Pickles.loadSrsFp();
       let string = new TextDecoder().decode(bytes);
       let vkWasm = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(srs, string);
-      const rustConversion = createNativeRustConversion(wasm);
+      const rustConversion = getRustConversion(wasm);
       let vkMl = rustConversion.fp.verifierIndexFromRust(vkWasm);
       return [KeyType.StepVerificationKey, vkMl];
     }

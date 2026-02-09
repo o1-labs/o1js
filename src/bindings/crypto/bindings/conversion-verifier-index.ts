@@ -1,5 +1,5 @@
 import { MlArray, MlBool, MlOption } from '../../../lib/ml/base.js';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type * as wasmNamespace from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import type {
   WasmFpDomain,
   WasmFpLookupSelectors,
@@ -14,7 +14,7 @@ import type {
   WasmFqPlonkVerifierIndex,
   WasmFqShifts,
   LookupInfo as WasmLookupInfo,
-} from '../../compiled/node_bindings/plonk_wasm.cjs';
+} from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import { fieldFromRust, fieldToRust } from './conversion-base.js';
 import { ConversionCore, ConversionCores, freeOnFinalize } from './conversion-core.js';
 import { Domain, Field, PolyComm, VerificationEvals, VerifierIndex } from './kimchi-types.js';
@@ -241,7 +241,9 @@ function verifierIndexConversionPerField(
     },
     shiftsFromRust(s: WasmShifts): MlArray<Field> {
       let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
-      s.free();
+      if (typeof (s as { free?: () => void }).free === 'function') {
+        s.free();
+      }
       return [0, ...shifts.map(fieldFromRust)];
     },
 
