@@ -91,8 +91,7 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: WasmClasses) {
       [0, fieldFromRust(ro.v_chal)],
       [0, fieldFromRust(ro.u_chal)],
     ];
-    // TODO: do we not want to free?
-    // ro.free();
+    ro.free();
     return mlRo;
   }
 
@@ -115,8 +114,7 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: WasmClasses) {
         fieldsFromRustFlat(oracles.opening_prechallenges),
         fieldFromRust(oracles.digest_before_evaluations),
       ];
-      // TODO: do we not want to free?
-      // oracles.free();
+      oracles.free();
       return mlOracles;
     },
   };
