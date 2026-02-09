@@ -1,5 +1,9 @@
 import './bindings/crypto/bindings.js';
-import { wasm, withThreadPool } from './bindings/js/node/node-backend.js';
+import { getBackendPreference, lockBackend } from './lib/backend.js';
+
+// assigned via initializeBindings()
+export let wasm;
+export let withThreadPool;
 
 let Snarky, Ledger, Pickles, Test_;
 let isInitialized = false;
@@ -14,6 +18,14 @@ async function initializeBindings() {
   let snarky;
   let resolve;
   initializingPromise = new Promise((r) => (resolve = r));
+
+  lockBackend();
+
+  if (getBackendPreference() === 'native') {
+    ({ wasm, withThreadPool } = await import('./bindings/js/node/native-backend.js'));
+  } else {
+    ({ wasm, withThreadPool } = await import('./bindings/js/node/node-backend.js'));
+  }
 
   // this dynamic import makes jest respect the import order
   // otherwise the cjs file gets imported before its implicit esm dependencies and fails
@@ -33,11 +45,10 @@ async function Test() {
 }
 
 export {
-  isInitialized as areBindingsInitialized,
-  initializeBindings, Ledger,
+  Ledger,
   Pickles,
   Snarky,
-  Test, wasm,
-  withThreadPool
+  Test,
+  isInitialized as areBindingsInitialized,
+  initializeBindings,
 };
-
