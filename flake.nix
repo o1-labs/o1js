@@ -228,7 +228,16 @@
           name = "export_test_vectors";
           version = "0.1.0";
           CARGO_TARGET_DIR = "./target";
-          cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
+          cargoLock = {
+            lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
+            outputHashes = {
+              "napi-3.4.0" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+              "napi-build-2.2.4" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+              "napi-derive-3.3.0" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+              "napi-derive-backend-3.0.0" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+              "napi-sys-3.0.1" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+            };
+          };
         };
         bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
           name = "o1js_bindings";
