@@ -35,7 +35,10 @@ function setBackend(backend: Backend) {
   }
   (globalThis as any).__o1js_backend_preference = backend;
 }
-
+/**
+ * Retrieve the currently set backend preference.
+ * @returns The backend preference, either 'wasm' or 'native'.
+ */
 function getBackendPreference(): Backend {
   return (globalThis as any).__o1js_backend_preference ?? 'wasm';
 }
