@@ -9,6 +9,9 @@ let locked = false;
  *
  * Must be called **before** `initializeBindings()`. The default backend is `'wasm'`.
  *
+ * _Note:_ In browser environments, only the 'wasm' backend is available.
+ * Attempting to set the backend to 'native' in such environments will result in a no-op with a console warning.
+ *
  * @example
  * ```ts
  * import { setBackend, initializeBindings } from 'o1js';
