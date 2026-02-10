@@ -215,6 +215,22 @@
                 fi
               '';
           };
+        narHashesFromCargoLock = file:
+          let
+            inherit (pkgs.lib) hasPrefix;
+            inherit (builtins) split readFile fromTOML listToAttrs filter map;
+            last = l: builtins.elemAt l (builtins.length l - 1);
+            head = l: builtins.elemAt l 0;
+            package = (fromTOML (readFile file)).package;
+          in listToAttrs (map (x: {
+            name = "${x.name}-${x.version}";
+            value = (builtins.fetchGit {
+              rev = last (split "#" x.source);
+              url = last (split "\\+" (head (split "\\?" x.source)));
+              allRefs = true;
+            }).narHash;
+          }) (filter (x: x ? source && hasPrefix "git+" x.source) package));
+
         test-vectors = rust-platform.buildRustPackage {
           src = pkgs.lib.sourceByRegex ./src/mina/src
             [
@@ -230,13 +246,8 @@
           CARGO_TARGET_DIR = "./target";
           cargoLock = {
             lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
-            outputHashes = {
-              "napi-3.4.0" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-              "napi-build-2.2.4" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-              "napi-derive-3.3.0" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-              "napi-derive-backend-3.0.0" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-              "napi-sys-3.0.1" = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-            };
+            outputHashes = narHashesFromCargoLock
+              ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
           };
         };
         bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
