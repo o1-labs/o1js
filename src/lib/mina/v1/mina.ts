@@ -475,17 +475,36 @@ function dummyAccount(pubkey?: PublicKey): Account {
   return dummy;
 }
 
-async function waitForFunding(address: string, headers?: HeadersInit): Promise<void> {
+async function waitForFunding(
+  address: string,
+  network: string,
+  headers?: HeadersInit
+): Promise<void> {
+  let tag = `Mina Faucet: ${network.replace(/^\w/, (c) => c.toUpperCase())}:`;
+  // Devnet: ~3 min slot time, can stretch to 15-20 min when unstable
+  // Mesa: ~90s slot time, can stretch to 6-10 min when unstable
+  let interval = network === 'mesa' ? 30000 : 60000;
+  let maxAttempts = network === 'mesa' ? 20 : 25;
   let attempts = 0;
-  let maxAttempts = 30;
-  let interval = 30000;
+  let maxWaitMin = (maxAttempts * interval) / 60000;
+
+  console.log(
+    `${tag} Waiting for funding to complete (polling every ${interval / 1000}s, up to ${maxWaitMin} min)`
+  );
+
   const executePoll = async (resolve: () => void, reject: (err: Error) => void | Error) => {
     let { account } = await Fetch.fetchAccount({ publicKey: address }, undefined, { headers });
     attempts++;
     if (account) {
+      console.log(`${tag} Account funded successfully.`);
       return resolve();
     } else if (maxAttempts && attempts === maxAttempts) {
-      return reject(new Error(`Exceeded max attempts`));
+      return reject(
+        new Error(
+          `${tag} Timed out after ${maxWaitMin} min waiting for account ${address} to be funded. ` +
+            `The transaction may still be pending — the network might be slow or unstable.`
+        )
+      );
     } else {
       setTimeout(executePoll, interval, resolve, reject);
     }
@@ -493,26 +512,124 @@ async function waitForFunding(address: string, headers?: HeadersInit): Promise<v
   return new Promise(executePoll);
 }
 
+// Cached promise for the compiled faucet challenge circuit
+let faucetCircuitPromise: Promise<any> | null = null;
+
+async function getCompiledFaucetCircuit() {
+  if (!faucetCircuitPromise) {
+    faucetCircuitPromise = (async () => {
+      const { ZkFunction } = await import('../../proof-system/zkfunction.js');
+      const sumToOneHundred = ZkFunction({
+        name: 'sumToOneHundred',
+        publicInputType: Field,
+        privateInputTypes: [Field],
+        main: (challenge: Field, userNumber: Field) => {
+          challenge.assertGreaterThanOrEqual(Field(0));
+          challenge.assertLessThan(Field(100));
+          userNumber.assertGreaterThanOrEqual(Field(1));
+          userNumber.assertLessThanOrEqual(Field(100));
+          const sum = challenge.add(userNumber);
+          sum.assertEquals(Field(100));
+        },
+      });
+      console.log('Compiling faucet challenge circuit...');
+      await sumToOneHundred.compile();
+      console.log('Faucet challenge circuit compiled.');
+      return sumToOneHundred;
+    })();
+  }
+  return faucetCircuitPromise;
+}
+
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
+ *
+ * Solves a ZK captcha challenge (sum-to-100 proof) before submitting the funding request.
+ * The first call compiles the ZK circuit (~30-60s), subsequent calls reuse the cached circuit.
+ *
+ * @param pub - The public key to fund.
+ * @param network - The network to fund on: `devnet` (default) or `mesa`.
+ * @param headers - Optional headers passed to `fetchAccount` when polling for funding confirmation.
+ *
+ * @throws `rate-limit` — The address has already been funded on this network (one funding per address).
+ * @throws `rate-limit-ip` — Too many faucet requests from this IP (max 5/hour, 10/day).
+ * @throws `forbidden` — The faucet rejected the request origin.
+ * @throws `challenge-required` — The ZK challenge proof was invalid or expired.
+ *
+ * @example
+ * ```ts
+ * // Fund on Devnet (default)
+ * await Mina.faucet(myPublicKey);
+ *
+ * // Fund on Mesa
+ * await Mina.faucet(myPublicKey, 'mesa');
+ * ```
  */
 async function faucet(pub: PublicKey, network: string = 'devnet', headers?: HeadersInit) {
   let address = pub.toBase58();
-  let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      network,
-      address: address,
-    }),
+  let tag = `Mina Faucet: ${network.replace(/^\w/, (c) => c.toUpperCase())}:`;
+
+  let faucetHeaders = {
+    'Content-Type': 'application/json',
+    Origin: 'https://faucet.minaprotocol.com',
+  };
+
+  // Fetch a challenge from the faucet API
+  let challengeResponse = await fetch('https://faucet.minaprotocol.com/api/v1/challenge', {
+    headers: faucetHeaders,
   });
-  response = await response.json();
-  if (response.status.toString() !== 'success') {
+  if (!challengeResponse.ok) {
     throw new Error(
-      `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
+      `${tag} Failed to fetch challenge: ${challengeResponse.status} ${challengeResponse.statusText}`
     );
   }
-  await waitForFunding(address, headers);
+  let { challenge, challengeId } = (await challengeResponse.json()) as {
+    challenge: number;
+    challengeId: string;
+    expiresAt: string;
+  };
+
+  let userAnswer = 100 - challenge;
+
+  let sumToOneHundred = await getCompiledFaucetCircuit();
+  let proof = await sumToOneHundred.prove(Field(challenge), Field(userAnswer));
+
+  // Submit the faucet request with the challenge solution and proof
+  let faucetResponse = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
+    method: 'POST',
+    headers: faucetHeaders,
+    body: JSON.stringify({
+      network,
+      address,
+      challengeId,
+      userAnswer,
+      proof: proof.toJSON(),
+    }),
+  });
+
+  let result = (await faucetResponse.json()) as {
+    status: string;
+    message?: { paymentID: string };
+    reason?: string;
+  };
+  if (result.status !== 'success') {
+    let details: Record<string, string> = {
+      'rate-limit':
+        'The address has already been funded on this network (one funding per address).',
+      'rate-limit-ip': 'Too many faucet requests from this IP (max 5/hour, 10/day).',
+      forbidden: 'The faucet rejected the request origin.',
+      'challenge-required': 'The ZK challenge proof was invalid or expired.',
+    };
+    let message = details[result.status] ?? 'Unexpected error.';
+    throw new Error(`${tag} ${message} ${JSON.stringify(result)}`);
+  }
+  let txHash = result.message?.paymentID ?? 'unknown';
+  let explorerUrl =
+    network === 'mesa'
+      ? `https://mesa.minaexplorer.com/transaction/${txHash}`
+      : `https://minascan.io/devnet/tx/${txHash}`;
+  console.log(`${tag} Funded ${address}\n  ${explorerUrl}`);
+  await waitForFunding(address, network, headers);
 }
 
 function genesisToNetworkConstants(genesisConstants: Fetch.GenesisConstants): NetworkConstants {
