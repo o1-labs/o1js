@@ -310,6 +310,7 @@
               RUSTUP_HOME=$(pwd)/.rustup
               export RUSTUP_HOME
               rustup toolchain link nix ${rust-channel'}
+              rustup default nix
               cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
               mkdir -p src/bindings/compiled/node_bindings
