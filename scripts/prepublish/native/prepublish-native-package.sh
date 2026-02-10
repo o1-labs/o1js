@@ -16,3 +16,28 @@ BINDINGS_PATH=./native/$TARGET_SLUG
   ./
 
 cat $BINDINGS_PATH/package.json
+
+# generate and prepublish the @o1js/native meta package
+META_PATH=./native/meta
+mkdir -p $META_PATH
+
+cat > $META_PATH/package.json <<EOF
+{
+  "name": "@o1js/native",
+  "version": "0.0.0",
+  "description": "Native bindings for o1js. Install alongside o1js to enable the native backend.",
+  "optionalDependencies": {
+    "@o1js/native-darwin-arm64": "0.0.0",
+    "@o1js/native-darwin-x64": "0.0.0",
+    "@o1js/native-linux-arm64": "0.0.0",
+    "@o1js/native-win32-x64": "0.0.0"
+  }
+}
+EOF
+
+./run ./scripts/prepublish/native/prepublish-native-package.ts \
+  --write \
+  $META_PATH \
+  ./
+
+cat $META_PATH/package.json

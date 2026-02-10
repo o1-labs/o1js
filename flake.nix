@@ -186,6 +186,7 @@
             # which should get an error message with the correct hash
             # You can also just push and CI should suggest a fix which updates the hash
             npmDepsHash = builtins.readFile ./npmDepsHash;
+            npmFlags = [ "--force" ];
             dontNpmBuild = true;
             installPhase = ''
               runHook preInstall
@@ -215,6 +216,22 @@
                 fi
               '';
           };
+        narHashesFromCargoLock = file:
+          let
+            inherit (pkgs.lib) hasPrefix;
+            inherit (builtins) split readFile fromTOML listToAttrs filter map;
+            last = l: builtins.elemAt l (builtins.length l - 1);
+            head = l: builtins.elemAt l 0;
+            package = (fromTOML (readFile file)).package;
+          in listToAttrs (map (x: {
+            name = "${x.name}-${x.version}";
+            value = (builtins.fetchGit {
+              rev = last (split "#" x.source);
+              url = last (split "\\+" (head (split "\\?" x.source)));
+              allRefs = true;
+            }).narHash;
+          }) (filter (x: x ? source && hasPrefix "git+" x.source) package));
+
         test-vectors = rust-platform.buildRustPackage {
           src = pkgs.lib.sourceByRegex ./src/mina/src
             [
@@ -228,7 +245,11 @@
           name = "export_test_vectors";
           version = "0.1.0";
           CARGO_TARGET_DIR = "./target";
-          cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
+          cargoLock = {
+            lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
+            outputHashes = narHashesFromCargoLock
+              ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
+          };
         };
         bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
           name = "o1js_bindings";
@@ -289,6 +310,7 @@
               RUSTUP_HOME=$(pwd)/.rustup
               export RUSTUP_HOME
               rustup toolchain link nix ${rust-channel'}
+              rustup default nix
               cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
               mkdir -p src/bindings/compiled/node_bindings

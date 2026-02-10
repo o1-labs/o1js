@@ -12,8 +12,20 @@ pushd $BINDINGS_PATH
   VERSION=$(cat ./package.json | jq -r .version)
   if npm view $PACKAGE_NAME@$VERSION >/dev/null 2>&1; then
     echo "$PACKAGE_NAME@$VERSION already exists. Skipping publish step."
-    exit 0
+  else
+    npm publish ${CI:+--provenance} --access public --tag experimental
   fi
+popd
 
-  npm publish --provenance --access public --tag experimental
+# publish @o1js/native meta package
+META_PATH=./native/meta
+META_PACKAGE_NAME=@o1js/native
+
+pushd $META_PATH
+  META_VERSION=$(cat ./package.json | jq -r .version)
+  if npm view $META_PACKAGE_NAME@$META_VERSION >/dev/null 2>&1; then
+    echo "$META_PACKAGE_NAME@$META_VERSION already exists. Skipping publish step."
+  else
+    npm publish ${CI:+--provenance} --access public --tag experimental
+  fi
 popd
