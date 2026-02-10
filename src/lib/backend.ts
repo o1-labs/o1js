@@ -17,6 +17,8 @@ let locked = false;
  * import { setBackend, initializeBindings } from 'o1js';
  *
  * setBackend('native');
+ *
+ * // must be called after setBackend, most of the o1js functions do this internally
  * await initializeBindings();
  * ```
  */
