@@ -15,19 +15,17 @@ let MyProgram = ZkProgram({
   },
 });
 
-/*
 console.time('compile (with cache)');
 let { verificationKey } = await MyProgram.compile();
 console.timeEnd('compile (with cache)');
-*/
 
-console.time('compile (without cache)');
-let { verificationKey } = await MyProgram.compile({ cache: Cache.None });
-console.timeEnd('compile (without cache)');
-
-console.time('proving');
+console.time('proving 1');
 let result = await MyProgram.baseCase();
-console.timeEnd('proving');
+console.timeEnd('proving 1');
+
+console.time('proving 2');
+let result2 = await MyProgram.baseCase();
+console.timeEnd('proving 2');
 
 console.log('verifying');
 let ok = await verify(result.proof, verificationKey);

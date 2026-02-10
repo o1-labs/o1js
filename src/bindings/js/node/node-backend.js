@@ -1,5 +1,6 @@
 import os from 'os';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
 import wasm_ from '../../compiled/node_bindings/kimchi_wasm.cjs';
@@ -10,6 +11,58 @@ let filename = url !== undefined ? fileURLToPath(url) : __filename;
  * @type {import("../../compiled/node_bindings/kimchi_wasm.cjs")}
  */
 const wasm = wasm_;
+// For SRS cache in native Kimchi, the bindings used are not the JSOO ones but 
+// the native ones directly. So we need to override the WASM here as well, as in
+// mina/src/lib/crypto/kimchi_bindings/js/node_js/node_backend.js
+{
+  const require = createRequire(import.meta.url);
+
+  try {
+    const native = require(`@o1js/native-${process.platform}-${process.arch}`);
+    const overrides = [
+      'prover_index_fp_deserialize',
+      'prover_index_fq_deserialize',
+      'prover_index_fp_serialize',
+      'prover_index_fq_serialize',
+      'caml_pasta_fp_plonk_index_encode',
+      'caml_pasta_fq_plonk_index_encode',
+      'caml_pasta_fp_plonk_index_decode',
+      'caml_pasta_fq_plonk_index_decode',
+      'caml_pasta_fp_plonk_verifier_index_serialize',
+      'caml_pasta_fq_plonk_verifier_index_serialize',
+      'caml_pasta_fp_plonk_verifier_index_deserialize',
+      'caml_pasta_fq_plonk_verifier_index_deserialize',
+    ];
+    const ctorOverrides = [
+      'WasmFpPolyComm',
+      'WasmFqPolyComm',
+    ];
+    overrides.forEach((name) => {
+      if (typeof native[name] === 'function') {
+        wasm[name] = (...args) => native[name](...args);
+      }
+    });
+    ctorOverrides.forEach((name) => {
+      if (typeof native[name] === 'function') {
+        wasm[name] = function (...args) {
+          return new native[name](...args);
+        };
+      }
+    });
+    wasm.__kimchi_backend = 'native';
+    if (typeof globalThis !== 'undefined') {
+      globalThis.__kimchi_backend = 'native';
+    }
+  } catch (e) {
+    if (process.env.O1JS_REQUIRE_NATIVE_BINDINGS) throw e;
+  }
+  if (!wasm.__kimchi_backend) {
+    wasm.__kimchi_backend = 'wasm';
+  }
+  if (typeof globalThis !== 'undefined' && !globalThis.__kimchi_backend) {
+    globalThis.__kimchi_backend = wasm.__kimchi_backend;
+  }
+}
 
 export { wasm, withThreadPool };
 
