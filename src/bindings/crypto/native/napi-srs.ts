@@ -255,32 +255,11 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nat
         }
       }
 
-      // edge case for when we have a writeable cache and the basis was already stored on the srs
-      // but we didn't store it in the cache separately yet
-      if (commitment && cache && cache.canWrite) {
-        let header = cacheHeaderLagrange(f, domainSize);
-        let didRead = readCacheLazy(
-          cache,
-          header,
-          conversion,
-          f,
-          srs,
-          domainSize,
-          setLagrangeBasis
-        );
-        // only proceed for entries we haven't written to the cache yet
-        if (didRead !== true) {
-          // same code as above - write the lagrange basis to the cache if it wasn't there already
-          // currently we re-generate the basis via `getLagrangeBasis` - we could derive this from the
-          // already existing `commitment` instead, but this is simpler and the performance impact is negligible
-          let napiComms = getLagrangeBasis(srs, domainSize);
-          let mlComms = conversion[f].polyCommsFromRust(napiComms);
-          let comms = polyCommsToJSON(mlComms);
-          let bytes = new TextEncoder().encode(JSON.stringify(comms));
-
-          writeCache(cache, header, bytes);
-        }
-      }
+      // Intentionally removed the old "edge-case cache backfill" block here:
+      // when a commitment existed in-memory but not in cache, we used to re-read /
+      // re-serialize and write the full basis JSON on the proving path.
+      // Keep this disabled for native because it adds large fs + JSON overhead
+      // and regresses proving latency, while correctness does not depend on it.
       if (commitment == null) {
         throw Error('lagrangeCommitment: missing commitment');
       }
