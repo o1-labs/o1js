@@ -18,6 +18,11 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/08d8194c5...HEAD)
 
+### Fixed
+
+- Fix `Mina.faucet()` API by adding a WAF bypass rule to the faucet and solving
+  the ZK captcha challenge. https://github.com/o1-labs/o1js/pull/2769
+
 ## [2.13.0](https://github.com/o1-labs/o1js/compare/34caaedc9...08d8194c5) - 2026-02-04
 
 ### Changed
