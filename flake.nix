@@ -186,6 +186,7 @@
             # which should get an error message with the correct hash
             # You can also just push and CI should suggest a fix which updates the hash
             npmDepsHash = builtins.readFile ./npmDepsHash;
+            npmFlags = [ "--force" ];
             dontNpmBuild = true;
             installPhase = ''
               runHook preInstall
