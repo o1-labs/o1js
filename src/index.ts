@@ -96,9 +96,11 @@ export {
   addCachedAccount,
   checkZkappTransaction,
   fetchAccount,
+  fetchCurrentSlot,
   fetchEvents,
   fetchLastBlock,
   fetchTimedAccountInfo,
+  fetchTransactionDepth,
   fetchTransactionStatus,
   Lightnet,
   sendZkapp,
@@ -106,7 +108,11 @@ export {
   setGraphqlEndpoint,
   setGraphqlEndpoints,
 } from './lib/mina/v1/fetch.js';
-export type { TransactionStatus } from './lib/mina/v1/graphql.js';
+export type {
+  DepthOptions,
+  TransactionDepthInfo,
+  TransactionStatus,
+} from './lib/mina/v1/graphql.js';
 export * as Encryption from './lib/provable/crypto/encryption.js';
 export { MerkleMap, MerkleMapWitness } from './lib/provable/merkle-map.js';
 export { MerkleTree, MerkleWitness } from './lib/provable/merkle-tree.js';
