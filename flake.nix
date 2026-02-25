@@ -124,6 +124,19 @@
             cargo = rust-channel';
             rustc = rust-channel';
           };
+        rust-stable-channel = (pkgs.rustChannelOf {
+          channel = "1.92.0";
+          sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
+        }).rust;
+        rust-stable-channel' = rust-stable-channel // {
+          # Ensure compatibility with nixpkgs >= 24.11
+          targetPlatforms = pkgs.lib.platforms.all;
+          badTargetPlatforms = [ ];
+        };
+        rust-stable-platform = pkgs.makeRustPlatform {
+          cargo = rust-stable-channel';
+          rustc = rust-stable-channel';
+        };
         bindings-pkgs = with pkgs;
           [
             nodejs
@@ -215,7 +228,7 @@
                 fi
               '';
           };
-        test-vectors = rust-platform.buildRustPackage {
+        test-vectors = rust-stable-platform.buildRustPackage {
           src = pkgs.lib.sourceByRegex ./src/mina/src
             [
               "^lib(/crypto(/proof-systems(/.*)?)?)?$"
