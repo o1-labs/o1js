@@ -26,7 +26,9 @@ else
 fi
 
 info "Setting up Mina configuration files..."
-run_cmd dune b "${MINA_PATH}"/src/config.mlh
+if [ ! -f "${MINA_PATH}"/src/config.mlh ]; then
+    run_cmd dune b "${MINA_PATH}"/src/config.mlh
+fi
 run_cmd cp "${MINA_PATH}"/src/config.mlh "src"
 run_cmd cp -r "${MINA_PATH}"/src/config "src/config"
 ok "Mina config files copied"
