@@ -25,6 +25,11 @@ setup_script "jsoo-build-web" "JSOO build web"
 
 mkdir -p $BINDINGS_PATH
 
+# Keep warning 67 and legacy alerts non-fatal for vendored Mina code during
+# bindings packaging on newer OCaml toolchains.
+OCAMLPARAM="${OCAMLPARAM:-_},warn-error=-67,alert=-legacy"
+export OCAMLPARAM
+
 info "building JSOO artifacts for web..."
 TARGETS=(\
   o1js_web.bc.js\
