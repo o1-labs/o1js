@@ -172,6 +172,7 @@ async function workerCall(worker, type, message) {
 function allocateWasmMemoryForUserAgent(userAgent) {
   const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent);
   if (isIOSDevice) {
+    // Safari does not support Memory64; fall back to wasm32-compatible memory
     return new WebAssembly.Memory({
       initial: 19,
       maximum: 16384, // 1 GiB
@@ -180,8 +181,9 @@ function allocateWasmMemoryForUserAgent(userAgent) {
   } else {
     return new WebAssembly.Memory({
       initial: 19,
-      maximum: 65536, // 4 GiB
+      maximum: 262144, // 16 GiB
       shared: true,
+      address: 'i64',
     });
   }
 }

@@ -1,3 +1,5 @@
+import { MlArray } from '../../../lib/ml/base.js';
+import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpGate,
   WasmFpPolyComm,
@@ -6,10 +8,6 @@ import type {
   WasmGPallas,
   WasmGVesta,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { OrInfinity, Gate, PolyComm, Wire } from './kimchi-types.js';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { MlArray } from '../../../lib/ml/base.js';
-import { mapTuple } from './util.js';
 import {
   WasmAffine,
   affineFromRust,
@@ -17,16 +15,18 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
 } from './conversion-base.js';
+import { Gate, OrInfinity, PolyComm, Wire } from './kimchi-types.js';
+import { mapTuple } from './util.js';
 
 export {
   ConversionCore,
   ConversionCores,
   conversionCore,
   freeOnFinalize,
-  wrap,
-  unwrap,
   mapFromUintArray,
   mapToUint32Array,
+  unwrap,
+  wrap,
 };
 
 // basic conversion functions for each field
@@ -66,7 +66,7 @@ function conversionCore(wasm: wasm) {
     mapMlArrayToRustVector<TMl, TRust extends {}>(
       [, ...array]: MlArray<TMl>,
       map: (x: TMl) => TRust
-    ): Uint32Array {
+    ): BigUint64Array {
       return mapToUint32Array(array, (x) => unwrap(map(x)));
     },
   };
@@ -101,10 +101,10 @@ function conversionCorePerField(
     },
     pointFromRust: affineFromRust,
 
-    pointsToRust([, ...points]: MlArray<OrInfinity>): Uint32Array {
+    pointsToRust([, ...points]: MlArray<OrInfinity>): BigUint64Array {
       return mapToUint32Array(points, (point) => unwrap(self.pointToRust(point)));
     },
-    pointsFromRust(points: Uint32Array): MlArray<OrInfinity> {
+    pointsFromRust(points: Uint32Array | BigUint64Array): MlArray<OrInfinity> {
       let arr = mapFromUintArray(points, (ptr) => affineFromRust(wrap(ptr, CommitmentCurve)));
       return [0, ...arr];
     },
@@ -113,20 +113,20 @@ function conversionCorePerField(
       let [, camlElems] = polyComm;
       let rustShifted = undefined;
       let rustUnshifted = self.pointsToRust(camlElems);
-      return new PolyComm(rustUnshifted, rustShifted);
+      return new PolyComm(rustUnshifted as any, rustShifted);
     },
     polyCommFromRust(polyComm: WasmPolyComm): PolyComm {
       let rustUnshifted = polyComm.unshifted;
-      let mlUnshifted = mapFromUintArray(rustUnshifted, (ptr) => {
+      let mlUnshifted = mapFromUintArray(rustUnshifted as any, (ptr) => {
         return affineFromRust(wrap(ptr, CommitmentCurve));
       });
       return [0, [0, ...mlUnshifted]];
     },
 
-    polyCommsToRust([, ...comms]: MlArray<PolyComm>): Uint32Array {
+    polyCommsToRust([, ...comms]: MlArray<PolyComm>): BigUint64Array {
       return mapToUint32Array(comms, (c) => unwrap(self.polyCommToRust(c)));
     },
-    polyCommsFromRust(rustComms: Uint32Array): MlArray<PolyComm> {
+    polyCommsFromRust(rustComms: Uint32Array | BigUint64Array): MlArray<PolyComm> {
       let comms = mapFromUintArray(rustComms, (ptr) => self.polyCommFromRust(wrap(ptr, PolyComm)));
       return [0, ...comms];
     },
@@ -138,9 +138,9 @@ function conversionCorePerField(
 // generic rust helpers
 
 type Freeable = { free(): void };
-type Constructor<T> = new (...args: any[]) => T;
+type Constructor<T extends object> = { prototype: T };
 
-function wrap<T>(ptr: number, Class: Constructor<T>): T {
+function wrap<T extends object>(ptr: number, Class: Constructor<T>): T {
   const obj = Object.create(Class.prototype);
   obj.__wbg_ptr = ptr;
   return obj;
@@ -173,20 +173,20 @@ function freeOnFinalize<T extends Freeable>(instance: T) {
   return instance;
 }
 
-function mapFromUintArray<T>(array: Uint32Array | Uint8Array, map: (i: number) => T) {
+function mapFromUintArray<T>(array: Uint32Array | Uint8Array | BigUint64Array, map: (i: any) => T) {
   let n = array.length;
   let result: T[] = Array(n);
   for (let i = 0; i < n; i++) {
-    result[i] = map(array[i]);
+    result[i] = map(Number(array[i]));
   }
   return result;
 }
 
-function mapToUint32Array<T>(array: T[], map: (t: T) => number) {
+function mapToUint32Array<T>(array: T[], map: (t: T) => number): BigUint64Array {
   let n = array.length;
-  let result = new Uint32Array(n);
+  let result = new BigUint64Array(n);
   for (let i = 0; i < n; i++) {
-    result[i] = map(array[i]);
+    result[i] = BigInt(map(array[i]));
   }
   return result;
 }

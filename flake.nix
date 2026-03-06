@@ -109,6 +109,7 @@
             {
               targets = [
                 "wasm32-unknown-unknown"
+                "wasm64-unknown-unknown"
                 "x86_64-unknown-linux-gnu"
                 "aarch64-apple-darwin"
                 "x86_64-apple-darwin"

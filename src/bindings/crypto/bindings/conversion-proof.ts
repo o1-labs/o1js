@@ -1,46 +1,46 @@
+import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
+import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpLookupCommitments,
-  WasmPastaFpLookupTable,
   WasmFpOpeningProof,
   WasmFpProverCommitments,
   WasmFpProverProof,
   WasmFpRuntimeTable,
-  WasmPastaFpRuntimeTableCfg,
   WasmFqLookupCommitments,
   WasmFqOpeningProof,
   WasmFqProverCommitments,
-  WasmPastaFqLookupTable,
   WasmFqProverProof,
   WasmFqRuntimeTable,
+  WasmPastaFpLookupTable,
+  WasmPastaFpRuntimeTableCfg,
+  WasmPastaFqLookupTable,
   WasmPastaFqRuntimeTableCfg,
   WasmVecVecFp,
   WasmVecVecFq,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
+import {
+  fieldFromRust,
+  fieldToRust,
+  fieldsFromRustFlat,
+  fieldsToRustFlat,
+} from './conversion-base.js';
+import { ConversionCore, ConversionCores, mapToUint32Array, unwrap } from './conversion-core.js';
 import type {
+  Field,
+  LookupCommitments,
+  LookupTable,
+  OpeningProof,
   OrInfinity,
   PointEvaluations,
   PolyComm,
-  ProverProof,
-  ProofWithPublic,
   ProofEvaluations,
+  ProofWithPublic,
   ProverCommitments,
-  OpeningProof,
+  ProverProof,
   RecursionChallenge,
-  LookupCommitments,
   RuntimeTable,
   RuntimeTableCfg,
-  LookupTable,
-  Field,
 } from './kimchi-types.js';
-import { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
-import {
-  fieldToRust,
-  fieldFromRust,
-  fieldsToRustFlat,
-  fieldsFromRustFlat,
-} from './conversion-base.js';
-import { ConversionCore, ConversionCores, mapToUint32Array, unwrap } from './conversion-core.js';
 
 export { proofConversion };
 
@@ -120,10 +120,10 @@ function proofConversionPerField(
     let zComm = core.polyCommToRust(commitments[2]);
     let tComm = core.polyCommToRust(commitments[3]);
     let lookup = MlOption.mapFrom(commitments[4], lookupCommitmentsToRust);
-    return new ProverCommitments(wComm, zComm, tComm, lookup);
+    return new ProverCommitments(wComm as any, zComm, tComm, lookup);
   }
   function commitmentsFromRust(commitments: WasmProverCommitments): ProverCommitments {
-    let wComm = core.polyCommsFromRust(commitments.w_comm);
+    let wComm = core.polyCommsFromRust(commitments.w_comm as any);
     let zComm = core.polyCommFromRust(commitments.z_comm);
     let tComm = core.polyCommFromRust(commitments.t_comm);
     let lookup = MlOption.mapTo(commitments.lookup, lookupCommitmentsFromRust);
@@ -135,10 +135,10 @@ function proofConversionPerField(
     let sorted = core.polyCommsToRust(lookup[1]);
     let aggreg = core.polyCommToRust(lookup[2]);
     let runtime = MlOption.mapFrom(lookup[3], core.polyCommToRust);
-    return new LookupCommitments(sorted, aggreg, runtime);
+    return new LookupCommitments(sorted as any, aggreg, runtime);
   }
   function lookupCommitmentsFromRust(lookup: WasmLookupCommitments): LookupCommitments {
-    let sorted = core.polyCommsFromRust(lookup.sorted);
+    let sorted = core.polyCommsFromRust(lookup.sorted as any);
     let aggreg = core.polyCommFromRust(lookup.aggreg);
     let runtime = MlOption.mapTo(lookup.runtime, core.polyCommFromRust);
     lookup.free();
@@ -155,8 +155,8 @@ function proofConversionPerField(
       r.push(ri);
     }
     return new OpeningProof(
-      core.pointsToRust(l),
-      core.pointsToRust(r),
+      core.pointsToRust(l) as any,
+      core.pointsToRust(r) as any,
       core.pointToRust(delta),
       fieldToRust(z1),
       fieldToRust(z2),
@@ -164,8 +164,8 @@ function proofConversionPerField(
     );
   }
   function openingProofFromRust(proof: WasmOpeningProof): OpeningProof {
-    let [, ...l] = core.pointsFromRust(proof.lr_0);
-    let [, ...r] = core.pointsFromRust(proof.lr_1);
+    let [, ...l] = core.pointsFromRust(proof.lr_0 as any);
+    let [, ...r] = core.pointsFromRust(proof.lr_1 as any);
     let n = l.length;
     if (n !== r.length) throw Error('openingProofFromRust: l and r length mismatch.');
     let lr = l.map<[0, OrInfinity, OrInfinity]>((li, i) => [0, li, r[i]]);
@@ -221,7 +221,7 @@ function proofConversionPerField(
         ftEval1,
         public_,
         prevChallengeScalars,
-        prevChallengeComms
+        prevChallengeComms as any
       );
     },
     proofFromRust(wasmProof: WasmProverProof): ProofWithPublic {
@@ -235,7 +235,9 @@ function proofConversionPerField(
       let ftEval1 = fieldFromRust(wasmProof.ft_eval1);
       let public_ = fieldsFromRustFlat(wasmProof.public_);
       let prevChallengeScalars = wasmProof.prev_challenges_scalars;
-      let [, ...prevChallengeComms] = core.polyCommsFromRust(wasmProof.prev_challenges_comms);
+      let [, ...prevChallengeComms] = core.polyCommsFromRust(
+        wasmProof.prev_challenges_comms as any
+      );
       let prevChallenges = prevChallengeComms.map<RecursionChallenge>((comms, i) => {
         let scalars = fieldsFromRustFlat(prevChallengeScalars.get(i));
         return [0, scalars, comms];
@@ -253,11 +255,11 @@ function proofConversionPerField(
       return [0, publicEvals, proof];
     },
 
-    runtimeTablesToRust([, ...tables]: MlArray<RuntimeTable>): Uint32Array {
+    runtimeTablesToRust([, ...tables]: MlArray<RuntimeTable>): BigUint64Array {
       return mapToUint32Array(tables, (table) => unwrap(runtimeTableToRust(table)));
     },
 
-    runtimeTableCfgsToRust([, ...tableCfgs]: MlArray<RuntimeTableCfg>): Uint32Array {
+    runtimeTableCfgsToRust([, ...tableCfgs]: MlArray<RuntimeTableCfg>): BigUint64Array {
       return mapToUint32Array(tableCfgs, (tableCfg) => unwrap(runtimeTableCfgToRust(tableCfg)));
     },
 

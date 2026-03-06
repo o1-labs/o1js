@@ -21,6 +21,8 @@ globalThis.startWorkers = startWorkers;
 globalThis.terminateWorkers = terminateWorkers;
 
 if (!isMainThread) {
+  // Workers must initialize wasm with shared module and memory before use
+  wasm.initSync({ module: workerData.module, memory: workerData.memory });
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
   wasm.wbg_rayon_start_worker(workerData.receiver);
 }
@@ -52,9 +54,13 @@ let wasmWorkers = [];
 async function startWorkers(src, memory, builder) {
   wasmWorkers = [];
   await Promise.all(
-    Array.from({ length: builder.numThreads() }, () => {
+    Array.from({ length: Number(builder.numThreads()) }, () => {
       let worker = new Worker(src, {
-        workerData: { memory, receiver: builder.receiver() },
+        workerData: {
+          module: wasm.__wbg_wasm_module,
+          memory,
+          receiver: builder.receiver(),
+        },
       });
       wasmWorkers.push(worker);
       let target = worker;
@@ -74,5 +80,6 @@ async function startWorkers(src, memory, builder) {
 }
 
 async function terminateWorkers() {
+  if (!wasmWorkers) return;
   return Promise.all(wasmWorkers.map((w) => w.terminate())).then(() => (wasmWorkers = undefined));
 }

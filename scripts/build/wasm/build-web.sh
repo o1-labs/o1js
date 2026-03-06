@@ -55,6 +55,7 @@ info "optimizing wasm with wasm-opt..."
 run_cmd wasm-opt \
   --detect-features \
   --enable-mutable-globals \
+  --enable-memory64 \
   -O4 \
   -o $BINDINGS_PATH/plonk_wasm_bg.wasm.opt \
   $BINDINGS_PATH/plonk_wasm_bg.wasm

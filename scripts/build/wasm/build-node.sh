@@ -44,6 +44,9 @@ for target in "${TARGETS[@]}"; do
   chmod 660 $BINDINGS_PATH/$target
 done
 
+info "fixing wasm64 element segment offsets..."
+run_cmd node src/build/fix-wasm64-table-offset.js $BINDINGS_PATH/plonk_wasm_bg.wasm
+
 info "moving some files to CommonJS format..."
 
 mv $BINDINGS_PATH/plonk_wasm.js $BINDINGS_PATH/plonk_wasm.cjs

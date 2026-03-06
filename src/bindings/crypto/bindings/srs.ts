@@ -1,18 +1,18 @@
-import type { Wasm, RustConversion } from '../bindings.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { PolyComm } from './kimchi-types.js';
+import { MlArray } from '../../../lib/ml/base.js';
 import {
-  type CacheHeader,
-  type Cache,
+  readCache,
   withVersion,
   writeCache,
-  readCache,
+  type Cache,
+  type CacheHeader,
 } from '../../../lib/proof-system/cache.js';
 import { assert } from '../../../lib/util/errors.js';
-import { MlArray } from '../../../lib/ml/base.js';
+import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
+import type { RustConversion, Wasm } from '../bindings.js';
 import { OrInfinity, OrInfinityJson } from './curve.js';
+import { PolyComm } from './kimchi-types.js';
 
-export { srs, setSrsCache, unsetSrsCache };
+export { setSrsCache, srs, unsetSrsCache };
 
 type WasmSrs = WasmFpSrs | WasmFqSrs;
 
@@ -106,7 +106,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
             let jsonSrs: OrInfinityJson[] = JSON.parse(new TextDecoder().decode(bytes));
             let mlSrs = MlArray.mapTo(jsonSrs, OrInfinity.fromJSON);
             let wasmSrs = conversion[f].pointsToRust(mlSrs);
-            return setSrs(wasmSrs);
+            return setSrs(wasmSrs as any);
           });
 
           if (srs === undefined) {
@@ -115,7 +115,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
 
             if (cache.canWrite) {
               let wasmSrs = getSrs(srs);
-              let mlSrs = conversion[f].pointsFromRust(wasmSrs);
+              let mlSrs = conversion[f].pointsFromRust(wasmSrs as any);
               let jsonSrs = MlArray.mapFrom(mlSrs, OrInfinity.toJSON);
               let bytes = new TextEncoder().encode(JSON.stringify(jsonSrs));
 
@@ -152,7 +152,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
             f,
             srs,
             domainSize,
-            setLagrangeBasis
+            setLagrangeBasis as any
           );
           if (didRead !== true) {
             // not in cache
@@ -160,7 +160,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
               // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
               // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
               let wasmComms = getLagrangeBasis(srs, domainSize);
-              let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+              let mlComms = conversion[f].polyCommsFromRust(wasmComms as any);
               let comms = polyCommsToJSON(mlComms);
               let bytes = new TextEncoder().encode(JSON.stringify(comms));
               writeCache(cache, header, bytes);
@@ -186,7 +186,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
           f,
           srs,
           domainSize,
-          setLagrangeBasis
+          setLagrangeBasis as any
         );
         // only proceed for entries we haven't written to the cache yet
         if (didRead !== true) {
@@ -194,7 +194,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
           // currently we re-generate the basis via `getLagrangeBasis` - we could derive this from the
           // already existing `commitment` instead, but this is simpler and the performance impact is negligible
           let wasmComms = getLagrangeBasis(srs, domainSize);
-          let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+          let mlComms = conversion[f].polyCommsFromRust(wasmComms as any);
           let comms = polyCommsToJSON(mlComms);
           let bytes = new TextEncoder().encode(JSON.stringify(comms));
 
@@ -216,7 +216,7 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
       // see https://github.com/o1-labs/o1js-bindings/blob/09e17b45e0c2ca2b51cd9ed756106e17ca1cf36d/js/web/worker-spec.js#L110-L115
       let ptr = lagrangeCommitmentsWholeDomainPtr(srs, domainSize);
       let wasmComms = getCommitmentsWholeDomainByPtr(ptr);
-      let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+      let mlComms = conversion[f].polyCommsFromRust(wasmComms as any);
       return mlComms;
     },
 
@@ -265,7 +265,7 @@ function readCacheLazy(
     let mlComms = polyCommsFromJSON(comms);
     let wasmComms = conversion[f].polyCommsToRust(mlComms);
 
-    setLagrangeBasis(srs, domainSize, wasmComms);
+    setLagrangeBasis(srs, domainSize, wasmComms as any);
     CacheReadRegister.set(header.uniqueId, true);
     return true;
   });

@@ -1,3 +1,5 @@
+import { MlArray, MlBool, MlOption } from '../../../lib/ml/base.js';
+import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
 import type {
   WasmFpDomain,
   WasmFpLookupSelectors,
@@ -13,11 +15,9 @@ import type {
   WasmFqShifts,
   LookupInfo as WasmLookupInfo,
 } from '../../compiled/node_bindings/plonk_wasm.cjs';
-import type * as wasmNamespace from '../../compiled/node_bindings/plonk_wasm.cjs';
-import { MlBool, MlArray, MlOption } from '../../../lib/ml/base.js';
-import { Field, VerifierIndex, Domain, VerificationEvals, PolyComm } from './kimchi-types.js';
 import { fieldFromRust, fieldToRust } from './conversion-base.js';
 import { ConversionCore, ConversionCores, freeOnFinalize } from './conversion-core.js';
+import { Domain, Field, PolyComm, VerificationEvals, VerifierIndex } from './kimchi-types.js';
 import { Lookup, LookupInfo, LookupSelectors } from './lookup.js';
 
 export { verifierIndexConversion };
@@ -100,8 +100,8 @@ function verifierIndexConversionPerField(
     let foreignFieldMulComm = MlOption.mapFrom(evals[13], core.polyCommToRust);
     let rotComm = MlOption.mapFrom(evals[14], core.polyCommToRust);
     return new VerificationEvals(
-      sigmaComm,
-      coefficientsComm,
+      sigmaComm as any,
+      coefficientsComm as any,
       genericComm,
       psmComm,
       completeAddComm,
@@ -119,8 +119,8 @@ function verifierIndexConversionPerField(
   function verificationEvalsFromRust(evals: WasmVerificationEvals): VerificationEvals {
     let mlEvals: VerificationEvals = [
       0,
-      core.polyCommsFromRust(evals.sigma_comm),
-      core.polyCommsFromRust(evals.coefficients_comm),
+      core.polyCommsFromRust(evals.sigma_comm as any),
+      core.polyCommsFromRust(evals.coefficients_comm as any),
       core.polyCommFromRust(evals.generic_comm),
       core.polyCommFromRust(evals.psm_comm),
       core.polyCommFromRust(evals.complete_add_comm),
@@ -150,7 +150,7 @@ function verifierIndexConversionPerField(
     ] = lookup;
     return new LookupVerifierIndex(
       MlBool.from(joint_lookup_used),
-      core.polyCommsToRust(lookup_table),
+      core.polyCommsToRust(lookup_table as any) as any,
       lookupSelectorsToRust(selectors),
       MlOption.mapFrom(table_ids, core.polyCommToRust),
       lookupInfoToRust(lookup_info),
@@ -161,7 +161,7 @@ function verifierIndexConversionPerField(
     let mlLookup: Lookup<PolyComm> = [
       0,
       MlBool(lookup.joint_lookup_used),
-      core.polyCommsFromRust(lookup.lookup_table),
+      core.polyCommsFromRust(lookup.lookup_table as any),
       lookupSelectorsFromRust(lookup.lookup_selectors),
       MlOption.mapTo(lookup.table_ids, core.polyCommFromRust),
       lookupInfoFromRust(lookup.lookup_info),
@@ -208,14 +208,14 @@ function verifierIndexConversionPerField(
       MlBool.from(joint_lookup_used),
       MlBool.from(uses_runtime_tables)
     );
-    return new wasm.LookupInfo(maxPerRow, maxJointSize, wasmFeatures);
+    return new wasm.LookupInfo(maxPerRow as any, maxJointSize, wasmFeatures);
   }
   function lookupInfoFromRust(info: WasmLookupInfo): LookupInfo {
     let features = info.features;
     let patterns = features.patterns;
     let mlInfo: LookupInfo = [
       0,
-      info.max_per_row,
+      info.max_per_row as any,
       info.max_joint_size,
       [
         0,
@@ -264,7 +264,7 @@ function verifierIndexConversionPerField(
         evals,
         shifts,
         lookupIndex,
-        zkRows
+        zkRows as any
       );
     },
     verifierIndexFromRust(vk: WasmVerifierIndex): VerifierIndex {
@@ -278,7 +278,7 @@ function verifierIndexConversionPerField(
         verificationEvalsFromRust(vk.evals),
         self.shiftsFromRust(vk.shifts),
         MlOption.mapTo(vk.lookup_index, lookupVerifierIndexFromRust),
-        vk.zk_rows,
+        vk.zk_rows as any,
       ];
       vk.free();
       return mlVk;
