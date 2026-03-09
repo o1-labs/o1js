@@ -26,10 +26,10 @@ done
 
 info "improving error messages in web bindings..."
 # Transform OCaml-style exceptions to JavaScript Error objects
-run_cmd sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw globalThis.Error(s.c)/' $BINDINGS_PATH/o1js_web.bc.js
-run_cmd sed -i 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw globalThis.Error(s.c)/' $BINDINGS_PATH/o1js_web.bc.js
-run_cmd sed -i 's/return \[0,Exn,t\]/return globalThis.Error(t.c)/' $BINDINGS_PATH/o1js_web.bc.js
-run_cmd sed -i 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "Unknown error thrown by raise")}/' $BINDINGS_PATH/o1js_web.bc.js
+run_cmd sed -i '' 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw globalThis.Error(s.c)/' $BINDINGS_PATH/o1js_web.bc.js
+run_cmd sed -i '' 's/function invalid_arg(s){throw \[0,Invalid_argument,s\]/function invalid_arg(s){throw globalThis.Error(s.c)/' $BINDINGS_PATH/o1js_web.bc.js
+run_cmd sed -i '' 's/return \[0,Exn,t\]/return globalThis.Error(t.c)/' $BINDINGS_PATH/o1js_web.bc.js
+run_cmd sed -i '' 's/function raise(t){throw caml_call1(to_exn$0,t)}/function raise(t){throw Error(t?.[1]?.c ?? "Unknown error thrown by raise")}/' $BINDINGS_PATH/o1js_web.bc.js
 ok "error messages improved"
 
 info "minifying JS with esbuild..."
