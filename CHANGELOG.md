@@ -16,7 +16,13 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/08d8194c5...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/c81f31ad0...HEAD)
+
+### Changed
+
+- Replace js-sha256 with @noble/hashes https://github.com/o1-labs/o1js/pull/2539
+
+## [2.13.1](https://github.com/o1-labs/o1js/compare/08d8194c5...c81f31ad0) - 2026-02-27
 
 ### Fixed
 
