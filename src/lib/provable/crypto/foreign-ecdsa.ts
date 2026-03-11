@@ -1,19 +1,19 @@
-import { provableFromClass } from '../types/provable-derivers.js';
 import { CurveParams } from '../../../bindings/crypto/elliptic-curve.js';
-import { ProvablePureExtended } from '../types/struct.js';
-import { FlexiblePoint, ForeignCurve, createForeignCurve, toPoint } from './foreign-curve.js';
+import type { Bool } from '../bool.js';
 import { AlmostForeignField } from '../foreign-field.js';
 import { assert } from '../gadgets/common.js';
-import { Field3 } from '../gadgets/foreign-field.js';
 import { Ecdsa } from '../gadgets/elliptic-curve.js';
+import { Field3 } from '../gadgets/foreign-field.js';
 import { l, multiRangeCheck } from '../gadgets/range-check.js';
-import { Keccak } from './keccak.js';
-import { Bytes } from '../wrapped-classes.js';
 import { UInt8 } from '../int.js';
-import type { Bool } from '../bool.js';
+import { provableFromClass } from '../types/provable-derivers.js';
+import { ProvablePureExtended } from '../types/struct.js';
+import { Bytes } from '../wrapped-classes.js';
+import { FlexiblePoint, ForeignCurve, createForeignCurve, toPoint } from './foreign-curve.js';
+import { Keccak } from './keccak.js';
 
 // external API
-export { createEcdsa, EcdsaSignature };
+export { EcdsaSignature, createEcdsa };
 
 type FlexibleSignature =
   | EcdsaSignature
@@ -204,8 +204,8 @@ class EcdsaSignature {
   static check(signature: EcdsaSignature) {
     multiRangeCheck(signature.r.value);
     multiRangeCheck(signature.s.value);
-    // more efficient than the automatic check, which would do this for each scalar separately
-    this.Curve.Scalar.assertAlmostReduced(signature.r, signature.s);
+
+    this.Curve.Scalar.assertAlmostReduced(signature.s);
   }
 
   // dynamic subclassing infra
