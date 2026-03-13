@@ -57,7 +57,10 @@ case $TEST_TYPE in
 "Performance Regression")
   echo "Running Performance Regression Check"
   PERF_MODE="${PERF_MODE:---check}"
-  ./tests/perf-regression/perf-regression.sh "$PERF_MODE"
+  BACKEND="${O1JS_BACKEND:-wasm}"
+  BASELINE_FILE="./tests/perf-regression/perf-regression-${BACKEND}.json"
+  echo "Backend: ${BACKEND}, baseline: ${BASELINE_FILE}"
+  ./tests/perf-regression/perf-regression.sh "$PERF_MODE" --file "$BASELINE_FILE"
   ;;
 *)
   echo "ERROR: Invalid environment variable, not clear what tests to run! $CI_NODE_INDEX"

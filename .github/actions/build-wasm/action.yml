@@ -58,7 +58,7 @@ runs:
           ~/.npm
           node_modules
           dist
-        key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
+        key: ${{ runner.OS }}-node-v2-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
     - name: Build examples
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash

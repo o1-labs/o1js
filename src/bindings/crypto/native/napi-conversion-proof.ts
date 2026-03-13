@@ -6,10 +6,10 @@ import {
   fieldsToRustFlat,
 } from '../bindings/conversion-base.js';
 import {
-  proofEvaluationsToRust,
-  proofEvaluationsFromRust,
-  pointEvalsOptionToRust,
   pointEvalsOptionFromRust,
+  pointEvalsOptionToRust,
+  proofEvaluationsFromRust,
+  proofEvaluationsToRust,
 } from '../bindings/conversion-proof-shared.js';
 import type {
   LookupCommitments,
@@ -27,14 +27,11 @@ import type {
   RuntimeTableCfg,
 } from '../bindings/kimchi-types.js';
 import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
-import {
-  asArrayLike,
-  castCtor,
-  type Ctor,
-} from './napi-ffi.js';
+import { asArrayLike, castCtor, type Ctor } from './napi-ffi.js';
 import type {
   Napi,
   NapiLookupCommitments,
+  NapiLookupTable,
   NapiOpeningProof,
   NapiPoint,
   NapiPointEvaluationsObject,
@@ -43,12 +40,11 @@ import type {
   NapiPolyComm,
   NapiPolyComms,
   NapiProofClasses,
+  NapiProofEvaluationsObject,
   NapiProverCommitments,
   NapiProverProof,
-  NapiProofEvaluationsObject,
   NapiRuntimeTable,
   NapiRuntimeTableCfg,
-  NapiLookupTable,
   NapiVecVec,
 } from './napi-wrappers.js';
 
@@ -62,7 +58,6 @@ function napiProofConversion(napi: Napi, core: ConversionCores) {
       VecVec: napi.WasmVecVecFp,
       ProverProof: napi.WasmFpProverProof,
       LookupCommitments: napi.WasmFpLookupCommitments,
-      RuntimeTableCfg: napi.WasmPastaFpRuntimeTableCfg,
       LookupTable: napi.WasmPastaFpLookupTable,
     }),
     fq: proofConversionPerField(core.fq, {
@@ -71,7 +66,6 @@ function napiProofConversion(napi: Napi, core: ConversionCores) {
       VecVec: napi.WasmVecVecFq,
       ProverProof: napi.WasmFqProverProof,
       LookupCommitments: napi.WasmFqLookupCommitments,
-      RuntimeTableCfg: napi.WasmPastaFqRuntimeTableCfg,
       LookupTable: napi.WasmPastaFqLookupTable,
     }),
   };
@@ -85,7 +79,6 @@ function proofConversionPerField(
     VecVec,
     ProverProof,
     LookupCommitments,
-    RuntimeTableCfg,
     LookupTable,
   }: NapiProofClasses
 ) {
@@ -190,7 +183,7 @@ function proofConversionPerField(
   }
 
   function runtimeTableCfgToRust([, id, firstColumn]: RuntimeTableCfg): NapiRuntimeTableCfg {
-    return new RuntimeTableCfg(id, core.vectorToRust(firstColumn));
+    return { id, firstColumn: core.vectorToRust(firstColumn) };
   }
 
   function lookupTableToRust([, id, [, ...data]]: LookupTable): NapiLookupTable {
@@ -318,9 +311,7 @@ function proofConversionPerField(
         prevChallengeComms
       );
     },
-    proofFromRust(
-      napiProof: NapiProverProof
-    ): ProofWithPublic {
+    proofFromRust(napiProof: NapiProverProof): ProofWithPublic {
       // If we received the full prover proof (with commitments field), use it directly.
       // Otherwise fall back to an older wrapper shape `{ proof, public_input }`.
 
@@ -336,7 +327,7 @@ function proofConversionPerField(
         const zetaOmega = MlArray.to(asArrayLike<Uint8Array>(pe?.zetaOmega));
         return [0, zeta, zetaOmega];
       };
-      const toMlOption = <T,>(
+      const toMlOption = <T>(
         value: T | null | undefined,
         f: (x: T) => PointEvaluations<Uint8Array>
       ) => MlOption.mapTo(value ?? undefined, f);
@@ -345,22 +336,12 @@ function proofConversionPerField(
       const publicEvals = pointEvalsOptionFromRust(publicEvalsBytes);
 
       const w = MlArray.to(
-        asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.w).map(
-          toPointEvals
-        )
-      ) as MlTuple<
-        PointEvaluations<Uint8Array>,
-        15
-      >;
+        asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.w).map(toPointEvals)
+      ) as MlTuple<PointEvaluations<Uint8Array>, 15>;
       const z = toPointEvals(evalsSource?.z);
       const s = MlArray.to(
-        asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.s).map(
-          toPointEvals
-        )
-      ) as MlTuple<
-        PointEvaluations<Uint8Array>,
-        6
-      >;
+        asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.s).map(toPointEvals)
+      ) as MlTuple<PointEvaluations<Uint8Array>, 6>;
       const coefficients = MlArray.to(
         asArrayLike<NapiPointEvaluationsObject | null | undefined>(evalsSource?.coefficients).map(
           toPointEvals
@@ -397,10 +378,7 @@ function proofConversionPerField(
         toMlOption(evalsSource?.lookupTable, toPointEvals),
         lookupSorted,
         toMlOption(evalsSource?.runtimeLookupTable, toPointEvals),
-        toMlOption(
-          evalsSource?.runtimeLookupTableSelector,
-          toPointEvals
-        ),
+        toMlOption(evalsSource?.runtimeLookupTableSelector, toPointEvals),
         toMlOption(evalsSource?.xorLookupSelector, toPointEvals),
         toMlOption(evalsSource?.lookupGateLookupSelector, toPointEvals),
         toMlOption(evalsSource?.rangeCheckLookupSelector, toPointEvals),
@@ -412,9 +390,7 @@ function proofConversionPerField(
       let ftEval1 = fieldFromRust(napiProof.ft_eval1);
       let public_ = fieldsFromRustFlat(napiProof.public_);
       let prevChallengeScalars = napiProof.prev_challenges_scalars;
-      let [, ...prevChallengeComms] = core.polyCommsFromRust(
-        napiProof.prev_challenges_comms
-      );
+      let [, ...prevChallengeComms] = core.polyCommsFromRust(napiProof.prev_challenges_comms);
       let prevChallenges = prevChallengeComms.map<RecursionChallenge>((comms, i) => {
         let scalars = fieldsFromRustFlat(prevChallengeScalars.get(i));
         return [0, scalars, comms];

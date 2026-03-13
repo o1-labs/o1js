@@ -28,11 +28,6 @@ enum KeyType {
   WrapVerificationKey,
 }
 
-function asUint8Array(bytes: Uint8Array | number[] | ArrayLike<number>): Uint8Array {
-  return bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes);
-}
-
-
 type SnarkKeyHeader =
   | [KeyType.StepProvingKey, MlStepProvingKeyHeader]
   | [KeyType.StepVerificationKey, MlStepVerificationKeyHeader]
@@ -102,7 +97,7 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
   switch (value[0]) {
     case KeyType.StepProvingKey: {
       let index = value[1][1];
-      return asUint8Array(wasm.caml_pasta_fp_plonk_index_encode(index));
+      return wasm.caml_pasta_fp_plonk_index_encode(index);
     }
     case KeyType.StepVerificationKey: {
       let vkMl = value[1];
@@ -113,7 +108,7 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
     }
     case KeyType.WrapProvingKey: {
       let index = value[1][1];
-      return asUint8Array(wasm.caml_pasta_fq_plonk_index_encode(index));
+      return wasm.caml_pasta_fq_plonk_index_encode(index);
     }
     case KeyType.WrapVerificationKey: {
       let vk = value[1];

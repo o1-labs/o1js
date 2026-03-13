@@ -15,7 +15,7 @@ runs:
       with:
         node-version: 20
     - name: build
-      uses: ./.github/actions/build
+      uses: ./.github/actions/build-wasm
     - name: Build o1js and mina-signer
       shell: bash
       run: |

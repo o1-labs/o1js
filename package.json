@@ -72,8 +72,9 @@
     "regression:dump-vks": "./scripts/tests/dump-vks.sh",
     "regression:check-vks": "./scripts/tests/check-vks.sh",
     "regression:dump-perf": "./tests/perf-regression/perf-regression.sh --dump",
+    "regression:dump-perf:native": "O1JS_BACKEND=native ./tests/perf-regression/perf-regression.sh --dump --file ./tests/perf-regression/perf-regression-native.json",
     "regression:check-perf": "./tests/perf-regression/perf-regression.sh --check",
-    "regression:ci:dump-perf": "./tests/perf-regression/dump-perf-ci.sh",
+    "regression:check-perf:native": "O1JS_BACKEND=native ./tests/perf-regression/perf-regression.sh --check --file ./tests/perf-regression/perf-regression-native.json",
     "format": "prettier --write --ignore-unknown",
     "format:check": "prettier --check --ignore-unknown",
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
@@ -133,6 +134,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@o1js/native": "file:./native/meta",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
     "js-sha256": "^0.9.0",

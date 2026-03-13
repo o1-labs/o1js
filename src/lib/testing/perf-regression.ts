@@ -3,8 +3,8 @@
  *
  * Stores and compares metadata such as compile, proving, and verifying times.
  * Can run in two modes:
- * - **Dump**: write baseline results into
- *   {@link tests/perf-regression/perf-regression.json}
+ * - **Dump**: write baseline results into a per-backend JSON file
+ *   (e.g. `perf-regression-wasm.json` or `perf-regression-native.json`)
  * - **Check**: validate current results against the stored baselines
  *
  * For regression testing of constraint systems (CS) and zkApps,
@@ -14,7 +14,7 @@
  * Command-line arguments:
  * - `--dump` (alias `-d`): dump performance data into the baseline file.
  * - `--check` (alias `-c`): check performance against the existing baseline.
- * - `--file` (alias `-f`): specify a custom JSON path (default: `./tests/perf-regression/perf-regression.json`).
+ * - `--file` (alias `-f`): specify a custom JSON path (default: `./tests/perf-regression/perf-regression-wasm.json`).
  * - `--silent`: suppress all console output.
  *
  * These flags are mutually exclusive for modes (`--dump` and `--check` cannot be used together).
@@ -76,7 +76,7 @@ const FILE_PATH = path.isAbsolute(argv.file ?? '')
   ? (argv.file as string)
   : path.join(
       process.cwd(),
-      argv.file ? (argv.file as string) : './tests/perf-regression/perf-regression.json'
+      argv.file ? (argv.file as string) : './tests/perf-regression/perf-regression-wasm.json'
     );
 
 // Create directory & file if missing (only on dump)
@@ -89,7 +89,7 @@ if (DUMP) {
 /**
  * Create a new performance tracking session for a program.
  *
- * @param programName Name of the program (key in perf-regression.json)
+ * @param programName Name of the program (key in the baseline JSON)
  * @param methodsSummary Optional methods analysis (required for prove/verify checks)
  * @param log Optional boolean (default: true). If `--silent` is passed via CLI,
  *            it overrides this and disables all logs.
@@ -213,7 +213,7 @@ const Performance = {
    * @param programName Optional identifier for the program or label.
    *   - With a ZkProgram name and its `methodsSummary`, the session benchmarks
    *     compile, prove, and verify phases, storing or checking results against
-   *     `perf-regression.json`.
+   *     the per-backend baseline JSON.
    *   - Without a ZkProgram, `programName` acts as a freeform label and the session
    *     can be used like `console.time` / `console.timeEnd` to log timestamps.
    * @param methodsSummary Optional analysis of ZkProgram methods, required when

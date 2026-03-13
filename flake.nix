@@ -292,6 +292,7 @@
             "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
+          SKIP_NATIVE_BUILD = true;
           JUST_BINDINGS = true;
           buildInputs = (with pkgs;
             [

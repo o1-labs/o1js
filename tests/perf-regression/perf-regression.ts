@@ -4,8 +4,8 @@
  *
  * This script benchmarks compile-time performance and validates digests for a
  * fixed set of zkApps and CS examples. It supports two modes:
- * - **Dump**: record baseline digests and compile times into
- *   {@link tests/perf-regression/perf-regression.json}
+ * - **Dump**: record baseline digests and compile times into a per-backend
+ *   JSON file (e.g. `perf-regression-wasm.json` or `perf-regression-native.json`)
  * - **Check**: compare current results against stored baselines and fail on
  *   regressions or digest mismatches
  *
@@ -37,14 +37,11 @@ const forceRecompile = false;
 const dump = process.argv.includes('--dump');
 const check = process.argv.includes('--check');
 
-// path arg: fallback to default
-const maybePathIdx = Math.max(process.argv.indexOf('--dump'), 0) ? 5 : 4;
-const jsonPath =
-  process.argv[maybePathIdx] && process.argv[maybePathIdx].startsWith('--')
-    ? undefined
-    : process.argv[maybePathIdx];
+// parse --file / -f flag
+const fileIdx = Math.max(process.argv.indexOf('--file'), process.argv.indexOf('-f'));
+const jsonPath = fileIdx !== -1 ? process.argv[fileIdx + 1] : undefined;
 
-let filePath = jsonPath ? jsonPath : './tests/perf-regression/perf-regression.json';
+let filePath = jsonPath ? jsonPath : './tests/perf-regression/perf-regression-wasm.json';
 
 type MinimumConstraintSystem = {
   analyzeMethods(): Promise<Record<string, { rows: number; digest: string }>>;

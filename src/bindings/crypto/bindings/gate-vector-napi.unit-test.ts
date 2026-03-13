@@ -20,7 +20,12 @@ function loadNative() {
       if ((err as any).code !== 'MODULE_NOT_FOUND') throw err;
     }
   }
-  throw new Error('kimchi_napi.node not found in compiled bindings');
+
+  if (process.env.O1JS_BACKEND === 'native') {
+    throw new Error('kimchi_napi.node not found but O1JS_BACKEND=native is set');
+  }
+  console.warn('kimchi_napi.node not found, skipping napi test');
+  process.exit(0);
 }
 
 const native: any = loadNative();

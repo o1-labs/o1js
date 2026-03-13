@@ -1,11 +1,22 @@
 name: Dump Performance Regression Baseline
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      backend:
+        description: 'Backend to dump baseline for'
+        required: true
+        type: choice
+        options:
+          - wasm
+          - native
+        default: 'wasm'
 
 permissions:
   contents: write
 jobs:
-  dump_and_commit:
+  dump-wasm:
+    if: ${{ inputs.backend == 'wasm' }}
+    name: Dump Wasm Baseline
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (current branch)
@@ -14,18 +25,18 @@ jobs:
           ref: ${{ github.ref_name }}
           submodules: recursive
       - name: Build
-        uses: ./.github/actions/build
-      - name: Performance Regression (dump)
+        uses: ./.github/actions/build-wasm
+      - name: Performance Regression (dump wasm)
         env:
           TEST_TYPE: Performance Regression
           PERF_MODE: --dump
         run: |
           set -euo pipefail
           sh run-ci-tests.sh
-      - name: Commit and push baseline to current branch
+      - name: Commit and push wasm baseline
         shell: bash
         env:
-          BASELINE_PATH: tests/perf-regression/perf-regression.json
+          BASELINE_PATH: tests/perf-regression/perf-regression-wasm.json
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
@@ -35,18 +46,67 @@ jobs:
             exit 1
           fi
 
-          # Configure git identity
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Commit only if baseline changed
-          if git diff --quiet -- "$BASELINE_PATH"; then
+          git add "$BASELINE_PATH"
+
+          if git diff --cached --quiet -- "$BASELINE_PATH"; then
             echo "No changes in $BASELINE_PATH; nothing to commit."
             exit 0
           fi
 
-          git add "$BASELINE_PATH"
-          git commit -m "ci(perf): update baseline $BASELINE_PATH"
-          # Push back to the same branch this workflow was dispatched on
+          git commit -m "ci(perf): update wasm baseline $BASELINE_PATH"
           git push origin HEAD:"$BRANCH_NAME"
-          echo "Baseline committed and pushed to branch: $BRANCH_NAME"
+          echo "Wasm baseline committed and pushed to branch: $BRANCH_NAME"
+
+  dump-native:
+    if: ${{ inputs.backend == 'native' }}
+    name: Dump Native Baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (current branch)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          submodules: recursive
+      - name: Build wasm (provides compiled bindings and dist/)
+        uses: ./.github/actions/build-wasm
+      - name: Build native bindings
+        uses: ./.github/actions/build-native
+      - name: Install native package
+        run: npm install ./native/linux-x64/
+      - name: Performance Regression (dump native)
+        env:
+          TEST_TYPE: Performance Regression
+          PERF_MODE: --dump
+          O1JS_BACKEND: native
+        run: |
+          set -euo pipefail
+          sh run-ci-tests.sh
+      - name: Commit and push native baseline
+        shell: bash
+        env:
+          BASELINE_PATH: tests/perf-regression/perf-regression-native.json
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f "$BASELINE_PATH" ]]; then
+            echo "ERROR: baseline not found at $BASELINE_PATH"
+            exit 1
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add "$BASELINE_PATH"
+
+          if git diff --cached --quiet -- "$BASELINE_PATH"; then
+            echo "No changes in $BASELINE_PATH; nothing to commit."
+            exit 0
+          fi
+
+          git commit -m "ci(perf): update native baseline $BASELINE_PATH"
+          git push origin HEAD:"$BRANCH_NAME"
+          echo "Native baseline committed and pushed to branch: $BRANCH_NAME"
