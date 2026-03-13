@@ -144,6 +144,6 @@
     "tslib": "^2.3.0"
   },
   "o1js-internal": {
-    "native-version": "0.0.1-dev.d9ed5"
+    "native-version": "2.10.0-dev.d9ed5"
   }
 }
