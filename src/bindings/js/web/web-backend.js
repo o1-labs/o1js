@@ -160,8 +160,12 @@ function workerExport(worker, exportObject) {
   for (let key in exportObject) {
     worker.addEventListener('message', async function ({ data }) {
       if (data?.type !== key) return;
-      let result = await exportObject[key](data.message);
-      postMessage({ type: data.id, result });
+      try {
+        let result = await exportObject[key](data.message);
+        postMessage({ type: data.id, result });
+      } catch (error) {
+        postMessage({ type: data.id, error: String(error?.stack ?? error) });
+      }
     });
   }
 }
@@ -170,7 +174,9 @@ async function workerCall(worker, type, message) {
   let id = Math.random();
   let promise = waitForMessage(worker, id);
   worker.postMessage({ type, id, message });
-  return (await promise).result;
+  let response = await promise;
+  if (response.error) throw new Error(response.error);
+  return response.result;
 }
 
 function allocateWasmMemoryForUserAgent(userAgent) {
