@@ -75,7 +75,7 @@ export class OnChainStateMgmtZkAppPage {
   }
 
   async checkZkAppStateUpdateFailureByUnknownAccount() {
-    await expect(this.eventsContainer).toContainText('State update failure');
+    await expect(this.eventsContainer).toContainText('State Update failure');
     await expect(this.eventsContainer).toContainText('Could not find account for public key');
     await expect(this.zkAppStateContainer).toHaveText('No data available yet.');
   }
