@@ -1212,25 +1212,42 @@ async function makeGraphqlRequest<TDataResponse = any>(
     timeouts = [];
   };
 
+  const maxRetries = 3;
+  const retryDelay = 1000;
+
   const makeRequest = async (url: string) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
-    timeouts.push(timer);
-    let body = JSON.stringify({ operationName: null, query, variables: {} });
-    try {
-      let response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        body,
-        signal: controller.signal,
-      });
-      return checkResponseStatus<TDataResponse>(response);
-    } finally {
-      clearTimeouts();
+    let lastError: unknown;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+      timeouts.push(timer);
+      let body = JSON.stringify({ operationName: null, query, variables: {} });
+      try {
+        let response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body,
+          signal: controller.signal,
+        });
+        return checkResponseStatus<TDataResponse>(response);
+      } catch (error) {
+        lastError = error;
+        clearTimeouts();
+        // only retry on transient network errors, not aborts
+        if (error instanceof Error && error.name === 'AbortError') throw error;
+        if (attempt < maxRetries - 1) {
+          await new Promise((r) => setTimeout(r, retryDelay * (attempt + 1)));
+          continue;
+        }
+        throw error;
+      } finally {
+        clearTimeouts();
+      }
     }
+    throw lastError;
   };
   // try to fetch from endpoints in pairs
   let timeoutErrors: { url1: string; url2: string; error: any }[] = [];
