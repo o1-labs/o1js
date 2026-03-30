@@ -10,6 +10,8 @@ const clearEventsButton = document.querySelector('#clearEventsButton');
 const eventsContainer = document.querySelector('#eventsContainer');
 const stateContainer = document.querySelector('#zkAppStateContainer');
 
+logEvents(`o1js initialized after ${performance.now().toFixed(2)}ms`, eventsContainer);
+
 // Setup local ledger
 let Local = await Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
@@ -105,7 +107,3 @@ updateButton.addEventListener('click', async (event) => {
 clearEventsButton.addEventListener('click', async () => {
   eventsContainer.innerHTML = 'No data available yet.';
 });
-
-// The E2E tests use this message as the signal that the page is ready.
-// Log it only after the local ledger is initialized and all UI handlers exist.
-logEvents(`o1js initialized after ${performance.now().toFixed(2)}ms`, eventsContainer);
