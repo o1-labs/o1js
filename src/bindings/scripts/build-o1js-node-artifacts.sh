@@ -13,6 +13,7 @@ MINA_PATH=src/mina
 setup_script "${BASH_SOURCE[0]}" "Node artifacts build"
 
 DUNE_USE_DEFAULT_LINKER="y"
+DUNE_PROFILE="${DUNE_PROFILE:-dev}"
 
 bold "Building bindings artifacts"
 
@@ -25,11 +26,7 @@ else
     ok "Dependencies already installed"
 fi
 
-info "Setting up Mina configuration files..."
-run_cmd dune b "${MINA_PATH}"/src/config.mlh
-run_cmd cp "${MINA_PATH}"/src/config.mlh "src"
-run_cmd cp -r "${MINA_PATH}"/src/config "src/config"
-ok "Mina config files copied"
+info "Using Dune profile: ${DUNE_PROFILE}"
 
 npm run build:wasm:node
 npm run build:jsoo:node
@@ -40,21 +37,6 @@ else
     info "Skipping native build (SKIP_NATIVE_BUILD set)"
 fi
 
-info "Building transaction layout TypeScript definitions..."
-run_cmd dune b src/bindings/mina-transaction/gen/v1/js-layout.ts \
-  src/bindings/mina-transaction/gen/v2/js-layout.ts \
-  src/bindings/crypto/constants.ts
-ok "TypeScript definitions built"
-
-info "Formatting generated transaction layout definitions..."
-run_cmd npx prettier --write \
-  src/bindings/crypto/constants.ts \
-  src/bindings/mina-transaction/gen/**/*.ts
-ok "TypeScript definitions formatted"
-
-info "Cleaning up Mina config files..."
-run_cmd rm -rf "src/config"
-run_cmd rm "src/config.mlh"
-ok "Config files cleaned up"
+npm run build:bindings-transaction-layout
 
 success "Node bindings artifacts build complete"

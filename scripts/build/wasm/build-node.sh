@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
-
 set -Eeuo pipefail
+
+# Description:
+#   Builds the Kimchi WebAssembly (WASM) bindings for Node.js. This script:
+#     - Compiles the Kimchi proof system’s Node bindings using Dune, generating
+#       the WebAssembly and JavaScript interface files:
+#         - `plonk_wasm_bg.wasm` and its TypeScript definitions.
+#         - `plonk_wasm.js` (the JS interface) and its type declarations.
+#     - Copies all generated artifacts into `src/bindings/compiled/node_bindings/`.
+#     - Converts the output files to CommonJS format (`.cjs` / `.d.cts`) for
+#       compatibility with Node.js environments.
+#     - Applies automatic fixes to the generated bindings via
+#       `src/build/fix-wasm-bindings-node.js` to ensure correct runtime behavior.
+#
+# Usage:
+#   npm run build:wasm:node
 
 source ./scripts/lib/ux.sh
 

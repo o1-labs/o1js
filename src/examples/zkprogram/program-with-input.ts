@@ -1,4 +1,4 @@
-import { SelfProof, Field, ZkProgram, verify, Proof, JsonProof, Provable } from 'o1js';
+import { Field, JsonProof, Proof, Provable, SelfProof, ZkProgram, verify } from 'o1js';
 
 let MyProgram = ZkProgram({
   name: 'example-with-input',
@@ -43,10 +43,12 @@ proof satisfies Proof<Field, void>;
 console.log('verify...');
 let ok = await verify(proof.toJSON(), verificationKey);
 console.log('ok?', ok);
+if (!ok) throw new Error('proof verification failed!');
 
 console.log('verify alternative...');
 ok = await MyProgram.verify(proof);
 console.log('ok (alternative)?', ok);
+if (!ok) throw new Error('proof verification failed!');
 
 console.log('proving step 1...');
 let { proof: proof1 } = await MyProgram.inductiveCase(1, proof);
@@ -55,10 +57,12 @@ proof1 = await testJsonRoundtrip(MyProgram.Proof, proof1);
 console.log('verify...');
 ok = await verify(proof1, verificationKey);
 console.log('ok?', ok);
+if (!ok) throw new Error('proof verification failed!');
 
 console.log('verify alternative...');
 ok = await MyProgram.verify(proof1);
 console.log('ok (alternative)?', ok);
+if (!ok) throw new Error('proof verification failed!');
 
 console.log('proving step 2...');
 let { proof: proof2 } = await MyProgram.inductiveCase(2, proof1);
@@ -66,8 +70,8 @@ proof2 = await testJsonRoundtrip(MyProgram.Proof, proof2);
 
 console.log('verify...');
 ok = await verify(proof2.toJSON(), verificationKey);
-
 console.log('ok?', ok && proof2.publicInput.toString() === '2');
+if (!ok) throw new Error('proof verification failed!');
 
 function testJsonRoundtrip<
   P extends Proof<any, any>,

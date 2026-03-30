@@ -19,6 +19,7 @@ export { wasm, withThreadPool };
 
 let workersReadyResolve;
 let workersReady;
+let wasmThreadPoolRunning = false;
 
 // expose this globally so that it can be referenced from wasm
 globalThis.startWorkers = startWorkers;
@@ -34,18 +35,28 @@ const withThreadPool = WithThreadPool({ initThreadPool, exitThreadPool });
 
 async function initThreadPool() {
   if (!isMainThread) return;
+  if (wasmThreadPoolRunning) return;
+  const numThreads = Math.max(1, workers.numWorkers ?? (os.availableParallelism() ?? 1) - 1);
   workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
-  await wasm.initThreadPool(
-    Math.max(1, workers.numWorkers ?? (os.availableParallelism() ?? 1) - 1),
-    filename
-  );
-  await workersReady;
-  workersReady = undefined;
+  try {
+    await wasm.initThreadPool(numThreads, filename);
+    await workersReady;
+    wasmThreadPoolRunning = true;
+  } catch (error) {
+    wasmThreadPoolRunning = false;
+    throw error;
+  } finally {
+    workersReady = undefined;
+    workersReadyResolve = undefined;
+  }
 }
 
 async function exitThreadPool() {
   if (!isMainThread) return;
-  await wasm.exitThreadPool();
+  if (!wasmThreadPoolRunning) return;
+  // Keep the pool alive across compile/prove calls.
+  // Explicit teardown can deadlock or trigger finalizer crashes depending on
+  // toolchain/runtime combinations.
 }
 
 /**
@@ -55,21 +66,55 @@ let wasmWorkers = [];
 
 async function startWorkers(src, memory, builder) {
   wasmWorkers = [];
+  const startupTimeoutMs = 30_000;
   await Promise.all(
     Array.from({ length: builder.numThreads() }, () => {
       let worker = new Worker(src, {
         workerData: { memory, receiver: builder.receiver() },
       });
       wasmWorkers.push(worker);
-      let target = worker;
-      let type = 'wasm_bindgen_worker_ready';
-      return new Promise((resolve) => {
-        let done = false;
-        target.on('message', function onMsg(data) {
-          if (data == null || data.type !== type || done) return;
-          done = true;
+      return new Promise((resolve, reject) => {
+        let timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Timed out waiting for wasm worker startup'));
+        }, startupTimeoutMs);
+        let ready = false;
+
+        function cleanup() {
+          clearTimeout(timer);
+          worker.off('message', onReady);
+          worker.off('error', onError);
+          worker.off('exit', onExit);
+        }
+
+        function onReady(data) {
+          if (data == null || data.type !== 'wasm_bindgen_worker_ready') return;
+          ready = true;
+          cleanup();
+          // Do not keep the process alive solely because pool workers exist.
+          worker.unref();
           resolve(worker);
-        });
+        }
+
+        function onError(error) {
+          cleanup();
+          reject(error);
+        }
+
+        function onExit(code) {
+          cleanup();
+          if (ready || code === 0) {
+            // Some wasm-bindgen/node combinations exit worker threads as soon as
+            // startup work is done. Treat a clean exit as successful startup.
+            resolve(worker);
+            return;
+          }
+          reject(new Error(`WASM worker exited before ready (code ${code})`));
+        }
+
+        worker.on('message', onReady);
+        worker.once('error', onError);
+        worker.once('exit', onExit);
       });
     })
   );
@@ -77,6 +122,18 @@ async function startWorkers(src, memory, builder) {
   workersReadyResolve();
 }
 
-async function terminateWorkers() {
-  return Promise.all(wasmWorkers.map((w) => w.terminate())).then(() => (wasmWorkers = undefined));
+function terminateWorkers() {
+  let workersToTerminate = wasmWorkers ?? [];
+  wasmWorkers = [];
+  wasmThreadPoolRunning = false;
+  for (let worker of workersToTerminate) {
+    try {
+      let terminated = worker.terminate();
+      if (terminated && typeof terminated.catch === 'function') {
+        terminated.catch(() => {});
+      }
+    } catch {
+      // Ignore shutdown races.
+    }
+  }
 }

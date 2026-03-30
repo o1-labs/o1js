@@ -24,7 +24,7 @@ import {
   fieldsFromRustFlat,
   fieldsToRustFlat,
 } from './conversion-base.js';
-import { ConversionCore, ConversionCores, mapToUint32Array, unwrap } from './conversion-core.js';
+import { ConversionCore, ConversionCores, intoRaw, mapToUint32Array } from './conversion-core.js';
 import {
   proofEvaluationsToRust,
   proofEvaluationsFromRust,
@@ -253,15 +253,15 @@ function proofConversionPerField(
     },
 
     runtimeTablesToRust([, ...tables]: MlArray<RuntimeTable>): Uint32Array {
-      return mapToUint32Array(tables, (table) => unwrap(runtimeTableToRust(table)));
+      return mapToUint32Array(tables, (table) => intoRaw(runtimeTableToRust(table)));
     },
 
     runtimeTableCfgsToRust([, ...tableCfgs]: MlArray<RuntimeTableCfg>): Uint32Array {
-      return mapToUint32Array(tableCfgs, (tableCfg) => unwrap(runtimeTableCfgToRust(tableCfg)));
+      return mapToUint32Array(tableCfgs, (tableCfg) => intoRaw(runtimeTableCfgToRust(tableCfg)));
     },
 
     lookupTablesToRust([, ...tables]: MlArray<LookupTable>) {
-      return mapToUint32Array(tables, (table) => unwrap(lookupTableToRust(table)));
+      return mapToUint32Array(tables, (table) => intoRaw(lookupTableToRust(table)));
     },
   };
 }

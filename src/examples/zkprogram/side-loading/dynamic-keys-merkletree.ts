@@ -11,11 +11,11 @@ import {
 } from 'o1js';
 
 export {
+  MainProgramState,
+  MerkleTreeWitness,
+  SideloadedProgramProof,
   mainProgram,
   sideloadedProgram,
-  SideloadedProgramProof,
-  MerkleTreeWitness,
-  MainProgramState,
 };
 
 /**

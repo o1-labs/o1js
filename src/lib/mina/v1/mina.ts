@@ -1,90 +1,90 @@
 import { Test } from '../../../bindings.js';
-import { Field } from '../../provable/wrapped.js';
-import { UInt64 } from '../../provable/int.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
-import { TokenId, Authorization } from './account-update.js';
-import * as Fetch from './fetch.js';
-import { humanizeErrors, invalidTransactionError } from './errors.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
-import { Account } from './account.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
+import { Field } from '../../provable/wrapped.js';
+import { Authorization, TokenId } from './account-update.js';
+import { Account } from './account.js';
+import { humanizeErrors, invalidTransactionError } from './errors.js';
+import * as Fetch from './fetch.js';
+import { type EventActionFilterOptions } from './graphql.js';
+import { LocalBlockchain, TestPublicKey } from './local-blockchain.js';
+import {
+  Mina,
+  activeInstance,
+  currentSlot,
+  defaultNetworkConstants,
+  fetchActions,
+  fetchEvents,
+  getAccount,
+  getActions,
+  getBalance,
+  getNetworkConstants,
+  getNetworkId,
+  getNetworkState,
+  getProofsEnabled,
+  hasAccount,
+  setActiveInstance,
+  type ActionStates,
+  type FeePayerSpec,
+  type NetworkConstants,
+} from './mina-instance.js';
 import { currentTransaction } from './transaction-context.js';
 import {
-  type FeePayerSpec,
-  type ActionStates,
-  type NetworkConstants,
-  activeInstance,
-  setActiveInstance,
-  Mina,
-  defaultNetworkConstants,
-  currentSlot,
-  getAccount,
-  hasAccount,
-  getBalance,
-  getNetworkId,
-  getNetworkConstants,
-  getNetworkState,
-  fetchEvents,
-  fetchActions,
-  getActions,
-  getProofsEnabled,
-} from './mina-instance.js';
-import { type EventActionFilterOptions } from './graphql.js';
-import {
-  Transaction,
-  type PendingTransaction,
-  type IncludedTransaction,
-  type RejectedTransaction,
-  type PendingTransactionStatus,
-  type PendingTransactionPromise,
-  createTransaction,
-  toTransactionPromise,
-  transaction,
-  createRejectedTransaction,
-  createIncludedTransaction,
-  toPendingTransactionPromise,
-} from './transaction.js';
-import {
-  reportGetAccountError,
-  verifyTransactionLimits,
   defaultNetworkState,
   filterGroups,
+  reportGetAccountError,
+  verifyTransactionLimits,
 } from './transaction-validation.js';
-import { LocalBlockchain, TestPublicKey } from './local-blockchain.js';
+import {
+  Transaction,
+  createIncludedTransaction,
+  createRejectedTransaction,
+  createTransaction,
+  toPendingTransactionPromise,
+  toTransactionPromise,
+  transaction,
+  type IncludedTransaction,
+  type PendingTransaction,
+  type PendingTransactionPromise,
+  type PendingTransactionStatus,
+  type RejectedTransaction,
+} from './transaction.js';
 
 export {
+  ActionStates,
+  FeePayerSpec,
   LocalBlockchain,
   Network,
-  currentTransaction,
-  Transaction,
-  type PendingTransaction,
-  type IncludedTransaction,
-  type RejectedTransaction,
-  type PendingTransactionStatus,
-  type PendingTransactionPromise,
   TestPublicKey,
+  Transaction,
   activeInstance,
-  setActiveInstance,
-  transaction,
-  sender,
   currentSlot,
-  getAccount,
-  hasAccount,
-  getBalance,
-  getNetworkId,
-  getNetworkConstants,
-  getNetworkState,
-  fetchEvents,
-  fetchActions,
-  getActions,
-  FeePayerSpec,
-  ActionStates,
+  currentTransaction,
   faucet,
-  waitForFunding,
-  getProofsEnabled,
+  fetchActions,
+  fetchEvents,
   // for internal testing only
   filterGroups,
+  getAccount,
+  getActions,
+  getBalance,
+  getNetworkConstants,
+  getNetworkId,
+  getNetworkState,
+  getProofsEnabled,
+  hasAccount,
+  sender,
+  setActiveInstance,
+  transaction,
+  waitForFunding,
+  type IncludedTransaction,
   type NetworkConstants,
+  type PendingTransaction,
+  type PendingTransactionPromise,
+  type PendingTransactionStatus,
+  type RejectedTransaction,
 };
 
 // patch active instance so that we can still create basic transactions without giving Mina network details
@@ -192,8 +192,31 @@ function Network(
       }
       return defaultNetworkConstants;
     },
+    /**
+     * Returns the current slot number.
+     *
+     * For LocalBlockchain, this always works.
+     * For remote networks, requires cached network state populated by:
+     * - `Mina.transaction()` - automatically fetches and caches network state
+     * - `fetchLastBlock()` - but note this already returns `globalSlotSinceGenesis`, making `currentSlot()` redundant
+     *
+     * @throws {Error} If called on a remote network without cached data. Use `fetchCurrentSlot()` instead.
+     */
     currentSlot() {
-      throw Error('currentSlot() is not implemented yet for remote blockchains.');
+      if (currentTransaction()?.fetchMode === 'test') {
+        Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
+        return network?.globalSlotSinceGenesis ?? UInt32.from(0);
+      }
+      if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
+        let network = Fetch.getCachedNetwork(minaGraphqlEndpoint);
+        if (network !== undefined) return network.globalSlotSinceGenesis;
+      }
+      throw Error(
+        `currentSlot: Could not fetch current slot from graphql endpoint ${minaGraphqlEndpoint} outside of a transaction.\n` +
+          'To query the current slot outside of a transaction, import `fetchCurrentSlot` from o1js and call it with your GraphQL endpoint.\n' +
+          "You can fetch the global slot since genesis (default) or the epoch-relative slot by passing 'epoch' as the second parameter."
+      );
     },
     hasAccount(publicKey: PublicKey, tokenId: Field = TokenId.default) {
       if (!currentTransaction.has() || currentTransaction.get().fetchMode === 'cached') {
@@ -218,6 +241,16 @@ function Network(
         )}\nGraphql endpoint: ${minaGraphqlEndpoint}`
       );
     },
+    /**
+     * Returns the current network state.
+     *
+     * For LocalBlockchain, this always works.
+     * For remote networks, requires cached network state populated by:
+     * - `Mina.transaction()` - automatically fetches and caches network state
+     * - `fetchLastBlock()` - explicitly fetches and caches network state
+     *
+     * @throws {Error} If called on a remote network without cached data.
+     */
     getNetworkState() {
       if (currentTransaction()?.fetchMode === 'test') {
         Fetch.markNetworkToBeFetched(minaGraphqlEndpoint);
@@ -270,7 +303,7 @@ function Network(
           try {
             res = await Fetch.checkZkappTransaction(transactionHash);
             if (res.success) {
-              return createIncludedTransaction(pendingTransaction);
+              return createIncludedTransaction(pendingTransaction, res.blockHeight);
             } else if (res.failureReason) {
               const error = invalidTransactionError(txn.transaction, res.failureReason, {
                 accountCreationFee: defaultNetworkConstants.accountCreationFee.toString(),
@@ -442,17 +475,36 @@ function dummyAccount(pubkey?: PublicKey): Account {
   return dummy;
 }
 
-async function waitForFunding(address: string, headers?: HeadersInit): Promise<void> {
+async function waitForFunding(
+  address: string,
+  network: string,
+  headers?: HeadersInit
+): Promise<void> {
+  let tag = `Mina Faucet: ${network.replace(/^\w/, (c) => c.toUpperCase())}:`;
+  // Devnet: ~3 min slot time, can stretch to 15-20 min when unstable
+  // Mesa: ~90s slot time, can stretch to 6-10 min when unstable
+  let interval = network === 'mesa' ? 30000 : 60000;
+  let maxAttempts = network === 'mesa' ? 20 : 25;
   let attempts = 0;
-  let maxAttempts = 30;
-  let interval = 30000;
+  let maxWaitMin = (maxAttempts * interval) / 60000;
+
+  console.log(
+    `${tag} Waiting for funding to complete (polling every ${interval / 1000}s, up to ${maxWaitMin} min)`
+  );
+
   const executePoll = async (resolve: () => void, reject: (err: Error) => void | Error) => {
     let { account } = await Fetch.fetchAccount({ publicKey: address }, undefined, { headers });
     attempts++;
     if (account) {
+      console.log(`${tag} Account funded successfully.`);
       return resolve();
     } else if (maxAttempts && attempts === maxAttempts) {
-      return reject(new Error(`Exceeded max attempts`));
+      return reject(
+        new Error(
+          `${tag} Timed out after ${maxWaitMin} min waiting for account ${address} to be funded. ` +
+            `The transaction may still be pending — the network might be slow or unstable.`
+        )
+      );
     } else {
       setTimeout(executePoll, interval, resolve, reject);
     }
@@ -460,26 +512,124 @@ async function waitForFunding(address: string, headers?: HeadersInit): Promise<v
   return new Promise(executePoll);
 }
 
+// Cached promise for the compiled faucet challenge circuit
+let faucetCircuitPromise: Promise<any> | null = null;
+
+async function getCompiledFaucetCircuit() {
+  if (!faucetCircuitPromise) {
+    faucetCircuitPromise = (async () => {
+      const { ZkFunction } = await import('../../proof-system/zkfunction.js');
+      const sumToOneHundred = ZkFunction({
+        name: 'sumToOneHundred',
+        publicInputType: Field,
+        privateInputTypes: [Field],
+        main: (challenge: Field, userNumber: Field) => {
+          challenge.assertGreaterThanOrEqual(Field(0));
+          challenge.assertLessThan(Field(100));
+          userNumber.assertGreaterThanOrEqual(Field(1));
+          userNumber.assertLessThanOrEqual(Field(100));
+          const sum = challenge.add(userNumber);
+          sum.assertEquals(Field(100));
+        },
+      });
+      console.log('Compiling faucet challenge circuit...');
+      await sumToOneHundred.compile();
+      console.log('Faucet challenge circuit compiled.');
+      return sumToOneHundred;
+    })();
+  }
+  return faucetCircuitPromise;
+}
+
 /**
  * Requests the [testnet faucet](https://faucet.minaprotocol.com/api/v1/faucet) to fund a public key.
+ *
+ * Solves a ZK captcha challenge (sum-to-100 proof) before submitting the funding request.
+ * The first call compiles the ZK circuit (~30-60s), subsequent calls reuse the cached circuit.
+ *
+ * @param pub - The public key to fund.
+ * @param network - The network to fund on: `devnet` (default) or `mesa`.
+ * @param headers - Optional headers passed to `fetchAccount` when polling for funding confirmation.
+ *
+ * @throws `rate-limit` — The address has already been funded on this network (one funding per address).
+ * @throws `rate-limit-ip` — Too many faucet requests from this IP (max 5/hour, 10/day).
+ * @throws `forbidden` — The faucet rejected the request origin.
+ * @throws `challenge-required` — The ZK challenge proof was invalid or expired.
+ *
+ * @example
+ * ```ts
+ * // Fund on Devnet (default)
+ * await Mina.faucet(myPublicKey);
+ *
+ * // Fund on Mesa
+ * await Mina.faucet(myPublicKey, 'mesa');
+ * ```
  */
 async function faucet(pub: PublicKey, network: string = 'devnet', headers?: HeadersInit) {
   let address = pub.toBase58();
-  let response = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      network,
-      address: address,
-    }),
+  let tag = `Mina Faucet: ${network.replace(/^\w/, (c) => c.toUpperCase())}:`;
+
+  let faucetHeaders = {
+    'Content-Type': 'application/json',
+    Origin: 'https://faucet.minaprotocol.com',
+  };
+
+  // Fetch a challenge from the faucet API
+  let challengeResponse = await fetch('https://faucet.minaprotocol.com/api/v1/challenge', {
+    headers: faucetHeaders,
   });
-  response = await response.json();
-  if (response.status.toString() !== 'success') {
+  if (!challengeResponse.ok) {
     throw new Error(
-      `Error funding account ${address}, got response status: ${response.status}, text: ${response.statusText}`
+      `${tag} Failed to fetch challenge: ${challengeResponse.status} ${challengeResponse.statusText}`
     );
   }
-  await waitForFunding(address, headers);
+  let { challenge, challengeId } = (await challengeResponse.json()) as {
+    challenge: number;
+    challengeId: string;
+    expiresAt: string;
+  };
+
+  let userAnswer = 100 - challenge;
+
+  let sumToOneHundred = await getCompiledFaucetCircuit();
+  let proof = await sumToOneHundred.prove(Field(challenge), Field(userAnswer));
+
+  // Submit the faucet request with the challenge solution and proof
+  let faucetResponse = await fetch('https://faucet.minaprotocol.com/api/v1/faucet', {
+    method: 'POST',
+    headers: faucetHeaders,
+    body: JSON.stringify({
+      network,
+      address,
+      challengeId,
+      userAnswer,
+      proof: proof.toJSON(),
+    }),
+  });
+
+  let result = (await faucetResponse.json()) as {
+    status: string;
+    message?: { paymentID: string };
+    reason?: string;
+  };
+  if (result.status !== 'success') {
+    let details: Record<string, string> = {
+      'rate-limit':
+        'The address has already been funded on this network (one funding per address).',
+      'rate-limit-ip': 'Too many faucet requests from this IP (max 5/hour, 10/day).',
+      forbidden: 'The faucet rejected the request origin.',
+      'challenge-required': 'The ZK challenge proof was invalid or expired.',
+    };
+    let message = details[result.status] ?? 'Unexpected error.';
+    throw new Error(`${tag} ${message} ${JSON.stringify(result)}`);
+  }
+  let txHash = result.message?.paymentID ?? 'unknown';
+  let explorerUrl =
+    network === 'mesa'
+      ? `https://mesa.minaexplorer.com/transaction/${txHash}`
+      : `https://minascan.io/devnet/tx/${txHash}`;
+  console.log(`${tag} Funded ${address}\n  ${explorerUrl}`);
+  await waitForFunding(address, network, headers);
 }
 
 function genesisToNetworkConstants(genesisConstants: Fetch.GenesisConstants): NetworkConstants {

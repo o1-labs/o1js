@@ -105,4 +105,14 @@ import { Provable } from '../provable.js';
         table.insert([[0n, new Field(1)], [6n, new Field(2)]]);
       }, 'Indices must be preallocated at creation of the runtime table'); 
   });
+
+  // Cannot insert pairs with witness Field indices not in the table
+  await Provable.runAndCheck(async () => {
+    let table = new RuntimeTable(43, [0n, 1n, 2n, 3n, 4n, 5n]);
+    let badIndex = Provable.witness(Field, () => 6n);
+
+    expectThrows(() => {
+      table.insert([[badIndex, new Field(1)]]);
+    }, 'Field indices must be preallocated at creation of the runtime table');
+  });
 }

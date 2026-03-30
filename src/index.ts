@@ -97,8 +97,11 @@ export {
   addCachedAccount,
   checkZkappTransaction,
   fetchAccount,
+  fetchCurrentSlot,
   fetchEvents,
   fetchLastBlock,
+  fetchTimedAccountInfo,
+  fetchTransactionDepth,
   fetchTransactionStatus,
   Lightnet,
   sendZkapp,
@@ -106,7 +109,11 @@ export {
   setGraphqlEndpoint,
   setGraphqlEndpoints,
 } from './lib/mina/v1/fetch.js';
-export type { TransactionStatus } from './lib/mina/v1/graphql.js';
+export type {
+  DepthOptions,
+  TransactionDepthInfo,
+  TransactionStatus,
+} from './lib/mina/v1/graphql.js';
 export * as Encryption from './lib/provable/crypto/encryption.js';
 export { MerkleMap, MerkleMapWitness } from './lib/provable/merkle-map.js';
 export { MerkleTree, MerkleWitness } from './lib/provable/merkle-tree.js';
@@ -128,7 +135,12 @@ import * as BatchReducer_ from './lib/mina/v1/actions/batch-reducer.js';
 import { Actionable } from './lib/mina/v1/actions/offchain-state-serialization.js';
 import * as OffchainState_ from './lib/mina/v1/actions/offchain-state.js';
 import { Recursive as Recursive_ } from './lib/proof-system/recursive.js';
-import { ZkFunction as ZkFunction_ } from './lib/proof-system/zkfunction.js';
+import {
+  KimchiJsonProof as KimchiJsonProof_,
+  KimchiProof as KimchiProof_,
+  KimchiVerificationKey as KimchiVerificationKey_,
+  ZkFunction as ZkFunction_,
+} from './lib/proof-system/zkfunction.js';
 import {
   createProvableBigInt as createProvableBigInt_,
   ProvableBigInt as ProvableBigInt_,
@@ -178,6 +190,12 @@ namespace Experimental {
   export let createProvableBigInt = createProvableBigInt_;
 
   export let ZkFunction = ZkFunction_;
+  export type KimchiProof = KimchiProof_;
+  export type KimchiVerificationKey = KimchiVerificationKey_;
+  export let KimchiProof = KimchiProof_;
+  export let KimchiVerificationKey = KimchiVerificationKey_;
+
+  export type KimchiJsonProof = KimchiJsonProof_;
 
   // offchain state
   export let OffchainState = OffchainState_.OffchainState;
@@ -190,7 +208,7 @@ namespace Experimental {
    * - `root`: The root of the current Merkle tree
    * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
    */
-  export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments {}
+  export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments { }
 
   // batch reducer
 
@@ -218,7 +236,7 @@ namespace Experimental {
     ActionType extends Actionable<any>,
     BatchSize extends number = number,
     Action = InferProvable<ActionType>,
-  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
+  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> { }
 
   /**
    * Provable type that represents a batch of actions.

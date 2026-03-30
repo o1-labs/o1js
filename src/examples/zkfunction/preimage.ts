@@ -16,8 +16,17 @@ const main = ZkFunction({
   },
 });
 
-await main.compile();
-console.log('analyze');
-let res = await main.analyzeMethod();
-console.log('done');
-console.log(res);
+console.log('compile...');
+const { verificationKey } = await main.compile();
+
+const preimage = Field(1);
+const hash = Poseidon.hash([preimage]);
+
+console.log('prove...');
+const pi = await main.prove(hash, preimage);
+
+console.log('verify...');
+let isValid = await main.verify(pi, verificationKey);
+console.log('isValid?', isValid);
+
+if (!isValid) throw Error('verification failed!');

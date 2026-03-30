@@ -24,7 +24,7 @@ function loadNative() {
   if (process.env.O1JS_BACKEND === 'native') {
     throw new Error('kimchi_napi.node not found but O1JS_BACKEND=native is set');
   }
-  console.warn('kimchi_napi.node not found, skipping napi test');
+  console.warn('kimchi_napi.node not found, skipping gate-vector-napi test');
   process.exit(0);
 }
 

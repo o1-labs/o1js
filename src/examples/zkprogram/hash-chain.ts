@@ -65,7 +65,7 @@ perfHashChain.end();
 perfHashChain.start('verify', 'chain');
 const isValid = await hashChain.verify(proof);
 perfHashChain.end();
-assert(isValid, 'Proof invalid');
+assert(isValid, 'Proof invalid!');
 
 // check that the output is correct
 let z = Array.from({ length: n }, () => 0).reduce((y) => Poseidon.hash([y]), x);

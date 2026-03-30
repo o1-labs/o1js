@@ -73,6 +73,7 @@ declare namespace Snarky {
   type Keypair = unknown;
   type VerificationKey = unknown;
   type Proof = unknown;
+  type ProofWithEvals = unknown;
 }
 
 /**
@@ -405,6 +406,11 @@ declare const Snarky: {
       proof: Snarky.Proof,
       verificationKey: Snarky.VerificationKey
     ): boolean;
+
+
+    proofToBackendProofEvals(publicInput: MlArray<FieldConst>, proof: Snarky.Proof): Snarky.ProofWithEvals;
+
+    proofFromBackendProofEvals(proof: Snarky.ProofWithEvals): Snarky.Proof;
 
     keypair: {
       getVerificationKey(keypair: Snarky.Keypair): Snarky.VerificationKey;

@@ -16,6 +16,7 @@ let workerPromise;
  * @type {number | undefined}
  */
 let numWorkers = undefined;
+let wasmThreadPoolRunning = false;
 
 async function initializeBindings() {
   wasm = kimchiWasm();
@@ -51,15 +52,18 @@ async function initializeBindings() {
 
 async function initThreadPool() {
   if (workerPromise === undefined) throw Error('need to initialize worker first');
+  if (wasmThreadPoolRunning) return;
   let worker = await workerPromise;
   numWorkers ??= Math.max(1, workers.numWorkers ?? (navigator.hardwareConcurrency ?? 1) - 1);
   await workerCall(worker, 'initThreadPool', numWorkers);
+  wasmThreadPoolRunning = true;
 }
 
 async function exitThreadPool() {
   if (workerPromise === undefined) throw Error('need to initialize worker first');
-  let worker = await workerPromise;
-  await workerCall(worker, 'exitThreadPool');
+  if (!wasmThreadPoolRunning) return;
+  // Keep the pool alive across compile/prove calls.
+  // Explicit teardown can deadlock on some runtime/toolchain combinations.
 }
 
 const withThreadPool = WithThreadPool({ initThreadPool, exitThreadPool });

@@ -7,6 +7,9 @@ import { ZkProgram } from '../proof-system/zkprogram.js';
 import { Field } from '../provable/field.js';
 import { assert } from '../provable/gadgets/common.js';
 import { Gadgets } from '../provable/gadgets/gadgets.js';
+import { setBackend } from '../backend.js';
+
+setBackend('wasm');
 
 // Path resolution for subprocess execution
 const __filename = fileURLToPath(import.meta.url);

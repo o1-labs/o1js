@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e
-shopt -s globstar # to expand '**' into nested directories
 
 if ! [ -f ./mina-signer/dist ]
 then
@@ -9,6 +8,6 @@ then
   popd
 fi
 
-for f in ./src/**/*.test.ts; do
-  NODE_OPTIONS=--experimental-vm-modules npx jest $f;
-done
+while IFS= read -r -d '' f; do
+  NODE_OPTIONS=--experimental-vm-modules npx jest "$f"
+done < <(find ./src -name "*.test.ts" -print0)

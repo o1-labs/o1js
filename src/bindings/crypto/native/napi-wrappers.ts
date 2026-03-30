@@ -116,6 +116,7 @@ export type NapiProverProof = {
   public_: Uint8Array;
   prev_challenges_scalars: NapiVecVec;
   prev_challenges_comms: ArrayLike<NapiPolyComm>;
+  serialize(): string;
 };
 
 export type NapiFpRuntimeTable = {

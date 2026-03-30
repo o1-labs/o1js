@@ -76,6 +76,7 @@ perfAdd.start('verify', 'performAddition');
 const validBaseCase = await verify(baseCase, addVk);
 perfAdd.end();
 console.log('ok?', validBaseCase);
+if (!validBaseCase) throw new Error('proof verification failed!');
 
 perfMultiply.start('prove', 'performMultiplication');
 const { proof: multiply1 } = await multiply.performMultiplication(Field(3), baseCase);
@@ -85,6 +86,7 @@ perfMultiply.start('verify', 'performMultiplication');
 const validMultiplication = await verify(multiply1, multiplyVk);
 perfMultiply.end();
 console.log('ok?', validMultiplication);
+if (!validMultiplication) throw new Error('proof verification failed!');
 
 console.log('Proving second (recursive) addition');
 const { proof: add2 } = await add.performAddition(
@@ -95,5 +97,6 @@ const { proof: add2 } = await add.performAddition(
 
 const validAddition = await verify(add2, addVk);
 console.log('ok?', validAddition);
+if (!validAddition) throw new Error('proof verification failed!');
 
 console.log('Result (should be 19):', add2.publicOutput.toBigInt());

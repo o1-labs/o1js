@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
-
 set -Eeuo pipefail
+
+# Description:
+#   Builds the Kimchi WebAssembly (WASM) bindings for Web (browser) usage. This script:
+#     - Compiles the Kimchi proof system’s Web bindings using Dune, generating:
+#         - `plonk_wasm_bg.wasm` (the main WebAssembly module) and its TypeScript definitions.
+#         - `plonk_wasm.js` (the JavaScript interface) and its type declarations.
+#     - Copies all generated artifacts into `src/bindings/compiled/web_bindings/`.
+#     - Optimizes the WebAssembly binary using `wasm-opt` with advanced flags
+#       (`--detect-features`, `--enable-mutable-globals`, `-O4`) for performance and size reduction.
+#     - Ensures proper file permissions after optimization.
+#
+# Note:
+#   - Requires `wasm-opt` (from Binaryen) to be installed and available in PATH.
+#
+# Usage:
+#   npm run build:wasm:web
+
 
 source ./scripts/lib/ux.sh
 

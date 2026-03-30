@@ -103,8 +103,8 @@
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2024-06-13";
-              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
+              date = "2025-12-11";
+              sha256 = "sha256-Z8PetnKGSZjqRtodJ20XqBoTe2qNG0RaklrVW7AQ3JE=";
             }).rust.override
             {
               targets = [
@@ -124,6 +124,19 @@
             cargo = rust-channel';
             rustc = rust-channel';
           };
+        rust-stable-channel = (pkgs.rustChannelOf {
+          channel = "1.92.0";
+          sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
+        }).rust;
+        rust-stable-channel' = rust-stable-channel // {
+          # Ensure compatibility with nixpkgs >= 24.11
+          targetPlatforms = pkgs.lib.platforms.all;
+          badTargetPlatforms = [ ];
+        };
+        rust-stable-platform = pkgs.makeRustPlatform {
+          cargo = rust-stable-channel';
+          rustc = rust-stable-channel';
+        };
         bindings-pkgs = with pkgs;
           [
             nodejs
@@ -206,7 +219,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2024-06-13 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
+                if [ "$1" = run ] && { [ "$2" = nightly-2025-12-11 ] || [[ "$2" =~ 1.92-x86_64* ]] || [[ "$2" =~ 1.79-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
@@ -232,7 +245,7 @@
             }).narHash;
           }) (filter (x: x ? source && hasPrefix "git+" x.source) package));
 
-        test-vectors = rust-platform.buildRustPackage {
+        test-vectors = rust-stable-platform.buildRustPackage {
           src = pkgs.lib.sourceByRegex ./src/mina/src
             [
               "^lib(/crypto(/proof-systems(/.*)?)?)?$"

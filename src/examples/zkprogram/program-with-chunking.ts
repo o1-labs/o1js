@@ -37,7 +37,8 @@ let { proof } = await MyProgram.baseCase(Field(0));
 perf.end();
 
 perf.start('verify', 'baseCase');
-let ok = await MyProgram.verify(proof);
+let isValid = await MyProgram.verify(proof);
 perf.end();
 
-console.log('ok?', ok);
+console.log('isValid?', isValid);
+if (!isValid) throw new Error('proof verification failed!');

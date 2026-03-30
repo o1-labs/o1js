@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
-
 set -Eeuo pipefail
+
+# Description:
+#   Builds the Js_of_OCaml (JSOO) Node bindings for o1js. This script:
+#     - Compiles the OCaml `jsoo_exports` target using Dune to produce the
+#       `o1js_node.bc.js` JavaScript output.
+#     - Copies the generated artifact to `src/bindings/compiled/node_bindings/`
+#       for use by the Node.js runtime (after getting copied again later to dist/node/).
+#     - Creates a placeholder TypeScript declaration file (`.d.cts`) for type resolution.
+#     - Renames the output to CommonJS format (`.cjs`) and fixes internal references:
+#         - Updates WASM import paths.
+#         - Adjusts error-handling functions for Node compatibility.
+#
+# Usage:
+#   npm run build:jsoo:node
+
 
 source ./scripts/lib/ux.sh
 
@@ -11,6 +25,11 @@ BINDINGS_PATH=./src/bindings/compiled/node_bindings/
 setup_script "jsoo-build-node" "JSOO build node"
 
 mkdir -p $BINDINGS_PATH
+
+# Some Mina vendored interfaces trigger warning 67 on newer OCaml toolchains.
+# For bindings packaging, keep this warning non-fatal and legacy alerts non-fatal.
+OCAMLPARAM="${OCAMLPARAM:-_},warn-error=-67,alert=-legacy"
+export OCAMLPARAM
 
 info "building JSOO artifacts for node..."
 TARGETS=(\
