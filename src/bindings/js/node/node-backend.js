@@ -25,7 +25,13 @@ let wasmThreadPoolRunning = false;
 globalThis.startWorkers = startWorkers;
 globalThis.terminateWorkers = terminateWorkers;
 
+// Auto-initialize worker outside main thread (main thread initialized in plonk_wasm.cjs)
 if (!isMainThread) {
+  wasm.initSync({
+    module: workerData.module,
+    memory: workerData.memory,
+    thread_stack_size: Number(process?.env?.O1JS_WASM_THREAD_STACK_SIZE ?? 1048576), // 1MB default stack size for worker threads
+  });
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
   wasm.wbg_rayon_start_worker(workerData.receiver);
 }
@@ -70,6 +76,10 @@ function getWorkerMemory() {
   return typeof wasm.get_memory === 'function' ? wasm.get_memory() : wasm.__wasm.memory;
 }
 
+function getWorkerModule() {
+  return wasm.__wbg_wasm_module;
+}
+
 function isCloneError(error) {
   return error?.name === 'DataCloneError' || String(error?.message ?? error).includes('could not be cloned');
 }
@@ -96,12 +106,17 @@ async function startWorkers(src, memory, builder) {
   wasmWorkers = [];
   const startupTimeoutMs = 30_000;
   let workerMemory = getWorkerMemory();
+  let workerModule = getWorkerModule();
   await Promise.all(
     Array.from({ length: builder.numThreads() }, () => {
       let worker;
       try {
         worker = new Worker(src, {
-          workerData: { memory: workerMemory, receiver: builder.receiver() },
+          workerData: {
+            memory: workerMemory,
+            module: workerModule,
+            receiver: builder.receiver(),
+          },
         });
       } catch (error) {
         if (isCloneError(error)) {
