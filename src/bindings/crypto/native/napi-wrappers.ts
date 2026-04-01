@@ -144,7 +144,7 @@ export type NapiShifts = NapiFpShifts | NapiFqShifts;
 export type NapiVerifierIndex = NapiFpPlonkVerifierIndex | NapiFqPlonkVerifierIndex;
 export type NapiLookupVerifierIndex = NapiFpLookupVerifierIndex | NapiFqLookupVerifierIndex;
 
-export type NapiVerificationEvalsShape = {
+export type NapiVerificationEvalsObject = {
   sigma_comm: NapiPolyComms;
   coefficients_comm: NapiPolyComms;
   generic_comm: NapiPolyComm;
@@ -161,7 +161,7 @@ export type NapiVerificationEvalsShape = {
   rot_comm?: NapiPolyComm | undefined;
 };
 
-export type NapiLookupSelectorShape = {
+export type NapiLookupSelectorObject = {
   lookup?: NapiPolyComm | undefined;
   xor?: NapiPolyComm | undefined;
   range_check?: NapiPolyComm | undefined;
@@ -169,22 +169,41 @@ export type NapiLookupSelectorShape = {
 };
 
 export type NapiLookupSelector =
-  | NapiLookupSelectorShape
+  | NapiLookupSelectorObject
   | NapiFpLookupSelectors
   | NapiFqLookupSelectors;
 
 export type { NapiLookupInfo };
 
-export type NapiLookupVerifierIndexShape = {
+export type NapiLookupPatternsObject = {
+  xor: boolean;
+  lookup: boolean;
+  range_check: boolean;
+  foreign_field_mul: boolean;
+};
+
+export type NapiLookupFeaturesObject = {
+  patterns: NapiLookupPatternsObject;
+  joint_lookup_used: boolean;
+  uses_runtime_tables: boolean;
+};
+
+export type NapiLookupInfoObject = {
+  max_per_row: number;
+  max_joint_size: number;
+  features: NapiLookupFeaturesObject;
+};
+
+export type NapiLookupVerifierIndexObject = {
   joint_lookup_used: boolean;
   lookup_table: NapiPolyComms;
-  lookup_selectors: NapiLookupSelectorShape;
+  lookup_selectors: NapiLookupSelectorObject;
   table_ids?: NapiPolyComm | undefined;
-  lookup_info: NapiLookupInfo;
+  lookup_info: NapiLookupInfoObject;
   runtime_tables_selector?: NapiPolyComm | undefined;
 };
 
-export type NapiShiftsShape = {
+export type NapiShiftsObject = {
   s0: Uint8Array;
   s1: Uint8Array;
   s2: Uint8Array;
@@ -194,15 +213,15 @@ export type NapiShiftsShape = {
   s6: Uint8Array;
 };
 
-export type NapiVerifierIndexShape = {
+export type NapiVerifierIndexObject = {
   domain: NapiDomain;
   max_poly_size: number;
   public_: number;
   prev_challenges: number;
   srs: NapiFpPlonkVerifierIndex['srs'] | NapiFqPlonkVerifierIndex['srs'];
-  evals: NapiVerificationEvalsShape;
-  shifts: NapiShiftsShape;
-  lookup_index?: NapiLookupVerifierIndexShape;
+  evals: NapiVerificationEvalsObject;
+  shifts: NapiShiftsObject;
+  lookup_index?: NapiLookupVerifierIndexObject;
   zk_rows: number;
 };
 
