@@ -12,14 +12,14 @@ import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
 import type {
   Napi,
   NapiDomain,
-  NapiLookupInfo,
-  NapiLookupSelectorShape,
-  NapiLookupVerifierIndexShape,
-  NapiShiftsShape,
-  NapiVerificationEvalsShape,
+  NapiLookupInfoObject,
+  NapiLookupSelectorObject,
+  NapiLookupVerifierIndexObject,
+  NapiShiftsObject,
+  NapiVerificationEvalsObject,
   NapiVerifierIndex,
   NapiVerifierIndexClasses,
-  NapiVerifierIndexShape,
+  NapiVerifierIndexObject,
 } from './napi-wrappers.js';
 
 export { napiVerifierIndexConversion };
@@ -68,7 +68,7 @@ function verifierIndexConversionPerField(
     return [0, domain.log_size_of_group, fieldFromRust(domain.group_gen)];
   }
 
-  function verificationEvalsToRust(evals: VerificationEvals): NapiVerificationEvalsShape {
+  function verificationEvalsToRust(evals: VerificationEvals): NapiVerificationEvalsObject {
     let sigmaComm = core.polyCommsToRust(evals[1]);
     let coefficientsComm = core.polyCommsToRust(evals[2]);
     let genericComm = core.polyCommToRust(evals[3]);
@@ -83,7 +83,7 @@ function verifierIndexConversionPerField(
     let foreignFieldAddComm = MlOption.mapFrom(evals[12], core.polyCommToRust);
     let foreignFieldMulComm = MlOption.mapFrom(evals[13], core.polyCommToRust);
     let rotComm = MlOption.mapFrom(evals[14], core.polyCommToRust);
-    const evalsObj: NapiVerificationEvalsShape = {
+    const evalsObj: NapiVerificationEvalsObject = {
       sigma_comm: sigmaComm,
       coefficients_comm: coefficientsComm,
       generic_comm: genericComm,
@@ -101,7 +101,7 @@ function verifierIndexConversionPerField(
     };
     return evalsObj;
   }
-  function verificationEvalsFromRust(evals: NapiVerificationEvalsShape): VerificationEvals {
+  function verificationEvalsFromRust(evals: NapiVerificationEvalsObject): VerificationEvals {
     let mlEvals: VerificationEvals = [
       0,
       core.polyCommsFromRust(evals.sigma_comm),
@@ -122,7 +122,7 @@ function verifierIndexConversionPerField(
     return mlEvals;
   }
 
-  function lookupVerifierIndexToRust(lookup: Lookup<PolyComm>): NapiLookupVerifierIndexShape {
+  function lookupVerifierIndexToRust(lookup: Lookup<PolyComm>): NapiLookupVerifierIndexObject {
     let [
       ,
       joint_lookup_used,
@@ -132,7 +132,7 @@ function verifierIndexConversionPerField(
       lookup_info,
       runtime_tables_selector,
     ] = lookup;
-    const lookupObj: NapiLookupVerifierIndexShape = {
+    const lookupObj: NapiLookupVerifierIndexObject = {
       joint_lookup_used: MlBool.from(joint_lookup_used),
       lookup_table: core.polyCommsToRust(lookup_table),
       lookup_selectors: lookupSelectorsToRust(selectors),
@@ -142,7 +142,7 @@ function verifierIndexConversionPerField(
     };
     return lookupObj;
   }
-  function lookupVerifierIndexFromRust(lookup: NapiLookupVerifierIndexShape): Lookup<PolyComm> {
+  function lookupVerifierIndexFromRust(lookup: NapiLookupVerifierIndexObject): Lookup<PolyComm> {
     let mlLookup: Lookup<PolyComm> = [
       0,
       MlBool(lookup.joint_lookup_used),
@@ -161,8 +161,8 @@ function verifierIndexConversionPerField(
     xor,
     range_check,
     ffmul,
-  ]: LookupSelectors<PolyComm>): NapiLookupSelectorShape {
-    const selectorObj: NapiLookupSelectorShape = {
+  ]: LookupSelectors<PolyComm>): NapiLookupSelectorObject {
+    const selectorObj: NapiLookupSelectorObject = {
       xor: MlOption.mapFrom(xor, core.polyCommToRust),
       lookup: MlOption.mapFrom(lookup, core.polyCommToRust),
       range_check: MlOption.mapFrom(range_check, core.polyCommToRust),
@@ -170,7 +170,7 @@ function verifierIndexConversionPerField(
     };
     return selectorObj;
   }
-  function lookupSelectorsFromRust(selector: NapiLookupSelectorShape): LookupSelectors<PolyComm> {
+  function lookupSelectorsFromRust(selector: NapiLookupSelectorObject): LookupSelectors<PolyComm> {
     let lookup = MlOption.mapTo(selector.lookup, core.polyCommFromRust);
     let xor = MlOption.mapTo(selector.xor, core.polyCommFromRust);
     let range_check = MlOption.mapTo(selector.range_check, core.polyCommFromRust);
@@ -178,7 +178,7 @@ function verifierIndexConversionPerField(
     return [0, lookup, xor, range_check, ffmul];
   }
 
-  function lookupInfoToRust([, maxPerRow, maxJointSize, features]: LookupInfo): NapiLookupInfo {
+  function lookupInfoToRust([, maxPerRow, maxJointSize, features]: LookupInfo): NapiLookupInfoObject {
     let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
     let [, xor, lookup, range_check, foreign_field_mul] = patterns;
     return {
@@ -190,16 +190,13 @@ function verifierIndexConversionPerField(
           lookup: MlBool.from(lookup),
           range_check: MlBool.from(range_check),
           foreign_field_mul: MlBool.from(foreign_field_mul),
-          free() {},
         },
         joint_lookup_used: MlBool.from(joint_lookup_used),
         uses_runtime_tables: MlBool.from(uses_runtime_tables),
-        free() {},
       },
-      free() {},
     };
   }
-  function lookupInfoFromRust(info: NapiLookupInfo): LookupInfo {
+  function lookupInfoFromRust(info: NapiLookupInfoObject): LookupInfo {
     let features = info.features;
     let patterns = features.patterns;
     let mlInfo: LookupInfo = [
@@ -223,9 +220,9 @@ function verifierIndexConversionPerField(
   }
 
   let self = {
-    shiftsToRust([, ...shifts]: MlArray<Field>): NapiShiftsShape {
+    shiftsToRust([, ...shifts]: MlArray<Field>): NapiShiftsObject {
       let s = shifts.map((s) => fieldToRust(s));
-      const shiftsObj: NapiShiftsShape = {
+      const shiftsObj: NapiShiftsObject = {
         s0: s[0],
         s1: s[1],
         s2: s[2],
@@ -236,7 +233,7 @@ function verifierIndexConversionPerField(
       };
       return shiftsObj;
     },
-    shiftsFromRust(s: NapiShiftsShape): MlArray<Field> {
+    shiftsFromRust(s: NapiShiftsObject): MlArray<Field> {
       let shifts = [s.s0, s.s1, s.s2, s.s3, s.s4, s.s5, s.s6];
       return [0, ...shifts.map(fieldFromRust)];
     },
@@ -251,7 +248,7 @@ function verifierIndexConversionPerField(
       let shifts = self.shiftsToRust(vk[7]);
       let lookupIndex = MlOption.mapFrom(vk[8], lookupVerifierIndexToRust);
       let zkRows = vk[9];
-      const vkObj: NapiVerifierIndexShape = {
+      const vkObj: NapiVerifierIndexObject = {
         domain,
         max_poly_size: maxPolySize,
         public_: nPublic,
@@ -265,7 +262,7 @@ function verifierIndexConversionPerField(
       return vkObj as unknown as NapiVerifierIndex;
     },
     verifierIndexFromRust(vk: NapiVerifierIndex): VerifierIndex {
-      const vk_ = vk as unknown as NapiVerifierIndexShape;
+      const vk_ = vk as unknown as NapiVerifierIndexObject;
       let mlVk: VerifierIndex = [
         0,
         domainFromRust(vk_.domain),
