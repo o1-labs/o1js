@@ -145,5 +145,8 @@
   },
   "o1js-internal": {
     "native-version": "2.14.0-dev.e1080"
+  },
+  "optionalDependencies": {
+    "@o1js/native": "2.14.0-dev.e1080"
   }
 }
