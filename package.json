@@ -144,7 +144,7 @@
     "tslib": "^2.3.0"
   },
   "o1js-internal": {
-    "native-version": "2.14.0-dev.e1080"
+    "native-version": "2.14.0-dev.bb172"
   },
   "optionalDependencies": {
     "@o1js/native": "2.14.0-dev.bb172"
