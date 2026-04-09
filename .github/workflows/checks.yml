@@ -36,7 +36,14 @@ permissions:
 
 jobs:
   Prepare:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+# sdk-team-github-runner-arm-01-benchmarks is really slow? doesn't seem to use nix cache
+# sdk-team-github-runner-x86-04-build has the weird 401 issue
+        runner: [sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free space on runner
         run: |
@@ -62,11 +69,10 @@ jobs:
 
   Lint-and-Format:
     strategy:
+      fail-fast: false
       matrix:
         node: [20]
-    if: github.event.pull_request.labels.*.name != 'skip-lint'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -111,7 +117,12 @@ jobs:
   Upload-bindings:
     name: upload bindings artifact
     if: ${{ inputs.proof_systems_commit == '' }}
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free space on runner
         run: |
@@ -137,7 +148,6 @@ jobs:
   Build-And-Test-Server:
     needs: [Prepare]
     timeout-minutes: 210
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -154,6 +164,10 @@ jobs:
             'Cache Regression',
             'Performance Regression',
           ]
+
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -188,11 +202,12 @@ jobs:
     needs: [Prepare]
     name: Run unit tests parallel
     timeout-minutes: 210
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
@@ -260,14 +275,24 @@ jobs:
   Build-And-Test-Server-Unit-Tests:
     name: Build-And-Test-Server (Unit tests)
     needs: [Run-Unit-Tests]
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:
     needs: [Prepare]
     timeout-minutes: 90
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [sdk-team-github-runner-arm-01-benchmarks,sdk-team-github-runner-x86-01-benchmarks,sdk-team-github-runner-x86-02-build,sdk-team-github-runner-x86-03-build,sdk-team-github-runner-x86-04-build]
+
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -285,7 +310,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-${runner.arch }}-node-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
