@@ -235,7 +235,7 @@ compiler used by typing:
 Which will reply with something like
 
 ```bash
-rustc 1.82.0 (f6e511eec 2024-10-15)
+rustc 1.92.0 (f6e511eec 2025-12-11)
 ```
 
 Then the Wasm target can be automatically installed using
