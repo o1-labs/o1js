@@ -12,7 +12,7 @@ import { ConversionCore, ConversionCores } from './napi-conversion-core.js';
 import type {
   Napi,
   NapiDomain,
-  NapiLookupInfo,
+  NapiLookupInfoObject,
   NapiLookupSelectorShape,
   NapiLookupVerifierIndexShape,
   NapiShiftsShape,
@@ -178,7 +178,9 @@ function verifierIndexConversionPerField(
     return [0, lookup, xor, range_check, ffmul];
   }
 
-  function lookupInfoToRust([, maxPerRow, maxJointSize, features]: LookupInfo): NapiLookupInfo {
+  function lookupInfoToRust(
+    [, maxPerRow, maxJointSize, features]: LookupInfo
+  ): NapiLookupInfoObject {
     let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
     let [, xor, lookup, range_check, foreign_field_mul] = patterns;
     return {
@@ -190,16 +192,13 @@ function verifierIndexConversionPerField(
           lookup: MlBool.from(lookup),
           range_check: MlBool.from(range_check),
           foreign_field_mul: MlBool.from(foreign_field_mul),
-          free() {},
         },
         joint_lookup_used: MlBool.from(joint_lookup_used),
         uses_runtime_tables: MlBool.from(uses_runtime_tables),
-        free() {},
       },
-      free() {},
     };
   }
-  function lookupInfoFromRust(info: NapiLookupInfo): LookupInfo {
+  function lookupInfoFromRust(info: NapiLookupInfoObject): LookupInfo {
     let features = info.features;
     let patterns = features.patterns;
     let mlInfo: LookupInfo = [
