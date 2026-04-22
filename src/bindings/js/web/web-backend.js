@@ -40,12 +40,26 @@ async function initializeBindings() {
   // (this works because it breaks out of strict mode)
   new Function(o1jsWebSrc)();
 
-  workerPromise = new Promise((resolve) => {
+  workerPromise = new Promise((resolve, reject) => {
     setTimeout(async () => {
       let worker = inlineWorker(srcFromFunctionModule(mainWorker));
-      await workerCall(worker, 'start', { memory, module });
-      overrideBindings(globalThis.kimchi_wasm, worker);
-      resolve(worker);
+      let onError = (error) => {
+        reject(new Error(`Failed to start o1js web worker: ${error.message}`));
+      };
+      worker.addEventListener('error', onError, { once: true });
+      try {
+        await workerCall(worker, 'start', { memory, module });
+        worker.removeEventListener('error', onError);
+        if (worker._o1jsBlobUrl !== undefined) {
+          URL.revokeObjectURL(worker._o1jsBlobUrl);
+          delete worker._o1jsBlobUrl;
+        }
+        overrideBindings(globalThis.kimchi_wasm, worker);
+        resolve(worker);
+      } catch (error) {
+        worker.removeEventListener('error', onError);
+        reject(error);
+      }
     }, 0);
   });
 }
