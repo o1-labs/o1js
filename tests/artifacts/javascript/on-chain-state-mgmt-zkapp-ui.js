@@ -9,8 +9,9 @@ const updateButton = document.querySelector('#updateButton');
 const clearEventsButton = document.querySelector('#clearEventsButton');
 const eventsContainer = document.querySelector('#eventsContainer');
 const stateContainer = document.querySelector('#zkAppStateContainer');
-
-logEvents(`o1js initialized after ${performance.now().toFixed(2)}ms`, eventsContainer);
+compileButton.disabled = true;
+deployButton.disabled = true;
+updateButton.disabled = true;
 
 // Setup local ledger
 let Local = await Mina.LocalBlockchain();
@@ -107,3 +108,8 @@ updateButton.addEventListener('click', async (event) => {
 clearEventsButton.addEventListener('click', async () => {
   eventsContainer.innerHTML = 'No data available yet.';
 });
+
+compileButton.disabled = false;
+deployButton.disabled = false;
+updateButton.disabled = false;
+logEvents(`o1js initialized after ${performance.now().toFixed(2)}ms`, eventsContainer);
