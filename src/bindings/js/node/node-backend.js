@@ -1,10 +1,12 @@
+import { createRequire } from 'module';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
-import wasm_ from '../../compiled/node_bindings/kimchi_wasm.cjs';
 let url = import.meta.url;
 let filename = url !== undefined ? fileURLToPath(url) : __filename;
+const require = createRequire(filename);
+const wasm_ = requireKimchiWasm(!isMainThread ? workerData?.memory : undefined);
 
 /**
  * @type {import("../../compiled/node_bindings/kimchi_wasm.cjs")}
@@ -16,6 +18,25 @@ if (typeof globalThis !== 'undefined') {
 }
 
 export { wasm, withThreadPool };
+
+function requireKimchiWasm(memoryOverride) {
+  let modulePath = filename.endsWith('index.cjs')
+    ? './bindings/compiled/node_bindings/kimchi_wasm.cjs'
+    : '../../compiled/node_bindings/kimchi_wasm.cjs';
+  if (memoryOverride === undefined) return require(modulePath);
+
+  let OriginalMemory = WebAssembly.Memory;
+  WebAssembly.Memory = new Proxy(OriginalMemory, {
+    construct(_target, _args, _newTarget) {
+      return memoryOverride;
+    },
+  });
+  try {
+    return require(modulePath);
+  } finally {
+    WebAssembly.Memory = OriginalMemory;
+  }
+}
 
 let workersReadyResolve;
 let workersReady;
@@ -64,13 +85,20 @@ async function exitThreadPool() {
  */
 let wasmWorkers = [];
 
+function getWorkerMemory() {
+  // Use the canonical memory object from the loaded JS module instead of the
+  // callback argument coming through wasm-bindgen externref glue.
+  return typeof wasm.get_memory === 'function' ? wasm.get_memory() : wasm.__wasm.memory;
+}
+
 async function startWorkers(src, memory, builder) {
   wasmWorkers = [];
   const startupTimeoutMs = 30_000;
+  let workerMemory = getWorkerMemory();
   await Promise.all(
     Array.from({ length: builder.numThreads() }, () => {
       let worker = new Worker(src, {
-        workerData: { memory, receiver: builder.receiver() },
+        workerData: { memory: workerMemory, receiver: builder.receiver() },
       });
       wasmWorkers.push(worker);
       return new Promise((resolve, reject) => {

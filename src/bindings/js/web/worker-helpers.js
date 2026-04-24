@@ -1,12 +1,12 @@
 import wasm from '../../../web_bindings/kimchi_wasm.js';
 
 export {
-  srcFromFunctionModule,
   inlineWorker,
-  workerHelperMain,
+  srcFromFunctionModule,
   startWorkers,
   terminateWorkers,
   waitForMessage,
+  workerHelperMain,
 };
 
 function srcFromFunctionModule(fun) {
@@ -56,15 +56,23 @@ function waitForMessage(target, type) {
 function workerHelperMain() {
   let { default: init, wbg_rayon_start_worker } = wasm();
 
-  waitForMessage(self, 'wasm_bindgen_worker_init').then(async (data) => {
-    await init(data.module, data.memory);
-    postMessage({ type: 'wasm_bindgen_worker_ready' });
-    wbg_rayon_start_worker(data.receiver);
-  });
+  waitForMessage(self, 'wasm_bindgen_worker_init')
+    .then(async (data) => {
+      await init(data.module, data.memory);
+      postMessage({ type: 'wasm_bindgen_worker_ready' });
+      wbg_rayon_start_worker(data.receiver);
+    })
+    .catch((err) => {
+      postMessage({
+        type: 'wasm_bindgen_worker_error',
+        error: String(err?.stack ?? err),
+      });
+    });
 }
 workerHelperMain.deps = [wasm, waitForMessage];
 
 async function startWorkers(module, memory, builder) {
+  const startupTimeoutMs = 30_000;
   const workerInit = {
     type: 'wasm_bindgen_worker_init',
     module,
@@ -83,7 +91,34 @@ async function startWorkers(module, memory, builder) {
     worker.postMessage(workerInit);
     self._workers.push(worker);
   }
-  await Promise.all(self._workers.map((w) => waitForMessage(w, 'wasm_bindgen_worker_ready')));
+  await Promise.all(
+    self._workers.map(
+      (w) =>
+        new Promise((resolve, reject) => {
+          let timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('Timed out waiting for wasm worker startup'));
+          }, startupTimeoutMs);
+
+          function cleanup() {
+            clearTimeout(timer);
+            w.removeEventListener('message', onMessage);
+          }
+
+          function onMessage({ data }) {
+            if (data?.type === 'wasm_bindgen_worker_ready') {
+              cleanup();
+              resolve(w);
+            } else if (data?.type === 'wasm_bindgen_worker_error') {
+              cleanup();
+              reject(new Error('WASM worker init failed: ' + data.error));
+            }
+          }
+
+          w.addEventListener('message', onMessage);
+        })
+    )
+  );
   builder.build();
 }
 startWorkers.deps = [srcFromFunctionModule, waitForMessage, workerHelperMain];

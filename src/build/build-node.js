@@ -1,8 +1,8 @@
+import esbuild from 'esbuild';
+import minimist from 'minimist';
 import path from 'node:path';
 import { platform } from 'node:process';
 import { fileURLToPath } from 'node:url';
-import esbuild from 'esbuild';
-import minimist from 'minimist';
 
 let { bindings = './src/bindings/compiled/node_bindings/' } = minimist(process.argv.slice(2));
 
@@ -37,6 +37,13 @@ async function buildNode({ production }) {
     allowOverwrite: true,
     plugins: [makeNodeModulesExternal(), makeJsooExternal()],
     dropLabels: ['ESM'],
+    footer: {
+      js: `
+if (!require('worker_threads').isMainThread && require('worker_threads').workerData?.receiver !== undefined) {
+  init_node_backend();
+}
+`,
+    },
     minify: false,
     sourcemap: true,
   });

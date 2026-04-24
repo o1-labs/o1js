@@ -1,10 +1,10 @@
-import kimchiWasm from '../../../web_bindings/kimchi_wasm.js';
-import { workerSpec } from './worker-spec.js';
-import { srcFromFunctionModule, inlineWorker, waitForMessage } from './worker-helpers.js';
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
+import kimchiWasm from '../../../web_bindings/kimchi_wasm.js';
+import { inlineWorker, srcFromFunctionModule, waitForMessage } from './worker-helpers.js';
+import { workerSpec } from './worker-spec.js';
 
-export { initializeBindings, withThreadPool, wasm };
+export { initializeBindings, wasm, withThreadPool };
 
 let wasm;
 
@@ -99,15 +99,26 @@ async function mainWorker() {
     for (let i = 0, l = specArgs.length; i < l; i++) {
       let specArg = specArgs[i];
       if (specArg && specArg.__wrap) {
-        // Class info got lost on transfer, rebuild it.
-        resArgs[i] = specArg.__wrap(args[i].__wbg_ptr);
+        // Reconstruct the class wrapper from the raw pointer.
+        // IMPORTANT: Do NOT use specArg.__wrap() here — in wasm-bindgen
+        // >= 0.2.100, __wrap() registers the object with a FinalizationRegistry.
+        // When the worker GC collects these temporary wrappers, the finalizer
+        // frees memory that the main thread still owns, causing use-after-free.
+        // Instead, create a bare prototype wrapper that borrows the pointer.
+        let obj = Object.create(specArg.prototype);
+        obj.__wbg_ptr = args[i].__wbg_ptr;
+        resArgs[i] = obj;
       } else {
         resArgs[i] = args[i];
       }
     }
     let res = wasm[name].apply(wasm, resArgs);
     if (functionSpec.res && functionSpec.res.__wrap) {
-      res = res.__wbg_ptr;
+      // Transfer ownership of the result from the worker's wasm instance.
+      // __destroy_into_raw() unregisters from the worker's FinalizationRegistry
+      // and returns the raw pointer. Without this, the worker's GC would
+      // eventually free the result while the main thread still holds it.
+      res = typeof res.__destroy_into_raw === 'function' ? res.__destroy_into_raw() : res.__wbg_ptr;
     } else if (functionSpec.res && functionSpec.res.there) {
       res = functionSpec.res.there(res);
     }
@@ -174,8 +185,12 @@ function workerExport(worker, exportObject) {
   for (let key in exportObject) {
     worker.addEventListener('message', async function ({ data }) {
       if (data?.type !== key) return;
-      let result = await exportObject[key](data.message);
-      postMessage({ type: data.id, result });
+      try {
+        let result = await exportObject[key](data.message);
+        postMessage({ type: data.id, result });
+      } catch (error) {
+        postMessage({ type: data.id, error: String(error?.stack ?? error) });
+      }
     });
   }
 }
@@ -184,7 +199,9 @@ async function workerCall(worker, type, message) {
   let id = Math.random();
   let promise = waitForMessage(worker, id);
   worker.postMessage({ type, id, message });
-  return (await promise).result;
+  let response = await promise;
+  if (response.error) throw new Error(response.error);
+  return response.result;
 }
 
 function allocateWasmMemoryForUserAgent(userAgent) {
