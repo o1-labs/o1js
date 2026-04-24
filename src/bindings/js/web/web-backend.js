@@ -191,13 +191,13 @@ function allocateWasmMemoryForUserAgent(userAgent) {
   const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent);
   if (isIOSDevice) {
     return new WebAssembly.Memory({
-      initial: 19,
+      initial: 20,
       maximum: 16384, // 1 GiB
       shared: true,
     });
   } else {
     return new WebAssembly.Memory({
-      initial: 19,
+      initial: 20,
       maximum: 65536, // 4 GiB
       shared: true,
     });
