@@ -37,13 +37,6 @@ async function buildNode({ production }) {
     allowOverwrite: true,
     plugins: [makeNodeModulesExternal(), makeJsooExternal()],
     dropLabels: ['ESM'],
-    footer: {
-      js: `
-if (!require('worker_threads').isMainThread && require('worker_threads').workerData?.receiver !== undefined) {
-  init_node_backend();
-}
-`,
-    },
     minify: false,
     sourcemap: true,
   });

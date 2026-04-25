@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import os from 'os';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
@@ -38,6 +39,12 @@ function requireKimchiWasm(memoryOverride) {
   }
 }
 
+function getWorkerSource() {
+  return filename.endsWith('index.cjs')
+    ? join(dirname(filename), 'bindings/js/node/node-backend.js')
+    : filename;
+}
+
 let workersReadyResolve;
 let workersReady;
 let wasmThreadPoolRunning = false;
@@ -60,7 +67,7 @@ async function initThreadPool() {
   const numThreads = Math.max(1, workers.numWorkers ?? (os.availableParallelism() ?? 1) - 1);
   workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
   try {
-    await wasm.initThreadPool(numThreads, filename);
+    await wasm.initThreadPool(numThreads, getWorkerSource());
     await workersReady;
     wasmThreadPoolRunning = true;
   } catch (error) {
