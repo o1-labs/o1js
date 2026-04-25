@@ -138,7 +138,7 @@ async function startWorkers(src, memory, builder) {
 
         function onExit(code) {
           cleanup();
-          if (ready || code === 0) {
+          if (ready) {
             // Some wasm-bindgen/node combinations exit worker threads as soon as
             // startup work is done. Treat a clean exit as successful startup.
             resolve(worker);
