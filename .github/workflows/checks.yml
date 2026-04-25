@@ -167,6 +167,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        node: [20, 22, 24]
         test_type:
           [
             'Simple integration tests',
@@ -194,6 +195,7 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          node_version: ${{ matrix.node }}
       - uses: 'google-github-actions/auth@v3'
         name: Setup gcloud authentication
         with:
@@ -207,7 +209,7 @@ jobs:
       - name: Add to job summary
         if: always()
         run: |
-          echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results for ${{ matrix.test_type }} (Node ${{ matrix.node }})" >> $GITHUB_STEP_SUMMARY
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Run-Unit-Tests:
@@ -300,24 +302,25 @@ jobs:
     needs: [Prepare-Wasm]
     timeout-minutes: 90
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
     steps:
-      - name: Restore repository
-        uses: actions/cache@v4
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
         with:
-          path: .
-          key: repo-${{ github.sha }}
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
 
-      - name: Setup Node.JS ${{ matrix.node }}
-        uses: actions/setup-node@v4
+      - name: build
+        uses: ./.github/actions/build-wasm
         with:
-          node-version: 20
-          # TODO matrixing this requires changing branch protection rules
-
-      - name: Restore npm cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+          node_version: ${{ matrix.node }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
