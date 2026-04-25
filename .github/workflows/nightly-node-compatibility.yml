@@ -1,0 +1,199 @@
+name: Nightly Node Compatibility
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      proof_systems_commit:
+        description: 'proof_systems commit to use'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  Server-Compatibility:
+    name: Server Compatibility (Node ${{ matrix.node }}, ${{ matrix.test_type }})
+    timeout-minutes: 210
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+        test_type:
+          [
+            'Simple integration tests',
+            'Reducer integration tests',
+            'DEX integration tests',
+            'DEX integration test with proofs',
+            'Voting integration tests',
+            'Verification Key Regression Check 1',
+            'Verification Key Regression Check 2',
+            'CommonJS test',
+            'Cache Regression',
+            'Performance Regression',
+          ]
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ github.event.inputs.proof_systems_commit || '' }}
+          node_version: ${{ matrix.node }}
+
+      - uses: 'google-github-actions/auth@v3'
+        name: Setup gcloud authentication
+        with:
+          credentials_json: '${{ secrets.GCP_O1JS_CI_BUCKET_SERVICE_ACCOUNT_KEY }}'
+
+      - name: Prepare for tests
+        run: touch profiling.md
+
+      - name: Execute tests
+        env:
+          TEST_TYPE: ${{ matrix.test_type }}
+        run: sh run-ci-tests.sh
+
+      - name: Add to job summary
+        if: always()
+        run: |
+          echo "### Test Results for ${{ matrix.test_type }} (Node ${{ matrix.node }})" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
+
+  Unit-Test-Compatibility:
+    name: Unit Test Compatibility (Node ${{ matrix.node }}, chunk ${{ matrix.chunk }})
+    timeout-minutes: 210
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+        chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ github.event.inputs.proof_systems_commit || '' }}
+          node_version: ${{ matrix.node }}
+
+      - name: Count tests
+        id: count_tests
+        run: |
+          TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" -not -name "*-napi.unit-test.js" | wc -l)
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "Total test count (excluding napi): ${TEST_COUNT}"
+
+      - name: Run unit tests
+        env:
+          TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
+          CHUNK: ${{ matrix.chunk }}
+          CHUNKS: 8
+        shell: bash
+        run: |
+          echo "Total tests: $TOTAL_TESTS"
+          echo "Current chunk: $CHUNK"
+          echo "Total chunks: $CHUNKS"
+
+          if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
+            echo "Error: TOTAL_TESTS is not set or is zero. Exiting."
+            exit 1
+          fi
+
+          start_index=$(( (TOTAL_TESTS * (CHUNK - 1) / CHUNKS) ))
+          end_index=$(( (TOTAL_TESTS * CHUNK / CHUNKS) ))
+
+          echo "Running tests from index $start_index to $end_index"
+
+          shopt -s globstar
+          all_tests=(./dist/node/**/*.unit-test.js)
+          test_files=()
+          for test in "${all_tests[@]}"; do
+            if [[ ! "$test" =~ -napi\.unit-test\.js$ ]]; then
+              test_files+=("$test")
+            fi
+          done
+
+          set -o pipefail
+
+          for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
+              echo "Running test: ${test_files[$i]}"
+              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+          done
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-test-results-node-${{ matrix.node }}-${{ matrix.chunk }}
+          path: profiling.md
+
+      - name: Add to job summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }} (Node ${{ matrix.node }})" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
+
+  Web-Compatibility:
+    name: Web Compatibility (Node ${{ matrix.node }})
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ github.event.inputs.proof_systems_commit || '' }}
+          node_version: ${{ matrix.node }}
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.OS }}-playwright-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npm run e2e:install
+
+      - name: Build o1js and prepare the web server
+        run: |
+          npm run build:web
+          npm run e2e:prepare-server
+
+      - name: Execute E2E tests
+        run: npm run test:e2e
+
+      - name: Upload E2E test artifacts
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        if: always()
+        with:
+          if-no-files-found: ignore
+          name: nightly-e2e-tests-report-node-${{ matrix.node }}
+          path: tests/report/
+          retention-days: 30

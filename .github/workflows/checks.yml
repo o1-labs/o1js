@@ -99,7 +99,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
-      - name: Setup Node.JS ${{ matrix.node }}
+      - name: Setup Node.JS 20
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -167,7 +167,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22, 24]
         test_type:
           [
             'Simple integration tests',
@@ -195,7 +194,6 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
-          node_version: ${{ matrix.node }}
       - uses: 'google-github-actions/auth@v3'
         name: Setup gcloud authentication
         with:
@@ -209,7 +207,7 @@ jobs:
       - name: Add to job summary
         if: always()
         run: |
-          echo "### Test Results for ${{ matrix.test_type }} (Node ${{ matrix.node }})" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results for ${{ matrix.test_type }}" >> $GITHUB_STEP_SUMMARY
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Run-Unit-Tests:
@@ -220,7 +218,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22, 24]
         chunk: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - name: Checkout repository with submodules
@@ -235,7 +232,6 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
-          node_version: ${{ matrix.node }}
       - name: Count tests
         id: count_tests
         run: |
@@ -246,12 +242,10 @@ jobs:
       - name: Run unit tests
         env:
           TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
-          NODE_VERSION: ${{ matrix.node }}
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 8
         shell: bash
         run: |
-          echo "Node version: $NODE_VERSION"
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"
@@ -286,13 +280,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-node-${{ matrix.node }}-${{ matrix.chunk }}
+          name: test-results-${{ matrix.chunk }}
           path: profiling.md
       - name: Add to job summary
         if: always()
         shell: bash
         run: |
-          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }} (Node ${{ matrix.node }})" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results for Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Build-And-Test-Server-Unit-Tests:
@@ -306,25 +300,23 @@ jobs:
     needs: [Prepare-Wasm]
     timeout-minutes: 90
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [20, 22, 24]
     steps:
-      - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+      - name: Restore repository
+        uses: actions/cache@v4
         with:
-          submodules: recursive
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
+          path: .
+          key: repo-${{ github.sha }}-node-20
 
-      - name: build
-        uses: ./.github/actions/build-wasm
+      - name: Setup Node.JS 20
+        uses: actions/setup-node@v4
         with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
-          proof_systems_commit: ${{ inputs.proof_systems_commit }}
-          node_version: ${{ matrix.node }}
+          node-version: 20
+
+      - name: Restore npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.OS }}-node-20-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
