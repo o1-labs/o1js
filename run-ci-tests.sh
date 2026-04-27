@@ -46,6 +46,7 @@ case $TEST_TYPE in
   
 "CommonJS test")
   echo "Testing CommonJS version"
+  node tests/commonjs-worker-regression.cjs
   node src/examples/commonjs.cjs
   ;;
 

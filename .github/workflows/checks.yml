@@ -99,7 +99,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
-      - name: Setup Node.JS ${{ matrix.node }}
+      - name: Setup Node.JS 20
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -305,19 +305,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .
-          key: repo-${{ github.sha }}
+          key: repo-${{ github.sha }}-node-20
 
-      - name: Setup Node.JS ${{ matrix.node }}
+      - name: Setup Node.JS 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # TODO matrixing this requires changing branch protection rules
 
       - name: Restore npm cache
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-node-20-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
