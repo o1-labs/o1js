@@ -1,9 +1,10 @@
 # AGENT_LOG.md — o1js
 
-> **Append-only context log.** This file is institutional memory for the o1js codebase.
-> Every entry records something an agent or human learned the hard way.
-> New agents: read this before you start. It will save you from repeating mistakes.
-> After your session: append what you learned. Future agents depend on it.
+> **Append-only context log.** This file is institutional memory for the o1js
+> codebase. Every entry records something an agent or human learned the hard
+> way. New agents: read this before you start. It will save you from repeating
+> mistakes. After your session: append what you learned. Future agents depend on
+> it.
 
 ---
 
@@ -13,8 +14,10 @@
 
 - **Before starting any task**, scan entries relevant to your work area.
 - Filter by `category` — YAML frontmatter is structured for this.
-- Pay special attention to entries with `severity: critical` or `severity: high`.
-- Entries are chronological (newest at bottom). For recurring themes, search by category rather than reading linearly.
+- Pay special attention to entries with `severity: critical` or
+  `severity: high`.
+- Entries are chronological (newest at bottom). For recurring themes, search by
+  category rather than reading linearly.
 
 ### Writing
 
@@ -22,22 +25,33 @@
 
 You MUST append an entry when any of the following occur during your session:
 
-- **Bug discovered**: You find a bug, surprising behavior, or silent failure mode
-- **Footgun encountered**: Something that looks correct but isn't, or an easy-to-make mistake
-- **Failed approach**: You tried something reasonable that didn't work — document WHY it failed
-- **Dead end investigated**: You went down a path that turned out to be unproductive — save the next agent the trip
-- **Architecture insight**: You learned something non-obvious about how the system fits together
-- **Resolution pattern**: You found a fix or workaround for a known class of problems
-- **Environment/tooling issue**: Build system, dependency, or platform-specific gotcha
-- **Regression pattern**: A change in one area broke something in another — document the coupling
+- **Bug discovered**: You find a bug, surprising behavior, or silent failure
+  mode
+- **Footgun encountered**: Something that looks correct but isn't, or an
+  easy-to-make mistake
+- **Failed approach**: You tried something reasonable that didn't work —
+  document WHY it failed
+- **Dead end investigated**: You went down a path that turned out to be
+  unproductive — save the next agent the trip
+- **Architecture insight**: You learned something non-obvious about how the
+  system fits together
+- **Resolution pattern**: You found a fix or workaround for a known class of
+  problems
+- **Environment/tooling issue**: Build system, dependency, or platform-specific
+  gotcha
+- **Regression pattern**: A change in one area broke something in another —
+  document the coupling
 
 **How to append:**
 
-1. Add a new entry at the **bottom** of this file (before the `<!-- END LOG -->` marker)
+1. Add a new entry at the **bottom** of this file (before the `<!-- END LOG -->`
+   marker)
 2. Use the exact template below
 3. Never modify or delete existing entries (append-only)
-4. Keep entries self-contained — a reader should understand the entry without reading others
-5. Be specific: include file paths, error messages, and code snippets where relevant
+4. Keep entries self-contained — a reader should understand the entry without
+   reading others
+5. Be specific: include file paths, error messages, and code snippets where
+   relevant
 6. Commit the updated log alongside your code changes
 
 ### Entry Template
@@ -71,7 +85,7 @@ tags: [<free-form>, <tags>, <for-search>]
 
 | Category             | Use when...                                                |
 | -------------------- | ---------------------------------------------------------- |
-| `rust-wasm-boundary` | Issues crossing the Rust↔WASM↔TypeScript boundary          |
+| `rust-wasm-boundary` | Issues crossing the Rust↔WASM↔TypeScript boundary        |
 | `native-ffi`         | Neon/napi-rs native binding issues                         |
 | `circuit-model`      | Compile-time vs prove-time behavior, constraint generation |
 | `provable-types`     | Type system surprises, serialization, Struct issues        |
@@ -106,12 +120,8 @@ tags: [<free-form>, <tags>, <for-search>]
 
 ---
 
-date: 2025-01-01
-agent: human
-session: initial-log-creation
-category: documentation
-severity: info
-tags: [meta, seed-entry]
+date: 2025-01-01 agent: human session: initial-log-creation category:
+documentation severity: info tags: [meta, seed-entry]
 
 ---
 
@@ -119,43 +129,61 @@ tags: [meta, seed-entry]
 
 **Context:** Establishing the AGENT_LOG.md pattern for the o1js repository.
 
-**What happened:** Across multiple debugging sessions (both human and AI-assisted), we repeatedly re-investigated the same classes of problems — particularly around the Rust/WASM boundary, Rayon thread panics, and circuit model subtleties. Each session started from zero context.
+**What happened:** Across multiple debugging sessions (both human and
+AI-assisted), we repeatedly re-investigated the same classes of problems —
+particularly around the Rust/WASM boundary, Rayon thread panics, and circuit
+model subtleties. Each session started from zero context.
 
-**Root cause:** No persistent, structured record of past investigations. Git commit messages capture _what_ changed but not _why an approach was tried and failed_, or _what was learned about the system's behavior_.
+**Root cause:** No persistent, structured record of past investigations. Git
+commit messages capture _what_ changed but not _why an approach was tried and
+failed_, or _what was learned about the system's behavior_.
 
-**Resolution/Workaround:** This file. Agents and humans should append entries whenever they learn something non-obvious. The log is append-only to preserve the full reasoning history, including dead ends and failed approaches.
+**Resolution/Workaround:** This file. Agents and humans should append entries
+whenever they learn something non-obvious. The log is append-only to preserve
+the full reasoning history, including dead ends and failed approaches.
 
-**Key takeaway:** The most valuable context is often "we tried X and it didn't work because Y" — commit messages never capture this.
+**Key takeaway:** The most valuable context is often "we tried X and it didn't
+work because Y" — commit messages never capture this.
 
 **Relevant files:** `AGENT.md`, `AGENT_LOG.md`
 
 ---
 
-date: 2025-01-01
-agent: human
-session: initial-log-creation
-category: rust-wasm-boundary
-severity: critical
-tags: [rayon, wasm, thread-panic, recurring]
+date: 2025-01-01 agent: human session: initial-log-creation category:
+rust-wasm-boundary severity: critical tags: [rayon, wasm, thread-panic,
+recurring]
 
 ---
 
 ### Rayon worker thread panics in WASM are unrecoverable
 
-**Context:** The Rust proof system backend (Kimchi) uses Rayon for parallel computation. When compiled to WASM, threading behaves fundamentally differently than in native environments.
+**Context:** The Rust proof system backend (Kimchi) uses Rayon for parallel
+computation. When compiled to WASM, threading behaves fundamentally differently
+than in native environments.
 
-**What happened:** Panics inside Rayon worker threads in WASM environments produce cryptic, unrecoverable errors. The panic cannot be caught at the WASM↔JS boundary, and the entire WASM instance becomes corrupted. This has been hit multiple times across different debugging sessions.
+**What happened:** Panics inside Rayon worker threads in WASM environments
+produce cryptic, unrecoverable errors. The panic cannot be caught at the
+WASM↔JS boundary, and the entire WASM instance becomes corrupted. This has been
+hit multiple times across different debugging sessions.
 
-**Root cause:** WASM's threading model (SharedArrayBuffer + Web Workers) doesn't support the panic unwinding that Rayon expects. When a Rayon worker panics, the thread is terminated but the thread pool's shared state becomes inconsistent. Subsequent calls into the WASM module may hang or produce garbage.
+**Root cause:** WASM's threading model (SharedArrayBuffer + Web Workers) doesn't
+support the panic unwinding that Rayon expects. When a Rayon worker panics, the
+thread is terminated but the thread pool's shared state becomes inconsistent.
+Subsequent calls into the WASM module may hang or produce garbage.
 
 **Resolution/Workaround:** Multiple remediation paths have been analyzed:
 
-1. Catch panics at the FFI boundary using `std::panic::catch_unwind` before they reach Rayon workers
-2. Use `panic = "abort"` in WASM builds (prevents unwinding but kills the instance)
+1. Catch panics at the FFI boundary using `std::panic::catch_unwind` before they
+   reach Rayon workers
+2. Use `panic = "abort"` in WASM builds (prevents unwinding but kills the
+   instance)
 3. Validate inputs on the Rust side before they reach parallel code paths
-4. The native prover (Neon FFI) does not have this issue — panics can be caught at the napi-rs boundary
+4. The native prover (Neon FFI) does not have this issue — panics can be caught
+   at the napi-rs boundary
 
-**Key takeaway:** Any Rust change that could introduce a new panic path in parallelized code MUST be tested in WASM, not just native. A passing native test does not guarantee WASM safety.
+**Key takeaway:** Any Rust change that could introduce a new panic path in
+parallelized code MUST be tested in WASM, not just native. A passing native test
+does not guarantee WASM safety.
 
 **Relevant files:** `src/bindings/compiled/`, `src/bindings/native/`
 
