@@ -82,8 +82,13 @@ jobs:
   # Detect whether the root package version on this commit differs from what is
   # currently published on npm. Native is expensive to build, so we only run
   # the native release pipeline when the version actually changed.
+  #
+  # Gated on the upstream `checks` workflow having succeeded. If checks failed,
+  # all release jobs cascade-skip via `needs:`.
   Check-Version-Change:
-    if: github.ref == 'refs/heads/main'
+    if: |
+      github.ref == 'refs/heads/main' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.diff.outputs.changed }}
@@ -93,8 +98,11 @@ jobs:
       - name: Compare local vs published version
         id: diff
         run: |
+          set -euo pipefail
           LOCAL=$(jq -r .version package.json)
-          REMOTE=$(npm view o1js version 2>/dev/null || echo "")
+          # Default REMOTE to LOCAL so a registry hiccup is treated as
+          # "no change" (fail closed: skip release rather than risk a bad publish).
+          REMOTE=$(npm view o1js version 2>/dev/null || echo "$LOCAL")
           echo "local=$LOCAL remote=$REMOTE"
           echo "version=$LOCAL" >> "$GITHUB_OUTPUT"
           if [ "$LOCAL" != "$REMOTE" ]; then
@@ -118,15 +126,12 @@ jobs:
     secrets: inherit
 
   Release-on-NPM:
-    # Native packages must publish first when the version changed, because
-    # o1js lists @o1js/native as an optionalDependency at the same version.
-    # If Release-Native is skipped (no version change), we still run so that
-    # JS-DevTools/npm-publish can no-op via its `strategy: upgrade` check.
+    # Runs only when the version changed. Native must publish first because
+    # o1js lists @o1js/native as an optionalDependency at the same version;
+    # if Release-Native fails or is skipped, the default `needs:` cascade
+    # skips this job too — exactly what we want.
     needs: [Check-Version-Change, Release-Native]
-    if: |
-      always() &&
-      github.ref == 'refs/heads/main' &&
-      (needs.Release-Native.result == 'success' || needs.Release-Native.result == 'skipped')
+    if: needs.Check-Version-Change.outputs.changed == 'true'
     timeout-minutes: 180
     runs-on: ubuntu-latest
     permissions:

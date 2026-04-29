@@ -76,9 +76,11 @@ jobs:
           ref: ${{ inputs.target_ref || github.ref }}
       - id: filter
         run: |
+          set -euo pipefail
           BASE_REF="${{ github.event.pull_request.base.ref }}"
           git fetch origin "$BASE_REF" --depth=1
-          CHANGED=$(git diff --name-only "origin/$BASE_REF"...HEAD || true)
+          # two-arg form so we don't need merge-base history (default checkout is shallow)
+          CHANGED=$(git diff --name-only "origin/$BASE_REF" HEAD || true)
           echo "Changed files:"
           echo "$CHANGED"
           # files that affect the native build/publish pipeline
