@@ -54,11 +54,14 @@ type PerfStack = {
 
 // per-program tolerance overrides (multiplier, e.g. 1.20 = 20%)
 // use for programs whose timings are known-flaky on top of run-to-run noise
-const PROGRAM_TOLERANCES: Record<string, Partial<Record<'compile' | 'prove' | 'verify', number>>> =
-  {
-    // sha256 compile timing fluctuates ~10-15% on the new toolchain
-    sha256: { compile: 1.2 },
-  };
+const PROGRAM_TOLERANCES: Record<
+  string,
+  Partial<Record<'compile' | 'prove' | 'verify', number>>
+> = {
+  // sha256 compile timing fluctuates ~10-15% on the new toolchain
+  sha256: { compile: 1.2 },
+  'sha256.sha256': { compile: 1.2 },
+};
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['dump', 'check', 'silent'],
