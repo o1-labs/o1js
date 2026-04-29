@@ -61,6 +61,51 @@ jobs:
           ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
 
+  # Detect whether this PR touches files that affect the native build.
+  # Used to gate the cross-platform native build matrix below: we always
+  # run it on `push` events (B), and on PRs only when relevant files change (C).
+  Detect-Native-Changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.filter.outputs.native }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - id: filter
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          git fetch origin "$BASE_REF" --depth=1
+          CHANGED=$(git diff --name-only "origin/$BASE_REF"...HEAD || true)
+          echo "Changed files:"
+          echo "$CHANGED"
+          # files that affect the native build/publish pipeline
+          PATTERN='^(src/bindings/|src/mina|src/native/|scripts/(build|prepublish)/native/|\.github/actions/build-native/|\.github/workflows/(publish_native|checks)\.yml$)'
+          if echo "$CHANGED" | grep -E "$PATTERN" >/dev/null; then
+            echo "native=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "native=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Cross-platform native build matrix. Mirrors the build matrix used at
+  # release time (publish_native.yml with publish=false), so macOS/arm64
+  # build failures are caught before they block the release pipeline.
+  Build-Native-All-Platforms:
+    needs: [Detect-Native-Changes]
+    if: |
+      always() &&
+      (
+        github.event_name == 'push' ||
+        needs.Detect-Native-Changes.outputs.native == 'true'
+      )
+    permissions:
+      contents: read
+    uses: ./.github/workflows/publish_native.yml
+    with:
+      publish: false
+
   Prepare-Native:
     name: Prepare (Native Backend)
     runs-on: ubuntu-latest
