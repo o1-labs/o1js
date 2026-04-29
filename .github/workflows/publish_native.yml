@@ -6,6 +6,18 @@ on:
         description: 'npm dist-tag (e.g. experimental, dev, latest)'
         required: false
         default: 'experimental'
+  workflow_call:
+    inputs:
+      npm-tag:
+        description: 'npm dist-tag (e.g. experimental, dev, latest)'
+        required: false
+        type: string
+        default: 'latest'
+      publish:
+        description: 'when false, only run the matrix build (used by checks.yml)'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build-native-packages:
@@ -85,6 +97,7 @@ jobs:
   publish-native-packages:
     name: Publish
     needs: build-native-packages
+    if: ${{ inputs.publish != false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
