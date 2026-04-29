@@ -98,7 +98,9 @@
     "update-changelog": "./scripts/changelog/update-changelog.sh",
     "prepare": "husky",
     "native:prepublish": "./scripts/prepublish/native/prepublish-native-package.sh",
-    "native:publish": "./scripts/publish/native/publish-native-package.sh"
+    "native:publish": "./scripts/publish/native/publish-native-package.sh",
+    "check:version-sync": "node scripts/check-version-sync.mjs",
+    "sync:native-version": "node scripts/sync-native-version.mjs"
   },
   "author": "O(1) Labs",
   "devDependencies": {
