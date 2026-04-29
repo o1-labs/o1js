@@ -6,6 +6,13 @@ on:
         description: 'npm dist-tag (e.g. experimental, dev, latest)'
         required: false
         default: 'experimental'
+  workflow_call:
+    inputs:
+      npm-tag:
+        description: 'npm dist-tag (e.g. experimental, dev, latest)'
+        required: false
+        type: string
+        default: 'latest'
 
 jobs:
   build-native-packages:

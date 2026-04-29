@@ -79,8 +79,54 @@ jobs:
       - name: release-pkg-pr-version
         uses: ./.github/actions/release-pkg-pr-version
 
-  Release-on-NPM:
+  # Detect whether the root package version on this commit differs from what is
+  # currently published on npm. Native is expensive to build, so we only run
+  # the native release pipeline when the version actually changed.
+  Check-Version-Change:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      version: ${{ steps.diff.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare local vs published version
+        id: diff
+        run: |
+          LOCAL=$(jq -r .version package.json)
+          REMOTE=$(npm view o1js version 2>/dev/null || echo "")
+          echo "local=$LOCAL remote=$REMOTE"
+          echo "version=$LOCAL" >> "$GITHUB_OUTPUT"
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify @o1js/native versions are in sync with o1js version
+        if: steps.diff.outputs.changed == 'true'
+        run: node scripts/check-version-sync.mjs
+
+  Release-Native:
+    needs: Check-Version-Change
+    if: needs.Check-Version-Change.outputs.changed == 'true'
+    uses: ./.github/workflows/publish_native.yml
+    with:
+      npm-tag: latest
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
+
+  Release-on-NPM:
+    # Native packages must publish first when the version changed, because
+    # o1js lists @o1js/native as an optionalDependency at the same version.
+    # If Release-Native is skipped (no version change), we still run so that
+    # JS-DevTools/npm-publish can no-op via its `strategy: upgrade` check.
+    needs: [Check-Version-Change, Release-Native]
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      (needs.Release-Native.result == 'success' || needs.Release-Native.result == 'skipped')
     timeout-minutes: 180
     runs-on: ubuntu-latest
     permissions:
@@ -98,6 +144,9 @@ jobs:
         with:
           node-version: '24' # Node 24 includes npm 11.5+ required for OIDC
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify @o1js/native versions are in sync with o1js version
+        run: node scripts/check-version-sync.mjs
 
       - name: Build o1js
         run: |

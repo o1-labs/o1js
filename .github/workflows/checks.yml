@@ -134,6 +134,9 @@ jobs:
       - name: Run Markdown Format Check
         run: npm run format:md:check
 
+      - name: Check @o1js/native versions are in sync with o1js version
+        run: npm run check:version-sync
+
   Upload-bindings:
     name: upload bindings artifact
     if: ${{ inputs.proof_systems_commit == '' }}
