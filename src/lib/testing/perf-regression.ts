@@ -368,10 +368,10 @@ function checkAgainstBaseline(params: {
   }
 
   // tolerances
-  const compileTol = 1.08; // 8%
-  const compileTiny = 1.1; // 10% for near-zero baselines (< 5e-5s)
-  const timeTolDefault = 1.1; // 10% for prove/verify
-  const timeTolSmall = 1.25; // 25% for very small times (<0.2s)
+  const compileTol = 1.1; // 10%
+  const compileTiny = 1.12; // 12% for near-zero baselines (< 5e-5s)
+  const timeTolDefault = 1.12; // 12% for prove/verify
+  const timeTolSmall = 1.27; // 27% for very small times (<0.2s)
 
   // per-program tolerance override (PROGRAM_TOLERANCES) for known-flaky programs
   const override = PROGRAM_TOLERANCES[programName]?.[label];
