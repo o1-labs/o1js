@@ -104,6 +104,11 @@ jobs:
       )
     permissions:
       contents: read
+      # id-token must be granted at the caller because the nested
+      # publish-native-packages job declares it. github validates
+      # permissions statically — even gated by `if: publish != false`,
+      # an unmet id-token request causes a startup_failure.
+      id-token: write
     uses: ./.github/workflows/publish_native.yml
     with:
       publish: false
