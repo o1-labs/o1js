@@ -1,0 +1,88 @@
+name: Build native bindings
+description: 'Build @o1js/native-linux-x64 from source (with caching)'
+
+inputs:
+  proof_systems_commit:
+    description: 'proof_systems commit to use'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache native bindings
+      uses: actions/cache@v4
+      id: native-cache
+      with:
+        path: native/linux-x64
+        key: native-${{ github.event.pull_request.head.sha || github.sha }}-${{ inputs.proof_systems_commit }}
+
+    - name: use proof_systems_commit if provided
+      if: ${{ steps.native-cache.outputs.cache-hit != 'true' && inputs.proof_systems_commit != '' }}
+      shell: bash
+      run: |
+        git -C src/mina/src/lib/crypto/proof-systems fetch origin ${{ inputs.proof_systems_commit }}
+        git -C src/mina/src/lib/crypto/proof-systems clean -fdx
+        git -C src/mina/src/lib/crypto/proof-systems checkout ${{ inputs.proof_systems_commit }}
+        git -C src/mina/src/lib/crypto/proof-systems clean -fdx
+        git -C src/mina add src/lib/crypto/proof-systems
+
+    - name: Setup Node
+      if: steps.native-cache.outputs.cache-hit != 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install npm dependencies
+      if: steps.native-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm ci
+
+    - name: Setup OCaml 4.14.2
+      if: steps.native-cache.outputs.cache-hit != 'true'
+      uses: ocaml/setup-ocaml@v3
+      with:
+        ocaml-compiler: 4.14.2
+        opam-disable-sandboxing: true
+
+    - name: Cache opam dependencies
+      if: steps.native-cache.outputs.cache-hit != 'true'
+      uses: actions/cache@v4
+      id: cache-opam
+      with:
+        path: ./_opam/
+        key: ${{ runner.OS }}-${{ runner.arch }}-opam-native-${{ hashFiles('./scripts/prepublish/native/prepublish-native-package.opam') }}
+
+    - name: Install opam dependencies
+      if: ${{ steps.native-cache.outputs.cache-hit != 'true' && steps.cache-opam.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: |
+        opam install \
+          --deps-only \
+          -y \
+          ./scripts/prepublish/native/prepublish-native-package.opam
+
+    - name: Setup Rust
+      if: steps.native-cache.outputs.cache-hit != 'true'
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: 1.92.0
+        components: rust-src
+
+    - name: Cache Cargo build
+      if: steps.native-cache.outputs.cache-hit != 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          src/mina/src/lib/crypto/proof-systems/target
+        key: ${{ runner.OS }}-${{ runner.arch }}-cargo-native-${{ hashFiles('src/mina/src/lib/crypto/proof-systems/Cargo.lock') }}
+
+    - name: Build native package
+      if: steps.native-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -Eeuxo pipefail
+        eval $(opam env)
+        npm run build:native

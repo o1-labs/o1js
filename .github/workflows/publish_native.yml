@@ -1,0 +1,160 @@
+name: Native
+on:
+  workflow_dispatch:
+    inputs:
+      npm-tag:
+        description: 'npm dist-tag (e.g. experimental, dev, latest)'
+        required: false
+        default: 'experimental'
+  workflow_call:
+    inputs:
+      npm-tag:
+        description: 'npm dist-tag (e.g. experimental, dev, latest)'
+        required: false
+        type: string
+        default: 'latest'
+      publish:
+        description: 'when false, only run the matrix build (used by checks.yml)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build-native-packages:
+    name: Build (${{ matrix.os }})
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+          - os: macos-15-intel
+          - os: ubuntu-latest
+            container: debian:bullseye
+          - os: ubuntu-22.04-arm
+            container: debian:bullseye
+          # - os: windows-latest
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container || '' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install build prerequisites
+        if: matrix.container
+        run: |
+          apt-get update
+          apt-get install -y \
+            git curl build-essential pkg-config m4 \
+            libgmp-dev libffi-dev zlib1g-dev \
+            ca-certificates sudo unzip jq
+
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm ci
+
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 4.14.2
+          opam-disable-sandboxing: true
+      - uses: actions/cache@v4
+        id: cache-opam
+        with:
+          path: ./_opam/
+          key: ${{ runner.OS }}-${{ runner.arch }}-opam-${{ hashFiles('./scripts/prepublish/native/prepublish-native-package.opam') }}
+      - name: opam install
+        if: ${{ steps.cache-opam.outputs.cache-hit != 'true' }}
+        run: |
+          opam install \
+            --deps-only \
+            -y \
+            ./scripts/prepublish/native/prepublish-native-package.opam
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.92.0
+          components: rust-src
+
+      - name: Build native package
+        run: |
+          set -Eeuxo pipefail
+          eval $(opam env)
+          npm run build:native
+
+      - name: Prepare native package
+        run: |
+          set -Eeuxo pipefail
+          npm run native:prepublish
+
+      - name: Upload native package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ runner.os }}-${{ runner.arch }}
+          path: native/
+
+  publish-native-packages:
+    name: Publish
+    needs: build-native-packages
+    if: ${{ inputs.publish != false }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm trusted publishing (OIDC)
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download all native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: native-artifacts/
+
+      - name: Collect native packages
+        run: |
+          set -Eeuxo pipefail
+          mkdir -p native/
+          for dir in native-artifacts/native-*/; do
+            cp -r "$dir"/* native/
+          done
+          echo "Collected packages:"
+          ls -la native/*/package.json
+
+      - name: Publish platform packages
+        env:
+          NPM_TAG: ${{ inputs.npm-tag }}
+        run: |
+          set -Eeuxo pipefail
+          for dir in ./native/*/; do
+            if [ -f "$dir/package.json" ] && [ "$(basename $dir)" != "meta" ]; then
+              PACKAGE_NAME=$(jq -r .name "$dir/package.json")
+              VERSION=$(jq -r .version "$dir/package.json")
+              if npm view "$PACKAGE_NAME@$VERSION" >/dev/null 2>&1; then
+                echo "$PACKAGE_NAME@$VERSION already exists. Skipping."
+              else
+                echo "Publishing $PACKAGE_NAME@$VERSION..."
+                npm publish "$dir" --provenance --access public --tag "${NPM_TAG:-experimental}"
+              fi
+            fi
+          done
+
+      - name: Publish meta package
+        env:
+          NPM_TAG: ${{ inputs.npm-tag }}
+        run: |
+          set -Eeuxo pipefail
+          META_DIR=./native/meta
+          if [ -f "$META_DIR/package.json" ]; then
+            PACKAGE_NAME=$(jq -r .name "$META_DIR/package.json")
+            VERSION=$(jq -r .version "$META_DIR/package.json")
+            if npm view "$PACKAGE_NAME@$VERSION" >/dev/null 2>&1; then
+              echo "$PACKAGE_NAME@$VERSION already exists. Skipping."
+            else
+              echo "Publishing $PACKAGE_NAME@$VERSION..."
+              npm publish "$META_DIR" --provenance --access public --tag "${NPM_TAG:-experimental}"
+            fi
+          fi

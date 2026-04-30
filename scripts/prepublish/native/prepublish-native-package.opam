@@ -1,0 +1,5 @@
+opam-version: "2.0"
+depends: [
+  "dune"
+  "js_of_ocaml-ppx"
+]

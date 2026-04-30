@@ -32,6 +32,18 @@ function custom_reraise_exn(exn, fallbackMessage) {
 }
 
 /**
+ * The JSOO runtime (nat.js) does not provide a JavaScript implementation
+ * for the `length_nat` C external from OCaml's `num` library (v1.6+).
+ * In num 1.6, `length_nat` was changed from an Obj-based hack to an
+ * external C primitive for Wasm_of_OCaml support.
+ * Returns the number of 32-bit digits in a nat value.
+ */
+//Provides: length_nat
+function length_nat(nat) {
+  return nat.data.length;
+}
+
+/**
  * This overrides the handler for uncaught exceptions in js_of_ocaml,
  * fixing the flaw that by default, no actual `Error`s are thrown,
  * but other objects (arrays) which are missing an error trace.

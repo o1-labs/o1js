@@ -2,6 +2,7 @@
  * Include in this file all the exports that should be part of the public API.
  */
 export { initializeBindings, Ledger } from './bindings.js';
+export { getBackendPreference, setBackend } from './lib/backend.js';
 export { createForeignCurve, ForeignCurve, toPoint } from './lib/provable/crypto/foreign-curve.js';
 export type { FlexiblePoint } from './lib/provable/crypto/foreign-curve.js';
 export { createEcdsa, EcdsaSignature } from './lib/provable/crypto/foreign-ecdsa.js';
@@ -207,7 +208,7 @@ namespace Experimental {
    * - `root`: The root of the current Merkle tree
    * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
    */
-  export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments {}
+  export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments { }
 
   // batch reducer
 
@@ -235,7 +236,7 @@ namespace Experimental {
     ActionType extends Actionable<any>,
     BatchSize extends number = number,
     Action = InferProvable<ActionType>,
-  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
+  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> { }
 
   /**
    * Provable type that represents a batch of actions.

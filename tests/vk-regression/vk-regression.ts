@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { getBackendPreference, setBackend } from '../../src/lib/backend.js';
 import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
 import { HelloWorld } from '../../src/examples/zkapps/hello-world/hello-world.js';
@@ -16,7 +17,19 @@ const skipVerificationKeys = false;
 // toggle to override caches
 const forceRecompile = false;
 
-// usage ./run ./tests/vk-regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
+// usage for wasm backend:
+// O1JS_BACKEND=wasm ./run ./tests/vk-regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
+// usage for native backend:
+// O1JS_BACKEND=native ./run ./tests/vk-regression/vk-regression.ts --bundle
+let backend = process.env.O1JS_BACKEND;
+if (backend !== undefined) {
+  if (backend !== 'wasm' && backend !== 'native') {
+    throw new Error(`Invalid O1JS_BACKEND='${backend}'. Expected 'wasm' or 'native'.`);
+  }
+  setBackend(backend);
+}
+
+
 let dump = process.argv[4] === '--dump';
 let jsonPath = process.argv[dump ? 5 : 4];
 let vkTest = process.env.VK_TEST;
@@ -67,10 +80,10 @@ let selectedConstraintSystems: MinimumConstraintSystem[] = [];
 
 if (vkTest === '1') {
   selectedConstraintSystems = ConstraintSystems.slice(0, 10);
-  console.log('Running regression checks - Part 1');
+  console.log(`Running regression checks - Part 1 (${backend})`);
 } else if (vkTest === '2') {
   selectedConstraintSystems = ConstraintSystems.slice(10);
-  console.log('Running regression checks - Part 2');
+  console.log(`Running regression checks - Part 2 (${backend})`);
 } else if (!dump) {
   throw new Error('Invalid VK_TEST value. Please set VK_TEST to 1 or 2!');
 }
@@ -92,7 +105,7 @@ try {
 } catch (error) {
   if (!dump) {
     throw Error(
-      `The requested file ${filePath} does not yet exist, try dumping the verification keys first. npm run test:dump-verification-keys`
+      `The requested file ${filePath} does not yet exist for backend '${backend}'. Try dumping verification keys first.`
     );
   }
 }
@@ -129,9 +142,11 @@ async function checkVk(contracts: typeof ConstraintSystems) {
     }
 
     if (data !== vk.data || hash.toString() !== vk.hash) {
-      errorStack += `\n\nRegression test for contract ${
-        c.name
-      } failed, because of a verification key mismatch.
+      errorStack += `\n\nRegression test for contract ${c.name
+        } failed, because of a verification key mismatch.
+Backend
+  ${backend}
+\n
 Contract has
   ${JSON.stringify({ data, hash }, undefined, 2)}
 \n
@@ -171,5 +186,9 @@ async function dumpVk(contracts: typeof ConstraintSystems) {
   fs.writeFileSync(filePath, JSON.stringify(newEntries, undefined, 2));
 }
 
-if (dump) await dumpVk(ConstraintSystems);
-else await checkVk(selectedConstraintSystems);
+if (dump) {
+  console.log(`Dumping canonical VK snapshot (${backend}) to ${filePath}`);
+  await dumpVk(ConstraintSystems);
+} else {
+  await checkVk(selectedConstraintSystems);
+}

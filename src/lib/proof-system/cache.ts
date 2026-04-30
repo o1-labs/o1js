@@ -129,7 +129,7 @@ function readCache<T>(
   try {
     let result = cache.read(header);
     if (result === undefined) {
-      if (cache.debug) console.trace('cache miss');
+      if (cache.debug) console.log(`cache miss: ${header.persistentId}`);
       return undefined;
     }
     if (transform === undefined) return result as any as T;
@@ -151,6 +151,15 @@ function writeCache(cache: Cache, header: CacheHeader, value: Uint8Array) {
   }
 }
 
+function isErr(error: unknown, code: string) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === code
+  );
+}
+
 const None: Cache = {
   read() {
     throw Error('not available');
@@ -165,16 +174,30 @@ const FileSystem = (cacheDirectory: string, debug?: boolean): Cache => ({
   read({ persistentId, uniqueId, dataType }) {
     if (jsEnvironment !== 'node') throw Error('file system not available');
 
+    let headerPath = resolve(cacheDirectory, `${persistentId}.header`);
+    let dataPath = resolve(cacheDirectory, persistentId);
+
     // read current uniqueId, return data if it matches
-    let currentId = readFileSync(resolve(cacheDirectory, `${persistentId}.header`), 'utf8');
+    let currentId: string;
+    try {
+      currentId = readFileSync(headerPath, 'utf8');
+    } catch (error) {
+      if (isErr(error, 'ENOENT')) return undefined;
+      throw error;
+    }
     if (currentId !== uniqueId) return undefined;
 
-    if (dataType === 'string') {
-      let string = readFileSync(resolve(cacheDirectory, persistentId), 'utf8');
-      return new TextEncoder().encode(string);
-    } else {
-      let buffer = readFileSync(resolve(cacheDirectory, persistentId));
-      return new Uint8Array(buffer.buffer);
+    try {
+      if (dataType === 'string') {
+        let string = readFileSync(dataPath, 'utf8');
+        return new TextEncoder().encode(string);
+      } else {
+        let buffer = readFileSync(dataPath);
+        return new Uint8Array(buffer.buffer);
+      }
+    } catch (error) {
+      if (isErr(error, 'ENOENT')) return undefined;
+      throw error;
     }
   },
   write({ persistentId, uniqueId, dataType }, data) {

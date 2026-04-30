@@ -12,7 +12,7 @@ jobs:
       with:
         submodules: recursive
     - name: Build
-      uses: ./.github/actions/build
+      uses: ./.github/actions/build-wasm
     - uses: 'google-github-actions/auth@v3'
       name: Setup gcloud authentication
       with:

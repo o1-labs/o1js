@@ -1,0 +1,226 @@
+{
+  "sha256": {
+    "compileTime": 35.055094964999995,
+    "methods": {
+      "sha256": {
+        "rows": 5036,
+        "digest": "c3952f2bd0dbb6b16ed43add7c57c9c5",
+        "proveTime": 20.863003961,
+        "verifyTime": 1.6787699890000003
+      }
+    }
+  },
+  "ecdsa": {
+    "compileTime": 160.616372241,
+    "methods": {
+      "verifyEcdsa": {
+        "rows": 46221,
+        "digest": "d0f4f1d987923683410ebeeee0e3cca1",
+        "proveTime": 64.00129387,
+        "verifyTime": 1.7384324919999927
+      }
+    }
+  },
+  "ecdsa-ethers": {
+    "compileTime": 43.26140842600001,
+    "methods": {
+      "verifyEthers": {
+        "rows": 46248,
+        "digest": "2278723f3c48ee7041964ebfc58f9f0f",
+        "proveTime": 63.19890693699999,
+        "verifyTime": 1.6903792469999752
+      }
+    }
+  },
+  "blake2b": {
+    "compileTime": 30.53380937,
+    "methods": {
+      "blake2b": {
+        "rows": 3937,
+        "digest": "9a34a081e72a974dc8d663e338ba3a58",
+        "proveTime": 21.585387264999998,
+        "verifyTime": 1.7209727679999995
+      }
+    }
+  },
+  "rsa-verify": {
+    "compileTime": 46.739054335,
+    "methods": {
+      "verifyRsa65537": {
+        "rows": 12401,
+        "digest": "5070b93b8bf964733b6f5a696f42ded7",
+        "proveTime": 26.086170135,
+        "verifyTime": 1.729978833000001
+      }
+    }
+  },
+  "add": {
+    "compileTime": 125.546904019,
+    "methods": {
+      "performAddition": {
+        "rows": 2,
+        "digest": "6ffe440928a31a555799dcf7005bae82",
+        "proveTime": 31.732929957000014,
+        "verifyTime": 1.7260669860000197
+      }
+    }
+  },
+  "multiply": {
+    "compileTime": 14.235456798999993,
+    "methods": {
+      "performMultiplication": {
+        "rows": 1,
+        "digest": "2a840c03f4e37242a8056a4aa536358c",
+        "proveTime": 29.880263937999988,
+        "verifyTime": 1.7322335280000116
+      }
+    }
+  },
+  "hash-chain": {
+    "compileTime": 41.602732292,
+    "methods": {
+      "chain": {
+        "rows": 513,
+        "digest": "f1e9d1df2bd3da8fdc22a8b5d65ba7bd",
+        "proveTime": 122.897797004,
+        "verifyTime": 1.6955347849999962
+      }
+    }
+  },
+  "bitwise": {
+    "compileTime": 30.659504135000002,
+    "methods": {
+      "rot": {
+        "rows": 6,
+        "digest": "335c4b0ef55af40110fd4f76709e629e",
+        "proveTime": 20.610535717,
+        "verifyTime": 1.6861385840000003
+      },
+      "xor": {
+        "rows": 3,
+        "digest": "bf4c612a866451453ba30641230a99d0",
+        "proveTime": 13.879149340999989,
+        "verifyTime": 1.6718194169999916
+      },
+      "and": {
+        "rows": 4,
+        "digest": "f1f4f53ae5d5201eb5ef683c1c9e8167",
+        "proveTime": 13.750111099000002,
+        "verifyTime": 1.7094045069999992
+      }
+    }
+  },
+  "childProgram": {
+    "compileTime": 30.139995415,
+    "methods": {
+      "compute": {
+        "rows": 0,
+        "digest": "4f5ddea76d29cfcfd8c595f14e31f21b",
+        "proveTime": 13.552943368999985
+      },
+      "assertAndAdd": {
+        "rows": 23,
+        "digest": "db2a1a1a0b330ba3a2c34a843829edc2",
+        "proveTime": 19.91262804099999
+      }
+    }
+  },
+  "mainProgram": {
+    "compileTime": 84.78442928300001,
+    "methods": {
+      "addSideloadedProgram": {
+        "rows": 1796,
+        "digest": "df4deb332ff01cbf2e7f39f203d9b717",
+        "proveTime": 23.926980629
+      },
+      "validateUsingTree": {
+        "rows": 914,
+        "digest": "bebd1ddc30c2f7e0784b92508492ecbd",
+        "proveTime": 42.71916295899998,
+        "verifyTime": 1.7405416680000199
+      }
+    }
+  },
+  "payroll-runtime-table": {
+    "compileTime": 29.516491398000003,
+    "methods": {
+      "verifyPayroll": {
+        "rows": 202,
+        "digest": "677070f76ca9120c9c6129f2f635ac3b",
+        "proveTime": 20.965989112999996,
+        "verifyTime": 1.7821878580000048
+      }
+    }
+  },
+  "small-program": {
+    "compileTime": 16.553560544,
+    "methods": {
+      "poseidonHash": {
+        "rows": 13,
+        "digest": "ae6e7db1ed4da63e913e6990b385c439",
+        "proveTime": 14.380953489999985
+      }
+    }
+  },
+  "big-program": {
+    "compileTime": 185.107729002,
+    "methods": {
+      "combinedHash": {
+        "rows": 53069,
+        "digest": "91dc95688cf71dea0f2eabf74c4c1de5",
+        "proveTime": 68.50447597899998,
+        "verifyTime": 1.7462309039999964
+      }
+    }
+  },
+  "Voting_": {
+    "digest": "2d12b9235eac7fe8188447969463455160abb01ddd682efdd4147fe28fc8c608",
+    "compileTime": 38.851608494,
+    "methods": {}
+  },
+  "Membership_": {
+    "digest": "2dcddd890f32e12d56469f8e1cf25706d9b7c83f12342ade821aff42f18f53e9",
+    "compileTime": 12.247055708,
+    "methods": {}
+  },
+  "HelloWorld": {
+    "digest": "309ebdd97930d6c753207d62c84147fe540f62d1623a1251f1d0b4f5f8bd400d",
+    "compileTime": 6.9312437839999985,
+    "methods": {}
+  },
+  "TokenContract": {
+    "digest": "37ad5c458b0b9f5a44650d16fe16200b3fafff89af0c3b4d0ad57eda5df05d54",
+    "compileTime": 10.953027128999995,
+    "methods": {}
+  },
+  "Dex": {
+    "digest": "fee88991bcc3331978a787642273ee02cbfc738949c6daad38c3bab65a8e81e",
+    "compileTime": 21.924174360000006,
+    "methods": {}
+  },
+  "Group Primitive": {
+    "digest": "Group Primitive",
+    "compileTime": 0.000049404999997932466,
+    "methods": {}
+  },
+  "Bitwise Primitive": {
+    "digest": "Bitwise Primitive",
+    "compileTime": 0.000007951999999932013,
+    "methods": {}
+  },
+  "Hashes": {
+    "digest": "Hashes",
+    "compileTime": 0.000004316999998991378,
+    "methods": {}
+  },
+  "Basic": {
+    "digest": "Basic",
+    "compileTime": 0.00000611899999785237,
+    "methods": {}
+  },
+  "Crypto": {
+    "digest": "Crypto",
+    "compileTime": 0.000005778000006102957,
+    "methods": {}
+  }
+}

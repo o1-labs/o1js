@@ -182,11 +182,17 @@ against the Wasm backend.
 
 For the Wasm build, the output files are:
 
-- `plonk_wasm_bg.wasm`: The compiled WebAssembly binary.
-- `plonk_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types of
-  .wasm or .js files.
-- `plonk_wasm.js`: JavaScript file that wraps the Wasm code for use in Node.js.
-- `plonk_wasm.d.ts`: TypeScript definition file for plonk_wasm.js.
+- `kimchi_wasm_bg.wasm`: The compiled WebAssembly binary.
+- `kimchi_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types
+  of .wasm or .js files.
+- `kimchi_wasm.js`: JavaScript file that wraps the Wasm code for use in Node.js.
+- `kimchi_wasm.d.ts`: TypeScript definition file for kimchi_wasm.js.
+
+Similarly, for internal development and debugging, you can manually build the
+WASM bindings for Node and Web using `npm run build:wasm:node` and
+`npm run build:wasm:web`, respectively. For typical local development, however,
+running the standard build commands automatically generates these bindings as
+part of the overall build process.
 
 Similarly, for internal development and debugging, you can manually build the
 WASM bindings for Node and Web using `npm run build:wasm:node` and

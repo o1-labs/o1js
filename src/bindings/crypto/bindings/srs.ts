@@ -1,6 +1,7 @@
 import type { Wasm, RustConversion } from '../bindings.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/plonk_wasm.cjs';
+import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import { PolyComm } from './kimchi-types.js';
+import { srsCache as cache } from '../cache.js';
 import {
   type CacheHeader,
   type Cache,
@@ -12,7 +13,7 @@ import { assert } from '../../../lib/util/errors.js';
 import { MlArray } from '../../../lib/ml/base.js';
 import { OrInfinity, OrInfinityJson } from './curve.js';
 
-export { srs, setSrsCache, unsetSrsCache };
+export { srs };
 
 type WasmSrs = WasmFpSrs | WasmFqSrs;
 
@@ -25,15 +26,6 @@ function empty(): SrsStore {
 const srsStore = { fp: empty(), fq: empty() };
 
 const CacheReadRegister = new Map<string, boolean>();
-
-let cache: Cache | undefined;
-
-function setSrsCache(c: Cache) {
-  cache = c;
-}
-function unsetSrsCache() {
-  cache = undefined;
-}
 
 const srsVersion = 1;
 
@@ -62,18 +54,26 @@ function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
   );
 }
 
-function srs(wasm: Wasm, conversion: RustConversion) {
+function srs(wasm: Wasm, conversion: RustConversion<'wasm'>) {
   return {
     fp: srsPerField('fp', wasm, conversion),
     fq: srsPerField('fq', wasm, conversion),
   };
 }
 
-function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
+function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'wasm'>) {
   // note: these functions are properly typed, thanks to TS template literal types
   let createSrs = (s: number) => wasm[`caml_${f}_srs_create_parallel`](s);
   let getSrs = wasm[`caml_${f}_srs_get`];
   let setSrs = wasm[`caml_${f}_srs_set`];
+  let isEmptySrs = (srs: WasmSrs) => {
+    try {
+      let points = getSrs(srs);
+      return points == null || points.length <= 1;
+    } catch {
+      return true;
+    }
+  };
 
   let maybeLagrangeCommitment = wasm[`caml_${f}_srs_maybe_lagrange_commitment`];
   let lagrangeCommitment = (srs: WasmFpSrs, domain_size: number, i: number) =>
@@ -92,6 +92,11 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
     create(size: number): WasmSrs {
       let srs = srsStore[f][size] satisfies WasmSrs as WasmSrs | undefined;
 
+      if (srs !== undefined && isEmptySrs(srs)) {
+        delete srsStore[f][size];
+        srs = undefined;
+      }
+
       if (srs === undefined) {
         if (cache === undefined) {
           // if there is no cache, create SRS in memory
@@ -106,7 +111,9 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion) {
             let jsonSrs: OrInfinityJson[] = JSON.parse(new TextDecoder().decode(bytes));
             let mlSrs = MlArray.mapTo(jsonSrs, OrInfinity.fromJSON);
             let wasmSrs = conversion[f].pointsToRust(mlSrs);
-            return setSrs(wasmSrs);
+            let candidate = setSrs(wasmSrs);
+            if (isEmptySrs(candidate)) return undefined;
+            return candidate;
           });
 
           if (srs === undefined) {
@@ -253,7 +260,7 @@ function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
 function readCacheLazy(
   cache: Cache,
   header: CacheHeader,
-  conversion: RustConversion,
+  conversion: RustConversion<'wasm'>,
   f: 'fp' | 'fq',
   srs: WasmSrs,
   domainSize: number,

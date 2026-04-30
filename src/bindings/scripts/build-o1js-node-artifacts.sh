@@ -13,6 +13,7 @@ MINA_PATH=src/mina
 setup_script "${BASH_SOURCE[0]}" "Node artifacts build"
 
 DUNE_USE_DEFAULT_LINKER="y"
+DUNE_PROFILE="${DUNE_PROFILE:-dev}"
 
 bold "Building bindings artifacts"
 
@@ -25,8 +26,16 @@ else
     ok "Dependencies already installed"
 fi
 
+info "Using Dune profile: ${DUNE_PROFILE}"
+
 npm run build:wasm:node
 npm run build:jsoo:node
+
+if [ -z "${SKIP_NATIVE_BUILD:-}" ]; then
+    npm run build:native
+else
+    info "Skipping native build (SKIP_NATIVE_BUILD set)"
+fi
 
 npm run build:bindings-transaction-layout
 

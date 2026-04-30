@@ -24,10 +24,10 @@ if (isMain) {
 async function buildWeb({ production }) {
   let minify = !!production;
 
-  // prepare plonk_wasm.js with bundled wasm in function-wrapped form
-  let bindings = await readFile('./src/bindings/compiled/web_bindings/plonk_wasm.js', 'utf8');
+  // prepare kimchi_wasm.js with bundled wasm in function-wrapped form
+  let bindings = await readFile('./src/bindings/compiled/web_bindings/kimchi_wasm.js', 'utf8');
   bindings = rewriteWasmBindings(bindings);
-  let tmpBindingsPath = 'src/bindings/compiled/web_bindings/plonk_wasm.tmp.js';
+  let tmpBindingsPath = 'src/bindings/compiled/web_bindings/kimchi_wasm.tmp.js';
   await writeFile(tmpBindingsPath, bindings);
   await esbuild.build({
     entryPoints: [tmpBindingsPath],
@@ -65,8 +65,8 @@ async function buildWeb({ production }) {
     await writeFile(o1jsWebPath, code);
   }
 
-  // overwrite plonk_wasm with bundled version
-  await copy({ [tmpBindingsPath]: './dist/web/web_bindings/plonk_wasm.js' });
+  // overwrite kimchi_wasm with bundled version
+  await copy({ [tmpBindingsPath]: './dist/web/web_bindings/kimchi_wasm.js' });
   await unlink(tmpBindingsPath);
 
   // move all .web.js files to their .js counterparts
@@ -122,9 +122,9 @@ function execPromise(cmd) {
 
 function rewriteWasmBindings(src) {
   src = src
-    .replace("new URL('plonk_wasm_bg.wasm', import.meta.url)", 'wasmCode')
+    .replace("new URL('kimchi_wasm_bg.wasm', import.meta.url)", 'wasmCode')
     .replace('import.meta.url', '"/"');
-  return `import wasmCode from './plonk_wasm_bg.wasm';
+  return `import wasmCode from './kimchi_wasm_bg.wasm';
   let startWorkers, terminateWorkers;  
 ${src}`;
 }
@@ -140,11 +140,11 @@ function rewriteBundledWasmBindings(src) {
   src = src.replace('var startWorkers;\n', '');
   src = src.replace('var terminateWorkers;\n', '');
   return `import { startWorkers, terminateWorkers } from '../bindings/js/web/worker-helpers.js'
-export {plonkWasm as default};
-function plonkWasm() {
+export {kimchiWasm as default};
+function kimchiWasm() {
   ${src}
 }
-plonkWasm.deps = [startWorkers, terminateWorkers]`;
+kimchiWasm.deps = [startWorkers, terminateWorkers]`;
 }
 
 function wasmPlugin() {

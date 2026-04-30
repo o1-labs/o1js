@@ -24,4 +24,8 @@ info "Running node prepublish..."
 run_cmd npm run prepublish:node
 ok "Node prepublish finished"
 
+info "Running native prepublish..."
+run_cmd npm run prepublish:native
+ok "Native prepublish finished"
+
 success "Prepublish tasks complete"

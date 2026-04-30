@@ -26,6 +26,11 @@ setup_script "jsoo-build-node" "JSOO build node"
 
 mkdir -p $BINDINGS_PATH
 
+# Some Mina vendored interfaces trigger warning 67 on newer OCaml toolchains.
+# For bindings packaging, keep this warning non-fatal and legacy alerts non-fatal.
+OCAMLPARAM="${OCAMLPARAM:-_},warn-error=-67,alert=-legacy"
+export OCAMLPARAM
+
 info "building JSOO artifacts for node..."
 TARGETS=(\
   o1js_node.bc.js \
@@ -48,8 +53,22 @@ run_cmd mv -f $BINDINGS_PATH/o1js_node.bc.js $BINDINGS_PATH/o1js_node.bc.cjs
 ok "Node.js bindings copied"
 
 info "Updating WASM references in bindings..."
-run_cmd sed -i 's/plonk_wasm.js/plonk_wasm.cjs/' $BINDINGS_PATH/o1js_node.bc.cjs
+run_cmd sed -i 's/kimchi_wasm.js/kimchi_wasm.cjs/' $BINDINGS_PATH/o1js_node.bc.cjs
 ok "WASM references updated"
+
+info "making native require opaque to webpack..."
+# webpack creates a context module from dynamic require("@o1js/native-" + ...) which
+# greedily bundles all files in the @o1js/ scope. __non_webpack_require__ tells webpack
+# to skip this require while keeping it functional at runtime.
+run_cmd perl -e '
+  local $/;
+  open(F, "<", $ARGV[0]) or die $!;
+  my $c = <F>; close(F);
+  $c =~ s/require\s*\("\@o1js\/native-"/(typeof __non_webpack_require__ !== "undefined" ? __non_webpack_require__ : require)("\@o1js\/native-"/g;
+  open(F, ">", $ARGV[0]) or die $!;
+  print F $c; close(F);
+' $BINDINGS_PATH/o1js_node.bc.cjs
+ok "native require made webpack-safe"
 
 info "fixing JS bindings for better error handling..."
 run_cmd sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw globalThis.Error(s.c)/' "${BINDINGS_PATH}"/o1js_node.bc.cjs

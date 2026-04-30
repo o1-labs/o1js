@@ -103,8 +103,8 @@
           ((pkgs.rustChannelOf
             {
               channel = "nightly";
-              date = "2024-06-13";
-              sha256 = "sha256-s5nlYcYG9EuO2HK2BU3PkI928DZBKCTJ4U9bz3RX1t4=";
+              date = "2025-12-11";
+              sha256 = "sha256-Z8PetnKGSZjqRtodJ20XqBoTe2qNG0RaklrVW7AQ3JE=";
             }).rust.override
             {
               targets = [
@@ -124,6 +124,19 @@
             cargo = rust-channel';
             rustc = rust-channel';
           };
+        rust-stable-channel = (pkgs.rustChannelOf {
+          channel = "1.92.0";
+          sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
+        }).rust;
+        rust-stable-channel' = rust-stable-channel // {
+          # Ensure compatibility with nixpkgs >= 24.11
+          targetPlatforms = pkgs.lib.platforms.all;
+          badTargetPlatforms = [ ];
+        };
+        rust-stable-platform = pkgs.makeRustPlatform {
+          cargo = rust-stable-channel';
+          rustc = rust-stable-channel';
+        };
         bindings-pkgs = with pkgs;
           [
             nodejs
@@ -186,6 +199,7 @@
             # which should get an error message with the correct hash
             # You can also just push and CI should suggest a fix which updates the hash
             npmDepsHash = builtins.readFile ./npmDepsHash;
+            npmFlags = [ "--force" ];
             dontNpmBuild = true;
             installPhase = ''
               runHook preInstall
@@ -205,7 +219,7 @@
             checkPhase = if pkgs.stdenv.isDarwin then "" else null;
             text =
               ''
-                if [ "$1" = run ] && { [ "$2" = nightly-2024-06-13 ] || [[ "$2" =~ 1.79-x86_64* ]]; }
+                if [ "$1" = run ] && { [ "$2" = nightly-2025-12-11 ] || [[ "$2" =~ 1.92-x86_64* ]] || [[ "$2" =~ 1.79-x86_64* ]]; }
                 then
                   echo using nix toolchain
                   ${rustup}/bin/rustup run nix "''${@:3}"
@@ -215,7 +229,23 @@
                 fi
               '';
           };
-        test-vectors = rust-platform.buildRustPackage {
+        narHashesFromCargoLock = file:
+          let
+            inherit (pkgs.lib) hasPrefix;
+            inherit (builtins) split readFile fromTOML listToAttrs filter map;
+            last = l: builtins.elemAt l (builtins.length l - 1);
+            head = l: builtins.elemAt l 0;
+            package = (fromTOML (readFile file)).package;
+          in listToAttrs (map (x: {
+            name = "${x.name}-${x.version}";
+            value = (builtins.fetchGit {
+              rev = last (split "#" x.source);
+              url = last (split "\\+" (head (split "\\?" x.source)));
+              allRefs = true;
+            }).narHash;
+          }) (filter (x: x ? source && hasPrefix "git+" x.source) package));
+
+        test-vectors = rust-stable-platform.buildRustPackage {
           src = pkgs.lib.sourceByRegex ./src/mina/src
             [
               "^lib(/crypto(/proof-systems(/.*)?)?)?$"
@@ -228,7 +258,11 @@
           name = "export_test_vectors";
           version = "0.1.0";
           CARGO_TARGET_DIR = "./target";
-          cargoLock = { lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock; };
+          cargoLock = {
+            lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
+            outputHashes = narHashesFromCargoLock
+              ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
+          };
         };
         bindings = requireSubmodules (pkgs.stdenv.mkDerivation {
           name = "o1js_bindings";
@@ -260,8 +294,8 @@
               ];
             });
           inherit (inputs.mina.devShells."${system}".default)
-            PLONK_WASM_NODEJS
-            PLONK_WASM_WEB
+            KIMCHI_WASM_NODEJS
+            KIMCHI_WASM_WEB
             KIMCHI_STUBS
             KIMCHI_STUBS_STATIC_LIB
             ;
@@ -271,6 +305,7 @@
             "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
+          SKIP_NATIVE_BUILD = true;
           JUST_BINDINGS = true;
           buildInputs = (with pkgs;
             [
@@ -293,6 +328,7 @@
               RUSTUP_HOME=$(pwd)/.rustup
               export RUSTUP_HOME
               rustup toolchain link nix ${rust-channel'}
+              rustup default nix
               cp -r ${o1js-npm-deps}/lib/node_modules/ .
 
               mkdir -p src/bindings/compiled/node_bindings

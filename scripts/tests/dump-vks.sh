@@ -21,7 +21,7 @@ run_cmd npm run build
 ok "Build finished"
 
 info "Running VK regression dump..."
-run_cmd ./run tests/vk-regression/vk-regression.ts --bundle --dump
+run_cmd env O1JS_BACKEND=wasm ./run tests/vk-regression/vk-regression.ts --bundle --dump ./tests/vk-regression/vk-regression.json
 ok "Verification keys dumped"
 
 success "VK dump complete"

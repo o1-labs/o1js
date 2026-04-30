@@ -1,9 +1,11 @@
-import { Cache, Field, Gadgets, ZkProgram } from 'o1js';
+import { Cache, Field, Gadgets, setBackend, ZkProgram } from 'o1js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
+setBackend('native');
+
 let MyProgram = ZkProgram({
-  chunks: 1,
-  overrideWrapDomain: 0,
+  numChunks: 2,
+  overrideWrapDomain: 1,
   name: 'example-with-chunking',
   publicOutput: Field,
 

@@ -1,8 +1,8 @@
+import esbuild from 'esbuild';
+import minimist from 'minimist';
 import path from 'node:path';
 import { platform } from 'node:process';
 import { fileURLToPath } from 'node:url';
-import esbuild from 'esbuild';
-import minimist from 'minimist';
 
 let { bindings = './src/bindings/compiled/node_bindings/' } = minimist(process.argv.slice(2));
 
@@ -56,7 +56,7 @@ function makeNodeModulesExternal() {
 }
 
 function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|plonk_wasm.cjs)$/;
+  let isJsoo = /(bc.cjs|kimchi_wasm.cjs)$/;
   return {
     name: 'plugin-external',
     setup(build) {

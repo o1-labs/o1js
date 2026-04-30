@@ -35,7 +35,8 @@ permissions:
   contents: write
 
 jobs:
-  Prepare:
+  Prepare-Wasm:
+    name: Prepare (Wasm Backend)
     runs-on: ubuntu-latest
     steps:
       - name: Free space on runner
@@ -54,10 +55,87 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
       - name: Build
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-wasm
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+
+  # Detect whether this PR touches files that affect the native build.
+  # Used to gate the cross-platform native build matrix below: we always
+  # run it on `push` events (B), and on PRs only when relevant files change (C).
+  Detect-Native-Changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.filter.outputs.native }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - id: filter
+        run: |
+          set -euo pipefail
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          git fetch origin "$BASE_REF" --depth=1
+          # two-arg form so we don't need merge-base history (default checkout is shallow)
+          CHANGED=$(git diff --name-only "origin/$BASE_REF" HEAD || true)
+          echo "Changed files:"
+          echo "$CHANGED"
+          # files that affect the native build/publish pipeline
+          PATTERN='^(src/bindings/|src/mina|src/native/|scripts/(build|prepublish)/native/|\.github/actions/build-native/|\.github/workflows/(publish_native|checks)\.yml$)'
+          if echo "$CHANGED" | grep -E "$PATTERN" >/dev/null; then
+            echo "native=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "native=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Cross-platform native build matrix. Mirrors the build matrix used at
+  # release time (publish_native.yml with publish=false), so macOS/arm64
+  # build failures are caught before they block the release pipeline.
+  Build-Native-All-Platforms:
+    needs: [Detect-Native-Changes]
+    if: |
+      always() &&
+      (
+        github.event_name == 'push' ||
+        needs.Detect-Native-Changes.outputs.native == 'true'
+      )
+    permissions:
+      contents: read
+      # id-token must be granted at the caller because the nested
+      # publish-native-packages job declares it. github validates
+      # permissions statically — even gated by `if: publish != false`,
+      # an unmet id-token request causes a startup_failure.
+      id-token: write
+    uses: ./.github/workflows/publish_native.yml
+    with:
+      publish: false
+
+  Prepare-Native:
+    name: Prepare (Native Backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Free space on runner
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android \
+                      /usr/share/dotnet \
+                      /opt/ghc \
+                      "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af --volumes || true
+          df -h
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Build native bindings
+        uses: ./.github/actions/build-native
+        with:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
 
   Lint-and-Format:
@@ -73,7 +151,7 @@ jobs:
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
-      - name: Setup Node.JS ${{ matrix.node }}
+      - name: Setup Node.JS 20
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -108,6 +186,9 @@ jobs:
       - name: Run Markdown Format Check
         run: npm run format:md:check
 
+      - name: Check @o1js/native versions are in sync with o1js version
+        run: npm run check:version-sync
+
   Upload-bindings:
     name: upload bindings artifact
     if: ${{ inputs.proof_systems_commit == '' }}
@@ -135,7 +216,7 @@ jobs:
           gcp_secret: ${{ secrets.NIX_CACHE_GCP_SECRET }}
 
   Build-And-Test-Server:
-    needs: [Prepare]
+    needs: [Prepare-Wasm]
     timeout-minutes: 210
     runs-on: ubuntu-latest
     strategy:
@@ -163,7 +244,7 @@ jobs:
           ref: ${{ inputs.target_ref || github.ref }}
 
       - name: build
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-wasm
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
@@ -185,7 +266,7 @@ jobs:
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
   Run-Unit-Tests:
-    needs: [Prepare]
+    needs: [Prepare-Wasm]
     name: Run unit tests parallel
     timeout-minutes: 210
     runs-on: ubuntu-latest
@@ -201,7 +282,7 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-wasm
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
@@ -209,9 +290,9 @@ jobs:
       - name: Count tests
         id: count_tests
         run: |
-          TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
+          TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" -not -name "*-napi.unit-test.js" | wc -l)
           echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
-          echo "Total test count: ${TEST_COUNT}"
+          echo "Total test count (excluding napi): ${TEST_COUNT}"
 
       - name: Run unit tests
         env:
@@ -235,7 +316,13 @@ jobs:
           echo "Running tests from index $start_index to $end_index"
 
           shopt -s globstar
-          test_files=(./dist/node/**/*.unit-test.js)
+          all_tests=(./dist/node/**/*.unit-test.js)
+          test_files=()
+          for test in "${all_tests[@]}"; do
+            if [[ ! "$test" =~ -napi\.unit-test\.js$ ]]; then
+              test_files+=("$test")
+            fi
+          done
 
           set -o pipefail
 
@@ -265,7 +352,7 @@ jobs:
       - run: echo "All unit tests completed successfully"
 
   Build-And-Test-Web:
-    needs: [Prepare]
+    needs: [Prepare-Wasm]
     timeout-minutes: 90
     runs-on: ubuntu-latest
     steps:
@@ -273,19 +360,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .
-          key: repo-${{ github.sha }}
+          key: repo-${{ github.sha }}-node-20
 
-      - name: Setup Node.JS ${{ matrix.node }}
+      - name: Setup Node.JS 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # TODO matrixing this requires changing branch protection rules
 
       - name: Restore npm cache
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-node-20-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -316,8 +402,143 @@ jobs:
           path: tests/report/
           retention-days: 30
 
+  Native-Integration-Tests:
+    needs: [Prepare-Wasm, Prepare-Native]
+    timeout-minutes: 210
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_type:
+          [
+            'Simple integration tests',
+            'Reducer integration tests',
+            'DEX integration tests',
+            'DEX integration test with proofs',
+            'Voting integration tests',
+            'Verification Key Regression Check 1',
+            'Verification Key Regression Check 2',
+            'CommonJS test',
+            'Performance Regression',
+          ]
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Restore native bindings
+        uses: ./.github/actions/build-native
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Install native package
+        run: npm install ./native/linux-x64/
+      - name: Prepare for tests
+        run: touch profiling.md
+      - name: Execute tests (native backend)
+        env:
+          TEST_TYPE: ${{ matrix.test_type }}
+          O1JS_BACKEND: native
+        run: sh run-ci-tests.sh
+      - name: Add to job summary
+        if: always()
+        run: |
+          echo "### Test Results for ${{ matrix.test_type }} (native)" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
+
+  Run-Native-Unit-Tests:
+    needs: [Prepare-Wasm, Prepare-Native]
+    name: Run native unit tests parallel
+    timeout-minutes: 210
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [1, 2, 3, 4]
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Restore native bindings
+        uses: ./.github/actions/build-native
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Install native package
+        run: npm install ./native/linux-x64/
+      - name: Count tests
+        id: count_tests
+        run: |
+          TEST_COUNT=$(find ./dist/node -name "*.unit-test.js" | wc -l)
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "Total test count: ${TEST_COUNT}"
+      - name: Prepare for tests
+        run: touch profiling.md
+      - name: Run native unit tests
+        env:
+          TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
+          CHUNK: ${{ matrix.chunk }}
+          CHUNKS: 4
+          O1JS_BACKEND: native
+        shell: bash
+        run: |
+          echo "Total tests: $TOTAL_TESTS"
+          echo "Current chunk: $CHUNK"
+          echo "Total chunks: $CHUNKS"
+
+          if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" -eq 0 ]; then
+            echo "Error: TOTAL_TESTS is not set or is zero. Exiting."
+            exit 1
+          fi
+
+          shopt -s globstar
+          test_files=(./dist/node/**/*.unit-test.js)
+
+          start_index=$(( (TOTAL_TESTS * (CHUNK - 1) / CHUNKS) ))
+          end_index=$(( (TOTAL_TESTS * CHUNK / CHUNKS) ))
+
+          echo "Running tests from index $start_index to $end_index"
+
+          set -o pipefail
+
+          for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
+              echo "Running test (native): ${test_files[$i]}"
+              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+          done
+        continue-on-error: false
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-test-results-${{ matrix.chunk }}
+          path: profiling.md
+      - name: Add to job summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Test Results for Native Unit Tests Chunk ${{ matrix.chunk }}" >> $GITHUB_STEP_SUMMARY
+          cat profiling.md >> $GITHUB_STEP_SUMMARY
+
+  Build-And-Test-Server-Native-Unit-Tests:
+    name: Build-And-Test-Server (Native unit tests)
+    needs: [Run-Native-Unit-Tests]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All native unit tests completed successfully"
+
   master:
-    needs: [Prepare]
+    needs: [Prepare-Wasm]
     timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.event.pull_request.base.ref != 'develop' 
@@ -342,7 +563,7 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-wasm
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
@@ -353,7 +574,7 @@ jobs:
           mina-branch-name: master
 
   compatible:
-    needs: [Prepare]
+    needs: [Prepare-Wasm]
     timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.event.pull_request.base.ref != 'develop' 
@@ -378,7 +599,7 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-wasm
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
@@ -389,7 +610,7 @@ jobs:
           mina-branch-name: compatible
 
   develop:
-    needs: [Prepare]
+    needs: [Prepare-Wasm]
     timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.event.pull_request.base.ref == 'develop'
@@ -414,7 +635,7 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-wasm
         with:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}

@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "2.14.0",
+  "version": "2.14.0-dev.bb172",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -64,14 +64,18 @@
     "build:jsoo": "npm run build:jsoo:web && npm run build:jsoo:node",
     "build:jsoo:web": "./scripts/build/jsoo/build-web.sh",
     "build:jsoo:node": "./scripts/build/jsoo/build-node.sh",
+    "build:native": "./scripts/build/native/build.sh",
     "build:docs": "typedoc",
     "prepublish:web": "./scripts/prepublish/prepublish-web.sh",
     "prepublish:node": "./scripts/prepublish/prepublish-node.sh",
     "prepublish:full": "./scripts/prepublish/prepublish-full.sh",
+    "prepublish:native": "./scripts/prepublish/prepublish-native.sh",
     "regression:dump-vks": "./scripts/tests/dump-vks.sh",
     "regression:check-vks": "./scripts/tests/check-vks.sh",
     "regression:dump-perf": "./tests/perf-regression/perf-regression.sh --dump",
+    "regression:dump-perf:native": "O1JS_BACKEND=native ./tests/perf-regression/perf-regression.sh --dump --file ./tests/perf-regression/perf-regression-native.json",
     "regression:check-perf": "./tests/perf-regression/perf-regression.sh --check",
+    "regression:check-perf:native": "O1JS_BACKEND=native ./tests/perf-regression/perf-regression.sh --check --file ./tests/perf-regression/perf-regression-native.json",
     "format": "prettier --write --ignore-unknown",
     "format:check": "prettier --check --ignore-unknown",
     "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
@@ -92,17 +96,23 @@
     "e2e:install": "npx playwright install --with-deps",
     "e2e:show-report": "npx playwright show-report tests/report",
     "update-changelog": "./scripts/changelog/update-changelog.sh",
-    "prepare": "husky"
+    "prepare": "husky",
+    "native:prepublish": "./scripts/prepublish/native/prepublish-native-package.sh",
+    "native:publish": "./scripts/publish/native/publish-native-package.sh",
+    "check:version-sync": "node scripts/check-version-sync.mjs",
+    "sync:native-version": "node scripts/sync-native-version.mjs"
   },
   "author": "O(1) Labs",
   "devDependencies": {
     "@influxdata/influxdb-client": "^1.33.2",
+    "@napi-rs/cli": "^3.4.1",
     "@noble/curves": "1.8.1",
     "@playwright/test": "^1.48.0",
     "@types/jest": "^27.0.0",
     "@types/libsodium-wrappers-sumo": "^0.7.8",
     "@types/minimist": "^1.2.5",
     "@types/node": "^18.14.2",
+    "@types/semver": "^7.7.1",
     "esbuild": "^0.25.5",
     "expect": "^29.0.1",
     "fs-extra": "^10.0.0",
@@ -118,6 +128,7 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "replace-in-file": "^6.3.5",
     "rimraf": "^3.0.2",
+    "semver": "^7.7.3",
     "ts-jest": "^28.0.8",
     "typedoc": "^0.28.5",
     "typedoc-plugin-markdown": "^4.6.4",
@@ -126,11 +137,18 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.7.1",
+    "@o1js/native": "file:./native/meta",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
     "libsodium-wrappers-sumo": "^0.7.15",
     "reflect-metadata": "^0.1.13",
     "stacktrace-js": "^2.0.2",
     "tslib": "^2.3.0"
+  },
+  "o1js-internal": {
+    "native-version": "2.14.0-dev.bb172"
+  },
+  "optionalDependencies": {
+    "@o1js/native": "2.14.0-dev.bb172"
   }
 }

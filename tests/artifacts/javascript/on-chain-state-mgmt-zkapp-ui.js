@@ -9,17 +9,28 @@ const updateButton = document.querySelector('#updateButton');
 const clearEventsButton = document.querySelector('#clearEventsButton');
 const eventsContainer = document.querySelector('#eventsContainer');
 const stateContainer = document.querySelector('#zkAppStateContainer');
+compileButton.disabled = true;
+deployButton.disabled = true;
+updateButton.disabled = true;
 
-logEvents(`o1js initialized after ${performance.now().toFixed(2)}ms`, eventsContainer);
-
-// Setup local ledger
-let Local = await Mina.LocalBlockchain();
-Mina.setActiveInstance(Local);
-// Test account that pays all the fees
-const [feePayer] = Local.testAccounts;
-const contractAddress = Mina.TestPublicKey.random();
-const contract = new HelloWorld(contractAddress);
+let Local;
+let feePayer;
+let contractAddress;
+let contract;
 let verificationKey = null;
+
+try {
+  // Setup local ledger
+  Local = await Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+  // Test account that pays all the fees
+  [feePayer] = Local.testAccounts;
+  contractAddress = Mina.TestPublicKey.random();
+  contract = new HelloWorld(contractAddress);
+} catch (exception) {
+  logEvents(`Initialization failure: ${exception.message}`, eventsContainer);
+  console.log(exception);
+}
 
 compileButton.addEventListener('click', async () => {
   compileButton.disabled = true;
@@ -107,3 +118,10 @@ updateButton.addEventListener('click', async (event) => {
 clearEventsButton.addEventListener('click', async () => {
   eventsContainer.innerHTML = 'No data available yet.';
 });
+
+if (Local !== undefined) {
+  compileButton.disabled = false;
+  deployButton.disabled = false;
+  updateButton.disabled = false;
+  logEvents(`o1js initialized after ${performance.now().toFixed(2)}ms`, eventsContainer);
+}

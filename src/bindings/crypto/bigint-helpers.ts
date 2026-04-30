@@ -13,18 +13,33 @@ export {
 };
 
 function bytesToBigint32(bytes: Uint8Array) {
-  let words = new BigUint64Array(bytes.buffer, bytes.byteOffset, 4);
-  return words[0] | (words[1] << 64n) | (words[2] << 128n) | (words[3] << 192n);
+  // `BigUint64Array` requires 8-byte alignment for `byteOffset`. Node Buffers
+  // coming from native bindings can have arbitrary `byteOffset` due to pooling.
+  // `DataView` works with unaligned offsets.
+  if (bytes.byteLength < 32) {
+    throw Error(`bytesToBigint32: expected 32 bytes, got ${bytes.byteLength}`);
+  }
+  let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return (
+    view.getBigUint64(0, true) |
+    (view.getBigUint64(8, true) << 64n) |
+    (view.getBigUint64(16, true) << 128n) |
+    (view.getBigUint64(24, true) << 192n)
+  );
 }
 
 const mask64 = (1n << 64n) - 1n;
 
 function bigintToBytes32(x: bigint, bytes: Uint8Array): Uint8Array {
-  let words = new BigUint64Array(bytes.buffer, bytes.byteOffset, 4);
-  words[0] = x & mask64;
-  words[1] = (x >> 64n) & mask64;
-  words[2] = (x >> 128n) & mask64;
-  words[3] = x >> 192n;
+  // See `bytesToBigint32()` for why we avoid `BigUint64Array` here.
+  if (bytes.byteLength < 32) {
+    throw Error(`bigintToBytes32: expected 32 bytes, got ${bytes.byteLength}`);
+  }
+  let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  view.setBigUint64(0, x & mask64, true);
+  view.setBigUint64(8, (x >> 64n) & mask64, true);
+  view.setBigUint64(16, (x >> 128n) & mask64, true);
+  view.setBigUint64(24, x >> 192n, true);
   return bytes;
 }
 

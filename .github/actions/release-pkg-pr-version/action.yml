@@ -9,13 +9,13 @@ runs:
       uses: actions/cache@v4
       with:
         path: .
-        key: repo-${{ github.sha }}
+        key: repo-${{ github.sha }}-node-20
     - name: Setup Node.JS 20
       uses: actions/setup-node@v4
       with:
         node-version: 20
     - name: build
-      uses: ./.github/actions/build
+      uses: ./.github/actions/build-wasm
     - name: Build o1js and mina-signer
       shell: bash
       run: |
@@ -27,4 +27,3 @@ runs:
     - name: Publish o1js and mina-signer on pkg-pr-new
       shell: bash
       run: npx pkg-pr-new publish ./ ./src/mina-signer
-

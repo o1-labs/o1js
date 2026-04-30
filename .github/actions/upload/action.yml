@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Build
-      uses: ./.github/actions/build
+      uses: ./.github/actions/build-wasm
     - name: Build the o1js bindings
       if: steps.bindings-cache.outputs.cache-hit != 'true'
       env:

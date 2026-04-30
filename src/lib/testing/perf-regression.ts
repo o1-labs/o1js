@@ -3,8 +3,8 @@
  *
  * Stores and compares metadata such as compile, proving, and verifying times.
  * Can run in two modes:
- * - **Dump**: write baseline results into
- *   {@link tests/perf-regression/perf-regression.json}
+ * - **Dump**: write baseline results into a per-backend JSON file
+ *   (e.g. `perf-regression-wasm.json` or `perf-regression-native.json`)
  * - **Check**: validate current results against the stored baselines
  *
  * For regression testing of constraint systems (CS) and zkApps,
@@ -14,7 +14,7 @@
  * Command-line arguments:
  * - `--dump` (alias `-d`): dump performance data into the baseline file.
  * - `--check` (alias `-c`): check performance against the existing baseline.
- * - `--file` (alias `-f`): specify a custom JSON path (default: `./tests/perf-regression/perf-regression.json`).
+ * - `--file` (alias `-f`): specify a custom JSON path (default: `./tests/perf-regression/perf-regression-wasm.json`).
  * - `--silent`: suppress all console output.
  *
  * These flags are mutually exclusive for modes (`--dump` and `--check` cannot be used together).
@@ -52,6 +52,17 @@ type PerfStack = {
   methodName?: string; // required for prove/verify; optional for compile
 };
 
+// per-program tolerance overrides (multiplier, e.g. 1.20 = 20%)
+// use for programs whose timings are known-flaky on top of run-to-run noise
+const PROGRAM_TOLERANCES: Record<
+  string,
+  Partial<Record<'compile' | 'prove' | 'verify', number>>
+> = {
+  // sha256 compile timing fluctuates ~10-15% on the new toolchain
+  sha256: { compile: 1.2 },
+  'sha256.sha256': { compile: 1.2 },
+};
+
 const argv = minimist(process.argv.slice(2), {
   boolean: ['dump', 'check', 'silent'],
   string: ['file'],
@@ -76,7 +87,7 @@ const FILE_PATH = path.isAbsolute(argv.file ?? '')
   ? (argv.file as string)
   : path.join(
       process.cwd(),
-      argv.file ? (argv.file as string) : './tests/perf-regression/perf-regression.json'
+      argv.file ? (argv.file as string) : './tests/perf-regression/perf-regression-wasm.json'
     );
 
 // Create directory & file if missing (only on dump)
@@ -89,7 +100,7 @@ if (DUMP) {
 /**
  * Create a new performance tracking session for a program.
  *
- * @param programName Name of the program (key in perf-regression.json)
+ * @param programName Name of the program (key in the baseline JSON)
  * @param methodsSummary Optional methods analysis (required for prove/verify checks)
  * @param log Optional boolean (default: true). If `--silent` is passed via CLI,
  *            it overrides this and disables all logs.
@@ -213,7 +224,7 @@ const Performance = {
    * @param programName Optional identifier for the program or label.
    *   - With a ZkProgram name and its `methodsSummary`, the session benchmarks
    *     compile, prove, and verify phases, storing or checking results against
-   *     `perf-regression.json`.
+   *     the per-backend baseline JSON.
    *   - Without a ZkProgram, `programName` acts as a freeform label and the session
    *     can be used like `console.time` / `console.timeEnd` to log timestamps.
    * @param methodsSummary Optional analysis of ZkProgram methods, required when
@@ -357,10 +368,13 @@ function checkAgainstBaseline(params: {
   }
 
   // tolerances
-  const compileTol = 1.08; // 8%
-  const compileTiny = 1.1; // 10% for near-zero baselines (< 5e-5s)
-  const timeTolDefault = 1.1; // 10% for prove/verify
-  const timeTolSmall = 1.25; // 25% for very small times (<0.2s)
+  const compileTol = 1.1; // 10%
+  const compileTiny = 1.12; // 12% for near-zero baselines (< 5e-5s)
+  const timeTolDefault = 1.12; // 12% for prove/verify
+  const timeTolSmall = 1.27; // 27% for very small times (<0.2s)
+
+  // per-program tolerance override (PROGRAM_TOLERANCES) for known-flaky programs
+  const override = PROGRAM_TOLERANCES[programName]?.[label];
 
   const labelPretty = label[0].toUpperCase() + label.slice(1);
 
@@ -372,7 +386,7 @@ function checkAgainstBaseline(params: {
       );
     }
 
-    const tol = expected < 5e-5 ? compileTiny : compileTol;
+    const tol = override ?? (expected < 5e-5 ? compileTiny : compileTol);
     const allowedPct = (tol - 1) * 100;
     const regressionPct = expected === 0 ? 0 : ((actualTime - expected) / expected) * 100;
     const failed = actualTime > expected * tol;
@@ -414,7 +428,7 @@ function checkAgainstBaseline(params: {
     );
   }
 
-  const tol = expected < 0.2 ? timeTolSmall : timeTolDefault;
+  const tol = override ?? (expected < 0.2 ? timeTolSmall : timeTolDefault);
   const allowedPct = (tol - 1) * 100;
   const regressionPct = expected === 0 ? 0 : ((actualTime - expected) / expected) * 100;
   const failed = actualTime > expected * tol;

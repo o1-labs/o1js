@@ -29,8 +29,8 @@ import type {
 import type {
   WasmFpSrs,
   WasmFqSrs,
-} from './bindings/compiled/node_bindings/plonk_wasm.cjs';
-import * as wasm from './bindings/compiled/node_bindings/plonk_wasm.cjs';
+} from './bindings/compiled/node_bindings/kimchi_wasm.cjs';
+import * as wasm from './bindings/compiled/node_bindings/kimchi_wasm.cjs';
 import type { KimchiGateType } from './lib/provable/gates.ts';
 import type { MlConstraintSystem } from './lib/provable/core/provable-context.ts';
 import type { FieldVector } from './bindings/crypto/bindings/vector.ts';
