@@ -3,4 +3,8 @@ depends: [
   "dune"
   "js_of_ocaml-ppx"
   "bin_prot"
+  "ppx_bin_prot"                                                                                        
+  "base"                                                                             
+  "core_kernel"                                   
+  "ppx_compare"
 ]
