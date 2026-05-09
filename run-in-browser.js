@@ -26,6 +26,15 @@ await fs.copyFile(absPath, newPath);
 await fs.unlink(absPath);
 console.log(`running in the browser: ${newPath}`);
 
+let browserFlags = [];
+if (process.env.O1JS_EXPERIMENTAL_MONTGOMERY_MSM === '1') {
+  browserFlags.push(`globalThis.O1JS_EXPERIMENTAL_MONTGOMERY_MSM = '1';`);
+}
+let browserFlagsScript =
+  browserFlags.length === 0
+    ? ''
+    : `<script>${browserFlags.join('\n')}</script>`;
+
 const indexHtml = `
 <!DOCTYPE html>
 <html>
@@ -33,6 +42,7 @@ const indexHtml = `
     <meta charset="utf-8" />
     <link rel="icon" href="data:," />
     <title>o1js</title>
+    ${browserFlagsScript}
     <link rel="modulepreload" href="./index.js">
     <script type="module" src="./${fileName}">
     </script>

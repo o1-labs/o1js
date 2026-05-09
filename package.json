@@ -149,6 +149,7 @@
     "native-version": "2.15.0"
   },
   "optionalDependencies": {
-    "@o1js/native": "2.15.0"
+    "@o1js/native": "2.15.0",
+    "montgomery": "0.4.0"
   }
 }
