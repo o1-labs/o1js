@@ -149,6 +149,6 @@
   },
   "optionalDependencies": {
     "@o1js/native": "2.15.0",
-    "montgomery": "file:../../Documents/GitHub/montgomery"
+    "montgomery": "git+https://github.com/Trivo25/montgomery.git#florian/sync-9x29"
   }
 }
