@@ -137,7 +137,6 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.7.1",
-    "@o1js/native": "file:./native/meta",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
     "libsodium-wrappers-sumo": "^0.7.15",
