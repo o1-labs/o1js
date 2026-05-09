@@ -4,10 +4,15 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
+import {
+  installMontgomeryMsmBridge,
+  isMontgomeryProverMsmEnabled,
+} from '../montgomery-msm-bridge.js';
 let url = import.meta.url;
 let filename = url !== undefined ? fileURLToPath(url) : __filename;
 const require = createRequire(filename);
 const wasm_ = requireKimchiWasm(!isMainThread ? workerData?.memory : undefined);
+const montgomeryBridgeReady = installMontgomeryMsmBridge();
 
 /**
  * @type {import("../../compiled/node_bindings/kimchi_wasm.cjs")}
@@ -18,7 +23,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.__o1js_backend_preference = 'wasm';
 }
 
-export { wasm, withThreadPool };
+export { montgomeryBridgeReady, wasm, withThreadPool };
 
 function requireKimchiWasm(memoryOverride) {
   let modulePath = filename.endsWith('index.cjs')
@@ -54,6 +59,11 @@ globalThis.startWorkers = startWorkers;
 globalThis.terminateWorkers = terminateWorkers;
 
 if (!isMainThread) {
+  startWasmWorker();
+}
+
+async function startWasmWorker() {
+  if (isMontgomeryProverMsmEnabled()) await montgomeryBridgeReady;
   parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
   wasm.wbg_rayon_start_worker(workerData.receiver);
 }

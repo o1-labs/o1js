@@ -1,4 +1,4 @@
-import { Field, ZkProgram, Cache, verify } from 'o1js';
+import { Cache, Field, ZkProgram, verify } from 'o1js';
 
 let MyProgram = ZkProgram({
   name: 'example-with-output',
@@ -16,7 +16,7 @@ let MyProgram = ZkProgram({
 });
 
 console.time('compile (without cache)');
-let { verificationKey } = await MyProgram.compile({ cache: Cache.None });
+let { verificationKey } = await MyProgram.compile({ cache: Cache.None, forceRecompile: true });
 console.timeEnd('compile (without cache)');
 
 console.time('proving');

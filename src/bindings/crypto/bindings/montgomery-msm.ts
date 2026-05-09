@@ -2,17 +2,22 @@ import { MlArray } from '../../../lib/ml/base.js';
 import { getBackendPreference } from '../../../lib/backend.js';
 import { Fp, Fq, type FiniteField } from '../finite-field.js';
 import { OrInfinity } from './curve.js';
+import { Field } from './field.js';
 import { PolyComm } from './kimchi-types.js';
 
 export {
+  computeMontgomeryCommitEvaluations,
   computeMontgomeryLagrangeCommitment,
+  getCachedMontgomeryCommitEvaluations,
   getCachedMontgomeryLagrangeCommitment,
   getCachedMontgomeryLagrangeCommitmentsWholeDomain,
   initializeMontgomeryMsm,
   isMontgomeryMsmEnabled,
   msm,
   msmUnsafe,
+  precomputeMontgomeryCommitEvaluations,
   precomputeMontgomeryLagrangeCommitment,
+  warmupMontgomeryCommitEvaluations,
   warmupMontgomeryLagrangeCommitment,
   warmupMontgomeryLagrangeCommitmentsWholeDomain,
 };
@@ -25,15 +30,23 @@ type MontgomeryModule = {
   startThreads?(threads?: number): Promise<void>;
 };
 type MontgomeryCurve = {
-  Field: { local: { getPointers(n: number): number[] }; getPointer(size?: number): number };
-  Scalar: { fromBigints(values: bigint[]): number };
+  Field: {
+    local: { getPointer(size?: number): number; getPointers(n: number): number[] };
+    getPointer(size?: number): number;
+  };
+  Scalar: {
+    sizeField: number;
+    writeBigint(pointer: number, value: bigint): void;
+  };
   Affine: {
     size: number;
-    fromBigints(points: AffinePoint[]): number;
+    writeBigints(pointPtr: number, points: AffinePoint[]): void;
     toBigint(point: number): AffinePoint;
   };
   Projective: { toAffine(scratch: number[], affine: number, point: number): void };
   Parallel: {
+    getPointer(size: number): Promise<number>;
+    getScalarPointer(size: number): Promise<number>;
     msm(
       scalarPtr: number,
       pointPtr: number,
@@ -62,9 +75,14 @@ type LagrangeCache = {
   wholeDomains: Map<number, MlArray<PolyComm>>;
   pending: Map<string, Promise<boolean>>;
 };
+type CommitEvaluationsCache = {
+  commitments: WeakMap<object, Map<number, PolyComm>>;
+  pending: WeakMap<object, Map<number, Promise<boolean>>>;
+};
 
 const srsPoints = new WeakMap<object, Map<FieldName, Promise<SrsPointCache>>>();
 const lagrangeCache = new WeakMap<object, Map<FieldName, LagrangeCache>>();
+const commitEvaluationsCache = new WeakMap<object, Map<FieldName, CommitEvaluationsCache>>();
 const scalarPointers = new Map<string, Promise<{ scalarPtr: number; length: number }>>();
 
 let modulePromise: Promise<MontgomeryModule | undefined> | undefined;
@@ -170,11 +188,97 @@ async function msmImpl(
   if (points.length !== scalars.length) throw Error('montgomery MSM input length mismatch');
   let curve = await curveForField(field, options);
   if (curve === undefined) return undefined;
-  let pointPtr = curve.Affine.fromBigints(points.map(orInfinityToMontgomery));
-  let scalarPtr = curve.Scalar.fromBigints(scalars);
+  let pointPtr = await writeMontgomeryPoints(curve, points.map(orInfinityToMontgomery));
+  let scalarPtr = await writeMontgomeryScalars(curve, scalars);
   let { result } = unsafe
     ? await curve.Parallel.msmUnsafe(scalarPtr, pointPtr, scalars.length)
     : await curve.Parallel.msm(scalarPtr, pointPtr, scalars.length);
+  return polyCommFromMontgomeryResult(curve, result);
+}
+
+function getCachedMontgomeryCommitEvaluations(
+  field: FieldName,
+  srs: object,
+  domainSize: number,
+  evaluations: MlArray<Field>
+) {
+  if (!isMontgomeryMsmEnabled()) return undefined;
+  return getCommitEvaluationsValueMap(
+    getCommitEvaluationsCache(srs, field).commitments,
+    evaluations
+  ).get(domainSize);
+}
+
+function warmupMontgomeryCommitEvaluations(input: {
+  field: FieldName;
+  srs: object;
+  domainSize: number;
+  evaluations: MlArray<Field>;
+  getSrsPoints(): MlArray<OrInfinity>;
+  expected?: PolyComm;
+}) {
+  void precomputeMontgomeryCommitEvaluations(input).catch(() => undefined);
+}
+
+async function precomputeMontgomeryCommitEvaluations(input: {
+  field: FieldName;
+  srs: object;
+  domainSize: number;
+  evaluations: MlArray<Field>;
+  getSrsPoints(): MlArray<OrInfinity>;
+  expected?: PolyComm;
+  options?: MontgomeryOptions;
+}) {
+  if (!isMontgomeryMsmEnabled(input.options)) return false;
+  let cache = getCommitEvaluationsCache(input.srs, input.field);
+  let commitmentMap = getCommitEvaluationsValueMap(cache.commitments, input.evaluations);
+  if (commitmentMap.has(input.domainSize)) return true;
+
+  let pendingMap = getCommitEvaluationsValueMap(cache.pending, input.evaluations);
+  let pending = pendingMap.get(input.domainSize);
+  if (pending !== undefined) return pending;
+
+  let promise = computeMontgomeryCommitEvaluations(input)
+    .then((commitment) => {
+      if (commitment === undefined) return false;
+      if (input.expected !== undefined && !polyCommEquals(commitment, input.expected)) return false;
+      getCommitEvaluationsValueMap(
+        getCommitEvaluationsCache(input.srs, input.field).commitments,
+        input.evaluations
+      ).set(input.domainSize, commitment);
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      let pendingMap = getCommitEvaluationsValueMap(
+        getCommitEvaluationsCache(input.srs, input.field).pending,
+        input.evaluations
+      );
+      if (pendingMap.get(input.domainSize) === promise) pendingMap.delete(input.domainSize);
+    });
+  pendingMap.set(input.domainSize, promise);
+  return promise;
+}
+
+async function computeMontgomeryCommitEvaluations(input: {
+  field: FieldName;
+  srs: object;
+  domainSize: number;
+  evaluations: MlArray<Field>;
+  getSrsPoints(): MlArray<OrInfinity>;
+  options?: MontgomeryOptions;
+}) {
+  let curve = await curveForField(input.field, input.options);
+  if (curve === undefined) return undefined;
+  let points = await getMontgomerySrsPoints(input.field, input.srs, input.getSrsPoints, curve);
+  if (points.length < input.domainSize) return undefined;
+  let scalars = interpolateEvaluations(
+    input.field,
+    MlArray.mapFrom(input.evaluations, ([, x]) => x)
+  );
+  if (scalars.length !== input.domainSize) return undefined;
+  let scalarPtr = await writeMontgomeryScalars(curve, scalars);
+  let { result } = await curve.Parallel.msm(scalarPtr, points.pointPtr, input.domainSize);
   return polyCommFromMontgomeryResult(curve, result);
 }
 
@@ -311,10 +415,10 @@ async function getMontgomerySrsPoints(
   if (fieldCache === undefined) srsPoints.set(srs, (fieldCache = new Map()));
   let cached = fieldCache.get(field);
   if (cached !== undefined) return cached;
-  let promise = Promise.resolve().then(() => {
+  let promise = Promise.resolve().then(async () => {
     let [, _h, ...gs] = getSrsPoints();
     let points = gs.map(orInfinityToMontgomery);
-    return { pointPtr: curve.Affine.fromBigints(points), length: points.length };
+    return { pointPtr: await writeMontgomeryPoints(curve, points), length: points.length };
   });
   fieldCache.set(field, promise);
   return promise;
@@ -329,12 +433,26 @@ async function getLagrangeScalars(
   let key = `${field}:${domainSize}:${index}`;
   let cached = scalarPointers.get(key);
   if (cached !== undefined) return cached;
-  let promise = Promise.resolve().then(() => {
+  let promise = Promise.resolve().then(async () => {
     let scalars = lagrangeScalars(field, domainSize, index);
-    return { scalarPtr: curve.Scalar.fromBigints(scalars), length: scalars.length };
+    return { scalarPtr: await writeMontgomeryScalars(curve, scalars), length: scalars.length };
   });
   scalarPointers.set(key, promise);
   return promise;
+}
+
+async function writeMontgomeryPoints(curve: MontgomeryCurve, points: AffinePoint[]) {
+  let pointPtr = await curve.Parallel.getPointer(points.length * curve.Affine.size);
+  curve.Affine.writeBigints(pointPtr, points);
+  return pointPtr;
+}
+
+async function writeMontgomeryScalars(curve: MontgomeryCurve, scalars: bigint[]) {
+  let scalarPtr = await curve.Parallel.getScalarPointer(scalars.length * curve.Scalar.sizeField);
+  for (let i = 0, ptr = scalarPtr; i < scalars.length; i++, ptr += curve.Scalar.sizeField) {
+    curve.Scalar.writeBigint(ptr, scalars[i]);
+  }
+  return scalarPtr;
 }
 
 function lagrangeScalars(field: FieldName, domainSize: number, index: number) {
@@ -361,6 +479,60 @@ function lagrangeScalars(field: FieldName, domainSize: number, index: number) {
   return scalars;
 }
 
+function interpolateEvaluations(field: FieldName, evaluations: bigint[]) {
+  let n = evaluations.length;
+  if (!Number.isInteger(n) || n <= 0 || (n & (n - 1)) !== 0) {
+    throw Error(`expected power-of-two evaluation length, got ${n}`);
+  }
+  let Field = field === 'fp' ? Fp : Fq;
+  let omega = domainGenerator(Field, Math.log2(n));
+  let omegaInverse = Field.inverse(omega);
+  let nInverse = Field.inverse(BigInt(n));
+  if (omegaInverse === undefined || nInverse === undefined) {
+    throw Error('invalid evaluation domain');
+  }
+  let coefficients = fft(Field, evaluations, omegaInverse);
+  for (let i = 0; i < coefficients.length; i++) {
+    coefficients[i] = Field.mul(coefficients[i], nInverse);
+  }
+  return coefficients;
+}
+
+function fft(Field: FiniteField, input: bigint[], omega: bigint) {
+  let n = input.length;
+  let values = input.slice();
+  bitReverseInPlace(values);
+  for (let length = 2; length <= n; length <<= 1) {
+    let step = Field.power(omega, BigInt(n / length));
+    for (let offset = 0; offset < n; offset += length) {
+      let twiddle = 1n;
+      let half = length >> 1;
+      for (let j = 0; j < half; j++) {
+        let even = values[offset + j];
+        let odd = Field.mul(values[offset + j + half], twiddle);
+        values[offset + j] = Field.add(even, odd);
+        values[offset + j + half] = Field.sub(even, odd);
+        twiddle = Field.mul(twiddle, step);
+      }
+    }
+  }
+  return values;
+}
+
+function bitReverseInPlace(values: bigint[]) {
+  let n = values.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; (j & bit) !== 0; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      let tmp = values[i];
+      values[i] = values[j];
+      values[j] = tmp;
+    }
+  }
+}
+
 function domainGenerator(Field: FiniteField, logSize: number) {
   if (logSize > Number(Field.M) || logSize < 0) {
     throw Error(`log2 size of evaluation domain must be in [0, ${Field.M}], got ${logSize}`);
@@ -379,7 +551,7 @@ function orInfinityToMontgomery(point: OrInfinity): AffinePoint {
 
 function polyCommFromMontgomeryResult(curve: MontgomeryCurve, result: number): PolyComm {
   let scratch = curve.Field.local.getPointers(5);
-  let affine = curve.Field.getPointer(curve.Affine.size);
+  let affine = curve.Field.local.getPointer(curve.Affine.size);
   curve.Projective.toAffine(scratch, affine, result);
   let point = curve.Affine.toBigint(affine);
   let mlPoint: OrInfinity = point.isZero ? 0 : [0, [0, [0, point.x], [0, point.y]]];
@@ -395,6 +567,30 @@ function getLagrangeCache(srs: object, field: FieldName) {
     srsCache.set(field, fieldCache);
   }
   return fieldCache;
+}
+
+function getCommitEvaluationsCache(srs: object, field: FieldName) {
+  let srsCache = commitEvaluationsCache.get(srs);
+  if (srsCache === undefined) commitEvaluationsCache.set(srs, (srsCache = new Map()));
+  let fieldCache = srsCache.get(field);
+  if (fieldCache === undefined) {
+    fieldCache = { commitments: new WeakMap(), pending: new WeakMap() };
+    srsCache.set(field, fieldCache);
+  }
+  return fieldCache;
+}
+
+function getCommitEvaluationsValueMap<T>(
+  cache: WeakMap<object, Map<number, T>>,
+  evaluations: MlArray<Field>
+) {
+  let key = evaluations as unknown as object;
+  let map = cache.get(key);
+  if (map === undefined) {
+    map = new Map();
+    cache.set(key, map);
+  }
+  return map;
 }
 
 function lagrangeKey(domainSize: number, index: number) {

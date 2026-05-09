@@ -11,10 +11,13 @@ import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/kim
 import type { RustConversion, Wasm } from '../bindings.js';
 import { srsCache as cache } from '../cache.js';
 import { OrInfinity, OrInfinityJson } from './curve.js';
+import { Field } from './field.js';
 import { PolyComm } from './kimchi-types.js';
 import {
+  getCachedMontgomeryCommitEvaluations,
   getCachedMontgomeryLagrangeCommitment,
   getCachedMontgomeryLagrangeCommitmentsWholeDomain,
+  warmupMontgomeryCommitEvaluations,
   warmupMontgomeryLagrangeCommitment,
   warmupMontgomeryLagrangeCommitmentsWholeDomain,
 } from './montgomery-msm.js';
@@ -277,6 +280,26 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'was
     addLagrangeBasis(srs: WasmSrs, logSize: number) {
       // this ensures that basis is stored on the srs, no need to duplicate caching logic
       this.lagrangeCommitment(srs, 1 << logSize, 0, { skipMontgomeryCache: true });
+    },
+
+    commitEvaluationsCached(srs: WasmSrs, domainSize: number, evaluations: MlArray<Field>) {
+      return getCachedMontgomeryCommitEvaluations(f, srs, domainSize, evaluations);
+    },
+
+    warmupCommitEvaluations(input: {
+      srs: WasmSrs;
+      domainSize: number;
+      evaluations: MlArray<Field>;
+      expected?: PolyComm;
+    }) {
+      warmupMontgomeryCommitEvaluations({
+        field: f,
+        srs: input.srs,
+        domainSize: input.domainSize,
+        evaluations: input.evaluations,
+        getSrsPoints: () => conversion[f].pointsFromRust(getSrs(input.srs)),
+        expected: input.expected,
+      });
     },
   };
 }

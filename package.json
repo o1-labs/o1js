@@ -150,6 +150,6 @@
   },
   "optionalDependencies": {
     "@o1js/native": "2.15.0",
-    "montgomery": "0.4.0"
+    "montgomery": "file:../../Documents/GitHub/montgomery"
   }
 }

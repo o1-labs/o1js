@@ -1,6 +1,7 @@
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
 import kimchiWasm from '../../../web_bindings/kimchi_wasm.js';
+import { installMontgomeryMsmBridge } from '../montgomery-msm-bridge.js';
 import { inlineWorker, srcFromFunctionModule, waitForMessage } from './worker-helpers.js';
 import { workerSpec } from './worker-spec.js';
 
@@ -25,6 +26,7 @@ async function initializeBindings() {
 
   const memory = allocateWasmMemoryForUserAgent(navigator.userAgent);
   await init(undefined, memory);
+  await installMontgomeryMsmBridge();
 
   let module = init.__wbindgen_wasm_module;
 
