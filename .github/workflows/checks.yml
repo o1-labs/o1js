@@ -258,6 +258,11 @@ jobs:
       - name: Execute tests
         env:
           TEST_TYPE: ${{ matrix.test_type }}
+          O1JS_EXPERIMENTAL_MONTGOMERY_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_EXPERIMENTAL_MONTGOMERY_COMMIT_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_BATCH_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_MONTGOMERY_MSM_TRACE: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
         run: sh run-ci-tests.sh
       - name: Add to job summary
         if: always()
@@ -444,6 +449,11 @@ jobs:
         env:
           TEST_TYPE: ${{ matrix.test_type }}
           O1JS_BACKEND: native
+          O1JS_EXPERIMENTAL_MONTGOMERY_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_EXPERIMENTAL_MONTGOMERY_COMMIT_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_BATCH_MSM: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
+          O1JS_MONTGOMERY_MSM_TRACE: ${{ matrix.test_type == 'Performance Regression' && '1' || '0' }}
         run: sh run-ci-tests.sh
       - name: Add to job summary
         if: always()

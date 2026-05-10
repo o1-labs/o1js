@@ -141,7 +141,7 @@ function isMontgomeryProverBatchMsmEnabled() {
       ? process.env.O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_BATCH_MSM
       : undefined;
   return (
-    isMontgomeryProverMsmEnabled() &&
+    isMontgomeryBridgeEnabled() &&
     (globalFlag === '1' || globalFlag === true || processFlag === '1')
   );
 }
