@@ -21,11 +21,14 @@ async function initializeBindings() {
 
   lockBackend();
 
+  let backend;
   if (getBackendPreference() === 'native') {
-    ({ wasm, withThreadPool } = await import('./bindings/js/node/native-backend.js'));
+    backend = await import('./bindings/js/node/native-backend.js');
   } else {
-    ({ wasm, withThreadPool } = await import('./bindings/js/node/node-backend.js'));
+    backend = await import('./bindings/js/node/node-backend.js');
+    await backend.montgomeryBridgeReady;
   }
+  ({ wasm, withThreadPool } = backend);
 
   // this dynamic import makes jest respect the import order
   // otherwise the cjs file gets imported before its implicit esm dependencies and fails

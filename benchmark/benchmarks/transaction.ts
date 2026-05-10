@@ -87,6 +87,14 @@ const TxnBenchmarks = benchmark(
     await transaction.send();
     toc();
   },
-  // two warmups to ensure full caching
-  { numberOfWarmups: 2, numberOfRuns: 5 }
+  // two warmups to ensure full caching by default
+  {
+    numberOfWarmups: readBenchmarkCount('O1JS_TXN_BENCH_WARMUPS', 2),
+    numberOfRuns: readBenchmarkCount('O1JS_TXN_BENCH_RUNS', 5),
+  }
 );
+
+function readBenchmarkCount(env: string, fallback: number) {
+  let value = Number(process.env[env] ?? fallback);
+  return Number.isInteger(value) && value >= 0 ? value : fallback;
+}

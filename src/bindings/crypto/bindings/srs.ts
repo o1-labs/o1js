@@ -1,17 +1,26 @@
-import type { Wasm, RustConversion } from '../bindings.js';
-import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
-import { PolyComm } from './kimchi-types.js';
-import { srsCache as cache } from '../cache.js';
+import { MlArray } from '../../../lib/ml/base.js';
 import {
-  type CacheHeader,
-  type Cache,
+  readCache,
   withVersion,
   writeCache,
-  readCache,
+  type Cache,
+  type CacheHeader,
 } from '../../../lib/proof-system/cache.js';
 import { assert } from '../../../lib/util/errors.js';
-import { MlArray } from '../../../lib/ml/base.js';
+import { type WasmFpSrs, type WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
+import type { RustConversion, Wasm } from '../bindings.js';
+import { srsCache as cache } from '../cache.js';
 import { OrInfinity, OrInfinityJson } from './curve.js';
+import { Field } from './field.js';
+import { PolyComm } from './kimchi-types.js';
+import {
+  getCachedMontgomeryCommitEvaluations,
+  getCachedMontgomeryLagrangeCommitment,
+  getCachedMontgomeryLagrangeCommitmentsWholeDomain,
+  warmupMontgomeryCommitEvaluations,
+  warmupMontgomeryLagrangeCommitment,
+  warmupMontgomeryLagrangeCommitmentsWholeDomain,
+} from './montgomery-msm.js';
 
 export { srs };
 
@@ -141,7 +150,22 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'was
     /**
      * returns ith Lagrange basis commitment for a given domain size
      */
-    lagrangeCommitment(srs: WasmSrs, domainSize: number, i: number): PolyComm {
+    lagrangeCommitment(
+      srs: WasmSrs,
+      domainSize: number,
+      i: number,
+      options?: { skipMontgomeryCache?: boolean }
+    ): PolyComm {
+      if (options?.skipMontgomeryCache !== true) {
+        let cachedMontgomeryCommitment = getCachedMontgomeryLagrangeCommitment(
+          f,
+          srs,
+          domainSize,
+          i
+        );
+        if (cachedMontgomeryCommitment !== undefined) return cachedMontgomeryCommitment;
+      }
+
       // happy, fast case: if basis is already stored on the srs, return the ith commitment
       let commitment = maybeLagrangeCommitment(srs, domainSize, i);
 
@@ -208,13 +232,29 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'was
           writeCache(cache, header, bytes);
         }
       }
-      return conversion[f].polyCommFromRust(commitment);
+      let mlCommitment = conversion[f].polyCommFromRust(commitment);
+      warmupMontgomeryLagrangeCommitment({
+        field: f,
+        srs,
+        domainSize,
+        index: i,
+        getSrsPoints: () => conversion[f].pointsFromRust(getSrs(srs)),
+        expected: mlCommitment,
+      });
+      return mlCommitment;
     },
 
     /**
      * Returns the Lagrange basis commitments for the whole domain
      */
     lagrangeCommitmentsWholeDomain(srs: WasmSrs, domainSize: number) {
+      let cachedMontgomeryCommitments = getCachedMontgomeryLagrangeCommitmentsWholeDomain(
+        f,
+        srs,
+        domainSize
+      );
+      if (cachedMontgomeryCommitments !== undefined) return cachedMontgomeryCommitments;
+
       // instead of getting the entire commitment directly (which works for nodejs/servers), we get a pointer to the commitment
       // and then read the commitment from the pointer
       // this is because the web worker implementation currently does not support returning UintXArray's directly
@@ -224,6 +264,13 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'was
       let ptr = lagrangeCommitmentsWholeDomainPtr(srs, domainSize);
       let wasmComms = getCommitmentsWholeDomainByPtr(ptr);
       let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+      warmupMontgomeryLagrangeCommitmentsWholeDomain({
+        field: f,
+        srs,
+        domainSize,
+        getSrsPoints: () => conversion[f].pointsFromRust(getSrs(srs)),
+        expected: mlComms,
+      });
       return mlComms;
     },
 
@@ -232,7 +279,27 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'was
      */
     addLagrangeBasis(srs: WasmSrs, logSize: number) {
       // this ensures that basis is stored on the srs, no need to duplicate caching logic
-      this.lagrangeCommitment(srs, 1 << logSize, 0);
+      this.lagrangeCommitment(srs, 1 << logSize, 0, { skipMontgomeryCache: true });
+    },
+
+    commitEvaluationsCached(srs: WasmSrs, domainSize: number, evaluations: MlArray<Field>) {
+      return getCachedMontgomeryCommitEvaluations(f, srs, domainSize, evaluations);
+    },
+
+    warmupCommitEvaluations(input: {
+      srs: WasmSrs;
+      domainSize: number;
+      evaluations: MlArray<Field>;
+      expected?: PolyComm;
+    }) {
+      warmupMontgomeryCommitEvaluations({
+        field: f,
+        srs: input.srs,
+        domainSize: input.domainSize,
+        evaluations: input.evaluations,
+        getSrsPoints: () => conversion[f].pointsFromRust(getSrs(input.srs)),
+        expected: input.expected,
+      });
     },
   };
 }
