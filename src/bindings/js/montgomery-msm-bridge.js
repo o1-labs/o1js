@@ -1,12 +1,18 @@
 let bridgeReady;
 let curves;
 
-export { installMontgomeryMsmBridge, isMontgomeryProverMsmEnabled };
+export {
+  installMontgomeryMsmBridge,
+  isMontgomeryProverBatchMsmEnabled,
+  isMontgomeryProverMsmEnabled,
+};
 
 function installMontgomeryMsmBridge() {
   if (bridgeReady !== undefined) return bridgeReady;
   globalThis.o1jsMontgomerySrsMsmEnabled = isMontgomeryBridgeReady;
+  globalThis.o1jsMontgomeryCommitMsmEnabled = isMontgomeryCommitBridgeReady;
   globalThis.o1jsMontgomeryProverMsmEnabled = isMontgomeryProverBridgeReady;
+  globalThis.o1jsMontgomeryProverBatchMsmEnabled = isMontgomeryProverBatchBridgeReady;
   globalThis.o1jsMontgomerySrsMsm = montgomerySrsMsm;
   globalThis.o1jsMontgomerySrsMsmBatch = montgomerySrsMsmBatch;
   bridgeReady = isMontgomeryBridgeEnabled() ? initializeCurves().catch(() => undefined) : undefined;
@@ -41,6 +47,7 @@ function montgomerySrsMsm(curveName, pointBytes, scalarBytes) {
   let msmAffineBytes = curve.Sync?.msmAffineBytes;
   if (typeof msmAffineBytes !== 'function') return undefined;
 
+  traceMsmStart(curveName, n, undefined);
   let start = traceMsmEnabled() ? performance.now() : 0;
   let bytes = msmAffineBytes(pointBytes, scalarBytes);
   traceMsm(curveName, n, performance.now() - start, bytes);
@@ -60,6 +67,7 @@ function montgomerySrsMsmBatch(curveName, pointBytes, scalarBytes, sizes, label)
   let start = traceMsmEnabled() ? performance.now() : 0;
   let bytes;
   try {
+    traceMsmBatchStart(curveName, sizes, label);
     bytes = msmAffineBytesBatch(pointBytes, scalarBytes, sizes);
   } catch (error) {
     traceMsmBatch(curveName, sizes, performance.now() - start, undefined, error, label);
@@ -84,7 +92,15 @@ function isMontgomeryBridgeReady() {
 }
 
 function isMontgomeryProverBridgeReady() {
-  return isMontgomeryProverMsmEnabled() && curves !== undefined;
+  return isMontgomeryProverMsmEnabled() && isMontgomeryProverPhase() && curves !== undefined;
+}
+
+function isMontgomeryCommitBridgeReady() {
+  return isMontgomeryCommitMsmEnabled() && curves !== undefined;
+}
+
+function isMontgomeryProverBatchBridgeReady() {
+  return isMontgomeryProverBatchMsmEnabled() && isMontgomeryProverPhase() && curves !== undefined;
 }
 
 function isMontgomeryBridgeEnabled() {
@@ -100,7 +116,38 @@ function isMontgomeryProverMsmEnabled() {
     typeof process !== 'undefined'
       ? process.env.O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_MSM
       : undefined;
-  return isMontgomeryBridgeEnabled() && (globalFlag === '1' || globalFlag === true || processFlag === '1');
+  return (
+    isMontgomeryBridgeEnabled() &&
+    (globalFlag === '1' || globalFlag === true || processFlag === '1')
+  );
+}
+
+function isMontgomeryCommitMsmEnabled() {
+  let globalFlag = globalThis.O1JS_EXPERIMENTAL_MONTGOMERY_COMMIT_MSM;
+  let processFlag =
+    typeof process !== 'undefined'
+      ? process.env.O1JS_EXPERIMENTAL_MONTGOMERY_COMMIT_MSM
+      : undefined;
+  return (
+    isMontgomeryBridgeEnabled() &&
+    (globalFlag === '1' || globalFlag === true || processFlag === '1')
+  );
+}
+
+function isMontgomeryProverBatchMsmEnabled() {
+  let globalFlag = globalThis.O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_BATCH_MSM;
+  let processFlag =
+    typeof process !== 'undefined'
+      ? process.env.O1JS_EXPERIMENTAL_MONTGOMERY_PROVER_BATCH_MSM
+      : undefined;
+  return (
+    isMontgomeryProverMsmEnabled() &&
+    (globalFlag === '1' || globalFlag === true || processFlag === '1')
+  );
+}
+
+function isMontgomeryProverPhase() {
+  return globalThis.O1JS_MONTGOMERY_MSM_PHASE === 'prove';
 }
 
 function traceMsmEnabled() {
@@ -122,6 +169,19 @@ function traceMsm(curve, n, ms, bytes) {
   );
 }
 
+function traceMsmStart(curve, n, label) {
+  if (!traceMsmEnabled()) return;
+  process.stderr.write(
+    `[o1js-montgomery-msm-start] ${JSON.stringify({
+      curve,
+      phase: currentTracePhase(),
+      label,
+      n,
+      thread: typeof process !== 'undefined' ? process.pid : undefined,
+    })}\n`
+  );
+}
+
 function traceMsmBatch(curve, sizes, ms, bytes, error, label) {
   if (!traceMsmEnabled()) return;
   let batchSizes = Array.from(sizes);
@@ -137,6 +197,22 @@ function traceMsmBatch(curve, sizes, ms, bytes, error, label) {
       ms,
       ok,
       error: error === undefined ? undefined : String(error?.stack ?? error),
+      thread: typeof process !== 'undefined' ? process.pid : undefined,
+    })}\n`
+  );
+}
+
+function traceMsmBatchStart(curve, sizes, label) {
+  if (!traceMsmEnabled()) return;
+  let batchSizes = Array.from(sizes);
+  process.stderr.write(
+    `[o1js-montgomery-msm-start] ${JSON.stringify({
+      curve,
+      phase: currentTracePhase(),
+      label,
+      batch: batchSizes.length,
+      n: batchSizes.reduce((sum, size) => sum + size, 0),
+      sizes: batchSizes,
       thread: typeof process !== 'undefined' ? process.pid : undefined,
     })}\n`
   );
