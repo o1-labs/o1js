@@ -2,7 +2,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { JsonProof, VerificationKey } from 'o1js';
 import { Cache, Field, Gadgets, ZkProgram, setBackend } from 'o1js';
-import { Pickles, initializeBindings } from '../../bindings.js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
 const mode = getMode();
@@ -30,7 +29,7 @@ function createChunkingProgram() {
   return ZkProgram({
     numChunks: 2,
     overrideWrapDomain: 1,
-    name: 'example-hybrid-chunking',
+    name: 'example-cross-chunking',
     publicOutput: Field,
 
     methods: {
@@ -74,7 +73,7 @@ async function proveWithNative() {
   let freshProofIsValid = await MyProgram.verify(proof);
   perf.end();
 
-  let proofJson = await proofToChunkedJson(proof);
+  let proofJson = proof.toJSON();
   let roundtripProof = await MyProgram.Proof.fromJSON(proofJson);
   let roundtripProofIsValid = await MyProgram.verify(roundtripProof);
 
@@ -88,9 +87,11 @@ async function proveWithNative() {
   console.log(`Saved metadata to ${metadataPath}`);
   console.log('');
   console.log(
-    'Native verify control: ./run src/examples/zkprogram/program-hybrid-chunking.ts verify-native'
+    'Native verify control: ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-native'
   );
-  console.log('Next run: ./run src/examples/zkprogram/program-hybrid-chunking.ts verify-wasm');
+  console.log(
+    'Next run: ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-wasm'
+  );
 }
 
 async function verifyWithBackend(backend: 'native' | 'wasm') {
@@ -98,7 +99,7 @@ async function verifyWithBackend(backend: 'native' | 'wasm') {
 
   let MyProgram = createChunkingProgram();
   let cache = Cache.FileSystem(cacheDir, true);
-  let perf = Performance.create('example-hybrid-chunking');
+  let perf = Performance.create('example-cross-chunking');
   let { proof, verificationKey, metadata } = await loadArtifacts();
 
   if (metadata?.rows !== undefined) {
@@ -126,19 +127,6 @@ async function verifyWithBackend(backend: 'native' | 'wasm') {
   console.log(`Succeeded to verify chunked proof with ${backend} verifier`);
   console.log('isValid?', isValid);
   if (!isValid) throw new Error('proof verification failed!');
-}
-
-async function proofToChunkedJson(proof: {
-  toJSON(): JsonProof;
-  maxProofsVerified: 0 | 1 | 2;
-  proof: Pickles.Proof;
-}) {
-  await initializeBindings();
-  let proofJson = proof.toJSON();
-  return {
-    ...proofJson,
-    proof: Pickles.proofToBase64Chunked([proof.maxProofsVerified, proof.proof]),
-  };
 }
 
 async function persistArtifacts(proof: JsonProof, verificationKey: VerificationKey, rows: number) {
@@ -200,15 +188,15 @@ function getArtifactsDir() {
       return path.resolve(arg.slice('--artifacts-dir='.length));
     }
   }
-  return path.resolve('tests/test-artifacts/program-hybrid-chunking');
+  return path.resolve('tests/test-artifacts/program-chunking-cross-backend');
 }
 
 function printUsageAndExit(mode: string): never {
   throw new Error(
     `Unknown mode "${mode}". Use one of:\n` +
-      `  ./run src/examples/zkprogram/program-hybrid-chunking.ts prove-native\n` +
-      `  ./run src/examples/zkprogram/program-hybrid-chunking.ts verify-native\n` +
-      `  ./run src/examples/zkprogram/program-hybrid-chunking.ts verify-wasm\n` +
+      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts prove-native\n` +
+      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-native\n` +
+      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-wasm\n` +
       `Optional:\n` +
       `  --artifacts-dir=/absolute/or/relative/path`
   );
