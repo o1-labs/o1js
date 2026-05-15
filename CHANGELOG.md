@@ -25,7 +25,7 @@ This project adheres to
 
 ### Added
 
-- Native Kimchi access from Node.js with x2 prover performance boost. 
+- Native Kimchi access from Node.js with x2 prover performance boost.
   https://github.com/o1-labs/o1js/pull/2823
 - Enabled chunking through Native prover enabling x4 larger circuits on Node.js.
   https://github.com/o1-labs/o1js/pull/2823
@@ -81,7 +81,6 @@ Mina protocol.
   log cache misses with the `persistentId` instead of a stack trace.
 - Updated performance regression baselines and verification key regression
   fixtures for Mesa.
-
 
 ## [2.14.0](https://github.com/o1-labs/o1js/compare/c81f31ad0...ff6c201b) - 2026-03-16
 
