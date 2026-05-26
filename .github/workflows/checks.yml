@@ -396,6 +396,58 @@ jobs:
           echo "### Test Results for ${{ matrix.test_type }} (native)" >> $GITHUB_STEP_SUMMARY
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
+  Cross-Backend-Chunked-Proof:
+    needs: [Prepare-Wasm, Prepare-Native]
+    name: Cross-backend chunked proof
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Restore native bindings
+        uses: ./.github/actions/build-native
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Install native package
+        run: npm install ./native/linux-x64/
+      - name: Prove with native backend
+        run: |
+          ./run src/examples/zkprogram/program-with-chunking.ts prove-native \
+            --artifacts-dir=tests/test-artifacts/program-with-chunking-cross-backend-ci
+      - name: Verify with wasm backend
+        run: |
+          ./run src/examples/zkprogram/program-with-chunking.ts verify-wasm \
+            --artifacts-dir=tests/test-artifacts/program-with-chunking-cross-backend-ci
+
+  Monochunked-Proof-Serialization-Roundtrip:
+    needs: [Prepare-Wasm]
+    name: Monochunked proof serialization roundtrip
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Check wasm proof JSON roundtrip
+        run: |
+          ./run src/examples/zkprogram/program-single-chunk-proof-serde.ts roundtrip-wasm \
+            --artifacts-dir=tests/test-artifacts/program-single-chunk-proof-serde-ci
+
   Run-Native-Unit-Tests:
     needs: [Prepare-Wasm, Prepare-Native]
     name: Run native unit tests parallel
