@@ -1,16 +1,12 @@
 import {
   AccountUpdate,
   Cache,
-  DynamicProof,
-  FeatureFlags,
   Field,
   Gadgets,
   Mina,
   Provable,
   SmartContract,
   State,
-  Undefined,
-  VerificationKey,
   ZkProgram,
   method,
   setBackend,
@@ -66,16 +62,6 @@ if (!isValid) throw new Error('proof verification failed!');
 
 class ChunkedProof extends MyProgram.Proof {}
 
-// sideloaded variant: the chunked proof's vk is passed in at runtime instead of baked into the circuit
-let featureFlags = await FeatureFlags.fromZkProgram(MyProgram);
-
-class SideloadedChunkedProof extends DynamicProof<Undefined, Field> {
-  static publicInputType = Undefined;
-  static publicOutputType = Field;
-  static maxProofsVerified = 0 as const;
-  static featureFlags = featureFlags;
-}
-
 class VerifierZkapp extends SmartContract {
   @state(Field) verified = State<Field>();
 
@@ -93,16 +79,6 @@ class VerifierZkapp extends SmartContract {
     proofA.verify();
     proofB.verify();
     this.verified.set(Field(22222));
-    // add some more dummy constraints
-    for (let i = 0; i < 1 << 12; i++) {
-      Gadgets.rangeCheck64(Field(Provable.witness(Field, () => Field(183))));
-    }
-  }
-
-  // verify a chunked proof via sideloading (vk passed in at runtime)
-  @method async verifyChunkedSideloaded(proof: SideloadedChunkedProof, vk: VerificationKey) {
-    proof.verify(vk);
-    this.verified.set(Field(33333));
     // add some more dummy constraints
     for (let i = 0; i < 1 << 12; i++) {
       Gadgets.rangeCheck64(Field(Provable.witness(Field, () => Field(183))));
@@ -171,26 +147,4 @@ if (verified.toString() !== '22222') throw new Error('zkapp did not accept two c
 
 console.log(
   'two chunked proofs were verified inside a non-chunked zkApp and accepted by the chain ✅'
-);
-
-// verify a chunked proof via sideloading
-
-let sideloadedProof = SideloadedChunkedProof.fromProof(proof);
-
-console.log('verify sideloaded chunked proof inside zkapp and send to chain');
-perf.start('prove', 'zkapp.verifyChunkedSideloaded');
-let verifySideloadedTx = await Mina.transaction(feePayer, async () => {
-  await zkapp.verifyChunkedSideloaded(sideloadedProof, verificationKey);
-});
-await verifySideloadedTx.prove();
-perf.end();
-await verifySideloadedTx.sign([feePayer.key]).send();
-
-verified = zkapp.verified.get();
-console.log('zkapp verified state (sideloaded):', verified.toString());
-if (verified.toString() !== '33333')
-  throw new Error('zkapp did not accept the sideloaded chunked proof!');
-
-console.log(
-  'sideloaded chunked proof was verified inside a non-chunked zkApp and accepted by the chain ✅'
 );
