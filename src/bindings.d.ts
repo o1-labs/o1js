@@ -757,6 +757,25 @@ declare const Pickles: {
     base64: string,
     maxProofsVerified: N
   ) => [N, Pickles.Proof];
+  /**
+   * o1js-only proof serialization helper.
+   *
+   * Single-chunk proofs are encoded with the normal Pickles base64 representation.
+   * Chunked proofs are encoded with a representation that preserves chunked public
+   * input evaluations. This intentionally does not change Pickles' default
+   * proofToBase64 / proofOfBase64 behavior.
+   */
+  proofToBase64Chunked: (proof: [0 | 1 | 2, Pickles.Proof]) => Base64ProofString;
+  /**
+   * Deserializes proofs produced by proofToBase64Chunked.
+   *
+   * This first accepts the normal single-chunk Pickles representation and then
+   * falls back to the chunk-aware representation used by o1js JSON proofs.
+   */
+  proofOfBase64Chunked: <N extends 0 | 1 | 2>(
+    base64: string,
+    maxProofsVerified: N
+  ) => [N, Pickles.Proof];
 
   proofToBase64Transaction: (proof: Pickles.Proof) => string;
 

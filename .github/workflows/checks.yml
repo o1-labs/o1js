@@ -451,6 +451,50 @@ jobs:
           echo "### Test Results for ${{ matrix.test_type }} (native)" >> $GITHUB_STEP_SUMMARY
           cat profiling.md >> $GITHUB_STEP_SUMMARY
 
+  Single-Chunk-Proof-Serde-Compatibility:
+    needs: [Prepare-Wasm]
+    name: Single-chunk proof serde compatibility
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Check proofOfBase64Chunked compatibility
+        run: ./run src/examples/zkprogram/proof-serde-single-chunk-compatibility.ts
+
+  Chunked-Proof-Serialization-Roundtrip:
+    needs: [Prepare-Wasm, Prepare-Native]
+    name: Chunked proof serialization roundtrip
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+      - name: Build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Restore native bindings
+        uses: ./.github/actions/build-native
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+      - name: Install native package
+        run: npm install ./native/linux-x64/
+      - name: Check chunked proof JSON roundtrip
+        run: ./run src/examples/zkprogram/proof-serde-chunked-roundtrip.ts
+
   Run-Native-Unit-Tests:
     needs: [Prepare-Wasm, Prepare-Native]
     name: Run native unit tests parallel

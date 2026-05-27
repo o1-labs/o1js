@@ -729,6 +729,20 @@ let proof_to_base64 = function
   | Proof2 proof ->
       Proof2.to_base64 proof |> Js.string
 
+(** o1js-only proof serialization helper.
+
+    Single-chunk proofs keep using the normal Pickles base64 representation.
+    Chunked proofs use a representation that preserves chunked public input
+    evaluations. This deliberately does not replace Pickles' default
+    [to_base64] behavior. *)
+let proof_to_base64_chunked = function
+  | Proof0 proof ->
+      Proof0.to_base64_chunked proof |> Js.string
+  | Proof1 proof ->
+      Proof1.to_base64_chunked proof |> Js.string
+  | Proof2 proof ->
+      Proof2.to_base64_chunked proof |> Js.string
+
 let proof_of_base64 str i : some_proof =
   let str = Js.to_string str in
   match i with
@@ -738,6 +752,22 @@ let proof_of_base64 str i : some_proof =
       Proof1 (Proof1.of_base64 str |> Result.ok_or_failwith)
   | 2 ->
       Proof2 (Proof2.of_base64 str |> Result.ok_or_failwith)
+  | _ ->
+      failwith "invalid proof index"
+
+(** Deserializes proofs produced by [proof_to_base64_chunked].
+
+    The implementation accepts the normal single-chunk Pickles representation
+    first, then falls back to the o1js chunk-aware representation. *)
+let proof_of_base64_chunked str i : some_proof =
+  let str = Js.to_string str in
+  match i with
+  | 0 ->
+      Proof0 (Proof0.of_base64_chunked str |> Result.ok_or_failwith)
+  | 1 ->
+      Proof1 (Proof1.of_base64_chunked str |> Result.ok_or_failwith)
+  | 2 ->
+      Proof2 (Proof2.of_base64_chunked str |> Result.ok_or_failwith)
   | _ ->
       failwith "invalid proof index"
 
@@ -876,6 +906,10 @@ let pickles =
     val proofToBase64 = proof_to_base64
 
     val proofOfBase64 = proof_of_base64
+
+    val proofToBase64Chunked = proof_to_base64_chunked
+
+    val proofOfBase64Chunked = proof_of_base64_chunked
 
     val proofToBase64Transaction =
       fun (proof : proof) ->

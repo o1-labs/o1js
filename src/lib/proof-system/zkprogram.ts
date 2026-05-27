@@ -117,7 +117,7 @@ async function verify(
   let statement: Pickles.Statement<FieldConst>;
   if (typeof proof.proof === 'string') {
     // json proof
-    [, picklesProof] = Pickles.proofOfBase64(proof.proof, proof.maxProofsVerified);
+    [, picklesProof] = Pickles.proofOfBase64Chunked(proof.proof, proof.maxProofsVerified);
     let input = MlFieldConstArray.to((proof as JsonProof).publicInput.map(Field));
     let output = MlFieldConstArray.to((proof as JsonProof).publicOutput.map(Field));
     statement = MlPair(input, output);

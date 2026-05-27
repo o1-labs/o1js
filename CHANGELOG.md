@@ -25,6 +25,12 @@ This project adheres to
 - Enabled chunking through Native prover enabling x4 larger circuits on Node.js.
   https://github.com/o1-labs/o1js/pull/2843
 
+### Fixed
+
+- Fixed JSON serialization and deserialization of chunked `ZkProgram` proofs
+  while preserving the existing single-chunk proof representation.
+  https://github.com/o1-labs/o1js/pull/2878
+
 ### Removed
 
 - Removed unused `Cairo*` gates. https://github.com/o1-labs/o1js/pull/2752
