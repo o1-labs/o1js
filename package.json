@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "2.15.0",
+  "version": "2.15.1",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -145,9 +145,9 @@
     "tslib": "^2.3.0"
   },
   "o1js-internal": {
-    "native-version": "2.15.0"
+    "native-version": "2.15.1"
   },
   "optionalDependencies": {
-    "@o1js/native": "2.15.0"
+    "@o1js/native": "2.15.1"
   }
 }
