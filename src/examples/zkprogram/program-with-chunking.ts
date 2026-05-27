@@ -1,11 +1,16 @@
 import {
   AccountUpdate,
   Cache,
+  DynamicProof,
+  FeatureFlags,
   Field,
   Gadgets,
   Mina,
+  Provable,
   SmartContract,
   State,
+  Undefined,
+  VerificationKey,
   ZkProgram,
   method,
   setBackend,
@@ -61,12 +66,47 @@ if (!isValid) throw new Error('proof verification failed!');
 
 class ChunkedProof extends MyProgram.Proof {}
 
+// sideloaded variant: the chunked proof's vk is passed in at runtime instead of baked into the circuit
+let featureFlags = await FeatureFlags.fromZkProgram(MyProgram);
+
+class SideloadedChunkedProof extends DynamicProof<Undefined, Field> {
+  static publicInputType = Undefined;
+  static publicOutputType = Field;
+  static maxProofsVerified = 0 as const;
+  static featureFlags = featureFlags;
+}
+
 class VerifierZkapp extends SmartContract {
   @state(Field) verified = State<Field>();
 
   @method async verifyChunked(proof: ChunkedProof) {
     proof.verify();
     this.verified.set(Field(12345));
+    // add some more dummy constraints
+    for (let i = 0; i < 1 << 12; i++) {
+      Gadgets.rangeCheck64(Field(Provable.witness(Field, () => Field(183))));
+    }
+  }
+
+  // verify two chunked proofs in the same (non-chunked) method
+  @method async verifyChunkedTwo(proofA: ChunkedProof, proofB: ChunkedProof) {
+    proofA.verify();
+    proofB.verify();
+    this.verified.set(Field(22222));
+    // add some more dummy constraints
+    for (let i = 0; i < 1 << 12; i++) {
+      Gadgets.rangeCheck64(Field(Provable.witness(Field, () => Field(183))));
+    }
+  }
+
+  // verify a chunked proof via sideloading (vk passed in at runtime)
+  @method async verifyChunkedSideloaded(proof: SideloadedChunkedProof, vk: VerificationKey) {
+    proof.verify(vk);
+    this.verified.set(Field(33333));
+    // add some more dummy constraints
+    for (let i = 0; i < 1 << 12; i++) {
+      Gadgets.rangeCheck64(Field(Provable.witness(Field, () => Field(183))));
+    }
   }
 }
 
@@ -79,7 +119,9 @@ let zkapp = new VerifierZkapp(zkappAccount);
 
 let csZkapp = await VerifierZkapp.analyzeMethods();
 
-console.log('VerifierZkapp verifyChunked method rows: ', csZkapp.verifyChunked.rows);
+for (let [name, { rows }] of Object.entries(csZkapp)) {
+  console.log(`VerifierZkapp ${name} method rows: `, rows);
+}
 
 perf.start('compile', 'zkapp');
 await VerifierZkapp.compile({ cache: Cache.None });
@@ -107,3 +149,48 @@ console.log('zkapp verified state:', verified.toString());
 if (verified.toString() !== '12345') throw new Error('zkapp did not accept the chunked proof!');
 
 console.log('chunked proof was verified inside a non-chunked zkApp and accepted by the chain ✅');
+
+// verify two chunked proofs in one method
+
+perf.start('prove', 'baseCase2');
+let { proof: proof2 } = await MyProgram.baseCase(Field(1));
+perf.end();
+
+console.log('verify two chunked proofs inside zkapp and send to chain');
+perf.start('prove', 'zkapp.verifyChunkedTwo');
+let verifyTwoTx = await Mina.transaction(feePayer, async () => {
+  await zkapp.verifyChunkedTwo(proof, proof2);
+});
+await verifyTwoTx.prove();
+perf.end();
+await verifyTwoTx.sign([feePayer.key]).send();
+
+verified = zkapp.verified.get();
+console.log('zkapp verified state (two):', verified.toString());
+if (verified.toString() !== '22222') throw new Error('zkapp did not accept two chunked proofs!');
+
+console.log(
+  'two chunked proofs were verified inside a non-chunked zkApp and accepted by the chain ✅'
+);
+
+// verify a chunked proof via sideloading
+
+let sideloadedProof = SideloadedChunkedProof.fromProof(proof);
+
+console.log('verify sideloaded chunked proof inside zkapp and send to chain');
+perf.start('prove', 'zkapp.verifyChunkedSideloaded');
+let verifySideloadedTx = await Mina.transaction(feePayer, async () => {
+  await zkapp.verifyChunkedSideloaded(sideloadedProof, verificationKey);
+});
+await verifySideloadedTx.prove();
+perf.end();
+await verifySideloadedTx.sign([feePayer.key]).send();
+
+verified = zkapp.verified.get();
+console.log('zkapp verified state (sideloaded):', verified.toString());
+if (verified.toString() !== '33333')
+  throw new Error('zkapp did not accept the sideloaded chunked proof!');
+
+console.log(
+  'sideloaded chunked proof was verified inside a non-chunked zkApp and accepted by the chain ✅'
+);
