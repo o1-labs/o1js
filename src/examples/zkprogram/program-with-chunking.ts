@@ -16,8 +16,8 @@ import { Performance } from '../../lib/testing/perf-regression.js';
 setBackend('native');
 
 let MyProgram = ZkProgram({
-  numChunks: 2,
-  overrideWrapDomain: 1,
+  numChunks: 4,
+  overrideWrapDomain: 2,
   name: 'example-with-chunking',
   publicOutput: Field,
 
@@ -25,10 +25,10 @@ let MyProgram = ZkProgram({
     baseCase: {
       privateInputs: [Field],
       async method(input: Field) {
-        for (let i = 0; i < (1 << 16) + (1 << 13); i++) {
+        for (let i = 0; i < (1 << 16) + (1 << 15); i++) {
           Gadgets.rangeCheck64(Field(input).add(Field(i)));
         }
-        // The above generates 2^16+2^12 rows which needs to be split into 2 chunks
+        // The above generates 2^16+2^15 rows which needs to be split into 2 chunks
         return {
           publicOutput: Field(0),
         };
