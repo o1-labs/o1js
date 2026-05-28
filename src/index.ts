@@ -75,7 +75,14 @@ export { Cache, CacheHeader } from './lib/proof-system/cache.js';
 export { FeatureFlags } from './lib/proof-system/feature-flags.js';
 export { DynamicProof, Proof, type ProofBase } from './lib/proof-system/proof.js';
 export { VerificationKey } from './lib/proof-system/verification-key.js';
-export { Empty, SelfProof, Undefined, verify, Void } from './lib/proof-system/zkprogram.js';
+export {
+  Empty,
+  SelfProof,
+  Undefined,
+  type VerifyOptions,
+  verify,
+  Void,
+} from './lib/proof-system/zkprogram.js';
 export type { JsonProof } from './lib/proof-system/zkprogram.js';
 
 export {

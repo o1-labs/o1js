@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { JsonProof, VerificationKey } from 'o1js';
-import { Cache, Field, Gadgets, ZkProgram, setBackend } from 'o1js';
+import { Cache, Field, Gadgets, ZkProgram, setBackend, verify } from 'o1js';
+import { Pickles, initializeBindings } from '../../bindings.js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
 const mode = getMode();
@@ -124,9 +125,15 @@ async function verifyWithBackend(backend: 'native' | 'wasm') {
   let isValid = await MyProgram.verify(proofInstance);
   perf.end();
 
+  perf.start('verify', 'standalone');
+  let standaloneIsValid = await verify(proof, verificationKey, { numChunks: 2 });
+  perf.end();
+
   console.log(`Succeeded to verify chunked proof with ${backend} verifier`);
   console.log('isValid?', isValid);
+  console.log('standaloneIsValid?', standaloneIsValid);
   if (!isValid) throw new Error('proof verification failed!');
+  if (!standaloneIsValid) throw new Error('standalone proof verification failed!');
 }
 
 async function persistArtifacts(proof: JsonProof, verificationKey: VerificationKey, rows: number) {
@@ -194,10 +201,10 @@ function getArtifactsDir() {
 function printUsageAndExit(mode: string): never {
   throw new Error(
     `Unknown mode "${mode}". Use one of:\n` +
-      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts prove-native\n` +
-      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-native\n` +
-      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-wasm\n` +
-      `Optional:\n` +
-      `  --artifacts-dir=/absolute/or/relative/path`
+    `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts prove-native\n` +
+    `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-native\n` +
+    `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-wasm\n` +
+    `Optional:\n` +
+    `  --artifacts-dir=/absolute/or/relative/path`
   );
 }

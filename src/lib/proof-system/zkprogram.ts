@@ -43,7 +43,17 @@ import { VerificationKey } from './verification-key.js';
 import { DeclaredProof, ZkProgramContext } from './zkprogram-context.js';
 
 // public API
-export { Empty, JsonProof, Method, SelfProof, Undefined, Void, ZkProgram, verify };
+export {
+  Empty,
+  JsonProof,
+  Method,
+  SelfProof,
+  Undefined,
+  type VerifyOptions,
+  Void,
+  ZkProgram,
+  verify,
+};
 
 // internal API
 export {
@@ -73,6 +83,14 @@ const Void: ProvablePureExtended<void, void, null> = EmptyVoid<Field>();
 
 type MethodAnalysis = ConstraintSystemSummary & {
   proofs: ProofClass[];
+};
+
+type VerifyOptions = {
+  /**
+   * Number of chunks used when compiling/proving a chunked proof. Required for
+   * standalone verification of proofs produced by a program with `numChunks > 1`.
+   */
+  numChunks?: number;
 };
 
 function createProgramState() {
@@ -106,11 +124,13 @@ function createProgramState() {
  * @note This function is meant to be called in JavaScript, not for use in a circuit.  The verification key data and hash are not confirmed to match.
  * @param proof Either a `Proof` instance or a serialized JSON proof
  * @param verificationKey Either a base64 serialized verification key or a `VerificationKey` instance which will be base64 serialized for use in the bindings.
+ * @param options Optional Pickles verifier options. Pass `numChunks` for standalone verification of chunked proofs.
  * @returns A promise that resolves to a boolean indicating whether the proof is valid.
  */
 async function verify(
   proof: ProofBase<any, any> | JsonProof,
-  verificationKey: Base64VerificationKeyString | VerificationKey
+  verificationKey: Base64VerificationKeyString | VerificationKey,
+  options?: VerifyOptions
 ) {
   await initializeBindings();
   let picklesProof: Pickles.Proof;
@@ -131,7 +151,7 @@ async function verify(
   }
   let vk = typeof verificationKey === 'string' ? verificationKey : verificationKey.data;
   return prettifyStacktracePromise(
-    withThreadPool(() => Pickles.verify(statement, picklesProof, vk))
+    withThreadPool(() => Pickles.verify(statement, picklesProof, vk, options))
   );
 }
 
