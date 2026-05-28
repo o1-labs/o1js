@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { JsonProof, VerificationKey } from 'o1js';
-import { Cache, Field, Gadgets, ZkProgram, setBackend } from 'o1js';
+import { Cache, Field, Gadgets, ZkProgram, setBackend, verify } from 'o1js';
 import { Pickles, initializeBindings } from '../../bindings.js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
@@ -123,9 +123,15 @@ async function verifyWithBackend(backend: 'native' | 'wasm') {
   let isValid = await MyProgram.verify(proofInstance);
   perf.end();
 
+  perf.start('verify', 'standalone');
+  let standaloneIsValid = await verify(proof, verificationKey, { numChunks: 2 });
+  perf.end();
+
   console.log(`Succeeded to verify chunked proof with ${backend} verifier`);
   console.log('isValid?', isValid);
+  console.log('standaloneIsValid?', standaloneIsValid);
   if (!isValid) throw new Error('proof verification failed!');
+  if (!standaloneIsValid) throw new Error('standalone proof verification failed!');
 }
 
 async function proofToChunkedJson(proof: {
