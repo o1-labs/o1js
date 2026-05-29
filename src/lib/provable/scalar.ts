@@ -1,18 +1,18 @@
 import { Fq } from '../../bindings/crypto/finite-field.js';
 import { Scalar as SignableFq } from '../../mina-signer/src/curve-bigint.js';
-import { Field, checkBitLength } from './field.js';
+import { assert } from '../util/assert.js';
 import { Bool } from './bool.js';
+import { Field, checkBitLength } from './field.js';
+import { isConstant } from './gadgets/common.js';
+import { field3FromBits } from './gadgets/foreign-field.js';
 import {
   ShiftedScalar,
   field3ToShiftedScalar,
   fieldToShiftedScalar,
   shiftedScalarToField3,
 } from './gadgets/native-curve.js';
-import { isConstant } from './gadgets/common.js';
 import { Provable } from './provable.js';
-import { assert } from '../util/assert.js';
 import type { HashInput } from './types/provable-derivers.js';
-import { field3FromBits } from './gadgets/foreign-field.js';
 
 export { Scalar, ScalarConst };
 
@@ -51,7 +51,6 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
-   * @internal
    * Provable method to convert a {@link ShiftedScalar} to a {@link Scalar}.
    */
   static fromShiftedScalar(s: ShiftedScalar) {
@@ -78,7 +77,6 @@ class Scalar implements ShiftedScalar {
   }
 
   /**
-   * @internal
    * Convert this {@link Scalar} into a constant if it isn't already.
    *
    * If the scalar is a variable, this only works inside `asProver` or `witness` blocks.

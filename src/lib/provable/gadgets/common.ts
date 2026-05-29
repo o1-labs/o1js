@@ -1,15 +1,14 @@
-import type { Field, VarField } from '../field.js';
-import { FieldVar, VarFieldVar } from '../core/fieldvar.js';
 import { Tuple } from '../../util/types.js';
 import type { Bool } from '../bool.js';
-import { fieldVar } from '../gates.js';
 import { existsOne } from '../core/exists.js';
 import { createField, isBool } from '../core/field-constructor.js';
+import { FieldVar, VarFieldVar } from '../core/fieldvar.js';
+import type { Field, VarField } from '../field.js';
+import { fieldVar } from '../gates.js';
 
-export { toVars, toVar, isVar, assert, bitSlice, bit, divideWithRemainder, packBits, isConstant };
+export { assert, bit, bitSlice, divideWithRemainder, isConstant, isVar, packBits, toVar, toVars };
 
 /**
- * @internal
  * Given a Field, collapse its AST to a pure Var. See {@link FieldVar}.
  *
  * This is useful to prevent rogue Generic gates added in the middle of gate chains,

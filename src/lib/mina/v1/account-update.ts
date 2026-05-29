@@ -1,87 +1,87 @@
-import { cloneCircuitValue, FlexibleProvable, StructNoJson } from '../../provable/types/struct.js';
-import { provable, provableExtends, provablePure } from '../../provable/types/provable-derivers.js';
-import { memoizationContext, memoizeWitness, Provable } from '../../provable/provable.js';
-import { Field, Bool } from '../../provable/wrapped.js';
 import { Pickles } from '../../../bindings.js';
+import { mocks, prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
+import { From } from '../../../bindings/lib/provable-generic.js';
 import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
-import { Types, toJSONEssential } from '../../../bindings/mina-transaction/v1/types.js';
-import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
-import { UInt64, UInt32, Int64 } from '../../provable/int.js';
-import type { SmartContract } from './zkapp.js';
 import {
-  Preconditions,
-  Account,
-  Network,
-  CurrentSlot,
-  preconditions,
-  OrIgnore,
-  ClosedInterval,
-  getAccountPreconditions,
-} from './precondition.js';
-import { dummyBase64Proof, Empty, Prover } from '../../proof-system/zkprogram.js';
-import { Proof } from '../../proof-system/proof.js';
-import { Memo } from '../../../mina-signer/src/memo.js';
-import {
-  Events as BaseEvents,
   Actions as BaseActions,
+  Events as BaseEvents,
   MayUseToken as BaseMayUseToken,
 } from '../../../bindings/mina-transaction/v1/transaction-leaves.js';
-import { TokenId as Base58TokenId } from './base58-encodings.js';
-import { hashWithPrefix, packToFields, Poseidon } from '../../provable/crypto/poseidon.js';
-import { mocks, prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
+import { Types, toJSONEssential } from '../../../bindings/mina-transaction/v1/types.js';
+import { Memo } from '../../../mina-signer/src/memo.js';
+import {
+  CallForest,
+  accountUpdatesToCallForest,
+  callForestHashGeneric,
+  transactionCommitments,
+} from '../../../mina-signer/src/sign-zkapp-command.js';
 import {
   Signature,
   signFieldElement,
   zkAppBodyPrefix,
 } from '../../../mina-signer/src/signature.js';
 import { MlFieldConstArray } from '../../ml/fields.js';
-import {
-  accountUpdatesToCallForest,
-  CallForest,
-  callForestHashGeneric,
-  transactionCommitments,
-} from '../../../mina-signer/src/sign-zkapp-command.js';
-import { currentTransaction } from './transaction-context.js';
-import { isSmartContract } from './smart-contract-base.js';
-import { activeInstance } from './mina-instance.js';
-import { emptyHash, genericHash, MerkleList, MerkleListBase } from '../../provable/merkle-list.js';
+import { Proof } from '../../proof-system/proof.js';
+import { Empty, Prover, dummyBase64Proof } from '../../proof-system/zkprogram.js';
+import { Poseidon, hashWithPrefix, packToFields } from '../../provable/crypto/poseidon.js';
+import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
+import { Int64, UInt32, UInt64 } from '../../provable/int.js';
+import { MerkleList, MerkleListBase, emptyHash, genericHash } from '../../provable/merkle-list.js';
 import { Hashed } from '../../provable/packed.js';
-import { accountUpdateLayout, smartContractContext } from './smart-contract-context.js';
-import { assert } from '../../util/assert.js';
+import { Provable, memoizationContext, memoizeWitness } from '../../provable/provable.js';
 import { RandomId } from '../../provable/types/auxiliary.js';
-import { From } from '../../../bindings/lib/provable-generic.js';
+import { provable, provableExtends, provablePure } from '../../provable/types/provable-derivers.js';
+import { FlexibleProvable, StructNoJson, cloneCircuitValue } from '../../provable/types/struct.js';
+import { Bool, Field } from '../../provable/wrapped.js';
+import { assert } from '../../util/assert.js';
+import { TokenId as Base58TokenId } from './base58-encodings.js';
+import { activeInstance } from './mina-instance.js';
+import {
+  Account,
+  ClosedInterval,
+  CurrentSlot,
+  Network,
+  OrIgnore,
+  Preconditions,
+  getAccountPreconditions,
+  preconditions,
+} from './precondition.js';
+import { isSmartContract } from './smart-contract-base.js';
+import { accountUpdateLayout, smartContractContext } from './smart-contract-context.js';
+import { currentTransaction } from './transaction-context.js';
+import type { SmartContract } from './zkapp.js';
 
 // external API
 export {
   AccountUpdate,
-  Permissions,
-  ZkappPublicInput,
-  TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
+  Permissions,
+  TransactionVersion,
+  ZkappPublicInput,
 };
 // internal API
 export {
-  SetOrKeep,
+  AccountUpdateLayout,
+  AccountUpdateTreeBase,
+  Actions,
+  Authorization,
+  Body,
+  CallForest,
+  Events,
+  FeePayerUnsigned,
+  HashedAccountUpdate,
+  LazyProof,
   Permission,
   Preconditions,
-  Body,
-  Authorization,
-  FeePayerUnsigned,
-  ZkappCommand,
-  addMissingSignatures,
-  addMissingProofs,
-  Events,
-  Actions,
+  SetOrKeep,
   TokenId,
-  CallForest,
-  zkAppProver,
+  ZkappCommand,
+  addMissingProofs,
+  addMissingSignatures,
   dummySignature,
-  LazyProof,
-  AccountUpdateTreeBase,
-  AccountUpdateLayout,
   hashAccountUpdate,
-  HashedAccountUpdate,
+  zkAppProver,
 };
 
 const TransactionVersion = {
@@ -169,7 +169,10 @@ const False = () => Bool(false);
 type Permission = Types.AuthRequired;
 
 class VerificationKeyPermission {
-  constructor(public auth: Permission, public txnVersion: UInt32) {}
+  constructor(
+    public auth: Permission,
+    public txnVersion: UInt32
+  ) {}
 
   // TODO this class could be made incompatible with a plain object (breaking change)
   // private _ = undefined;
@@ -490,8 +493,6 @@ interface Body extends AccountUpdateBody {
   publicKey: PublicKey;
 
   /**
-   * @internal
-   *
    * Specify {@link Update}s to tweakable pieces of the account record backing
    * this address in the ledger.
    */
@@ -517,8 +518,6 @@ interface Body extends AccountUpdateBody {
    */
   events: Events;
   /**
-   * @internal
-   *
    * Recent {@link Action}s emitted from this account.
    * Actions can be collected by archive nodes and used in combination with
    * a {@link Reducer}.
