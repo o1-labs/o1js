@@ -35,9 +35,20 @@ jobs:
       - name: Bump patch version
         run: |
           git fetch --prune --unshallow --tags --force
-          NEW_VERSION=$(npm version patch)
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
           echo "New version: $NEW_VERSION"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Sync @o1js/native versions to root version
+        run: |
+          node scripts/sync-native-version.mjs
+          node scripts/check-version-sync.mjs
+
+      - name: Commit version bump and tag
+        run: |
+          git add package.json package-lock.json
+          git commit -m "$NEW_VERSION"
+          git tag "$NEW_VERSION"
 
       - name: Install npm dependencies
         run: npm install

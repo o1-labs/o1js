@@ -35,9 +35,11 @@ cat > $BINDINGS_PATH/package.json <<EOF
     "$NODE_ARCH"
   ],
   "type": "commonjs",
+  "browser": null,
   "exports": {
     ".": {
-      "default": "./index.js",
+      "node": "./index.js",
+      "default": null,
       "types": "./index.d.ts"
     }
   },

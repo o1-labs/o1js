@@ -318,6 +318,10 @@
             patchShebangs ./src/bindings/scripts/
             patchShebangs ./src/bindings/crypto/test-vectors/
             patchShebangs ./scripts/
+
+            # Suppress warning 67 (unused-functor-parameter) in snarky
+            sed -i '1i (env (_ (flags (:standard -w -67))))' \
+              ./src/mina/src/lib/snarky/dune
           '';
           buildPhase =
             ''

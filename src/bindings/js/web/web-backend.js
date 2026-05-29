@@ -1,10 +1,10 @@
-import kimchiWasm from '../../../web_bindings/kimchi_wasm.js';
-import { workerSpec } from './worker-spec.js';
-import { srcFromFunctionModule, inlineWorker, waitForMessage } from './worker-helpers.js';
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
+import kimchiWasm from '../../../web_bindings/kimchi_wasm.js';
+import { inlineWorker, srcFromFunctionModule, waitForMessage } from './worker-helpers.js';
+import { workerSpec } from './worker-spec.js';
 
-export { initializeBindings, withThreadPool, wasm };
+export { initializeBindings, wasm, withThreadPool };
 
 let wasm;
 
@@ -40,12 +40,26 @@ async function initializeBindings() {
   // (this works because it breaks out of strict mode)
   new Function(o1jsWebSrc)();
 
-  workerPromise = new Promise((resolve) => {
+  workerPromise = new Promise((resolve, reject) => {
     setTimeout(async () => {
       let worker = inlineWorker(srcFromFunctionModule(mainWorker));
-      await workerCall(worker, 'start', { memory, module });
-      overrideBindings(globalThis.kimchi_wasm, worker);
-      resolve(worker);
+      let onError = (error) => {
+        reject(new Error(`Failed to start o1js web worker: ${error.message}`));
+      };
+      worker.addEventListener('error', onError, { once: true });
+      try {
+        await workerCall(worker, 'start', { memory, module });
+        worker.removeEventListener('error', onError);
+        if (worker._o1jsBlobUrl !== undefined) {
+          URL.revokeObjectURL(worker._o1jsBlobUrl);
+          delete worker._o1jsBlobUrl;
+        }
+        overrideBindings(globalThis.kimchi_wasm, worker);
+        resolve(worker);
+      } catch (error) {
+        worker.removeEventListener('error', onError);
+        reject(error);
+      }
     }, 0);
   });
 }
@@ -104,9 +118,7 @@ async function mainWorker() {
       // __destroy_into_raw() unregisters from the worker's FinalizationRegistry
       // and returns the raw pointer. Without this, the worker's GC would
       // eventually free the result while the main thread still holds it.
-      res = typeof res.__destroy_into_raw === 'function'
-        ? res.__destroy_into_raw()
-        : res.__wbg_ptr;
+      res = typeof res.__destroy_into_raw === 'function' ? res.__destroy_into_raw() : res.__wbg_ptr;
     } else if (functionSpec.res && functionSpec.res.there) {
       res = functionSpec.res.there(res);
     }
@@ -196,13 +208,13 @@ function allocateWasmMemoryForUserAgent(userAgent) {
   const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent);
   if (isIOSDevice) {
     return new WebAssembly.Memory({
-      initial: 19,
+      initial: 20,
       maximum: 16384, // 1 GiB
       shared: true,
     });
   } else {
     return new WebAssembly.Memory({
-      initial: 19,
+      initial: 20,
       maximum: 65536, // 4 GiB
       shared: true,
     });

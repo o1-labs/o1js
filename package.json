@@ -98,7 +98,9 @@
     "update-changelog": "./scripts/changelog/update-changelog.sh",
     "prepare": "husky",
     "native:prepublish": "./scripts/prepublish/native/prepublish-native-package.sh",
-    "native:publish": "./scripts/publish/native/publish-native-package.sh"
+    "native:publish": "./scripts/publish/native/publish-native-package.sh",
+    "check:version-sync": "node scripts/check-version-sync.mjs",
+    "sync:native-version": "node scripts/sync-native-version.mjs"
   },
   "author": "O(1) Labs",
   "devDependencies": {
@@ -109,7 +111,7 @@
     "@types/jest": "^27.0.0",
     "@types/libsodium-wrappers-sumo": "^0.7.8",
     "@types/minimist": "^1.2.5",
-    "@types/node": "^18.14.2",
+    "@types/node": "^18.18.9",
     "@types/semver": "^7.7.1",
     "esbuild": "^0.25.5",
     "expect": "^29.0.1",
@@ -135,7 +137,6 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.7.1",
-    "@o1js/native": "file:./native/meta",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",
     "libsodium-wrappers-sumo": "^0.7.15",
@@ -144,6 +145,9 @@
     "tslib": "^2.3.0"
   },
   "o1js-internal": {
-    "native-version": "0.0.1-dev.8"
+    "native-version": "2.15.0"
+  },
+  "optionalDependencies": {
+    "@o1js/native": "2.15.0"
   }
 }

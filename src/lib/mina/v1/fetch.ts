@@ -712,10 +712,7 @@ async function fetchTransactionDepth(
           return null;
         }
 
-        const inclusionBlockHeight = parseInt(
-          block.protocolState.consensusState.blockHeight,
-          10
-        );
+        const inclusionBlockHeight = parseInt(block.protocolState.consensusState.blockHeight, 10);
         // Depth should never be negative (safeguard against edge cases)
         const depth = Math.max(0, currentBlockHeight - inclusionBlockHeight);
 
@@ -1319,7 +1316,9 @@ function inferError(error: unknown): FetchError {
   let errorMessage =
     error instanceof Error
       ? `${error.name}: ${error.message}${
-          (error as any).cause ? ` (cause: ${(error as any).cause.message ?? (error as any).cause})` : ''
+          (error as any).cause
+            ? ` (cause: ${(error as any).cause.message ?? (error as any).cause})`
+            : ''
         }`
       : JSON.stringify(error);
   if (error instanceof Error && error.name === 'AbortError') {

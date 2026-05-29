@@ -218,6 +218,7 @@ class KimchiProof {
 
   static fromJSON(json: KimchiJsonProof): KimchiProof {
     const bytes = Uint8Array.from(Buffer.from(json.proof, 'base64'));
+    // @ts-ignore - deserialize will be available once bindings are updated
     const rustProof = wasm.WasmFpProverProof.deserialize(bytes);
     const rustConversion = getRustConversion(wasm);
     // `getRustConversion()` is backend-dependent and TS sees a union of

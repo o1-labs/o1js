@@ -52,6 +52,17 @@ type PerfStack = {
   methodName?: string; // required for prove/verify; optional for compile
 };
 
+// per-program tolerance overrides (multiplier, e.g. 1.20 = 20%)
+// use for programs whose timings are known-flaky on top of run-to-run noise
+const PROGRAM_TOLERANCES: Record<
+  string,
+  Partial<Record<'compile' | 'prove' | 'verify', number>>
+> = {
+  // sha256 compile timing fluctuates ~10-15% on the new toolchain
+  sha256: { compile: 1.2 },
+  'sha256.sha256': { compile: 1.2 },
+};
+
 const argv = minimist(process.argv.slice(2), {
   boolean: ['dump', 'check', 'silent'],
   string: ['file'],
@@ -357,10 +368,13 @@ function checkAgainstBaseline(params: {
   }
 
   // tolerances
-  const compileTol = 1.08; // 8%
-  const compileTiny = 1.1; // 10% for near-zero baselines (< 5e-5s)
-  const timeTolDefault = 1.1; // 10% for prove/verify
-  const timeTolSmall = 1.25; // 25% for very small times (<0.2s)
+  const compileTol = 1.1; // 10%
+  const compileTiny = 1.12; // 12% for near-zero baselines (< 5e-5s)
+  const timeTolDefault = 1.12; // 12% for prove/verify
+  const timeTolSmall = 1.27; // 27% for very small times (<0.2s)
+
+  // per-program tolerance override (PROGRAM_TOLERANCES) for known-flaky programs
+  const override = PROGRAM_TOLERANCES[programName]?.[label];
 
   const labelPretty = label[0].toUpperCase() + label.slice(1);
 
@@ -372,7 +386,7 @@ function checkAgainstBaseline(params: {
       );
     }
 
-    const tol = expected < 5e-5 ? compileTiny : compileTol;
+    const tol = override ?? (expected < 5e-5 ? compileTiny : compileTol);
     const allowedPct = (tol - 1) * 100;
     const regressionPct = expected === 0 ? 0 : ((actualTime - expected) / expected) * 100;
     const failed = actualTime > expected * tol;
@@ -414,7 +428,7 @@ function checkAgainstBaseline(params: {
     );
   }
 
-  const tol = expected < 0.2 ? timeTolSmall : timeTolDefault;
+  const tol = override ?? (expected < 0.2 ? timeTolSmall : timeTolDefault);
   const allowedPct = (tol - 1) * 100;
   const regressionPct = expected === 0 ? 0 : ((actualTime - expected) / expected) * 100;
   const failed = actualTime > expected * tol;

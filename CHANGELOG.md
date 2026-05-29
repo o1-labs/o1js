@@ -77,6 +77,13 @@ Mina protocol.
 - Updated performance regression baselines and verification key regression
   fixtures for Mesa.
 
+### Added
+
+- Native Prover access from Node.js with x2 prover performance boost.
+  https://github.com/o1-labs/o1js/pull/2843
+- Enabled chunking through Native prover enabling x4 larger circuits on Node.js.
+  https://github.com/o1-labs/o1js/pull/2843
+
 ### Removed
 
 - Removed unused `Cairo*` gates. https://github.com/o1-labs/o1js/pull/2752

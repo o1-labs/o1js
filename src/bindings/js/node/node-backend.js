@@ -1,5 +1,5 @@
-import os from 'os';
 import { createRequire } from 'module';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
@@ -20,7 +20,9 @@ if (typeof globalThis !== 'undefined') {
 export { wasm, withThreadPool };
 
 function requireKimchiWasm(memoryOverride) {
-  let modulePath = '../../compiled/node_bindings/kimchi_wasm.cjs';
+  let modulePath = filename.endsWith('index.cjs')
+    ? './bindings/compiled/node_bindings/kimchi_wasm.cjs'
+    : '../../compiled/node_bindings/kimchi_wasm.cjs';
   if (memoryOverride === undefined) return require(modulePath);
 
   let OriginalMemory = WebAssembly.Memory;
@@ -34,6 +36,12 @@ function requireKimchiWasm(memoryOverride) {
   } finally {
     WebAssembly.Memory = OriginalMemory;
   }
+}
+
+function getWorkerSource() {
+  return filename.endsWith('index.cjs')
+    ? join(dirname(filename), 'bindings/js/node/node-backend.js')
+    : filename;
 }
 
 let workersReadyResolve;
@@ -58,7 +66,7 @@ async function initThreadPool() {
   const numThreads = Math.max(1, workers.numWorkers ?? (os.availableParallelism() ?? 1) - 1);
   workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
   try {
-    await wasm.initThreadPool(numThreads, filename);
+    await wasm.initThreadPool(numThreads, getWorkerSource());
     await workersReady;
     wasmThreadPoolRunning = true;
   } catch (error) {
@@ -90,7 +98,10 @@ function getWorkerMemory() {
 }
 
 function isCloneError(error) {
-  return error?.name === 'DataCloneError' || String(error?.message ?? error).includes('could not be cloned');
+  return (
+    error?.name === 'DataCloneError' ||
+    String(error?.message ?? error).includes('could not be cloned')
+  );
 }
 
 function describeMemory(value) {
@@ -117,26 +128,9 @@ async function startWorkers(src, memory, builder) {
   let workerMemory = getWorkerMemory();
   await Promise.all(
     Array.from({ length: builder.numThreads() }, () => {
-      let worker;
-      try {
-        worker = new Worker(src, {
-          workerData: { memory: workerMemory, receiver: builder.receiver() },
-        });
-      } catch (error) {
-        if (isCloneError(error)) {
-          console.error('[o1js wasm worker debug]', {
-            node: process.version,
-            platform: process.platform,
-            arch: process.arch,
-            sameMemoryObject: memory === workerMemory,
-            callbackMemory: describeMemory(memory),
-            workerMemory: describeMemory(workerMemory),
-            callbackMemoryClone: cloneCheck(memory),
-            workerMemoryClone: cloneCheck(workerMemory),
-          });
-        }
-        throw error;
-      }
+      let worker = new Worker(src, {
+        workerData: { memory: workerMemory, receiver: builder.receiver() },
+      });
       wasmWorkers.push(worker);
       return new Promise((resolve, reject) => {
         let timer = setTimeout(() => {
@@ -168,7 +162,7 @@ async function startWorkers(src, memory, builder) {
 
         function onExit(code) {
           cleanup();
-          if (ready || code === 0) {
+          if (ready) {
             // Some wasm-bindgen/node combinations exit worker threads as soon as
             // startup work is done. Treat a clean exit as successful startup.
             resolve(worker);
@@ -195,7 +189,7 @@ function terminateWorkers() {
     try {
       let terminated = worker.terminate();
       if (terminated && typeof terminated.catch === 'function') {
-        terminated.catch(() => { });
+        terminated.catch(() => {});
       }
     } catch {
       // Ignore shutdown races.
