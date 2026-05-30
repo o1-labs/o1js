@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - develop
+      - develop-3.0
       - v1
       - v3
   pull_request: {}
@@ -645,7 +646,7 @@ jobs:
         with:
           mina-branch-name: develop
   mesa:
-    needs: [Prepare]
+    needs: [Prepare-Wasm]
     timeout-minutes: 45
     runs-on: ubuntu-latest
     if: github.event.pull_request.base.ref == 'develop-3.0'
@@ -670,10 +671,8 @@ jobs:
           repository: ${{ inputs.target_repo || github.repository }}
           ref: ${{ inputs.target_ref || github.ref }}
       - name: build
-        uses: ./.github/actions/build
+        uses: ./.github/actions/build-wasm
         with:
-          repository: ${{ inputs.target_repo || github.repository }}
-          ref: ${{ inputs.target_ref || github.ref }}
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
       - name: Use shared steps for live testing jobs
         uses: ./.github/actions/live-tests-shared
