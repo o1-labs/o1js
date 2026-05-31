@@ -65,23 +65,24 @@
           builtins.map (d: builtins.head (pkgs.lib.splitString "." d))
             allOcamlDeps_;
         mina = inputs.mina.packages."${system}";
+        minaOcamlVersion = "4.14.2";
         # Mesa Mina exposes duplicate OCaml package dirs such as site-lib/toplevel.
         # Keep the local override until dune-nix squashOpamNixDeps handles them.
         minaBaseLibs = mina.base-libs.overrideAttrs (_: {
           installPhase = ''
-            mkdir -p $out/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib/stublibs $out/nix-support $out/bin
+            mkdir -p $out/lib/ocaml/${minaOcamlVersion}/site-lib/stublibs $out/nix-support $out/bin
             printf '%s\n' \
-              'export OCAMLPATH=''${OCAMLPATH-}''${OCAMLPATH:+:}'"$out/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib" \
-              'export CAML_LD_LIBRARY_PATH=''${CAML_LD_LIBRARY_PATH-}''${CAML_LD_LIBRARY_PATH:+:}'"$out/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib/stublibs" \
+              'export OCAMLPATH=''${OCAMLPATH-}''${OCAMLPATH:+:}'"$out/lib/ocaml/${minaOcamlVersion}/site-lib" \
+              'export CAML_LD_LIBRARY_PATH=''${CAML_LD_LIBRARY_PATH-}''${CAML_LD_LIBRARY_PATH:+:}'"$out/lib/ocaml/${minaOcamlVersion}/site-lib/stublibs" \
               > $out/nix-support/setup-hook
             for input in $buildInputs; do
-              [ ! -d "$input/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib" ] || {
-                find "$input/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib" -maxdepth 1 -mindepth 1 -not -name stublibs | while read d; do
-                  target="$out/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib/$(basename "$d")"
+              [ ! -d "$input/lib/ocaml/${minaOcamlVersion}/site-lib" ] || {
+                find "$input/lib/ocaml/${minaOcamlVersion}/site-lib" -maxdepth 1 -mindepth 1 -not -name stublibs | while read d; do
+                  target="$out/lib/ocaml/${minaOcamlVersion}/site-lib/$(basename "$d")"
                   [ -e "$target" ] || ln -s "$d" "$target"
                 done
               }
-              [ ! -d "$input/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib/stublibs" ] || cp -Rs "$input/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib/stublibs"/* "$out/lib/ocaml/${mina.pkgs.ocaml.version}/site-lib/stublibs/"
+              [ ! -d "$input/lib/ocaml/${minaOcamlVersion}/site-lib/stublibs" ] || cp -Rs "$input/lib/ocaml/${minaOcamlVersion}/site-lib/stublibs"/* "$out/lib/ocaml/${minaOcamlVersion}/site-lib/stublibs/"
               [ ! -d "$input/bin" ] || cp -Rs $input/bin/* $out/bin
               [ ! -f "$input/nix-support/propagated-build-inputs" ] || { cat "$input/nix-support/propagated-build-inputs" | sed -r 's/\s//g'; echo ""; } >> $out/nix-support/propagated-build-inputs.draft
               echo $input >> $out/nix-support/propagated-build-inputs.ref
