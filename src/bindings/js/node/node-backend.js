@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import os from 'os';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
