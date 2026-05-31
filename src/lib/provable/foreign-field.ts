@@ -1,18 +1,18 @@
-import { FiniteField, Fp, createField, mod } from '../../bindings/crypto/finite-field.js';
-import { Tuple, TupleMap, TupleN } from '../util/types.js';
+import { mod, Fp, FiniteField, createField } from '../../bindings/crypto/finite-field.js';
+import { checkBitLength, Field, withMessage } from './field.js';
+import { Provable } from './provable.js';
 import { Bool } from './bool.js';
-import { Field, checkBitLength, withMessage } from './field.js';
+import { Tuple, TupleMap, TupleN } from '../util/types.js';
+import { Gadgets } from './gadgets/gadgets.js';
+import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
 import { assert } from './gadgets/common.js';
 import { fieldToField3 } from './gadgets/comparison.js';
-import { ForeignField as FF, Field3 } from './gadgets/foreign-field.js';
-import { Gadgets } from './gadgets/gadgets.js';
-import { l, l3 } from './gadgets/range-check.js';
-import { Provable } from './provable.js';
+import { l3, l } from './gadgets/range-check.js';
 import { ProvablePureExtended } from './types/struct.js';
 
 // external API
 export { createForeignField };
-export type { AlmostForeignField, CanonicalForeignField, ForeignField, UnreducedForeignField };
+export type { ForeignField, UnreducedForeignField, AlmostForeignField, CanonicalForeignField };
 
 class ForeignField {
   static _Bigint: FiniteField | undefined = undefined;
@@ -720,7 +720,7 @@ type Constructor<T> = new (...args: any[]) => T;
 function provable<
   F extends ForeignField & {
     type: 'Unreduced' | 'AlmostReduced' | 'FullyReduced';
-  },
+  }
 >(
   Class: Constructor<F> & { check(x: ForeignField): void }
 ): ProvablePureExtended<F, bigint, string> {

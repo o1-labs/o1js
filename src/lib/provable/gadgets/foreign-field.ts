@@ -1,34 +1,34 @@
 /**
  * Foreign field arithmetic gadgets.
  */
-import { mod, inverse as modInverse } from '../../../bindings/crypto/finite-field.js';
-import { Tuple, TupleN } from '../../util/types.js';
-import type { Bool } from '../bool.js';
-import { exists } from '../core/exists.js';
-import { createBool, createField, getField } from '../core/field-constructor.js';
+import { inverse as modInverse, mod } from '../../../bindings/crypto/finite-field.js';
+import { provableTuple } from '../types/provable-derivers.js';
+import { Unconstrained } from '../types/unconstrained.js';
 import type { Field } from '../field.js';
 import { Gates, foreignFieldAdd } from '../gates.js';
+import { exists } from '../core/exists.js';
 import { modifiedField } from '../types/fields.js';
-import { provableTuple } from '../types/provable-derivers.js';
-import { ProvablePureExtended } from '../types/struct.js';
-import { Unconstrained } from '../types/unconstrained.js';
+import { Tuple, TupleN } from '../../util/types.js';
 import { assertOneOf } from './basic.js';
 import { assert, bitSlice, toVar, toVars } from './common.js';
 import {
-  compactMultiRangeCheck,
   l,
+  lMask,
+  multiRangeCheck,
   l2,
   l2Mask,
   l3,
-  lMask,
-  multiRangeCheck,
+  compactMultiRangeCheck,
 } from './range-check.js';
+import { createBool, createField, getField } from '../core/field-constructor.js';
+import type { Bool } from '../bool.js';
+import { ProvablePureExtended } from '../types/struct.js';
 
 // external API
-export { Field3, ForeignField };
+export { ForeignField, Field3 };
 
 // internal API
-export { Sign, Sum, assertMul, bigint3, combine, field3FromBits, split, weakBound };
+export { bigint3, Sign, split, combine, weakBound, Sum, assertMul, field3FromBits };
 
 /**
  * A 3-tuple of Fields, representing a 3-limb bigint.
@@ -569,6 +569,7 @@ function assertMul(
 }
 
 /**
+ *
  * Lazy sum of {@link Field3} elements, which can be used as input to `Gadgets.ForeignField.assertMul()`.
  */
 class Sum {

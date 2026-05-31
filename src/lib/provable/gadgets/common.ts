@@ -1,12 +1,12 @@
+import type { Field, VarField } from '../field.js';
+import { FieldVar, VarFieldVar } from '../core/fieldvar.js';
 import { Tuple } from '../../util/types.js';
 import type { Bool } from '../bool.js';
+import { fieldVar } from '../gates.js';
 import { existsOne } from '../core/exists.js';
 import { createField, isBool } from '../core/field-constructor.js';
-import { FieldVar, VarFieldVar } from '../core/fieldvar.js';
-import type { Field, VarField } from '../field.js';
-import { fieldVar } from '../gates.js';
 
-export { assert, bit, bitSlice, divideWithRemainder, isConstant, isVar, packBits, toVar, toVars };
+export { toVars, toVar, isVar, assert, bitSlice, bit, divideWithRemainder, packBits, isConstant };
 
 /**
  * Given a Field, collapse its AST to a pure Var. See {@link FieldVar}.

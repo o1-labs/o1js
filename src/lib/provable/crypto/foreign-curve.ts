@@ -1,23 +1,23 @@
 import {
-  CurveAffine,
   CurveParams,
+  CurveAffine,
   createCurveAffine,
 } from '../../../bindings/crypto/elliptic-curve.js';
-import { Bytes } from '../bytes.js';
+import { ProvablePureExtended } from '../types/struct.js';
 import { AlmostForeignField, createForeignField } from '../foreign-field.js';
-import { assert } from '../gadgets/common.js';
 import { EllipticCurve, Point } from '../gadgets/elliptic-curve.js';
 import { Field3 } from '../gadgets/foreign-field.js';
-import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
+import { assert } from '../gadgets/common.js';
 import { Provable } from '../provable.js';
 import { provableFromClass } from '../types/provable-derivers.js';
-import { ProvablePureExtended } from '../types/struct.js';
+import { l2Mask, multiRangeCheck } from '../gadgets/range-check.js';
+import { Bytes } from '../bytes.js';
 
 // external API
-export { ForeignCurve, createForeignCurve };
+export { createForeignCurve, ForeignCurve };
 
 // internal API
-export { FlexiblePoint, ForeignCurveNotNeeded, toPoint };
+export { toPoint, FlexiblePoint, ForeignCurveNotNeeded };
 
 type FlexiblePoint = {
   x: AlmostForeignField | Field3 | bigint | number;

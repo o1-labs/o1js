@@ -1,43 +1,43 @@
 /**
  * Wrapper file for various gadgets, with a namespace and doccomments.
  */
-import { Field } from '../wrapped.js';
-import { addMod32, addMod64, divMod32, divMod64 } from './arithmetic.js';
-import { arrayGet, arrayGetGeneric } from './basic.js';
-import { sliceField3 } from './bit-slices.js';
-import {
-  and,
-  leftShift32,
-  leftShift64,
-  not,
-  or,
-  rightShift64,
-  rotate32,
-  rotate64,
-  xor,
-} from './bitwise.js';
-import { BLAKE2B } from './blake2b.js';
-import { Field3, ForeignField, Sum as ForeignFieldSum } from './foreign-field.js';
-import { inTable, rangeCheck3x12 } from './lookup.js';
 import {
   compactMultiRangeCheck,
-  isDefinitelyInRangeN,
-  l,
-  l2,
-  l2Mask,
-  l3,
-  lMask,
   multiRangeCheck,
+  rangeCheck8,
   rangeCheck16,
   rangeCheck32,
   rangeCheck64,
-  rangeCheck8,
   rangeCheckN,
+  isDefinitelyInRangeN,
+  l2Mask,
+  lMask,
+  l2,
+  l,
+  l3,
 } from './range-check.js';
+import {
+  not,
+  rotate32,
+  rotate64,
+  xor,
+  and,
+  or,
+  leftShift64,
+  rightShift64,
+  leftShift32,
+} from './bitwise.js';
+import { Field } from '../wrapped.js';
+import { ForeignField, Field3, Sum as ForeignFieldSum } from './foreign-field.js';
+import { divMod32, addMod32, divMod64, addMod64 } from './arithmetic.js';
 import { SHA2 } from './sha2.js';
 import { SHA256 } from './sha256.js';
+import { BLAKE2B } from './blake2b.js';
+import { rangeCheck3x12, inTable } from './lookup.js';
+import { arrayGet, arrayGetGeneric } from './basic.js';
+import { sliceField3 } from './bit-slices.js';
 
-export { Field3, ForeignFieldSum, Gadgets };
+export { Gadgets, Field3, ForeignFieldSum };
 
 const Gadgets = {
   /**
@@ -599,7 +599,7 @@ const Gadgets = {
    * @param pair1
    * @param pair2
    *
-   * @deprecated {@link inTable} is deprecated in favor of RuntimeTable class,
+   * @deprecated {@link inTable} is deprecated in favor of RuntimeTable class, 
    * which provides a more ergonomic API.
    */
   inTable(
@@ -730,6 +730,7 @@ const Gadgets = {
     },
 
     /**
+     *
      * Foreign field multiplication: `x * y mod f`
      *
      * The modulus `f` does not need to be prime, but has to be smaller than 2^259.
@@ -767,6 +768,7 @@ const Gadgets = {
     },
 
     /**
+     *
      * Foreign field inverse: `x^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -778,6 +780,7 @@ const Gadgets = {
     },
 
     /**
+     *
      * Foreign field division: `x * y^(-1) mod f`
      *
      * See {@link Gadgets.ForeignField.mul} for assumptions on inputs and usage examples.
@@ -791,6 +794,7 @@ const Gadgets = {
     },
 
     /**
+     *
      * Optimized multiplication of sums in a foreign field, for example: `(x - y)*z = a + b + c mod f`
      *
      * Note: This is much more efficient than using {@link Gadgets.ForeignField.add} and {@link Gadgets.ForeignField.sub} separately to
@@ -835,6 +839,7 @@ const Gadgets = {
     },
 
     /**
+     *
      * Lazy sum of {@link Field3} elements, which can be used as input to {@link Gadgets.ForeignField.assertMul}.
      */
     Sum(x: Field3) {
@@ -842,6 +847,7 @@ const Gadgets = {
     },
 
     /**
+     *
      * Prove that each of the given {@link Field3} elements is "almost" reduced modulo f,
      * i.e., satisfies the assumptions required by {@link Gadgets.ForeignField.mul} and other gadgets:
      * - each limb is in the range [0, 2^88)
