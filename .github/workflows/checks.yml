@@ -652,7 +652,7 @@ jobs:
     if: github.event.pull_request.base.ref == 'develop-3.0'
     services:
       mina-local-network:
-        image: o1labs/mina-local-network:mesa-latest-lightnet
+        image: o1labs/mina-local-network:mesa-rc1-lightnet
         env:
           NETWORK_TYPE: 'single-node'
           PROOF_LEVEL: 'none'
