@@ -1,201 +1,201 @@
 {
   "sha256": {
-    "compileTime": 25.743438148,
+    "compileTime": 32.995635006,
     "methods": {
       "sha256": {
         "rows": 5036,
         "digest": "223d75719ac98942e172f88d77809cdb",
-        "proveTime": 15.833065425999997,
-        "verifyTime": 1.2537957640000021
+        "proveTime": 20.517434516,
+        "verifyTime": 1.6770517800000015
       }
     }
   },
   "ecdsa": {
-    "compileTime": 118.208402963,
+    "compileTime": 153.171283079,
     "methods": {
       "verifyEcdsa": {
         "rows": 46221,
         "digest": "c74d1fdd7c7019662c91a4709dbca86f",
-        "proveTime": 49.325665478,
-        "verifyTime": 1.2953847020000102
+        "proveTime": 63.132278218000025,
+        "verifyTime": 1.6671419330000063
       }
     }
   },
   "ecdsa-ethers": {
-    "compileTime": 34.517989373999995,
+    "compileTime": 41.72515616199997,
     "methods": {
       "verifyEthers": {
         "rows": 46248,
         "digest": "fb9c75d82f5bd1852e490ea26ed2e77d",
-        "proveTime": 48.696624174999975,
-        "verifyTime": 1.358138684000005
+        "proveTime": 62.48013931100001,
+        "verifyTime": 1.8166420090000028
       }
     }
   },
   "blake2b": {
-    "compileTime": 23.361384559,
+    "compileTime": 29.553898970000002,
     "methods": {
       "blake2b": {
         "rows": 3937,
         "digest": "700888074b4af4ce56fb61ad8b4ab6d6",
-        "proveTime": 16.430621591999998,
-        "verifyTime": 1.332069279000003
+        "proveTime": 21.154984,
+        "verifyTime": 1.6792302920000002
       }
     }
   },
   "rsa-verify": {
-    "compileTime": 34.818238737,
+    "compileTime": 44.633309168,
     "methods": {
       "verifyRsa65537": {
         "rows": 12401,
         "digest": "a245ac71d2c2e431571858ae2df4feed",
-        "proveTime": 19.721170782,
-        "verifyTime": 1.2309574309999953
+        "proveTime": 25.459478040999993,
+        "verifyTime": 1.6034597550000036
       }
     }
   },
   "add": {
-    "compileTime": 91.972181583,
+    "compileTime": 118.92566707699999,
     "methods": {
       "performAddition": {
         "rows": 2,
         "digest": "6ffe440928a31a555799dcf7005bae82",
-        "proveTime": 24.124932224000005,
-        "verifyTime": 1.2903687409999984
+        "proveTime": 31.10621484499998,
+        "verifyTime": 1.6020182199999982
       }
     }
   },
   "multiply": {
-    "compileTime": 10.525117001000005,
+    "compileTime": 14.200941683000012,
     "methods": {
       "performMultiplication": {
         "rows": 1,
         "digest": "2a840c03f4e37242a8056a4aa536358c",
-        "proveTime": 22.879814857000007,
-        "verifyTime": 1.261368204999977
+        "proveTime": 29.600603965999994,
+        "verifyTime": 1.6505866080000124
       }
     }
   },
   "hash-chain": {
-    "compileTime": 30.466049521000002,
+    "compileTime": 38.749735039,
     "methods": {
       "chain": {
         "rows": 513,
         "digest": "f1e9d1df2bd3da8fdc22a8b5d65ba7bd",
-        "proveTime": 94.781166222,
-        "verifyTime": 1.2307959850000043
+        "proveTime": 121.050507884,
+        "verifyTime": 1.6007668779999948
       }
     }
   },
   "bitwise": {
-    "compileTime": 22.796373513,
+    "compileTime": 29.899976482,
     "methods": {
       "rot": {
         "rows": 6,
         "digest": "b751bc57da477ef9541cd530d80d5b9a",
-        "proveTime": 15.703267043,
-        "verifyTime": 1.2449610780000002
+        "proveTime": 20.301028724999995,
+        "verifyTime": 1.678488541999999
       },
       "xor": {
         "rows": 3,
         "digest": "ffd6599d8b0517e1fd84a91e0a70b4ec",
-        "proveTime": 10.500767948,
-        "verifyTime": 1.214832607000004
+        "proveTime": 13.624255337999996,
+        "verifyTime": 1.6261653419999929
       },
       "and": {
         "rows": 4,
         "digest": "91579e4dbd536676d7ff5c0596df4635",
-        "proveTime": 10.491019914999997,
-        "verifyTime": 1.2043146720000004
+        "proveTime": 13.481047992000008,
+        "verifyTime": 1.6292394039999927
       }
     }
   },
   "childProgram": {
-    "compileTime": 22.997472128,
+    "compileTime": 28.761281291,
     "methods": {
       "compute": {
         "rows": 0,
         "digest": "4f5ddea76d29cfcfd8c595f14e31f21b",
-        "proveTime": 10.653492148999998
+        "proveTime": 13.478994680000003
       },
       "assertAndAdd": {
         "rows": 23,
         "digest": "657a0a503fc007cc2b88e2b8721ed9ee",
-        "proveTime": 15.480783248000021
+        "proveTime": 19.441985655999975
       }
     }
   },
   "mainProgram": {
-    "compileTime": 62.886568845999996,
+    "compileTime": 79.541588639,
     "methods": {
       "addSideloadedProgram": {
         "rows": 1796,
         "digest": "df4deb332ff01cbf2e7f39f203d9b717",
-        "proveTime": 18.656587901000005
+        "proveTime": 23.54677402299999
       },
       "validateUsingTree": {
         "rows": 914,
         "digest": "bebd1ddc30c2f7e0784b92508492ecbd",
-        "proveTime": 33.876322507999994,
-        "verifyTime": 1.2470425099999993
+        "proveTime": 42.43743337499999,
+        "verifyTime": 1.613721068999992
       }
     }
   },
   "payroll-runtime-table": {
-    "compileTime": 21.962196416,
+    "compileTime": 28.046813368,
     "methods": {
       "verifyPayroll": {
         "rows": 202,
         "digest": "b5b687fb26fcab697d74a1242804f61a",
-        "proveTime": 16.395037298,
-        "verifyTime": 1.3756711980000036
+        "proveTime": 20.914192951999997,
+        "verifyTime": 1.7542299179999972
       }
     }
   },
   "small-program": {
-    "compileTime": 12.440484514,
+    "compileTime": 15.712592497000001,
     "methods": {
       "poseidonHash": {
         "rows": 13,
         "digest": "ae6e7db1ed4da63e913e6990b385c439",
-        "proveTime": 10.976751604999997
+        "proveTime": 13.909848763000017
       }
     }
   },
   "big-program": {
-    "compileTime": 138.064576687,
+    "compileTime": 172.821726708,
     "methods": {
       "combinedHash": {
         "rows": 53069,
         "digest": "4aae42cb252e97d85870815b3f72756f",
-        "proveTime": 52.313574609,
-        "verifyTime": 1.2751029029999918
+        "proveTime": 66.75308485400002,
+        "verifyTime": 1.6406179520000006
       }
     }
   },
   "Voting_": {
     "digest": "3e9d12f7ba0d0cf88fb46d1342283cc9ad52df1b319373ca45b5206e2c6c7613",
-    "compileTime": 33.905791481,
+    "compileTime": 43.362284814,
     "methods": {}
   },
   "Membership_": {
     "digest": "22ba41a10934cb1c22d578a53d2119546e297f74c62cbe71fd9701107ca479f",
-    "compileTime": 10.505669513,
+    "compileTime": 12.863265169999998,
     "methods": {}
   },
   "HelloWorld": {
     "digest": "1bb504e2c546aad139c5cbfc8b5544c25d653573a1f31e9b601293c16eacc526",
-    "compileTime": 5.400978714999997,
+    "compileTime": 6.763766035000001,
     "methods": {}
   },
   "TokenContract": {
     "digest": "24e4970719219554e59b3cfb556e2154461a901b013ea7fc76011b3a8c1069",
-    "compileTime": 28.994411246000002,
+    "compileTime": 37.04940953199999,
     "methods": {}
   },
   "Dex": {
     "digest": "2c89e730fc5fbdb95ddf567c70d84741d5febd3336e28d3cf270e25fc31f9cfc",
-    "compileTime": 20.844444572000008,
+    "compileTime": 26.37082475900001,
     "methods": {}
   },
   "Group Primitive": {
