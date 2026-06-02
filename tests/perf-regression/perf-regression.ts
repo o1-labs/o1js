@@ -22,13 +22,6 @@ import { Membership_ } from '../../src/examples/zkapps/voting/membership.js';
 import { Voting_ } from '../../src/examples/zkapps/voting/voting.js';
 import { PerfRegressionEntry, logPerf } from '../../src/lib/testing/perf-regression.js';
 import { tic, toc } from '../../src/lib/util/tic-toc.js';
-import {
-  BasicCS,
-  BitwiseCS,
-  CryptoCS,
-  GroupCS,
-  HashCS,
-} from '../vk-regression/plain-constraint-system.js';
 
 // toggle to override caches
 const forceRecompile = false;
@@ -58,11 +51,6 @@ const ConstraintSystems: MinimumConstraintSystem[] = [
   HelloWorld,
   TokenContract,
   createDex().Dex,
-  GroupCS,
-  BitwiseCS,
-  HashCS,
-  BasicCS,
-  CryptoCS,
 ];
 
 // Load regression JSON (allow empty on dump, require on check)

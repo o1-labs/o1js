@@ -44,6 +44,9 @@ export class OnChainStateMgmtZkAppPage {
 
   async checkO1jsInitialization() {
     await expect(this.eventsContainer).toContainText('o1js initialized after');
+    await expect(this.compileButton).toBeEnabled();
+    await expect(this.deployButton).toBeEnabled();
+    await expect(this.updateButton).toBeEnabled();
   }
 
   async checkZkProgramCompilation() {

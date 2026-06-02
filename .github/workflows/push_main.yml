@@ -78,8 +78,59 @@ jobs:
       - name: release-pkg-pr-version
         uses: ./.github/actions/release-pkg-pr-version
 
+  # Detect whether the root package version on this commit differs from what is
+  # currently published on npm. Native is expensive to build, so we only run
+  # the native release pipeline when the version actually changed.
+  #
+  # Gated on the upstream `checks` workflow having succeeded. If checks failed,
+  # all release jobs cascade-skip via `needs:`.
+  Check-Version-Change:
+    if: |
+      github.ref == 'refs/heads/main' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+      version: ${{ steps.diff.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare local vs published version
+        id: diff
+        run: |
+          set -euo pipefail
+          LOCAL=$(jq -r .version package.json)
+          # Default REMOTE to LOCAL so a registry hiccup is treated as
+          # "no change" (fail closed: skip release rather than risk a bad publish).
+          REMOTE=$(npm view o1js version 2>/dev/null || echo "$LOCAL")
+          echo "local=$LOCAL remote=$REMOTE"
+          echo "version=$LOCAL" >> "$GITHUB_OUTPUT"
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify @o1js/native versions are in sync with o1js version
+        if: steps.diff.outputs.changed == 'true'
+        run: node scripts/check-version-sync.mjs
+
+  Release-Native:
+    needs: Check-Version-Change
+    if: needs.Check-Version-Change.outputs.changed == 'true'
+    uses: ./.github/workflows/publish_native.yml
+    with:
+      npm-tag: latest
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
+
   Release-on-NPM:
-    if: github.ref == 'refs/heads/main'
+    # Runs only when the version changed. Native must publish first because
+    # o1js lists @o1js/native as an optionalDependency at the same version;
+    # if Release-Native fails or is skipped, the default `needs:` cascade
+    # skips this job too — exactly what we want.
+    needs: [Check-Version-Change, Release-Native]
+    if: needs.Check-Version-Change.outputs.changed == 'true'
     timeout-minutes: 180
     runs-on: ubuntu-latest
     steps:
@@ -93,6 +144,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Verify @o1js/native versions are in sync with o1js version
+        run: node scripts/check-version-sync.mjs
 
       - name: Build o1js
         run: |

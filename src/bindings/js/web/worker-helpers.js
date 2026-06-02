@@ -1,12 +1,12 @@
 import wasm from '../../../web_bindings/kimchi_wasm.js';
 
 export {
-  srcFromFunctionModule,
   inlineWorker,
-  workerHelperMain,
+  srcFromFunctionModule,
   startWorkers,
   terminateWorkers,
   waitForMessage,
+  workerHelperMain,
 };
 
 function srcFromFunctionModule(fun) {
@@ -37,7 +37,9 @@ function inlineWorker(src) {
   let blob = new Blob([src], { type: 'application/javascript' });
   let url = URL.createObjectURL(blob);
   let worker = new Worker(url);
-  URL.revokeObjectURL(url);
+  // Keep the blob URL alive for the lifetime of the worker. Revoking it
+  // immediately can race worker startup in headless browsers.
+  worker._o1jsBlobUrl = url;
   return worker;
 }
 
@@ -83,6 +85,7 @@ async function startWorkers(module, memory, builder) {
 
   let blob = new Blob([workerSrc], { type: 'application/javascript' });
   let url = URL.createObjectURL(blob);
+  self._workerBlobUrl = url;
   for (let i = 0; i < builder.numThreads(); i++) {
     let worker = new Worker(url);
     worker.postMessage(workerInit);
@@ -126,4 +129,8 @@ async function terminateWorkers() {
   self._workers.forEach((worker) => {
     worker.terminate();
   });
+  if (self._workerBlobUrl !== undefined) {
+    URL.revokeObjectURL(self._workerBlobUrl);
+    delete self._workerBlobUrl;
+  }
 }

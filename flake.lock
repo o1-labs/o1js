@@ -270,18 +270,15 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1749040347,
-        "narHash": "sha256-bbX1ZGyILjCFvpPdUEAPUoITYIsQ2vd/pN2Uz1C4LAM=",
-        "rev": "569e99c95834841d64858644c5d80ac7e63d0157",
-        "revCount": 35642,
-        "submodules": true,
-        "type": "git",
-        "url": "file:src/mina"
+        "lastModified": 1772162982,
+        "narHash": "sha256-Y6fsdbTWHwIDkOiIVWQ7WCZoS/+K1G1MIe2VLosE7U4=",
+        "path": "src/mina",
+        "type": "path"
       },
       "original": {
         "submodules": true,
         "type": "git",
-        "url": "file:src/mina"
+        "url": "file://file:src/mina"
       }
     },
     "mirage-opam-overlays": {
