@@ -91,6 +91,8 @@ async function startWorkers(module, memory, builder) {
     worker.postMessage(workerInit);
     self._workers.push(worker);
   }
+  URL.revokeObjectURL(url);
+
   await Promise.all(
     self._workers.map(
       (w) =>

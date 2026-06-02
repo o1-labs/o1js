@@ -9,7 +9,7 @@ source ./scripts/lib/ux.sh
 ./run ./src/tests/cache/simple-regression.ts --bundle --mode check --tarball ./tests/test-artifacts/cache/simple-regression.tar.gz
 
 # This pin is generated in ./dump-cache-regressions.sh
-ARTIFACT_PIN=2025-10-14T14:16:00-04:00
+ARTIFACT_PIN=2026-03-20T17:37:19+00:00
 
 WORKDIR=tests/test-artifacts/cache/
 mkdir -p $WORKDIR

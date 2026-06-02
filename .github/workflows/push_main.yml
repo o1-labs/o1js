@@ -6,9 +6,8 @@ on:
       - completed
     branches:
       - main
-      - v1
-      - v2
-      - v3
+      - develop
+      - develop-3.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,7 +17,7 @@ jobs:
   Build-Doc:
     strategy:
       matrix:
-        node: [20]
+        node: [22]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -134,9 +133,6 @@ jobs:
     if: needs.Check-Version-Change.outputs.changed == 'true'
     timeout-minutes: 180
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write # Required for OIDC trusted publishing
     steps:
       - name: Restore repository
         uses: actions/cache@v4
@@ -147,8 +143,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '24' # Node 24 includes npm 11.5+ required for OIDC
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '22'
 
       - name: Verify @o1js/native versions are in sync with o1js version
         run: node scripts/check-version-sync.mjs
@@ -160,9 +155,12 @@ jobs:
 
       - name: Publish to NPM if version has changed
         id: publish
-        uses: JS-DevTools/npm-publish@v4
+        uses: JS-DevTools/npm-publish@v3
         with:
+          token: ${{ secrets.NPM_TOKEN }}
           strategy: upgrade
+        env:
+          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Configure Git
         run: |

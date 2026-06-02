@@ -509,6 +509,11 @@ declare class Ledger {
   static create(): Ledger;
 
   /**
+   * Migrates a berkeley account to a mesa account.
+   */
+  static migrateAccount(hardforkSlot: number, account: string): JsonAccount;
+
+  /**
    * Adds an account and its balance to the ledger.
    */
   addAccount(publicKey: MlPublicKey, balance: string): void;

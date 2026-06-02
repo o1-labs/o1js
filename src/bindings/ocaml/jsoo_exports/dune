@@ -63,12 +63,10 @@
  (name o1js_node)
  (modules o1js_node)
  (modes js)
- (flags (-g))
- (link_flags
-  (-noautolink -g))
+ (link_flags :standard -noautolink -g)
  (js_of_ocaml
-  (flags +toplevel.js +dynlink.js --pretty --source-map)
-  (link_flags --source-map)
+  (flags :standard +toplevel.js +dynlink.js --source-map)
+  (link_flags :standard --source-map)
   (javascript_files overrides.js))
  (libraries
   o1js_bindings.lib
@@ -84,9 +82,9 @@
  (name o1js_web)
  (modules o1js_web)
  (modes js)
- (link_flags (-noautolink))
+ (link_flags :standard -noautolink)
  (js_of_ocaml
-  (flags +toplevel.js +dynlink.js --pretty)
+  (flags :standard +toplevel.js +dynlink.js)
   (javascript_files overrides.js))
  (libraries o1js_bindings.lib bindings_js.web_backend)
  (link_deps web_kimchi_wasm.js web_kimchi_wasm_bg.wasm)

@@ -16,7 +16,66 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/ff6c201b...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/v3.0.0-mesa.0...HEAD)
+
+### Added
+
+- Native Kimchi access from Node.js with x2 prover performance boost. 
+  https://github.com/o1-labs/o1js/pull/2823
+- Enabled chunking through Native prover enabling x4 larger circuits on Node.js.
+  https://github.com/o1-labs/o1js/pull/2823
+- Expose `Client.getZkappCommandCommitments` and
+  `Client.getZkappCommandCommitmentsFromJSON` on `mina-signer` for computing
+  the commitment and full commitment of a zkApp transaction.
+  https://github.com/o1-labs/o1js/pull/2869
+
+## [3.0.0-mesa.0](https://github.com/o1-labs/o1js/compare/ff6c201b...v3.0.0-mesa.0) - 2026-03-26
+
+This is the first prerelease of o1js targeting the **Mesa** hard fork of the
+Mina protocol.
+
+### Breaking changes
+
+- Upgraded the Mina protocol dependency from Berkeley/Devnet to **Mesa**. All
+  verification keys will change and caches must be regenerated.
+- `Transaction.setFeePerSnarkCost()` has been removed. Use
+  `Transaction.setFeePerAccountUpdate()` instead, since "snark cost" has been
+  replaced with `MAX_ZKAPP_SEGMENT_PER_TRANSACTION` in the Mesa protocol.
+- Transaction cost model replaced: the floating-point
+  `TransactionCost.PROOF_COST` / `SIGNED_PAIR_COST` / `SIGNED_SINGLE_COST` /
+  `COST_LIMIT` constants are removed. Transactions are now limited by a segment
+  count (`TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION = 16`).
+- `VerificationKey.toJSON()` now returns `{ data, hash }` instead of just the
+  `data` string.
+- `ZkappConstants.MAX_ZKAPP_STATE_FIELDS` increased from **8** to **32**. Smart
+  contracts can now use up to 32 on-chain state field elements.
+- `TransactionLimits.MAX_ACTION_ELEMENTS` and `MAX_EVENT_ELEMENTS` increased
+  from 100 to **1024**.
+- Removed unused Cairo gate types (`CairoClaim`, `CairoInstruction`,
+  `CairoFlags`, `CairoTransition`).
+
+### Added
+
+- Example zkapp with 32 state fields (`src/examples/zkapps/big-state-zkapp.ts`).
+- Comprehensive unit tests for account update limits, actions/events limits, and
+  state field limits.
+- GraphQL request retries (up to 3 attempts with backoff) for transient network
+  errors.
+- Mesa lightnet support for local testing.
+
+### Changed
+
+- `TokenContract.deploy()` no longer overwrites all permissions with defaults.
+  It now only upgrades the `access` permission to `proofOrSignature()` if it is
+  still at the default (`none()`), preserving any custom permissions set in
+  `init()`.
+- Hardened WASM thread pool lifecycle: added startup guards, proper error
+  handling, and re-entrancy protection for `initThreadPool` / `exitThreadPool`.
+- Web worker WASM bootstrap updated to use canonical module memory.
+- Cache reads now return `undefined` on missing files instead of throwing, and
+  log cache misses with the `persistentId` instead of a stack trace.
+- Updated performance regression baselines and verification key regression
+  fixtures for Mesa.
 
 ### Added
 
@@ -75,7 +134,22 @@ This project adheres to
 - Added support for `Field` type for the index in runtime table lookups.
   https://github.com/o1-labs/o1js/pull/2706
 
+### Removed
+
+- Removed unused Cairo gates. https://github.com/o1-labs/o1js/pull/2813
+
+### Fixed
+
+- Fixed an issue where `TokenContract` permissions were accidentally
+  overwritten. https://github.com/o1-labs/o1js/pull/2817
+
 ## [2.12.0](https://github.com/o1-labs/o1js/compare/c2e51a84...34caaedc9) - 2025-12-03
+
+### Changed
+
+- `Transaction.setFeePerSnarkCost` has been removed, since "snark cost" has been
+  removed in `mina`, replaced with `MAX_ZKAPP_SEGMENT_PER_TRANSACTION`,
+  simplifying calculations. Instead, use `setFeePerAccountUpdate`.
 
 ### Fixed
 
@@ -106,6 +180,11 @@ This project adheres to
   strengthening build integrity.
 - Added a framework to test for cache regressions in circuit compilation
   artefacts across versions.
+
+### Fixed
+
+- Updated `VerificationKey.toJSON()` to include the verification key hash for
+  compliant encoding. https://github.com/o1-labs/o1js/pull/2332
 
 ## [2.10.0](https://github.com/o1-labs/o1js/compare/114acff...3453d1e53) - 2025-09-27
 

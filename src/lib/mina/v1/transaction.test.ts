@@ -1,4 +1,4 @@
-import { UInt64, SmartContract, Mina, AccountUpdate, method, Transaction } from 'o1js';
+import { AccountUpdate, Mina, SmartContract, Transaction, UInt64, method } from 'o1js';
 
 class MyContract extends SmartContract {
   @method async shouldMakeCompileThrow() {
@@ -49,7 +49,7 @@ describe('transactions', () => {
     });
     let nonce = tx.transaction.feePayer.body.nonce;
     let promise = tx.sign([feePayer.key, contractAccount.key]);
-    let new_fee = promise.setFeePerSnarkCost(42.7);
+    let new_fee = promise.setFeePerAccountUpdate(42);
     await new_fee.sign([feePayer.key, contractAccount.key]);
     await new_fee.send();
     // check that tx was applied, by checking nonce was incremented

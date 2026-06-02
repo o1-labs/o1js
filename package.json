@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "2.15.0",
+  "version": "3.0.0-mesa.final",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -45,7 +45,7 @@
     "snarky-run": "src/build/run.js"
   },
   "engines": {
-    "node": ">=18.14.0"
+    "node": ">=22.19.5"
   },
   "scripts": {
     "build:dev": "./scripts/build/ts/build-dev.sh",
@@ -76,10 +76,10 @@
     "regression:dump-perf:native": "O1JS_BACKEND=native ./tests/perf-regression/perf-regression.sh --dump --file ./tests/perf-regression/perf-regression-native.json",
     "regression:check-perf": "./tests/perf-regression/perf-regression.sh --check",
     "regression:check-perf:native": "O1JS_BACKEND=native ./tests/perf-regression/perf-regression.sh --check --file ./tests/perf-regression/perf-regression-native.json",
-    "format": "prettier --write --ignore-unknown",
-    "format:check": "prettier --check --ignore-unknown",
-    "format:md": "prettier --config .prettierrc.md.cjs --write '**/*.md'",
-    "format:md:check": "prettier --config .prettierrc.md.cjs --check '**/*.md'",
+    "format": "prettier --write --ignore-unknown --no-error-on-unmatched-pattern",
+    "format:check": "prettier --check --ignore-unknown --no-error-on-unmatched-pattern",
+    "format:md": "prettier --config .prettierrc.md.cjs --write AGENT_LOG.md && prettier --config .prettierrc.md.cjs --write '**/*.md'",
+    "format:md:check": "prettier --config .prettierrc.md.cjs --check AGENT_LOG.md && prettier --config .prettierrc.md.cjs --check '**/*.md'",
     "clean": "./scripts/clean/clean.sh",
     "clean:artifacts": "./scripts/clean/clean-artifacts.sh",
     "clean:all": "./scripts/clean/clean-all.sh",
@@ -145,9 +145,9 @@
     "tslib": "^2.3.0"
   },
   "o1js-internal": {
-    "native-version": "2.15.0"
+    "native-version": "3.0.0-mesa.final"
   },
   "optionalDependencies": {
-    "@o1js/native": "2.15.0"
+    "@o1js/native": "3.0.0-mesa.final"
   }
 }

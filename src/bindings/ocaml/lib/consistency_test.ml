@@ -289,7 +289,7 @@ module Transaction_hash = struct
       |> Signed_command.of_yojson |> ok_exn
     in
     Mina_transaction.Transaction_hash.(
-      command |> hash_signed_command |> to_base58_check |> Js.string )
+      command |> hash_signed_command |> to_base58_check |> Js.string)
 
   let hash_zkapp_command (command : Js.js_string Js.t) =
     let command : Zkapp_command.Stable.Latest.t =
@@ -297,7 +297,7 @@ module Transaction_hash = struct
       |> Zkapp_command.of_json
     in
     Mina_transaction.Transaction_hash.(
-      command |> hash_zkapp_command |> to_base58_check |> Js.string )
+      command |> hash_zkapp_command |> to_base58_check |> Js.string)
 
   let hash_payment_v1 (command : Js.js_string Js.t) =
     let command : Signed_command.Stable.V1.t =
