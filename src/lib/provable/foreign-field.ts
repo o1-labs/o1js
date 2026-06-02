@@ -152,7 +152,6 @@ class ForeignField {
   }
 
   /**
-   * @internal
    * Checks whether this field element is a constant.
    *
    * See {@link FieldVar} to understand constants vs variables.
@@ -162,7 +161,6 @@ class ForeignField {
   }
 
   /**
-   * @internal
    * Convert this field element to a constant.
    *
    * See {@link FieldVar} to understand constants vs variables.

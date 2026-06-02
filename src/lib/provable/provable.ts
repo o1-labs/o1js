@@ -200,7 +200,6 @@ const Provable = {
    */
   Array: provableArray,
   /**
-   * @internal
    * Check whether a value is constant.
    * See {@link FieldVar} for more information about constants and variables.
    *
