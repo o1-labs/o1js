@@ -1,0 +1,143 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      npm-tag:
+        description: 'npm dist-tag to publish under (for example: experimental, next, latest)'
+        required: true
+        default: 'experimental'
+      confirm-version:
+        description: 'Must exactly match package.json version at the selected ref'
+        required: true
+      proof_systems_commit:
+        description: 'Optional proof-systems commit override'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  Validate:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Read and confirm package version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION=$(jq -r .version package.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$VERSION" != "${{ inputs.confirm-version }}" ]; then
+            echo "confirm-version must be '$VERSION' for this ref" >&2
+            exit 1
+          fi
+
+      - name: Verify @o1js/native versions are in sync with o1js version
+        run: node scripts/check-version-sync.mjs
+
+  Release-Native:
+    needs: Validate
+    uses: ./.github/workflows/publish_native.yml
+    with:
+      npm-tag: ${{ inputs.npm-tag }}
+      publish: true
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
+
+  Release-on-NPM:
+    needs: [Validate, Release-Native]
+    timeout-minutes: 180
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Free space on runner
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android \
+                      /usr/share/dotnet \
+                      /opt/ghc \
+                      "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af --volumes || true
+          df -h
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build bindings and package artifacts
+        uses: ./.github/actions/build-wasm
+        with:
+          node_version: 22
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
+
+      - name: Setup Node for npm publish
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify @o1js/native versions are in sync with o1js version
+        run: node scripts/check-version-sync.mjs
+
+      - name: Build publishable o1js package
+        run: |
+          npm ci
+          npm run prepublish:full
+
+      - name: Publish o1js to npm
+        id: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ inputs.npm-tag }}
+          VERSION: ${{ needs.Validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          if npm view "o1js@$VERSION" >/dev/null 2>&1; then
+            echo "o1js@$VERSION already exists. Skipping publish."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            npm publish --provenance --access public --tag "$NPM_TAG"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Tag released version
+        env:
+          VERSION: ${{ needs.Validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --tags origin "refs/tags/$VERSION" | grep -q "$VERSION"; then
+            echo "Tag $VERSION already exists. Skipping."
+          else
+            git tag "$VERSION"
+            git push origin "$VERSION"
+          fi
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.Validate.outputs.version }}
+          generateReleaseNotes: true
+          name: Release ${{ needs.Validate.outputs.version }}
+          skipIfReleaseExists: true
