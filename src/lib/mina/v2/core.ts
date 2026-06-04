@@ -101,10 +101,16 @@ function mapUndefined<A, B>(value: A | undefined, f: (a: A) => B): B | undefined
   return value === undefined ? undefined : f(value);
 }
 
+/**
+ * Interface for provable types that can generate an empty instance of themselves
+ */
 interface Empty<T> {
   empty: () => T;
 }
 
+/**
+ * Interface for provable types that can compute `equals`
+ */
 interface Eq<T> {
   equals(x: T): Bool;
 }
@@ -124,6 +130,30 @@ type Tuple<T> = [T, ...T[]] | [];
 
 type ProvableTuple = Tuple<Provable<any>>;
 
+/**
+ * Type guard that will resolve to never unless the generic type is unknown.
+ * This can be used to filter properties on an object to only those that are
+ * typed as `Provable<unknown>`.
+ *
+ * @example
+ * ```ts
+ * type Layout = {
+ *   a: Provable<unknown>; // untyped
+ *   b: Provable<Field>;   // explicitly typed
+ *   c: Provable<Bool>;    // explicitly typed
+ * };
+ *
+ * type Inferred = {
+ *   [K in keyof Layout]: ProvableInstance<Layout[K]>
+ * };
+ *
+ * // Inferred = {
+ * //   a: unkown;
+ * //   b: never;
+ * //   c: never;
+ * // }
+ * ```
+ */
 type ProvableInstance<P> = P extends Provable<infer T> ? (unknown extends T ? T : never) : never;
 
 type ProvableTupleInstances<T extends ProvableTuple> = {
