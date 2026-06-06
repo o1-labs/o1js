@@ -335,6 +335,7 @@
           SKIP_MINA_COMMIT = true;
           SKIP_NATIVE_BUILD = true;
           JUST_BINDINGS = true;
+          DUNE_PROFILE = "dev";
           buildInputs = (with pkgs;
             [
               rustupWrapper
