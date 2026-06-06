@@ -18,6 +18,12 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/ff6c201b...HEAD)
 
+### Changed
+
+- Added an optional `network: NetworkId` parameter to `Signature.verify` and
+  `Signature.create` to account for different network prefixes and nonces.
+  https://github.com/o1-labs/o1js/pull/2744
+
 ### Added
 
 - Native Prover access from Node.js with x2 prover performance boost.
