@@ -4,6 +4,8 @@ on:
     types: [assigned, opened, synchronize, reopened, labeled, unlabeled]
     branches:
       - main
+      - develop
+      - develop-3.0
 jobs:
   Check-Changelog:
     name: Check Changelog Action

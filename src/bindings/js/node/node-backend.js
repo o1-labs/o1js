@@ -98,6 +98,31 @@ function getWorkerMemory() {
   return typeof wasm.get_memory === 'function' ? wasm.get_memory() : wasm.__wasm.memory;
 }
 
+function isCloneError(error) {
+  return (
+    error?.name === 'DataCloneError' ||
+    String(error?.message ?? error).includes('could not be cloned')
+  );
+}
+
+function describeMemory(value) {
+  return {
+    type: value?.constructor?.name,
+    hasBuffer: !!value?.buffer,
+    sharedBuffer: value?.buffer instanceof SharedArrayBuffer,
+    byteLength: value?.buffer?.byteLength,
+  };
+}
+
+function cloneCheck(value) {
+  try {
+    structuredClone(value);
+    return 'ok';
+  } catch (error) {
+    return `${error?.name ?? 'Error'}: ${error?.message ?? String(error)}`;
+  }
+}
+
 async function startWorkers(src, memory, builder) {
   wasmWorkers = [];
   const startupTimeoutMs = 30_000;

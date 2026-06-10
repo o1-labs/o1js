@@ -1,201 +1,201 @@
 {
   "sha256": {
-    "compileTime": 9.984865805,
+    "compileTime": 10.186526332000001,
     "methods": {
       "sha256": {
         "rows": 5036,
-        "digest": "c3952f2bd0dbb6b16ed43add7c57c9c5",
-        "proveTime": 6.00744489,
-        "verifyTime": 0.40995818099999815
+        "digest": "223d75719ac98942e172f88d77809cdb",
+        "proveTime": 6.071683501,
+        "verifyTime": 0.4092547379999996
       }
     }
   },
   "ecdsa": {
-    "compileTime": 46.596155715,
+    "compileTime": 46.072119578999995,
     "methods": {
       "verifyEcdsa": {
         "rows": 46221,
-        "digest": "d0f4f1d987923683410ebeeee0e3cca1",
-        "proveTime": 18.407472306999995,
-        "verifyTime": 0.41809859100000174
+        "digest": "c74d1fdd7c7019662c91a4709dbca86f",
+        "proveTime": 18.49262050599999,
+        "verifyTime": 0.41312086199999615
       }
     }
   },
   "ecdsa-ethers": {
-    "compileTime": 23.280932054000004,
+    "compileTime": 22.153850263999992,
     "methods": {
       "verifyEthers": {
         "rows": 46248,
-        "digest": "2278723f3c48ee7041964ebfc58f9f0f",
-        "proveTime": 18.497696626000003,
-        "verifyTime": 0.41478699300000155
+        "digest": "fb9c75d82f5bd1852e490ea26ed2e77d",
+        "proveTime": 18.889393941,
+        "verifyTime": 0.41189258300000803
       }
     }
   },
   "blake2b": {
-    "compileTime": 9.529025430999997,
+    "compileTime": 9.573338377,
     "methods": {
       "blake2b": {
         "rows": 3937,
-        "digest": "9a34a081e72a974dc8d663e338ba3a58",
-        "proveTime": 6.171980052000001,
-        "verifyTime": 0.41125573400000215
+        "digest": "700888074b4af4ce56fb61ad8b4ab6d6",
+        "proveTime": 6.195965743,
+        "verifyTime": 0.41293454400000335
       }
     }
   },
   "rsa-verify": {
-    "compileTime": 14.06758565,
+    "compileTime": 14.171854491000001,
     "methods": {
       "verifyRsa65537": {
         "rows": 12401,
-        "digest": "5070b93b8bf964733b6f5a696f42ded7",
-        "proveTime": 7.272105208000001,
-        "verifyTime": 0.40230545499999787
+        "digest": "a245ac71d2c2e431571858ae2df4feed",
+        "proveTime": 7.38115166,
+        "verifyTime": 0.39870131200000103
       }
     }
   },
   "add": {
-    "compileTime": 31.787116845999996,
+    "compileTime": 31.836732837000003,
     "methods": {
       "performAddition": {
         "rows": 2,
         "digest": "6ffe440928a31a555799dcf7005bae82",
-        "proveTime": 10.678856851000004,
-        "verifyTime": 0.410622292
+        "proveTime": 10.595764154000005,
+        "verifyTime": 0.40741566899999454
       }
     }
   },
   "multiply": {
-    "compileTime": 5.852139311000006,
+    "compileTime": 5.851863633000001,
     "methods": {
       "performMultiplication": {
         "rows": 1,
         "digest": "2a840c03f4e37242a8056a4aa536358c",
-        "proveTime": 9.589541812000004,
-        "verifyTime": 0.4024447040000014
+        "proveTime": 10.058049369,
+        "verifyTime": 0.40408757999999945
       }
     }
   },
   "hash-chain": {
-    "compileTime": 13.126843549000002,
+    "compileTime": 13.104810625,
     "methods": {
       "chain": {
         "rows": 513,
         "digest": "f1e9d1df2bd3da8fdc22a8b5d65ba7bd",
-        "proveTime": 39.921132415,
-        "verifyTime": 0.4052688940000007
+        "proveTime": 41.491003264999996,
+        "verifyTime": 0.4055661190000028
       }
     }
   },
   "bitwise": {
-    "compileTime": 8.629925582,
+    "compileTime": 8.726454706,
     "methods": {
       "rot": {
         "rows": 6,
-        "digest": "335c4b0ef55af40110fd4f76709e629e",
-        "proveTime": 5.616258575,
-        "verifyTime": 0.4008347620000004
+        "digest": "b751bc57da477ef9541cd530d80d5b9a",
+        "proveTime": 5.653775314000002,
+        "verifyTime": 0.39828120599999967
       },
       "xor": {
         "rows": 3,
-        "digest": "bf4c612a866451453ba30641230a99d0",
-        "proveTime": 3.9925918390000006,
-        "verifyTime": 0.3961367480000008
+        "digest": "ffd6599d8b0517e1fd84a91e0a70b4ec",
+        "proveTime": 3.9999900319999977,
+        "verifyTime": 0.3928509709999998
       },
       "and": {
         "rows": 4,
-        "digest": "f1f4f53ae5d5201eb5ef683c1c9e8167",
-        "proveTime": 3.9266704269999972,
-        "verifyTime": 0.39506957400000103
+        "digest": "91579e4dbd536676d7ff5c0596df4635",
+        "proveTime": 3.9740220069999994,
+        "verifyTime": 0.39265752799999976
       }
     }
   },
   "childProgram": {
-    "compileTime": 8.369248642,
+    "compileTime": 8.463249487,
     "methods": {
       "compute": {
         "rows": 0,
         "digest": "4f5ddea76d29cfcfd8c595f14e31f21b",
-        "proveTime": 3.943691033999996
+        "proveTime": 4.040985735000002
       },
       "assertAndAdd": {
         "rows": 23,
-        "digest": "db2a1a1a0b330ba3a2c34a843829edc2",
-        "proveTime": 5.426071074999999
+        "digest": "657a0a503fc007cc2b88e2b8721ed9ee",
+        "proveTime": 5.618568478999994
       }
     }
   },
   "mainProgram": {
-    "compileTime": 25.281253962999994,
+    "compileTime": 25.311271317000003,
     "methods": {
       "addSideloadedProgram": {
         "rows": 1796,
         "digest": "df4deb332ff01cbf2e7f39f203d9b717",
-        "proveTime": 7.3670188810000035
+        "proveTime": 7.545013989999999
       },
       "validateUsingTree": {
         "rows": 914,
         "digest": "bebd1ddc30c2f7e0784b92508492ecbd",
-        "proveTime": 15.475751624000004,
-        "verifyTime": 0.42413467899999524
+        "proveTime": 15.595185558999997,
+        "verifyTime": 0.42277375900000336
       }
     }
   },
   "payroll-runtime-table": {
-    "compileTime": 8.112725688000001,
+    "compileTime": 8.221712473,
     "methods": {
       "verifyPayroll": {
         "rows": 202,
-        "digest": "677070f76ca9120c9c6129f2f635ac3b",
-        "proveTime": 5.842855755999999,
-        "verifyTime": 0.4225110140000015
+        "digest": "b5b687fb26fcab697d74a1242804f61a",
+        "proveTime": 5.958626221999999,
+        "verifyTime": 0.42285683400000196
       }
     }
   },
   "small-program": {
-    "compileTime": 5.2336732920000015,
+    "compileTime": 5.338842613000001,
     "methods": {
       "poseidonHash": {
         "rows": 13,
         "digest": "ae6e7db1ed4da63e913e6990b385c439",
-        "proveTime": 4.337533733999997
+        "proveTime": 4.43638595299999
       }
     }
   },
   "big-program": {
-    "compileTime": 58.392223294,
+    "compileTime": 57.836561085,
     "methods": {
       "combinedHash": {
         "rows": 53069,
-        "digest": "91dc95688cf71dea0f2eabf74c4c1de5",
-        "proveTime": 23.324138582,
-        "verifyTime": 0.432811778999996
+        "digest": "4aae42cb252e97d85870815b3f72756f",
+        "proveTime": 23.354877410999993,
+        "verifyTime": 0.43135820299999617
       }
     }
   },
   "Voting_": {
-    "digest": "2d12b9235eac7fe8188447969463455160abb01ddd682efdd4147fe28fc8c608",
-    "compileTime": 12.032243363000001,
+    "digest": "3e9d12f7ba0d0cf88fb46d1342283cc9ad52df1b319373ca45b5206e2c6c7613",
+    "compileTime": 14.077247713,
     "methods": {}
   },
   "Membership_": {
-    "digest": "2dcddd890f32e12d56469f8e1cf25706d9b7c83f12342ade821aff42f18f53e9",
-    "compileTime": 4.3039147479999995,
+    "digest": "22ba41a10934cb1c22d578a53d2119546e297f74c62cbe71fd9701107ca479f",
+    "compileTime": 4.750856800000001,
     "methods": {}
   },
   "HelloWorld": {
-    "digest": "309ebdd97930d6c753207d62c84147fe540f62d1623a1251f1d0b4f5f8bd400d",
-    "compileTime": 2.2793035909999997,
+    "digest": "1bb504e2c546aad139c5cbfc8b5544c25d653573a1f31e9b601293c16eacc526",
+    "compileTime": 2.3810642179999997,
     "methods": {}
   },
   "TokenContract": {
-    "digest": "37ad5c458b0b9f5a44650d16fe16200b3fafff89af0c3b4d0ad57eda5df05d54",
-    "compileTime": 4.468822108,
+    "digest": "24e4970719219554e59b3cfb556e2154461a901b013ea7fc76011b3a8c1069",
+    "compileTime": 11.090492233000004,
     "methods": {}
   },
   "Dex": {
-    "digest": "fee88991bcc3331978a787642273ee02cbfc738949c6daad38c3bab65a8e81e",
-    "compileTime": 7.965595363,
+    "digest": "2c89e730fc5fbdb95ddf567c70d84741d5febd3336e28d3cf270e25fc31f9cfc",
+    "compileTime": 10.975853722,
     "methods": {}
   },
   "Group Primitive": {

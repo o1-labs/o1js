@@ -1,24 +1,24 @@
-import { FlexibleProvablePure } from '../../provable/types/struct.js';
-import { AccountUpdate, TokenId } from './account-update.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
-import * as Mina from './mina.js';
-import { fetchAccount, networkConfig } from './fetch.js';
-import { SmartContract } from './zkapp.js';
-import { Account } from './account.js';
 import { Provable } from '../../provable/provable.js';
-import { Field } from '../../provable/wrapped.js';
 import {
   ProvablePure,
   ProvableType,
   ProvableTypePure,
 } from '../../provable/types/provable-intf.js';
+import { FlexibleProvablePure } from '../../provable/types/struct.js';
+import { Bool, Field } from '../../provable/wrapped.js';
+import { AccountUpdate, TokenId } from './account-update.js';
+import { Account } from './account.js';
+import { ZkappConstants } from './constants.js';
+import { fetchAccount, networkConfig } from './fetch.js';
+import * as Mina from './mina.js';
 import { ensureConsistentPrecondition } from './precondition.js';
-import { Bool } from '../../provable/wrapped.js';
+import { SmartContract } from './zkapp.js';
 
 // external API
-export { State, state, declareState };
+export { State, declareState, state };
 // internal API
-export { assertStatePrecondition, cleanStatePrecondition, getLayout, InternalStateType };
+export { InternalStateType, assertStatePrecondition, cleanStatePrecondition, getLayout };
 
 /**
  * Gettable and settable state that can be checked for equality.
@@ -399,9 +399,9 @@ function getLayout(scClass: typeof SmartContract) {
       layout.set(key, { offset, length });
       offset += length;
     });
-    if (offset > 8) {
+    if (offset > ZkappConstants.MAX_ZKAPP_STATE_FIELDS) {
       throw Error(
-        `Found ${offset} on-chain state field elements on ${scClass.name}. Currently, only a total of 8 field elements of state are supported.`
+        `Found ${offset} on-chain state field elements on ${scClass.name}. Currently, only a total of 32 field elements of state are supported.`
       );
     }
   }

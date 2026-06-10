@@ -13,7 +13,7 @@ import {
 } from './src/utils.js';
 import * as TransactionJson from '../bindings/mina-transaction/gen/v1/transaction-json.js';
 import { ZkappCommand } from '../bindings/mina-transaction/gen/v1/transaction-bigint.js';
-import { signZkappCommand, verifyZkappCommandSignature } from './src/sign-zkapp-command.js';
+import { signZkappCommand, verifyZkappCommandSignature, getZkappCommandCommitments as getCommitments } from './src/sign-zkapp-command.js';
 import {
   signPayment,
   signStakeDelegation,
@@ -404,6 +404,44 @@ class Client {
     let signed = signZkappCommand(command, privateKey, this.network);
     let signature = signed.feePayer.authorization;
     return { signature, publicKey, data: { zkappCommand: signed, feePayer } };
+  }
+
+  /**
+   * Computes the commitment and full commitment of a zkApp transaction from
+   * the mina-signer wrapper input — the same `{ feePayer, zkappCommand }`
+   * shape accepted by {@link signZkappCommand}.
+   *
+   * Validates the fee payer (minimum-fee check, memo length, non-negative
+   * fee/nonce/validUntil) and normalizes the memo before computing
+   * commitments.
+   */
+  getZkappCommandCommitments({ feePayer: feePayer_, zkappCommand }: Json.ZkappCommand) {
+    let accountUpdates = zkappCommand.accountUpdates;
+    let minimumFee = this.getAccountUpdateMinimumFee(accountUpdates);
+    let feePayer = validFeePayer(feePayer_, minimumFee);
+    let { fee, nonce, validUntil, feePayer: publicKey, memo } = feePayer;
+    let command: TransactionJson.ZkappCommand = {
+      feePayer: {
+        body: { publicKey, fee, nonce, validUntil },
+        authorization: '',
+      },
+      accountUpdates,
+      memo: Memo.toBase58(Memo.fromString(memo)),
+    };
+    return getCommitments(command, this.network);
+  }
+
+  /**
+   * Computes the commitment and full commitment of a zkApp transaction from a
+   * fully-formed `TransactionJson.ZkappCommand` — the shape produced by
+   * `tx.toJSON()` (after `JSON.parse`).
+   *
+   * Skips fee-payer validation: the input is assumed to be well-formed.
+   * The protocol minimum fee is not enforced here — the network will reject
+   * a too-low fee on submission.
+   */
+  getZkappCommandCommitmentsFromJSON(zkappCommand: TransactionJson.ZkappCommand) {
+    return getCommitments(zkappCommand, this.network);
   }
 
   /**

@@ -19,3 +19,8 @@ const invalidVerificationKey = new VerificationKey({
 
 let vkIsNotValid = await VerificationKey.checkValidity(invalidVerificationKey);
 assert(vkIsNotValid === false, 'invalid verification key is being accepted as valid');
+
+const jsonVk = VerificationKey.toJSON(generated);
+const decodedVk = VerificationKey.fromJSON(jsonVk);
+let decodedVkIsValid = await VerificationKey.checkValidity(decodedVk);
+assert(decodedVkIsValid === true, 'decoded valid verification key is being rejected as invalid');
