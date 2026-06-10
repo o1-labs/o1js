@@ -64,7 +64,7 @@ class ProofBase<Input = any, Output = any> {
       publicInput: fields.input.map(String),
       publicOutput: fields.output.map(String),
       maxProofsVerified: this.maxProofsVerified,
-      proof: Pickles.proofToBase64([this.maxProofsVerified, this.proof]),
+      proof: Pickles.proofToBase64Chunked([this.maxProofsVerified, this.proof]),
     };
   }
 
@@ -153,7 +153,7 @@ class Proof<Input, Output> extends ProofBase<Input, Output> {
     }: JsonProof
   ): Promise<Proof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>> {
     await initializeBindings();
-    let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
+    let [, proof] = Pickles.proofOfBase64Chunked(proofString, maxProofsVerified);
     let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
     return this.provable.fromFields(fields, [[], [], [proof, maxProofsVerified]]) as any;
   }
@@ -307,7 +307,7 @@ class DynamicProof<Input, Output> extends ProofBase<Input, Output> {
     DynamicProof<InferProvable<S['publicInputType']>, InferProvable<S['publicOutputType']>>
   > {
     await initializeBindings();
-    let [, proof] = Pickles.proofOfBase64(proofString, maxProofsVerified);
+    let [, proof] = Pickles.proofOfBase64Chunked(proofString, maxProofsVerified);
     let fields = publicInputJson.map(Field).concat(publicOutputJson.map(Field));
     return this.provable.fromFields(fields, [[], [], [proof, maxProofsVerified]]) as any;
   }
