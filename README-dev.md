@@ -129,12 +129,12 @@ npm run build:bindings-node
 ### Native backend package caveat
 
 `npm run build:bindings-all` and `npm run build:bindings-node` both run the
-native backend build unless `SKIP_NATIVE_BUILD` is set. The fresh native artifact
-is written to `native/<platform>-<arch>/kimchi_napi.node`.
+native backend build unless `SKIP_NATIVE_BUILD` is set. The fresh native
+artifact is written to `native/<platform>-<arch>/kimchi_napi.node`.
 
 At runtime, however, the native backend is loaded from the installed optional
-package under `node_modules/@o1js/native-<platform>-<arch>/kimchi_napi.node`.
-If `node_modules` already exists, rebuilding the bindings does not necessarily
+package under `node_modules/@o1js/native-<platform>-<arch>/kimchi_napi.node`. If
+`node_modules` already exists, rebuilding the bindings does not necessarily
 refresh that installed package copy. This can leave o1js running an older native
 binary even though the local `native/<platform>-<arch>` artifact was rebuilt.
 
