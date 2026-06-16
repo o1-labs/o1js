@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { JsonProof } from 'o1js';
-import { Cache, Field, Gadgets, setBackend, ZkProgram } from 'o1js';
+import { Cache, Field, Gadgets, setBackend, verify, ZkProgram } from 'o1js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
 const mode = getMode();
@@ -51,7 +51,7 @@ async function roundtripWithWasm() {
   console.log(`Using cache directory ${cacheDir}`);
 
   perf.start('compile');
-  await MyProgram.compile({ cache });
+  let { verificationKey } = await MyProgram.compile({ cache });
   perf.end();
 
   perf.start('prove', 'baseCase');
@@ -65,7 +65,22 @@ async function roundtripWithWasm() {
   let roundtripProof = await MyProgram.Proof.fromJSON(proofJsonRoundtrip);
   assertJsonEquals(proofJson, roundtripProof.toJSON());
 
+  perf.start('verify standard JSON serde roundtrip', 'baseCase');
+  let roundtripIsValid = await MyProgram.verify(roundtripProof);
+  perf.end();
+
+  perf.start('standalone verify standard JSON serde roundtrip', 'baseCase');
+  let standaloneIsValid = await verify(proofJsonRoundtrip, verificationKey);
+  perf.end();
+
+  if (!roundtripIsValid) throw new Error('single-chunk standard JSON proof roundtrip failed');
+  if (!standaloneIsValid) {
+    throw new Error('single-chunk standalone proof verification failed');
+  }
+
   console.log('Succeeded to roundtrip single-chunk proof JSON with wasm backend');
+  console.log('MyProgram.verify isValid?', roundtripIsValid);
+  console.log('standalone verify isValid?', standaloneIsValid);
   console.log(`Saved proof to ${proofPath}`);
   console.log(`Saved metadata to ${metadataPath}`);
 }

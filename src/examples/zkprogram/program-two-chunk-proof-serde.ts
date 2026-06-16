@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { JsonProof } from 'o1js';
-import { Cache, Field, Provable, setBackend, ZkProgram } from 'o1js';
+import { Cache, Field, Provable, setBackend, verify, ZkProgram } from 'o1js';
 import { Gates, KimchiGateType } from '../../lib/provable/gates.js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
@@ -61,7 +61,7 @@ async function roundtripWithNative() {
   console.log(`Using cache directory ${cacheDir}`);
 
   perf.start('compile');
-  await MyProgram.compile({ cache });
+  let { verificationKey } = await MyProgram.compile({ cache });
   perf.end();
 
   perf.start('prove', 'baseCase');
@@ -80,9 +80,18 @@ async function roundtripWithNative() {
   let roundtripIsValid = await MyProgram.verify(roundtripProof);
   perf.end();
 
+  perf.start('standalone verify standard JSON serde roundtrip', 'baseCase');
+  let standaloneIsValid = await verify(proofJsonRoundtrip, verificationKey, { numChunks: 2 });
+  perf.end();
+
   if (!roundtripIsValid) throw new Error('two-chunk standard JSON proof roundtrip failed');
+  if (!standaloneIsValid) {
+    throw new Error('two-chunk standalone proof verification failed');
+  }
 
   console.log('Succeeded to roundtrip two-chunk proof JSON with standard serde');
+  console.log('MyProgram.verify isValid?', roundtripIsValid);
+  console.log('standalone verify isValid?', standaloneIsValid);
   console.log(`Saved proof to ${proofPath}`);
   console.log(`Saved metadata to ${metadataPath}`);
 }

@@ -2,7 +2,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { JsonProof, VerificationKey } from 'o1js';
 import { Cache, Field, Gadgets, ZkProgram, setBackend, verify } from 'o1js';
-import { Pickles, initializeBindings } from '../../bindings.js';
 import { Performance } from '../../lib/testing/perf-regression.js';
 
 const mode = getMode();
@@ -201,10 +200,10 @@ function getArtifactsDir() {
 function printUsageAndExit(mode: string): never {
   throw new Error(
     `Unknown mode "${mode}". Use one of:\n` +
-    `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts prove-native\n` +
-    `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-native\n` +
-    `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-wasm\n` +
-    `Optional:\n` +
-    `  --artifacts-dir=/absolute/or/relative/path`
+      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts prove-native\n` +
+      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-native\n` +
+      `  ./run src/examples/zkprogram/program-chunking-cross-backend.ts verify-wasm\n` +
+      `Optional:\n` +
+      `  --artifacts-dir=/absolute/or/relative/path`
   );
 }
