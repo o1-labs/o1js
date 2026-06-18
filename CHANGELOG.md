@@ -30,6 +30,10 @@ This project adheres to
 - Removed `@internal` JSDoc tags from public APIs so they appear in generated
   documentation. https://github.com/o1-labs/o1js/pull/2881
 
+### Fixed
+
+- Reject Base64 inputs with padding characters before the end of the string.
+
 ### Removed
 
 - Removed unused `Cairo*` gates. https://github.com/o1-labs/o1js/pull/2752
