@@ -18,9 +18,9 @@ class bls12_381 extends createProvableBigInt(
   0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaabn
 ) {}
 
-let a = bls12_381.max();
-let b = bls12_381.one();
-let c = bls12_381.zero();
+let a = bls12_381.max;
+let b = bls12_381.one;
+let c = bls12_381.zero;
 
 a.add(b).assertEquals(c); // a + b = 0 (mod p)
 a.mul(c).assertEquals(c); // a * 0 = 0 (mod p)
@@ -31,9 +31,9 @@ class brainpoolP512r1 extends createProvableBigInt(
   0xaadd9db8dbe9c48b3fd4e6ae33c9fc07cb308db3b3c9d20ed6639cca703308717d4d9b009bc66842aecda12ae6a380e62881ff2f2d82c68528aa6056583a48f3n
 ) {}
 
-let p = brainpoolP512r1.max();
-let t = brainpoolP512r1.one();
-let k = brainpoolP512r1.zero();
+let p = brainpoolP512r1.max;
+let t = brainpoolP512r1.one;
+let k = brainpoolP512r1.zero;
 
 p.inverse().mul(p).assertEquals(t); // p^-1 * p = 1 (mod p)
 t.negate().assertEquals(p); // additive inverse of 1 is equals to p - 1 (mod p)
