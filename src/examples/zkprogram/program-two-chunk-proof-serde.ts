@@ -11,7 +11,6 @@ const mode = getMode();
 const artifactsDir = getArtifactsDir();
 const cacheDir = path.join(artifactsDir, 'cache');
 const proofPath = path.join(artifactsDir, 'two-chunk-proof.json');
-const legacyProofPath = path.join(artifactsDir, 'legacy-two-chunk-proof.json');
 const metadataPath = path.join(artifactsDir, 'metadata.json');
 
 switch (mode) {
@@ -74,85 +73,43 @@ async function roundtripWithNative() {
 
   let proofJson = proof.toJSON();
   let maxProofsVerified = proofJson.maxProofsVerified;
-  let proofTuple = [maxProofsVerified, proof.proof] as const;
-  let chunkedProofBase64 = Pickles.proofToBase64Chunked(proofTuple);
+  let proofTuple: [0 | 1 | 2, unknown] = [maxProofsVerified, proof.proof];
+  let proofBase64 = Pickles.proofToBase64(proofTuple);
 
-  if (proofJson.proof !== chunkedProofBase64) {
-    throw new Error('Proof.toJSON() did not use proofToBase64Chunked');
+  if (proofJson.proof !== proofBase64) {
+    throw new Error('Proof.toJSON() did not use proofToBase64');
   }
 
-  expectFailure({
-    action: () => Pickles.proofOfBase64(chunkedProofBase64, maxProofsVerified),
-    expectedFailureMessage: 'proofOfBase64 rejected the chunked payload as expected',
-    unexpectedSuccessMessage:
-      'proofOfBase64 unexpectedly decoded a two-chunk proofToBase64Chunked payload',
-  });
+  let decoded = Pickles.proofOfBase64(proofBase64, maxProofsVerified);
+  let roundtripBase64 = Pickles.proofToBase64(decoded);
 
-  let chunkedDecoded = Pickles.proofOfBase64Chunked(chunkedProofBase64, maxProofsVerified);
-  let chunkedRoundtripBase64 = Pickles.proofToBase64Chunked(chunkedDecoded);
-
-  if (chunkedRoundtripBase64 !== chunkedProofBase64) {
-    throw new Error('proofToBase64Chunked/proofOfBase64Chunked roundtrip changed proof bytes');
+  if (roundtripBase64 !== proofBase64) {
+    throw new Error('proofToBase64/proofOfBase64 roundtrip changed proof bytes');
   }
 
-  let chunkedRoundtripProof = await MyProgram.Proof.fromJSON({
+  let roundtripProof = await MyProgram.Proof.fromJSON({
     ...proofJson,
-    proof: chunkedRoundtripBase64,
+    proof: roundtripBase64,
   });
 
-  perf.start('verify chunked serde roundtrip', 'baseCase');
-  let chunkedIsValid = await MyProgram.verify(chunkedRoundtripProof);
+  perf.start('verify serde roundtrip', 'baseCase');
+  let isValid = await MyProgram.verify(roundtripProof);
   perf.end();
 
-  if (!chunkedIsValid) {
-    throw new Error('two-chunk proofToBase64Chunked/proofOfBase64Chunked roundtrip failed');
+  if (!isValid) {
+    throw new Error('two-chunk proofToBase64/proofOfBase64 roundtrip failed');
   }
 
-  let legacyProofBase64 = Pickles.proofToBase64(proofTuple);
-  let legacyJson: JsonProof = {
-    ...proofJson,
-    proof: legacyProofBase64,
-  };
+  await persistArtifacts(proofJson, cs.baseCase.rows);
 
-  let legacyFailed = await standardSerdeRoundtripFails(MyProgram, legacyJson);
-  if (!legacyFailed) {
-    throw new Error('proofToBase64/proofOfBase64 unexpectedly preserved a two-chunk proof');
-  }
-
-  await persistArtifacts(proofJson, legacyJson, cs.baseCase.rows);
-
-  console.log('Succeeded to roundtrip two-chunk proof JSON with chunked serde');
-  console.log('Standard proofToBase64/proofOfBase64 failed for the two-chunk proof as expected');
-  console.log(`Saved chunked proof to ${proofPath}`);
-  console.log(`Saved legacy proof to ${legacyProofPath}`);
+  console.log('Succeeded to roundtrip two-chunk proof JSON with proofToBase64/proofOfBase64');
+  console.log(`Saved proof to ${proofPath}`);
   console.log(`Saved metadata to ${metadataPath}`);
 }
 
-async function standardSerdeRoundtripFails(
-  MyProgram: ReturnType<typeof createTwoChunkProgram>,
-  legacyJson: JsonProof
-) {
-  try {
-    let legacyDecoded = Pickles.proofOfBase64(legacyJson.proof, legacyJson.maxProofsVerified);
-    let legacyRoundtripBase64 = Pickles.proofToBase64(legacyDecoded);
-    let legacyRoundtripProof = await MyProgram.Proof.fromJSON({
-      ...legacyJson,
-      proof: legacyRoundtripBase64,
-    });
-
-    let legacyIsValid = await MyProgram.verify(legacyRoundtripProof);
-
-    return !legacyIsValid;
-  } catch (error) {
-    console.log(`Standard proof serde failed as expected: ${formatError(error)}`);
-    return true;
-  }
-}
-
-async function persistArtifacts(proof: JsonProof, legacyProof: JsonProof, rows: number) {
+async function persistArtifacts(proof: JsonProof, rows: number) {
   await fs.mkdir(artifactsDir, { recursive: true });
   await fs.writeFile(proofPath, JSON.stringify(proof, null, 2) + '\n');
-  await fs.writeFile(legacyProofPath, JSON.stringify(legacyProof, null, 2) + '\n');
   await fs.writeFile(
     metadataPath,
     JSON.stringify(
@@ -162,7 +119,6 @@ async function persistArtifacts(proof: JsonProof, legacyProof: JsonProof, rows: 
         generatedAt: new Date().toISOString(),
         cacheDir,
         proofPath,
-        legacyProofPath,
       },
       null,
       2
@@ -189,29 +145,6 @@ function getArtifactsDir() {
     }
   }
   return path.resolve('tests/test-artifacts/program-two-chunk-proof-serde');
-}
-
-function expectFailure({
-  action,
-  expectedFailureMessage,
-  unexpectedSuccessMessage,
-}: {
-  action: () => unknown;
-  expectedFailureMessage: string;
-  unexpectedSuccessMessage: string;
-}) {
-  try {
-    action();
-  } catch (error) {
-    console.log(`${expectedFailureMessage}: ${formatError(error)}`);
-    return;
-  }
-  throw new Error(unexpectedSuccessMessage);
-}
-
-function formatError(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return String(error);
 }
 
 function printUsageAndExit(mode: string): never {
