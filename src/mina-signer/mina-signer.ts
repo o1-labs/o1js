@@ -1,6 +1,6 @@
 import { PrivateKey, PublicKey } from './src/curve-bigint.js';
 import * as Json from './src/types.js';
-import type { SignedLegacy, Signed, NetworkId, SignedRosetta } from './src/types.js';
+import type { SignedLegacy, Signed, NetworkId, SignedRosetta, Era } from './src/types.js';
 
 import {
   isPayment,
@@ -13,6 +13,7 @@ import {
 } from './src/utils.js';
 import * as TransactionJson from '../bindings/mina-transaction/gen/v1/transaction-json.js';
 import { ZkappCommand } from '../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import { ZkappCommand as ZkappCommandBerkeley } from './src/berkeley/transaction-bigint.js';
 import { signZkappCommand, verifyZkappCommandSignature, getZkappCommandCommitments as getCommitments } from './src/sign-zkapp-command.js';
 import {
   signPayment,
@@ -34,9 +35,11 @@ const defaultValidUntil = '4294967295';
 
 class Client {
   private network: NetworkId;
+  private era: Era;
 
-  constructor({ network }: { network: NetworkId }) {
+  constructor({ network, era = 'mesa' }: { network: NetworkId; era?: Era }) {
     this.network = network;
+    this.era = era;
   }
 
   /**
@@ -70,11 +73,12 @@ class Client {
     ) {
       throw Error('Public key not derivable from private key');
     }
-    let dummy = ZkappCommand.toJSON(ZkappCommand.empty());
+    let ZkappCommand_ = this.era === 'berkeley' ? ZkappCommandBerkeley : ZkappCommand;
+    let dummy = ZkappCommand_.toJSON(ZkappCommand_.empty());
     dummy.feePayer.body.publicKey = publicKey;
     dummy.memo = Memo.toBase58(Memo.empty());
-    let signed = signZkappCommand(dummy, privateKey, this.network);
-    let ok = verifyZkappCommandSignature(signed, publicKey, this.network);
+    let signed = signZkappCommand(dummy, privateKey, this.network, this.era);
+    let ok = verifyZkappCommandSignature(signed, publicKey, this.network, this.era);
     if (!ok) throw Error('Could not sign a transaction with private key');
     return true;
   }
@@ -401,7 +405,7 @@ class Client {
       accountUpdates,
       memo: Memo.toBase58(Memo.fromString(memo)),
     };
-    let signed = signZkappCommand(command, privateKey, this.network);
+    let signed = signZkappCommand(command, privateKey, this.network, this.era);
     let signature = signed.feePayer.authorization;
     return { signature, publicKey, data: { zkappCommand: signed, feePayer } };
   }
@@ -428,7 +432,7 @@ class Client {
       accountUpdates,
       memo: Memo.toBase58(Memo.fromString(memo)),
     };
-    return getCommitments(command, this.network);
+    return getCommitments(command, this.network, this.era);
   }
 
   /**
@@ -441,7 +445,7 @@ class Client {
    * a too-low fee on submission.
    */
   getZkappCommandCommitmentsFromJSON(zkappCommand: TransactionJson.ZkappCommand) {
-    return getCommitments(zkappCommand, this.network);
+    return getCommitments(zkappCommand, this.network, this.era);
   }
 
   /**
@@ -453,7 +457,7 @@ class Client {
   verifyZkappCommand({ data, publicKey, signature }: Signed<Json.ZkappCommand>): boolean {
     return (
       signature === data.zkappCommand.feePayer.authorization &&
-      verifyZkappCommandSignature(data.zkappCommand, publicKey, this.network)
+      verifyZkappCommandSignature(data.zkappCommand, publicKey, this.network, this.era)
     );
   }
 

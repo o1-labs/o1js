@@ -19,6 +19,11 @@ export const NetworkId = {
   },
 };
 
+// transaction-format era. 'mesa' is the current default; 'berkeley' reproduces
+// the o1js v2.9.0 (mina-signer 3.0.7) zkApp transaction format.
+// orthogonal to NetworkId - any era is valid with any network.
+export type Era = 'mesa' | 'berkeley';
+
 export type Keypair = {
   readonly privateKey: PrivateKey;
   readonly publicKey: PublicKey;

@@ -18,6 +18,13 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/f54dd40...HEAD)
 
+### Added
+
+- New `era` option on the `Client` constructor (`new Client({ network, era: 'berkeley' })`)
+  for signing/verifying zkApp commands in the legacy berkeley (o1js v2.9.0) transaction
+  format. Defaults to `'mesa'` (current format); `era` is orthogonal to `network`. Legacy
+  payment/delegation/string/field signing is unchanged across eras.
+
 ## [3.1.0](https://github.com/o1-labs/o1js/compare/e3e758b...f54dd40) - 2025-09-09
 
 ### Added
