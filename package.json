@@ -83,6 +83,7 @@
     "clean": "./scripts/clean/clean.sh",
     "clean:artifacts": "./scripts/clean/clean-artifacts.sh",
     "clean:all": "./scripts/clean/clean-all.sh",
+    "cleanPackageLock": "./scripts/clean/clean-package-lock.sh",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "lint:strict": "oxlint --max-warnings 0",
