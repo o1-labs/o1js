@@ -764,14 +764,26 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   );
 
   let maxProofs = computeMaxProofsVerified(proofs.map((p) => p.length));
-  let maxLocalProofs = computeMaxProofsVerified(
-    await Promise.all(
-      proofs.flatMap((methodProofs) =>
-        methodProofs.map((Proof) => maxProofsVerifiedForProofClass(Proof, proofSystemTag))
+  let wrapDomain: 0 | 1 | 2 = maxProofsToWrapDomain[maxProofs];
+  // `maxProofsToWrapDomain` maps 2 proofs -> wrap domain 1 (an optimization that
+  // assumes the verified proofs are themselves shallow). That is invalid when a
+  // 2-proof method verifies a proof which *itself* verifies 2 proofs: the wrap
+  // domain then has to be 2 (mirrors pickles' own `Wrap_domains.Make.f`, which
+  // takes max(max_proofs_verified, max_local_proofs_verified)). Only bump in the
+  // maxProofs === 2 case, where the heuristic deviates from the natural wrap
+  // domain. Circuits verifying 0 or 1 proofs keep their previous wrap domain, so
+  // existing circuits are left untouched (backwards compatible).
+  if (maxProofs === 2) {
+    let maxLocalProofs = computeMaxProofsVerified(
+      await Promise.all(
+        proofs.flatMap((methodProofs) =>
+          methodProofs.map((Proof) => maxProofsVerifiedForProofClass(Proof, proofSystemTag))
+        )
       )
-    )
-  );
-  overrideWrapDomain ??= Math.max(maxProofsToWrapDomain[maxProofs], maxLocalProofs) as 0 | 1 | 2;
+    );
+    wrapDomain = Math.max(wrapDomain, maxLocalProofs) as 0 | 1 | 2;
+  }
+  overrideWrapDomain ??= wrapDomain;
   let picklesCache: Pickles.Cache = [
     0,
     function read_(mlHeader) {
