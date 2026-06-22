@@ -470,8 +470,7 @@ jobs:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
       - name: Check wasm proof JSON roundtrip
         run: |
-          ./run src/examples/zkprogram/program-single-chunk-proof-serde.ts roundtrip-wasm \
-            --artifacts-dir=tests/test-artifacts/program-single-chunk-proof-serde-ci
+          ./run src/examples/zkprogram/program-proof-serde.ts roundtrip-single-wasm
 
   Two-Chunk-Proof-Serialization-Roundtrip:
     needs: [Prepare-Wasm, Prepare-Native]
@@ -497,8 +496,7 @@ jobs:
         run: npm install ./native/linux-x64/
       - name: Check native proof JSON roundtrip
         run: |
-          ./run src/examples/zkprogram/program-two-chunk-proof-serde.ts roundtrip-native \
-            --artifacts-dir=tests/test-artifacts/program-two-chunk-proof-serde-ci
+          ./run src/examples/zkprogram/program-proof-serde.ts roundtrip-two-native
 
   Cross-Backend-Chunked-Proof:
     needs: [Prepare-Wasm, Prepare-Native]
