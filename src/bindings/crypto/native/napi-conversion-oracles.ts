@@ -84,8 +84,8 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiOraclesClasse
       let [, o, pEval, openingPrechallenges, digestBeforeEvaluations] = oracles;
       return new Oracles(
         randomOraclesToRust(o),
-        fieldToRust(pEval[1]),
-        fieldToRust(pEval[2]),
+        fieldsToRustFlat(pEval[1]),
+        fieldsToRustFlat(pEval[2]),
         fieldsToRustFlat(openingPrechallenges),
         fieldToRust(digestBeforeEvaluations)
       );
@@ -94,7 +94,7 @@ function oraclesConversionPerField({ RandomOracles, Oracles }: NapiOraclesClasse
       let mlOracles: Oracles = [
         0,
         randomOraclesFromRust(oracles.o),
-        [0, fieldFromRust(oracles.p_eval0), fieldFromRust(oracles.p_eval1)],
+        [0, fieldsFromRustFlat(oracles.p_eval0), fieldsFromRustFlat(oracles.p_eval1)],
         fieldsFromRustFlat(oracles.opening_prechallenges),
         fieldFromRust(oracles.digest_before_evaluations),
       ];

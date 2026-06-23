@@ -1,35 +1,35 @@
 /**
  * This file is a TS representation of kimchi_types.ml
  */
-import type { Lookup } from './lookup.js';
 import type { MlArray, MlOption, MlTuple } from '../../../lib/ml/base.js';
+import type { WasmFpSrs, WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
 import type { OrInfinity } from './curve.js';
 import type { Field } from './field.js';
-import type { WasmFpSrs, WasmFqSrs } from '../../compiled/node_bindings/kimchi_wasm.cjs';
+import type { Lookup } from './lookup.js';
 
 export {
-  Field,
-  OrInfinity,
-  Wire,
-  Gate,
-  PolyComm,
   Domain,
+  Field,
+  Gate,
+  LookupCommitments,
+  LookupTable,
+  OpeningProof,
+  OrInfinity,
+  Oracles,
+  PointEvaluations,
+  PolyComm,
+  ProofEvaluations,
+  ProofWithPublic,
+  ProverCommitments,
+  ProverProof,
+  RandomOracles,
+  RecursionChallenge,
+  RuntimeTable,
+  RuntimeTableCfg,
+  ScalarChallenge,
   VerificationEvals,
   VerifierIndex,
-  ScalarChallenge,
-  RandomOracles,
-  Oracles,
-  ProverCommitments,
-  OpeningProof,
-  PointEvaluations,
-  ProofEvaluations,
-  RecursionChallenge,
-  ProverProof,
-  ProofWithPublic,
-  LookupCommitments,
-  RuntimeTableCfg,
-  LookupTable,
-  RuntimeTable,
+  Wire,
 };
 
 // wasm types
@@ -104,7 +104,7 @@ type RandomOracles = [
 type Oracles = [
   _: 0,
   o: RandomOracles,
-  p_eval: [0, Field, Field],
+  p_eval: [0, MlArray<Field>, MlArray<Field>],
   opening_prechallenges: MlArray<Field>,
   digest_before_evaluations: Field,
 ];
