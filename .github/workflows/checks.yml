@@ -357,11 +357,17 @@ jobs:
     timeout-minutes: 90
     runs-on: ubuntu-latest
     steps:
-      - name: Restore repository
-        uses: actions/cache@v4
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
         with:
-          path: .
-          key: repo-${{ github.sha }}-node-20
+          submodules: recursive
+          repository: ${{ inputs.target_repo || github.repository }}
+          ref: ${{ inputs.target_ref || github.ref }}
+
+      - name: build
+        uses: ./.github/actions/build-wasm
+        with:
+          proof_systems_commit: ${{ inputs.proof_systems_commit }}
 
       - name: Setup Node.JS 20
         uses: actions/setup-node@v4
@@ -470,8 +476,7 @@ jobs:
           proof_systems_commit: ${{ inputs.proof_systems_commit }}
       - name: Check wasm proof JSON roundtrip
         run: |
-          ./run src/examples/zkprogram/program-single-chunk-proof-serde.ts roundtrip-wasm \
-            --artifacts-dir=tests/test-artifacts/program-single-chunk-proof-serde-ci
+          ./run src/examples/zkprogram/program-proof-serde.ts roundtrip-single-wasm
 
   Two-Chunk-Proof-Serialization-Roundtrip:
     needs: [Prepare-Wasm, Prepare-Native]
@@ -497,8 +502,7 @@ jobs:
         run: npm install ./native/linux-x64/
       - name: Check native proof JSON roundtrip
         run: |
-          ./run src/examples/zkprogram/program-two-chunk-proof-serde.ts roundtrip-native \
-            --artifacts-dir=tests/test-artifacts/program-two-chunk-proof-serde-ci
+          ./run src/examples/zkprogram/program-proof-serde.ts roundtrip-two-native
 
   Cross-Backend-Chunked-Proof:
     needs: [Prepare-Wasm, Prepare-Native]
