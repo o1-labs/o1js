@@ -741,11 +741,19 @@ let proof_of_base64 str i : some_proof =
   | _ ->
       failwith "invalid proof index"
 
+let num_chunks_of_config config =
+  match Js.Optdef.to_option config with
+  | None ->
+      None
+  | Some config ->
+      Js.Optdef.to_option config##.numChunks
+
 let verify (statement : Statement.Constant.t) (proof : proof)
-    (vk : Js.js_string Js.t) =
+    (vk : Js.js_string Js.t) config =
   let i, o = statement in
   let typ = statement_typ (Array.length i) (Array.length o) in
   let proof = Pickles.Side_loaded.Proof.of_proof proof in
+  let num_chunks = num_chunks_of_config config in
   let vk =
     match Pickles.Side_loaded.Verification_key.of_base64 (Js.to_string vk) with
     | Ok vk_ ->
@@ -754,7 +762,7 @@ let verify (statement : Statement.Constant.t) (proof : proof)
         failwithf "Could not decode base64 verification key: %s"
           (Error.to_string_hum err) ()
   in
-  Pickles.Side_loaded.verify_promise ~typ [ (vk, statement, proof) ]
+  Pickles.Side_loaded.verify_promise ?num_chunks ~typ [ (vk, statement, proof) ]
   |> Promise.map ~f:(fun x -> Js.bool (Or_error.is_ok x))
   |> Promise_js_helpers.to_js
 

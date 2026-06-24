@@ -734,7 +734,10 @@ declare const Pickles: {
   verify(
     statement: Pickles.Statement<FieldConst>,
     proof: Pickles.Proof,
-    verificationKey: Base64VerificationKeyString
+    verificationKey: Base64VerificationKeyString,
+    options?: {
+      numChunks?: number;
+    }
   ): Promise<boolean>;
 
   loadSrsFp(): WasmFpSrs;

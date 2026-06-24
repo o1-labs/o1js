@@ -83,6 +83,7 @@ val pickles :
       (   Statement.Constant.t
        -> proof
        -> Js.js_string Js.t
+       -> < numChunks : int Js.optdef_prop > Js.t Js.optdef
        -> bool Js.t Promise_js_helpers.js_promise )
       Js.readonly_prop
   ; loadSrsFp : (unit -> Kimchi_bindings.Protocol.SRS.Fp.t) Js.readonly_prop
