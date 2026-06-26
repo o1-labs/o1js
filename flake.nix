@@ -286,6 +286,7 @@
           name = "export_test_vectors";
           version = "0.1.0";
           CARGO_TARGET_DIR = "./target";
+          cargoBuildFlags = [ "--features" "o1-utils/std" ];
           cargoLock = {
             lockFile = ./src/mina/src/lib/crypto/proof-systems/Cargo.lock;
             outputHashes = narHashesFromCargoLock
