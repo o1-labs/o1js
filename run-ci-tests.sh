@@ -10,6 +10,7 @@ case $TEST_TYPE in
   ./run src/examples/zkapps/composability.ts --bundle
   ./run src/tests/fake-proof.ts
   ./run src/tests/inductive-proofs-internal.ts --bundle
+  ./run src/tests/mesa-minimal-large-method-repro.ts --bundle
   ./run tests/vk-regression/diverse-zk-program-run.ts --bundle
   ;;
 
