@@ -2,7 +2,7 @@ import esbuild from 'esbuild';
 import fse, { move } from 'fs-extra';
 import glob from 'glob';
 import { exec } from 'node:child_process';
-import { readFile, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,34 +24,45 @@ if (isMain) {
 async function buildWeb({ production }) {
   let minify = !!production;
 
-  // prepare kimchi_wasm.js with bundled wasm in function-wrapped form
-  let bindings = await readFile('./src/bindings/compiled/web_bindings/kimchi_wasm.js', 'utf8');
-  bindings = rewriteWasmBindings(bindings);
-  let tmpBindingsPath = 'src/bindings/compiled/web_bindings/kimchi_wasm.tmp.js';
-  await writeFile(tmpBindingsPath, bindings);
-  await esbuild.build({
-    entryPoints: [tmpBindingsPath],
-    bundle: true,
-    format: 'esm',
-    outfile: tmpBindingsPath,
-    target: 'esnext',
-    plugins: [wasmPlugin()],
-    allowOverwrite: true,
-    sourcemap: true,
-  });
-  bindings = await readFile(tmpBindingsPath, 'utf8');
-  bindings = rewriteBundledWasmBindings(bindings);
-  await writeFile(tmpBindingsPath, bindings);
-
   // run typescript
   await execPromise('npx tsc -p tsconfig.web.json');
 
   // copy over pure js files
   await copy({
-    './src/bindings/compiled/web_bindings/': './dist/web/web_bindings/',
     './src/bindings.d.ts': './dist/web/bindings.d.ts',
     './src/bindings.web.js': './dist/web/bindings.js',
     './src/bindings/js/web/': './dist/web/bindings/js/web/',
+  });
+
+  // bundle the napi-rs wasm loaders so that their `@napi-rs/wasm-runtime`
+  // imports are resolved; the .wasm binary itself stays a separate file which
+  // the loader fetches relative to `import.meta.url`
+  await esbuild.build({
+    entryPoints: ['./src/bindings/compiled/web_bindings/kimchi_napi.wasi-browser.js'],
+    bundle: true,
+    format: 'esm',
+    outfile: './dist/web/web_bindings/kimchi_napi.wasi-browser.js',
+    target: 'esnext',
+    external: ['*.wasm', '*.mjs'],
+    logLevel: 'error',
+    minify,
+    sourcemap: true,
+  });
+  await esbuild.build({
+    entryPoints: ['./src/bindings/compiled/web_bindings/wasi-worker-browser.mjs'],
+    bundle: true,
+    format: 'esm',
+    outfile: './dist/web/web_bindings/wasi-worker-browser.mjs',
+    target: 'esnext',
+    external: ['*.wasm'],
+    logLevel: 'error',
+    minify,
+    sourcemap: true,
+  });
+  await copy({
+    './src/bindings/compiled/web_bindings/kimchi_napi.wasm32-wasi.wasm':
+      './dist/web/web_bindings/kimchi_napi.wasm32-wasi.wasm',
+    './src/bindings/compiled/web_bindings/o1js_web.bc.js': './dist/web/web_bindings/o1js_web.bc.js',
   });
 
   if (minify) {
@@ -64,10 +75,6 @@ async function buildWeb({ production }) {
     });
     await writeFile(o1jsWebPath, code);
   }
-
-  // overwrite kimchi_wasm with bundled version
-  await copy({ [tmpBindingsPath]: './dist/web/web_bindings/kimchi_wasm.js' });
-  await unlink(tmpBindingsPath);
 
   // move all .web.js files to their .js counterparts
   let webFiles = glob.sync('./dist/web/**/*.web.js');
@@ -83,7 +90,7 @@ async function buildWeb({ production }) {
     format: 'esm',
     outfile: 'dist/web/index.js',
     resolveExtensions: ['.js', '.ts'],
-    plugins: [wasmPlugin(), srcStringPlugin()],
+    plugins: [makeWasiLoaderExternal(), srcStringPlugin()],
     dropLabels: ['CJS'],
     external: ['*.bc.js'],
     target,
@@ -120,52 +127,22 @@ function execPromise(cmd) {
   );
 }
 
-function rewriteWasmBindings(src) {
-  src = src
-    .replace("new URL('kimchi_wasm_bg.wasm', import.meta.url)", 'wasmCode')
-    .replace('import.meta.url', '"/"');
-  return `import wasmCode from './kimchi_wasm_bg.wasm';
-  let startWorkers, terminateWorkers;  
-${src}`;
-}
-function rewriteBundledWasmBindings(src) {
-  let i = src.indexOf('export {');
-  let exportSlice = src.slice(i);
-  let defaultExport = exportSlice.match(/\w* as default/)[0];
-  exportSlice = exportSlice
-    .replace(defaultExport, `default: __wbg_init`)
-    .replace('export', 'return');
-  src = src.slice(0, i) + exportSlice;
-
-  src = src.replace('var startWorkers;\n', '');
-  src = src.replace('var terminateWorkers;\n', '');
-
-  // Force wasm-bindgen thread stack size to 1 MiB for web, matching the node
-  // build patch in fix-wasm-bindings-node.js.  wasm-bindgen >= 0.2.100
-  // defaults to 2 MiB which doubles memory pressure during worker startup.
-  src = src.replace(
-    'wasm.__wbindgen_start(thread_stack_size)',
-    'wasm.__wbindgen_start(thread_stack_size ?? 1048576)'
-  );
-
-  return `import { startWorkers, terminateWorkers } from '../bindings/js/web/worker-helpers.js'
-export {kimchiWasm as default};
-function kimchiWasm() {
-  ${src}
-}
-kimchiWasm.deps = [startWorkers, terminateWorkers]`;
-}
-
-function wasmPlugin() {
+// keep the (pre-bundled) napi-rs wasm loader external to the main bundle, and
+// rewrite its import path relative to the bundle output (dist/web/index.js)
+function makeWasiLoaderExternal() {
+  let isWasiLoader = /kimchi_napi\.wasi-browser\.js$/;
   return {
-    name: 'wasm-plugin',
+    name: 'plugin-wasi-external',
     setup(build) {
-      build.onLoad({ filter: /\.wasm$/ }, async ({ path }) => {
-        return {
-          contents: await readFile(path),
-          loader: 'binary',
-        };
-      });
+      build.onResolve({ filter: isWasiLoader }, ({ path: filePath, resolveDir }) => ({
+        path:
+          './' +
+          path.relative(
+            path.resolve('.', 'dist/web'),
+            path.resolve(resolveDir, filePath).replace('/compiled/web_bindings/', '/web_bindings/')
+          ),
+        external: true,
+      }));
     },
   };
 }

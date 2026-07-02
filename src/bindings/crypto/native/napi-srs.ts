@@ -52,14 +52,14 @@ function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
   );
 }
 
-function srs(napi: Napi, conversion: RustConversion<'native'>) {
+function srs(napi: Napi, conversion: RustConversion) {
   return {
     fp: srsPerField('fp', napi, conversion),
     fq: srsPerField('fq', napi, conversion),
   };
 }
 
-function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'native'>) {
+function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
   // note: these functions are properly typed, thanks to TS template literal types
   let createSrs = (size: number) => {
     try {
@@ -329,7 +329,7 @@ function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
 function readCacheLazy(
   cache: Cache,
   header: CacheHeader,
-  conversion: RustConversion<'native'>,
+  conversion: RustConversion,
   f: 'fp' | 'fq',
   srs: NapiSrs,
   domainSize: number,

@@ -11,6 +11,8 @@ function loadNative() {
     `../../../../../native/${slug}/kimchi_napi.node`,
     '../../compiled/node_bindings/kimchi_napi.node',
     '../../compiled/_node_bindings/kimchi_napi.node',
+    // the wasm32-wasip1-threads build exposes the same napi module
+    '../../compiled/node_bindings/kimchi_napi.wasi.cjs',
   ];
   for (const path of candidates) {
     try {
@@ -24,7 +26,7 @@ function loadNative() {
   if (process.env.O1JS_BACKEND === 'native') {
     throw new Error('kimchi_napi.node not found but O1JS_BACKEND=native is set');
   }
-  console.warn('kimchi_napi.node not found, skipping gate-vector-napi test');
+  console.warn('kimchi napi module not found, skipping gate-vector-napi test');
   process.exit(0);
 }
 

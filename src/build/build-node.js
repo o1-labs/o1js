@@ -56,7 +56,7 @@ function makeNodeModulesExternal() {
 }
 
 function makeJsooExternal() {
-  let isJsoo = /(bc.cjs|kimchi_wasm.cjs)$/;
+  let isJsoo = /(bc.cjs|kimchi_napi.wasi.cjs)$/;
   return {
     name: 'plugin-external',
     setup(build) {

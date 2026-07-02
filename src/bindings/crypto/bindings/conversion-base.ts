@@ -1,17 +1,11 @@
 import type { MlArray } from '../../../lib/ml/base.js';
-import type {
-  WasmGPallas,
-  WasmGVesta,
-  WasmPallasGProjective,
-  WasmVestaGProjective,
-} from '../../compiled/node_bindings/kimchi_wasm.cjs';
+import type { WasmGPallas, WasmGVesta } from '../../compiled/node_bindings/kimchi_napi.wasi.cjs';
 import { bigintToBytes32, bytesToBigint32 } from '../bigint-helpers.js';
 import { Infinity, OrInfinity } from './curve.js';
 import { Field } from './field.js';
 
 export {
   WasmAffine,
-  WasmProjective,
   affineFromRust,
   affineToRust,
   fieldFromRust,
@@ -71,18 +65,16 @@ function maybeFieldToRust(x?: Field): Uint8Array | undefined {
   return x && fieldToRust(x);
 }
 
-// affine
+// affine — napi `#[napi(object)]` points, i.e. plain { x, y, infinity } objects
 
 type WasmAffine = WasmGVesta | WasmGPallas;
 
 function affineFromRust<A extends WasmAffine>(pt: A): OrInfinity {
   if (pt.infinity) {
-    pt.free();
     return 0;
   } else {
     let x = fieldFromRust(pt.x);
     let y = fieldFromRust(pt.y);
-    pt.free();
     return [0, [0, x, y]];
   }
 }
@@ -98,7 +90,3 @@ function affineToRust<A extends WasmAffine>(pt: OrInfinity, makeAffine: () => A)
   }
   return res;
 }
-
-// projective
-
-type WasmProjective = WasmVestaGProjective | WasmPallasGProjective;

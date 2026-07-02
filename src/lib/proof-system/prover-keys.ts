@@ -7,9 +7,10 @@
  */
 import { Pickles, wasm } from '../../bindings.js';
 import {
+  ExternalObject,
   WasmPastaFpPlonkIndex,
   WasmPastaFqPlonkIndex,
-} from '../../bindings/compiled/node_bindings/kimchi_wasm.cjs';
+} from '../../bindings/compiled/node_bindings/kimchi_napi.wasi.cjs';
 // TODO: include conversion bundle to decide between wasm and napi conversion
 import { getRustConversion } from '../../bindings/crypto/bindings.js';
 import { VerifierIndex } from '../../bindings/crypto/bindings/kimchi-types.js';
@@ -35,9 +36,9 @@ type SnarkKeyHeader =
   | [KeyType.WrapVerificationKey, MlWrapVerificationKeyHeader];
 
 type SnarkKey =
-  | [KeyType.StepProvingKey, MlBackendKeyPair<WasmPastaFpPlonkIndex>]
+  | [KeyType.StepProvingKey, MlBackendKeyPair<ExternalObject<WasmPastaFpPlonkIndex>>]
   | [KeyType.StepVerificationKey, VerifierIndex]
-  | [KeyType.WrapProvingKey, MlBackendKeyPair<WasmPastaFqPlonkIndex>]
+  | [KeyType.WrapProvingKey, MlBackendKeyPair<ExternalObject<WasmPastaFqPlonkIndex>>]
   | [KeyType.WrapVerificationKey, MlWrapVerificationKey];
 
 /**
@@ -56,9 +57,7 @@ function parseHeader(
       let methodIndex = header[1][3];
       let methodName = methods[methodIndex].methodName;
       let persistentId = sanitize(`${kind}-${programName}-${methodName}`);
-      let uniqueId = sanitize(
-        `${kind}-${programName}-${methodIndex}-${methodName}-${hash}`
-      );
+      let uniqueId = sanitize(`${kind}-${programName}-${methodIndex}-${methodName}-${hash}`);
       return {
         version: cacheHeaderVersion,
         uniqueId,

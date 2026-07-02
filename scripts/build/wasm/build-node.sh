@@ -2,16 +2,13 @@
 set -Eeuo pipefail
 
 # Description:
-#   Builds the Kimchi WebAssembly (WASM) bindings for Node.js. This script:
-#     - Compiles the Kimchi proof system’s Node bindings using Dune, generating
-#       the WebAssembly and JavaScript interface files:
-#         - `plonk_wasm_bg.wasm` and its TypeScript definitions.
-#         - `plonk_wasm.js` (the JS interface) and its type declarations.
-#     - Copies all generated artifacts into `src/bindings/compiled/node_bindings/`.
-#     - Converts the output files to CommonJS format (`.cjs` / `.d.cts`) for
-#       compatibility with Node.js environments.
-#     - Applies automatic fixes to the generated bindings via
-#       `src/build/fix-wasm-bindings-node.js` to ensure correct runtime behavior.
+#   Builds the Kimchi WebAssembly bindings for Node.js. This script:
+#     - Builds the wasm32-wasip1-threads target of the kimchi-napi crate (the
+#       same crate that powers the native backend) via the napi-rs CLI.
+#     - Copies the wasm binary, the generated Node loader (`kimchi_napi.wasi.cjs`,
+#       backed by @napi-rs/wasm-runtime) and its worker file into
+#       `src/bindings/compiled/node_bindings/`.
+#     - Installs the generated type definitions as `kimchi_napi.wasi.d.cts`.
 #
 # Usage:
 #   npm run build:wasm:node
@@ -21,35 +18,20 @@ source ./scripts/lib/ux.sh
 setup_script "wasm-node-build" "wasm node build"
 
 MINA_PATH=./src/mina
-KIMCHI_PATH=$MINA_PATH/src/lib/crypto/kimchi_bindings/js/node_js/
-BUILT_PATH=./_build/default/$KIMCHI_PATH
+ARTIFACTS_PATH=$MINA_PATH/src/lib/crypto/kimchi_bindings/js/native/artifacts-wasm
 BINDINGS_PATH=./src/bindings/compiled/node_bindings/
+
+./scripts/build/wasm/build-kimchi-napi-wasm.sh
 
 mkdir -p $BINDINGS_PATH
 
-info "building Kimchi bindings for node..."
-
-TARGETS=(\
-  kimchi_wasm_bg.wasm \
-  kimchi_wasm_bg.wasm.d.ts \
-  kimchi_wasm.js \
-  kimchi_wasm.d.ts \
-)
-dune build ${TARGETS[@]/#/$KIMCHI_PATH/}
-
 info "copying artifacts into the right place..."
 
-for target in "${TARGETS[@]}"; do
-  cp $BUILT_PATH/$target $BINDINGS_PATH/$target
-  chmod 660 $BINDINGS_PATH/$target
-done
-
-info "moving some files to CommonJS format..."
-
-mv $BINDINGS_PATH/kimchi_wasm.js $BINDINGS_PATH/kimchi_wasm.cjs
-mv $BINDINGS_PATH/kimchi_wasm.d.ts $BINDINGS_PATH/kimchi_wasm.d.cts
-
-info "autofixing wasm bindings for Node.JS..."
-run_cmd node src/build/fix-wasm-bindings-node.js $BINDINGS_PATH/kimchi_wasm.cjs
+# note: the debug wasm is intentionally not copied — the generated loader
+# prefers it over the release binary when both are present
+cp $ARTIFACTS_PATH/kimchi_napi.wasm32-wasi.wasm $BINDINGS_PATH/
+cp $ARTIFACTS_PATH/kimchi_napi.wasi.cjs $BINDINGS_PATH/
+cp $ARTIFACTS_PATH/wasi-worker.mjs $BINDINGS_PATH/
+cp $ARTIFACTS_PATH/index.d.ts $BINDINGS_PATH/kimchi_napi.wasi.d.cts
 
 success "WASM node build success!"

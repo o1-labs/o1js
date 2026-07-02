@@ -1,199 +1,52 @@
-import { createRequire } from 'module';
-import os from 'os';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+import { createRequire } from 'node:module';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
-let url = import.meta.url;
-let filename = url !== undefined ? fileURLToPath(url) : __filename;
-const require = createRequire(filename);
-const wasm_ = requireKimchiWasm(!isMainThread ? workerData?.memory : undefined);
-
-/**
- * @type {import("../../compiled/node_bindings/kimchi_wasm.cjs")}
- */
-const wasm = wasm_;
-wasm.__o1js_backend_preference = 'wasm';
-if (typeof globalThis !== 'undefined') {
-  globalThis.__o1js_backend_preference = 'wasm';
-}
 
 export { wasm, withThreadPool };
 
-function requireKimchiWasm(memoryOverride) {
+let url = import.meta.url;
+let filename = url !== undefined ? fileURLToPath(url) : __filename;
+const require = createRequire(filename);
+
+// The 'wasm' backend is the wasm32-wasip1-threads build of the same kimchi-napi
+// crate that powers the native backend. The generated .wasi.cjs loader
+// (via @napi-rs/wasm-runtime) instantiates the module synchronously and spawns
+// worker_threads on demand for Rust std::thread/rayon — no manual memory
+// sharing or worker bootstrapping is needed here.
+//
+// Rayon reads its thread-pool size from the environment at first use, so it
+// must be configured before any parallel binding call.
+setRayonThreadCount();
+
+const wasm = requireKimchiNapiWasm();
+
+// Both backends expose the napi object model, so they share the TS conversion
+// layer (src/bindings/crypto/native/).
+wasm.__kimchi_backend = 'native';
+wasm.__o1js_backend_preference = 'wasm';
+if (typeof globalThis !== 'undefined') {
+  globalThis.__o1js_backend_preference = 'wasm';
+  // the compiled OCaml artifact (o1js_node.bc.cjs) picks up the FFI module here
+  globalThis.__o1js_kimchi_ffi = wasm;
+}
+
+// The wasm runtime manages its own threads; nothing to set up or tear down.
+const withThreadPool = WithThreadPool({
+  initThreadPool: async () => {},
+  exitThreadPool: async () => {},
+});
+
+function requireKimchiNapiWasm() {
   let modulePath = filename.endsWith('index.cjs')
-    ? './bindings/compiled/node_bindings/kimchi_wasm.cjs'
-    : '../../compiled/node_bindings/kimchi_wasm.cjs';
-  if (memoryOverride === undefined) return require(modulePath);
-
-  let OriginalMemory = WebAssembly.Memory;
-  WebAssembly.Memory = new Proxy(OriginalMemory, {
-    construct(_target, _args, _newTarget) {
-      return memoryOverride;
-    },
-  });
-  try {
-    return require(modulePath);
-  } finally {
-    WebAssembly.Memory = OriginalMemory;
-  }
+    ? './bindings/compiled/node_bindings/kimchi_napi.wasi.cjs'
+    : '../../compiled/node_bindings/kimchi_napi.wasi.cjs';
+  return require(modulePath);
 }
 
-function getWorkerSource() {
-  return filename.endsWith('index.cjs')
-    ? join(dirname(filename), 'bindings/js/node/node-backend.js')
-    : filename;
-}
-
-let workersReadyResolve;
-let workersReady;
-let wasmThreadPoolRunning = false;
-
-// expose this globally so that it can be referenced from wasm
-globalThis.startWorkers = startWorkers;
-globalThis.terminateWorkers = terminateWorkers;
-
-if (!isMainThread) {
-  parentPort.postMessage({ type: 'wasm_bindgen_worker_ready' });
-  wasm.wbg_rayon_start_worker(workerData.receiver);
-}
-
-// state machine to enable calling multiple functions that need a thread pool at once
-const withThreadPool = WithThreadPool({ initThreadPool, exitThreadPool });
-
-async function initThreadPool() {
-  if (!isMainThread) return;
-  if (wasmThreadPoolRunning) return;
-  const numThreads = Math.max(1, workers.numWorkers ?? (os.availableParallelism() ?? 1) - 1);
-  workersReady = new Promise((resolve) => (workersReadyResolve = resolve));
-  try {
-    await wasm.initThreadPool(numThreads, getWorkerSource());
-    await workersReady;
-    wasmThreadPoolRunning = true;
-  } catch (error) {
-    wasmThreadPoolRunning = false;
-    throw error;
-  } finally {
-    workersReady = undefined;
-    workersReadyResolve = undefined;
-  }
-}
-
-async function exitThreadPool() {
-  if (!isMainThread) return;
-  if (!wasmThreadPoolRunning) return;
-  // Keep the pool alive across compile/prove calls.
-  // Explicit teardown can deadlock or trigger finalizer crashes depending on
-  // toolchain/runtime combinations.
-}
-
-/**
- * @type {Worker[]}
- */
-let wasmWorkers = [];
-
-function getWorkerMemory() {
-  // Use the canonical memory object from the loaded JS module instead of the
-  // callback argument coming through wasm-bindgen externref glue.
-  return typeof wasm.get_memory === 'function' ? wasm.get_memory() : wasm.__wasm.memory;
-}
-
-function isCloneError(error) {
-  return (
-    error?.name === 'DataCloneError' ||
-    String(error?.message ?? error).includes('could not be cloned')
-  );
-}
-
-function describeMemory(value) {
-  return {
-    type: value?.constructor?.name,
-    hasBuffer: !!value?.buffer,
-    sharedBuffer: value?.buffer instanceof SharedArrayBuffer,
-    byteLength: value?.buffer?.byteLength,
-  };
-}
-
-function cloneCheck(value) {
-  try {
-    structuredClone(value);
-    return 'ok';
-  } catch (error) {
-    return `${error?.name ?? 'Error'}: ${error?.message ?? String(error)}`;
-  }
-}
-
-async function startWorkers(src, memory, builder) {
-  wasmWorkers = [];
-  const startupTimeoutMs = 30_000;
-  let workerMemory = getWorkerMemory();
-  await Promise.all(
-    Array.from({ length: builder.numThreads() }, () => {
-      let worker = new Worker(src, {
-        workerData: { memory: workerMemory, receiver: builder.receiver() },
-      });
-      wasmWorkers.push(worker);
-      return new Promise((resolve, reject) => {
-        let timer = setTimeout(() => {
-          cleanup();
-          reject(new Error('Timed out waiting for wasm worker startup'));
-        }, startupTimeoutMs);
-        let ready = false;
-
-        function cleanup() {
-          clearTimeout(timer);
-          worker.off('message', onReady);
-          worker.off('error', onError);
-          worker.off('exit', onExit);
-        }
-
-        function onReady(data) {
-          if (data == null || data.type !== 'wasm_bindgen_worker_ready') return;
-          ready = true;
-          cleanup();
-          // Do not keep the process alive solely because pool workers exist.
-          worker.unref();
-          resolve(worker);
-        }
-
-        function onError(error) {
-          cleanup();
-          reject(error);
-        }
-
-        function onExit(code) {
-          cleanup();
-          if (ready) {
-            // Some wasm-bindgen/node combinations exit worker threads as soon as
-            // startup work is done. Treat a clean exit as successful startup.
-            resolve(worker);
-            return;
-          }
-          reject(new Error(`WASM worker exited before ready (code ${code})`));
-        }
-
-        worker.on('message', onReady);
-        worker.once('error', onError);
-        worker.once('exit', onExit);
-      });
-    })
-  );
-  builder.build();
-  workersReadyResolve();
-}
-
-function terminateWorkers() {
-  let workersToTerminate = wasmWorkers ?? [];
-  wasmWorkers = [];
-  wasmThreadPoolRunning = false;
-  for (let worker of workersToTerminate) {
-    try {
-      let terminated = worker.terminate();
-      if (terminated && typeof terminated.catch === 'function') {
-        terminated.catch(() => {});
-      }
-    } catch {
-      // Ignore shutdown races.
-    }
-  }
+function setRayonThreadCount() {
+  if (typeof process === 'undefined') return;
+  if (process.env.RAYON_NUM_THREADS !== undefined) return;
+  let numThreads = Math.max(1, workers.numWorkers ?? (os.availableParallelism?.() ?? 1) - 1);
+  process.env.RAYON_NUM_THREADS = String(numThreads);
 }
