@@ -36,7 +36,10 @@ async function buildWeb({ production }) {
 
   // bundle the napi-rs wasm loaders so that their `@napi-rs/wasm-runtime`
   // imports are resolved; the .wasm binary itself stays a separate file which
-  // the loader fetches relative to `import.meta.url`
+  // the loader fetches relative to `import.meta.url`.
+  // the main-thread loader gets a wrapped runtime that disables wasi thread
+  // spawning — browser main threads cannot block, so rayon must run inline
+  // (see src/bindings/js/web/wasm-runtime-no-threads.js)
   await esbuild.build({
     entryPoints: ['./src/bindings/compiled/web_bindings/kimchi_napi.wasi-browser.js'],
     bundle: true,
@@ -44,6 +47,7 @@ async function buildWeb({ production }) {
     outfile: './dist/web/web_bindings/kimchi_napi.wasi-browser.js',
     target: 'esnext',
     external: ['*.wasm', '*.mjs'],
+    plugins: [noThreadsWasmRuntimePlugin()],
     logLevel: 'error',
     minify,
     sourcemap: true,
@@ -125,6 +129,21 @@ function execPromise(cmd) {
       res(stdout);
     })
   );
+}
+
+// redirect the main-thread loader's `@napi-rs/wasm-runtime` import to the
+// no-threads wrapper (the wrapper itself still resolves the real runtime)
+function noThreadsWasmRuntimePlugin() {
+  let shim = path.resolve('./src/bindings/js/web/wasm-runtime-no-threads.js');
+  return {
+    name: 'no-threads-wasm-runtime',
+    setup(build) {
+      build.onResolve({ filter: /^@napi-rs\/wasm-runtime$/ }, ({ importer }) => {
+        if (importer === shim) return null;
+        return { path: shim };
+      });
+    },
+  };
 }
 
 // keep the (pre-bundled) napi-rs wasm loader external to the main bundle, and

@@ -16,7 +16,8 @@ const server = http.createServer(async (req, res) => {
   if (file === './') file = './index.html';
   let content;
   try {
-    content = await fs.readFile(path.resolve('./dist/web', file), 'utf8');
+    // read as a buffer — .wasm files are binary and must not go through utf8
+    content = await fs.readFile(path.resolve('./dist/web', file));
   } catch (err) {
     res.writeHead(404, defaultHeaders);
     res.write('<html><body>404</body><html>');
@@ -25,11 +26,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   const extension = path.basename(file).split('.').pop();
-  const contentType = {
-    html: 'text/html',
-    js: 'application/javascript',
-    map: 'application/json',
-  }[extension];
+  const contentType =
+    {
+      html: 'text/html',
+      js: 'application/javascript',
+      mjs: 'application/javascript',
+      map: 'application/json',
+      wasm: 'application/wasm',
+    }[extension] ?? 'application/octet-stream';
   const headers = { ...defaultHeaders, 'content-type': contentType };
 
   res.writeHead(200, headers);

@@ -174,25 +174,20 @@ located in the Mina repo under `src/mina`. See the
 [Kimchi README](https://github.com/o1-labs/proof-systems/blob/master/README.md)
 for more information.
 
-To compile the Wasm code, a combination of Cargo and Dune is used. Both build
-files are located under `src/mina/src/lib/crypto/kimchi`, where the `wasm`
-folder contains the Rust code that is compiled to Wasm, and the `js` folder that
-contains a wrapper around the Wasm code which allows Js_of_ocaml to compile
-against the Wasm backend.
+The wasm backend is the `wasm32-wasip1-threads` build of the `kimchi-napi`
+crate — the same napi-rs crate that powers the native (`.node`) backend — built
+via the napi-rs CLI (see `scripts/build/wasm/build-kimchi-napi-wasm.sh`). The
+crate lives in the proof-systems submodule under
+`src/mina/src/lib/crypto/proof-systems/kimchi-napi`.
 
-For the Wasm build, the output files are:
+For the wasm build, the output files are:
 
-- `kimchi_wasm_bg.wasm`: The compiled WebAssembly binary.
-- `kimchi_wasm_bg.wasm.d.ts`: TypeScript definition files describing the types
-  of .wasm or .js files.
-- `kimchi_wasm.js`: JavaScript file that wraps the Wasm code for use in Node.js.
-- `kimchi_wasm.d.ts`: TypeScript definition file for kimchi_wasm.js.
-
-Similarly, for internal development and debugging, you can manually build the
-WASM bindings for Node and Web using `npm run build:wasm:node` and
-`npm run build:wasm:web`, respectively. For typical local development, however,
-running the standard build commands automatically generates these bindings as
-part of the overall build process.
+- `kimchi_napi.wasm32-wasi.wasm`: The compiled WebAssembly binary.
+- `kimchi_napi.wasi.cjs` / `kimchi_napi.wasi-browser.js`: generated loaders for
+  Node.js and the browser, backed by `@napi-rs/wasm-runtime`.
+- `wasi-worker.mjs` / `wasi-worker-browser.mjs`: worker files used by the
+  runtime to spawn threads.
+- `kimchi_napi.wasi.d.cts`: TypeScript definitions generated from the crate.
 
 Similarly, for internal development and debugging, you can manually build the
 WASM bindings for Node and Web using `npm run build:wasm:node` and

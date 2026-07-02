@@ -315,17 +315,23 @@ lands.
 - `tsc -p tsconfig.node.json` and full-repo `tsc` clean (modulo pre-existing
   examples-vs-dist errors).
 
-**Still needed (CI / follow-up):**
+**Still needed (CI / follow-up)** — see `STATE.md` for the up-to-date status:
 
-1. Rebuild JSOO artifacts (`npm run build:jsoo` in CI) — old compiled artifacts
-   reference the removed `kimchi_wasm.cjs` and won't work with this branch.
-2. Run the full jest + vk/perf-regression suites for `O1JS_BACKEND=wasm|native`;
-   re-dump wasm perf baselines (napi-wasm ≠ wasm-bindgen perf profile).
-3. Web: benchmark Option A; implement Option B (worker-hosted RPC) if web
-   proving parallelism is required; validate SharedArrayBuffer/COOP-COEP e2e via
-   playwright.
+1. ~~Rebuild JSOO artifacts~~ — done locally (`build:bindings-all` passes
+   end-to-end; the OCaml toolchain was available after all).
+2. Run the vk/perf-regression suites for `O1JS_BACKEND=wasm|native`; re-dump
+   wasm perf baselines (napi-wasm ≠ wasm-bindgen perf profile). Jest suites
+   pass 18/18 on both backends; web playwright e2e passes 5/5.
+3. ~~Web: validate Option A via playwright~~ — done (needed three fixes:
+   explicit single-threaded rayon init, disabled wasi thread-spawn, Buffer
+   polyfill — see AGENT_LOG.md). Option B (worker-hosted RPC) remains the
+   follow-up if web proving parallelism is required.
 4. Decide on iOS memory ceiling (generated loader hardcodes max 4 GiB; old code
    used 1 GiB on iOS) — post-process or napi config per-target if needed.
-5. Review the o1-labs napi-rs fork delta vs upstream before web rollout; the
-   `kimchi_wasm` crate and its dune targets in the mina repo can be retired once
-   no consumer remains.
+5. Review the o1-labs napi-rs fork delta vs upstream (now also motivated by a
+   load-sensitive rayon-worker trap on node-wasm, see AGENT_LOG.md).
+   ~~Retire the `kimchi_wasm` crate and its dune targets~~ — done in the
+   submodule working trees (proof-systems crate + xtask build-wasm +
+   wasm-pack dep deleted; mina `kimchi_bindings/js` packaging, `o1js_stub`
+   and test `link_deps` removed); mina-side nix/buildkite plumbing remains
+   for the upstream merge.

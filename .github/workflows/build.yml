@@ -42,7 +42,6 @@ jobs:
             lmdb \
             pkgconf \
             postgresql@15 \
-            wasm-pack \
             wasm-tools \
             wabt \
             bash \
@@ -135,7 +134,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly-2025-12-11
-          targets: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown,wasm32-wasip1-threads
           components: rust-src
 
       - name: Setup go

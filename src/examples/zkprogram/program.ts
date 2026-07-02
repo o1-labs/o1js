@@ -1,5 +1,4 @@
-import { Field, ZkProgram, Cache, verify } from 'o1js';
-
+import { Cache, Field, ZkProgram, verify } from 'o1js';
 let MyProgram = ZkProgram({
   name: 'example-with-output',
   publicOutput: Field,

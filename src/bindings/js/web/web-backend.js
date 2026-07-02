@@ -19,8 +19,12 @@ async function initializeBindings() {
   // NOTE on threading: browser main threads cannot block, so rayon-parallel
   // sections that make the calling thread wait must not run on the main
   // thread with a multi-threaded pool. Until worker-hosted execution lands
-  // (see PLAN.md, web Option B), the pool is limited to inline execution.
+  // (see PLAN.md, web Option B), the pool is limited to inline execution:
+  // the bundled loader disables wasi thread spawning (see
+  // wasm-runtime-no-threads.js) and rayon's global pool is pinned to the
+  // current thread before the first rayon call.
   wasm = kimchiNapi.default ?? kimchiNapi;
+  wasm.camlRayonInitSingleThreaded();
   wasm.__kimchi_backend = 'native';
 
   if (typeof globalThis !== 'undefined') {
