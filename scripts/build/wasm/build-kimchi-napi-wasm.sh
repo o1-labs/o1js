@@ -24,6 +24,14 @@ PROOF_SYSTEMS_PATH=$MINA_PATH/src/lib/crypto/proof-systems
 NAPI=$(pwd)/node_modules/.bin/napi
 ARTIFACTS_PATH=$NATIVE_PATH/artifacts-wasm
 
+# Nix sandboxes commonly set HOME to /homeless-shelter, which Cargo cannot
+# write to when fetching git dependencies through napi-rs.
+if [ -z "${HOME:-}" ] || [ ! -w "${HOME:-}" ]; then
+  export CARGO_HOME="${CARGO_HOME:-$(pwd)/.cargo}"
+  mkdir -p "$CARGO_HOME"
+  export HOME="$(pwd)"
+fi
+
 info "building kimchi-napi for wasm32-wasip1-threads..."
 
 (
