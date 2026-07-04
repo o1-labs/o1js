@@ -96,6 +96,27 @@ process.on('uncaughtException', (e) => {
   } catch (_) {}
   process.kill(process.pid, 'SIGABRT');
 });
+
+// TEMP CI diagnosis (remove): synchronous stderr breadcrumb, gated on env —
+// shows in the CI job log even when everything else is wedged.
+if (process.env.O1JS_CI_DIAG) {
+  try { fs.writeSync(2, '[o1js-diag] wasi worker module evaluated\n'); } catch (_) {}
+}
 WORKER_HARDENING
+
+# TEMP CI diagnosis (remove): breadcrumbs around loader evaluation and thread
+# spawning, gated on O1JS_CI_DIAG. a hung CI test's log then shows the last
+# startup stage reached before the per-test timeout kills it.
+node -e '
+  let fs = require("fs");
+  let path = process.argv[1];
+  let src = fs.readFileSync(path, "utf8");
+  let diag = (msg) => `(process.env.O1JS_CI_DIAG && (() => { try { require("fs").writeSync(2, "[o1js-diag] ${msg}\\n"); } catch (_) {} })());\n`;
+  let spawnAnchor = "const worker = new Worker(";
+  if (!src.includes(spawnAnchor)) throw Error("diag spawn anchor not found in " + path);
+  src = src.replace(spawnAnchor, diag("spawning wasi worker thread") + spawnAnchor);
+  src += "\n" + diag("node loader evaluated");
+  fs.writeFileSync(path, src);
+' $BINDINGS_PATH/kimchi_napi.wasi.cjs
 
 success "WASM node build success!"

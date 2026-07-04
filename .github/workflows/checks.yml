@@ -300,6 +300,7 @@ jobs:
           TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 8
+          O1JS_CI_DIAG: 1
         shell: bash
         run: |
           echo "Total tests: $TOTAL_TESTS"
@@ -498,6 +499,7 @@ jobs:
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 4
           O1JS_BACKEND: native
+          O1JS_CI_DIAG: 1
         shell: bash
         run: |
           echo "Total tests: $TOTAL_TESTS"

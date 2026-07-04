@@ -19,7 +19,17 @@ const require = createRequire(filename);
 // must be configured before any parallel binding call.
 setRayonThreadCount();
 
+// TEMP CI diagnosis (remove): startup breadcrumbs, gated on O1JS_CI_DIAG
+diag('requiring kimchi napi wasm loader');
 const wasm = requireKimchiNapiWasm();
+diag('kimchi napi wasm loader required');
+
+function diag(msg) {
+  if (typeof process === 'undefined' || !process.env.O1JS_CI_DIAG) return;
+  try {
+    require('node:fs').writeSync(2, `[o1js-diag] ${msg}\n`);
+  } catch (_) {}
+}
 
 // Both backends expose the napi object model, so they share the TS conversion
 // layer (src/bindings/crypto/native/).

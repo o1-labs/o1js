@@ -8,7 +8,6 @@ set -Eeuo pipefail
 #     - Copies the wasm binary, the generated browser loader
 #       (`kimchi_napi.wasi-browser.js`, backed by @napi-rs/wasm-runtime) and its
 #       worker file into `src/bindings/compiled/web_bindings/`.
-#     - Optimizes the WebAssembly binary with `wasm-opt` when available.
 #
 # Usage:
 #   npm run build:wasm:web
@@ -32,20 +31,12 @@ cp $ARTIFACTS_PATH/kimchi_napi.wasi-browser.js $BINDINGS_PATH/
 cp $ARTIFACTS_PATH/wasi-worker-browser.mjs $BINDINGS_PATH/
 cp $ARTIFACTS_PATH/index.d.ts $BINDINGS_PATH/kimchi_napi.wasi-browser.d.ts
 
-if command -v wasm-opt >/dev/null 2>&1; then
-  info "optimizing wasm with wasm-opt..."
-  run_cmd wasm-opt \
-    --detect-features \
-    --enable-mutable-globals \
-    --enable-threads \
-    --enable-bulk-memory \
-    -O4 \
-    -o $BINDINGS_PATH/kimchi_napi.wasm32-wasi.wasm.opt \
-    $BINDINGS_PATH/kimchi_napi.wasm32-wasi.wasm
-  run_cmd mv $BINDINGS_PATH/kimchi_napi.wasm32-wasi.wasm.opt $BINDINGS_PATH/kimchi_napi.wasm32-wasi.wasm
-  ok "wasm optimized"
-else
-  warn "wasm-opt not found — skipping wasm optimization"
-fi
+# NOTE: do NOT run wasm-opt on this binary. wasm-opt -O4 miscompiles the
+# wasm32-wasip1-threads build: the optimized binary wedges forever inside
+# WebAssembly instantiation in the browser worker host (verified by A/B in
+# an otherwise identical environment — raw binary passes, optimized binary
+# hangs; this is what made Build-And-Test-Web time out on CI, where wasm-opt
+# happened to be installed, while local builds without wasm-opt worked).
+# It was also measured to make no runtime performance difference.
 
 success "WASM web build success!"
