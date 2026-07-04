@@ -110,6 +110,17 @@ async function createFfiProxy(workerUrl, threads) {
 
   let textDecoder = new TextDecoder();
 
+  // Atomics.pause (V8 13+/recent Firefox) hints the CPU during spin-waits —
+  // long ffi calls (proving) otherwise burn a full core competing with the
+  // rayon workers doing the actual work
+  let pause = typeof Atomics.pause === 'function' ? Atomics.pause : () => {};
+
+  function spinUntilNotPending(i32) {
+    let state;
+    while ((state = Atomics.load(i32, 0)) === STATE_PENDING) pause();
+    return state;
+  }
+
   function callSync(target, args) {
     let i32 = new Int32Array(sab, 0, 3);
     Atomics.store(i32, 0, STATE_PENDING);
@@ -117,8 +128,7 @@ async function createFfiProxy(workerUrl, threads) {
 
     // the worker sets the state flag when the result is in the buffer.
     // Atomics.wait is not allowed here (main thread), so spin.
-    let state;
-    while ((state = Atomics.load(i32, 0)) === STATE_PENDING) {}
+    let state = spinUntilNotPending(i32);
 
     if (state === STATE_GROW) {
       // result didn't fit; allocate a bigger buffer and ask for a resend
@@ -127,7 +137,7 @@ async function createFfiProxy(workerUrl, threads) {
       let ni32 = new Int32Array(sab, 0, 3);
       Atomics.store(ni32, 0, STATE_PENDING);
       worker.postMessage({ type: 'resend', sab });
-      while ((state = Atomics.load(ni32, 0)) === STATE_PENDING) {}
+      state = spinUntilNotPending(ni32);
       i32 = ni32;
     }
 

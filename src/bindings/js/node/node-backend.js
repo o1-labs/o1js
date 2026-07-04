@@ -32,6 +32,11 @@ if (typeof globalThis !== 'undefined') {
 }
 
 // The wasm runtime manages its own threads; nothing to set up or tear down.
+// note: do NOT pre-warm the pool via camlRayonSpawnPool here — its helper
+// thread's spawn requests are serviced by the main thread's event loop, which
+// compile immediately blocks with synchronous wasm calls → deadlock. rayon's
+// inline build on first use works because the MAIN thread spawns workers,
+// which node can do without pumping its own event loop.
 const withThreadPool = WithThreadPool({
   initThreadPool: async () => {},
   exitThreadPool: async () => {},
