@@ -329,7 +329,11 @@ jobs:
 
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test: ${test_files[$i]}"
-              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              # per-test timeout: a wedged test becomes a named failure in
+              # 30 min instead of silently eating the job's 210-minute budget.
+              # SIGTERM can't interrupt a main thread blocked in wasm/Atomics,
+              # so escalate to SIGKILL after 30s.
+              timeout --kill-after=30 1800 node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
           done
         continue-on-error: false
       - name: Upload test results
@@ -361,9 +365,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .
-          key: repo-${{ github.sha }}-node-20
+          # must match the key build-wasm/action.yml saves under
+          # (repo-<sha>-node-<node_version>, currently 22)
+          key: repo-${{ github.sha }}-node-22
 
-      - name: Setup Node.JS 20
+      - name: Setup Node.JS 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -372,7 +378,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.OS }}-node-20-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-node-22-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -515,7 +521,11 @@ jobs:
 
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test (native): ${test_files[$i]}"
-              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              # per-test timeout: a wedged test becomes a named failure in
+              # 30 min instead of silently eating the job's 210-minute budget.
+              # SIGTERM can't interrupt a main thread blocked in wasm/Atomics,
+              # so escalate to SIGKILL after 30s.
+              timeout --kill-after=30 1800 node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
           done
         continue-on-error: false
       - name: Upload test results
