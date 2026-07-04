@@ -26,14 +26,30 @@ async function createFfiProxy(workerUrl, threads) {
   let worker = new Worker(workerUrl, { type: 'module', name: 'o1js-kimchi-ffi-host' });
 
   // 'boot' arrives once the module (incl. the wasm fetch in its imports) has
-  // evaluated and its message handler exists — only then send 'init'
+  // evaluated and its message handler exists — only then send 'init'.
+  // the watchdog turns a stalled worker (module evaluation wedged — no boot,
+  // no error event) into a loud failure instead of hanging o1js
+  // initialization forever with no message anywhere.
   let spec = await new Promise((resolve, reject) => {
+    let watchdog = setTimeout(
+      () =>
+        reject(
+          new Error(
+            'kimchi ffi worker: not ready within 120s — worker module evaluation or rayon pool startup stalled'
+          )
+        ),
+      120_000
+    );
+    let done = (fn) => (value) => {
+      clearTimeout(watchdog);
+      fn(value);
+    };
     worker.onmessage = ({ data }) => {
       if (data?.type === 'boot') worker.postMessage({ type: 'init', threads });
-      else if (data?.type === 'ready') resolve(data.spec);
-      else if (data?.type === 'init-error') reject(new Error(data.message));
+      else if (data?.type === 'ready') done(resolve)(data.spec);
+      else if (data?.type === 'init-error') done(reject)(new Error(data.message));
     };
-    worker.onerror = (e) => reject(new Error(`kimchi ffi worker failed to load: ${e.message}`));
+    worker.onerror = (e) => done(reject)(new Error(`kimchi ffi worker failed to load: ${e.message}`));
   });
   worker.onmessage = null;
   worker.onerror = null;

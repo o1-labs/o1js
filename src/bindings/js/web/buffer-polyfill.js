@@ -5,6 +5,13 @@
 //
 // @emnapi/runtime captures `Buffer` at module evaluation time, so this module
 // must be imported (for its side effect) BEFORE @napi-rs/wasm-runtime.
+// TEMP CI diagnosis (remove): first evaluated statement in the ffi worker
+// host's import graph — proves the worker script started evaluating.
+try {
+  if (typeof WorkerGlobalScope !== 'undefined')
+    void fetch('/__o1js_boot_stage/worker-evaluating');
+} catch {}
+
 class BufferPolyfill extends Uint8Array {
   static alloc(size) {
     return new BufferPolyfill(size);

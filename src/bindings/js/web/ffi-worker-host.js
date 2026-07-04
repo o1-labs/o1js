@@ -22,6 +22,13 @@
 import './buffer-polyfill.js';
 import * as kimchiNapi from '../../compiled/web_bindings/kimchi_napi.wasi-browser.js';
 
+// TEMP CI diagnosis (remove): the loader import above just finished — its
+// top-level await fetched + instantiated the wasm. observable in playwright
+// network traces even when worker messaging is wedged.
+try {
+  void fetch('/__o1js_boot_stage/loader-evaluated');
+} catch {}
+
 const STATE_DONE = 1;
 const STATE_ERROR = 2;
 const STATE_GROW = 3;
