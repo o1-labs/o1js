@@ -71,7 +71,8 @@ const sampleGate: Gate = [
 const vector = gateVectorCreate();
 expect(gateVectorLen(vector)).toBe(0);
 
-gateVectorAdd(vector, fp.gateToRust(sampleGate));
+let flatGate = fp.gateToRust(sampleGate);
+gateVectorAdd(vector, flatGate.typ, flatGate.wires, flatGate.coeffs);
 expect(gateVectorLen(vector)).toBe(1);
 
 const gate0 = gateVectorGet(vector, 0);

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import http from 'node:http';
 import minimist from 'minimist';
+import fs from 'node:fs/promises';
+import http from 'node:http';
+import path from 'node:path';
 import { build } from './src/build/build-example.js';
 
 let {
@@ -44,7 +44,7 @@ const indexHtml = `
 
 `;
 
-const port = 8000;
+const port = 8001;
 const defaultHeaders = {
   'content-type': 'text/html',
   'Cross-Origin-Embedder-Policy': 'require-corp',
@@ -52,7 +52,8 @@ const defaultHeaders = {
 };
 
 const server = http.createServer(async (req, res) => {
-  let file = '.' + req.url;
+  // strip query strings; the ffi worker assets may be loaded with params
+  let file = '.' + new URL(req.url, 'http://localhost').pathname;
   if (file === './') file = './index.html';
   // console.log('serving', file);
 
@@ -60,7 +61,8 @@ const server = http.createServer(async (req, res) => {
   if (file === './index.html') content = indexHtml;
   else {
     try {
-      content = await fs.readFile(path.resolve('./dist/web', file), 'utf8');
+      // read as a buffer — .wasm files are binary and must not go through utf8
+      content = await fs.readFile(path.resolve('./dist/web', file));
     } catch (err) {
       res.writeHead(404, defaultHeaders);
       res.write('<html><body>404</body><html>');
@@ -70,11 +72,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   const extension = path.basename(file).split('.').pop();
-  const contentType = {
-    html: 'text/html',
-    js: 'application/javascript',
-    map: 'application/json',
-  }[extension];
+  const contentType =
+    {
+      html: 'text/html',
+      js: 'application/javascript',
+      mjs: 'application/javascript',
+      map: 'application/json',
+      wasm: 'application/wasm',
+    }[extension] ?? 'application/octet-stream';
   const headers = { ...defaultHeaders, 'content-type': contentType };
 
   res.writeHead(200, headers);

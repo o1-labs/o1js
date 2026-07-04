@@ -47,6 +47,18 @@ function requireKimchiNapiWasm() {
 function setRayonThreadCount() {
   if (typeof process === 'undefined') return;
   if (process.env.RAYON_NUM_THREADS !== undefined) return;
-  let numThreads = Math.max(1, workers.numWorkers ?? (os.availableParallelism?.() ?? 1) - 1);
+  // wasm32 memory is capped at 4 GiB and per-thread proving memory adds up —
+  // on many-core machines a full-width pool can exhaust the heap on
+  // proof-heavy workloads past the point where extra threads help. measured
+  // on a 12-core M4 (dynamic-call.unit-test, arkworks `parallel` features +
+  // flat ffi encodings on): 2 threads 37s, 4 -> 23s, 8 -> 19s (stable, node
+  // 22 and 24), 11 -> 19s. throughput plateaus by 8 while wider pools only
+  // add memory pressure, so 8 is the sweet spot — identical to the old
+  // cpus-1 default on <=8-core machines. setNumberOfWorkers() or
+  // RAYON_NUM_THREADS override.
+  let numThreads = Math.max(
+    1,
+    workers.numWorkers ?? Math.min(8, (os.availableParallelism?.() ?? 1) - 1)
+  );
   process.env.RAYON_NUM_THREADS = String(numThreads);
 }

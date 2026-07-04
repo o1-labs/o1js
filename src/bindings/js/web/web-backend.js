@@ -1,6 +1,6 @@
 import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
-import { WithThreadPool } from '../../../lib/proof-system/workers.js';
-import * as kimchiNapi from '../../../web_bindings/kimchi_napi.wasi-browser.js';
+import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
+import { createFfiProxy } from './ffi-proxy.js';
 
 export { initializeBindings, wasm, withThreadPool };
 
@@ -10,21 +10,39 @@ async function initializeBindings() {
   if (wasm !== undefined) return;
 
   // The wasm backend is the wasm32-wasip1-threads build of the kimchi-napi
-  // crate — the same crate that powers the native backend on Node. The
-  // generated .wasi-browser.js loader (via @napi-rs/wasm-runtime) instantiates
-  // the module on this thread and spawns Web Workers on demand for Rust
-  // std::thread. SharedArrayBuffer (COOP/COEP headers) is required, same as
-  // with the previous wasm-bindgen backend.
+  // crate — the same crate that powers the native backend on Node.
   //
-  // NOTE on threading: browser main threads cannot block, so rayon-parallel
-  // sections that make the calling thread wait must not run on the main
-  // thread with a multi-threaded pool. Until worker-hosted execution lands
-  // (see PLAN.md, web Option B), the pool is limited to inline execution:
-  // the bundled loader disables wasi thread spawning (see
-  // wasm-runtime-no-threads.js) and rayon's global pool is pinned to the
-  // current thread before the first rayon call.
-  wasm = kimchiNapi.default ?? kimchiNapi;
-  wasm.camlRayonInitSingleThreaded();
+  // Browser main threads cannot block (Atomics.wait traps), and JSOO calls
+  // the FFI synchronously, so there are two modes:
+  //
+  // - worker-hosted (default, needs SharedArrayBuffer i.e. COOP/COEP
+  //   headers): the module lives in a dedicated Web Worker where blocking is
+  //   allowed, so rayon gets a real thread pool and proving is parallel.
+  //   Calls are proxied over a handle-table RPC; the main thread awaits each
+  //   result by spinning on a SharedArrayBuffer flag (see ffi-proxy.js).
+  //
+  // - main-thread fallback (no cross-origin isolation): instantiate the
+  //   module here with thread spawning disabled and rayon pinned to the
+  //   current thread — everything works, but proving is single-threaded.
+  if (typeof SharedArrayBuffer !== 'undefined' && globalThis.crossOriginIsolated) {
+    let threads =
+      workers.numWorkers ?? Math.max(1, (globalThis.navigator?.hardwareConcurrency ?? 4) - 1);
+    let url = new URL('./web_bindings/ffi-worker-host.js', import.meta.url);
+    wasm = await createFfiProxy(url, threads);
+  } else {
+    console.warn(
+      'o1js: page is not cross-origin isolated (COOP/COEP headers missing) — ' +
+        'falling back to single-threaded proving on the main thread.'
+    );
+    let kimchiNapi = await import('../../../web_bindings/kimchi_napi.wasi-browser.js');
+    wasm = kimchiNapi.default ?? kimchiNapi;
+    // pin rayon to this thread before the first rayon call — see
+    // wasm-runtime-no-threads.js for why the pool must not spawn
+    wasm.camlRayonInitSingleThreaded();
+  }
+
+  // Both backends expose the napi object model, so they share the TS
+  // conversion layer (src/bindings/crypto/native/).
   wasm.__kimchi_backend = 'native';
 
   if (typeof globalThis !== 'undefined') {

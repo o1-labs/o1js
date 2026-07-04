@@ -63,6 +63,20 @@ async function buildWeb({ production }) {
     minify,
     sourcemap: true,
   });
+  // the ffi host worker (web "Option B") keeps the default runtime with
+  // real thread support — it runs in a worker where blocking is allowed;
+  // rayon pool sizing/startup is handled inside ffi-worker-host.js
+  await esbuild.build({
+    entryPoints: ['./src/bindings/js/web/ffi-worker-host.js'],
+    bundle: true,
+    format: 'esm',
+    outfile: './dist/web/web_bindings/ffi-worker-host.js',
+    target: 'esnext',
+    external: ['*.wasm'],
+    logLevel: 'error',
+    minify,
+    sourcemap: true,
+  });
   await copy({
     './src/bindings/compiled/web_bindings/kimchi_napi.wasm32-wasi.wasm':
       './dist/web/web_bindings/kimchi_napi.wasm32-wasi.wasm',

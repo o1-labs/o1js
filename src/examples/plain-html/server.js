@@ -10,7 +10,8 @@ const defaultHeaders = {
 };
 
 const server = http.createServer(async (req, res) => {
-  let file = '.' + req.url;
+  // strip query strings (e.g. the ffi worker is loaded with ?threads=N)
+  let file = '.' + new URL(req.url, 'http://localhost').pathname;
   console.log(file);
 
   if (file === './') file = './index.html';

@@ -6,7 +6,6 @@ import {
   fieldsToRustFlat,
 } from '../bindings/conversion-base.js';
 import { Field, Gate, OrInfinity, PolyComm, Wire } from '../bindings/kimchi-types.js';
-import { mapTuple } from '../bindings/util.js';
 import type {
   Napi,
   NapiAffine,
@@ -59,23 +58,17 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiCoreClasses) {
   const vectorToRust = (fields: MlArray<Field>) => fieldsToRustFlat(fields);
   const vectorFromRust = fieldsFromRustFlat;
 
+  // flat encoding matching gate_vector_add (typ + Int32Array of 14 wire ints +
+  // coeff bytes) — nested objects cost one napi call per property read on wasm
   const gateToRust = (gate: Gate) => {
     const [, typ, [, ...wires], coeffs] = gate;
-    const mapped = mapTuple(wires, wireToRust);
-    const nativeWires = {
-      w0: mapped[0],
-      w1: mapped[1],
-      w2: mapped[2],
-      w3: mapped[3],
-      w4: mapped[4],
-      w5: mapped[5],
-      w6: mapped[6],
-    } as const;
-    return {
-      typ,
-      wires: nativeWires,
-      coeffs: Array.from(fieldsToRustFlat(coeffs)),
-    };
+    let wireInts = new Int32Array(14);
+    for (let i = 0; i < 7; i++) {
+      let [, row, col] = wires[i];
+      wireInts[2 * i] = row;
+      wireInts[2 * i + 1] = col;
+    }
+    return { typ, wires: wireInts, coeffs: fieldsToRustFlat(coeffs) };
   };
 
   const gateFromRust = (gate: {
@@ -108,23 +101,21 @@ function conversionCorePerField({ makeAffine, PolyComm }: NapiCoreClasses) {
     return [0, gate.typ, wiresTuple, coeffs];
   };
 
+  // `WasmGVesta` / `WasmGPallas` are `#[napi(object)]` (plain JS objects), so points can be
+  // built in JS without an ffi call per point. the infinity case reuses the generator's
+  // coordinate bytes fetched once via makeAffine() — the rust side ignores x/y when
+  // infinity is set, and only ever copies out of the buffers, so sharing them is fine.
+  let affineOne: NapiAffine | undefined;
   const affineToRust = (pt: OrInfinity): NapiAffine => {
-    function isFinitePoint(point: OrInfinity): point is [0, [0, Field, Field]] {
-      return Array.isArray(point);
+    if (!Array.isArray(pt)) {
+      affineOne ??= makeAffine();
+      return { x: affineOne.x, y: affineOne.y, infinity: true };
     }
-    let res = makeAffine();
-    if (!isFinitePoint(pt)) {
-      res.infinity = true;
-    } else {
-      const [, pair] = pt;
-      const [, x, y] = pair;
-      // `WasmGVesta` / `WasmGPallas` are `#[napi(object)]` (plain JS objects), so assigning the
-      // same backing buffer to both `x` and `y` corrupts the point. Always use distinct byte
-      // arrays for each coordinate.
-      res.x = fieldToRust(x);
-      res.y = fieldToRust(y);
-    }
-    return res;
+    const [, pair] = pt as [0, [0, Field, Field]];
+    const [, x, y] = pair;
+    // distinct byte arrays for each coordinate — assigning the same backing buffer to
+    // both `x` and `y` corrupts the point
+    return { x: fieldToRust(x), y: fieldToRust(y), infinity: false };
   };
   const affineFromRust = (pt: NapiAffine): OrInfinity => {
     if (pt.infinity) return 0;
