@@ -6,12 +6,12 @@ import {
   type Cache,
   type CacheHeader,
 } from '../../../lib/proof-system/cache.js';
-import { srsCache as cache } from '../cache.js';
 import { assert } from '../../../lib/util/errors.js';
 import type { RustConversion } from '../bindings.js';
-import type { Napi, NapiPolyComm, NapiPolyComms, NapiSrs } from './napi-wrappers.js';
 import { OrInfinity, OrInfinityJson } from '../bindings/curve.js';
 import { PolyComm } from '../bindings/kimchi-types.js';
+import { srsCache as cache } from '../cache.js';
+import type { Napi, NapiPolyComm, NapiPolyComms, NapiSrs } from './napi-wrappers.js';
 
 export { srs };
 
@@ -102,11 +102,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
       throw error;
     }
   };
-  let lagrangeCommitment = (
-    srs: NapiSrs,
-    domain_size: number,
-    i: number
-  ): NapiPolyComm => {
+  let lagrangeCommitment = (srs: NapiSrs, domain_size: number, i: number): NapiPolyComm => {
     try {
       let fn = napi[`caml_${f}_srs_lagrange_commitment`] as unknown as (
         srsValue: NapiSrs,

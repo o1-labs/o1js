@@ -8,10 +8,10 @@ OCaml.
 
 - `/compiled` - compiled JS and Wasm artifacts produced by `js_of_ocaml` (from
   OCaml source code) and by `napi-rs` (the `wasm32-wasip1-threads` build of the
-  `kimchi-napi` Rust crate — the same crate that powers the native backend).
-  We keep these artifacts in the source tree so that developing on o1js can be
-  done with standard JS tooling and doesn't require setting up the full
-  OCaml/Rust build pipeline.
+  `kimchi-napi` Rust crate — the same crate that powers the native backend). We
+  keep these artifacts in the source tree so that developing on o1js can be done
+  with standard JS tooling and doesn't require setting up the full OCaml/Rust
+  build pipeline.
 - `/crypto` - pure TS implementations of a subset of the crypto primitives we
   use, including finite field and elliptic curve arithmetic. This is used by
   mina-signer (a pure TS package) to hash and sign transactions. Also includes

@@ -174,10 +174,10 @@ located in the Mina repo under `src/mina`. See the
 [Kimchi README](https://github.com/o1-labs/proof-systems/blob/master/README.md)
 for more information.
 
-The wasm backend is the `wasm32-wasip1-threads` build of the `kimchi-napi`
-crate — the same napi-rs crate that powers the native (`.node`) backend — built
-via the napi-rs CLI (see `scripts/build/wasm/build-kimchi-napi-wasm.sh`). The
-crate lives in the proof-systems submodule under
+The wasm backend is the `wasm32-wasip1-threads` build of the `kimchi-napi` crate
+— the same napi-rs crate that powers the native (`.node`) backend — built via
+the napi-rs CLI (see `scripts/build/wasm/build-kimchi-napi-wasm.sh`). The crate
+lives in the proof-systems submodule under
 `src/mina/src/lib/crypto/proof-systems/kimchi-napi`.
 
 For the wasm build, the output files are:

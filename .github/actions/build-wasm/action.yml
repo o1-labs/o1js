@@ -5,7 +5,10 @@ inputs:
   node_version:
     description: 'Node.js version to use'
     required: false
-    default: '20'
+    # must satisfy the package engines floor (>=22.19.5) — the napi-wasm
+    # backend (worker_threads + WASI + shared wasm memory) is not supported
+    # on older node
+    default: '22'
   proof_systems_commit:
     description: 'proof_systems commit to use'
     required: false
