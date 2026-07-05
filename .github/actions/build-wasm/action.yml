@@ -65,7 +65,11 @@ runs:
           ~/.npm
           node_modules
           dist
-        key: ${{ runner.OS }}-node-${{ inputs.node_version }}-v2-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
+        # v3: the key must also hash the build scripts — this cache includes
+        # `dist`, and on a hit the build is skipped entirely, so a build-script
+        # fix (e.g. removing the wasm-opt miscompilation) never took effect
+        # while ts/js were unchanged
+        key: ${{ runner.OS }}-node-${{ inputs.node_version }}-v3-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js', 'scripts/**/*.sh', '.github/actions/**') }}
     - name: Build examples
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash

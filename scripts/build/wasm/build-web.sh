@@ -35,8 +35,8 @@ cp $ARTIFACTS_PATH/index.d.ts $BINDINGS_PATH/kimchi_napi.wasi-browser.d.ts
 # wasm32-wasip1-threads build: the optimized binary wedges forever inside
 # WebAssembly instantiation in the browser worker host (verified by A/B in
 # an otherwise identical environment — raw binary passes, optimized binary
-# hangs; this is what made Build-And-Test-Web time out on CI, where wasm-opt
-# happened to be installed, while local builds without wasm-opt worked).
-# It was also measured to make no runtime performance difference.
+# hangs). It also ran only where wasm-opt happened to be installed (CI but
+# not local machines), so CI silently shipped a binary nobody else executed.
+# Measured to make no runtime performance difference, so nothing is lost.
 
 success "WASM web build success!"

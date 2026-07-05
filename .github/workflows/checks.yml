@@ -301,8 +301,19 @@ jobs:
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 8
           O1JS_CI_DIAG: 1
+          # SPECULATIVE FIX (evaluate, keep or revert): V8's wasm trap-handler
+          # reserves a ~10GB virtual-address guard cage; the loader needs >8GB VA
+          # to instantiate (measured locally). If the CI runner constrains VA,
+          # instantiation wedges. Inline bounds checks drop the requirement to
+          # ~4GB (the shared-memory reservation) at a small runtime cost.
+          NODE_OPTIONS: '--disable-wasm-trap-handler'
         shell: bash
         run: |
+          # TEMP CI diagnosis (remove): runner resource limits — the wasm loader
+          # needs >8GB of virtual address space (trap-handler cage + 4GiB
+          # shared-memory reservation); a constrained runner wedges at load
+          echo "=== runner limits:"; ulimit -a; free -h || true
+
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"
@@ -500,8 +511,19 @@ jobs:
           CHUNKS: 4
           O1JS_BACKEND: native
           O1JS_CI_DIAG: 1
+          # SPECULATIVE FIX (evaluate, keep or revert): V8's wasm trap-handler
+          # reserves a ~10GB virtual-address guard cage; the loader needs >8GB VA
+          # to instantiate (measured locally). If the CI runner constrains VA,
+          # instantiation wedges. Inline bounds checks drop the requirement to
+          # ~4GB (the shared-memory reservation) at a small runtime cost.
+          NODE_OPTIONS: '--disable-wasm-trap-handler'
         shell: bash
         run: |
+          # TEMP CI diagnosis (remove): runner resource limits — the wasm loader
+          # needs >8GB of virtual address space (trap-handler cage + 4GiB
+          # shared-memory reservation); a constrained runner wedges at load
+          echo "=== runner limits:"; ulimit -a; free -h || true
+
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"

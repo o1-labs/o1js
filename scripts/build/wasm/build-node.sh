@@ -111,10 +111,16 @@ node -e '
   let fs = require("fs");
   let path = process.argv[1];
   let src = fs.readFileSync(path, "utf8");
-  let diag = (msg) => `(process.env.O1JS_CI_DIAG && (() => { try { require("fs").writeSync(2, "[o1js-diag] ${msg}\\n"); } catch (_) {} })());\n`;
+  let diag = (msg) => `;(process.env.O1JS_CI_DIAG && (() => { try { require("fs").writeSync(2, "[o1js-diag] ${msg}\\n"); } catch (_) {} })());\n`;
   let spawnAnchor = "const worker = new Worker(";
   if (!src.includes(spawnAnchor)) throw Error("diag spawn anchor not found in " + path);
   src = src.replace(spawnAnchor, diag("spawning wasi worker thread") + spawnAnchor);
+  let memAnchor = "const __sharedMemory = new WebAssembly.Memory({";
+  if (!src.includes(memAnchor)) throw Error("diag memory anchor not found in " + path);
+  src = src.replace(memAnchor, diag("creating shared wasm memory (4GiB max)") + memAnchor);
+  let instAnchor = "const { instance: __napiInstance";
+  if (!src.includes(instAnchor)) throw Error("diag instantiate anchor not found in " + path);
+  src = src.replace(instAnchor, diag("memory ok, instantiating napi module") + instAnchor);
   src += "\n" + diag("node loader evaluated");
   fs.writeFileSync(path, src);
 ' $BINDINGS_PATH/kimchi_napi.wasi.cjs
