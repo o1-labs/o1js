@@ -1,7 +1,7 @@
 {
   "name": "o1js",
   "description": "TypeScript framework for zk-SNARKs and zkApps",
-  "version": "3.0.0-mesa.final",
+  "version": "3.0.0-mesa.final.pr2888.0",
   "license": "Apache-2.0",
   "homepage": "https://github.com/o1-labs/o1js/",
   "repository": {
@@ -83,6 +83,7 @@
     "clean": "./scripts/clean/clean.sh",
     "clean:artifacts": "./scripts/clean/clean-artifacts.sh",
     "clean:all": "./scripts/clean/clean-all.sh",
+    "cleanPackageLock": "./scripts/clean/clean-package-lock.sh",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix --fix-suggestions",
     "lint:strict": "oxlint --max-warnings 0",
@@ -145,9 +146,9 @@
     "tslib": "^2.3.0"
   },
   "o1js-internal": {
-    "native-version": "3.0.0-mesa.final"
+    "native-version": "3.0.0-mesa.final.pr2888.0"
   },
   "optionalDependencies": {
-    "@o1js/native": "3.0.0-mesa.final"
+    "@o1js/native": "3.0.0-mesa.final.pr2888.0"
   }
 }
