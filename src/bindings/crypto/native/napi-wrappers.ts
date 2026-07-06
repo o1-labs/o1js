@@ -1,4 +1,4 @@
-import type * as napiNamespace from '../../compiled/node_bindings/kimchi_wasm.cjs';
+import type * as napiNamespace from '../../compiled/node_bindings/kimchi_napi.wasi.cjs';
 import type {
   WasmFpDomain as NapiFpDomain,
   WasmFpLookupCommitments as NapiFpLookupCommitments,
@@ -32,7 +32,7 @@ import type {
   WasmPastaFqLookupTable as NapiPastaFqLookupTable,
   WasmVecVecFp as NapiVecVecFp,
   WasmVecVecFq as NapiVecVecFq,
-} from '../../compiled/node_bindings/kimchi_wasm.cjs';
+} from '../../compiled/node_bindings/kimchi_napi.wasi.cjs';
 
 export type Napi = typeof napiNamespace;
 
@@ -234,15 +234,6 @@ export type NapiProofClasses = {
   ProverProof: typeof NapiFpProverProof | typeof NapiFqProverProof;
   LookupCommitments: typeof NapiFpLookupCommitments | typeof NapiFqLookupCommitments;
   LookupTable: typeof NapiPastaFpLookupTable | typeof NapiPastaFqLookupTable;
-};
-
-export type NapiVerifierIndexClasses = {
-  Domain: typeof NapiFpDomain | typeof NapiFqDomain;
-  VerificationEvals: typeof NapiFpPlonkVerificationEvals | typeof NapiFqPlonkVerificationEvals;
-  Shifts: typeof NapiFpShifts | typeof NapiFqShifts;
-  VerifierIndex: typeof NapiFpPlonkVerifierIndex | typeof NapiFqPlonkVerifierIndex;
-  LookupVerifierIndex: typeof NapiFpLookupVerifierIndex | typeof NapiFqLookupVerifierIndex;
-  LookupSelector: typeof NapiFpLookupSelectors | typeof NapiFqLookupSelectors;
 };
 
 export type NapiOraclesClasses = {

@@ -2,66 +2,41 @@
 set -Eeuo pipefail
 
 # Description:
-#   Builds the Kimchi WebAssembly (WASM) bindings for Web (browser) usage. This script:
-#     - Compiles the Kimchi proof system’s Web bindings using Dune, generating:
-#         - `plonk_wasm_bg.wasm` (the main WebAssembly module) and its TypeScript definitions.
-#         - `plonk_wasm.js` (the JavaScript interface) and its type declarations.
-#     - Copies all generated artifacts into `src/bindings/compiled/web_bindings/`.
-#     - Optimizes the WebAssembly binary using `wasm-opt` with advanced flags
-#       (`--detect-features`, `--enable-mutable-globals`, `-O4`) for performance and size reduction.
-#     - Ensures proper file permissions after optimization.
-#
-# Note:
-#   - Requires `wasm-opt` (from Binaryen) to be installed and available in PATH.
+#   Builds the Kimchi WebAssembly bindings for Web (browser) usage. This script:
+#     - Builds the wasm32-wasip1-threads target of the kimchi-napi crate (the
+#       same crate that powers the native backend) via the napi-rs CLI.
+#     - Copies the wasm binary, the generated browser loader
+#       (`kimchi_napi.wasi-browser.js`, backed by @napi-rs/wasm-runtime) and its
+#       worker file into `src/bindings/compiled/web_bindings/`.
 #
 # Usage:
 #   npm run build:wasm:web
-
 
 source ./scripts/lib/ux.sh
 
 setup_script "wasm-web-build" "wasm web build"
 
-if ! command -v wasm-opt >/dev/null 2>&1; then
-  error "wasm-opt is required for web bindings optimization"
-  exit 1
-fi
-
 MINA_PATH=./src/mina
-KIMCHI_PATH=$MINA_PATH/src/lib/crypto/kimchi_bindings/js/web/
-BUILT_PATH=./_build/default/$KIMCHI_PATH
+ARTIFACTS_PATH=$MINA_PATH/src/lib/crypto/kimchi_bindings/js/native/artifacts-wasm
 BINDINGS_PATH=./src/bindings/compiled/web_bindings/
+
+./scripts/build/wasm/build-kimchi-napi-wasm.sh
 
 mkdir -p $BINDINGS_PATH
 
-
-info "building Kimchi bindings for web..."
-
-TARGETS=(\
-  kimchi_wasm_bg.wasm \
-  kimchi_wasm_bg.wasm.d.ts \
-  kimchi_wasm.js \
-  kimchi_wasm.d.ts\
-)
-dune build ${TARGETS[@]/#/$KIMCHI_PATH/}
-
 info "copying artifacts into the right place..."
 
-for target in "${TARGETS[@]}"; do
-  cp $BUILT_PATH/$target $BINDINGS_PATH/$target
-done
+cp $ARTIFACTS_PATH/kimchi_napi.wasm32-wasi.wasm $BINDINGS_PATH/
+cp $ARTIFACTS_PATH/kimchi_napi.wasi-browser.js $BINDINGS_PATH/
+cp $ARTIFACTS_PATH/wasi-worker-browser.mjs $BINDINGS_PATH/
+cp $ARTIFACTS_PATH/index.d.ts $BINDINGS_PATH/kimchi_napi.wasi-browser.d.ts
 
-info "optimizing wasm with wasm-opt..."
-run_cmd wasm-opt \
-  --detect-features \
-  --enable-mutable-globals \
-  -O4 \
-  -o $BINDINGS_PATH/kimchi_wasm_bg.wasm.opt \
-  $BINDINGS_PATH/kimchi_wasm_bg.wasm
-run_cmd mv $BINDINGS_PATH/kimchi_wasm_bg.wasm.opt $BINDINGS_PATH/kimchi_wasm_bg.wasm
-
-ok "wasm optimized"
-
-chmod 660 ${TARGETS[@]/#/$BINDINGS_PATH/}
+# NOTE: do NOT run wasm-opt on this binary. wasm-opt -O4 miscompiles the
+# wasm32-wasip1-threads build: the optimized binary wedges forever inside
+# WebAssembly instantiation in the browser worker host (verified by A/B in
+# an otherwise identical environment — raw binary passes, optimized binary
+# hangs). It also ran only where wasm-opt happened to be installed (CI but
+# not local machines), so CI silently shipped a binary nobody else executed.
+# Measured to make no runtime performance difference, so nothing is lost.
 
 success "WASM web build success!"

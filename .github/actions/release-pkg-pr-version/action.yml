@@ -9,11 +9,12 @@ runs:
       uses: actions/cache@v4
       with:
         path: .
-        key: repo-${{ github.sha }}-node-20
-    - name: Setup Node.JS 20
+        # must match the key build-wasm/action.yml saves under
+        key: repo-${{ github.sha }}-node-22
+    - name: Setup Node.JS 22
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
     - name: build
       uses: ./.github/actions/build-wasm
     - name: Build o1js and mina-signer

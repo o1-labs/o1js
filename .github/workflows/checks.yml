@@ -300,8 +300,20 @@ jobs:
           TOTAL_TESTS: ${{ steps.count_tests.outputs.test_count }}
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 8
+          O1JS_CI_DIAG: 1
+          # SPECULATIVE FIX (evaluate, keep or revert): V8's wasm trap-handler
+          # reserves a ~10GB virtual-address guard cage; the loader needs >8GB VA
+          # to instantiate (measured locally). If the CI runner constrains VA,
+          # instantiation wedges. Inline bounds checks drop the requirement to
+          # ~4GB (the shared-memory reservation) at a small runtime cost.
+          NODE_OPTIONS: '--disable-wasm-trap-handler'
         shell: bash
         run: |
+          # TEMP CI diagnosis (remove): runner resource limits — the wasm loader
+          # needs >8GB of virtual address space (trap-handler cage + 4GiB
+          # shared-memory reservation); a constrained runner wedges at load
+          echo "=== runner limits:"; ulimit -a; free -h || true
+
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"
@@ -327,9 +339,55 @@ jobs:
 
           set -o pipefail
 
+          # TEMP CI diagnosis (remove): the wasm loader wedges inside module
+          # instantiation only on the CI runner — not reproducible locally on
+          # any arch / node version / cache state. Print exact runtime versions
+          # so we can see what the runner actually installed vs the lockfile.
+          echo "=== o1js-diag runtime versions:"
+          node -e 'console.log("node", process.version, process.arch, "cpus", require("os").cpus().length);
+            for (const p of ["@emnapi/core","@emnapi/runtime","@napi-rs/wasm-runtime","@tybys/wasm-util"]) {
+              try { console.log(p, require(p + "/package.json").version); } catch (e) { console.log(p, "MISSING"); }
+            }' || true
+
+          # TEMP CI diagnosis (remove): if a test is still alive after 120s
+          # (normal tests finish well under that), dump every thread's kernel
+          # wait-state from /proc — no gdb/symbols needed. futex_wait = lock
+          # deadlock, mmap/mprotect = memory reservation, epoll/poll = I/O.
+          # This shows exactly what the wasm instantiation wedges on.
+          dump_hang() {
+            local label="$1"
+            local np=""
+            # the pattern also matches the `timeout` wrapper (label is in its
+            # argv), so pick the process whose comm is actually `node`
+            for p in $(pgrep -f "enable-source-maps ${label}"); do
+              if [ "$(cat /proc/"$p"/comm 2>/dev/null)" = "node" ]; then np="$p"; break; fi
+            done
+            [ -z "$np" ] && return 0
+            {
+              echo "===== HANG DIAG: ${label} (pid ${np}) ====="
+              for t in /proc/"$np"/task/*; do
+                local tid; tid=$(basename "$t")
+                printf "tid=%s comm=%s state=%s wchan=%s syscall=%s\n" \
+                  "$tid" "$(cat "$t"/comm 2>/dev/null)" \
+                  "$(awk '{print $3}' "$t"/stat 2>/dev/null)" \
+                  "$(cat "$t"/wchan 2>/dev/null)" \
+                  "$(cut -d' ' -f1 "$t"/syscall 2>/dev/null)"
+              done
+              echo "--- kernel stacks (sudo):"
+              sudo bash -c 'for t in /proc/'"$np"'/task/*; do echo "== $t"; cat "$t"/stack 2>/dev/null; done' 2>/dev/null || echo "(no sudo/stack)"
+            } >> hang-diag.txt 2>&1
+          }
+
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test: ${test_files[$i]}"
-              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              ( sleep 120; dump_hang "${test_files[$i]}" ) &
+              diag_pid=$!
+              # per-test timeout: a wedged test becomes a named failure in
+              # 30 min instead of silently eating the job's 210-minute budget.
+              # SIGTERM can't interrupt a main thread blocked in wasm/Atomics,
+              # so escalate to SIGKILL after 30s.
+              timeout --kill-after=30 1800 node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              kill "$diag_pid" 2>/dev/null || true
           done
         continue-on-error: false
       - name: Upload test results
@@ -337,7 +395,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.chunk }}
-          path: profiling.md
+          path: |
+            profiling.md
+            hang-diag.txt
       - name: Add to job summary
         if: always()
         shell: bash
@@ -361,9 +421,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .
-          key: repo-${{ github.sha }}-node-20
+          # must match the key build-wasm/action.yml saves under
+          # (repo-<sha>-node-<node_version>, currently 22)
+          key: repo-${{ github.sha }}-node-22
 
-      - name: Setup Node.JS 20
+      - name: Setup Node.JS 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -372,7 +434,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.OS }}-node-20-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.OS }}-node-22-${{ hashFiles('**/package-lock.json') }}
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -492,8 +554,20 @@ jobs:
           CHUNK: ${{ matrix.chunk }}
           CHUNKS: 4
           O1JS_BACKEND: native
+          O1JS_CI_DIAG: 1
+          # SPECULATIVE FIX (evaluate, keep or revert): V8's wasm trap-handler
+          # reserves a ~10GB virtual-address guard cage; the loader needs >8GB VA
+          # to instantiate (measured locally). If the CI runner constrains VA,
+          # instantiation wedges. Inline bounds checks drop the requirement to
+          # ~4GB (the shared-memory reservation) at a small runtime cost.
+          NODE_OPTIONS: '--disable-wasm-trap-handler'
         shell: bash
         run: |
+          # TEMP CI diagnosis (remove): runner resource limits — the wasm loader
+          # needs >8GB of virtual address space (trap-handler cage + 4GiB
+          # shared-memory reservation); a constrained runner wedges at load
+          echo "=== runner limits:"; ulimit -a; free -h || true
+
           echo "Total tests: $TOTAL_TESTS"
           echo "Current chunk: $CHUNK"
           echo "Total chunks: $CHUNKS"
@@ -515,7 +589,11 @@ jobs:
 
           for ((i=start_index; i<end_index && i<${#test_files[@]}; i++)); do
               echo "Running test (native): ${test_files[$i]}"
-              node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
+              # per-test timeout: a wedged test becomes a named failure in
+              # 30 min instead of silently eating the job's 210-minute budget.
+              # SIGTERM can't interrupt a main thread blocked in wasm/Atomics,
+              # so escalate to SIGKILL after 30s.
+              timeout --kill-after=30 1800 node --enable-source-maps "${test_files[$i]}" | tee -a profiling.md
           done
         continue-on-error: false
       - name: Upload test results

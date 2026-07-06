@@ -12,9 +12,12 @@ try {
     import.meta.url !== undefined ? import.meta.url : pathToFileURL(__filename).href;
   const require_ = createRequire(moduleUrl);
   wasm = require_(slug);
+  wasm.__kimchi_backend = 'native';
   wasm.__o1js_backend_preference = 'native';
   if (typeof globalThis !== 'undefined') {
     globalThis.__o1js_backend_preference = 'native';
+    // the compiled OCaml artifact (o1js_node.bc.cjs) picks up the FFI module here
+    globalThis.__o1js_kimchi_ffi = wasm;
   }
 } catch (e) {
   throw new Error(

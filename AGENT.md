@@ -34,7 +34,7 @@ and are proven/verified using the underlying proof system.
 │   Pasta curves (Pallas / Vesta cycle)            │
 ├─────────────────────────────────────────────────┤
 │              Runtime Target                      │
-│   WASM (browser/Node via wasm-bindgen)           │
+│   native .node or WASM via napi-rs (kimchi-napi) │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -75,10 +75,12 @@ critical to understand before making changes:
 
 ### WASM boundary
 
-The Rust backend is compiled to WASM via `wasm-bindgen` for use in both browser
-and Node.js environments. This boundary is a major source of subtle bugs — see
-`AGENT_LOG.md` for historical context on panics, threading issues, and memory
-problems.
+The Rust backend is the `kimchi-napi` crate (napi-rs), built two ways from the
+same source: native `.node` prebuilds per platform, and a
+`wasm32-wasip1-threads` WASM build (loaded via `@napi-rs/wasm-runtime`) used as
+the portable fallback in Node and in browsers. The old `wasm-bindgen` layer was
+removed — see `PLAN.md` for the migration and `AGENT_LOG.md` for historical
+context on panics, threading issues, and memory problems.
 
 ## Essential Commands
 

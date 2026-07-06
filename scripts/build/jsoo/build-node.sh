@@ -52,23 +52,10 @@ info "moving some files to CommonJS format..."
 run_cmd mv -f $BINDINGS_PATH/o1js_node.bc.js $BINDINGS_PATH/o1js_node.bc.cjs
 ok "Node.js bindings copied"
 
-info "Updating WASM references in bindings..."
-run_cmd sed -i 's/kimchi_wasm.js/kimchi_wasm.cjs/' $BINDINGS_PATH/o1js_node.bc.cjs
-ok "WASM references updated"
-
-info "making native require opaque to webpack..."
-# webpack creates a context module from dynamic require("@o1js/native-" + ...) which
-# greedily bundles all files in the @o1js/ scope. __non_webpack_require__ tells webpack
-# to skip this require while keeping it functional at runtime.
-run_cmd perl -e '
-  local $/;
-  open(F, "<", $ARGV[0]) or die $!;
-  my $c = <F>; close(F);
-  $c =~ s/require\s*\("\@o1js\/native-"/(typeof __non_webpack_require__ !== "undefined" ? __non_webpack_require__ : require)("\@o1js\/native-"/g;
-  open(F, ">", $ARGV[0]) or die $!;
-  print F $c; close(F);
-' $BINDINGS_PATH/o1js_node.bc.cjs
-ok "native require made webpack-safe"
+# note: the kimchi_ffi stub in the artifact reads the FFI module from
+# globalThis.__o1js_kimchi_ffi (installed by the o1js backend loaders before the
+# artifact is evaluated), so no require-rewriting for wasm or native packages is
+# needed here anymore
 
 info "fixing JS bindings for better error handling..."
 run_cmd sed -i 's/function failwith(s){throw \[0,Failure,s\]/function failwith(s){throw globalThis.Error(s.c)/' "${BINDINGS_PATH}"/o1js_node.bc.cjs

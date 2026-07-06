@@ -187,4 +187,147 @@ does not guarantee WASM safety.
 
 **Relevant files:** `src/bindings/compiled/`, `src/bindings/native/`
 
+---
+
+date: 2026-07-02 agent: claude-fable-5 session: wasm-bindgen→napi-rs-wasm-migration
+category: rust-wasm-boundary severity: high tags: [napi-rs, wasm,
+wasm32-wasip1-threads, migration, build-system]
+
+---
+
+### napi-rs CLI only emits wasi JS loaders when the napi config declares a wasi target
+
+**Context:** Migrating the wasm backend from wasm-bindgen (`kimchi_wasm`) to the
+napi-rs `kimchi-napi` crate compiled for `wasm32-wasip1-threads`.
+
+**What happened:** `napi build --target wasm32-wasip1-threads` produced only the
+`.wasm` binary and `index.d.ts` — no `kimchi_napi.wasi.cjs`, browser loader, or
+worker files. Also, raw `cargo check --target wasm32-wasip1-threads` fails with
+`EMNAPI_LINK_DIR must be set` (napi-build's wasi branch) — the env var is set by
+the napi CLI, so always build through `napi build`, not raw cargo.
+
+**Root cause:** The CLI's `writeWasiBinding` only runs when the napi config
+(`package.json` → `napi.targets`) includes a wasi target, and `--platform` must
+be passed. Without `napi.packageName`, the generated loader falls back to
+requiring the literal package `undefined-wasm32-wasi`.
+
+**Resolution/Workaround:** In
+`src/mina/src/lib/crypto/kimchi_bindings/js/native/package.json`, set `name`,
+`napi.packageName`, and `napi.targets` (including `wasm32-wasip1-threads`), and
+build with `napi build --platform`. Memory limits are configured via
+`napi.wasm.initialMemory/maximumMemory` (in 64KiB pages).
+
+**Key takeaway:** For napi-rs wasm builds, the JS loaders are driven by the napi
+config, not by the build target alone — declare the wasi target in
+`napi.targets` and pass `--platform`.
+
+**Relevant files:**
+`src/mina/src/lib/crypto/kimchi_bindings/js/native/package.json`,
+`scripts/build/wasm/build-kimchi-napi-wasm.sh`
+
+---
+
+date: 2026-07-02 agent: claude-fable-5 session: wasm-bindgen→napi-rs-wasm-migration
+category: build-system severity: medium tags: [rust, stable, cfg_attr,
+nightly-feature, wasm32]
+
+---
+
+### Stale `#![cfg_attr(target_arch = "wasm32", feature(...))]` breaks stable wasm builds
+
+**Context:** First `wasm32-wasip1-threads` build of the proof-systems workspace
+on stable Rust 1.92.
+
+**What happened:** `o1-utils` and `poly-commitment` failed with E0554
+(`#![feature]` may not be used on the stable release channel). Both had
+`#![cfg_attr(target_arch = "wasm32", feature(unsigned_is_multiple_of))]` — added
+when wasm builds required nightly; the feature has been stable since Rust 1.87.
+
+**Root cause:** The old wasm-bindgen pipeline built wasm32 on nightly, so the
+cfg_attr was harmless. `wasm32-wasip1-threads` is a tier-2 target with prebuilt
+std, so stable works — and then the vestigial feature attribute becomes a hard
+error (only under `target_arch = "wasm32"`, so native CI never saw it).
+
+**Resolution/Workaround:** Deleted the cfg_attr lines (proof-systems submodule).
+
+**Key takeaway:** cfg_attr'd nightly features hide from native CI and only
+explode when someone builds that target on stable — grep for
+`cfg_attr(target_arch = "wasm32", feature` when moving wasm builds to stable.
+
+**Relevant files:** `src/mina/src/lib/crypto/proof-systems/utils/src/lib.rs`,
+`src/mina/src/lib/crypto/proof-systems/poly-commitment/src/lib.rs`
+
+---
+
+date: 2026-07-02 agent: claude-fable-5 session: wasm-bindgen→napi-rs-wasm-migration
+category: native-ffi severity: medium tags: [napi-rs, type-defs, typescript,
+header-d.ts]
+
+---
+
+### napi-rs type-def generation is not valid TS out of the box
+
+**Context:** Making the generated `kimchi-napi` `index.d.ts` the canonical type
+source for the TS conversion layer (replacing the wasm-bindgen `.d.ts`).
+
+**What happened:** Three classes of problems: (1) setters generated with
+optional parameters (`set x(v?: T)`) are invalid TS (TS1051); (2) many alias
+names used in signatures (`NapiVector`, `NapiPastaFp`, `NapiPlonkVerifierIndex`,
+…) are never declared; (3) `#[napi(object)]` types generate `interface`s (plain
+JS objects at runtime) while `#[napi]` structs generate classes — TS code that
+did `new napi.WasmFpDomain(...)`-style access typechecked against the old
+wasm-bindgen typings but was `undefined` at runtime (it was never called, only
+passed around).
+
+**Resolution/Workaround:** (1) post-process the d.ts in
+`build-kimchi-napi-wasm.sh` (regex-drop the `?`); (2) declare the missing
+aliases in `header-d.ts` (which napi injects into the generated file);
+(3) removed the vestigial "classes" plumbing for object-types from
+`napi-conversion-verifier-index.ts` / `napi-wrappers.ts`.
+
+**Key takeaway:** Treat generated napi type-defs as a build input needing a fix
+pass, and know the `#[napi(object)]` (plain object) vs `#[napi]` class (has
+constructor) distinction — only the latter exist as runtime exports.
+
+**Relevant files:**
+`src/mina/src/lib/crypto/kimchi_bindings/js/native/header-d.ts`,
+`scripts/build/wasm/build-kimchi-napi-wasm.sh`,
+`src/bindings/crypto/native/napi-wrappers.ts`
+
+---
+
+date: 2026-07-02 agent: claude-fable-5 session: wasm-bindgen→napi-rs-wasm-migration
+category: concurrency severity: high tags: [rayon, wasi-threads, browser,
+main-thread, atomics]
+
+---
+
+### Browser main threads cannot block — napi-wasm threading needs a worker host for parallel web proving
+
+**Context:** Replacing the wasm-bindgen web backend (worker-hosted wasm +
+`worker-spec.js` pointer marshalling) with the napi-rs `wasm32-wasip1-threads`
+build.
+
+**What happened:** On Node, the napi-wasm build runs rayon-parallel code fine on
+the main thread (Node allows blocking; verified `caml_fp_srs_create_parallel`
+spawns worker_threads and returns correctly, and `RAYON_NUM_THREADS` is honored
+via the WASI env). In browsers, the main thread cannot execute
+`memory.atomic.wait32`, so rayon join points called synchronously from the main
+thread will trap once a multi-threaded pool exists.
+
+**Root cause:** JS embedder rule ([[CanBlock]] = false on the main thread); this
+is the same constraint the old wasm-bindgen backend solved by hosting the whole
+wasm instance in a dedicated worker and spin-waiting via `wait_until_non_zero`.
+
+**Resolution/Workaround:** Web backend (Option A, this migration) instantiates
+the napi-wasm module on the main thread; parallelism on web is limited until
+Option B (worker-hosted module + explicit handle-table RPC, designed in PLAN.md)
+lands. Node is unaffected.
+
+**Key takeaway:** Sync FFI + rayon + browser main thread is fundamentally
+impossible without a worker host — plan web parallelism as a separate,
+deliberate step, and always benchmark web proving before/after backend changes.
+
+**Relevant files:** `src/bindings/js/web/web-backend.js`, `PLAN.md`
+
 <!-- END LOG -->

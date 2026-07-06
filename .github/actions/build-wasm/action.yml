@@ -5,7 +5,10 @@ inputs:
   node_version:
     description: 'Node.js version to use'
     required: false
-    default: '20'
+    # must satisfy the package engines floor (>=22.19.5) — the napi-wasm
+    # backend (worker_threads + WASI + shared wasm memory) is not supported
+    # on older node
+    default: '22'
   proof_systems_commit:
     description: 'proof_systems commit to use'
     required: false
@@ -62,7 +65,11 @@ runs:
           ~/.npm
           node_modules
           dist
-        key: ${{ runner.OS }}-node-${{ inputs.node_version }}-v2-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js') }}
+        # v3: the key must also hash the build scripts — this cache includes
+        # `dist`, and on a hit the build is skipped entirely, so a build-script
+        # fix (e.g. removing the wasm-opt miscompilation) never took effect
+        # while ts/js were unchanged
+        key: ${{ runner.OS }}-node-${{ inputs.node_version }}-v3-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.js', 'scripts/**/*.sh', '.github/actions/**') }}
     - name: Build examples
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash

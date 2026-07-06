@@ -31,7 +31,8 @@ runs:
       if: steps.native-cache.outputs.cache-hit != 'true'
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        # keep in sync with the package engines floor (>=22.19.5)
+        node-version: '22'
 
     - name: Install npm dependencies
       if: steps.native-cache.outputs.cache-hit != 'true'

@@ -6,12 +6,12 @@ import {
   type Cache,
   type CacheHeader,
 } from '../../../lib/proof-system/cache.js';
-import { srsCache as cache } from '../cache.js';
 import { assert } from '../../../lib/util/errors.js';
 import type { RustConversion } from '../bindings.js';
-import type { Napi, NapiAffine, NapiPolyComm, NapiPolyComms, NapiSrs } from './napi-wrappers.js';
 import { OrInfinity, OrInfinityJson } from '../bindings/curve.js';
 import { PolyComm } from '../bindings/kimchi-types.js';
+import { srsCache as cache } from '../cache.js';
+import type { Napi, NapiPolyComm, NapiPolyComms, NapiSrs } from './napi-wrappers.js';
 
 export { srs };
 
@@ -39,6 +39,12 @@ function cacheHeaderLagrange(f: 'fp' | 'fq', domainSize: number): CacheHeader {
     srsVersion
   );
 }
+// v3: raw uncompressed bytes via caml_*_srs_{to,from}_raw_bytes. the v1
+// JSON-of-hex-points format spent ~400ms per field in per-point conversions on
+// every cache read; v2 (serde/rmp) was worse — compressed points cost a sqrt
+// each to load. raw affine coordinates make the read ~a memcpy.
+const srsBlobVersion = 3;
+
 function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
   let id = `srs-${f}-${domainSize}`;
   return withVersion(
@@ -46,20 +52,20 @@ function cacheHeaderSrs(f: 'fp' | 'fq', domainSize: number): CacheHeader {
       kind: 'srs',
       persistentId: id,
       uniqueId: id,
-      dataType: 'string',
+      dataType: 'bytes',
     },
-    srsVersion
+    srsBlobVersion
   );
 }
 
-function srs(napi: Napi, conversion: RustConversion<'native'>) {
+function srs(napi: Napi, conversion: RustConversion) {
   return {
     fp: srsPerField('fp', napi, conversion),
     fq: srsPerField('fq', napi, conversion),
   };
 }
 
-function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'native'>) {
+function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion) {
   // note: these functions are properly typed, thanks to TS template literal types
   let createSrs = (size: number) => {
     try {
@@ -70,30 +76,12 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nat
     }
   };
 
-  let getSrs = (srs: NapiSrs): NapiAffine[] => {
-    try {
-      let fn = napi[`caml_${f}_srs_get`] as unknown as (value: NapiSrs) => NapiAffine[];
-      return fn(srs);
-    } catch (error) {
-      console.error(`Error in SRS get for field ${f}`);
-      throw error;
-    }
-  };
   let isEmptySrs = (srs: NapiSrs) => {
     try {
-      let points = getSrs(srs);
-      return points == null || points.length <= 1;
+      let fn = napi[`caml_${f}_srs_length`] as unknown as (value: NapiSrs) => number;
+      return fn(srs) === 0;
     } catch {
       return true;
-    }
-  };
-  let setSrs = (points: NapiAffine[]) => {
-    try {
-      let fn = napi[`caml_${f}_srs_set`] as unknown as (value: NapiAffine[]) => NapiSrs;
-      return fn(points);
-    } catch (error) {
-      console.error(`Error in SRS set for field ${f} args ${points}`);
-      throw error;
     }
   };
 
@@ -114,11 +102,7 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nat
       throw error;
     }
   };
-  let lagrangeCommitment = (
-    srs: NapiSrs,
-    domain_size: number,
-    i: number
-  ): NapiPolyComm => {
+  let lagrangeCommitment = (srs: NapiSrs, domain_size: number, i: number): NapiPolyComm => {
     try {
       let fn = napi[`caml_${f}_srs_lagrange_commitment`] as unknown as (
         srsValue: NapiSrs,
@@ -177,26 +161,25 @@ function srsPerField(f: 'fp' | 'fq', napi: Napi, conversion: RustConversion<'nat
 
           // try to read SRS from cache / recompute and write if not found
           srs = readCache(cache, header, (bytes: Uint8Array) => {
-            // TODO: this takes a bit too long, about 300ms for 2^16
-            // `pointsToRust` is the clear bottleneck
-            let jsonSrs: OrInfinityJson[] = JSON.parse(new TextDecoder().decode(bytes));
-            let mlSrs = MlArray.mapTo(jsonSrs, OrInfinity.fromJSON);
-            let wasmSrs = conversion[f].pointsToRust(mlSrs);
-            let candidate = setSrs(wasmSrs);
-            if (isEmptySrs(candidate)) return undefined;
-            return candidate;
+            try {
+              let fn = napi[`caml_${f}_srs_from_raw_bytes`] as unknown as (
+                b: Uint8Array
+              ) => NapiSrs;
+              let candidate = fn(bytes);
+              if (isEmptySrs(candidate)) return undefined;
+              return candidate;
+            } catch {
+              // unreadable/corrupt blob — treat as cache miss
+              return undefined;
+            }
           });
           if (srs === undefined) {
             // not in cache
             srs = createSrs(size);
 
             if (cache.canWrite) {
-              let wasmSrs = getSrs(srs);
-              let mlSrs = conversion[f].pointsFromRust(wasmSrs);
-              let jsonSrs = MlArray.mapFrom(mlSrs, OrInfinity.toJSON);
-              let bytes = new TextEncoder().encode(JSON.stringify(jsonSrs));
-
-              writeCache(cache, header, bytes);
+              let fn = napi[`caml_${f}_srs_to_raw_bytes`] as unknown as (s: NapiSrs) => Uint8Array;
+              writeCache(cache, header, fn(srs));
             }
           }
         }
@@ -329,7 +312,7 @@ function polyCommsFromJSON(json: PolyCommJson[]): MlArray<PolyComm> {
 function readCacheLazy(
   cache: Cache,
   header: CacheHeader,
-  conversion: RustConversion<'native'>,
+  conversion: RustConversion,
   f: 'fp' | 'fq',
   srs: NapiSrs,
   domainSize: number,

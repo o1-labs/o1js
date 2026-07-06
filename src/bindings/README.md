@@ -6,16 +6,21 @@ OCaml.
 
 **Directory structure**
 
-- `/compiled` - compiled JS and Wasm artifacts produced by `js_of_ocaml` and
-  `wasm-bindgen` from Rust and OCaml source code. We keep these artifacts in the
-  source tree so that developing on o1js can be done with standard JS tooling
-  and doesn't require setting up the full OCaml/Rust build pipeline.
+- `/compiled` - compiled JS and Wasm artifacts produced by `js_of_ocaml` (from
+  OCaml source code) and by `napi-rs` (the `wasm32-wasip1-threads` build of the
+  `kimchi-napi` Rust crate — the same crate that powers the native backend). We
+  keep these artifacts in the source tree so that developing on o1js can be done
+  with standard JS tooling and doesn't require setting up the full OCaml/Rust
+  build pipeline.
 - `/crypto` - pure TS implementations of a subset of the crypto primitives we
   use, including finite field and elliptic curve arithmetic. This is used by
-  mina-signer (a pure TS package) to hash and sign transactions.
-- `/js` - JS-side wrappers for the artifacts located in `/compiled`, which
-  differs between the Node.js and web versions of o1js. Includes code for
-  setting up workers to support using `rayon` in Rust.
+  mina-signer (a pure TS package) to hash and sign transactions. Also includes
+  the `native/` conversion layer between OCaml/ML data structures and the
+  kimchi-napi FFI (shared by the native and wasm backends).
+- `/js` - JS-side backend loaders for the artifacts located in `/compiled`,
+  which differ between the Node.js and web versions of o1js. Threading (rayon)
+  is handled by `@napi-rs/wasm-runtime` inside the compiled artifact, so these
+  loaders are thin.
 - `/lib` - miscellaneous low-level TypeScript, which underpins o1js and provides
   generic ways to connect with a proof system and blockchain protocol.
 - `/mina-transaction` - TS types and modules that specialize the generic tooling

@@ -137,6 +137,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@napi-rs/wasm-runtime": "^1.0.7",
     "@noble/hashes": "^1.7.1",
     "blakejs": "1.2.1",
     "cachedir": "^2.4.0",

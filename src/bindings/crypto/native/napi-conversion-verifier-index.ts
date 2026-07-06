@@ -18,44 +18,21 @@ import type {
   NapiShiftsShape,
   NapiVerificationEvalsShape,
   NapiVerifierIndex,
-  NapiVerifierIndexClasses,
   NapiVerifierIndexShape,
 } from './napi-wrappers.js';
 
 export { napiVerifierIndexConversion };
 
+// all verifier-index types are `#[napi(object)]` on the Rust side, i.e. plain
+// JS objects — no constructors are needed from the FFI module
 function napiVerifierIndexConversion(napi: Napi, core: ConversionCores) {
   return {
-    fp: verifierIndexConversionPerField(core.fp, {
-      Domain: napi.WasmFpDomain,
-      VerificationEvals: napi.WasmFpPlonkVerificationEvals,
-      Shifts: napi.WasmFpShifts,
-      VerifierIndex: napi.WasmFpPlonkVerifierIndex,
-      LookupVerifierIndex: napi.WasmFpLookupVerifierIndex,
-      LookupSelector: napi.WasmFpLookupSelectors,
-    }),
-    fq: verifierIndexConversionPerField(core.fq, {
-      Domain: napi.WasmFqDomain,
-      VerificationEvals: napi.WasmFqPlonkVerificationEvals,
-      Shifts: napi.WasmFqShifts,
-      VerifierIndex: napi.WasmFqPlonkVerifierIndex,
-      LookupVerifierIndex: napi.WasmFqLookupVerifierIndex,
-      LookupSelector: napi.WasmFqLookupSelectors,
-    }),
+    fp: verifierIndexConversionPerField(core.fp),
+    fq: verifierIndexConversionPerField(core.fq),
   };
 }
 
-function verifierIndexConversionPerField(
-  core: ConversionCore,
-  {
-    Domain,
-    VerificationEvals,
-    Shifts,
-    VerifierIndex,
-    LookupVerifierIndex,
-    LookupSelector,
-  }: NapiVerifierIndexClasses
-) {
+function verifierIndexConversionPerField(core: ConversionCore) {
   function domainToRust([, logSizeOfGroup, groupGen]: Domain): NapiDomain {
     // In the NAPI backend these types are `#[napi(object)]`, i.e. plain JS objects
     // (not constructable classes).
@@ -178,9 +155,12 @@ function verifierIndexConversionPerField(
     return [0, lookup, xor, range_check, ffmul];
   }
 
-  function lookupInfoToRust(
-    [, maxPerRow, maxJointSize, features]: LookupInfo
-  ): NapiLookupInfoObject {
+  function lookupInfoToRust([
+    ,
+    maxPerRow,
+    maxJointSize,
+    features,
+  ]: LookupInfo): NapiLookupInfoObject {
     let [, patterns, joint_lookup_used, uses_runtime_tables] = features;
     let [, xor, lookup, range_check, foreign_field_mul] = patterns;
     return {

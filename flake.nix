@@ -117,16 +117,7 @@
           info
           noTestSkipping
           prj;
-        prj = prj_ // {
-          pkgs = prj_.pkgs // {
-            __ocaml-js__ = prj_.pkgs.__ocaml-js__.overrideAttrs {
-              PREBUILT_KIMCHI_BINDINGS_JS_WEB =
-                "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
-              PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
-                "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
-            };
-          };
-        };
+        prj = prj_;
         rust-channel =
           ((pkgs.rustChannelOf
             {
@@ -137,6 +128,7 @@
             {
               targets = [
                 "wasm32-unknown-unknown"
+                "wasm32-wasip1-threads"
                 "x86_64-unknown-linux-gnu"
                 "aarch64-apple-darwin"
                 "x86_64-apple-darwin"
@@ -173,7 +165,6 @@
             typescript
             nodePackages.typescript-language-server
             rustup
-            wasm-pack
             binaryen # provides wasm-opt
             dune_3
           ] ++ commonOverrides.buildInputs;
@@ -324,15 +315,9 @@
               ];
             });
           inherit (inputs.mina.devShells."${system}".default)
-            KIMCHI_WASM_NODEJS
-            KIMCHI_WASM_WEB
             KIMCHI_STUBS
             KIMCHI_STUBS_STATIC_LIB
             ;
-          PREBUILT_KIMCHI_BINDINGS_JS_WEB =
-            "${mina.files.src-lib-crypto-kimchi_bindings-js-web}/src/lib/crypto/kimchi_bindings/js/web";
-          PREBUILT_KIMCHI_BINDINGS_JS_NODE_JS =
-            "${mina.files.src-lib-crypto-kimchi_bindings-js-node_js}/src/lib/crypto/kimchi_bindings/js/node_js";
           EXPORT_TEST_VECTORS = "${test-vectors}/bin/export_test_vectors";
           SKIP_MINA_COMMIT = true;
           SKIP_NATIVE_BUILD = true;
