@@ -5,6 +5,8 @@ module Field = Impl.Field
 module Boolean = Impl.Boolean
 module Typ = Impl.Typ
 module Backend = Pickles.Backend
+module Domain = Pickles__Import.Domain
+module Domains = Pickles__Import.Domains
 
 module Public_input = struct
   type t = Field.t array
@@ -619,7 +621,8 @@ let pickles_compile (choices : pickles_rule_js array)
       ; storable : Cache.js_storable Js.optdef_prop
       ; overrideWrapDomain : int Js.optdef_prop
       ; numChunks : int Js.optdef_prop
-      ; lazyMode : bool Js.optdef_prop >
+      ; lazyMode : bool Js.optdef_prop
+      ; stepDomains : int Js.js_array Js.t Js.optdef_prop >
       Js.t ) =
   (* translate number of branches and recursively verified proofs from JS *)
   let branches = Array.length choices in
@@ -640,6 +643,16 @@ let pickles_compile (choices : pickles_rule_js array)
   in
   let num_chunks = Js.Optdef.get config##.numChunks (fun () -> 1) in
   let lazy_mode = Js.Optdef.get config##.lazyMode (fun () -> false) in
+  let known_step_domains =
+    Js.Optdef.to_option config##.stepDomains
+    |> Option.map ~f:(fun domains ->
+           Js.to_array domains
+           |> Array.map ~f:(fun log2 ->
+                  { Domains.h = Domain.Pow_2_roots_of_unity log2 } )
+           |> fun domains ->
+           Pickles_types.Vector.of_array_and_length_exn domains Branches.n )
+    |> Option.map ~f:Obj.magic
+  in
   let (Choices choices) =
     Choices.of_js ~public_input_size ~public_output_size choices
   in
@@ -662,7 +675,7 @@ let pickles_compile (choices : pickles_rule_js array)
            , public_input_typ public_output_size ) )
       ~auxiliary_typ:Typ.unit
       ~max_proofs_verified:(module Max_proofs_verified)
-      ~name ~num_chunks ~lazy_mode ~choices ()
+      ~name ~num_chunks ~lazy_mode ?known_step_domains ~choices ()
   in
 
   (* translate returned prover and verify functions to JS *)
@@ -705,6 +718,23 @@ let pickles_compile (choices : pickles_rule_js array)
         (data |> Js.string, hash) )
     |> Promise_js_helpers.to_js
   in
+  let get_step_domains () =
+    let compiled = Pickles.Types_map.lookup_compiled tag.id in
+    let domains =
+      Promise.map
+        (Pickles_types.Vector.fold ~init:(Promise.return ())
+           compiled.step_domains ~f:(fun acc domain ->
+             Promise.bind acc ~f:(fun () -> Promise.map domain ~f:ignore) ) )
+        ~f:(fun () ->
+          Pickles_types.Vector.map compiled.step_domains ~f:(fun domain ->
+              Option.value_exn (Promise.peek domain) ) )
+    in
+    Promise.map domains ~f:(fun domains ->
+        Pickles_types.Vector.to_array domains
+        |> Array.map ~f:(fun { Domains.h } -> Domain.log2_size h)
+        |> Js.array )
+    |> Promise_js_helpers.to_js
+  in
   object%js
     val provers = Obj.magic provers
 
@@ -713,6 +743,8 @@ let pickles_compile (choices : pickles_rule_js array)
     val tag = Obj.magic tag
 
     val getVerificationKey = get_vk
+
+    val getStepDomains = get_step_domains
   end
 
 module Proof0 = Pickles.Proof.Make (Pickles_types.Nat.N0)

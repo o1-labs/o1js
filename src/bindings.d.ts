@@ -715,6 +715,7 @@ declare const Pickles: {
       overrideWrapDomain?: 0 | 1 | 2;
       numChunks?: number;
       lazyMode?: boolean;
+      stepDomains?: number[];
     }
   ) => {
     provers: MlArray<Pickles.Prover>;
@@ -729,6 +730,7 @@ declare const Pickles: {
     getVerificationKey: () => Promise<
       [_: 0, data: Base64VerificationKeyString, hash: FieldConst]
     >;
+    getStepDomains: () => Promise<number[]>;
   };
 
   verify(

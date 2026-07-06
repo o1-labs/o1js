@@ -67,12 +67,16 @@ val pickles :
           ; storable : Cache.js_storable Js.optdef_prop
           ; overrideWrapDomain : int Js.optdef_prop
           ; numChunks : int Js.optdef_prop
-          ; lazyMode : bool Js.optdef_prop >
+          ; lazyMode : bool Js.optdef_prop
+          ; stepDomains : int Js.js_array Js.t Js.optdef_prop >
           Js.t
        -> < getVerificationKey :
               (   unit
                -> (Js.js_string Js.t * Impl.field) Promise_js_helpers.js_promise
               )
+              Js.readonly_prop
+          ; getStepDomains :
+              (unit -> int Js.js_array Js.t Promise_js_helpers.js_promise)
               Js.readonly_prop
           ; provers : 'a Js.readonly_prop
           ; tag : 'b Js.readonly_prop
