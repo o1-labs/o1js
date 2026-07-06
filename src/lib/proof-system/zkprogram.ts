@@ -436,11 +436,13 @@ function ZkProgram<
   };
   type CompileResult = {
     verificationKey: { data: string; hash: Field };
+    stepDomains?: number[];
     compileOutput?: CompileOutput;
   };
 
   let compileOutput: CompileOutput | undefined;
   let compileCache = new Map<string, Promise<CompileResult>>();
+  let stepDomainsCache = new Map<string, number[]>();
 
   const programState = createProgramState();
 
@@ -467,6 +469,8 @@ function ZkProgram<
           () => cachedCompile
         );
         if (result.compileOutput !== undefined) compileOutput = result.compileOutput;
+        if (result.stepDomains !== undefined)
+          stepDomainsCache.set(compileCacheKey, result.stepDomains);
         return { verificationKey: result.verificationKey };
       }
 
@@ -481,7 +485,7 @@ function ZkProgram<
         let proofs = methodKeys.map((k) => methodsMeta[k].proofs);
         maxProofsVerified = computeMaxProofsVerified(proofs.map((p) => p.length));
 
-        let { provers, verify, verificationKey } = await compileProgram({
+        let { provers, verify, verificationKey, stepDomains } = await compileProgram({
           publicInputType,
           publicOutputType,
           methodIntfs,
@@ -496,10 +500,12 @@ function ZkProgram<
           state: programState,
           withRuntimeTables,
           lazyMode,
+          knownStepDomains: stepDomainsCache.get(compileCacheKey),
         });
 
         return {
           verificationKey,
+          stepDomains,
           compileOutput: { provers, verify, maxProofsVerified },
         };
       })();
@@ -508,6 +514,8 @@ function ZkProgram<
       try {
         let result = await compilePromise;
         if (result.compileOutput !== undefined) compileOutput = result.compileOutput;
+        if (result.stepDomains !== undefined)
+          stepDomainsCache.set(compileCacheKey, result.stepDomains);
         return { verificationKey: result.verificationKey };
       } catch (error) {
         if (compileCache.get(compileCacheKey) === compilePromise) {
@@ -815,6 +823,7 @@ async function compileProgram({
   state,
   withRuntimeTables,
   lazyMode,
+  knownStepDomains,
 }: {
   publicInputType: Provable<any>;
   publicOutputType: Provable<any>;
@@ -830,6 +839,7 @@ async function compileProgram({
   state?: ReturnType<typeof createProgramState>;
   withRuntimeTables?: boolean;
   lazyMode?: boolean;
+  knownStepDomains?: number[];
 }) {
   await initializeBindings();
   if (methodIntfs.length === 0)
@@ -895,7 +905,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
     MlBool(cache.canWrite),
   ];
 
-  let { verificationKey, provers, verify, tag } = await timeAsync(
+  let { verificationKey, stepDomains, provers, verify, tag } = await timeAsync(
     `ZkProgram.${proofSystemTag.name}.compileProgram.threadPool`,
     () =>
       prettifyStacktracePromise(
@@ -914,17 +924,23 @@ If you are using a SmartContract, make sure you are using the @method decorator.
                   overrideWrapDomain,
                   numChunks: numChunks ?? 1,
                   lazyMode: lazyMode ?? false,
+                  stepDomains: knownStepDomains,
                 })
             );
-            let { getVerificationKey, provers, verify, tag } = result;
+            let { getVerificationKey, getStepDomains, provers, verify, tag } = result;
             CompiledTag.store(proofSystemTag, tag);
             let [, data, hash] = await timeAsync(
               `ZkProgram.${proofSystemTag.name}.compileProgram.getVerificationKey`,
               getVerificationKey
             );
             let verificationKey = { data, hash: Field(hash) };
+            let stepDomains = await timeAsync(
+              `ZkProgram.${proofSystemTag.name}.compileProgram.getStepDomains`,
+              getStepDomains
+            );
             return {
               verificationKey,
+              stepDomains,
               provers: MlArray.from(provers),
               verify,
               tag,
@@ -961,6 +977,7 @@ If you are using a SmartContract, make sure you are using the @method decorator.
   };
   return {
     verificationKey,
+    stepDomains,
     provers: wrappedProvers,
     verify: wrappedVerify,
     tag,
