@@ -441,16 +441,6 @@ function ZkProgram<
 
   let compileOutput: CompileOutput | undefined;
   let compileCache = new Map<string, Promise<CompileResult>>();
-  let compileOutput:
-    | {
-        provers: Pickles.Prover[];
-        maxProofsVerified: 0 | 1 | 2;
-        verify: (
-          statement: Pickles.Statement<FieldConst>,
-          proof: Pickles.Proof
-        ) => Promise<boolean>;
-      }
-    | undefined;
 
   const programState = createProgramState();
 
