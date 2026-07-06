@@ -75,6 +75,46 @@ type MethodAnalysis = ConstraintSystemSummary & {
   proofs: ProofClass[];
 };
 
+function o1jsTimingEnabled() {
+  let env = (
+    globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> };
+    }
+  ).process?.env;
+  let value = env?.O1JS_TIMING;
+  return value === '1' || value === 'true';
+}
+
+function timingNow() {
+  return globalThis.performance?.now?.() ?? Date.now();
+}
+
+function reportO1jsTiming(label: string, start: number) {
+  if (!o1jsTimingEnabled()) return;
+  let ms = timingNow() - start;
+  console.error(`[o1js timing] ${label}: ${ms.toFixed(3)}ms`);
+}
+
+function timeSync<T>(label: string, run: () => T): T {
+  if (!o1jsTimingEnabled()) return run();
+  let start = timingNow();
+  try {
+    return run();
+  } finally {
+    reportO1jsTiming(label, start);
+  }
+}
+
+async function timeAsync<T>(label: string, run: () => Promise<T>): Promise<T> {
+  if (!o1jsTimingEnabled()) return run();
+  let start = timingNow();
+  try {
+    return await run();
+  } finally {
+    reportO1jsTiming(label, start);
+  }
+}
+
 function createProgramState() {
   let methodCache: Map<string, unknown> = new Map();
   return {
@@ -344,6 +384,10 @@ function ZkProgram<
   let methodFunctions = methodKeys.map((key) => methods[key].method);
   let privateInputTypes = methodIntfs.map((m) => m.args);
   let maxProofsVerified: undefined | 0 | 1 | 2 = undefined;
+  type MethodsMeta = {
+    [I in keyof Methods]: MethodAnalysis;
+  };
+  let methodsMetaCache: Promise<MethodsMeta> | undefined = undefined;
 
   async function getMaxProofsVerified() {
     if (maxProofsVerified !== undefined) return maxProofsVerified;
@@ -354,18 +398,27 @@ function ZkProgram<
   }
 
   async function analyzeMethods() {
-    let methodsMeta: Record<string, MethodAnalysis> = {};
-    for (let i = 0; i < methodIntfs.length; i++) {
-      let methodEntry = methodIntfs[i];
-      methodsMeta[methodEntry.methodName] = await analyzeMethod(
-        publicInputType,
-        methodEntry,
-        methodFunctions[i]
-      );
+    if (methodsMetaCache !== undefined) {
+      return timeAsync(`ZkProgram.${selfTag.name}.analyzeMethods.cached`, () => methodsMetaCache!);
     }
-    return methodsMeta as {
-      [I in keyof Methods]: MethodAnalysis;
-    };
+
+    methodsMetaCache = timeAsync(`ZkProgram.${selfTag.name}.analyzeMethods.total`, async () => {
+      let methodsMeta: Record<string, MethodAnalysis> = {};
+      for (let i = 0; i < methodIntfs.length; i++) {
+        let methodEntry = methodIntfs[i];
+        methodsMeta[methodEntry.methodName] = await timeAsync(
+          `ZkProgram.${selfTag.name}.analyzeMethods.${methodEntry.methodName}`,
+          () => analyzeMethod(publicInputType, methodEntry, methodFunctions[i])
+        );
+      }
+      return methodsMeta as MethodsMeta;
+    });
+    try {
+      return await methodsMetaCache;
+    } catch (error) {
+      methodsMetaCache = undefined;
+      throw error;
+    }
   }
 
   async function analyzeSingleMethod<K extends keyof Methods>(
@@ -376,16 +429,18 @@ function ZkProgram<
     return await analyzeMethod(publicInputType, methodIntf, methodImpl);
   }
 
-  let compileOutput:
-    | {
-      provers: Pickles.Prover[];
-      maxProofsVerified: 0 | 1 | 2;
-      verify: (
-        statement: Pickles.Statement<FieldConst>,
-        proof: Pickles.Proof
-      ) => Promise<boolean>;
-    }
-    | undefined;
+  type CompileOutput = {
+    provers: Pickles.Prover[];
+    maxProofsVerified: 0 | 1 | 2;
+    verify: (statement: Pickles.Statement<FieldConst>, proof: Pickles.Proof) => Promise<boolean>;
+  };
+  type CompileResult = {
+    verificationKey: { data: string; hash: Field };
+    compileOutput?: CompileOutput;
+  };
+
+  let compileOutput: CompileOutput | undefined;
+  let compileCache = new Map<string, Promise<CompileResult>>();
 
   const programState = createProgramState();
 
@@ -396,38 +451,68 @@ function ZkProgram<
     withRuntimeTables = false,
     lazyMode = false,
   } = {}) {
-    doProving = proofsEnabled ?? doProving;
+    return timeAsync(`ZkProgram.${selfTag.name}.compile.total`, async () => {
+      let nextDoProving = proofsEnabled ?? doProving;
+      doProving = nextDoProving;
 
-    if (doProving) {
-      let methodsMeta = await analyzeMethods();
-      let gates = methodKeys.map((k) => methodsMeta[k].gates);
-      let proofs = methodKeys.map((k) => methodsMeta[k].proofs);
-      maxProofsVerified = computeMaxProofsVerified(proofs.map((p) => p.length));
+      let compileCacheKey = [
+        `proofsEnabled:${nextDoProving}`,
+        `withRuntimeTables:${withRuntimeTables}`,
+        `lazyMode:${lazyMode}`,
+      ].join('|');
+      let cachedCompile = compileCache.get(compileCacheKey);
+      if (!forceRecompile && cachedCompile !== undefined) {
+        let result = await timeAsync(`ZkProgram.${selfTag.name}.compile.cached`, () => cachedCompile);
+        if (result.compileOutput !== undefined) compileOutput = result.compileOutput;
+        return { verificationKey: result.verificationKey };
+      }
 
-      let { provers, verify, verificationKey } = await compileProgram({
-        publicInputType,
-        publicOutputType,
-        methodIntfs,
-        methods: methodFunctions,
-        gates,
-        proofs,
-        proofSystemTag: selfTag,
-        cache,
-        forceRecompile,
-        overrideWrapDomain: config.overrideWrapDomain,
-        numChunks: config.numChunks,
-        state: programState,
-        withRuntimeTables,
-        lazyMode,
-      });
+      let compilePromise = (async (): Promise<CompileResult> => {
+        if (!nextDoProving) {
+          return {
+            verificationKey: VerificationKey.empty(),
+          };
+        }
+        let methodsMeta = await analyzeMethods();
+        let gates = methodKeys.map((k) => methodsMeta[k].gates);
+        let proofs = methodKeys.map((k) => methodsMeta[k].proofs);
+        maxProofsVerified = computeMaxProofsVerified(proofs.map((p) => p.length));
 
-      compileOutput = { provers, verify, maxProofsVerified };
-      return { verificationKey };
-    } else {
-      return {
-        verificationKey: VerificationKey.empty(),
-      };
-    }
+        let { provers, verify, verificationKey } = await compileProgram({
+          publicInputType,
+          publicOutputType,
+          methodIntfs,
+          methods: methodFunctions,
+          gates,
+          proofs,
+          proofSystemTag: selfTag,
+          cache,
+          forceRecompile,
+          overrideWrapDomain: config.overrideWrapDomain,
+          numChunks: config.numChunks,
+          state: programState,
+          withRuntimeTables,
+          lazyMode,
+        });
+
+        return {
+          verificationKey,
+          compileOutput: { provers, verify, maxProofsVerified },
+        };
+      })();
+
+      compileCache.set(compileCacheKey, compilePromise);
+      try {
+        let result = await compilePromise;
+        if (result.compileOutput !== undefined) compileOutput = result.compileOutput;
+        return { verificationKey: result.verificationKey };
+      } catch (error) {
+        if (compileCache.get(compileCacheKey) === compilePromise) {
+          compileCache.delete(compileCacheKey);
+        }
+        throw error;
+      }
+    });
   }
 
   // for each of the methods, create a prover function.
@@ -749,17 +834,19 @@ async function compileProgram({
 Try adding a method to your ZkProgram or SmartContract.
 If you are using a SmartContract, make sure you are using the @method decorator.`);
 
-  let rules = methodIntfs.map((methodEntry, i) =>
-    picklesRuleFromFunction(
-      publicInputType,
-      publicOutputType,
-      methods[i],
-      proofSystemTag,
-      methodEntry,
-      gates[i],
-      proofs[i],
-      state,
-      withRuntimeTables
+  let rules = timeSync(`ZkProgram.${proofSystemTag.name}.compileProgram.ruleConstruction`, () =>
+    methodIntfs.map((methodEntry, i) =>
+      picklesRuleFromFunction(
+        publicInputType,
+        publicOutputType,
+        methods[i],
+        proofSystemTag,
+        methodEntry,
+        gates[i],
+        proofs[i],
+        state,
+        withRuntimeTables
+      )
     )
   );
 
@@ -786,41 +873,61 @@ If you are using a SmartContract, make sure you are using the @method decorator.
     MlBool(cache.canWrite),
   ];
 
-  let { verificationKey, provers, verify, tag } = await prettifyStacktracePromise(
-    withThreadPool(async () => {
-      let result: ReturnType<typeof Pickles.compile>;
-      let id = snarkContext.enter({ inCompile: true });
-      setSrsCache(cache);
-      try {
-        result = Pickles.compile(MlArray.to(rules), {
-          publicInputSize: publicInputType.sizeInFields(),
-          publicOutputSize: publicOutputType.sizeInFields(),
-          storable: picklesCache,
-          overrideWrapDomain,
-          numChunks: numChunks ?? 1,
-          lazyMode: lazyMode ?? false,
-        });
-        let { getVerificationKey, provers, verify, tag } = result;
-        CompiledTag.store(proofSystemTag, tag);
-        let [, data, hash] = await getVerificationKey();
-        let verificationKey = { data, hash: Field(hash) };
-        return {
-          verificationKey,
-          provers: MlArray.from(provers),
-          verify,
-          tag,
-        };
-      } finally {
-        snarkContext.leave(id);
-        unsetSrsCache();
-      }
-    })
+  let { verificationKey, provers, verify, tag } = await timeAsync(
+    `ZkProgram.${proofSystemTag.name}.compileProgram.threadPool`,
+    () =>
+      prettifyStacktracePromise(
+        withThreadPool(async () => {
+          let result: ReturnType<typeof Pickles.compile>;
+          let id = snarkContext.enter({ inCompile: true });
+          setSrsCache(cache);
+          try {
+            result = timeSync(
+              `ZkProgram.${proofSystemTag.name}.compileProgram.Pickles.compile`,
+              () =>
+                Pickles.compile(MlArray.to(rules), {
+                  publicInputSize: publicInputType.sizeInFields(),
+                  publicOutputSize: publicOutputType.sizeInFields(),
+                  storable: picklesCache,
+                  overrideWrapDomain,
+                  numChunks: numChunks ?? 1,
+                  lazyMode: lazyMode ?? false,
+                })
+            );
+            let { getVerificationKey, provers, verify, tag } = result;
+            CompiledTag.store(proofSystemTag, tag);
+            let [, data, hash] = await timeAsync(
+              `ZkProgram.${proofSystemTag.name}.compileProgram.getVerificationKey`,
+              getVerificationKey
+            );
+            let verificationKey = { data, hash: Field(hash) };
+            return {
+              verificationKey,
+              provers: MlArray.from(provers),
+              verify,
+              tag,
+            };
+          } finally {
+            snarkContext.leave(id);
+            unsetSrsCache();
+          }
+        })
+      )
   );
   // wrap provers
   let wrappedProvers = provers.map(
-    (prover): Pickles.Prover =>
+    (prover, i): Pickles.Prover =>
       async function picklesProver(publicInput: MlFieldConstArray) {
-        return prettifyStacktracePromise(withThreadPool(() => prover(publicInput)));
+        let methodName = methodIntfs[i]?.methodName ?? `method${i}`;
+        return timeAsync(`ZkProgram.${proofSystemTag.name}.${methodName}.prover.total`, () =>
+          prettifyStacktracePromise(
+            withThreadPool(() =>
+              timeAsync(`ZkProgram.${proofSystemTag.name}.${methodName}.prover.call`, () =>
+                prover(publicInput)
+              )
+            )
+          )
+        );
       }
   );
   // wrap verify
@@ -888,111 +995,132 @@ function picklesRuleFromFunction(
   withRuntimeTables?: boolean
 ): Pickles.Rule {
   async function main(publicInput: MlFieldArray): ReturnType<Pickles.Rule['main']> {
-    let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();
-    assert(!(inProver && argsWithoutPublicInput === undefined));
+    return timeAsync(`ZkProgram.${proofSystemTag.name}.${methodName}.ruleMain.total`, async () => {
+      let { witnesses: argsWithoutPublicInput, inProver, auxInputData } = snarkContext.get();
+      assert(!(inProver && argsWithoutPublicInput === undefined));
 
-    // witness private inputs and declare input proofs
-    let id = ZkProgramContext.enter();
-    let finalArgs = [];
-    for (let i = 0; i < args.length; i++) {
-      try {
-        let type = args[i];
-        let value = Provable.witness(type, () => {
-          return argsWithoutPublicInput?.[i] ?? ProvableType.synthesize(type);
-        });
-        finalArgs[i] = value;
+      // witness private inputs and declare input proofs
+      let id = ZkProgramContext.enter();
+      let finalArgs: unknown[] = [];
+      timeSync(`ZkProgram.${proofSystemTag.name}.${methodName}.ruleMain.witnessInputs`, () => {
+        for (let i = 0; i < args.length; i++) {
+          try {
+            let type = args[i];
+            let value = Provable.witness(type, () => {
+              return argsWithoutPublicInput?.[i] ?? ProvableType.synthesize(type);
+            });
+            finalArgs[i] = value;
 
-        extractProofs(value).forEach((proof) => proof.declare());
-      } catch (e: any) {
-        ZkProgramContext.leave(id);
-        e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
-        throw e;
-      }
-    }
-
-    // run the user circuit
-    let result: { publicOutput?: any; auxiliaryOutput?: any };
-    let proofs: DeclaredProof[];
-
-    try {
-      if (publicInputType === Undefined || publicInputType === Void) {
-        result = (await func(...finalArgs)) as any;
-      } else {
-        let input = fromFieldVars(publicInputType, publicInput, auxInputData);
-        result = (await func(input, ...finalArgs)) as any;
-      }
-      proofs = ZkProgramContext.getDeclaredProofs();
-    } finally {
-      ZkProgramContext.leave(id);
-    }
-
-    if (result?.publicOutput) {
-      // store the nonPure auxiliary data in program state cache if it exists
-      let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
-      state?.setNonPureOutput(nonPureOutput);
-    }
-
-    // now all proofs are declared - check that we got as many as during compile time
-    assert(
-      proofs.length === verifiedProofs.length,
-      `Expected ${verifiedProofs.length} proofs, but got ${proofs.length}`
-    );
-
-    // extract proof statements for Pickles
-    let previousStatements = proofs.map(({ proofInstance }): Pickles.Statement<FieldVar> => {
-      let fields = proofInstance.publicFields();
-      let input = MlFieldArray.to(fields.input);
-      let output = MlFieldArray.to(fields.output);
-      return MlPair(input, output);
-    });
-
-    // handle dynamic proofs
-    proofs.forEach(({ ProofClass, proofInstance }) => {
-      if (!(proofInstance instanceof DynamicProof)) return;
-
-      // Initialize side-loaded verification key
-      const tag = ProofClass.tag();
-      const computedTag = SideloadedTag.get(tag.name);
-      const vk = proofInstance.usedVerificationKey;
-
-      if (vk === undefined) {
-        throw new Error('proof.verify() not called, call it at least once in your circuit');
-      }
-
-      if (Provable.inProver()) {
-        Pickles.sideLoaded.inProver(computedTag, vk.data);
-      }
-      const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
-
-      // Assert the validity of the auxiliary vk-data by comparing the witnessed and computed hash
-      const hash = inCircuitVkHash(circuitVk);
-      Field(hash).assertEquals(vk.hash, 'Provided VerificationKey hash not correct');
-      Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
-    });
-
-    // if the output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
-    let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
-    let publicOutput = hasPublicOutput ? publicOutputType.toFields(result.publicOutput) : [];
-
-    if (state !== undefined && auxiliaryType !== undefined && auxiliaryType.sizeInFields() !== 0) {
-      Provable.asProver(() => {
-        let { auxiliaryOutput } = result;
-        assert(
-          auxiliaryOutput !== undefined,
-          `${proofSystemTag.name}.${methodName}(): Auxiliary output is undefined even though the method declares it.`
-        );
-        state.setAuxiliaryOutput(Provable.toConstant(auxiliaryType, auxiliaryOutput), methodName);
+            extractProofs(value).forEach((proof) => proof.declare());
+          } catch (e: any) {
+            ZkProgramContext.leave(id);
+            e.message = `Error when witnessing in ${methodName}, argument ${i}: ${e.message}`;
+            throw e;
+          }
+        }
       });
-    }
 
-    return {
-      publicOutput: MlFieldArray.to(publicOutput),
-      previousStatements: MlArray.to(previousStatements),
-      previousProofs: MlArray.to(proofs.map((p) => p.proofInstance.proof)),
-      shouldVerify: MlArray.to(
-        proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
-      ),
-    };
+      // run the user circuit
+      let result!: { publicOutput?: any; auxiliaryOutput?: any };
+      let proofs!: DeclaredProof[];
+
+      try {
+        await timeAsync(
+          `ZkProgram.${proofSystemTag.name}.${methodName}.ruleMain.userCircuit`,
+          async () => {
+            if (publicInputType === Undefined || publicInputType === Void) {
+              result = (await func(...finalArgs)) as any;
+            } else {
+              let input = fromFieldVars(publicInputType, publicInput, auxInputData);
+              result = (await func(input, ...finalArgs)) as any;
+            }
+            proofs = ZkProgramContext.getDeclaredProofs();
+          }
+        );
+      } finally {
+        ZkProgramContext.leave(id);
+      }
+
+      return timeSync(
+        `ZkProgram.${proofSystemTag.name}.${methodName}.ruleMain.proofConversion`,
+        () => {
+          if (result?.publicOutput) {
+            // store the nonPure auxiliary data in program state cache if it exists
+            let nonPureOutput = publicOutputType.toAuxiliary(result.publicOutput);
+            state?.setNonPureOutput(nonPureOutput);
+          }
+
+          // now all proofs are declared - check that we got as many as during compile time
+          assert(
+            proofs.length === verifiedProofs.length,
+            `Expected ${verifiedProofs.length} proofs, but got ${proofs.length}`
+          );
+
+          // extract proof statements for Pickles
+          let previousStatements = proofs.map(({ proofInstance }): Pickles.Statement<FieldVar> => {
+            let fields = proofInstance.publicFields();
+            let input = MlFieldArray.to(fields.input);
+            let output = MlFieldArray.to(fields.output);
+            return MlPair(input, output);
+          });
+
+          // handle dynamic proofs
+          proofs.forEach(({ ProofClass, proofInstance }) => {
+            if (!(proofInstance instanceof DynamicProof)) return;
+
+            // Initialize side-loaded verification key
+            const tag = ProofClass.tag();
+            const computedTag = SideloadedTag.get(tag.name);
+            const vk = proofInstance.usedVerificationKey;
+
+            if (vk === undefined) {
+              throw new Error('proof.verify() not called, call it at least once in your circuit');
+            }
+
+            if (Provable.inProver()) {
+              Pickles.sideLoaded.inProver(computedTag, vk.data);
+            }
+            const circuitVk = Pickles.sideLoaded.vkToCircuit(() => vk.data);
+
+            // Assert the validity of the auxiliary vk-data by comparing the witnessed and computed hash
+            const hash = inCircuitVkHash(circuitVk);
+            Field(hash).assertEquals(vk.hash, 'Provided VerificationKey hash not correct');
+            Pickles.sideLoaded.inCircuit(computedTag, circuitVk);
+          });
+
+          // if the output is empty, we don't evaluate `toFields(result)` to allow the function to return something else in that case
+          let hasPublicOutput = publicOutputType.sizeInFields() !== 0;
+          let publicOutput = hasPublicOutput ? publicOutputType.toFields(result.publicOutput) : [];
+
+          if (
+            state !== undefined &&
+            auxiliaryType !== undefined &&
+            auxiliaryType.sizeInFields() !== 0
+          ) {
+            Provable.asProver(() => {
+              let { auxiliaryOutput } = result;
+              assert(
+                auxiliaryOutput !== undefined,
+                `${proofSystemTag.name}.${methodName}(): Auxiliary output is undefined even though the method declares it.`
+              );
+              state.setAuxiliaryOutput(
+                Provable.toConstant(auxiliaryType, auxiliaryOutput),
+                methodName
+              );
+            });
+          }
+
+          return {
+            publicOutput: MlFieldArray.to(publicOutput),
+            previousStatements: MlArray.to(previousStatements),
+            previousProofs: MlArray.to(proofs.map((p) => p.proofInstance.proof)),
+            shouldVerify: MlArray.to(
+              proofs.map((proof) => proof.proofInstance.shouldVerify.toField().value)
+            ),
+          };
+        }
+      );
+    });
   }
 
   if (verifiedProofs.length > 2) {
