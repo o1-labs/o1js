@@ -1,15 +1,47 @@
 import { Bool, Field, Sign, UInt32 } from './field-bigint.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
-import {
-  Json,
-  AccountUpdate,
-  ZkappCommand,
-} from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import type { Json } from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import * as MesaLayout from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import * as BerkeleyLayout from './berkeley/transaction-bigint.js';
 import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
 import { Signature, signFieldElement, verifyFieldElement, zkAppBodyPrefix } from './signature.js';
 import { mocks } from '../../bindings/crypto/constants.js';
-import { NetworkId } from './types.js';
+import { NetworkId, Era } from './types.js';
+
+// the layout types are era-invariant (same TS shapes); only the runtime values
+// (staticLength of state arrays, default txnVersion) differ by era.
+type AccountUpdate = MesaLayout.AccountUpdate;
+type ZkappCommand = MesaLayout.ZkappCommand;
+
+// select the era-specific transaction layout. berkeley and Mesa share byte-identical
+// serialization machinery and differ only in zkApp state-array length (8 vs 32) and the
+// default txnVersion (3 vs 4), both baked into the vendored berkeley layout.
+function layout(era: Era): typeof MesaLayout {
+  return era === 'berkeley' ? (BerkeleyLayout as typeof MesaLayout) : MesaLayout;
+}
+
+// berkeley zkApp state arrays are length 8 on the wire (Mesa is 32). guard berkeley
+// input loudly so a Mesa-shaped (length-32) command isn't silently signed as berkeley.
+// Mesa stays permissive (it maps supplied arrays 1:1 regardless of length) to avoid
+// any regression for existing callers.
+function assertEraStateLengths(zkappCommand: Json.ZkappCommand, era: Era) {
+  if (era !== 'berkeley') return;
+  let updates = zkappCommand.accountUpdates ?? [];
+  for (let i = 0; i < updates.length; i++) {
+    let body = updates[i]?.body;
+    assertLen8(i, 'appState', body?.update?.appState);
+    assertLen8(i, 'account precondition state', body?.preconditions?.account?.state);
+  }
+}
+
+function assertLen8(i: number, name: string, arr: readonly unknown[] | null | undefined) {
+  if (arr != null && arr.length !== 8) {
+    throw Error(
+      `mina-signer: accountUpdates[${i}] ${name} has length ${arr.length}, but era 'berkeley' expects 8`
+    );
+  }
+}
 
 // external API
 export { signZkappCommand, verifyZkappCommandSignature, getZkappCommandCommitments };
@@ -50,11 +82,14 @@ export {
 function signZkappCommand(
   zkappCommand_: Json.ZkappCommand,
   privateKeyBase58: string,
-  networkId: NetworkId
+  networkId: NetworkId,
+  era: Era = 'mesa'
 ): Json.ZkappCommand {
+  assertEraStateLengths(zkappCommand_, era);
+  let { ZkappCommand } = layout(era);
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
-  let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId);
+  let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId, era);
   let privateKey = PrivateKey.fromBase58(privateKeyBase58);
   let publicKey = PrivateKey.toPublicKey(privateKey);
 
@@ -79,11 +114,14 @@ function signZkappCommand(
 
 function getZkappCommandCommitments(
   zkappCommand_: Json.ZkappCommand,
-  networkId: NetworkId
+  networkId: NetworkId,
+  era: Era = 'mesa'
 ): { commitment: bigint, fullCommitment: bigint } {
+  assertEraStateLengths(zkappCommand_, era);
+  let { ZkappCommand } = layout(era);
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
-  return transactionCommitments(zkappCommand, networkId);
+  return transactionCommitments(zkappCommand, networkId, era);
 }
 
 /**
@@ -108,11 +146,14 @@ function verifyZkappCommandSignature(
   zkappCommand_: Json.ZkappCommand,
   publicKeyBase58: string,
   networkId: NetworkId,
+  era: Era = 'mesa',
   feePayerPublicKeyBase58?: string
 ) {
+  assertEraStateLengths(zkappCommand_, era);
+  let { ZkappCommand } = layout(era);
   let zkappCommand = ZkappCommand.fromJSON(zkappCommand_);
 
-  let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId);
+  let { commitment, fullCommitment } = transactionCommitments(zkappCommand, networkId, era);
   let publicKey = PublicKey.fromBase58(publicKeyBase58);
 
   // verify fee payer signature when public keys match
@@ -150,14 +191,18 @@ function verifyAccountUpdateSignature(
   return verifyFieldElement(signature, usedCommitment, publicKey, networkId);
 }
 
-function transactionCommitments(zkappCommand: ZkappCommand, networkId: NetworkId) {
+function transactionCommitments(
+  zkappCommand: ZkappCommand,
+  networkId: NetworkId,
+  era: Era = 'mesa'
+) {
   if (!isCallDepthValid(zkappCommand)) {
     throw Error('zkapp command: invalid call depth');
   }
   let callForest = accountUpdatesToCallForest(zkappCommand.accountUpdates);
-  let commitment = callForestHash(callForest, networkId);
+  let commitment = callForestHash(callForest, networkId, era);
   let memoHash = Memo.hash(Memo.fromBase58(zkappCommand.memo));
-  let feePayerDigest = feePayerHash(zkappCommand.feePayer, networkId);
+  let feePayerDigest = feePayerHash(zkappCommand.feePayer, networkId, era);
   let fullCommitment = hashWithPrefix(prefixes.accountUpdateCons, [
     memoHash,
     feePayerDigest,
@@ -192,15 +237,21 @@ function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
   return forest;
 }
 
-function accountUpdateHash(update: AccountUpdate, networkId: NetworkId) {
+function accountUpdateHash(update: AccountUpdate, networkId: NetworkId, era: Era = 'mesa') {
+  let { AccountUpdate } = layout(era);
   assertAuthorizationKindValid(update);
   let input = AccountUpdate.toInput(update);
   let fields = packToFields(input);
   return hashWithPrefix(zkAppBodyPrefix(networkId), fields);
 }
 
-function callForestHash(forest: CallForest<AccountUpdate>, networkId: NetworkId): bigint {
-  return callForestHashGeneric(forest, accountUpdateHash, hashWithPrefix, 0n, networkId);
+function callForestHash(
+  forest: CallForest<AccountUpdate>,
+  networkId: NetworkId,
+  era: Era = 'mesa'
+): bigint {
+  let hash = (a: AccountUpdate, nid: NetworkId) => accountUpdateHash(a, nid, era);
+  return callForestHashGeneric(forest, hash, hashWithPrefix, 0n, networkId);
 }
 
 function callForestHashGeneric<A, F>(
@@ -231,15 +282,19 @@ type FeePayer = ZkappCommand['feePayer'];
 function createFeePayer(feePayer: FeePayer['body']): FeePayer {
   return { authorization: '', body: feePayer };
 }
-function feePayerHash(feePayer: FeePayer, networkId: NetworkId) {
-  let accountUpdate = accountUpdateFromFeePayer(feePayer);
-  return accountUpdateHash(accountUpdate, networkId);
+function feePayerHash(feePayer: FeePayer, networkId: NetworkId, era: Era = 'mesa') {
+  let accountUpdate = accountUpdateFromFeePayer(feePayer, era);
+  return accountUpdateHash(accountUpdate, networkId, era);
 }
 
-function accountUpdateFromFeePayer({
-  body: { fee, nonce, publicKey, validUntil },
-  authorization: signature,
-}: FeePayer): AccountUpdate {
+function accountUpdateFromFeePayer(
+  {
+    body: { fee, nonce, publicKey, validUntil },
+    authorization: signature,
+  }: FeePayer,
+  era: Era = 'mesa'
+): AccountUpdate {
+  let { AccountUpdate } = layout(era);
   let { body } = AccountUpdate.empty();
   body.publicKey = publicKey;
   body.balanceChange = { magnitude: fee, sgn: Sign(-1) };
@@ -278,7 +333,10 @@ function assertAuthorizationKindValid(accountUpdate: AccountUpdate) {
   let { isSigned, isProved, verificationKeyHash } = accountUpdate.body.authorizationKind;
   if (isProved && isSigned)
     throw Error('Invalid authorization kind: Only one of `isProved` and `isSigned` may be true.');
-  if (!isProved && verificationKeyHash !== Field(mocks.dummyVerificationKeyHash))
+  // accept 0n as a legacy dummy hash for backwards compatibility with old clients
+  let isDummyHash =
+    verificationKeyHash === Field(mocks.dummyVerificationKeyHash) || verificationKeyHash === 0n;
+  if (!isProved && !isDummyHash)
     throw Error(
       `Invalid authorization kind: If \`isProved\` is false, verification key hash must be ${mocks.dummyVerificationKeyHash}, got ${verificationKeyHash}`
     );
