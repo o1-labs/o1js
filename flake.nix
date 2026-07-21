@@ -282,6 +282,12 @@
           patchPhase =
             ''
               cp ${./src/mina/src/lib/crypto/proof-systems/Cargo.lock} .
+              # export_test_vectors is built standalone here, so o1-utils/std is not
+              # enabled via workspace feature unification; re-enable it explicitly
+              # (upstream dropped it in proof-systems#3546)
+              substituteInPlace Cargo.toml --replace-fail \
+                'o1-utils.workspace = true' \
+                'o1-utils = { workspace = true, features = ["std"] }'
             '';
           name = "export_test_vectors";
           version = "0.1.0";
