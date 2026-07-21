@@ -146,9 +146,9 @@
     "tslib": "^2.3.0"
   },
   "o1js-internal": {
-    "native-version": "3.0.0-mesa.final"
+    "native-version": "3.0.0-mesa.rc2"
   },
   "optionalDependencies": {
-    "@o1js/native": "3.0.0-mesa.final"
+    "@o1js/native": "3.0.0-mesa.rc2"
   }
 }
