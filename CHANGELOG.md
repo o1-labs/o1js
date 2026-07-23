@@ -29,6 +29,8 @@ This project adheres to
 
 - Removed `@internal` JSDoc tags from public APIs so they appear in generated
   documentation. https://github.com/o1-labs/o1js/pull/2881
+- Documented the `o1js-scan` community package in the README.
+  https://github.com/o1-labs/o1js/pull/2898
 
 ### Removed
 
