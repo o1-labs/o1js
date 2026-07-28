@@ -28,7 +28,7 @@ This project adheres to
   `Client.getZkappCommandCommitmentsFromJSON` on `mina-signer` for computing the
   commitment and full commitment of a zkApp transaction.
   https://github.com/o1-labs/o1js/pull/2869
-  
+
 ### Fixed
 
 - Preserve `permissions.setVerificationKey.txnVersion` when converting fetched
