@@ -85,7 +85,7 @@ tags: [<free-form>, <tags>, <for-search>]
 
 | Category             | Use when...                                                |
 | -------------------- | ---------------------------------------------------------- |
-| `rust-wasm-boundary` | Issues crossing the Rust↔WASM↔TypeScript boundary          |
+| `rust-wasm-boundary` | Issues crossing the Rust↔WASM↔TypeScript boundary        |
 | `native-ffi`         | Neon/napi-rs native binding issues                         |
 | `circuit-model`      | Compile-time vs prove-time behavior, constraint generation |
 | `provable-types`     | Type system surprises, serialization, Struct issues        |
@@ -162,9 +162,9 @@ computation. When compiled to WASM, threading behaves fundamentally differently
 than in native environments.
 
 **What happened:** Panics inside Rayon worker threads in WASM environments
-produce cryptic, unrecoverable errors. The panic cannot be caught at the WASM↔JS
-boundary, and the entire WASM instance becomes corrupted. This has been hit
-multiple times across different debugging sessions.
+produce cryptic, unrecoverable errors. The panic cannot be caught at the
+WASM↔JS boundary, and the entire WASM instance becomes corrupted. This has been
+hit multiple times across different debugging sessions.
 
 **Root cause:** WASM's threading model (SharedArrayBuffer + Web Workers) doesn't
 support the panic unwinding that Rayon expects. When a Rayon worker panics, the
