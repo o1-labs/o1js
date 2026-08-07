@@ -29,6 +29,11 @@ This project adheres to
   commitment and full commitment of a zkApp transaction.
   https://github.com/o1-labs/o1js/pull/2869
 
+### Fixed
+
+- Preserve `permissions.setVerificationKey.txnVersion` when converting fetched
+  accounts. https://github.com/o1-labs/o1js/pull/2901
+
 ## [3.0.0-mesa.0](https://github.com/o1-labs/o1js/compare/ff6c201b...v3.0.0-mesa.0) - 2026-03-26
 
 This is the first prerelease of o1js targeting the **Mesa** hard fork of the
