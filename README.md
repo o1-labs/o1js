@@ -61,6 +61,7 @@ your project.
 - **eddsa-o1js** A library for provable EdDSA and Twisted Edwards Curve
   operations. [Github](https://github.com/o1-labs-XT/eddsa-o1js) and
   [npm](https://www.npmjs.com/package/eddsa-o1js)
+- **o1js-scan** A static analyzer for zk circuit soundness bugs in o1js zkApps and Noir circuits — flags prover-controlled witnesses that the circuit never binds. [GitHub](https://github.com/auditinfra-io/o1js-scan) and [npm](https://www.npmjs.com/package/o1js-scan)
 
 To include your package, see
 [Creating high-quality community packages](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
