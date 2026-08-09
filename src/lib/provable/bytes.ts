@@ -1,12 +1,12 @@
+import { randomBytes } from '../../bindings/crypto/random.js';
+import { chunk, chunkString } from '../util/arrays.js';
+import { Bool } from './bool.js';
+import { Field } from './field.js';
+import { assert } from './gadgets/common.js';
+import { UInt8 } from './int.js';
+import { Provable } from './provable.js';
 import { provableFromClass } from './types/provable-derivers.js';
 import type { ProvablePureExtended } from './types/struct.js';
-import { assert } from './gadgets/common.js';
-import { chunk, chunkString } from '../util/arrays.js';
-import { Provable } from './provable.js';
-import { UInt8 } from './int.js';
-import { randomBytes } from '../../bindings/crypto/random.js';
-import { Field } from './field.js';
-import { Bool } from './bool.js';
 
 // external API
 export { Bytes, FlexibleBytes };
@@ -132,15 +132,15 @@ class Bytes {
    * @param byteLength The length of the output decoded bytes.
    * @returns Decoded bytes as {@link Bytes}.
    *
-   * @warning
-   * Ensure the input Base64 string does not contain '=' characters in the middle,
-   * as it can cause unexpected decoding results.
+   * @throws If the input length is not a multiple of 4 or if padding characters
+   * appear before the end of the input.
    */
   base64Decode(byteLength: number): Bytes {
     const encodedB64Bytes = this.bytes;
 
     const charLength = encodedB64Bytes.length;
     assert(charLength % 4 === 0, 'Input base64 byte length should be a multiple of 4!');
+    assertBase64Padding(encodedB64Bytes);
 
     let decodedB64Bytes: UInt8[] = new Array(byteLength).fill(UInt8.from(0));
 
@@ -222,6 +222,22 @@ function createBytes(size: number): typeof Bytes {
       bytes: Provable.Array(UInt8, size),
     });
   };
+}
+
+function assertBase64Padding(encodedB64Bytes: UInt8[]) {
+  const paddingError = 'Base64 padding is only allowed at the end of the input';
+  let previousIsPadding = new Bool(false);
+
+  for (let i = 0; i < encodedB64Bytes.length; i++) {
+    const isPadding = encodedB64Bytes[i].value.equals(61);
+
+    if (i < encodedB64Bytes.length - 2) {
+      isPadding.assertFalse(paddingError);
+    } else {
+      previousIsPadding.and(isPadding.not()).assertFalse(paddingError);
+      previousIsPadding = previousIsPadding.or(isPadding);
+    }
+  }
 }
 
 /**

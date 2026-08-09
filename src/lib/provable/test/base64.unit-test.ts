@@ -1,6 +1,6 @@
-import { Bytes } from '../wrapped-classes.js';
-import { describe, test } from 'node:test';
 import { expect } from 'expect';
+import { describe, test } from 'node:test';
+import { Bytes } from '../wrapped-classes.js';
 
 function calculateB64DecodedBytesLength(base64String: string): number {
   // Calculate the length of the base64-encoded string
@@ -71,6 +71,13 @@ describe('Base64 Decode Tests', () => {
     const errorMessage =
       'Please provide Base64-encoded bytes containing only alphanumeric characters and +/=';
     expect(() => testBase64Decode(input)).toThrowError(errorMessage);
+  });
+
+  test('should reject padding before the end of the input', async () => {
+    const input = 'Zm=9';
+    expect(() => Bytes.fromString(input).base64Decode(2).toBytes()).toThrowError(
+      'Base64 padding is only allowed at the end of the input'
+    );
   });
 });
 
