@@ -1,6 +1,7 @@
 import { expect } from 'expect';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { Worker } from 'node:worker_threads';
 import {
   cleanupWorkerArguments,
   commitMainThreadMoves,
@@ -14,6 +15,7 @@ import {
   waitForWorkerRpcReady,
   waitForWorkerRpcResult,
   writeWorkerRpcError,
+  writeWorkerRpcErrorIfPending,
   writeWorkerRpcSuccess,
 } from './worker-rpc.js';
 import { workerSpec } from './worker-spec.js';
@@ -107,6 +109,49 @@ expect(decodeMainThreadResult(0, { kind: 'boolean' })).toBe(false);
 prepareWorkerRpcRequest(control);
 writeWorkerRpcError(control, new Error('worker exploded'));
 expect(() => waitForWorkerRpcResult(control)).toThrow('worker exploded');
+
+// Watchdog crash signaling may only fail in-flight PREPARING/READY calls.
+prepareWorkerRpcRequest(control);
+markWorkerRpcReady(control);
+expect(writeWorkerRpcErrorIfPending(control, new Error('o1js compute worker crashed: boom'))).toBe(
+  true
+);
+expect(() => waitForWorkerRpcResult(control)).toThrow('o1js compute worker crashed: boom');
+
+prepareWorkerRpcRequest(control);
+markWorkerRpcReady(control);
+writeWorkerRpcSuccess(control, 7);
+expect(writeWorkerRpcErrorIfPending(control, new Error('o1js compute worker crashed: late'))).toBe(
+  false
+);
+expect(waitForWorkerRpcResult(control)).toBe(7);
+
+// A side thread can unblock the synchronous spin by writing ERROR into the SAB,
+// which is the watchdog's crash-signaling contract.
+{
+  let crashControl = createWorkerRpcControl();
+  prepareWorkerRpcRequest(crashControl);
+  markWorkerRpcReady(crashControl);
+  let watchdog = new Worker(
+    `
+    const { workerData } = require('node:worker_threads');
+    const header = new Int32Array(workerData.control, 0, 4);
+    const payload = new Uint8Array(workerData.control, 16);
+    const encoded = new TextEncoder().encode('Error: o1js compute worker crashed: simulated');
+    setTimeout(() => {
+      payload.set(encoded);
+      Atomics.store(header, 2, encoded.length);
+      Atomics.store(header, 0, 3);
+      Atomics.notify(header, 0);
+    }, 20);
+    `,
+    { eval: true, workerData: { control: crashControl } }
+  );
+  expect(() => waitForWorkerRpcResult(crashControl)).toThrow(
+    'o1js compute worker crashed: simulated'
+  );
+  watchdog.terminate();
+}
 
 let workerResult = FakeWasmObject.__wrap(44);
 let rawResult = transferWorkerResult(workerResult, transferred);

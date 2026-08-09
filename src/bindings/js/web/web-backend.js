@@ -16,11 +16,14 @@ import {
   waitForWorkerRpcReady,
   waitForWorkerRpcResult,
   writeWorkerRpcError,
+  writeWorkerRpcErrorIfPending,
   writeWorkerRpcSuccess,
 } from './worker-rpc.js';
 import { workerSpec } from './worker-spec.js';
 
 export { initializeBindings, wasm, withThreadPool };
+
+const COMPUTE_WORKER_CRASH_PREFIX = 'o1js compute worker crashed:';
 
 let wasm;
 
@@ -58,14 +61,28 @@ async function initializeBindings() {
 
   workerPromise = new Promise((resolve, reject) => {
     setTimeout(async () => {
-      let worker = inlineWorker(srcFromFunctionModule(mainWorker));
+      // The calling thread may busy-spin in waitForWorkerRpcResult, so it cannot
+      // observe compute-worker `error` events itself. A thin watchdog proxy owns
+      // the compute worker and writes ERROR into the SAB if it crashes mid-call.
+      let computeSrc = srcFromFunctionModule(mainWorker);
+      let worker = inlineWorker(srcFromFunctionModule(watchdogMain));
       let onError = (error) => {
         reject(new Error(`Failed to start o1js web worker: ${error.message}`));
       };
+      let onWatchdogMessage = ({ data }) => {
+        if (data?.type === 'compute-crashed') {
+          reject(new Error(`Failed to start o1js web worker: ${data.error}`));
+        }
+      };
       worker.addEventListener('error', onError, { once: true });
+      worker.addEventListener('message', onWatchdogMessage);
       try {
+        let booted = waitForMessage(worker, '__booted__');
+        worker.postMessage({ type: '__boot__', computeSrc });
+        await booted;
         await workerCall(worker, 'start', { memory, module });
         worker.removeEventListener('error', onError);
+        worker.removeEventListener('message', onWatchdogMessage);
         if (worker._o1jsBlobUrl !== undefined) {
           URL.revokeObjectURL(worker._o1jsBlobUrl);
           delete worker._o1jsBlobUrl;
@@ -74,6 +91,7 @@ async function initializeBindings() {
         resolve(worker);
       } catch (error) {
         worker.removeEventListener('error', onError);
+        worker.removeEventListener('message', onWatchdogMessage);
         reject(error);
       }
     }, 0);
@@ -169,10 +187,92 @@ mainWorker.deps = [
   writeWorkerRpcSuccess,
 ];
 
+/**
+ * Owns the compute worker so crash events keep running while the caller spins
+ * on the RPC SharedArrayBuffer. Forwards all messages; on crash, fails any
+ * in-flight RPC by writing ERROR into the pending control buffer.
+ */
+function watchdogMain() {
+  let activeControl;
+  let computeDead = false;
+  let compute;
+
+  function failPendingRpc(error) {
+    if (activeControl === undefined) return;
+    let control = activeControl;
+    activeControl = undefined;
+    writeWorkerRpcErrorIfPending(control, error);
+  }
+
+  function markComputeDead(error) {
+    if (computeDead) return;
+    computeDead = true;
+    failPendingRpc(error);
+    postMessage({
+      type: 'compute-crashed',
+      error: String(error?.message ?? error),
+    });
+  }
+
+  waitForMessage(self, '__boot__').then((data) => {
+    compute = inlineWorker(data.computeSrc);
+
+    compute.addEventListener('error', (event) => {
+      // Keep this prefix literal inside watchdogMain: the worker bundle only
+      // receives stringified deps, not module-level constants.
+      markComputeDead(new Error(`o1js compute worker crashed: ${event.message || 'error'}`));
+    });
+    compute.addEventListener('messageerror', () => {
+      markComputeDead(new Error('o1js compute worker crashed: messageerror'));
+    });
+    compute.addEventListener('message', ({ data: computeData }) => {
+      postMessage(computeData);
+    });
+
+    self.addEventListener('message', ({ data: parentData }) => {
+      if (parentData?.type === '__boot__') return;
+
+      if (computeDead) {
+        if (parentData?.type === 'run') {
+          writeWorkerRpcErrorIfPending(
+            parentData.message.control,
+            new Error('o1js compute worker crashed: worker is dead')
+          );
+        } else if (parentData?.id !== undefined) {
+          postMessage({
+            type: parentData.id,
+            error: 'o1js compute worker crashed: worker is dead',
+          });
+        }
+        return;
+      }
+
+      if (parentData?.type === 'run') {
+        activeControl = parentData.message.control;
+        compute.postMessage(parentData);
+        return;
+      }
+
+      compute.postMessage(parentData);
+    });
+
+    postMessage({ type: '__booted__' });
+  });
+}
+watchdogMain.deps = [waitForMessage, inlineWorker, writeWorkerRpcErrorIfPending];
+
+function isComputeWorkerCrash(error) {
+  return String(error?.message ?? error).startsWith(COMPUTE_WORKER_CRASH_PREFIX);
+}
+
 function overrideBindings(kimchi_wasm, worker) {
   let spec = workerSpec(kimchi_wasm);
   let control = createWorkerRpcControl();
   let fatalError;
+  worker.addEventListener('message', ({ data }) => {
+    if (data?.type !== 'compute-crashed') return;
+    fatalError ??= new Error(data.error || `${COMPUTE_WORKER_CRASH_PREFIX}error`);
+  });
   for (let key in spec) {
     kimchi_wasm[key] = (...args) => {
       if (fatalError !== undefined) throw fatalError;
@@ -196,7 +296,13 @@ function overrideBindings(kimchi_wasm, worker) {
         throw fatalError;
       }
 
-      let result = waitForWorkerRpcResult(control);
+      let result;
+      try {
+        result = waitForWorkerRpcResult(control);
+      } catch (error) {
+        if (isComputeWorkerCrash(error)) fatalError = error;
+        throw error;
+      }
       return decodeMainThreadResult(result, spec[key].res);
     };
   }

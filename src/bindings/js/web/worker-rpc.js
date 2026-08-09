@@ -12,6 +12,7 @@ export {
   waitForWorkerRpcReady,
   waitForWorkerRpcResult,
   writeWorkerRpcError,
+  writeWorkerRpcErrorIfPending,
   writeWorkerRpcSuccess,
 };
 
@@ -86,6 +87,20 @@ function writeWorkerRpcError(control, error) {
   Atomics.store(header, 0, 3); // ERROR
   Atomics.notify(header, 0);
 }
+
+/**
+ * Watchdog/crash path: only fail in-flight RPCs still waiting on PREPARING/READY.
+ * Never overwrite a completed SUCCESS/ERROR/CANCELLED state.
+ */
+function writeWorkerRpcErrorIfPending(control, error) {
+  if (control == null) return false;
+  let header = new Int32Array(control, 0, 4);
+  let state = Atomics.load(header, 0);
+  if (state !== 0 && state !== 1) return false;
+  writeWorkerRpcError(control, error);
+  return true;
+}
+writeWorkerRpcErrorIfPending.deps = [writeWorkerRpcError];
 
 function waitForWorkerRpcResult(control) {
   let header = new Int32Array(control, 0, 4);
