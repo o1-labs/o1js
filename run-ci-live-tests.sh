@@ -23,6 +23,8 @@ DEX_PROC=$!
 FETCH_PROC=$!
 ./run src/tests/transaction-flow.ts --bundle | add_prefix "TRANSACTION_FLOW" &
 TRANSACTION_FLOW_PROC=$!
+./run src/tests/mina-signer-live.ts --bundle | add_prefix "MINA_SIGNER" &
+MINA_SIGNER_PROC=$!
 
 # Wait for each process and capture their exit statuses
 FAILURE=0
@@ -51,6 +53,13 @@ wait $TRANSACTION_FLOW_PROC
 if [ $? -ne 0 ]; then
   echo ""
   echo "TRANSACTION_FLOW test failed."
+  echo ""
+  FAILURE=1
+fi
+wait $MINA_SIGNER_PROC
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "MINA_SIGNER test failed."
   echo ""
   FAILURE=1
 fi
