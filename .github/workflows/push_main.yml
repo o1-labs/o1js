@@ -7,7 +7,6 @@ on:
     branches:
       - main
       - develop
-      - develop-3.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -104,7 +103,12 @@ jobs:
           REMOTE=$(npm view o1js version 2>/dev/null || echo "$LOCAL")
           echo "local=$LOCAL remote=$REMOTE"
           echo "version=$LOCAL" >> "$GITHUB_OUTPUT"
-          if [ "$LOCAL" != "$REMOTE" ]; then
+          if [[ "$LOCAL" == *-* ]]; then
+            # prerelease versions (e.g. 3.0.0-mesa.rc2) must never be
+            # auto-released as `latest` - use the Manual Release workflow
+            echo "local version $LOCAL is a prerelease, skipping auto-release"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          elif [ "$LOCAL" != "$REMOTE" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
