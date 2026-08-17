@@ -44,7 +44,6 @@ jobs:
             postgresql@15 \
             wasm-pack \
             wasm-tools \
-            wabt \
             bash \
             boost \
             cmake \
