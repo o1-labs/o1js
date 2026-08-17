@@ -498,7 +498,6 @@ interface Body extends AccountUpdateBody {
   publicKey: PublicKey;
 
   /**
-   * @internal
    *
    * Specify {@link Update}s to tweakable pieces of the account record backing
    * this address in the ledger.
@@ -525,7 +524,6 @@ interface Body extends AccountUpdateBody {
    */
   events: Events;
   /**
-   * @internal
    *
    * Recent {@link Action}s emitted from this account.
    * Actions can be collected by archive nodes and used in combination with

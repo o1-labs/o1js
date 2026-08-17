@@ -89,6 +89,11 @@ Mina protocol.
 - Enabled chunking through Native prover enabling x4 larger circuits on Node.js.
   https://github.com/o1-labs/o1js/pull/2843
 
+### Changed
+
+- Removed `@internal` JSDoc tags from public APIs so they appear in generated
+  documentation. https://github.com/o1-labs/o1js/pull/2881
+
 ### Removed
 
 - Removed unused `Cairo*` gates. https://github.com/o1-labs/o1js/pull/2752
