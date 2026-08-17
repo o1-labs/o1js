@@ -16,54 +16,62 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/v3.0.0-mesa.0...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/ff6c201b...HEAD)
 
-### Added
-
-- Native Kimchi access from Node.js with x2 prover performance boost.
-  https://github.com/o1-labs/o1js/pull/2823
-- Enabled chunking through Native prover enabling x4 larger circuits on Node.js.
-  https://github.com/o1-labs/o1js/pull/2823
-- Expose `Client.getZkappCommandCommitments` and
-  `Client.getZkappCommandCommitmentsFromJSON` on `mina-signer` for computing the
-  commitment and full commitment of a zkApp transaction.
-  https://github.com/o1-labs/o1js/pull/2869
-
-### Fixed
-
-- Preserve `permissions.setVerificationKey.txnVersion` when converting fetched
-  accounts. https://github.com/o1-labs/o1js/pull/2901
-
-## [3.0.0-mesa.0](https://github.com/o1-labs/o1js/compare/ff6c201b...v3.0.0-mesa.0) - 2026-03-26
-
-This is the first prerelease of o1js targeting the **Mesa** hard fork of the
-Mina protocol.
+This is the upcoming **o1js 3.0.0** release, targeting the **Mesa** hard fork of
+the Mina protocol. It aggregates all changes published in the `3.0.0-mesa.0`
+through `3.0.0-mesa.rc2` prereleases.
 
 ### Breaking changes
 
 - Upgraded the Mina protocol dependency from Berkeley/Devnet to **Mesa**. All
   verification keys will change and caches must be regenerated.
+  https://github.com/o1-labs/o1js/pull/2723
 - `Transaction.setFeePerSnarkCost()` has been removed. Use
   `Transaction.setFeePerAccountUpdate()` instead, since "snark cost" has been
   replaced with `MAX_ZKAPP_SEGMENT_PER_TRANSACTION` in the Mesa protocol.
+  https://github.com/o1-labs/o1js/pull/2657
 - Transaction cost model replaced: the floating-point
   `TransactionCost.PROOF_COST` / `SIGNED_PAIR_COST` / `SIGNED_SINGLE_COST` /
   `COST_LIMIT` constants are removed. Transactions are now limited by a segment
   count (`TransactionLimits.MAX_ZKAPP_SEGMENT_PER_TRANSACTION = 16`).
+  https://github.com/o1-labs/o1js/pull/2657
+  https://github.com/o1-labs/o1js/pull/2699
 - `VerificationKey.toJSON()` now returns `{ data, hash }` instead of just the
-  `data` string.
+  `data` string. https://github.com/o1-labs/o1js/pull/2337
 - `ZkappConstants.MAX_ZKAPP_STATE_FIELDS` increased from **8** to **32**. Smart
   contracts can now use up to 32 on-chain state field elements.
+  https://github.com/o1-labs/o1js/pull/2647
 - `TransactionLimits.MAX_ACTION_ELEMENTS` and `MAX_EVENT_ELEMENTS` increased
-  from 100 to **1024**.
+  from 100 to **1024**. https://github.com/o1-labs/o1js/pull/2650
+- `mina-signer` v4.0.0: zkApp commands are signed in the Mesa transaction format
+  by default. Pass the new `era: 'berkeley'` option to the `Client` constructor
+  to keep producing the legacy (o1js v2.x) format.
+  https://github.com/o1-labs/o1js/pull/2846
+  https://github.com/o1-labs/o1js/pull/2892
 - Removed unused Cairo gate types (`CairoClaim`, `CairoInstruction`,
-  `CairoFlags`, `CairoTransition`).
+  `CairoFlags`, `CairoTransition`). https://github.com/o1-labs/o1js/pull/2752
+  https://github.com/o1-labs/o1js/pull/2813
 
 ### Added
 
+- Native (non-WASM) prover on Node.js with a ~2x proving performance boost.
+  https://github.com/o1-labs/o1js/pull/2823
+  https://github.com/o1-labs/o1js/pull/2843
+- Chunking support in the native prover, enabling ~4x larger circuits on
+  Node.js. https://github.com/o1-labs/o1js/pull/2823
+  https://github.com/o1-labs/o1js/pull/2843
+- Expose `Client.getZkappCommandCommitments` and
+  `Client.getZkappCommandCommitmentsFromJSON` on `mina-signer` for computing the
+  commitment and full commitment of a zkApp transaction.
+  https://github.com/o1-labs/o1js/pull/2869
 - Example zkapp with 32 state fields (`src/examples/zkapps/big-state-zkapp.ts`).
+  https://github.com/o1-labs/o1js/pull/2647
 - Comprehensive unit tests for account update limits, actions/events limits, and
-  state field limits.
+  state field limits. https://github.com/o1-labs/o1js/pull/2689
+  https://github.com/o1-labs/o1js/pull/2693
+  https://github.com/o1-labs/o1js/pull/2721
+  https://github.com/o1-labs/o1js/pull/2722
 - GraphQL request retries (up to 3 attempts with backoff) for transient network
   errors.
 - Mesa lightnet support for local testing.
@@ -73,7 +81,7 @@ Mina protocol.
 - `TokenContract.deploy()` no longer overwrites all permissions with defaults.
   It now only upgrades the `access` permission to `proofOrSignature()` if it is
   still at the default (`none()`), preserving any custom permissions set in
-  `init()`.
+  `init()`. https://github.com/o1-labs/o1js/pull/2817
 - Hardened WASM thread pool lifecycle: added startup guards, proper error
   handling, and re-entrancy protection for `initThreadPool` / `exitThreadPool`.
 - Web worker WASM bootstrap updated to use canonical module memory.
@@ -81,22 +89,18 @@ Mina protocol.
   log cache misses with the `persistentId` instead of a stack trace.
 - Updated performance regression baselines and verification key regression
   fixtures for Mesa.
-
-### Added
-
-- Native Prover access from Node.js with x2 prover performance boost.
-  https://github.com/o1-labs/o1js/pull/2843
-- Enabled chunking through Native prover enabling x4 larger circuits on Node.js.
-  https://github.com/o1-labs/o1js/pull/2843
-
-### Changed
-
 - Removed `@internal` JSDoc tags from public APIs so they appear in generated
   documentation. https://github.com/o1-labs/o1js/pull/2881
 
-### Removed
+### Fixed
 
-- Removed unused `Cairo*` gates. https://github.com/o1-labs/o1js/pull/2752
+- Prevent repeated proofs on the web backend from hanging after finalization,
+  via a reworked web worker RPC layer. https://github.com/o1-labs/o1js/pull/2897
+- Lagrange basis computation no longer throws inside web workers when a writable
+  cache is configured; it falls back to in-memory computation.
+  https://github.com/o1-labs/o1js/pull/2866
+- Preserve `permissions.setVerificationKey.txnVersion` when converting fetched
+  accounts. https://github.com/o1-labs/o1js/pull/2901
 
 ## [2.14.0](https://github.com/o1-labs/o1js/compare/c81f31ad0...ff6c201b) - 2026-03-16
 
