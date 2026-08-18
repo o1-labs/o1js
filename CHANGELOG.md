@@ -16,11 +16,13 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/ff6c201b...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3.0.0...HEAD)
 
-This is the upcoming **o1js 3.0.0** release, targeting the **Mesa** hard fork of
-the Mina protocol. It aggregates all changes published in the `3.0.0-mesa.0`
-through `3.0.0-mesa.rc2` prereleases.
+## [3.0.0](https://github.com/o1-labs/o1js/compare/ff6c201b...3.0.0) - 2026-08-18
+
+This is the **o1js 3.0.0** release, targeting the **Mesa** hard fork of the Mina
+protocol. It aggregates all changes published in the `3.0.0-mesa.0` through
+`3.0.0-mesa.rc2` prereleases.
 
 ### Breaking changes
 
