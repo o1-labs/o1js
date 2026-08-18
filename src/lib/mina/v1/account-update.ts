@@ -470,10 +470,18 @@ let Permissions = {
     permissions: NonNullable<Types.Json.AccountUpdate['body']['update']['permissions']>
   ): Permissions => {
     return Object.fromEntries(
-      Object.entries(permissions).map(([k, v]) => [
-        k,
-        Permissions.fromString(typeof v === 'string' ? v : v.auth),
-      ])
+      Object.entries(permissions).map(([key, value]) => {
+        if (key === 'setVerificationKey' && typeof value !== 'string') {
+          return [
+            key,
+            new VerificationKeyPermission(
+              Permissions.fromString(value.auth),
+              UInt32.from(value.txnVersion)
+            ),
+          ];
+        }
+        return [key, Permissions.fromString(value as AuthRequired)];
+      })
     ) as unknown as Permissions;
   },
 };

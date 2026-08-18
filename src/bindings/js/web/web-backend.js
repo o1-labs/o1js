@@ -2,6 +2,22 @@ import o1jsWebSrc from 'string:../../../web_bindings/o1js_web.bc.js';
 import { WithThreadPool, workers } from '../../../lib/proof-system/workers.js';
 import kimchiWasm from '../../../web_bindings/kimchi_wasm.js';
 import { inlineWorker, srcFromFunctionModule, waitForMessage } from './worker-helpers.js';
+import {
+  cancelWorkerRpcRequest,
+  cleanupWorkerArguments,
+  commitMainThreadMoves,
+  createWorkerRpcControl,
+  decodeMainThreadResult,
+  decodeWorkerArguments,
+  encodeMainThreadArguments,
+  markWorkerRpcReady,
+  prepareWorkerRpcRequest,
+  transferWorkerResult,
+  waitForWorkerRpcReady,
+  waitForWorkerRpcResult,
+  writeWorkerRpcError,
+  writeWorkerRpcSuccess,
+} from './worker-rpc.js';
 import { workerSpec } from './worker-spec.js';
 
 export { initializeBindings, wasm, withThreadPool };
@@ -92,39 +108,33 @@ async function mainWorker() {
   let data = await waitForMessage(self, 'start');
   let { module, memory } = data.message;
 
-  onMessage(self, 'run', ({ name, args, u32_ptr }) => {
-    let functionSpec = spec[name];
-    let specArgs = functionSpec.args;
-    let resArgs = args;
-    for (let i = 0, l = specArgs.length; i < l; i++) {
-      let specArg = specArgs[i];
-      if (specArg && specArg.__wrap) {
-        // Reconstruct the class wrapper from the raw pointer.
-        // IMPORTANT: Do NOT use specArg.__wrap() here — in wasm-bindgen
-        // >= 0.2.100, __wrap() registers the object with a FinalizationRegistry.
-        // When the worker GC collects these temporary wrappers, the finalizer
-        // frees memory that the main thread still owns, causing use-after-free.
-        // Instead, create a bare prototype wrapper that borrows the pointer.
-        let obj = Object.create(specArg.prototype);
-        obj.__wbg_ptr = args[i].__wbg_ptr;
-        resArgs[i] = obj;
-      } else {
-        resArgs[i] = args[i];
+  onMessage(self, 'run', ({ name, args, control }) => {
+    try {
+      if (!waitForWorkerRpcReady(control)) return;
+      let functionSpec = spec[name];
+      if (functionSpec === undefined) throw Error(`Unknown o1js worker binding '${name}'`);
+
+      let decoded = decodeWorkerArguments(args, functionSpec.args);
+      let result;
+      let callError;
+      try {
+        result = wasm[name].apply(wasm, decoded.args);
+      } catch (error) {
+        callError = error;
       }
+
+      try {
+        cleanupWorkerArguments(decoded.wrappers, callError === undefined);
+      } catch (error) {
+        callError ??= error;
+      }
+      if (callError !== undefined) throw callError;
+
+      result = transferWorkerResult(result, functionSpec.res);
+      writeWorkerRpcSuccess(control, result);
+    } catch (error) {
+      writeWorkerRpcError(control, error);
     }
-    let res = wasm[name].apply(wasm, resArgs);
-    if (functionSpec.res && functionSpec.res.__wrap) {
-      // Transfer ownership of the result from the worker's wasm instance.
-      // __destroy_into_raw() unregisters from the worker's FinalizationRegistry
-      // and returns the raw pointer. Without this, the worker's GC would
-      // eventually free the result while the main thread still holds it.
-      res = typeof res.__destroy_into_raw === 'function' ? res.__destroy_into_raw() : res.__wbg_ptr;
-    } else if (functionSpec.res && functionSpec.res.there) {
-      res = functionSpec.res.there(res);
-    }
-    /* Here be undefined behavior dragons. */
-    wasm.set_u32_ptr(u32_ptr, res);
-    /*postMessage(res);*/
   });
 
   workerExport(self, {
@@ -145,29 +155,49 @@ async function mainWorker() {
   await init(module, memory);
   postMessage({ type: data.id });
 }
-mainWorker.deps = [kimchiWasm, workerSpec, workerExport, onMessage, waitForMessage];
+mainWorker.deps = [
+  kimchiWasm,
+  workerSpec,
+  workerExport,
+  onMessage,
+  waitForMessage,
+  cleanupWorkerArguments,
+  decodeWorkerArguments,
+  transferWorkerResult,
+  waitForWorkerRpcReady,
+  writeWorkerRpcError,
+  writeWorkerRpcSuccess,
+];
 
 function overrideBindings(kimchi_wasm, worker) {
   let spec = workerSpec(kimchi_wasm);
+  let control = createWorkerRpcControl();
+  let fatalError;
   for (let key in spec) {
     kimchi_wasm[key] = (...args) => {
+      if (fatalError !== undefined) throw fatalError;
       if (spec[key].disabled) throw Error(`Wasm method '${key}' is disabled on the web.`);
-      let u32_ptr = wasm.create_zero_u32_ptr();
-      worker.postMessage({
-        type: 'run',
-        message: { name: key, args, u32_ptr },
-      });
-      /* Here be undefined behavior dragons. */
-      let res = wasm.wait_until_non_zero(u32_ptr);
-      wasm.free_u32_ptr(u32_ptr);
-      let res_spec = spec[key].res;
-      if (res_spec && res_spec.__wrap) {
-        return spec[key].res.__wrap(res);
-      } else if (res_spec && res_spec.back) {
-        return res_spec.back(res);
-      } else {
-        return res;
+
+      let { encodedArgs, moves } = encodeMainThreadArguments(args, spec[key].args);
+      prepareWorkerRpcRequest(control);
+      try {
+        worker.postMessage({
+          type: 'run',
+          message: { name: key, args: encodedArgs, control },
+        });
+        // The worker cannot execute the binding until every moved wrapper has
+        // been detached from the main thread's FinalizationRegistry.
+        commitMainThreadMoves(moves);
+        markWorkerRpcReady(control);
+      } catch (error) {
+        cancelWorkerRpcRequest(control);
+        worker.terminate();
+        fatalError = new Error('The o1js web worker ownership handoff failed', { cause: error });
+        throw fatalError;
       }
+
+      let result = waitForWorkerRpcResult(control);
+      return decodeMainThreadResult(result, spec[key].res);
     };
   }
 }

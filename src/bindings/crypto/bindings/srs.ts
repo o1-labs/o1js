@@ -164,13 +164,18 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'was
           if (didRead !== true) {
             // not in cache
             if (cache.canWrite) {
-              // TODO: this code path will throw on the web since `caml_${f}_srs_get_lagrange_basis` is not properly implemented
-              // using a writable cache in the browser seems to be fairly uncommon though, so it's at least an 80/20 solution
-              let wasmComms = getLagrangeBasis(srs, domainSize);
-              let mlComms = conversion[f].polyCommsFromRust(wasmComms);
-              let comms = polyCommsToJSON(mlComms);
-              let bytes = new TextEncoder().encode(JSON.stringify(comms));
-              writeCache(cache, header, bytes);
+              try {
+                let wasmComms = getLagrangeBasis(srs, domainSize);
+                let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+                let comms = polyCommsToJSON(mlComms);
+                let bytes = new TextEncoder().encode(JSON.stringify(comms));
+                writeCache(cache, header, bytes);
+              } catch {
+                // getLagrangeBasis is unavailable in web workers (WasmVector
+                // can't cross the SharedArrayBuffer channel). Fall back to
+                // in-memory computation.
+                lagrangeCommitment(srs, domainSize, i);
+              }
             } else {
               lagrangeCommitment(srs, domainSize, i);
             }
@@ -197,15 +202,15 @@ function srsPerField(f: 'fp' | 'fq', wasm: Wasm, conversion: RustConversion<'was
         );
         // only proceed for entries we haven't written to the cache yet
         if (didRead !== true) {
-          // same code as above - write the lagrange basis to the cache if it wasn't there already
-          // currently we re-generate the basis via `getLagrangeBasis` - we could derive this from the
-          // already existing `commitment` instead, but this is simpler and the performance impact is negligible
-          let wasmComms = getLagrangeBasis(srs, domainSize);
-          let mlComms = conversion[f].polyCommsFromRust(wasmComms);
-          let comms = polyCommsToJSON(mlComms);
-          let bytes = new TextEncoder().encode(JSON.stringify(comms));
-
-          writeCache(cache, header, bytes);
+          try {
+            let wasmComms = getLagrangeBasis(srs, domainSize);
+            let mlComms = conversion[f].polyCommsFromRust(wasmComms);
+            let comms = polyCommsToJSON(mlComms);
+            let bytes = new TextEncoder().encode(JSON.stringify(comms));
+            writeCache(cache, header, bytes);
+          } catch {
+            // getLagrangeBasis unavailable in web workers — skip cache write.
+          }
         }
       }
       return conversion[f].polyCommFromRust(commitment);

@@ -9,8 +9,8 @@ export { VerificationKey };
 
 class VerificationKey extends Struct({
   ...provable({ data: String, hash: Field }),
-  toJSON({ data }: { data: string }) {
-    return data;
+  toJSON({ data, hash }: { data: string; hash: Field }) {
+    return { data, hash: hash.toString() };
   },
 }) {
   static async dummy(): Promise<VerificationKey> {

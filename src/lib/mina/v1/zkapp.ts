@@ -1,29 +1,23 @@
 import 'reflect-metadata';
 import { Gate, Pickles } from '../../../bindings.js';
-import { Field, Bool } from '../../provable/wrapped.js';
-import {
-  AccountUpdate,
-  Authorization,
-  Body,
-  Events,
-  Permissions,
-  TokenId,
-  ZkappCommand,
-  zkAppProver,
-  ZkappPublicInput,
-  LazyProof,
-  AccountUpdateForest,
-  AccountUpdateLayout,
-  AccountUpdateTree,
-} from './account-update.js';
-import type { EventActionFilterOptions } from './graphql.js';
-import {
-  cloneCircuitValue,
-  FlexibleProvablePure,
-  InferProvable,
-} from '../../provable/types/struct.js';
-import { Provable, getBlindingValue, memoizationContext } from '../../provable/provable.js';
 import * as Encoding from '../../../bindings/lib/encoding.js';
+import { Cache } from '../../proof-system/cache.js';
+import { Proof, ProofClass } from '../../proof-system/proof.js';
+import { VerificationKey } from '../../proof-system/verification-key.js';
+import {
+  Empty,
+  MethodInterface,
+  analyzeMethod,
+  compileProgram,
+  computeMaxProofsVerified,
+  sortMethodArguments,
+} from '../../proof-system/zkprogram.js';
+import {
+  inAnalyze,
+  inCheckedComputation,
+  inCompile,
+  inProver,
+} from '../../provable/core/provable-context.js';
 import {
   HashInput,
   Poseidon,
@@ -31,48 +25,54 @@ import {
   isHashable,
   packToFields,
 } from '../../provable/crypto/poseidon.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { assert } from '../../provable/gadgets/common.js';
 import { UInt32, UInt64 } from '../../provable/int.js';
+import { Provable, getBlindingValue, memoizationContext } from '../../provable/provable.js';
+import { provable } from '../../provable/types/provable-derivers.js';
+import { ProvablePure, ProvableType } from '../../provable/types/provable-intf.js';
+import {
+  FlexibleProvablePure,
+  InferProvable,
+  cloneCircuitValue,
+} from '../../provable/types/struct.js';
+import { Bool, Field } from '../../provable/wrapped.js';
+import { assertPromise } from '../../util/assert.js';
+import {
+  AccountUpdate,
+  AccountUpdateForest,
+  AccountUpdateLayout,
+  AccountUpdateTree,
+  Authorization,
+  Body,
+  Events,
+  LazyProof,
+  Permissions,
+  TokenId,
+  ZkappCommand,
+  ZkappPublicInput,
+  zkAppProver,
+} from './account-update.js';
+import { Reducer, getReducer } from './actions/reducer.js';
+import { ZkappConstants } from './constants.js';
+import type { EventActionFilterOptions } from './graphql.js';
 import * as Mina from './mina.js';
 import { assertPreconditionInvariants, cleanPreconditionsCache } from './precondition.js';
+import { SmartContractBase } from './smart-contract-base.js';
 import {
-  analyzeMethod,
-  compileProgram,
-  computeMaxProofsVerified,
-  Empty,
-  MethodInterface,
-  sortMethodArguments,
-} from '../../proof-system/zkprogram.js';
-import { VerificationKey } from '../../proof-system/verification-key.js';
-import { Proof, ProofClass } from '../../proof-system/proof.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
+  SmartContractContext,
+  accountUpdateLayout,
+  smartContractContext,
+} from './smart-contract-context.js';
 import {
   InternalStateType,
   assertStatePrecondition,
   cleanStatePrecondition,
   getLayout,
 } from './state.js';
-import {
-  inAnalyze,
-  inCheckedComputation,
-  inCompile,
-  inProver,
-} from '../../provable/core/provable-context.js';
-import { Cache } from '../../proof-system/cache.js';
-import { assert } from '../../provable/gadgets/common.js';
-import { SmartContractBase } from './smart-contract-base.js';
-import { ZkappStateLength } from './mina-instance.js';
-import {
-  SmartContractContext,
-  accountUpdateLayout,
-  smartContractContext,
-} from './smart-contract-context.js';
-import { assertPromise } from '../../util/assert.js';
-import { ProvablePure, ProvableType } from '../../provable/types/provable-intf.js';
-import { getReducer, Reducer } from './actions/reducer.js';
-import { provable } from '../../provable/types/provable-derivers.js';
 
 // external API
-export { SmartContract, method, DeployArgs, declareMethods };
+export { DeployArgs, SmartContract, declareMethods, method };
 
 const reservedPropNames = new Set(['_methods', '_']);
 type AsyncFunction = (...args: any) => Promise<any>;
@@ -771,7 +771,7 @@ super.init();
     let accountUpdate = this.self;
 
     // set all state fields to 0
-    for (let i = 0; i < ZkappStateLength; i++) {
+    for (let i = 0; i < ZkappConstants.MAX_ZKAPP_STATE_FIELDS; i++) {
       AccountUpdate.setValue(accountUpdate.body.update.appState[i], Field(0));
     }
 

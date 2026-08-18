@@ -1,7 +1,7 @@
-import { Bool } from '../../../provable/wrapped.js';
-import { UInt64, Int64 } from '../../../provable/int.js';
-import { Provable } from '../../../provable/provable.js';
 import { PublicKey } from '../../../provable/crypto/signature.js';
+import { Int64, UInt64 } from '../../../provable/int.js';
+import { Provable } from '../../../provable/provable.js';
+import { Bool } from '../../../provable/wrapped.js';
 import {
   AccountUpdate,
   AccountUpdateForest,
@@ -52,11 +52,17 @@ abstract class TokenContract extends SmartContract {
   async deploy(args?: DeployArgs) {
     await super.deploy(args);
 
-    // set access permission, to prevent unauthorized token operations
-    this.account.permissions.set({
-      ...Permissions.default(),
-      access: Permissions.proofOrSignature(),
-    });
+    // set access permission to proofOrSignature, to prevent unauthorized token operations
+    // not doing this would imply that anyone can bypass token contract authorization and simply mint themselves tokens
+    //
+    // important: we only modify the access field, to preserve any other permissions set in init().
+    // we also only upgrade access if it is currently none() (the default weak constant),
+    // so that token contracts can set a stronger permission like proof() or impossible() in init().
+    let permissions = this.self.body.update.permissions;
+    let access = permissions.value.access;
+    if (access.constant.toBoolean() && access.signatureSufficient.toBoolean()) {
+      permissions.value.access = Permissions.proofOrSignature();
+    }
 
     // assert that this account is new, to ensure unauthorized token operations
     // are not possible before this contract is deployed

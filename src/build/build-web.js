@@ -139,6 +139,15 @@ function rewriteBundledWasmBindings(src) {
 
   src = src.replace('var startWorkers;\n', '');
   src = src.replace('var terminateWorkers;\n', '');
+
+  // Force wasm-bindgen thread stack size to 1 MiB for web, matching the node
+  // build patch in fix-wasm-bindings-node.js.  wasm-bindgen >= 0.2.100
+  // defaults to 2 MiB which doubles memory pressure during worker startup.
+  src = src.replace(
+    'wasm.__wbindgen_start(thread_stack_size)',
+    'wasm.__wbindgen_start(thread_stack_size ?? 1048576)'
+  );
+
   return `import { startWorkers, terminateWorkers } from '../bindings/js/web/worker-helpers.js'
 export {kimchiWasm as default};
 function kimchiWasm() {

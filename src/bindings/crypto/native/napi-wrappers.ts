@@ -28,7 +28,6 @@ import type {
   WasmFqRandomOracles as NapiFqRandomOracles,
   WasmFqShifts as NapiFqShifts,
   WasmFqSrs as NapiFqSrs,
-  LookupInfo as NapiLookupInfo,
   WasmPastaFpLookupTable as NapiPastaFpLookupTable,
   WasmPastaFqLookupTable as NapiPastaFqLookupTable,
   WasmVecVecFp as NapiVecVecFp,

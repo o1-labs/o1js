@@ -28,7 +28,7 @@ import {
 import { activeInstance, type FeePayerSpec } from './mina-instance.js';
 import { assertPreconditionInvariants } from './precondition.js';
 import { currentTransaction, type FetchMode } from './transaction-context.js';
-import { getTotalTimeRequired } from './transaction-validation.js';
+import { getSegmentsAndEvents } from './transaction-validation.js';
 
 export {
   Transaction,
@@ -161,41 +161,41 @@ type Transaction<Proven extends boolean, Signed extends boolean> = TransactionCo
    */
   setFee(newFee: UInt64): TransactionPromise<Proven, false>;
   /**
-   * setFeePerSnarkCost behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getTotalTimeRequired}. This is useful because it should reflect what snark workers would charge in times of network contention.
+   * setFeePerAccountUpdate behaves identically to {@link Transaction.setFee} but the fee is given per estimated cost of snarking the transition as given by {@link getSegmentsAndEvents}. This is useful because it should reflect what snark workers would charge in times of network contention.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<Proven, false>;
+  setFeePerAccountUpdate(newFeePerAccountUpdate: number): TransactionPromise<Proven, false>;
 } & (Proven extends false
-    ? {
-        /**
-         * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
-         * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
-         * This can take some time.
-         * @example
-         * ```ts
-         * await transaction.prove();
-         * ```
-         */
-        prove(): Promise<Transaction<true, Signed>>;
-      }
-    : {
-        /** The proofs generated as the result of calling `prove`. */
-        proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
-      }) &
+  ? {
+    /**
+     * Initiates the proof generation process for the {@link Transaction}. This asynchronous operation is
+     * crucial for zero-knowledge-based transactions, where proofs are required to validate state transitions.
+     * This can take some time.
+     * @example
+     * ```ts
+     * await transaction.prove();
+     * ```
+     */
+    prove(): Promise<Transaction<true, Signed>>;
+  }
+  : {
+    /** The proofs generated as the result of calling `prove`. */
+    proofs: (Proof<ZkappPublicInput, Empty> | undefined)[];
+  }) &
   (Signed extends false
     ? {
-        /**
-         * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
-         * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
-         * @param privateKeys The list of keys that should be used to sign the {@link Transaction}
-         * @returns The {@link Transaction} instance with all required signatures applied.
-         * @example
-         * ```ts
-         * const signedTx = transaction.sign([userPrivateKey]);
-         * console.log('Transaction signed successfully.');
-         * ```
-         */
-        sign(privateKeys: PrivateKey[]): Transaction<Proven, true>;
-      }
+      /**
+       * Signs all {@link AccountUpdate}s included in the {@link Transaction} that require a signature.
+       * {@link AccountUpdate}s that require a signature can be specified with `{AccountUpdate|SmartContract}.requireSignature()`.
+       * @param privateKeys The list of keys that should be used to sign the {@link Transaction}
+       * @returns The {@link Transaction} instance with all required signatures applied.
+       * @example
+       * ```ts
+       * const signedTx = transaction.sign([userPrivateKey]);
+       * console.log('Transaction signed successfully.');
+       * ```
+       */
+      sign(privateKeys: PrivateKey[]): Transaction<Proven, true>;
+    }
     : {});
 
 type PendingTransactionStatus = 'pending' | 'rejected';
@@ -300,9 +300,9 @@ type PendingTransaction = Pick<TransactionCommon, 'transaction' | 'toJSON' | 'to
    */
   setFee(newFee: UInt64): TransactionPromise<boolean, false>;
   /**
-   * setFeePerSnarkCost is the same as {@link Transaction.setFeePerSnarkCost(newFeePerSnarkCost)} but for a {@link PendingTransaction}.
+   * setFeePerAccountUpdate is the same as {@link Transaction.setFeePerAccountUpdate(newFeePerAccountUpdate)} but for a {@link PendingTransaction}.
    */
-  setFeePerSnarkCost(newFeePerSnarkCost: number): TransactionPromise<boolean, false>;
+  setFeePerAccountUpdate(newFeePerAccountUpdate: number): TransactionPromise<boolean, false>;
 };
 
 /**
@@ -465,29 +465,29 @@ type TransactionPromise<Proven extends boolean, Signed extends boolean> = Promis
   /** Equivalent to calling the resolved `Transaction`'s `send` method. */
   send(): PendingTransactionPromise;
 } & (Proven extends false
-    ? {
-        /**
-         * Calls `prove` upon resolution of the `Transaction`. Returns a
-         * new `TransactionPromise` with the field `proofPromise` containing
-         * a promise which resolves to the proof array.
-         */
-        prove(): TransactionPromise<true, Signed>;
-      }
-    : {
-        /**
-         * If the chain of method calls that produced the current `TransactionPromise`
-         * contains a `prove` call, then this field contains a promise resolving to the
-         * proof array which was output from the underlying `prove` call.
-         */
-        proofs(): Promise<Transaction<true, Signed>['proofs']>;
-      }) &
+  ? {
+    /**
+     * Calls `prove` upon resolution of the `Transaction`. Returns a
+     * new `TransactionPromise` with the field `proofPromise` containing
+     * a promise which resolves to the proof array.
+     */
+    prove(): TransactionPromise<true, Signed>;
+  }
+  : {
+    /**
+     * If the chain of method calls that produced the current `TransactionPromise`
+     * contains a `prove` call, then this field contains a promise resolving to the
+     * proof array which was output from the underlying `prove` call.
+     */
+    proofs(): Promise<Transaction<true, Signed>['proofs']>;
+  }) &
   (Signed extends false
     ? {
-        /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
-        sign(
-          ...args: Parameters<Transaction<Proven, Signed>['sign']>
-        ): TransactionPromise<Proven, true>;
-      }
+      /** Equivalent to calling the resolved `Transaction`'s `sign` method. */
+      sign(
+        ...args: Parameters<Transaction<Proven, Signed>['sign']>
+      ): TransactionPromise<Proven, true>;
+    }
     : {});
 
 function toTransactionPromise<Proven extends boolean, Signed extends boolean>(
@@ -674,9 +674,9 @@ function newTransaction(transaction: ZkappCommand, proofsEnabled?: boolean) {
       }
       return pendingTransaction;
     },
-    setFeePerSnarkCost(newFeePerSnarkCost: number) {
-      let { totalTimeRequired } = getTotalTimeRequired(transaction.accountUpdates);
-      return this.setFee(new UInt64(Math.round(totalTimeRequired * newFeePerSnarkCost)));
+    setFeePerAccountUpdate(newFeePerAccountUpdate: number) {
+      let { totalAccountUpdates } = getSegmentsAndEvents(transaction.accountUpdates);
+      return this.setFee(new UInt64(Math.round(totalAccountUpdates * newFeePerAccountUpdate)));
     },
     setFee(newFee: UInt64) {
       return toTransactionPromise(async () => {

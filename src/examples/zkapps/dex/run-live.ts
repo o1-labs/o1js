@@ -14,7 +14,7 @@ console.log();
 const network = Mina.Network({
   mina: useCustomLocalNetwork
     ? 'http://localhost:8080/graphql'
-    : 'https://berkeley.minascan.io/graphql',
+    : 'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql',
   archive: useCustomLocalNetwork
     ? 'http://localhost:8282'
     : 'https://api.minascan.io/archive/berkeley/v1/graphql',

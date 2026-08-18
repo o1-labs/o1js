@@ -16,7 +16,6 @@ export {
   FeePayerSpec,
   Mina,
   NetworkConstants,
-  ZkappStateLength,
   activeInstance,
   currentSlot,
   defaultNetworkConstants,
@@ -40,19 +39,17 @@ const defaultNetworkConstants: NetworkConstants = {
   accountCreationFee: UInt64.from(defaultAccountCreationFee),
 };
 
-const ZkappStateLength = 8;
-
 /**
  * Allows you to specify information about the fee payer account and the transaction.
  */
 type FeePayerSpec =
   | PublicKey
   | {
-      sender: PublicKey;
-      fee?: number | string | UInt64;
-      memo?: string;
-      nonce?: number;
-    }
+    sender: PublicKey;
+    fee?: number | string | UInt64;
+    memo?: string;
+    nonce?: number;
+  }
   | undefined;
 
 type ActionStates = {

@@ -1,17 +1,15 @@
 export { workerSpec };
 
 function workerSpec(wasm) {
-  let bool = {
-    // We avoid returning zero for false to ensure that the
-    // wait_until_non_zero call below terminates.
-    there: (bool) => (bool ? 2 : 1),
-    back: (u32) => u32 !== 1,
-  };
+  let borrowed = (type) => ({ kind: 'wasm-object', type, ownership: 'borrow' });
+  let moved = (type) => ({ kind: 'wasm-object', type, ownership: 'move' });
+  let transferred = (type) => ({ kind: 'wasm-object', type, ownership: 'transfer' });
+  let bool = { kind: 'boolean' };
   return {
     caml_pasta_fp_plonk_index_create: {
       args: [
         // gates
-        wasm.WasmFpGateVector,
+        borrowed(wasm.WasmFpGateVector),
         // public_
         undefined /* number */,
         // lookup_tables
@@ -21,16 +19,16 @@ function workerSpec(wasm) {
         // prev_challenges
         undefined /* number */,
         // srs
-        wasm.WasmFpSrs,
+        borrowed(wasm.WasmFpSrs),
         // lazy_mode
         undefined /* boolean */,
       ],
-      res: wasm.WasmPastaFpPlonkIndex,
+      res: transferred(wasm.WasmPastaFpPlonkIndex),
     },
     caml_pasta_fq_plonk_index_create: {
       args: [
         // gates
-        wasm.WasmFqGateVector,
+        borrowed(wasm.WasmFqGateVector),
         // public_
         undefined /* number */,
         // lookup_tables
@@ -40,26 +38,26 @@ function workerSpec(wasm) {
         // prev_challenges
         undefined /* number */,
         // srs
-        wasm.WasmFqSrs,
+        borrowed(wasm.WasmFqSrs),
         // lazy_mode
         undefined /* boolean */,
       ],
-      res: wasm.WasmPastaFqPlonkIndex,
+      res: transferred(wasm.WasmPastaFqPlonkIndex),
     },
     caml_pasta_fp_plonk_verifier_index_create: {
-      args: [wasm.WasmPastaFpPlonkIndex],
-      res: wasm.WasmFpPlonkVerifierIndex,
+      args: [borrowed(wasm.WasmPastaFpPlonkIndex)],
+      res: transferred(wasm.WasmFpPlonkVerifierIndex),
     },
     caml_pasta_fq_plonk_verifier_index_create: {
-      args: [wasm.WasmPastaFqPlonkIndex],
-      res: wasm.WasmFqPlonkVerifierIndex,
+      args: [borrowed(wasm.WasmPastaFqPlonkIndex)],
+      res: transferred(wasm.WasmFqPlonkVerifierIndex),
     },
     caml_pasta_fp_plonk_proof_create: {
       args: [
         // index
-        wasm.WasmPastaFpPlonkIndex,
+        borrowed(wasm.WasmPastaFpPlonkIndex),
         // witness
-        wasm.WasmVecVecFp,
+        moved(wasm.WasmVecVecFp),
         // runtime tables
         undefined /*Uint32Array*/,
         // prev_challenges
@@ -67,14 +65,14 @@ function workerSpec(wasm) {
         // prev_svgs
         undefined /*Uint32Array*/,
       ],
-      res: wasm.WasmFpProverProof,
+      res: transferred(wasm.WasmFpProverProof),
     },
     caml_pasta_fq_plonk_proof_create: {
       args: [
         // index
-        wasm.WasmPastaFqPlonkIndex,
+        borrowed(wasm.WasmPastaFqPlonkIndex),
         // witness
-        wasm.WasmVecVecFq,
+        moved(wasm.WasmVecVecFq),
         // runtime tables
         undefined /*Uint32Array*/,
         // prev_challenges
@@ -82,14 +80,14 @@ function workerSpec(wasm) {
         // prev_svgs
         undefined /*Uint32Array*/,
       ],
-      res: wasm.WasmFqProverProof,
+      res: transferred(wasm.WasmFqProverProof),
     },
     caml_pasta_fp_plonk_proof_verify: {
-      args: [wasm.WasmFpPlonkVerifierIndex, wasm.WasmFpProverProof],
+      args: [moved(wasm.WasmFpPlonkVerifierIndex), moved(wasm.WasmFpProverProof)],
       res: bool,
     },
     caml_pasta_fq_plonk_proof_verify: {
-      args: [wasm.WasmFqPlonkVerifierIndex, wasm.WasmFqProverProof],
+      args: [moved(wasm.WasmFqPlonkVerifierIndex), moved(wasm.WasmFqProverProof)],
       res: bool,
     },
     caml_pasta_fp_plonk_proof_batch_verify: {
@@ -102,67 +100,71 @@ function workerSpec(wasm) {
     },
     caml_fp_srs_create_parallel: {
       args: [undefined /*number*/],
-      res: wasm.WasmFpSrs,
+      res: transferred(wasm.WasmFpSrs),
     },
     caml_fq_srs_create_parallel: {
       args: [undefined /*number*/],
-      res: wasm.WasmFqSrs,
+      res: transferred(wasm.WasmFqSrs),
     },
     caml_fp_srs_get_lagrange_basis: {
       disabled: true,
-      args: [wasm.WasmFpSrs, undefined /* number */],
-      // TODO: returning a UintXArray does not work:
-      // the worker wrapper excepts the return value to be a number
-      // that can be stored in a single u32.
-      // A UintXArray is coerced into a 0 pointer, which doesn't trigger `wait_until_non_zero()`,
-      // which means the main worker just keeps spinning waiting for a response.
-      // A proper solution would be to wrap the return value in a pointer!
+      args: [borrowed(wasm.WasmFpSrs), undefined /* number */],
+      // TODO: the synchronous worker RPC currently returns a single u32.
+      // Typed-array results need a separate transfer representation.
       res: undefined /* UintXArray */,
     },
     caml_fq_srs_get_lagrange_basis: {
       disabled: true,
-      args: [wasm.WasmFqSrs, undefined /* number */],
+      args: [borrowed(wasm.WasmFqSrs), undefined /* number */],
       // TODO: returning a UintXArray does not work, see above
       res: undefined /* UintXArray */,
     },
     caml_fp_srs_b_poly_commitment: {
-      args: [wasm.WasmFpSrs, undefined /*Uint8Array*/],
-      res: wasm.WasmFpPolyComm,
+      args: [borrowed(wasm.WasmFpSrs), undefined /*Uint8Array*/],
+      res: transferred(wasm.WasmFpPolyComm),
     },
     caml_fq_srs_b_poly_commitment: {
-      args: [wasm.WasmFqSrs, undefined /*Uint8Array*/],
-      res: wasm.WasmFqPolyComm,
+      args: [borrowed(wasm.WasmFqSrs), undefined /*Uint8Array*/],
+      res: transferred(wasm.WasmFqPolyComm),
     },
     fp_oracles_create: {
-      args: [undefined /* Uint32Array */, wasm.WasmFpPlonkVerifierIndex, wasm.WasmFpProverProof],
-      res: wasm.WasmFpOracles,
+      args: [
+        undefined /* Uint32Array */,
+        moved(wasm.WasmFpPlonkVerifierIndex),
+        moved(wasm.WasmFpProverProof),
+      ],
+      res: transferred(wasm.WasmFpOracles),
     },
     fq_oracles_create: {
-      args: [undefined /* Uint32Array */, wasm.WasmFqPlonkVerifierIndex, wasm.WasmFqProverProof],
-      res: wasm.WasmFqOracles,
+      args: [
+        undefined /* Uint32Array */,
+        moved(wasm.WasmFqPlonkVerifierIndex),
+        moved(wasm.WasmFqProverProof),
+      ],
+      res: transferred(wasm.WasmFqOracles),
     },
     caml_fp_srs_batch_accumulator_check: {
-      args: [wasm.WasmFpSrs, undefined /* UintXArray */, undefined /* UintXArray */],
+      args: [borrowed(wasm.WasmFpSrs), undefined /* UintXArray */, undefined /* UintXArray */],
       res: bool,
     },
     caml_fq_srs_batch_accumulator_check: {
-      args: [wasm.WasmFqSrs, undefined /* UintXArray */, undefined /* UintXArray */],
+      args: [borrowed(wasm.WasmFqSrs), undefined /* UintXArray */, undefined /* UintXArray */],
       res: bool,
     },
     caml_fp_srs_lagrange_commitment: {
-      args: [wasm.WasmFpSrs, undefined /* number */, undefined /* number */],
-      res: wasm.WasmFpPolyComm,
+      args: [borrowed(wasm.WasmFpSrs), undefined /* number */, undefined /* number */],
+      res: transferred(wasm.WasmFpPolyComm),
     },
     caml_fq_srs_lagrange_commitment: {
-      args: [wasm.WasmFqSrs, undefined /* number */, undefined /* number */],
-      res: wasm.WasmFqPolyComm,
+      args: [borrowed(wasm.WasmFqSrs), undefined /* number */, undefined /* number */],
+      res: transferred(wasm.WasmFqPolyComm),
     },
-    caml_fp_srs_lagrange_commitments_whole_domain: {
-      args: [wasm.WasmFpSrs, undefined /* number */],
+    caml_fp_srs_lagrange_commitments_whole_domain_ptr: {
+      args: [borrowed(wasm.WasmFpSrs), undefined /* number */],
       res: undefined /* number, ptr */,
     },
-    caml_fq_srs_lagrange_commitments_whole_domain: {
-      args: [wasm.WasmFqSrs, undefined /* number */],
+    caml_fq_srs_lagrange_commitments_whole_domain_ptr: {
+      args: [borrowed(wasm.WasmFqSrs), undefined /* number */],
       res: undefined /* number, ptr */,
     },
   };
