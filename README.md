@@ -1,10 +1,5 @@
 # o1js &nbsp; [![npm version](https://img.shields.io/npm/v/o1js.svg?style=flat)](https://www.npmjs.com/package/o1js) [![npm](https://img.shields.io/npm/dm/o1js)](https://www.npmjs.com/package/o1js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md)
 
-- **vk-guard** A verification-key and constraint-count regression guard for o1js
-  SmartContracts and ZkPrograms — flags unexpected circuit changes in CI.
-  [GitHub](https://github.com/auditinfra-io/vk-guard) and
-  [npm](https://www.npmjs.com/package/vk-guard)
-
 ## o1js
 
 o1js makes it easy for developers to build applications powered by
@@ -70,6 +65,10 @@ your project.
   and Noir circuits — flags prover-controlled witnesses that the circuit never
   binds. [GitHub](https://github.com/auditinfra-io/o1js-scan) and
   [npm](https://www.npmjs.com/package/o1js-scan)
+-  **vk-guard** A verification-key and constraint-count regression guard for o1js
+  SmartContracts and ZkPrograms — flags unexpected circuit changes in CI.
+  [GitHub](https://github.com/auditinfra-io/vk-guard) and
+  [npm](https://www.npmjs.com/package/vk-guard)
 
 To include your package, see
 [Creating high-quality community packages](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
