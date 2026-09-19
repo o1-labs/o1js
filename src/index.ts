@@ -82,6 +82,7 @@ export {
   AccountUpdate,
   AccountUpdateForest,
   AccountUpdateTree,
+  OptionalAccountUpdate,
   Permissions,
   TokenId,
   TransactionVersion,

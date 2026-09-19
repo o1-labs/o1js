@@ -47,6 +47,7 @@ import {
   Body,
   Events,
   LazyProof,
+  OptionalAccountUpdate,
   Permissions,
   TokenId,
   ZkappCommand,
@@ -426,7 +427,7 @@ function wrapMethod(
 
       // assert that we really called the right zkapp
       accountUpdate.body.publicKey.assertEquals(this.address);
-      accountUpdate.body.tokenId.assertEquals(this.self.body.tokenId);
+      accountUpdate.body.tokenId.assertEquals(this.tokenId);
 
       // assert that the callee account update has proof authorization. everything else would have much worse security trade-offs,
       // because a one-time change of the callee semantics by using a signature could go unnoticed even if we monitor the callee's
@@ -950,7 +951,9 @@ super.init();
    * at once. `approve()` will fail if the zkApp's account update already has children, to prevent you from accidentally
    * excluding important information from the public input.
    */
-  approve(update: AccountUpdate | AccountUpdateTree | AccountUpdateForest) {
+  approve(
+    update: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree | AccountUpdateForest
+  ) {
     this.self.approve(update);
   }
 

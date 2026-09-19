@@ -50,6 +50,7 @@ import { accountUpdateLayout, smartContractContext } from './smart-contract-cont
 import { assert } from '../../util/assert.js';
 import { RandomId } from '../../provable/types/auxiliary.js';
 import { From } from '../../../bindings/lib/provable-generic.js';
+import { Option } from '../../provable/option.js';
 
 // external API
 export {
@@ -59,6 +60,7 @@ export {
   TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
+  OptionalAccountUpdate,
 };
 // internal API
 export {
@@ -734,9 +736,17 @@ class AccountUpdate implements Types.AccountUpdate {
    * For a proof in particular, child account updates are contained in the public input
    * of the proof that authorizes the parent account update.
    */
-  approve(child: AccountUpdate | AccountUpdateTree | AccountUpdateForest) {
+  approve(
+    child: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree | AccountUpdateForest
+  ) {
     if (child instanceof AccountUpdateForest) {
       accountUpdateLayout()?.setChildren(this, child);
+      return;
+    }
+    if (isOptionalAccountUpdate(child)) {
+      child.value.body.callDepth = this.body.callDepth + 1;
+      accountUpdateLayout()?.disattach(child.value);
+      accountUpdateLayout()?.pushOptionalChild(this, child);
       return;
     }
     if (child instanceof AccountUpdate) {
@@ -984,9 +994,6 @@ class AccountUpdate implements Types.AccountUpdate {
     dummy.label = 'Dummy';
     return dummy;
   }
-  isDummy() {
-    return this.body.publicKey.isEmpty();
-  }
 
   static defaultFeePayer(address: PublicKey, nonce: UInt32): FeePayerUnsigned {
     let body = FeePayerBody.keepAll(address, nonce);
@@ -1011,15 +1018,7 @@ class AccountUpdate implements Types.AccountUpdate {
    */
   static create(publicKey: PublicKey, tokenId?: Field) {
     let accountUpdate = AccountUpdate.default(publicKey, tokenId);
-    let insideContract = smartContractContext.get();
-    if (insideContract) {
-      let self = insideContract.this.self;
-      self.approve(accountUpdate);
-      accountUpdate.label = `${self.label || 'Unlabeled'} > AccountUpdate.create()`;
-    } else {
-      currentTransaction()?.layout.pushTopLevel(accountUpdate);
-      accountUpdate.label = `Mina.transaction() > AccountUpdate.create()`;
-    }
+    attachToCurrentContext(accountUpdate, 'AccountUpdate.create()');
     return accountUpdate;
   }
 
@@ -1029,13 +1028,18 @@ class AccountUpdate implements Types.AccountUpdate {
    * See {@link AccountUpdate.create} for more information. In this method, you can pass in
    * a condition that determines whether the account update should be added to the transaction.
    */
-  static createIf(condition: Bool, publicKey: PublicKey, tokenId?: Field) {
-    return AccountUpdate.create(
-      // if the condition is false, we use an empty public key, which causes the account update to be ignored
-      // as a dummy when building the transaction
-      Provable.if(condition, publicKey, PublicKey.empty()),
-      tokenId
-    );
+  static createIf(
+    condition: Bool,
+    publicKey: PublicKey,
+    tokenId?: Field
+  ): OptionalAccountUpdate {
+    let accountUpdate = AccountUpdate.default(publicKey, tokenId);
+    let optionalAccountUpdate = new OptionalAccountUpdate({
+      isSome: condition,
+      value: accountUpdate,
+    });
+    attachToCurrentContext(optionalAccountUpdate, 'AccountUpdate.createIf()');
+    return optionalAccountUpdate;
   }
 
   /**
@@ -1248,6 +1252,31 @@ class AccountUpdate implements Types.AccountUpdate {
   }
 }
 
+const OptionalAccountUpdate = Option(AccountUpdate);
+type OptionalAccountUpdate = InstanceType<typeof OptionalAccountUpdate>;
+
+function isOptionalAccountUpdate(update: unknown): update is OptionalAccountUpdate {
+  return update instanceof OptionalAccountUpdate;
+}
+
+function attachToCurrentContext(
+  update: AccountUpdate | OptionalAccountUpdate,
+  source: string
+) {
+  let accountUpdate = isOptionalAccountUpdate(update) ? update.value : update;
+  let insideContract = smartContractContext.get();
+  if (insideContract) {
+    let self = insideContract.this.self;
+    self.approve(update);
+    accountUpdate.label = `${self.label || 'Unlabeled'} > ${source}`;
+  } else {
+    let layout = currentTransaction()?.layout;
+    if (isOptionalAccountUpdate(update)) layout?.pushOptionalTopLevel(update);
+    else layout?.pushTopLevel(update);
+    accountUpdate.label = `Mina.transaction() > ${source}`;
+  }
+}
+
 // call forest stuff
 
 function hashAccountUpdate(update: AccountUpdate) {
@@ -1285,7 +1314,10 @@ const AccountUpdateTreeBase = StructNoJson({
 class AccountUpdateForest extends MerkleList.create(AccountUpdateTreeBase, merkleListHash) {
   static provable = provableExtends(AccountUpdateForest, super.provable);
 
-  push(update: AccountUpdate | AccountUpdateTreeBase) {
+  push(update: AccountUpdate | OptionalAccountUpdate | AccountUpdateTreeBase) {
+    if (isOptionalAccountUpdate(update)) {
+      return super.pushIf(update.isSome, AccountUpdateTree.from(update.value));
+    }
     return super.push(update instanceof AccountUpdate ? AccountUpdateTree.from(update) : update);
   }
   pushIf(condition: Bool, update: AccountUpdate | AccountUpdateTreeBase) {
@@ -1384,10 +1416,15 @@ class AccountUpdateTree extends StructNoJson({
    *
    * See {@link AccountUpdate.approve}.
    */
-  approve(update: AccountUpdate | AccountUpdateTree, hash?: Field) {
-    accountUpdateLayout()?.disattach(update);
+  approve(update: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree, hash?: Field) {
+    let accountUpdate = isOptionalAccountUpdate(update) ? update.value : update;
+    accountUpdateLayout()?.disattach(accountUpdate);
+    if (isOptionalAccountUpdate(update)) {
+      this.children.pushIf(update.isSome, AccountUpdateTree.from(update.value, hash));
+      return;
+    }
     if (update instanceof AccountUpdate) {
-      this.children.pushIf(update.isDummy().not(), AccountUpdateTree.from(update, hash));
+      this.children.push(AccountUpdateTree.from(update, hash));
     } else {
       this.children.push(update);
     }
@@ -1601,7 +1638,7 @@ const UnfinishedTree = {
       return {
         mutable: update,
         id: update.id,
-        isDummy: update.isDummy(),
+        isDummy: Bool(false),
         children: UnfinishedForest.empty(),
       };
     }
@@ -1690,8 +1727,19 @@ class AccountUpdateLayout {
     parentNode.children.push(childNode);
   }
 
+  pushOptionalChild(parent: AccountUpdate | UnfinishedTree, child: OptionalAccountUpdate) {
+    let parentNode = this.getOrCreate(parent);
+    let childNode = this.getOrCreate(child.value);
+    childNode.isDummy = child.isSome.not();
+    parentNode.children.push(childNode);
+  }
+
   pushTopLevel(child: AccountUpdate) {
     this.pushChild(this.root, child);
+  }
+
+  pushOptionalTopLevel(child: OptionalAccountUpdate) {
+    this.pushOptionalChild(this.root, child);
   }
 
   setChildren(parent: AccountUpdate | UnfinishedTree, children: AccountUpdateForest) {
