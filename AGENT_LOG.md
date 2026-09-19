@@ -44,7 +44,87 @@ You MUST append an entry when any of the following occur during your session:
 
 **How to append:**
 
-1. Add a new entry at the **bottom** of this file (before the `<!-- END LOG -->`
+1. Add a new entry at the **bottom** of this file (before the `---
+date: 2026-09-19
+agent: claude-code
+session: zkapp-accounts-mesa-activity-script
+category: architecture
+severity: medium
+tags: [archive-node, graphql, tokenAccounts, verificationKeyUpdates, mesa]
+---
+
+### Enumerating zkApp accounts: the archive node cannot do it, the daemon can
+
+**Context:** Writing `scripts/zkapp-mesa-activity.mjs`, which lists all zkApp
+accounts on mainnet and marks those with transactions after the Mesa hard fork
+(2026-09-03T18:00:00Z, i.e. 2026-09-04 01:00 Asia/Bangkok).
+
+**What happened:** The public "archive node" endpoint that o1js uses for
+`Mina.Network({ archive })` is the o1-labs Archive-Node-API. Its whole query
+surface is `events`, `actions`, `verificationKeyUpdates`, `networkState` and
+`blocks`. Every account-related query needs an address (or a verification key
+hash) as input, so it cannot enumerate accounts. `blocks` only lists
+transaction hashes and fee payers, and only when the host sets
+`ENABLE_BLOCK_TRANSACTION_DETAILS=true` (default false).
+
+**Root cause:** The archive API is designed for per-zkApp reads, not ledger
+scans. The daemon GraphQL API has the missing piece: `tokenAccounts(tokenId:
+MINA)` returns every account of the best-tip ledger with `verificationKey`,
+`zkappUri`, `provedState` and `nonce`.
+
+**Resolution/Workaround:** Enumerate with the daemon (`tokenAccounts`, filter
+`verificationKey != null`), then use the archive per address: `events` and
+`actions` give block height, block timestamp and transaction hash;
+`verificationKeyUpdates(verificationKeyHash, from, to)` finds deployments and
+upgrades (group accounts by verification key hash to save requests). Archive
+queries are limited to a block range (`BLOCK_RANGE_SIZE`, default 10000 blocks,
+`from` inclusive, `to` exclusive), at most 15 aliases and 1000 lexical tokens
+per request, and 600 requests per minute per IP by default. Transactions that
+emit no events/actions and set no verification key are invisible through the
+archive API; an indexer (Blockberry) is needed for those.
+
+**Key takeaway:** Use the daemon `tokenAccounts` query to list accounts and the
+archive `events`/`actions`/`verificationKeyUpdates` queries for history, and
+page all archive queries in windows of at most 10000 blocks.
+
+**Relevant files:** `scripts/zkapp-mesa-activity.mjs`,
+`src/lib/mina/v1/fetch.ts`, `src/lib/mina/v1/graphql.ts`
+
+---
+
+date: 2026-09-19
+agent: claude-code
+session: zkapp-accounts-mesa-activity-script
+category: environment
+severity: low
+tags: [remote-session, egress, minascan, network]
+---
+
+### Remote Claude Code sessions cannot reach Mina public endpoints
+
+**Context:** Trying to run a script against public Mina GraphQL endpoints from a
+Claude Code remote (cloud) session.
+
+**What happened:** The egress proxy answered 403 to CONNECT for
+`api.minascan.io`, `minascan.io`, `graphql.minaexplorer.com`,
+`mesa.minaexplorer.com`, `api.blockberry.one`, `docs.minaprotocol.com` and
+`docs.blockberry.one`. `raw.githubusercontent.com` is reachable, so schemas can
+be read from GitHub.
+
+**Root cause:** Organization egress policy of the remote environment.
+
+**Resolution/Workaround:** Validate network scripts against a local mock server
+(plain `node:http`, regex over the GraphQL query text) and state clearly that
+the live run was not performed. Read the daemon schema from
+`MinaProtocol/mina/graphql_schema.json` and the archive schema from
+`o1-labs/Archive-Node-API/schema.graphql`.
+
+**Key takeaway:** Do not expect live Mina network access from a remote session;
+mock the APIs and say so in the report.
+
+**Relevant files:** `scripts/zkapp-mesa-activity.mjs`
+
+<!-- END LOG -->`
    marker)
 2. Use the exact template below
 3. Never modify or delete existing entries (append-only)
@@ -186,5 +266,85 @@ parallelized code MUST be tested in WASM, not just native. A passing native test
 does not guarantee WASM safety.
 
 **Relevant files:** `src/bindings/compiled/`, `src/bindings/native/`
+
+---
+date: 2026-09-19
+agent: claude-code
+session: zkapp-accounts-mesa-activity-script
+category: architecture
+severity: medium
+tags: [archive-node, graphql, tokenAccounts, verificationKeyUpdates, mesa]
+---
+
+### Enumerating zkApp accounts: the archive node cannot do it, the daemon can
+
+**Context:** Writing `scripts/zkapp-mesa-activity.mjs`, which lists all zkApp
+accounts on mainnet and marks those with transactions after the Mesa hard fork
+(2026-09-03T18:00:00Z, i.e. 2026-09-04 01:00 Asia/Bangkok).
+
+**What happened:** The public "archive node" endpoint that o1js uses for
+`Mina.Network({ archive })` is the o1-labs Archive-Node-API. Its whole query
+surface is `events`, `actions`, `verificationKeyUpdates`, `networkState` and
+`blocks`. Every account-related query needs an address (or a verification key
+hash) as input, so it cannot enumerate accounts. `blocks` only lists
+transaction hashes and fee payers, and only when the host sets
+`ENABLE_BLOCK_TRANSACTION_DETAILS=true` (default false).
+
+**Root cause:** The archive API is designed for per-zkApp reads, not ledger
+scans. The daemon GraphQL API has the missing piece: `tokenAccounts(tokenId:
+MINA)` returns every account of the best-tip ledger with `verificationKey`,
+`zkappUri`, `provedState` and `nonce`.
+
+**Resolution/Workaround:** Enumerate with the daemon (`tokenAccounts`, filter
+`verificationKey != null`), then use the archive per address: `events` and
+`actions` give block height, block timestamp and transaction hash;
+`verificationKeyUpdates(verificationKeyHash, from, to)` finds deployments and
+upgrades (group accounts by verification key hash to save requests). Archive
+queries are limited to a block range (`BLOCK_RANGE_SIZE`, default 10000 blocks,
+`from` inclusive, `to` exclusive), at most 15 aliases and 1000 lexical tokens
+per request, and 600 requests per minute per IP by default. Transactions that
+emit no events/actions and set no verification key are invisible through the
+archive API; an indexer (Blockberry) is needed for those.
+
+**Key takeaway:** Use the daemon `tokenAccounts` query to list accounts and the
+archive `events`/`actions`/`verificationKeyUpdates` queries for history, and
+page all archive queries in windows of at most 10000 blocks.
+
+**Relevant files:** `scripts/zkapp-mesa-activity.mjs`,
+`src/lib/mina/v1/fetch.ts`, `src/lib/mina/v1/graphql.ts`
+
+---
+
+date: 2026-09-19
+agent: claude-code
+session: zkapp-accounts-mesa-activity-script
+category: environment
+severity: low
+tags: [remote-session, egress, minascan, network]
+---
+
+### Remote Claude Code sessions cannot reach Mina public endpoints
+
+**Context:** Trying to run a script against public Mina GraphQL endpoints from a
+Claude Code remote (cloud) session.
+
+**What happened:** The egress proxy answered 403 to CONNECT for
+`api.minascan.io`, `minascan.io`, `graphql.minaexplorer.com`,
+`mesa.minaexplorer.com`, `api.blockberry.one`, `docs.minaprotocol.com` and
+`docs.blockberry.one`. `raw.githubusercontent.com` is reachable, so schemas can
+be read from GitHub.
+
+**Root cause:** Organization egress policy of the remote environment.
+
+**Resolution/Workaround:** Validate network scripts against a local mock server
+(plain `node:http`, regex over the GraphQL query text) and state clearly that
+the live run was not performed. Read the daemon schema from
+`MinaProtocol/mina/graphql_schema.json` and the archive schema from
+`o1-labs/Archive-Node-API/schema.graphql`.
+
+**Key takeaway:** Do not expect live Mina network access from a remote session;
+mock the APIs and say so in the report.
+
+**Relevant files:** `scripts/zkapp-mesa-activity.mjs`
 
 <!-- END LOG -->
