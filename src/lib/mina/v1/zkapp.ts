@@ -951,9 +951,7 @@ super.init();
    * at once. `approve()` will fail if the zkApp's account update already has children, to prevent you from accidentally
    * excluding important information from the public input.
    */
-  approve(
-    update: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree | AccountUpdateForest
-  ) {
+  approve(update: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree | AccountUpdateForest) {
     this.self.approve(update);
   }
 

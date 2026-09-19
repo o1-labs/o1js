@@ -7,15 +7,15 @@ import {
   Experimental,
   Field,
   IndexedMerkleMap,
-  method,
   Poseidon,
   Provable,
   PublicKey,
   SmartContract,
   State,
-  state,
   UInt64,
   assert,
+  method,
+  state,
 } from '../../../../index.js';
 import { TestInstruction, expectBalance, testLocal, transaction } from '../test/test-contract.js';
 const { BatchReducer } = Experimental;

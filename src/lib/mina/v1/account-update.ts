@@ -1,89 +1,89 @@
-import { cloneCircuitValue, FlexibleProvable, StructNoJson } from '../../provable/types/struct.js';
-import { provable, provableExtends, provablePure } from '../../provable/types/provable-derivers.js';
-import { memoizationContext, memoizeWitness, Provable } from '../../provable/provable.js';
-import { Field, Bool } from '../../provable/wrapped.js';
 import { Pickles } from '../../../bindings.js';
+import { mocks, prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
+import { From } from '../../../bindings/lib/provable-generic.js';
 import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
-import { Types, toJSONEssential } from '../../../bindings/mina-transaction/v1/types.js';
-import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
-import { UInt64, UInt32, Int64 } from '../../provable/int.js';
-import type { SmartContract } from './zkapp.js';
 import {
-  Preconditions,
-  Account,
-  Network,
-  CurrentSlot,
-  preconditions,
-  OrIgnore,
-  ClosedInterval,
-  getAccountPreconditions,
-} from './precondition.js';
-import { dummyBase64Proof, Empty, Prover } from '../../proof-system/zkprogram.js';
-import { Proof } from '../../proof-system/proof.js';
-import { Memo } from '../../../mina-signer/src/memo.js';
-import {
-  Events as BaseEvents,
   Actions as BaseActions,
+  Events as BaseEvents,
   MayUseToken as BaseMayUseToken,
 } from '../../../bindings/mina-transaction/v1/transaction-leaves.js';
-import { TokenId as Base58TokenId } from './base58-encodings.js';
-import { hashWithPrefix, packToFields, Poseidon } from '../../provable/crypto/poseidon.js';
-import { mocks, prefixes, protocolVersions } from '../../../bindings/crypto/constants.js';
-import {
-  Signature,
-  signFieldElement,
-  zkAppBodyPrefix,
-} from '../../../mina-signer/src/signature.js';
-import { MlFieldConstArray } from '../../ml/fields.js';
+import { toJSONEssential, Types } from '../../../bindings/mina-transaction/v1/types.js';
+import { Memo } from '../../../mina-signer/src/memo.js';
 import {
   accountUpdatesToCallForest,
   CallForest,
   callForestHashGeneric,
   transactionCommitments,
 } from '../../../mina-signer/src/sign-zkapp-command.js';
-import { currentTransaction } from './transaction-context.js';
-import { isSmartContract } from './smart-contract-base.js';
-import { activeInstance } from './mina-instance.js';
+import {
+  Signature,
+  signFieldElement,
+  zkAppBodyPrefix,
+} from '../../../mina-signer/src/signature.js';
+import { MlFieldConstArray } from '../../ml/fields.js';
+import { Proof } from '../../proof-system/proof.js';
+import { dummyBase64Proof, Empty, Prover } from '../../proof-system/zkprogram.js';
+import { hashWithPrefix, packToFields, Poseidon } from '../../provable/crypto/poseidon.js';
+import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
+import { Int64, UInt32, UInt64 } from '../../provable/int.js';
 import { emptyHash, genericHash, MerkleList, MerkleListBase } from '../../provable/merkle-list.js';
-import { Hashed } from '../../provable/packed.js';
-import { accountUpdateLayout, smartContractContext } from './smart-contract-context.js';
-import { assert } from '../../util/assert.js';
-import { RandomId } from '../../provable/types/auxiliary.js';
-import { From } from '../../../bindings/lib/provable-generic.js';
 import { Option } from '../../provable/option.js';
+import { Hashed } from '../../provable/packed.js';
+import { memoizationContext, memoizeWitness, Provable } from '../../provable/provable.js';
+import { RandomId } from '../../provable/types/auxiliary.js';
+import { provable, provableExtends, provablePure } from '../../provable/types/provable-derivers.js';
+import { cloneCircuitValue, FlexibleProvable, StructNoJson } from '../../provable/types/struct.js';
+import { Bool, Field } from '../../provable/wrapped.js';
+import { assert } from '../../util/assert.js';
+import { TokenId as Base58TokenId } from './base58-encodings.js';
+import { activeInstance } from './mina-instance.js';
+import {
+  Account,
+  ClosedInterval,
+  CurrentSlot,
+  getAccountPreconditions,
+  Network,
+  OrIgnore,
+  Preconditions,
+  preconditions,
+} from './precondition.js';
+import { isSmartContract } from './smart-contract-base.js';
+import { accountUpdateLayout, smartContractContext } from './smart-contract-context.js';
+import { currentTransaction } from './transaction-context.js';
+import type { SmartContract } from './zkapp.js';
 
 // external API
 export {
   AccountUpdate,
-  Permissions,
-  ZkappPublicInput,
-  TransactionVersion,
   AccountUpdateForest,
   AccountUpdateTree,
   OptionalAccountUpdate,
+  Permissions,
+  TransactionVersion,
+  ZkappPublicInput,
 };
 // internal API
 export {
-  SetOrKeep,
-  Permission,
-  Preconditions,
-  Body,
-  Authorization,
-  FeePayerUnsigned,
-  ZkappCommand,
-  addMissingSignatures,
-  addMissingProofs,
-  Events,
-  Actions,
-  TokenId,
-  CallForest,
-  zkAppProver,
-  dummySignature,
-  LazyProof,
-  AccountUpdateTreeBase,
   AccountUpdateLayout,
+  AccountUpdateTreeBase,
+  Actions,
+  addMissingProofs,
+  addMissingSignatures,
+  Authorization,
+  Body,
+  CallForest,
+  dummySignature,
+  Events,
+  FeePayerUnsigned,
   hashAccountUpdate,
   HashedAccountUpdate,
+  LazyProof,
+  Permission,
+  Preconditions,
+  SetOrKeep,
+  TokenId,
+  ZkappCommand,
+  zkAppProver,
 };
 
 const TransactionVersion = {
@@ -171,7 +171,10 @@ const False = () => Bool(false);
 type Permission = Types.AuthRequired;
 
 class VerificationKeyPermission {
-  constructor(public auth: Permission, public txnVersion: UInt32) {}
+  constructor(
+    public auth: Permission,
+    public txnVersion: UInt32
+  ) {}
 
   // TODO this class could be made incompatible with a plain object (breaking change)
   // private _ = undefined;
@@ -736,9 +739,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * For a proof in particular, child account updates are contained in the public input
    * of the proof that authorizes the parent account update.
    */
-  approve(
-    child: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree | AccountUpdateForest
-  ) {
+  approve(child: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree | AccountUpdateForest) {
     if (child instanceof AccountUpdateForest) {
       accountUpdateLayout()?.setChildren(this, child);
       return;
@@ -1028,11 +1029,7 @@ class AccountUpdate implements Types.AccountUpdate {
    * See {@link AccountUpdate.create} for more information. In this method, you can pass in
    * a condition that determines whether the account update should be added to the transaction.
    */
-  static createIf(
-    condition: Bool,
-    publicKey: PublicKey,
-    tokenId?: Field
-  ): OptionalAccountUpdate {
+  static createIf(condition: Bool, publicKey: PublicKey, tokenId?: Field): OptionalAccountUpdate {
     let accountUpdate = AccountUpdate.default(publicKey, tokenId);
     let optionalAccountUpdate = new OptionalAccountUpdate({
       isSome: condition,
@@ -1259,10 +1256,7 @@ function isOptionalAccountUpdate(update: unknown): update is OptionalAccountUpda
   return update instanceof OptionalAccountUpdate;
 }
 
-function attachToCurrentContext(
-  update: AccountUpdate | OptionalAccountUpdate,
-  source: string
-) {
+function attachToCurrentContext(update: AccountUpdate | OptionalAccountUpdate, source: string) {
   let accountUpdate = isOptionalAccountUpdate(update) ? update.value : update;
   let insideContract = smartContractContext.get();
   if (insideContract) {
