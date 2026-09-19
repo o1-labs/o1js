@@ -1252,7 +1252,14 @@ class AccountUpdate implements Types.AccountUpdate {
 const OptionalAccountUpdate = Option(AccountUpdate);
 type OptionalAccountUpdate = InstanceType<typeof OptionalAccountUpdate>;
 
-function isOptionalAccountUpdate(update: unknown): update is OptionalAccountUpdate {
+function isOptionalAccountUpdate(
+  update:
+    | AccountUpdate
+    | OptionalAccountUpdate
+    | AccountUpdateTree
+    | AccountUpdateForest
+    | AccountUpdateTreeBase
+): update is OptionalAccountUpdate {
   return update instanceof OptionalAccountUpdate;
 }
 
