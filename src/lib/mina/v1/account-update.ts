@@ -1250,7 +1250,7 @@ class AccountUpdate implements Types.AccountUpdate {
 }
 
 const OptionalAccountUpdate = Option(AccountUpdate);
-type OptionalAccountUpdate = InstanceType<typeof OptionalAccountUpdate>;
+type OptionalAccountUpdate = Option<AccountUpdate, From<typeof Types.AccountUpdate>>;
 
 function isOptionalAccountUpdate(
   update:
