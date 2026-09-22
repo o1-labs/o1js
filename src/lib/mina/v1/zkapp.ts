@@ -410,8 +410,7 @@ function wrapMethod(
           result: methodIntf.returnType ?? provable(null),
           children: AccountUpdateForest,
         }),
-        runCalledContract,
-        { skipCheck: true }
+        runCalledContract
       );
 
       // we're back in the _caller's_ circuit now, where we assert stuff about the method call

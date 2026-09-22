@@ -115,34 +115,27 @@ console.log(
 );
 
 /**
- * For account updates specifically, we typically don't want all the subfield checks. That's because
- * account updates are usually tied the _public input_. The public input is checked on the verifier side
- * already, including the well-formedness of its parts, so there's no need to include that in the proof.
- *
- * This is why we have this custom way of witnessing account updates, with the `skipCheck` option.
+ * AccountUpdate.witness() combines an asynchronously computed account update with another witnessed result.
+ * Like Provable.witness(), it applies the AccountUpdate type's full check() method.
  */
 result = await Provable.constraintSystem(async () => {
-  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(
-    Empty,
-    async () => ({ accountUpdate, result: undefined }),
-    { skipCheck: true }
-  );
+  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(Empty, async () => ({
+    accountUpdate,
+    result: undefined,
+  }));
   Provable.assertEqual(AccountUpdate, accountUpdateWitness, accountUpdate);
 });
-console.log(
-  `without all the checks on subfields, witnessing and comparing only creates ${result.rows} rows`
-);
+console.log(`witnessing with AccountUpdate.witness() and comparing creates ${result.rows} rows`);
 
 /**
  * To relate an account update to the hash which is the public input, we need to perform the hash in-circuit.
  * This is takes several 100 constraints, and is basically the minimal size of a zkApp method.
  */
 result = await Provable.constraintSystem(async () => {
-  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(
-    Empty,
-    async () => ({ accountUpdate, result: undefined }),
-    { skipCheck: true }
-  );
+  let { accountUpdate: accountUpdateWitness } = await AccountUpdate.witness(Empty, async () => ({
+    accountUpdate,
+    result: undefined,
+  }));
   accountUpdateWitness.hash();
 });
 console.log(`hashing a witnessed account update creates ${result.rows} rows`);
