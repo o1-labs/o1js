@@ -46,7 +46,18 @@ jobs:
       - name: Install build prerequisites
         if: matrix.container
         run: |
-          apt-get update
+          # bullseye reached end of LTS on 2026-08-31. bullseye-security is
+          # being torn down on deb.debian.org / security.debian.org (expired
+          # Release file, pool files 404) and has not landed on
+          # archive.debian.org yet. Pin all sources to a fixed snapshot so the
+          # build is reproducible and independent of the mirror transition.
+          SNAP=20260830T000000Z
+          cat > /etc/apt/sources.list <<EOF
+          deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/$SNAP bullseye main
+          deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/$SNAP bullseye-updates main
+          deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/$SNAP bullseye-security main
+          EOF
+          apt-get -o Acquire::Retries=5 update
           apt-get install -y \
             git curl build-essential pkg-config m4 \
             libgmp-dev libffi-dev zlib1g-dev \
