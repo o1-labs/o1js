@@ -16,7 +16,33 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/3.0.0...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3.1.0...HEAD)
+
+## [3.1.0](https://github.com/o1-labs/o1js/compare/3.0.0...3.1.0) - 2026-09-21
+
+### Security
+
+- Fixed two account-update vulnerabilities in the transaction-building layer.
+  A user-supplied account update whose public key is `PublicKey.empty()` is no
+  longer treated as a prunable dummy, so a required update (for example a signed
+  sender debit) can no longer be silently dropped from the call forest. Nested
+  `@method` calls now bind the callee to the token ID passed to its constructor
+  (`this.tokenId`) instead of the witnessed self update, closing a same-address
+  token-ID substitution. **Verification keys change; contracts must be recompiled
+  and redeployed to pick up the fix.**
+- Nested `@method` calls now fully check the witnessed callee account update
+  before relying on its hash. Previously the callee was witnessed with type
+  checks skipped and only its `isProved` flag was asserted, so an adversarial
+  prover could submit a hash-equivalent signed account update in place of the
+  proof-authorized callee (a non-canonical field packing, e.g. `isSigned = 1/2`),
+  bypassing the callee's proof, return value, preconditions and state changes.
+  The witness now runs the full `AccountUpdate.check()`.
+
+### Changed
+
+- Conditional account updates are now explicit: `AccountUpdate.createIf()` returns
+  an `OptionalAccountUpdate` (previously `AccountUpdate`). Access the underlying
+  update via `.value`. Added the `OptionalAccountUpdate` export.
 
 ## [3.0.0](https://github.com/o1-labs/o1js/compare/ff6c201b...3.0.0) - 2026-08-18
 

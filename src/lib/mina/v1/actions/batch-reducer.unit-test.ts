@@ -7,15 +7,15 @@ import {
   Experimental,
   Field,
   IndexedMerkleMap,
-  method,
   Poseidon,
   Provable,
   PublicKey,
   SmartContract,
   State,
-  state,
   UInt64,
   assert,
+  method,
+  state,
 } from '../../../../index.js';
 import { TestInstruction, expectBalance, testLocal, transaction } from '../test/test-contract.js';
 const { BatchReducer } = Experimental;
@@ -103,7 +103,7 @@ class UnsafeAirdrop extends SmartContract {
       // if the claim is valid, send 100 MINA to the account
       let amount = Provable.if(isValid, UInt64.from(AMOUNT), UInt64.zero);
       let update = AccountUpdate.createIf(isValid, address);
-      update.balance.addInPlace(amount);
+      update.value.balance.addInPlace(amount);
       this.balance.subInPlace(amount);
     });
 

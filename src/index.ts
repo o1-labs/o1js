@@ -82,6 +82,7 @@ export {
   AccountUpdate,
   AccountUpdateForest,
   AccountUpdateTree,
+  OptionalAccountUpdate,
   Permissions,
   TokenId,
   TransactionVersion,
@@ -208,7 +209,7 @@ namespace Experimental {
    * - `root`: The root of the current Merkle tree
    * - `actionState`: The hash pointing to the list of actions that have been applied to form the current Merkle tree
    */
-  export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments { }
+  export class OffchainStateCommitments extends OffchainState_.OffchainStateCommitments {}
 
   // batch reducer
 
@@ -236,7 +237,7 @@ namespace Experimental {
     ActionType extends Actionable<any>,
     BatchSize extends number = number,
     Action = InferProvable<ActionType>,
-  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> { }
+  > extends BatchReducer_.BatchReducer<ActionType, BatchSize, Action> {}
 
   /**
    * Provable type that represents a batch of actions.
