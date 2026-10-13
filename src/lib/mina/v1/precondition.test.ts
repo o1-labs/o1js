@@ -1,13 +1,13 @@
 import {
-  UInt64,
-  UInt32,
-  SmartContract,
-  Mina,
   AccountUpdate,
-  method,
-  PublicKey,
   Bool,
   Field,
+  Mina,
+  PublicKey,
+  SmartContract,
+  UInt32,
+  UInt64,
+  method,
 } from 'o1js';
 
 class MyContract extends SmartContract {
@@ -103,6 +103,56 @@ describe('preconditions', () => {
     });
     await tx.sign([feePayer.key, contractAccount.key]).send();
     expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('repeating an identical requireEquals should not throw', async () => {
+    let nonce = contract.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, async () => {
+      contract.network.blockchainLength.getAndRequireEquals();
+      contract.network.blockchainLength.getAndRequireEquals();
+      contract.account.balance.getAndRequireEquals();
+      contract.account.balance.getAndRequireEquals();
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    });
+    await tx.sign([feePayer.key, contractAccount.key]).send();
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('repeating an identical requireBetween should not throw', async () => {
+    let nonce = contract.account.nonce.get();
+    let tx = await Mina.transaction(feePayer, async () => {
+      let length = contract.network.blockchainLength.get();
+      contract.network.blockchainLength.requireBetween(UInt32.zero, length);
+      contract.network.blockchainLength.requireBetween(UInt32.zero, length);
+      contract.currentSlot.requireBetween(UInt32.from(0), UInt32.from(1000));
+      contract.currentSlot.requireBetween(UInt32.from(0), UInt32.from(1000));
+      contract.requireSignature();
+      AccountUpdate.attachToTransaction(contract.self);
+    });
+    await tx.sign([feePayer.key, contractAccount.key]).send();
+    expect(contract.account.nonce.get()).toEqual(nonce.add(1));
+  });
+
+  it('requireBetween should throw when it would replace a different range', async () => {
+    // the new lower bound equals the old upper bound, so comparing the old upper bound
+    // with the new lower bound would wrongly accept this
+    await expect(
+      Mina.transaction(feePayer, async () => {
+        contract.currentSlot.requireBetween(UInt32.from(0), UInt32.from(0));
+        contract.currentSlot.requireBetween(UInt32.from(0), UInt32.from(1000));
+      })
+    ).rejects.toThrow(/already set/);
+  });
+
+  it('requireBetween should throw when it would widen a requireEquals', async () => {
+    await expect(
+      Mina.transaction(feePayer, async () => {
+        let length = contract.network.blockchainLength.get();
+        contract.network.blockchainLength.requireEquals(length);
+        contract.network.blockchainLength.requireBetween(length, length.add(10));
+      })
+    ).rejects.toThrow(/already set/);
   });
 
   it('get + requireNothing should not throw', async () => {
