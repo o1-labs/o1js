@@ -26,6 +26,12 @@ This project adheres to
   (for example one that widens an earlier `requireEquals()`) now throws instead
   of silently replacing it, and the error message explaining the conflict is
   shown again. https://github.com/o1-labs/o1js/pull/2918
+- `fetchActions()` now checks that the blocks returned by the archive form one
+  contiguous chain: every block starts from the action state the previous block
+  ended with, and the first block starts from `fromActionState` when it is
+  given. A block that the endpoint dropped or duplicated used to pass validation
+  and yield an action state that could never match the chain; it now throws an
+  error that names the blocks. https://github.com/o1-labs/o1js/issues/2905
 
 ## [3.1.0](https://github.com/o1-labs/o1js/compare/3.0.0...3.1.0) - 2026-09-21
 
