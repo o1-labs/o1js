@@ -1,3 +1,5 @@
+import { expect } from 'expect';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { PrivateKey, TokenId, Types } from 'o1js';
 import {
   createActionsList,
@@ -12,9 +14,7 @@ import {
 } from './fetch.js';
 import { mockFetchActionsResponse as fetchResponseWithTxInfo } from './fixtures/fetch-actions-response-with-transaction-info.js';
 import { mockFetchActionsResponse as fetchResponseNoTxInfo } from './fixtures/fetch-actions-response-without-transaction-info.js';
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import { removeJsonQuotes, type FetchedAccountResponse } from './graphql.js';
-import { expect } from 'expect';
 
 console.log('testing regex helpers');
 
@@ -235,6 +235,51 @@ describe('Fetch', () => {
           '13552033292375176242184292341671233419412691991179711376625259275814019808194',
         ];
         expect(actionsList.map(({ hash }) => hash)).toEqual(correctActionsHashes);
+      });
+    });
+
+    describe('with a response whose blocks do not form a contiguous chain', () => {
+      const blocks = fetchResponseNoTxInfo.data.actions;
+
+      test('throws when a block is missing from the middle', () => {
+        const withGap = [blocks[0], blocks[2], blocks[3]];
+        expect(() => createActionsList(defaultAccountInfo, withGap)).toThrow(/not contiguous/);
+      });
+
+      test('throws when a block is duplicated', () => {
+        const withDuplicate = [blocks[0], blocks[1], blocks[1], blocks[2], blocks[3]];
+        expect(() => createActionsList(defaultAccountInfo, withDuplicate)).toThrow(
+          /not contiguous/
+        );
+      });
+
+      test('throws when the first block does not start from fromActionState', () => {
+        const accountInfo = {
+          ...defaultAccountInfo,
+          actionStates: {
+            fromActionState: blocks[2].actionState.actionStateTwo,
+            endActionState: undefined,
+          },
+        };
+        expect(() => createActionsList(accountInfo, blocks)).toThrow(
+          /do not start from the requested action state/
+        );
+      });
+
+      test('accepts a response that starts from fromActionState, with or without the leading block', () => {
+        const fromActionState = blocks[1].actionState.actionStateTwo;
+        const accountInfo = {
+          ...defaultAccountInfo,
+          actionStates: { fromActionState, endActionState: undefined },
+        };
+        const fromBlockOne = createActionsList(accountInfo, blocks.slice(1));
+        // some archive nodes also return the block that produced `fromActionState`
+        const withLeadingBlock = createActionsList(accountInfo, blocks);
+        const all = createActionsList(defaultAccountInfo, blocks);
+
+        expect(withLeadingBlock).toEqual(fromBlockOne);
+        expect(all.slice(all.length - fromBlockOne.length)).toEqual(fromBlockOne);
+        expect(fromBlockOne.length).toBeLessThan(all.length);
       });
     });
   });
