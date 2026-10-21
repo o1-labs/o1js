@@ -435,7 +435,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
       // set the last n elements to NULL
       for (let i = 0; i < this.capacity; i++) {
         this.array[i] = Provable.if(
-          new Field(i).lessThanOrEqual(this.length),
+          new Field(i).lessThan(this.length),
           this.innerType,
           this.array[i],
           NULL
@@ -614,7 +614,10 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    */
   includes(value: ProvableValue): Bool {
     let type = this.innerType;
-    let isIncluded = this.array.map((t) => Provable.equal(type, t, value));
+    // only actual (non-dummy) elements count towards inclusion
+    let isIncluded = zip(this.array, this.#dummyMask()).map(([t, isDummy]) =>
+      Provable.equal(type, t, value).and(isDummy.not())
+    );
     let isSome = isIncluded.reduce((acc, curr) => acc.or(curr), new Bool(false));
     return isSome;
   }
@@ -715,7 +718,14 @@ function provable<ProvableValue, Value>(
     },
 
     toCanonical(value) {
-      return value;
+      // the canonical form has all slots at or past the length reset to
+      // NULL, so that the representation only depends on the actual
+      // elements and the length; operates on a copy to not mutate the input
+      let canonical = value.copy();
+      canonical.forEach((t, isDummy, i) => {
+        canonical.array[i!] = Provable.if(isDummy, type, NULL, t);
+      });
+      return canonical;
     },
 
     // check has to validate length in addition to the other checks
