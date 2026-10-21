@@ -26,6 +26,10 @@ This project adheres to
   (for example one that widens an earlier `requireEquals()`) now throws instead
   of silently replacing it, and the error message explaining the conflict is
   shown again. https://github.com/o1-labs/o1js/pull/2918
+- Fixed several `DynamicArray` correctness issues related to length changes,
+  element removal, membership checks, and canonical representation. Programs
+  using `DynamicArray` should be recompiled to pick up the fixes. Thanks to
+  Dan ([@auditinfra-io](https://github.com/auditinfra-io)) for reporting.
 
 ## [3.1.0](https://github.com/o1-labs/o1js/compare/3.0.0...3.1.0) - 2026-09-21
 
