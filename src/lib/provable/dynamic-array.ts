@@ -169,6 +169,12 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    */
   assertIndexInRange(i: Field, message?: string): void {
     let errorMessage = message ?? `assertIndexInRange(): index must be in range [0, length]`;
+    // a cached bounds proof is only valid for the length it was proven
+    // against; if the length variable changed, the cache must be discarded
+    if (this.#indicesInRangeLength !== this.length) {
+      this.#indicesInRange = new Set();
+      this.#indicesInRangeLength = this.length;
+    }
     if (!this.#indicesInRange.has(i)) {
       if (i.isConstant() && this.length.isConstant()) {
         assert(i.toBigInt() < this.length.toBigInt(), errorMessage);
@@ -266,7 +272,9 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
     // new array has same length/capacity, so it can use the same cached masks
     newArray.#indexMasks = this.#indexMasks;
     newArray.#indicesInRange = this.#indicesInRange;
+    newArray.#indicesInRangeLength = this.#indicesInRangeLength;
     newArray.#dummies = this.#dummies;
+    newArray.#dummiesLength = this.#dummiesLength;
     return newArray;
   }
 
@@ -615,7 +623,11 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
   // array.get(i), array.set(i, ..) on the same index
   #indexMasks: Map<Field, Bool[]> = new Map();
   #indicesInRange: Set<Field> = new Set();
+  // the length variable the cached bounds proofs were proven against
+  #indicesInRangeLength?: Field;
   #dummies?: Bool[];
+  // the length variable the cached dummy mask was computed against
+  #dummiesLength?: Field;
 
   /**
    * Compute i.equals(j) for all indices j in the static-size array.
@@ -640,7 +652,9 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
    *       length
    */
   #dummyMask(): Bool[] {
-    if (this.#dummies !== undefined) return this.#dummies;
+    // the dummy mask is derived from the length, so it is only valid for
+    // the length variable it was computed against
+    if (this.#dummies !== undefined && this.#dummiesLength === this.length) return this.#dummies;
     let isLength = this.#indexMask(this.length);
     let wasLength = new Bool(false);
 
@@ -649,6 +663,7 @@ class DynamicArrayBase<ProvableValue = any, Value = any> {
       return wasLength;
     });
     this.#dummies = mask;
+    this.#dummiesLength = this.length;
     return mask;
   }
 
