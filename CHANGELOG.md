@@ -18,6 +18,12 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3.1.1...HEAD)
 
+### Fixed
+
+- Auto-release on `main` no longer waits for the Checks suite to succeed. A
+  version bump that lands on `main` publishes `@o1js/native` and then `o1js` as
+  long as the version is new on npm and is not a prerelease.
+
 ## [3.1.1](https://github.com/o1-labs/o1js/compare/3.1.0...3.1.1) - 2026-10-23
 
 ### Fixed

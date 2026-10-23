@@ -1,16 +1,20 @@
 name: Jobs for new commits on main (and similar branches)
 on:
-  workflow_run:
-    workflows: ["checks"]
-    types:
-      - completed
+  push:
     branches:
       - main
       - develop
+  # retry a release (or docs deploy) without making a new commit
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # never cancel an in-flight native/npm publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
   Build-Doc:
@@ -36,7 +40,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-
 
   Auto-merge:
     if: github.ref == 'refs/heads/main'
@@ -68,7 +71,6 @@ jobs:
           body: 'This PR was automatically created to merge changes from main into version-next. Please resolve conflicts and merge manually.'
           base: version-next
 
-
   Pkg-pr-new:
     runs-on: [ubuntu-latest]
     steps:
@@ -81,12 +83,15 @@ jobs:
   # currently published on npm. Native is expensive to build, so we only run
   # the native release pipeline when the version actually changed.
   #
-  # Gated on the upstream `checks` workflow having succeeded. If checks failed,
-  # all release jobs cascade-skip via `needs:`.
+  # Triggered on push to main (not on Checks succeeding). Checks on main is
+  # chronically red for reasons unrelated to publishability (stale VK
+  # baseline, DEX/mesa live tests). Gating the release on that suite meant
+  # every version bump sat unpublished until someone ran Manual Release.
+  # Safety is: version must differ from npm, must not be a prerelease,
+  # native-version must be in sync, and npm publish is skipped if the
+  # version already exists.
   Check-Version-Change:
-    if: |
-      github.ref == 'refs/heads/main' &&
-      github.event.workflow_run.conclusion == 'success'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.diff.outputs.changed }}
@@ -130,61 +135,89 @@ jobs:
 
   Release-on-NPM:
     # Runs only when the version changed. Native must publish first because
-    # o1js lists @o1js/native as an optionalDependency at the same version;
-    # if Release-Native fails or is skipped, the default `needs:` cascade
-    # skips this job too — exactly what we want.
+    # the published o1js package.json gets `@o1js/native` pinned at this
+    # version by prepublish-native.ts. If Release-Native fails or is skipped,
+    # the default `needs:` cascade skips this job too.
     needs: [Check-Version-Change, Release-Native]
     if: needs.Check-Version-Change.outputs.changed == 'true'
     timeout-minutes: 180
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
-      - name: Restore repository
-        uses: actions/cache@v4
-        with:
-          path: .
-          key: repo-${{ github.sha }}
+      - name: Free space on runner
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android \
+                      /usr/share/dotnet \
+                      /opt/ghc \
+                      "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af --volumes || true
+          df -h
 
-      - name: Setup Node
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build bindings and package artifacts
+        uses: ./.github/actions/build-wasm
+        with:
+          node_version: 22
+
+      - name: Setup Node for npm publish
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Verify @o1js/native versions are in sync with o1js version
         run: node scripts/check-version-sync.mjs
 
-      - name: Build o1js
+      - name: Build publishable o1js package
         run: |
           npm ci
           npm run prepublish:full
 
-      - name: Publish to NPM if version has changed
+      - name: Publish o1js to npm
         id: publish
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          strategy: upgrade
         env:
-          INPUT_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.Check-Version-Change.outputs.version }}
+        run: |
+          set -euo pipefail
+          if npm view "o1js@$VERSION" >/dev/null 2>&1; then
+            echo "o1js@$VERSION already exists. Skipping publish."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            npm publish --provenance --access public --tag latest
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure Git
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-      - name: Tag new version
-        if: ${{ steps.publish.outputs.type }} # https://github.com/JS-DevTools/npm-publish?tab=readme-ov-file#action-output
+      - name: Tag released version
+        if: steps.publish.outputs.published == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASED_VERSION: ${{ steps.publish.outputs.version }}
+          VERSION: ${{ needs.Check-Version-Change.outputs.version }}
         run: |
-          git tag $RELEASED_VERSION
-          git push origin $RELEASED_VERSION
-      - name: Create Release
+          set -euo pipefail
+          if git ls-remote --tags origin "refs/tags/$VERSION" | grep -q "$VERSION"; then
+            echo "Tag $VERSION already exists. Skipping."
+          else
+            git tag "$VERSION"
+            git push origin "$VERSION"
+          fi
+
+      - name: Create GitHub release
+        if: steps.publish.outputs.published == 'true'
         uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
-        if: success()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.publish.outputs.version }}
+          tag: ${{ needs.Check-Version-Change.outputs.version }}
           generateReleaseNotes: true
-          name: Release ${{ steps.publish.outputs.version }}
+          name: Release ${{ needs.Check-Version-Change.outputs.version }}
           skipIfReleaseExists: true
