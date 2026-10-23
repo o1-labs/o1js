@@ -147,8 +147,5 @@
   },
   "o1js-internal": {
     "native-version": "3.1.1"
-  },
-  "optionalDependencies": {
-    "@o1js/native": "3.1.1"
   }
 }

@@ -30,8 +30,12 @@ This project adheres to
   shown again. https://github.com/o1-labs/o1js/pull/2918
 - Fixed several `DynamicArray` correctness issues related to length changes,
   element removal, membership checks, and canonical representation. Programs
-  using `DynamicArray` should be recompiled to pick up the fixes. Thanks to
-  Dan ([@auditinfra-io](https://github.com/auditinfra-io)) for reporting.
+  using `DynamicArray` should be recompiled to pick up the fixes. Thanks to Dan
+  ([@auditinfra-io](https://github.com/auditinfra-io)) for reporting.
+- Fixed the release process so that a version bump no longer leaves
+  `package.json` and `package-lock.json` out of sync: `@o1js/native` is no
+  longer pinned in the committed `package.json` (the exact pin is injected at
+  publish time), so `npm ci` works immediately after bumping the version.
 
 ## [3.1.0](https://github.com/o1-labs/o1js/compare/3.0.0...3.1.0) - 2026-09-21
 
