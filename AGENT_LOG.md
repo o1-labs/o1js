@@ -198,13 +198,13 @@ bounds-check]
 ### DynamicArray cached bounds proofs survived length changes (soundness)
 
 **Context:** Triaging an external vulnerability report (Dan, auditinfra-io)
-against v3.1.0 (`2482934`, `dynamic-array.ts` blob `806a2ad`). Verified all
-five findings locally, including a verifying Kimchi proof of a false statement
-via the reporter's PoC.
+against v3.1.0 (`2482934`, `dynamic-array.ts` blob `806a2ad`). Verified all five
+findings locally, including a verifying Kimchi proof of a false statement via
+the reporter's PoC.
 
 **What happened:** `assertIndexInRange` memoised proven indices in
-`#indicesInRange` (keyed by `Field` object identity) and `#dummyMask`
-memoised `#dummies`, both derived from `length`. No length mutator
+`#indicesInRange` (keyed by `Field` object identity) and `#dummyMask` memoised
+`#dummies`, both derived from `length`. No length mutator
 (`increaseLengthBy`/`decreaseLengthBy`/`setLengthTo`) invalidated them, so
 `get(i)` after a shrink skipped `i.assertLessThan(length)` entirely and fell
 through to `getOrUnconstrained` — reading slots in `[newLength, capacity)`.
@@ -213,23 +213,23 @@ Plus: `pop(n)` off-by-one (`lessThanOrEqual`), `includes()` scanning padding,
 
 **Root cause:** The memoisation design was inherited from zksecurity's
 mina-attestations, where length only grows (`push`), so cached bounds proofs
-could never be invalidated. o1js added shrinking operations without
-rechecking that invariant. Three memos, three lifetimes: `#indexMasks`
-(index only, forever valid), `#indicesInRange` and `#dummies` (length-dependent).
+could never be invalidated. o1js added shrinking operations without rechecking
+that invariant. Three memos, three lifetimes: `#indexMasks` (index only, forever
+valid), `#indicesInRange` and `#dummies` (length-dependent).
 
 **Resolution/Workaround:** Fixed on `main` by tagging both length-dependent
 caches with the `length` `Field` object they were computed against
 (`#indicesInRangeLength`, `#dummiesLength`) and discarding them when
-`this.length` is a different object — this covers all mutation paths
-including direct `arr.length = …` assignment, which a mutator-only
-invalidation misses. `map()` copies the tags along with the shared cache
-objects. Also `pop` `lessThan`, `includes` dummy-masking, and a real
-`toCanonical` (copy + NULL padding). Regression tests added to
-`dynamic-array.unit-test.ts`; reporter's PoC now fails to prove.
+`this.length` is a different object — this covers all mutation paths including
+direct `arr.length = …` assignment, which a mutator-only invalidation misses.
+`map()` copies the tags along with the shared cache objects. Also `pop`
+`lessThan`, `includes` dummy-masking, and a real `toCanonical` (copy + NULL
+padding). Regression tests added to `dynamic-array.unit-test.ts`; reporter's PoC
+now fails to prove.
 
 **Key takeaway:** Any cache keyed on circuit variables must be keyed on (or
-tagged with) *every* variable its value depends on — in a mutable-length
-type, a bounds proof is a function of (index, length), not index alone.
+tagged with) _every_ variable its value depends on — in a mutable-length type, a
+bounds proof is a function of (index, length), not index alone.
 
 **Relevant files:** `src/lib/provable/dynamic-array.ts`,
 `src/lib/provable/test/dynamic-array.unit-test.ts`

@@ -23,17 +23,17 @@ you publicly when the fix is released (see Acknowledgements below).
 
 ## Supported Versions
 
-Security fixes are applied to `main` and the latest published release of
-`o1js` on npm. Older releases may not receive patches, so please upgrade to
-the latest version.
+Security fixes are applied to `main` and the latest published release of `o1js`
+on npm. Older releases may not receive patches, so please upgrade to the latest
+version.
 
 ## Acknowledgements
 
-We thank the security researchers who have responsibly disclosed
-vulnerabilities in o1js:
+We thank the security researchers who have responsibly disclosed vulnerabilities
+in o1js:
 
 - **Dan ([@auditinfra-io](https://github.com/auditinfra-io))** — reported a
   missing bounds constraint in `DynamicArray.get()` / `.set()` after a length
-  change (a soundness issue), together with four related correctness defects
-  in `src/lib/provable/dynamic-array.ts`, including a full proof of concept
-  and a suggested fix.
+  change (a soundness issue), together with four related correctness defects in
+  `src/lib/provable/dynamic-array.ts`, including a full proof of concept and a
+  suggested fix.
