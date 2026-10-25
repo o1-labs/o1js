@@ -417,6 +417,12 @@ function wrapMethod(
 
       // overwrite this.self with the witnessed update, so it's this one we access later in the caller method
       innerContext.selfUpdate = accountUpdate;
+      // Refresh #executionState onto that witnessed update. `get self()` only
+      // writes the instance cache when `inSmartContract.this === this`. After
+      // we leave this context, a later `callee.self` in the caller would
+      // otherwise return the stale update from inside the witness block.
+      // Until 3.1.0 this refresh was a side effect of reading `this.self.body.tokenId`.
+      void this.self;
 
       // connect accountUpdate to our own. outside Provable.witness so compile knows the right structure when hashing children
       accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
