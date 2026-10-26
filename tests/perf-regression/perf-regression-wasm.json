@@ -174,12 +174,12 @@
     }
   },
   "Voting_": {
-    "digest": "3e9d12f7ba0d0cf88fb46d1342283cc9ad52df1b319373ca45b5206e2c6c7613",
+    "digest": "3be4577e018ac04a715aeac336aa670e1382cd76d65c0095c7652cefcf2777a1",
     "compileTime": 43.362284814,
     "methods": {}
   },
   "Membership_": {
-    "digest": "22ba41a10934cb1c22d578a53d2119546e297f74c62cbe71fd9701107ca479f",
+    "digest": "28c2e8dec3012a4ff33455f81708a3ab5fa1874fd4530c439d5cd33e297c287e",
     "compileTime": 12.863265169999998,
     "methods": {}
   },
@@ -189,12 +189,12 @@
     "methods": {}
   },
   "TokenContract": {
-    "digest": "24e4970719219554e59b3cfb556e2154461a901b013ea7fc76011b3a8c1069",
+    "digest": "2e16057378cbebc1b3574858ff5891cb800e397dd0b532d03c98ddfe3420fc1",
     "compileTime": 37.04940953199999,
     "methods": {}
   },
   "Dex": {
-    "digest": "2c89e730fc5fbdb95ddf567c70d84741d5febd3336e28d3cf270e25fc31f9cfc",
+    "digest": "15f97c5ef8386a11143c66e26ee5fb0f3b64be033e69970ac4e087929db3f2b7",
     "compileTime": 26.37082475900001,
     "methods": {}
   },
