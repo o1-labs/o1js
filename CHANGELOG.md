@@ -18,6 +18,15 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3.1.1...HEAD)
 
+### Fixed
+
+- Nested `@method` calls now refresh the callee's `self` cache onto the
+  witnessed account update. Using `callee.self` after `await callee.method()` no
+  longer fails at prove time (the DEX `redeemLiquidity` / `swapX` crash).
+  **Verification keys change for callers that use `callee.self` after a nested
+  call; those contracts must be recompiled.**
+  https://github.com/o1-labs/o1js/issues/2920
+
 ## [3.1.1](https://github.com/o1-labs/o1js/compare/3.1.0...3.1.1) - 2026-10-23
 
 ### Fixed
