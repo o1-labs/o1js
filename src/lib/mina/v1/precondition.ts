@@ -8,6 +8,7 @@ import {
 import type { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { TokenSymbol, emptyReceiptChainHash } from '../../provable/crypto/poseidon.js';
 import { PublicKey } from '../../provable/crypto/signature.js';
+import { withMessage } from '../../provable/field.js';
 import { Int64, UInt32, UInt64 } from '../../provable/int.js';
 import { Provable } from '../../provable/provable.js';
 import { circuitValueEquals, cloneCircuitValue } from '../../provable/types/struct.js';
@@ -542,7 +543,7 @@ function getPreconditionContextExn(accountUpdate: AccountUpdate) {
 function ensureConsistentPrecondition(property: any, newIsSome: any, value: any, name: any) {
   if (!property.isSome.isConstant() || property.isSome.toBoolean()) {
     let errorMessage = `
-Precondition Error: Precondition Error: Attempting to set a precondition that is already set for '${name}'.
+Precondition Error: Attempting to set a precondition that is already set for '${name}'.
 '${name}' represents the field or value you're trying to set a precondition for.
 Preconditions must be set only once to avoid overwriting previous assertions. 
 For example, do not use 'requireBetween()' or 'requireEquals()' multiple times on the same field.
@@ -551,20 +552,28 @@ Recommendation:
 Ensure that preconditions for '${name}' are set in a single place and are not overwritten. If you need to update a precondition,
 consider refactoring your code to consolidate all assertions for '${name}' before setting the precondition.
 
-Example of Correct Usage:
 // Incorrect Usage:
-timestamp.requireBetween(newUInt32(0n), newUInt32(2n));
-timestamp.requireBetween(newUInt32(1n), newUInt32(3n));
+timestamp.requireBetween(new UInt32(0n), new UInt32(2n));
+timestamp.requireBetween(new UInt32(1n), new UInt32(3n));
 
 // Correct Usage:
 timestamp.requireBetween(new UInt32(1n), new UInt32(2n));
 `;
-    property.isSome.assertEquals(newIsSome, errorMessage);
+    // `assertEquals()` keeps the constraints unchanged; the message is attached here because the
+    // `assertEquals()` of UInt32, UInt64 and PublicKey takes no message argument.
+    let assertEquals = (current: any, next: any) => {
+      try {
+        current.assertEquals(next);
+      } catch (err) {
+        throw withMessage(err, errorMessage);
+      }
+    };
+    assertEquals(property.isSome, newIsSome);
     if ('lower' in property.value && 'upper' in property.value) {
-      property.value.lower.assertEquals(value.lower, errorMessage);
-      property.value.upper.assertEquals(value.lower, errorMessage);
+      assertEquals(property.value.lower, value.lower);
+      assertEquals(property.value.upper, value.upper);
     } else {
-      property.value.assertEquals(value, errorMessage);
+      assertEquals(property.value, value);
     }
   }
 }

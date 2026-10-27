@@ -330,6 +330,82 @@ import { Provable } from '../provable.js';
   assert(bytes.includes(new UInt8(20)).not().toBoolean());
 }
 
+// Regression tests: cached bounds proofs and dummy masks must not
+// survive a change of the length variable
+{
+  class Fields extends DynamicArray(Field, { capacity: 8 }) {}
+
+  function expectThrows(fn: () => void, msg: string) {
+    let threw = false;
+    try {
+      fn();
+    } catch {
+      threw = true;
+    }
+    assert(threw, msg);
+  }
+
+  // get() / set() with the same index variable after shrinking must
+  // re-check the bounds against the new length
+  let arr = Fields.from([10, 20, 30, 40, 50].map((x) => new Field(x)));
+  let i = new Field(4);
+  assert(arr.get(i).equals(new Field(50)));
+  arr.decreaseLengthBy(new Field(3));
+  assert(arr.length.equals(new Field(2)));
+  expectThrows(() => {
+    arr.get(i);
+  }, 'Cannot get index that is out of bounds after shrinking');
+  expectThrows(() => {
+    arr.set(i, new Field(0));
+  }, 'Cannot set index that is out of bounds after shrinking');
+  // control: index within the new length still works
+  assert(arr.get(new Field(1)).equals(new Field(20)));
+
+  // shrinking one array must not invalidate bounds proofs cached on a
+  // mapped sibling array, which kept its length (shared cache objects)
+  let sibling = Fields.from([10, 20, 30, 40, 50].map((x) => new Field(x)));
+  let j = new Field(4);
+  assert(sibling.get(j).equals(new Field(50)));
+  let mapped = sibling.map(Field, (x) => x);
+  sibling.decreaseLengthBy(new Field(3));
+  assert(mapped.get(j).equals(new Field(50)));
+
+  // forEach must use a dummy mask matching the current length
+  let iter = Fields.from([1, 2, 3].map((x) => new Field(x)));
+  let sum = new Field(0);
+  iter.forEach((t, isDummy) => {
+    sum = sum.add(Provable.if(isDummy, Field, new Field(0), t));
+  });
+  assert(sum.equals(new Field(6)));
+  iter.push(new Field(10));
+  sum = new Field(0);
+  iter.forEach((t, isDummy) => {
+    sum = sum.add(Provable.if(isDummy, Field, new Field(0), t));
+  });
+  assert(sum.equals(new Field(16)));
+
+  // pop(n) must reset all popped positions to NULL
+  let popped = Fields.from([1, 2, 3, 4, 5].map((x) => new Field(x)));
+  popped.pop(new Field(2));
+  assert(popped.length.equals(new Field(3)));
+  for (let k = 3; k < 8; k++) {
+    assert(popped.array[k]!.equals(new Field(0)));
+  }
+
+  // includes() must not find values that only occur in the padding
+  let inc = Fields.from([1, 2, 3].map((x) => new Field(x)));
+  assert(inc.includes(new Field(2)).toBoolean());
+  assert(inc.includes(new Field(0)).not().toBoolean());
+
+  // toCanonical() must erase the padding, so that two arrays with the
+  // same actual elements are equal (and hash the same)
+  let a = new Fields([new Field(1), new Field(2)], new Field(2));
+  let b = new Fields([new Field(1), new Field(2), new Field(99)], new Field(2));
+  assert(Provable.equal(Fields.provable, a, b).toBoolean());
+  // and it must not mutate its input
+  assert(b.array[2]!.equals(new Field(99)));
+}
+
 // Using dynamic arrays as private input
 {
   class Bytestring extends DynamicArray(UInt8, { capacity: 8 }) {}

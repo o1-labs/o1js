@@ -47,6 +47,7 @@ import {
   Body,
   Events,
   LazyProof,
+  OptionalAccountUpdate,
   Permissions,
   TokenId,
   ZkappCommand,
@@ -409,14 +410,19 @@ function wrapMethod(
           result: methodIntf.returnType ?? provable(null),
           children: AccountUpdateForest,
         }),
-        runCalledContract,
-        { skipCheck: true }
+        runCalledContract
       );
 
       // we're back in the _caller's_ circuit now, where we assert stuff about the method call
 
       // overwrite this.self with the witnessed update, so it's this one we access later in the caller method
       innerContext.selfUpdate = accountUpdate;
+      // Refresh #executionState onto that witnessed update. `get self()` only
+      // writes the instance cache when `inSmartContract.this === this`. After
+      // we leave this context, a later `callee.self` in the caller would
+      // otherwise return the stale update from inside the witness block.
+      // Until 3.1.0 this refresh was a side effect of reading `this.self.body.tokenId`.
+      void this.self;
 
       // connect accountUpdate to our own. outside Provable.witness so compile knows the right structure when hashing children
       accountUpdate.body.callDepth = parentAccountUpdate.body.callDepth + 1;
@@ -426,7 +432,7 @@ function wrapMethod(
 
       // assert that we really called the right zkapp
       accountUpdate.body.publicKey.assertEquals(this.address);
-      accountUpdate.body.tokenId.assertEquals(this.self.body.tokenId);
+      accountUpdate.body.tokenId.assertEquals(this.tokenId);
 
       // assert that the callee account update has proof authorization. everything else would have much worse security trade-offs,
       // because a one-time change of the callee semantics by using a signature could go unnoticed even if we monitor the callee's
@@ -950,7 +956,7 @@ super.init();
    * at once. `approve()` will fail if the zkApp's account update already has children, to prevent you from accidentally
    * excluding important information from the public input.
    */
-  approve(update: AccountUpdate | AccountUpdateTree | AccountUpdateForest) {
+  approve(update: AccountUpdate | OptionalAccountUpdate | AccountUpdateTree | AccountUpdateForest) {
     this.self.approve(update);
   }
 
