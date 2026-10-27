@@ -65,6 +65,10 @@ your project.
   and Noir circuits — flags prover-controlled witnesses that the circuit never
   binds. [GitHub](https://github.com/auditinfra-io/o1js-scan) and
   [npm](https://www.npmjs.com/package/o1js-scan)
+-  **vk-guard** A verification-key and constraint-count regression guard for o1js
+  SmartContracts and ZkPrograms — flags unexpected circuit changes in CI.
+  [GitHub](https://github.com/auditinfra-io/vk-guard) and
+  [npm](https://www.npmjs.com/package/vk-guard)
 
 To include your package, see
 [Creating high-quality community packages](https://github.com/o1-labs/o1js/blob/main/CONTRIBUTING.md#creating-high-quality-community-packages).
