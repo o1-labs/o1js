@@ -1,3 +1,5 @@
+import { expect } from 'expect';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { PrivateKey, TokenId, Types } from 'o1js';
 import {
   createActionsList,
@@ -12,9 +14,7 @@ import {
 } from './fetch.js';
 import { mockFetchActionsResponse as fetchResponseWithTxInfo } from './fixtures/fetch-actions-response-with-transaction-info.js';
 import { mockFetchActionsResponse as fetchResponseNoTxInfo } from './fixtures/fetch-actions-response-without-transaction-info.js';
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import { removeJsonQuotes, type FetchedAccountResponse } from './graphql.js';
-import { expect } from 'expect';
 
 console.log('testing regex helpers');
 
@@ -185,6 +185,42 @@ describe('Fetch', () => {
 
     expect(account.permissions.setVerificationKey.txnVersion.toString()).toEqual(txnVersion);
     expect(Types.Account.toJSON(account).permissions).toEqual(permissions);
+  });
+
+  test("preserves the transaction version of a fetched account's verification key", () => {
+    const verificationKey = {
+      verificationKey: 'AAAA',
+      hash: '1',
+      txnVersion: '3',
+    };
+    const account = parseFetchedAccount({
+      publicKey: PrivateKey.random().toPublicKey().toBase58(),
+      token: TokenId.toBase58(TokenId.default),
+      nonce: '0',
+      balance: { total: '1' },
+      tokenSymbol: null,
+      receiptChainHash: null,
+      timing: {
+        initialMinimumBalance: null,
+        cliffTime: null,
+        cliffAmount: null,
+        vestingPeriod: null,
+        vestingIncrement: null,
+      },
+      permissions: null,
+      delegateAccount: null,
+      votingFor: null,
+      zkappState: null,
+      verificationKey,
+      actionState: null,
+      provedState: null,
+      zkappUri: null,
+    });
+
+    const fetched = account.zkapp?.verificationKey;
+    expect(fetched?.vk.data).toEqual(verificationKey.verificationKey);
+    expect(fetched?.vk.hash.toString()).toEqual(verificationKey.hash);
+    expect(fetched?.txnVersion.toString()).toEqual(verificationKey.txnVersion);
   });
 
   describe('#createActionsList with default params', () => {
