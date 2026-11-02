@@ -100,7 +100,7 @@ type FetchedAccount = {
   delegateAccount: { publicKey: string } | null;
   votingFor: string | null;
   zkappState: string[] | null;
-  verificationKey: { verificationKey: string; hash: string } | null;
+  verificationKey: { verificationKey: string; hash: string; txnVersion: string } | null;
   actionState: string[] | null;
   provedState: boolean | null;
   zkappUri: string | null;
@@ -570,6 +570,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
     verificationKey {
       verificationKey
       hash
+      txnVersion
     }
     actionState
     provedState

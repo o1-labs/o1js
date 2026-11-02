@@ -357,10 +357,12 @@ type Account = {
   zkapp: {
     appState: Field[];
     verificationKey: {
-      data: string;
-      hash: Field;
+      vk: {
+        data: string;
+        hash: Field;
+      };
+      txnVersion: UInt32;
     } | null;
-    zkappVersion: UInt32;
     actionState: Field[];
     lastActionSlot: UInt32;
     provedState: Bool;

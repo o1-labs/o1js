@@ -1,17 +1,16 @@
+import { genericLayoutFold } from '../../../bindings/lib/from-layout.js';
+import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
+import { TypeMap, customTypes } from '../../../bindings/mina-transaction/gen/v1/transaction.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
+import { PublicKey } from '../../provable/crypto/signature.js';
+import { UInt32, UInt64 } from '../../provable/int.js';
+import { ProvableExtended } from '../../provable/types/struct.js';
 import { Bool, Field } from '../../provable/wrapped.js';
 import { Permissions } from './account-update.js';
-import { UInt32, UInt64 } from '../../provable/int.js';
-import { PublicKey } from '../../provable/crypto/signature.js';
-import { TokenId, ReceiptChainHash } from './base58-encodings.js';
-import { genericLayoutFold } from '../../../bindings/lib/from-layout.js';
-import { customTypes, TypeMap } from '../../../bindings/mina-transaction/gen/v1/transaction.js';
-import { jsLayout } from '../../../bindings/mina-transaction/gen/v1/js-layout.js';
-import { ProvableExtended } from '../../provable/types/struct.js';
+import { ReceiptChainHash, TokenId } from './base58-encodings.js';
 import { FetchedAccount } from './graphql.js';
 
-export { Account, PartialAccount };
-export { newAccount, parseFetchedAccount, fillPartialAccount };
+export { Account, PartialAccount, fillPartialAccount, newAccount, parseFetchedAccount };
 
 type Account = Types.Account;
 const Account = Types.Account;
@@ -83,11 +82,13 @@ function parseFetchedAccount(account: FetchedAccount): Account {
           appState: (zkappState && zkappState.map(Field)) ?? undefined,
           verificationKey:
             (verificationKey && {
-              data: verificationKey.verificationKey,
-              hash: Field(verificationKey.hash),
+              vk: {
+                data: verificationKey.verificationKey,
+                hash: Field(verificationKey.hash),
+              },
+              txnVersion: UInt32.from(verificationKey.txnVersion),
             }) ??
             undefined,
-          zkappVersion: undefined, // TODO
           actionState: (actionState && actionState.map(Field)) ?? undefined,
           lastActionSlot: undefined, // TODO
           provedState: provedState !== null ? Bool(provedState) : undefined,

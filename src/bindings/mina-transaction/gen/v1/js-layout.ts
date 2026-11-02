@@ -1566,7 +1566,6 @@ let jsLayout = {
           keys: [
             'appState',
             'verificationKey',
-            'zkappVersion',
             'actionState',
             'lastActionSlot',
             'provedState',
@@ -1579,14 +1578,27 @@ let jsLayout = {
               optionType: 'orUndefined',
               inner: {
                 type: 'object',
-                name: 'VerificationKeyWithHash',
+                name: 'VerificationKeyWithVersion',
                 docs: null,
-                keys: ['data', 'hash'],
-                entries: { data: { type: 'string' }, hash: { type: 'Field' } },
-                docEntries: { data: null, hash: null },
+                keys: ['vk', 'txnVersion'],
+                entries: {
+                  vk: {
+                    type: 'object',
+                    name: 'VerificationKeyWithHash',
+                    docs: null,
+                    keys: ['data', 'hash'],
+                    entries: { data: { type: 'string' }, hash: { type: 'Field' } },
+                    docEntries: { data: null, hash: null },
+                  },
+                  txnVersion: {
+                    type: 'UInt32',
+                    checkedType: { type: 'UInt32' },
+                    checkedTypeName: 'TransactionVersion',
+                  },
+                },
+                docEntries: { vk: null, txnVersion: null },
               },
             },
-            zkappVersion: { type: 'UInt32' },
             actionState: { type: 'array', inner: { type: 'Field' }, staticLength: 5 },
             lastActionSlot: { type: 'UInt32' },
             provedState: { type: 'Bool' },
@@ -1595,7 +1607,6 @@ let jsLayout = {
           docEntries: {
             appState: null,
             verificationKey: null,
-            zkappVersion: null,
             actionState: null,
             lastActionSlot: null,
             provedState: null,

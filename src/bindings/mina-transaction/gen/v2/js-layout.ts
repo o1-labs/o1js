@@ -36,6 +36,7 @@ export {
   Types,
   VerificationKeyPermission,
   VerificationKeyWithHash,
+  VerificationKeyWithVersion,
   ZkappAccount,
   ZkappAccountUpdate,
   ZkappCommand,
@@ -269,44 +270,13 @@ const EpochDataPrecondition: BindingsType.Object<EpochDataPrecondition> = new Bi
     epochLength: new BindingsType.Option.ClosedInterval(new BindingsType.Leaf.UInt32()),
   },
 });
-type ZkappAccount = {
-  appState: Field[];
-  verificationKey: { data: string; hash: Field } | undefined;
-  zkappVersion: UInt32;
-  actionState: Field[];
-  lastActionSlot: UInt32;
-  provedState: Bool;
-  zkappUri: string;
-};
-const ZkappAccount: BindingsType.Object<ZkappAccount> = new BindingsType.Object({
-  name: 'ZkappAccount',
-  keys: [
-    'appState',
-    'verificationKey',
-    'zkappVersion',
-    'actionState',
-    'lastActionSlot',
-    'provedState',
-    'zkappUri',
-  ],
-  entries: {
-    appState: new BindingsType.Array({
-      staticLength: 32,
-      inner: new BindingsType.Leaf.Field(),
-    }),
-    verificationKey: new BindingsType.Option.OrUndefined<{ data: string; hash: Field }>(
-      VerificationKeyWithHash
-    ),
-    zkappVersion: new BindingsType.Leaf.UInt32(),
-    actionState: new BindingsType.Array({
-      staticLength: 5,
-      inner: new BindingsType.Leaf.Field(),
-    }),
-    lastActionSlot: new BindingsType.Leaf.UInt32(),
-    provedState: new BindingsType.Leaf.Bool(),
-    zkappUri: new BindingsType.Leaf.String(),
-  },
-});
+type VerificationKeyWithVersion = { vk: { data: string; hash: Field }; txnVersion: UInt32 };
+const VerificationKeyWithVersion: BindingsType.Object<VerificationKeyWithVersion> =
+  new BindingsType.Object({
+    name: 'VerificationKeyWithVersion',
+    keys: ['vk', 'txnVersion'],
+    entries: { vk: VerificationKeyWithHash, txnVersion: new BindingsType.Leaf.UInt32() },
+  });
 type AccountUpdateModification = {
   appState: Option<Field>[];
   delegate: Option<PublicKey>;
@@ -406,85 +376,33 @@ const NetworkPrecondition: BindingsType.Object<NetworkPrecondition> = new Bindin
     nextEpochData: EpochDataPrecondition,
   },
 });
-type Account = {
-  publicKey: PublicKey;
-  tokenId: TokenId;
-  tokenSymbol: string;
-  balance: UInt64;
-  nonce: UInt32;
-  receiptChainHash: Field;
-  delegate: PublicKey | undefined;
-  votingFor: Field;
-  timing: {
-    isTimed: Bool;
-    initialMinimumBalance: UInt64;
-    cliffTime: UInt32;
-    cliffAmount: UInt64;
-    vestingPeriod: UInt32;
-    vestingIncrement: UInt64;
-  };
-  permissions: {
-    editState: AuthRequired;
-    access: AuthRequired;
-    send: AuthRequired;
-    receive: AuthRequired;
-    setDelegate: AuthRequired;
-    setPermissions: AuthRequired;
-    setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
-    setZkappUri: AuthRequired;
-    editActionState: AuthRequired;
-    setTokenSymbol: AuthRequired;
-    incrementNonce: AuthRequired;
-    setVotingFor: AuthRequired;
-    setTiming: AuthRequired;
-  };
-  zkapp:
-    | {
-        appState: Field[];
-        verificationKey: { data: string; hash: Field } | undefined;
-        zkappVersion: UInt32;
-        actionState: Field[];
-        lastActionSlot: UInt32;
-        provedState: Bool;
-        zkappUri: string;
-      }
-    | undefined;
+type ZkappAccount = {
+  appState: Field[];
+  verificationKey: { vk: { data: string; hash: Field }; txnVersion: UInt32 } | undefined;
+  actionState: Field[];
+  lastActionSlot: UInt32;
+  provedState: Bool;
+  zkappUri: string;
 };
-const Account: BindingsType.Object<Account> = new BindingsType.Object({
-  name: 'Account',
-  keys: [
-    'publicKey',
-    'tokenId',
-    'tokenSymbol',
-    'balance',
-    'nonce',
-    'receiptChainHash',
-    'delegate',
-    'votingFor',
-    'timing',
-    'permissions',
-    'zkapp',
-  ],
+const ZkappAccount: BindingsType.Object<ZkappAccount> = new BindingsType.Object({
+  name: 'ZkappAccount',
+  keys: ['appState', 'verificationKey', 'actionState', 'lastActionSlot', 'provedState', 'zkappUri'],
   entries: {
-    publicKey: new BindingsType.Leaf.PublicKey(),
-    tokenId: new BindingsType.Leaf.TokenId(),
-    tokenSymbol: new BindingsType.Leaf.String(),
-    balance: new BindingsType.Leaf.UInt64(),
-    nonce: new BindingsType.Leaf.UInt32(),
-    receiptChainHash: new BindingsType.Leaf.Field(),
-    delegate: new BindingsType.Option.OrUndefined<PublicKey>(new BindingsType.Leaf.PublicKey()),
-    votingFor: new BindingsType.Leaf.Field(),
-    timing: AccountTiming,
-    permissions: Permissions,
-    zkapp: new BindingsType.Option.OrUndefined<{
-      appState: Field[];
-      verificationKey: { data: string; hash: Field } | undefined;
-      zkappVersion: UInt32;
-      actionState: Field[];
-      lastActionSlot: UInt32;
-      provedState: Bool;
-      zkappUri: string;
-    }>(ZkappAccount),
+    appState: new BindingsType.Array({
+      staticLength: 32,
+      inner: new BindingsType.Leaf.Field(),
+    }),
+    verificationKey: new BindingsType.Option.OrUndefined<{
+      vk: { data: string; hash: Field };
+      txnVersion: UInt32;
+    }>(VerificationKeyWithVersion),
+    actionState: new BindingsType.Array({
+      staticLength: 5,
+      inner: new BindingsType.Leaf.Field(),
+    }),
+    lastActionSlot: new BindingsType.Leaf.UInt32(),
+    provedState: new BindingsType.Leaf.Bool(),
+    zkappUri: new BindingsType.Leaf.String(),
   },
 });
 type Preconditions = {
@@ -528,6 +446,85 @@ const Preconditions: BindingsType.Object<Preconditions> = new BindingsType.Objec
     network: NetworkPrecondition,
     account: AccountPrecondition,
     validWhile: new BindingsType.Option.ClosedInterval(new BindingsType.Leaf.UInt32()),
+  },
+});
+type Account = {
+  publicKey: PublicKey;
+  tokenId: TokenId;
+  tokenSymbol: string;
+  balance: UInt64;
+  nonce: UInt32;
+  receiptChainHash: Field;
+  delegate: PublicKey | undefined;
+  votingFor: Field;
+  timing: {
+    isTimed: Bool;
+    initialMinimumBalance: UInt64;
+    cliffTime: UInt32;
+    cliffAmount: UInt64;
+    vestingPeriod: UInt32;
+    vestingIncrement: UInt64;
+  };
+  permissions: {
+    editState: AuthRequired;
+    access: AuthRequired;
+    send: AuthRequired;
+    receive: AuthRequired;
+    setDelegate: AuthRequired;
+    setPermissions: AuthRequired;
+    setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
+    setZkappUri: AuthRequired;
+    editActionState: AuthRequired;
+    setTokenSymbol: AuthRequired;
+    incrementNonce: AuthRequired;
+    setVotingFor: AuthRequired;
+    setTiming: AuthRequired;
+  };
+  zkapp:
+    | {
+        appState: Field[];
+        verificationKey: { vk: { data: string; hash: Field }; txnVersion: UInt32 } | undefined;
+        actionState: Field[];
+        lastActionSlot: UInt32;
+        provedState: Bool;
+        zkappUri: string;
+      }
+    | undefined;
+};
+const Account: BindingsType.Object<Account> = new BindingsType.Object({
+  name: 'Account',
+  keys: [
+    'publicKey',
+    'tokenId',
+    'tokenSymbol',
+    'balance',
+    'nonce',
+    'receiptChainHash',
+    'delegate',
+    'votingFor',
+    'timing',
+    'permissions',
+    'zkapp',
+  ],
+  entries: {
+    publicKey: new BindingsType.Leaf.PublicKey(),
+    tokenId: new BindingsType.Leaf.TokenId(),
+    tokenSymbol: new BindingsType.Leaf.String(),
+    balance: new BindingsType.Leaf.UInt64(),
+    nonce: new BindingsType.Leaf.UInt32(),
+    receiptChainHash: new BindingsType.Leaf.Field(),
+    delegate: new BindingsType.Option.OrUndefined<PublicKey>(new BindingsType.Leaf.PublicKey()),
+    votingFor: new BindingsType.Leaf.Field(),
+    timing: AccountTiming,
+    permissions: Permissions,
+    zkapp: new BindingsType.Option.OrUndefined<{
+      appState: Field[];
+      verificationKey: { vk: { data: string; hash: Field }; txnVersion: UInt32 } | undefined;
+      actionState: Field[];
+      lastActionSlot: UInt32;
+      provedState: Bool;
+      zkappUri: string;
+    }>(ZkappAccount),
   },
 });
 type AccountUpdateBody = {
@@ -851,4 +848,5 @@ const Types: { [key: string]: BindingsType<any> } = {
   Account,
   AccountTiming,
   ZkappAccount,
+  VerificationKeyWithVersion,
 };

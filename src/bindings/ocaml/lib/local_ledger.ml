@@ -230,7 +230,7 @@ let proof_cache_db = Proof_cache_tag.create_identity_db ()
 let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
     (account_creation_fee : string)
     (network_state : Mina_base.Zkapp_precondition.Protocol_state.View.t) =
-  let signature_kind = Mina_signature_kind_type.Testnet in
+  let signature_kind = Mina_signature_kind.Testnet in
   let txn =
     Zkapp_command.write_all_proofs_to_disk ~signature_kind ~proof_cache_db txn
   in
@@ -241,7 +241,9 @@ let apply_zkapp_command_transaction l (txn : Zkapp_command.Stable.Latest.t)
       ~global_slot:network_state.global_slot_since_genesis
       ~state_view:network_state
       ~constraint_constants:
-        { Genesis_constants.Compiled.constraint_constants with
+        { (let (module G) = Genesis_constants.profiled () in
+           G.constraint_constants )
+          with
           account_creation_fee = Currency.Fee.of_string account_creation_fee
         }
       ledger txn

@@ -239,9 +239,9 @@ async function verifyAccountUpdate(
 
       let verificationKeyRaw = account.zkapp?.verificationKey;
       assert(verificationKeyRaw !== undefined, 'Account does not have a verification key');
-      let verificationKey = verificationKeyRaw.data;
+      let verificationKey = verificationKeyRaw.vk.data;
 
-      const isVkValid = await VerificationKey.checkValidity(verificationKeyRaw);
+      const isVkValid = await VerificationKey.checkValidity(verificationKeyRaw.vk);
       if (!isVkValid)
         throw Error(`The verification key hash is not consistent with the provided data`);
 

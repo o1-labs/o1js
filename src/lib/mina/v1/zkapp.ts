@@ -1279,7 +1279,7 @@ const ProofAuthorization = {
       }
       try {
         let account = Mina.getAccount(body.publicKey, body.tokenId);
-        return account.zkapp?.verificationKey?.hash ?? Field(0);
+        return account.zkapp?.verificationKey?.vk.hash ?? Field(0);
       } catch {
         return Field(0);
       }
