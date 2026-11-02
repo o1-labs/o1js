@@ -61,6 +61,8 @@ const PROGRAM_TOLERANCES: Record<
   // sha256 compile timing fluctuates ~10-15% on the new toolchain
   sha256: { compile: 1.2 },
   'sha256.sha256': { compile: 1.2 },
+  // ecdsa-ethers compile is ~22s and swings past the default +10% on native CI
+  'ecdsa-ethers': { compile: 1.2 },
 };
 
 const argv = minimist(process.argv.slice(2), {

@@ -16,7 +16,24 @@ This project adheres to
     _Security_ in case of vulnerabilities.
  -->
 
-## [Unreleased](https://github.com/o1-labs/o1js/compare/3.1.0...HEAD)
+## [Unreleased](https://github.com/o1-labs/o1js/compare/3.1.1...HEAD)
+
+### Fixed
+
+- Nested `@method` calls now refresh the callee's `self` cache onto the
+  witnessed account update. Using `callee.self` after `await callee.method()` no
+  longer fails at prove time (the DEX `redeemLiquidity` / `swapX` crash).
+  **Verification keys change for callers that use `callee.self` after a nested
+  call; those contracts must be recompiled.**
+  https://github.com/o1-labs/o1js/issues/2920
+- `fetchActions()` now checks that the blocks returned by the archive form one
+  contiguous chain: every block starts from the action state the previous block
+  ended with, and the first block starts from `fromActionState` when it is
+  given. A block that the endpoint dropped or duplicated used to pass validation
+  and yield an action state that could never match the chain; it now throws an
+  error that names the blocks. https://github.com/o1-labs/o1js/issues/2905
+
+## [3.1.1](https://github.com/o1-labs/o1js/compare/3.1.0...3.1.1) - 2026-10-23
 
 ### Fixed
 
@@ -26,12 +43,14 @@ This project adheres to
   (for example one that widens an earlier `requireEquals()`) now throws instead
   of silently replacing it, and the error message explaining the conflict is
   shown again. https://github.com/o1-labs/o1js/pull/2918
-- `fetchActions()` now checks that the blocks returned by the archive form one
-  contiguous chain: every block starts from the action state the previous block
-  ended with, and the first block starts from `fromActionState` when it is
-  given. A block that the endpoint dropped or duplicated used to pass validation
-  and yield an action state that could never match the chain; it now throws an
-  error that names the blocks. https://github.com/o1-labs/o1js/issues/2905
+- Fixed several `DynamicArray` correctness issues related to length changes,
+  element removal, membership checks, and canonical representation. Programs
+  using `DynamicArray` should be recompiled to pick up the fixes. Thanks to Dan
+  ([@auditinfra-io](https://github.com/auditinfra-io)) for reporting.
+- Fixed the release process so that a version bump no longer leaves
+  `package.json` and `package-lock.json` out of sync: `@o1js/native` is no
+  longer pinned in the committed `package.json` (the exact pin is injected at
+  publish time), so `npm ci` works immediately after bumping the version.
 
 ## [3.1.0](https://github.com/o1-labs/o1js/compare/3.0.0...3.1.0) - 2026-09-21
 
