@@ -55,10 +55,7 @@ type ZkappCommand = {
           receive: AuthRequired;
           setDelegate: AuthRequired;
           setPermissions: AuthRequired;
-          setVerificationKey: {
-            auth: AuthRequired;
-            txnVersion: UInt32;
-          };
+          setVerificationKey: AuthRequired;
           setZkappUri: AuthRequired;
           editActionState: AuthRequired;
           setTokenSymbol: AuthRequired;
@@ -197,10 +194,7 @@ type AccountUpdate = {
         receive: AuthRequired;
         setDelegate: AuthRequired;
         setPermissions: AuthRequired;
-        setVerificationKey: {
-          auth: AuthRequired;
-          txnVersion: UInt32;
-        };
+        setVerificationKey: AuthRequired;
         setZkappUri: AuthRequired;
         editActionState: AuthRequired;
         setTokenSymbol: AuthRequired;
@@ -343,10 +337,7 @@ type Account = {
     receive: AuthRequired;
     setDelegate: AuthRequired;
     setPermissions: AuthRequired;
-    setVerificationKey: {
-      auth: AuthRequired;
-      txnVersion: UInt32;
-    };
+    setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
     editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;

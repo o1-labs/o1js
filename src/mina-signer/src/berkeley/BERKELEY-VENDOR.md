@@ -59,7 +59,15 @@ git diff -w v2.9.0 HEAD -- src/bindings/lib/binable.ts                          
 git diff -w v2.9.0 HEAD -- src/bindings/mina-transaction/v1/transaction-leaves-bigint.ts  # = 0 lines
 git diff -w v2.9.0 HEAD -- src/bindings/mina-transaction/v1/transaction-leaves.ts          # = 0 lines
 git diff -w v2.9.0 HEAD -- src/bindings/mina-transaction/v1/derived-leaves.ts              # = 0 lines
-git diff -w v2.9.0 HEAD -- src/bindings/mina-transaction/gen/v1/transaction-json.ts        # import reorder only, no semantic change
+```
+
+The JSON shapes are reused too, but from the vendored Mesa snapshot
+(`../mesa/transaction-json.ts`): the current `gen/v1/transaction-json.ts` gives
+`setVerificationKey` as a bare authorization since the post-Mesa layout, and
+Berkeley, like Mesa, gives it as `{ auth, txnVersion }`.
+
+```
+git diff -w v2.9.0 bb34e65e7 -- src/bindings/mina-transaction/gen/v1/transaction-json.ts   # import reorder only, no semantic change
 ```
 
 ## Re-diff check (run if the shared bindings ever change)

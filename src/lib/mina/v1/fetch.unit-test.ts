@@ -136,7 +136,6 @@ console.log('regex tests complete 🎉');
 
 describe('Fetch', () => {
   test('preserves permissions from fetched accounts', () => {
-    const txnVersion = '17';
     const permissions = {
       editState: 'Proof',
       access: 'None',
@@ -144,10 +143,7 @@ describe('Fetch', () => {
       receive: 'Either',
       setDelegate: 'Impossible',
       setPermissions: 'Proof',
-      setVerificationKey: {
-        auth: 'Signature',
-        txnVersion,
-      },
+      setVerificationKey: 'Signature',
       setZkappUri: 'None',
       editActionState: 'Either',
       setTokenSymbol: 'Impossible',
@@ -183,7 +179,6 @@ describe('Fetch', () => {
 
     const account = parseFetchedAccount(fetchedAccountResponse.account);
 
-    expect(account.permissions.setVerificationKey.txnVersion.toString()).toEqual(txnVersion);
     expect(Types.Account.toJSON(account).permissions).toEqual(permissions);
   });
 

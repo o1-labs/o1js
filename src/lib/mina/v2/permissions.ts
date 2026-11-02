@@ -1,8 +1,4 @@
-import {
-  AuthorizationLevel,
-  AuthorizationLevelIdentifier,
-  VerificationKeyAuthorizationLevel,
-} from './authorization.js';
+import { AuthorizationLevel, AuthorizationLevelIdentifier } from './authorization.js';
 import { Field } from '../../provable/field.js';
 import { Provable } from '../../provable/provable.js';
 import * as BindingsLayout from '../../../bindings/mina-transaction/gen/v2/js-layout.js';
@@ -16,11 +12,7 @@ export type PermissionsDescription = {
   receive: AuthorizationLevelIdentifier | AuthorizationLevel;
   setDelegate: AuthorizationLevelIdentifier | AuthorizationLevel;
   setPermissions: AuthorizationLevelIdentifier | AuthorizationLevel;
-  // IMPORTANT TODO: we should be using special auth level identifiers here
-  setVerificationKey:
-    | AuthorizationLevelIdentifier
-    | AuthorizationLevel
-    | VerificationKeyAuthorizationLevel;
+  setVerificationKey: AuthorizationLevelIdentifier | AuthorizationLevel;
   setZkappUri: AuthorizationLevelIdentifier | AuthorizationLevel;
   editActionState: AuthorizationLevelIdentifier | AuthorizationLevel;
   setTokenSymbol: AuthorizationLevelIdentifier | AuthorizationLevel;
@@ -36,7 +28,7 @@ export class Permissions {
   receive: AuthorizationLevel;
   setDelegate: AuthorizationLevel;
   setPermissions: AuthorizationLevel;
-  setVerificationKey: VerificationKeyAuthorizationLevel;
+  setVerificationKey: AuthorizationLevel;
   setZkappUri: AuthorizationLevel;
   editActionState: AuthorizationLevel;
   setTokenSymbol: AuthorizationLevel;
@@ -51,7 +43,7 @@ export class Permissions {
     this.receive = AuthorizationLevel.from(descr.receive);
     this.setDelegate = AuthorizationLevel.from(descr.setDelegate);
     this.setPermissions = AuthorizationLevel.from(descr.setPermissions);
-    this.setVerificationKey = VerificationKeyAuthorizationLevel.from(descr.setVerificationKey);
+    this.setVerificationKey = AuthorizationLevel.from(descr.setVerificationKey);
     this.setZkappUri = AuthorizationLevel.from(descr.setZkappUri);
     this.editActionState = AuthorizationLevel.from(descr.editActionState);
     this.setTokenSymbol = AuthorizationLevel.from(descr.setTokenSymbol);
@@ -198,10 +190,7 @@ export class Permissions {
       receive: new AuthorizationLevel(x.receive),
       setDelegate: new AuthorizationLevel(x.setDelegate),
       setPermissions: new AuthorizationLevel(x.setPermissions),
-      setVerificationKey: new VerificationKeyAuthorizationLevel(
-        new AuthorizationLevel(x.setVerificationKey.auth),
-        x.setVerificationKey.txnVersion
-      ),
+      setVerificationKey: new AuthorizationLevel(x.setVerificationKey),
       setZkappUri: new AuthorizationLevel(x.setZkappUri),
       editActionState: new AuthorizationLevel(x.editActionState),
       setTokenSymbol: new AuthorizationLevel(x.setTokenSymbol),
@@ -218,5 +207,4 @@ export class Permissions {
 }
 
 AuthorizationLevel satisfies Provable<AuthorizationLevel>;
-VerificationKeyAuthorizationLevel satisfies Provable<VerificationKeyAuthorizationLevel>;
 Permissions satisfies Provable<Permissions>;

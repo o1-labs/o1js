@@ -3,10 +3,11 @@
 // vendored from o1js v2.9.0 (berkeley): src/bindings/mina-transaction/gen/v1/transaction-bigint.ts
 // rewired shell - the only deviations from the raw v2.9.0 snapshot are:
 //   1. all non-local imports repointed to the SHARED (current) bindings, which are
-//      byte-identical to v2.9.0 (from-layout, generic, leaves, transaction-json).
+//      byte-identical to v2.9.0 (from-layout, generic, leaves), except `Json`, which
+//      comes from the vendored Mesa snapshot (../mesa/transaction-json.js).
 //   2. `jsLayout` imported from the vendored ./js-layout.js (staticLength: 8).
 //   3. TransactionVersion overridden so empty() resolves to txnVersion 3 (berkeley)
-//      instead of reading the shared global txnVersion constant (= 4, Mesa).
+//      instead of reading the shared global txnVersion constant (the current one).
 // see ./BERKELEY-VENDOR.md for provenance and the byte-identity proofs.
 
 import {
@@ -32,11 +33,11 @@ import {
 } from '../../../bindings/mina-transaction/v1/transaction-leaves-bigint.js';
 import { GenericSignable } from '../../../bindings/lib/generic.js';
 import { SignableFromLayout, GenericLayout } from '../../../bindings/lib/from-layout.js';
-import * as Json from '../../../bindings/mina-transaction/gen/v1/transaction-json.js';
+import * as Json from '../mesa/transaction-json.js';
 import { jsLayout } from './js-layout.js';
 
 // berkeley txnVersion override. declared above `customTypes` (below) so that
-// SignableFromLayout closes over THIS binding, not the shared (Mesa) one.
+// SignableFromLayout closes over THIS binding, not the shared (current) one.
 // an explicit `export { TransactionVersion }` shadows the star-export of the
 // same name from the shared leaves, so consumers also get the berkeley version.
 const TransactionVersion = { ...MesaTransactionVersion, empty: () => UInt32(3) };

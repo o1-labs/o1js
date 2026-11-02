@@ -19,10 +19,10 @@ export const NetworkId = {
   },
 };
 
-// transaction-format era. 'mesa' is the default, and reproduces the mina-signer
-// 4.1.0 format; 'berkeley' reproduces the o1js v2.9.0 (mina-signer 3.0.7) one.
-// 'next' is the generated layout, for the network after the Mesa hard fork (a
-// placeholder name, until that hard fork has one).
+// transaction-format era. 'next' is the default: the format of the network after
+// the Mesa hard fork, whose setVerificationKey permission is a bare authorization
+// (a placeholder name, until that hard fork has one). 'mesa' reproduces the
+// mina-signer 4.1.0 format, and 'berkeley' the o1js v2.9.0 (mina-signer 3.0.7) one.
 // orthogonal to NetworkId - any era is valid with any network.
 export type Era = 'next' | 'mesa' | 'berkeley';
 

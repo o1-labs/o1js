@@ -35,7 +35,6 @@ import {
   testV2Encoding,
 } from './test/utils.js';
 
-import { protocolVersions } from '../../../bindings/crypto/constants.js';
 import { Types } from '../../../bindings/mina-transaction/v1/types.js';
 import { hashWithPrefix, packToFields } from '../../../lib/provable/crypto/poseidon.js';
 
@@ -290,10 +289,7 @@ const v1AccountUpdate: TypesV1.AccountUpdate = {
           receive: V1Auth.Signature,
           setDelegate: V1Auth.Proof,
           setPermissions: V1Auth.Proof,
-          setVerificationKey: {
-            auth: V1Auth.Signature,
-            txnVersion: new UInt32(protocolVersions.txnVersion),
-          },
+          setVerificationKey: V1Auth.Signature,
           setZkappUri: V1Auth.Signature,
           editActionState: V1Auth.Proof,
           setTokenSymbol: V1Auth.ProofOrSignature,

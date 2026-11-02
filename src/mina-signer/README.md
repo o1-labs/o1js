@@ -21,20 +21,29 @@ const client = new Client({ network: 'mainnet' });
 let keypair = client.genKeys();
 ```
 
-## Transaction era (Mesa vs berkeley)
+## Transaction era (next, Mesa and berkeley)
 
-By default the client signs zkApp commands in the current **Mesa** transaction
-format. To sign for the older **berkeley** format (o1js v2.9.0), pass `era`:
+By default the client signs zkApp commands in the transaction format of the
+network after the Mesa hard fork (`era: 'next'`), in which an account update's
+`setVerificationKey` permission is a bare authorization such as `'Signature'`.
+To sign for the **Mesa** format (mina-signer 4.1.0), or the older **berkeley**
+format (o1js v2.9.0), pass `era`:
 
 ```js
-const client = new Client({ network: 'devnet', era: 'berkeley' });
+const client = new Client({ network: 'mainnet', era: 'mesa' });
+const berkeleyClient = new Client({ network: 'devnet', era: 'berkeley' });
 ```
+
+Mesa and berkeley give `setVerificationKey` as `{ auth, txnVersion }`. Every
+zkApp command commits to the era's permissions layout, even one that does not
+set permissions, so a zkApp command signed for one era does not verify under
+another.
 
 `era` is orthogonal to `network` (any era is valid with any network) and only
 affects zkApp commands — payment, delegation, string, and field signing are
 identical across eras. When `era: 'berkeley'`, zkApp `appState` arrays must have
-length 8 (Mesa uses 32); a mismatch throws rather than silently producing an
-invalid signature.
+length 8 (Mesa and later use 32); a mismatch throws rather than silently
+producing an invalid signature.
 
 ```js
 let keypair = client.genKeys();

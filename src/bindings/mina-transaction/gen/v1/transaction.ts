@@ -71,7 +71,6 @@ type ProvableExtended<T, TValue, TJson> = GenericProvableExtended<T, TValue, TJs
 type Layout = GenericLayout<TypeMap>;
 
 type CustomTypes = {
-  TransactionVersion: ProvableExtended<UInt32, Value.TypeMap['UInt32'], Json.TypeMap['UInt32']>;
   ZkappUri: ProvableExtended<
     {
       data: string;
@@ -142,9 +141,9 @@ type CustomTypes = {
   >;
   VerificationKeyHash: ProvableExtended<Field, Value.TypeMap['Field'], Json.TypeMap['Field']>;
   ReceiptChainHash: ProvableExtended<Field, Value.TypeMap['Field'], Json.TypeMap['Field']>;
+  TransactionVersion: ProvableExtended<UInt32, Value.TypeMap['UInt32'], Json.TypeMap['UInt32']>;
 };
 let customTypes: CustomTypes = {
-  TransactionVersion,
   ZkappUri,
   TokenSymbol,
   StateHash,
@@ -155,6 +154,7 @@ let customTypes: CustomTypes = {
   MayUseToken,
   VerificationKeyHash,
   ReceiptChainHash,
+  TransactionVersion,
 };
 let { provableFromLayout, toJSONEssential, empty } = ProvableFromLayout<
   TypeMap,
@@ -195,10 +195,7 @@ type ZkappCommand = {
             receive: AuthRequired;
             setDelegate: AuthRequired;
             setPermissions: AuthRequired;
-            setVerificationKey: {
-              auth: AuthRequired;
-              txnVersion: UInt32;
-            };
+            setVerificationKey: AuthRequired;
             setZkappUri: AuthRequired;
             editActionState: AuthRequired;
             setTokenSymbol: AuthRequired;
@@ -398,10 +395,7 @@ type AccountUpdate = {
           receive: AuthRequired;
           setDelegate: AuthRequired;
           setPermissions: AuthRequired;
-          setVerificationKey: {
-            auth: AuthRequired;
-            txnVersion: UInt32;
-          };
+          setVerificationKey: AuthRequired;
           setZkappUri: AuthRequired;
           editActionState: AuthRequired;
           setTokenSymbol: AuthRequired;
@@ -600,10 +594,7 @@ type Account = {
     receive: AuthRequired;
     setDelegate: AuthRequired;
     setPermissions: AuthRequired;
-    setVerificationKey: {
-      auth: AuthRequired;
-      txnVersion: UInt32;
-    };
+    setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
     editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;

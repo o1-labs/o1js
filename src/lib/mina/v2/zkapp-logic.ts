@@ -210,7 +210,7 @@ function checkPermissions<State extends StateLayout, Event, Action>(
   );
   checkPermission(
     'setVerificationKey',
-    permissions.setVerificationKey.auth,
+    permissions.setVerificationKey,
     update.verificationKeyUpdate.set.toBoolean()
   );
   checkPermission('setZkappUri', permissions.setZkappUri, update.zkappUriUpdate.set.toBoolean());

@@ -168,17 +168,6 @@ const False = () => Bool(false);
  */
 type Permission = Types.AuthRequired;
 
-class VerificationKeyPermission {
-  constructor(public auth: Permission, public txnVersion: UInt32) {}
-
-  // TODO this class could be made incompatible with a plain object (breaking change)
-  // private _ = undefined;
-
-  static withCurrentVersion(perm: Permission) {
-    return new VerificationKeyPermission(perm, TransactionVersion.current());
-  }
-}
-
 let Permission = {
   /**
    * Modification is impossible.
@@ -226,58 +215,44 @@ let Permission = {
   }),
 
   /**
-   * Special Verification key permissions.
+   * Verification key permissions.
    *
-   * The difference to normal permissions is that `Permission.proof` and `Permission.impossible` are replaced by less restrictive permissions:
-   * - `impossible` is replaced by `impossibleDuringCurrentVersion`
-   * - `proof` is replaced by `proofDuringCurrentVersion`
+   * These are the same as the general permissions, under the names that earlier versions of o1js
+   * gave them. Their behaviour across hardforks no longer depends on the permission itself:
    *
-   * The issue is that a future hardfork which changes the proof system could mean that old verification keys can no longer
-   * be used to verify proofs in the new proof system, and the zkApp would have to be redeployed to adapt the verification key.
-   *
-   * Having either `impossible` or `proof` would mean that these zkApps can't be upgraded after this hypothetical hardfork, and would become unusable.
-   *
-   * Such a future hardfork would manifest as an increment in the "transaction version" of zkApps, which you can check with {@link TransactionVersion.current()}.
-   *
-   * The `impossibleDuringCurrentVersion` and `proofDuringCurrentVersion` have an additional `txnVersion` field.
-   * These permissions follow the same semantics of not upgradable, or only upgradable with proofs,
-   * _as long as_ the current transaction version is the same as the one on the permission.
-   *
-   * Once the current transaction version is higher than the one on the permission, the permission is treated as `signature`,
-   * and the zkApp can be redeployed with a signature of the original account owner.
+   * A hardfork that changes the proof system may leave a deployed verification key unable to verify
+   * proofs, and so increments the transaction version (see {@link TransactionVersion.current()}).
+   * An account's verification key records the transaction version it was set at. While that version
+   * is older than the current one, `access` accepts a signature where it would require a proof, and
+   * `setVerificationKey` accepts a signature where it would require a proof or be impossible, so
+   * that the account owner can replace the key. Setting a new key ends this.
    */
   VerificationKey: {
     /**
-     * Modification is impossible, as long as the network accepts the current {@link TransactionVersion}.
-     *
-     * After a hardfork that increments the transaction version, the permission is treated as `signature`.
+     * Modification is impossible, until a hardfork leaves the account's verification key outdated.
      */
-    impossibleDuringCurrentVersion: () =>
-      VerificationKeyPermission.withCurrentVersion(Permission.impossible()),
+    impossibleDuringCurrentVersion: (): Permission => Permission.impossible(),
 
     /**
      * Modification is always permitted
      */
-    none: () => VerificationKeyPermission.withCurrentVersion(Permission.none()),
+    none: (): Permission => Permission.none(),
 
     /**
-     * Modification is permitted by zkapp proofs only; as long as the network accepts the current {@link TransactionVersion}.
-     *
-     * After a hardfork that increments the transaction version, the permission is treated as `signature`.
+     * Modification is permitted by zkapp proofs only, until a hardfork leaves the account's
+     * verification key outdated.
      */
-    proofDuringCurrentVersion: () =>
-      VerificationKeyPermission.withCurrentVersion(Permission.proof()),
+    proofDuringCurrentVersion: (): Permission => Permission.proof(),
 
     /**
      * Modification is permitted by signatures only, using the private key of the zkapp account
      */
-    signature: () => VerificationKeyPermission.withCurrentVersion(Permission.signature()),
+    signature: (): Permission => Permission.signature(),
 
     /**
      * Modification is permitted by zkapp proofs or signatures
      */
-    proofOrSignature: () =>
-      VerificationKeyPermission.withCurrentVersion(Permission.proofOrSignature()),
+    proofOrSignature: (): Permission => Permission.proofOrSignature(),
   },
 };
 
@@ -324,7 +299,7 @@ interface Permissions extends Permissions_ {
    * key associated with the circuit tied to this account. Effectively
    * "upgradeability" of the smart contract.
    */
-  setVerificationKey: VerificationKeyPermission;
+  setVerificationKey: Permission;
 
   /**
    * The {@link Permission} corresponding to the ability to set the zkapp uri
@@ -470,18 +445,10 @@ let Permissions = {
     permissions: NonNullable<Types.Json.AccountUpdate['body']['update']['permissions']>
   ): Permissions => {
     return Object.fromEntries(
-      Object.entries(permissions).map(([key, value]) => {
-        if (key === 'setVerificationKey' && typeof value !== 'string') {
-          return [
-            key,
-            new VerificationKeyPermission(
-              Permissions.fromString(value.auth),
-              UInt32.from(value.txnVersion)
-            ),
-          ];
-        }
-        return [key, Permissions.fromString(value as AuthRequired)];
-      })
+      Object.entries(permissions).map(([key, value]) => [
+        key,
+        Permissions.fromString(value as AuthRequired),
+      ])
     ) as unknown as Permissions;
   },
 };

@@ -191,7 +191,7 @@ async function verifyAccountUpdate(
       case 'delegate':
         return perm.setDelegate;
       case 'verificationKey':
-        return perm.setVerificationKey.auth;
+        return perm.setVerificationKey;
       case 'permissions':
         return perm.setPermissions;
       case 'zkappUri':

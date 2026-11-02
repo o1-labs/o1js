@@ -34,7 +34,6 @@ export {
   Preconditions,
   Timing,
   Types,
-  VerificationKeyPermission,
   VerificationKeyWithHash,
   VerificationKeyWithVersion,
   ZkappAccount,
@@ -65,16 +64,54 @@ const VerificationKeyWithHash: BindingsType.Object<VerificationKeyWithHash> =
     keys: ['data', 'hash'],
     entries: { data: new BindingsType.Leaf.String(), hash: new BindingsType.Leaf.Field() },
   });
-type VerificationKeyPermission = { auth: AuthRequired; txnVersion: UInt32 };
-const VerificationKeyPermission: BindingsType.Object<VerificationKeyPermission> =
-  new BindingsType.Object({
-    name: 'VerificationKeyPermission',
-    keys: ['auth', 'txnVersion'],
-    entries: {
-      auth: new BindingsType.Leaf.AuthRequired(),
-      txnVersion: new BindingsType.Leaf.UInt32(),
-    },
-  });
+type Permissions = {
+  editState: AuthRequired;
+  access: AuthRequired;
+  send: AuthRequired;
+  receive: AuthRequired;
+  setDelegate: AuthRequired;
+  setPermissions: AuthRequired;
+  setVerificationKey: AuthRequired;
+  setZkappUri: AuthRequired;
+  editActionState: AuthRequired;
+  setTokenSymbol: AuthRequired;
+  incrementNonce: AuthRequired;
+  setVotingFor: AuthRequired;
+  setTiming: AuthRequired;
+};
+const Permissions: BindingsType.Object<Permissions> = new BindingsType.Object({
+  name: 'Permissions',
+  keys: [
+    'editState',
+    'access',
+    'send',
+    'receive',
+    'setDelegate',
+    'setPermissions',
+    'setVerificationKey',
+    'setZkappUri',
+    'editActionState',
+    'setTokenSymbol',
+    'incrementNonce',
+    'setVotingFor',
+    'setTiming',
+  ],
+  entries: {
+    editState: new BindingsType.Leaf.AuthRequired(),
+    access: new BindingsType.Leaf.AuthRequired(),
+    send: new BindingsType.Leaf.AuthRequired(),
+    receive: new BindingsType.Leaf.AuthRequired(),
+    setDelegate: new BindingsType.Leaf.AuthRequired(),
+    setPermissions: new BindingsType.Leaf.AuthRequired(),
+    setVerificationKey: new BindingsType.Leaf.AuthRequired(),
+    setZkappUri: new BindingsType.Leaf.AuthRequired(),
+    editActionState: new BindingsType.Leaf.AuthRequired(),
+    setTokenSymbol: new BindingsType.Leaf.AuthRequired(),
+    incrementNonce: new BindingsType.Leaf.AuthRequired(),
+    setVotingFor: new BindingsType.Leaf.AuthRequired(),
+    setTiming: new BindingsType.Leaf.AuthRequired(),
+  },
+});
 type Timing = {
   initialMinimumBalance: UInt64;
   cliffTime: UInt32;
@@ -204,79 +241,6 @@ const ZkappFeePayer: BindingsType.Object<ZkappFeePayer> = new BindingsType.Objec
   keys: ['body', 'authorization'],
   entries: { body: FeePayerBody, authorization: new BindingsType.Leaf.String() },
 });
-type Permissions = {
-  editState: AuthRequired;
-  access: AuthRequired;
-  send: AuthRequired;
-  receive: AuthRequired;
-  setDelegate: AuthRequired;
-  setPermissions: AuthRequired;
-  setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
-  setZkappUri: AuthRequired;
-  editActionState: AuthRequired;
-  setTokenSymbol: AuthRequired;
-  incrementNonce: AuthRequired;
-  setVotingFor: AuthRequired;
-  setTiming: AuthRequired;
-};
-const Permissions: BindingsType.Object<Permissions> = new BindingsType.Object({
-  name: 'Permissions',
-  keys: [
-    'editState',
-    'access',
-    'send',
-    'receive',
-    'setDelegate',
-    'setPermissions',
-    'setVerificationKey',
-    'setZkappUri',
-    'editActionState',
-    'setTokenSymbol',
-    'incrementNonce',
-    'setVotingFor',
-    'setTiming',
-  ],
-  entries: {
-    editState: new BindingsType.Leaf.AuthRequired(),
-    access: new BindingsType.Leaf.AuthRequired(),
-    send: new BindingsType.Leaf.AuthRequired(),
-    receive: new BindingsType.Leaf.AuthRequired(),
-    setDelegate: new BindingsType.Leaf.AuthRequired(),
-    setPermissions: new BindingsType.Leaf.AuthRequired(),
-    setVerificationKey: VerificationKeyPermission,
-    setZkappUri: new BindingsType.Leaf.AuthRequired(),
-    editActionState: new BindingsType.Leaf.AuthRequired(),
-    setTokenSymbol: new BindingsType.Leaf.AuthRequired(),
-    incrementNonce: new BindingsType.Leaf.AuthRequired(),
-    setVotingFor: new BindingsType.Leaf.AuthRequired(),
-    setTiming: new BindingsType.Leaf.AuthRequired(),
-  },
-});
-type EpochDataPrecondition = {
-  ledger: { hash: Option<Field>; totalCurrency: Option<Range<UInt64>> };
-  seed: Option<Field>;
-  startCheckpoint: Option<Field>;
-  lockCheckpoint: Option<Field>;
-  epochLength: Option<Range<UInt32>>;
-};
-const EpochDataPrecondition: BindingsType.Object<EpochDataPrecondition> = new BindingsType.Object({
-  name: 'EpochDataPrecondition',
-  keys: ['ledger', 'seed', 'startCheckpoint', 'lockCheckpoint', 'epochLength'],
-  entries: {
-    ledger: EpochLedgerPrecondition,
-    seed: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
-    startCheckpoint: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
-    lockCheckpoint: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
-    epochLength: new BindingsType.Option.ClosedInterval(new BindingsType.Leaf.UInt32()),
-  },
-});
-type VerificationKeyWithVersion = { vk: { data: string; hash: Field }; txnVersion: UInt32 };
-const VerificationKeyWithVersion: BindingsType.Object<VerificationKeyWithVersion> =
-  new BindingsType.Object({
-    name: 'VerificationKeyWithVersion',
-    keys: ['vk', 'txnVersion'],
-    entries: { vk: VerificationKeyWithHash, txnVersion: new BindingsType.Leaf.UInt32() },
-  });
 type AccountUpdateModification = {
   appState: Option<Field>[];
   delegate: Option<PublicKey>;
@@ -288,7 +252,7 @@ type AccountUpdateModification = {
     receive: AuthRequired;
     setDelegate: AuthRequired;
     setPermissions: AuthRequired;
-    setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
+    setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
     editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;
@@ -333,6 +297,31 @@ const AccountUpdateModification: BindingsType.Object<AccountUpdateModification> 
       timing: new BindingsType.Option.Flagged(Timing),
       votingFor: new BindingsType.Option.Flagged(new BindingsType.Leaf.StateHash()),
     },
+  });
+type EpochDataPrecondition = {
+  ledger: { hash: Option<Field>; totalCurrency: Option<Range<UInt64>> };
+  seed: Option<Field>;
+  startCheckpoint: Option<Field>;
+  lockCheckpoint: Option<Field>;
+  epochLength: Option<Range<UInt32>>;
+};
+const EpochDataPrecondition: BindingsType.Object<EpochDataPrecondition> = new BindingsType.Object({
+  name: 'EpochDataPrecondition',
+  keys: ['ledger', 'seed', 'startCheckpoint', 'lockCheckpoint', 'epochLength'],
+  entries: {
+    ledger: EpochLedgerPrecondition,
+    seed: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
+    startCheckpoint: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
+    lockCheckpoint: new BindingsType.Option.Flagged(new BindingsType.Leaf.Field()),
+    epochLength: new BindingsType.Option.ClosedInterval(new BindingsType.Leaf.UInt32()),
+  },
+});
+type VerificationKeyWithVersion = { vk: { data: string; hash: Field }; txnVersion: UInt32 };
+const VerificationKeyWithVersion: BindingsType.Object<VerificationKeyWithVersion> =
+  new BindingsType.Object({
+    name: 'VerificationKeyWithVersion',
+    keys: ['vk', 'txnVersion'],
+    entries: { vk: VerificationKeyWithHash, txnVersion: new BindingsType.Leaf.UInt32() },
   });
 type NetworkPrecondition = {
   snarkedLedgerHash: Option<Field>;
@@ -472,7 +461,7 @@ type Account = {
     receive: AuthRequired;
     setDelegate: AuthRequired;
     setPermissions: AuthRequired;
-    setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
+    setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
     editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;
@@ -541,7 +530,7 @@ type AccountUpdateBody = {
       receive: AuthRequired;
       setDelegate: AuthRequired;
       setPermissions: AuthRequired;
-      setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
+      setVerificationKey: AuthRequired;
       setZkappUri: AuthRequired;
       editActionState: AuthRequired;
       setTokenSymbol: AuthRequired;
@@ -655,7 +644,7 @@ type ZkappAccountUpdate = {
         receive: AuthRequired;
         setDelegate: AuthRequired;
         setPermissions: AuthRequired;
-        setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
+        setVerificationKey: AuthRequired;
         setZkappUri: AuthRequired;
         editActionState: AuthRequired;
         setTokenSymbol: AuthRequired;
@@ -746,7 +735,7 @@ type ZkappCommand = {
           receive: AuthRequired;
           setDelegate: AuthRequired;
           setPermissions: AuthRequired;
-          setVerificationKey: { auth: AuthRequired; txnVersion: UInt32 };
+          setVerificationKey: AuthRequired;
           setZkappUri: AuthRequired;
           editActionState: AuthRequired;
           setTokenSymbol: AuthRequired;
@@ -835,7 +824,6 @@ const Types: { [key: string]: BindingsType<any> } = {
   AccountUpdateModification,
   VerificationKeyWithHash,
   Permissions,
-  VerificationKeyPermission,
   Timing,
   Preconditions,
   NetworkPrecondition,

@@ -86,10 +86,7 @@ type FetchedAccount = {
     receive: AuthRequired;
     setDelegate: AuthRequired;
     setPermissions: AuthRequired;
-    setVerificationKey: {
-      auth: AuthRequired;
-      txnVersion: string;
-    };
+    setVerificationKey: AuthRequired;
     setZkappUri: AuthRequired;
     editActionState: AuthRequired;
     setTokenSymbol: AuthRequired;
@@ -553,10 +550,7 @@ const accountQuery = (publicKey: string, tokenId: string) => `{
       receive
       setDelegate
       setPermissions
-      setVerificationKey {
-        auth
-        txnVersion
-      }
+      setVerificationKey
       setZkappUri
       editActionState
       setTokenSymbol

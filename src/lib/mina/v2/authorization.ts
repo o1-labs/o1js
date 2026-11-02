@@ -1,11 +1,9 @@
 import { Bool } from '../../provable/bool.js';
 import { Field } from '../../provable/field.js';
-import { UInt32 } from '../../provable/int.js';
 import { PrivateKey, PublicKey } from '../../provable/crypto/signature.js';
 import { HashInput } from '../../provable/types/provable-derivers.js';
 import * as Bindings from '../../../bindings/mina-transaction/v2/index.js';
 import { NetworkId } from '../../../mina-signer/src/types.js';
-import { protocolVersions } from '../../../bindings/crypto/constants.js';
 
 export {
   AccountUpdateAuthorization,
@@ -14,7 +12,6 @@ export {
   AccountUpdateAuthorizationKindIdentifier,
   AccountUpdateAuthorizationKindWithZkappContext,
   AuthorizationLevelIdentifier,
-  VerificationKeyAuthorizationLevel,
   ZkappFeePaymentAuthorizationEnvironment,
   ZkappCommandAuthorizationEnvironment,
 };
@@ -209,90 +206,6 @@ export class AuthorizationLevel {
         return AuthorizationLevel.Impossible();
       default:
         return x;
-    }
-  }
-}
-
-class VerificationKeyAuthorizationLevel {
-  auth: AuthorizationLevel;
-  txnVersion: UInt32;
-
-  constructor(
-    auth: AuthorizationLevel,
-    txnVersion: UInt32 = UInt32.from(protocolVersions.txnVersion)
-  ) {
-    this.auth = auth;
-    this.txnVersion = txnVersion;
-  }
-
-  toJSON(): { auth: AuthorizationLevelIdentifier; txnVersion: string } {
-    return {
-      auth: this.auth.toJSON(),
-      txnVersion: this.txnVersion.toString(),
-    };
-  }
-
-  // private static get layout(): BindingsLayout {
-  //   return bindingsLayout.AccountUpdate
-  //     .get('body', 'update', 'permissions')
-  //     .unwrapOption()
-  //     .inner
-  //     .get('setVerificationKey')
-  //     .unwrapObject();
-  // }
-
-  static sizeInFields(): number {
-    return Bindings.Leaves.AuthRequired.sizeInFields();
-  }
-
-  static empty(): VerificationKeyAuthorizationLevel {
-    return new VerificationKeyAuthorizationLevel(AuthorizationLevel.empty(), UInt32.zero);
-  }
-
-  static toFields(_x: VerificationKeyAuthorizationLevel): Field[] {
-    throw new Error('TODO');
-    // return Bindings.AuthRequired.toFields(x);
-  }
-
-  static toAuxiliary(_x?: VerificationKeyAuthorizationLevel): any[] {
-    throw new Error('TODO');
-    // return Bindings.AuthRequired.toAuxiliary(x);
-  }
-
-  static fromFields(_fields: Field[], _aux: any[]): VerificationKeyAuthorizationLevel {
-    throw new Error('TODO');
-    /*
-    BindingsLayout.Object.fromFields(fields, aux)
-
-    const schema = {
-      auth: AuthorizationLevel.fromFields,
-      txnVersion: UInt32.fromFields,
-    };
-
-    return new VerificationKeyAuthorizationLevel(BindingsLayout.fromFields(VerificationKeyAuthorizationLevel.bindingsLayout, this, ));
-    */
-  }
-
-  static check(_x: VerificationKeyAuthorizationLevel) {
-    throw new Error('TODO');
-    // Bindings.AuthRequired.check(x);
-  }
-
-  static toValue(x: VerificationKeyAuthorizationLevel): VerificationKeyAuthorizationLevel {
-    return x;
-  }
-
-  static fromValue(x: VerificationKeyAuthorizationLevel): VerificationKeyAuthorizationLevel {
-    return x;
-  }
-
-  static from(
-    x: AuthorizationLevelIdentifier | AuthorizationLevel | VerificationKeyAuthorizationLevel
-  ): VerificationKeyAuthorizationLevel {
-    if (x instanceof VerificationKeyAuthorizationLevel) {
-      return x;
-    } else {
-      return new VerificationKeyAuthorizationLevel(AuthorizationLevel.from(x));
     }
   }
 }

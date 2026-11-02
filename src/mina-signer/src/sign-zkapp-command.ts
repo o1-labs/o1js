@@ -92,7 +92,7 @@ function signZkappCommand(
   zkappCommand_: Json.ZkappCommand,
   privateKeyBase58: string,
   networkId: NetworkId,
-  era: Era = 'mesa'
+  era: Era = 'next'
 ): Json.ZkappCommand {
   assertEraStateLengths(zkappCommand_, era);
   let { ZkappCommand } = layout(era);
@@ -124,7 +124,7 @@ function signZkappCommand(
 function getZkappCommandCommitments(
   zkappCommand_: Json.ZkappCommand,
   networkId: NetworkId,
-  era: Era = 'mesa'
+  era: Era = 'next'
 ): { commitment: bigint, fullCommitment: bigint } {
   assertEraStateLengths(zkappCommand_, era);
   let { ZkappCommand } = layout(era);
@@ -155,7 +155,7 @@ function verifyZkappCommandSignature(
   zkappCommand_: Json.ZkappCommand,
   publicKeyBase58: string,
   networkId: NetworkId,
-  era: Era = 'mesa',
+  era: Era = 'next',
   feePayerPublicKeyBase58?: string
 ) {
   assertEraStateLengths(zkappCommand_, era);
@@ -203,7 +203,7 @@ function verifyAccountUpdateSignature(
 function transactionCommitments(
   zkappCommand: ZkappCommand,
   networkId: NetworkId,
-  era: Era = 'mesa'
+  era: Era = 'next'
 ) {
   if (!isCallDepthValid(zkappCommand)) {
     throw Error('zkapp command: invalid call depth');
@@ -246,7 +246,7 @@ function accountUpdatesToCallForest<A extends { body: { callDepth: number } }>(
   return forest;
 }
 
-function accountUpdateHash(update: AccountUpdate, networkId: NetworkId, era: Era = 'mesa') {
+function accountUpdateHash(update: AccountUpdate, networkId: NetworkId, era: Era = 'next') {
   let { AccountUpdate } = layout(era);
   assertAuthorizationKindValid(update);
   let input = AccountUpdate.toInput(update);
@@ -257,7 +257,7 @@ function accountUpdateHash(update: AccountUpdate, networkId: NetworkId, era: Era
 function callForestHash(
   forest: CallForest<AccountUpdate>,
   networkId: NetworkId,
-  era: Era = 'mesa'
+  era: Era = 'next'
 ): bigint {
   let hash = (a: AccountUpdate, nid: NetworkId) => accountUpdateHash(a, nid, era);
   return callForestHashGeneric(forest, hash, hashWithPrefix, 0n, networkId);
@@ -291,7 +291,7 @@ type FeePayer = ZkappCommand['feePayer'];
 function createFeePayer(feePayer: FeePayer['body']): FeePayer {
   return { authorization: '', body: feePayer };
 }
-function feePayerHash(feePayer: FeePayer, networkId: NetworkId, era: Era = 'mesa') {
+function feePayerHash(feePayer: FeePayer, networkId: NetworkId, era: Era = 'next') {
   let accountUpdate = accountUpdateFromFeePayer(feePayer, era);
   return accountUpdateHash(accountUpdate, networkId, era);
 }
@@ -301,7 +301,7 @@ function accountUpdateFromFeePayer(
     body: { fee, nonce, publicKey, validUntil },
     authorization: signature,
   }: FeePayer,
-  era: Era = 'mesa'
+  era: Era = 'next'
 ): AccountUpdate {
   let { AccountUpdate } = layout(era);
   let { body } = AccountUpdate.empty();

@@ -420,7 +420,7 @@ class Account<State extends StateLayout = 'GenericState'> {
       checkPermission('incrementNonce', this.permissions.incrementNonce, update.incrementNonce.toBoolean());
       checkPermission('setDelegate', this.permissions.setDelegate, update.delegateUpdate.set.toBoolean());
       checkPermission('setPermissions', this.permissions.setPermissions, update.permissionsUpdate.set.toBoolean());
-      checkPermission('setVerificationKey', this.permissions.setVerificationKey.auth, update.verificationKeyUpdate.set.toBoolean());
+      checkPermission('setVerificationKey', this.permissions.setVerificationKey, update.verificationKeyUpdate.set.toBoolean());
       checkPermission('setZkappUri', this.permissions.setZkappUri, update.zkappUriUpdate.set.toBoolean());
       checkPermission('setTokenSymbol', this.permissions.setTokenSymbol, update.tokenSymbolUpdate.set.toBoolean());
       checkPermission('setVotingFor', this.permissions.setVotingFor, update.votingForUpdate.set.toBoolean());

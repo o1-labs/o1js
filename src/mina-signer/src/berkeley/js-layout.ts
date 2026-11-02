@@ -1,6 +1,6 @@
 // @generated this file is auto-generated - don't edit it directly
 // vendored from o1js v2.9.0 (berkeley): src/bindings/mina-transaction/gen/v1/js-layout.ts
-// the ONLY semantic difference vs the current (Mesa) layout is staticLength: 8 (vs 32)
+// the ONLY semantic difference vs the Mesa layout (../mesa/js-layout.ts) is staticLength: 8 (vs 32)
 // on the zkApp state arrays. frozen snapshot - see ./BERKELEY-VENDOR.md.
 export { jsLayout };
 

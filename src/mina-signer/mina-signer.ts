@@ -38,7 +38,7 @@ class Client {
   private network: NetworkId;
   private era: Era;
 
-  constructor({ network, era = 'mesa' }: { network: NetworkId; era?: Era }) {
+  constructor({ network, era = 'next' }: { network: NetworkId; era?: Era }) {
     this.network = network;
     this.era = era;
   }
