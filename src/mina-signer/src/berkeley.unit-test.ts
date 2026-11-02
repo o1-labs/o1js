@@ -3,7 +3,7 @@
 import Client from '../mina-signer.js';
 import { signZkappCommand, verifyZkappCommandSignature } from './sign-zkapp-command.js';
 import { AccountUpdate as BerkeleyAU, TransactionVersion as BerkeleyTV } from './berkeley/transaction-bigint.js';
-import { AccountUpdate as MesaAU, TransactionVersion as MesaTV } from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import { AccountUpdate as MesaAU, TransactionVersion as MesaTV } from './mesa/transaction-bigint.js';
 import { berkeleyVectors as V } from './test-vectors/berkeley.js';
 
 export { run };
@@ -35,7 +35,7 @@ function run() {
   check('mesa TransactionVersion.empty() === 4', MesaTV.empty().toString() === '4');
 
   // ---------- legacy surface is era-invariant AND matches @3.0.7 ----------
-  let mesa = new Client({ network });
+  let mesa = new Client({ network, era: 'mesa' });
   let berkeley = new Client({ network, era: 'berkeley' });
 
   let payM = mesa.signPayment(V.payment.input as any, privateKey);

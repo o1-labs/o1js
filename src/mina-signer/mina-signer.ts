@@ -13,6 +13,7 @@ import {
 } from './src/utils.js';
 import * as TransactionJson from '../bindings/mina-transaction/gen/v1/transaction-json.js';
 import { ZkappCommand } from '../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import { ZkappCommand as ZkappCommandMesa } from './src/mesa/transaction-bigint.js';
 import { ZkappCommand as ZkappCommandBerkeley } from './src/berkeley/transaction-bigint.js';
 import { signZkappCommand, verifyZkappCommandSignature, getZkappCommandCommitments as getCommitments } from './src/sign-zkapp-command.js';
 import {
@@ -73,7 +74,9 @@ class Client {
     ) {
       throw Error('Public key not derivable from private key');
     }
-    let ZkappCommand_ = this.era === 'berkeley' ? ZkappCommandBerkeley : ZkappCommand;
+    let ZkappCommand_ = (
+      { next: ZkappCommand, mesa: ZkappCommandMesa, berkeley: ZkappCommandBerkeley } as const
+    )[this.era] as typeof ZkappCommand;
     let dummy = ZkappCommand_.toJSON(ZkappCommand_.empty());
     dummy.feePayer.body.publicKey = publicKey;
     dummy.memo = Memo.toBase58(Memo.empty());

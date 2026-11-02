@@ -1,7 +1,8 @@
 import { Bool, Field, Sign, UInt32 } from './field-bigint.js';
 import { PrivateKey, PublicKey } from './curve-bigint.js';
 import type { Json } from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
-import * as MesaLayout from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import * as NextLayout from '../../bindings/mina-transaction/gen/v1/transaction-bigint.js';
+import * as MesaLayout from './mesa/transaction-bigint.js';
 import * as BerkeleyLayout from './berkeley/transaction-bigint.js';
 import { hashWithPrefix, packToFields, prefixes } from './poseidon-bigint.js';
 import { Memo } from './memo.js';
@@ -9,16 +10,24 @@ import { Signature, signFieldElement, verifyFieldElement, zkAppBodyPrefix } from
 import { mocks } from '../../bindings/crypto/constants.js';
 import { NetworkId, Era } from './types.js';
 
-// the layout types are era-invariant (same TS shapes); only the runtime values
-// (staticLength of state arrays, default txnVersion) differ by era.
-type AccountUpdate = MesaLayout.AccountUpdate;
-type ZkappCommand = MesaLayout.ZkappCommand;
+// the layouts are walked generically, so the signing code is written against the
+// current ('next') types and the other eras' layouts are cast to them. their
+// runtime values differ: berkeley has state arrays of length 8 and txnVersion 3;
+// berkeley and Mesa give setVerificationKey as { auth, txnVersion }, which the
+// layout carries through to the commitment; Mesa's default txnVersion is 4.
+type AccountUpdate = NextLayout.AccountUpdate;
+type ZkappCommand = NextLayout.ZkappCommand;
 
-// select the era-specific transaction layout. berkeley and Mesa share byte-identical
-// serialization machinery and differ only in zkApp state-array length (8 vs 32) and the
-// default txnVersion (3 vs 4), both baked into the vendored berkeley layout.
-function layout(era: Era): typeof MesaLayout {
-  return era === 'berkeley' ? (BerkeleyLayout as typeof MesaLayout) : MesaLayout;
+// select the era-specific transaction layout.
+function layout(era: Era): typeof NextLayout {
+  switch (era) {
+    case 'berkeley':
+      return BerkeleyLayout as unknown as typeof NextLayout;
+    case 'mesa':
+      return MesaLayout as unknown as typeof NextLayout;
+    case 'next':
+      return NextLayout;
+  }
 }
 
 // berkeley zkApp state arrays are length 8 on the wire (Mesa is 32). guard berkeley
