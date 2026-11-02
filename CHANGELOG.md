@@ -18,6 +18,25 @@ This project adheres to
 
 ## [Unreleased](https://github.com/o1-labs/o1js/compare/3.0.0...HEAD)
 
+### Breaking changes
+
+- Upgraded the Mina protocol dependency to the post-Mesa transaction format
+  (transaction version 5). An account's verification key now records the
+  transaction version it was set at, as `zkapp.verificationKey = { vk: { data,
+  hash }, txnVersion }`, and `zkapp.zkappVersion` is removed. After a hard fork
+  that increments the transaction version, an account whose key is older
+  accepts a signature for `access` and `setVerificationKey` where those would
+  require a proof (or, for `setVerificationKey`, be impossible), until a new key
+  is set. https://github.com/MinaProtocol/mina/pull/19915
+- The `setVerificationKey` permission is a plain `Permission` /
+  `AuthorizationLevel`, without a `txnVersion`. `VerificationKeyPermission`
+  and `VerificationKeyAuthorizationLevel` are removed;
+  `Permissions.VerificationKey.*` still exist and return plain permissions.
+- mina-signer signs zkApp commands in the post-Mesa format by default (`era:
+  'next'`, a placeholder name). Pass `era: 'mesa'` to sign for the Mesa
+  network: every zkApp command commits to its era's format, so a command
+  signed for one era does not verify under another.
+
 ## [3.0.0](https://github.com/o1-labs/o1js/compare/ff6c201b...3.0.0) - 2026-08-18
 
 This is the **o1js 3.0.0** release, targeting the **Mesa** hard fork of the Mina
