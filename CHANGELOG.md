@@ -26,6 +26,12 @@ This project adheres to
   **Verification keys change for callers that use `callee.self` after a nested
   call; those contracts must be recompiled.**
   https://github.com/o1-labs/o1js/issues/2920
+- `fetchActions()` now checks that the blocks returned by the archive form one
+  contiguous chain: every block starts from the action state the previous block
+  ended with, and the first block starts from `fromActionState` when it is
+  given. A block that the endpoint dropped or duplicated used to pass validation
+  and yield an action state that could never match the chain; it now throws an
+  error that names the blocks. https://github.com/o1-labs/o1js/issues/2905
 
 ## [3.1.1](https://github.com/o1-labs/o1js/compare/3.1.0...3.1.1) - 2026-10-23
 

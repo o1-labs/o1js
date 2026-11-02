@@ -965,6 +965,36 @@ export function createActionsList(
     fetchedActions = fetchedActions.slice(1);
   }
 
+  // the blocks must form one contiguous chain: the first block starts from the
+  // requested action state, and every block starts from the action state the
+  // previous block ended with. a block that the endpoint dropped or duplicated
+  // still passes the per-block check below, so without this the derived action
+  // state silently diverges from the chain.
+  if (
+    fetchedActions.length !== 0 &&
+    actionStates.fromActionState !== undefined &&
+    fetchedActions[0].actionState.actionStateTwo !== actionStates.fromActionState
+  ) {
+    throw new Error(
+      `Actions for ${publicKey} do not start from the requested action state ${actionStates.fromActionState}: ` +
+        `the first block returned (${describeActionBlock(fetchedActions[0])}) starts from ` +
+        `${fetchedActions[0].actionState.actionStateTwo}. ` +
+        `The archive endpoint returned an incomplete action list. Please try a different Archive Node API endpoint.`
+    );
+  }
+  for (let i = 0; i + 1 < fetchedActions.length; i++) {
+    const current = fetchedActions[i].actionState.actionStateOne;
+    const next = fetchedActions[i + 1].actionState.actionStateTwo;
+    if (current !== next) {
+      throw new Error(
+        `Actions for ${publicKey} are not contiguous: the action state after the ` +
+          `${describeActionBlock(fetchedActions[i])} is ${current}, but the next block ` +
+          `(${describeActionBlock(fetchedActions[i + 1])}) starts from ${next}. ` +
+          `The archive endpoint returned an incomplete action list. Please try a different Archive Node API endpoint.`
+      );
+    }
+  }
+
   fetchedActions.forEach((actionBlock) => {
     let { actionData } = actionBlock;
     let latestActionState = Field(actionBlock.actionState.actionStateTwo);
@@ -1035,6 +1065,10 @@ export function createActionsList(
     }
   });
   return actionsList;
+}
+
+function describeActionBlock(block: FetchedAction) {
+  return `block ${block.blockInfo?.distanceFromMaxBlockHeight} blocks from the chain tip`;
 }
 
 /**
