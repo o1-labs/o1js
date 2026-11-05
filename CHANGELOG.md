@@ -32,6 +32,7 @@ This project adheres to
   `AuthorizationLevel`, without a `txnVersion`. `VerificationKeyPermission`
   and `VerificationKeyAuthorizationLevel` are removed;
   `Permissions.VerificationKey.*` still exist and return plain permissions.
+  https://github.com/MinaProtocol/mina/pull/19960
 - mina-signer signs zkApp commands in the post-Mesa format by default (`era:
   'next'`, a placeholder name). Pass `era: 'mesa'` to sign for the Mesa
   network: every zkApp command commits to its era's format, so a command
