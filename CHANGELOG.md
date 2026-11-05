@@ -27,16 +27,16 @@ This project adheres to
   that increments the transaction version, an account whose key is older
   accepts a signature for `access` and `setVerificationKey` where those would
   require a proof (or, for `setVerificationKey`, be impossible), until a new key
-  is set. https://github.com/MinaProtocol/mina/pull/19915
+  is set. https://github.com/MinaProtocol/mina/pull/19915 https://github.com/o1-labs/o1js/pull/2929
 - The `setVerificationKey` permission is a plain `Permission` /
   `AuthorizationLevel`, without a `txnVersion`. `VerificationKeyPermission`
   and `VerificationKeyAuthorizationLevel` are removed;
   `Permissions.VerificationKey.*` still exist and return plain permissions.
-  https://github.com/MinaProtocol/mina/pull/19960
+  https://github.com/MinaProtocol/mina/pull/19960 https://github.com/o1-labs/o1js/pull/2929
 - mina-signer signs zkApp commands in the post-Mesa format by default (`era:
   'next'`, a placeholder name). Pass `era: 'mesa'` to sign for the Mesa
   network: every zkApp command commits to its era's format, so a command
-  signed for one era does not verify under another.
+  signed for one era does not verify under another. https://github.com/o1-labs/o1js/pull/2929
 
 ## [3.0.0](https://github.com/o1-labs/o1js/compare/ff6c201b...3.0.0) - 2026-08-18
 
