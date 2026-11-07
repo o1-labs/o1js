@@ -16,8 +16,8 @@ import {
 /* # Field */
 
 /* The most basic type is Field, which is an element of a prime order field.
-   The field is the [Pasta Fp field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) 
-   of order 28948022309329048855892746252171976963363056481941560715954676764349967630337 
+   The field is the [Pasta Fp field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/)
+   of order 28948022309329048855892746252171976963363056481941560715954676764349967630337
 */
 
 // You can initialize literal field elements with numbers, booleans, or decimal strings
@@ -31,8 +31,8 @@ x1 = Field(37);
 console.assert(x0.equals(x1).toBoolean());
 
 /* You can perform arithmetic operations on field elements.
-   The arithmetic methods can take any "fieldy" values as inputs: 
-   Field, number, string, or boolean 
+   The arithmetic methods can take any "fieldy" values as inputs:
+   Field, number, string, or boolean
 */
 const b = Field(1);
 const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(0);
@@ -49,9 +49,9 @@ console.assert(smallBits.length === 32);
 
 /* There are lots of other useful method on field elements, like comparison methods.
    Try right-clicking on the Field type, or and peeking the definition to see what they are.
-  
+
    Or, you can look at the autocomplete list on a field element's methods. You can try typing
-   
+
    z.
 
    to see the methods on `z : Field` for example.
@@ -144,7 +144,7 @@ console.assert(!signature.verify(pubKey, msg1).toBoolean());
   This type represents points on the [Pallas elliptic curve](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/).
 
   It is a prime-order curve defined by the equation
-  
+
   y^2 = x^3 + 5
 */
 
