@@ -234,4 +234,43 @@ bounds proof is a function of (index, length), not index alone.
 **Relevant files:** `src/lib/provable/dynamic-array.ts`,
 `src/lib/provable/test/dynamic-array.unit-test.ts`
 
+---
+
+date: 2026-11-25 agent: claude session: circuit-value-assert-equals-message
+category: build-system severity: medium tags: [bindings, external-contributor,
+build, testing]
+
+---
+
+### No downloadable bindings for `main` HEAD, so external contributors can't build
+
+**Context:** Fixing #2919 (a TypeScript-only change in
+`src/lib/provable/types/circuit-value.ts`) from a fresh `--depth 1` clone
+without the `src/mina` submodule or an OCaml/Rust toolchain.
+
+**What happened:** `npm run build:bindings-download` prints "bindings have not
+been built for this commit" for `main` HEAD. The only recent `Checks` runs are
+`action_required` (fork PRs awaiting approval), and the nightly workflow builds
+WASM through `.github/actions/build-wasm` without uploading a `bindings.tar.gz`
+artifact. `npm run build` then falls back to `build:bindings-node`, which needs
+the submodule and the full toolchain. `tsc --noEmit` reports 363 errors, all
+cascading from the missing `src/bindings/compiled/node_bindings/*.cjs`.
+
+**Root cause:** Bindings artifacts only exist for commits whose `Checks` run
+actually executed, and nothing publishes them for `main` HEAD.
+
+**Resolution/Workaround:** For TS-only changes: (1) diff the `tsc --noEmit`
+error set with and without the change; identical sets mean no new type errors.
+(2) Apply the same edit to the compiled file in the published npm package
+(`dist/node/lib/...` is per-module, and `dist/node/index.js` only re-exports)
+and run the new test against that. Then let PR CI run the real suite.
+
+**Key takeaway:** Without a bindings artifact for your base commit, the
+published package plus an error-set diff is the fastest honest way to test a
+TS-only change.
+
+**Relevant files:** `src/bindings/scripts/download-bindings.sh`,
+`scripts/build/ts/build-node.sh`,
+`.github/workflows/nightly-node-compatibility.yml`
+
 <!-- END LOG -->

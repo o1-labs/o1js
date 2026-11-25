@@ -1,10 +1,11 @@
 import 'reflect-metadata';
+import { withMessage } from '../field.js';
+import { Provable } from '../provable.js';
 import { Field } from '../wrapped.js';
 import { HashInput, NonMethods } from './provable-derivers.js';
-import { Provable } from '../provable.js';
 import { AnyConstructor, FlexibleProvable } from './struct.js';
 
-export { CircuitValue, prop, arrayProp };
+export { CircuitValue, arrayProp, prop };
 
 /**
  * @deprecated `CircuitValue` is deprecated in favor of {@link Struct}, which features a simpler API and better typing.
@@ -118,8 +119,17 @@ abstract class CircuitValue {
     return Provable.equal(this.constructor as any, this, x);
   }
 
-  assertEquals(x: this) {
-    Provable.assertEqual(this, x);
+  /**
+   * Assert that this value equals `x`, field by field.
+   *
+   * @param message optional error message, prepended to the error when the assertion fails
+   */
+  assertEquals(x: this, message?: string) {
+    try {
+      Provable.assertEqual(this, x);
+    } catch (err) {
+      throw withMessage(err, message);
+    }
   }
 
   isConstant() {
