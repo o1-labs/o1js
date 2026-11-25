@@ -26,6 +26,10 @@ This project adheres to
   **Verification keys change for callers that use `callee.self` after a nested
   call; those contracts must be recompiled.**
   https://github.com/o1-labs/o1js/issues/2920
+- `assertEquals()` on `UInt32`, `UInt64`, `PublicKey` and other `CircuitValue`
+  types now accepts an optional error message, like `Field`, `Bool`, `UInt8` and
+  `Int64` already do. The circuit is unchanged.
+  https://github.com/o1-labs/o1js/issues/2919
 
 ## [3.1.1](https://github.com/o1-labs/o1js/compare/3.1.0...3.1.1) - 2026-10-23
 
